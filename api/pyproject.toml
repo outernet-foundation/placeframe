@@ -1,0 +1,23 @@
+[project]
+name = "api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "boto3==1.39.5",
+    "fastapi>=0.116.1",
+    "piccolo-admin>=1.11.0",
+    "piccolo[postgres]>=1.27.1",
+    "pydantic-settings>=2.10.1",
+    "uvicorn[standard]>=0.35.0",
+]
+
+[dependency-groups]
+dev = [
+    "boto3-stubs[s3]>=1.39.7",
+    "botocore-stubs>=1.38.46",
+]
+
+[tool.ruff]
+extend = "../pyproject.toml"

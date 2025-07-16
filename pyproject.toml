@@ -5,3 +5,15 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = []
+
+[tool.uv.workspace]
+members = ["api"]
+
+[dependency-groups]
+dev = ["ruff>=0.12.3"]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+
+[tool.ruff.lint]
+extend-select = ["I"]
