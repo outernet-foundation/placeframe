@@ -1,0 +1,33 @@
+{
+  "folders": [
+    {
+      "path": "."
+    },
+    {
+      "path": "api"
+    },
+    {
+      "path": "infra"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/__pycache__": true
+    },
+    "search.exclude": {
+      "**/__pycache__": true
+    },
+    "[python]": {
+      "editor.codeActionsOnSave": {
+        "source.fixAll.ruff": "explicit"
+      }
+    },
+    "[json]": {
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "python.languageServer": "Pylance",
+    "python.analysis.languageServerMode": "default",
+    "python.analysis.diagnosticMode": "workspace"
+  }
+}

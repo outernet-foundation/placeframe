@@ -3,6 +3,7 @@
         "tamasfe.even-better-toml",
         "ms-python.python",
         "charliermarsh.ruff",
-        "ms-azuretools.vscode-docker"
+        "ms-azuretools.vscode-docker",
+        "esbenp.prettier-vscode"
     ]
 }
