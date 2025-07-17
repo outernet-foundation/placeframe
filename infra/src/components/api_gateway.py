@@ -30,5 +30,13 @@ def create_http_api(lambda_function: aws.lambda_.Function) -> pulumi.Output[str]
         auto_deploy=True,
     )
 
-    # Exporting here is optional; return value lets caller decide
+    # ← NEW: allow API Gateway to invoke the Lambda
+    aws.lambda_.Permission(
+        resource_name="apiGatewayPermission",
+        action="lambda:InvokeFunction",
+        function=lambda_function.name,
+        principal="apigateway.amazonaws.com",
+        source_arn=api.execution_arn.apply(lambda arn: f"{arn}/*/*"),
+    )
+
     return api.api_endpoint

@@ -4,7 +4,11 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["pulumi>=3.183.0", "pulumi-aws>=6.83.0"]
+dependencies = [
+    "pulumi>=3.183.0",
+    "pulumi-aws>=6.83.0",
+    "pulumi-docker>=4.8.0",
+]
 
 [dependency-groups]
 dev = ["ruff>=0.12.3"]
