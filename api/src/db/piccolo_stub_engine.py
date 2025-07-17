@@ -1,8 +1,6 @@
 # Stub engine for piccolo to avoid connection hangs when no connection is available while running
 # commands that don't require a database connection
 
-from __future__ import annotations
-
 import typing
 
 from .piccolo_shims import PostgresEngine

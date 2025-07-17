@@ -30,7 +30,7 @@ services:
   api:
     build:
       context: ./api
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     working_dir: /app
     command: >
       bash -c "

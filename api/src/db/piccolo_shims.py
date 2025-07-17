@@ -1,7 +1,5 @@
 # Wrappers for some Piccolo functionality to provide type signatures that pass strict Pyright checks
 
-from __future__ import annotations
-
 from typing import Any, Dict, Tuple, Type, TypeVar
 
 from piccolo.columns import Column
