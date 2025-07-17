@@ -1,4 +1,10 @@
 {
+  "files.exclude": {
+    "**/__pycache__": true,
+  },
+  "search.exclude": {
+    "**/__pycache__": true,
+  },
   "[python]": {
     "editor.codeActionsOnSave": {
       "source.fixAll.ruff": "explicit"
