@@ -1,0 +1,10 @@
+name: plerion_infra
+description: Add your description here
+runtime:
+  name: python
+  options:
+    toolchain: uv
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: aws-python

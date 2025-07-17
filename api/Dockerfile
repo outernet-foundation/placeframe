@@ -9,7 +9,6 @@ WORKDIR /app
 
 # Copy dependency files first for better caching
 COPY pyproject.toml uv.lock ./
-COPY api/pyproject.toml ./api/
 
 # Install dependencies
 RUN uv sync --locked --no-install-project

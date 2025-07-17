@@ -29,8 +29,8 @@ services:
 
   api:
     build:
-      context: .
-      dockerfile: api/Dockerfile
+      context: api
+      dockerfile: Dockerfile
     working_dir: /app
     command: >
       bash -c "
