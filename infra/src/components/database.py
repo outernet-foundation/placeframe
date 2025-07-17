@@ -1,7 +1,8 @@
 import pulumi
 import pulumi_aws as aws
 
-from ..utils import get_default_subnet_ids
+from utils import get_default_subnet_ids
+
 from .network import create_postgres_security_group
 
 

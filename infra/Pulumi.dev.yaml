@@ -1,2 +1,8 @@
 config:
   aws:region: us-east-1
+  plerion_infra:rdsInstanceClass: db.t3.micro
+  plerion_infra:s3BucketName: dev-captures
+  plerion_infra:dynamoTableName: sessions
+  plerion_infra:dbUsername: temp
+  plerion_infra:dbPassword:
+    secure: AAABAMw0K6H7+8WZgc9sG+UzeBS04mPSo1M549oAet6/kvFS
