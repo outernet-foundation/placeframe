@@ -34,7 +34,7 @@ services:
     working_dir: /app/api
     command: >
       bash -c "
-        uv run piccolo migrations forwards all --trace &&
+        uv run db migrations forwards all --trace &&
         uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app --reload-include '**/*.py'
       "
     ports:

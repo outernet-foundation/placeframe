@@ -20,8 +20,8 @@ import subprocess
 import sys
 from typing import List
 
-LOCAL_CONF = "src.db.conf.local_conf"
-REMOTE_CONF = "src.db.conf.conf"
+LOCAL_CONF = "src.db.local_conf"
+REMOTE_CONF = "src.db.conf"
 
 
 # ----- command classification -------------------------------------------------

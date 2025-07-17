@@ -1,17 +1,20 @@
 from functools import lru_cache
 from typing import Optional
 
-from pydantic import AnyHttpUrl, ValidationError, model_validator
+from pydantic import AnyHttpUrl, PostgresDsn, ValidationError, model_validator
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    postgres_dsn: str
+    postgres_dsn: PostgresDsn
     piccolo_admin_user: str
     piccolo_admin_password: str
     s3_endpoint_url: Optional[AnyHttpUrl] = None
     s3_access_key: Optional[str] = None
     s3_secret_key: Optional[str] = None
+
+    class Config:
+        env_file = ".env"
 
     @model_validator(mode="after")
     def check_storage_config(self):
