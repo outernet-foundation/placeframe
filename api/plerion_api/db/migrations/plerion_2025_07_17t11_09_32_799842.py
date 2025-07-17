@@ -7,7 +7,7 @@ from piccolo.columns.defaults.uuid import UUID4
 from piccolo.columns.indexes import IndexMethod
 
 
-ID = "2025-07-17T10:35:35:349778"
+ID = "2025-07-17T11:09:32:799842"
 VERSION = "1.27.1"
 DESCRIPTION = ""
 
@@ -18,11 +18,11 @@ async def forwards():
     )
 
     manager.add_table(
-        class_name="Table", tablename="table", schema=None, columns=None
+        class_name="Capture", tablename="capture", schema=None, columns=None
     )
 
     manager.add_table(
-        class_name="Capture", tablename="capture", schema=None, columns=None
+        class_name="Table", tablename="table", schema=None, columns=None
     )
 
     manager.add_column(

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import typing
 
-from db.util.shims import PostgresEngine
+from plerion_api.db.util.shims import PostgresEngine
 
 
 class StubEngine(PostgresEngine):

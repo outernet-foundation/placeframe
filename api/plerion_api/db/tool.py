@@ -12,8 +12,8 @@ import os
 import subprocess
 import sys
 
-LOCAL_CONF = "src.db.conf.local"
-REMOTE_CONF = "src.db.conf.remote"
+LOCAL_CONF = "api.db.conf.local"
+REMOTE_CONF = "api.db.conf.remote"
 
 
 def _pick_conf(argv: list[str]) -> str | None:

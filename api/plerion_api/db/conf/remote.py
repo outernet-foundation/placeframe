@@ -1,5 +1,7 @@
-from db.util.stub_engine import StubEngine
+# from db.util.stub_engine import StubEngine
 from piccolo.conf.apps import AppRegistry
+
+from plerion_api.db.util.stub_engine import StubEngine
 
 # DB = PostgresEngine(
 #     config={
@@ -11,4 +13,4 @@ from piccolo.conf.apps import AppRegistry
 
 DB = StubEngine()
 
-APP_REGISTRY = AppRegistry(apps=["src.db.app", "piccolo_admin.piccolo_app"])
+APP_REGISTRY = AppRegistry(apps=["api.db.piccolo_app", "piccolo_admin.piccolo_app"])
