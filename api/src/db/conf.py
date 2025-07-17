@@ -7,7 +7,7 @@ DB = PostgresEngine(
     config={
         "dsn": str(get_settings().postgres_dsn),
     },
-    extensions=(),
+    extensions=("uuid-ossp",),
 )
 
 APP_REGISTRY = AppRegistry(apps=["src.db.app", "piccolo_admin.piccolo_app"])
