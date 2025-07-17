@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Sequence
 
 import pulumi_aws as aws
