@@ -7,6 +7,3 @@ config:
   plerion_infra:dbPassword:
     secure: AAABAH2DOU93xUn367kk2BV9aJMsM9efsb8H07dn6MIrnr9xF6ph/Q==
   plerion_infra:lambdaDockerfile: ../../api/Dockerfile.lambda
-  plerion_infra:piccoloAdminUser: admin
-  plerion_infra:piccoloAdminPassword:
-    secure: AAABAJ7XXvoJRQ5BEVRH5x4OkPq9QuECl1b22BJA/5eI9MjvF5ZT+Q==

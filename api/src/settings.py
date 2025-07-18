@@ -7,8 +7,6 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     postgres_dsn: PostgresDsn
-    piccolo_admin_user: str
-    piccolo_admin_password: str
     s3_endpoint_url: Optional[AnyHttpUrl] = None
     s3_access_key: Optional[str] = None
     s3_secret_key: Optional[str] = None

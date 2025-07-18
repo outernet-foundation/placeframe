@@ -3,9 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from mangum import Mangum
-from piccolo_admin.endpoints import create_admin
 
-from .db.app import APP_CONFIG
 from .db.conf import DB
 from .routers.captures import router as captures_router
 
@@ -31,7 +29,5 @@ app = FastAPI(
     lifespan=lifespan,
 )
 handler = Mangum(app)
-
-app.mount("/admin", create_admin(tables=APP_CONFIG.table_classes), name="admin")
 
 app.include_router(captures_router)

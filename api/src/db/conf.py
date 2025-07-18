@@ -10,4 +10,4 @@ DB = PostgresEngine(
     extensions=("uuid-ossp",),
 )
 
-APP_REGISTRY = AppRegistry(apps=["src.db.app", "piccolo_admin.piccolo_app"])
+APP_REGISTRY = AppRegistry(apps=["src.db.app"])
