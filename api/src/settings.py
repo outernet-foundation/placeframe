@@ -23,6 +23,7 @@ class Settings(BaseSettings):
             raise ValueError(
                 "S3_ACCESS_KEY and S3_SECRET_KEY are required when S3_ENDPOINT_URL is set."
             )
+        # test
         return self
 
 

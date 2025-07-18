@@ -115,7 +115,7 @@ def create_api_lambda(
     fn = aws.lambda_.Function(
         resource_name=resource_name,
         package_type="Image",
-        image_uri=image.image_name,  # Output[str]
+        image_uri=image.repo_digest,  # Output[str]
         role=role.arn,
         timeout=timeout_seconds,
         memory_size=memory_size,

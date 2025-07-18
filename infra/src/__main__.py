@@ -21,8 +21,6 @@ api_lambda = create_api_lambda(
     environment_vars={
         # Pulumi Inputs are OK here; secrets stay secret
         "POSTGRES_DSN": connection_string,
-        "PICCOLO_ADMIN_USER": config.require("piccoloAdminUser"),
-        "PICCOLO_ADMIN_PASS": config.require_secret("piccoloAdminPassword"),
         "CAPTURES_BUCKET": captures_bucket.bucket,
     },
     s3_bucket_arn=captures_bucket.arn,
