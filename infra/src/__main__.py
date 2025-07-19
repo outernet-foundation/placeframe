@@ -12,16 +12,16 @@ from components.storage import create_storage
 config = Config()
 
 # 0. VPC with security groups
-private_subnet_ids, lambda_sg, db_sg = vpc.create_vpc()
+my_vpc, lambda_sg, db_sg = vpc.create_vpc()
 
 # 1. S3 bucket (captures)
 captures_bucket = create_storage(config)
 
-create_minio(config, s3_bucket=captures_bucket)
+create_minio(config, vpc=my_vpc, s3_bucket=captures_bucket)
 
 # 2. Postgres database
 postgres_instance, connection_string = create_database(
-    config, db_sg, private_subnet_ids
+    config, db_sg, my_vpc.private_subnet_ids
 )
 
 # 3. Lambda (container image)
@@ -33,7 +33,7 @@ api_lambda = create_lambda(
         "CAPTURES_BUCKET": captures_bucket.bucket,
     },
     s3_bucket_arn=captures_bucket.arn,
-    vpc_subnet_ids=private_subnet_ids,
+    vpc_subnet_ids=my_vpc.private_subnet_ids,
     vpc_security_group_ids=[lambda_sg.id],
 )
 

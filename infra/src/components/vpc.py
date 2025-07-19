@@ -1,12 +1,9 @@
-from typing import Sequence
-
 import pulumi_aws.ec2 as ec2
 import pulumi_awsx as awsx
-from pulumi import Output
 
 
 def create_vpc() -> tuple[
-    Output[Sequence[str]],
+    awsx.ec2.Vpc,
     ec2.SecurityGroup,
     ec2.SecurityGroup,
 ]:
@@ -57,7 +54,7 @@ def create_vpc() -> tuple[
     )
 
     return (
-        vpc.private_subnet_ids,
+        vpc,
         lambda_sg,
         db_sg,
     )

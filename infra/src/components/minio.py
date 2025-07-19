@@ -9,6 +9,7 @@ from pulumi_awsx.ecs import FargateService
 
 def create_minio(
     config: Config,
+    vpc: awsx.ec2.Vpc,
     s3_bucket: aws.s3.Bucket,
 ) -> Output[str]:
     """
@@ -59,32 +60,54 @@ def create_minio(
 
     # Create an Application Load Balancer
     load_balancer = awsx.lb.ApplicationLoadBalancer(
-        "minio-lb",
-        listeners=[
+        "minio-lb", subnet_ids=vpc.public_subnet_ids
+    )
+
+    # Create target group for MinIO S3 API (port 9000)
+    api_target_group = aws.lb.TargetGroup(
+        "minio-api-tg",
+        port=9000,
+        protocol="HTTP",
+        vpc_id=vpc.vpc_id,
+        target_type="ip",  # Use "ip" for Fargate
+        health_check={"path": "/minio/health/live"},
+    )
+
+    # Create target group for MinIO Console (port 9001)
+    console_target_group = aws.lb.TargetGroup(
+        "minio-console-tg",
+        port=9001,
+        protocol="HTTP",
+        vpc_id=vpc.vpc_id,
+        target_type="ip",
+    )
+
+    # Create listener for MinIO API
+    aws.lb.Listener(
+        "minio-api-listener",
+        load_balancer_arn=load_balancer.load_balancer.arn,
+        port=80,
+        protocol="HTTP",
+        default_actions=[
             {
-                "port": 80,  # Listen on port 80 for incoming requests
-                "protocol": "HTTP",
-            },
-            {
-                "port": 9001,  # Web console
-                "protocol": "HTTP",
-            },
+                "type": "forward",
+                "target_group_arn": api_target_group.arn,
+            }
         ],
-        default_target_group={
-            "port": 9000,  # Target MinIO on port 9000
-            "protocol": "HTTP",
-            "health_check": {
-                "enabled": True,
-                "protocol": "HTTP",
-                "path": "/minio/health/live",
-                "interval": 30,
-                "timeout": 5,
-                "healthy_threshold": 2,
-                "unhealthy_threshold": 2,
-                "matcher": "200",
-                "port": "traffic-port",
-            },
-        },
+    )
+
+    # Create listener for MinIO Console
+    aws.lb.Listener(
+        "minio-console-listener",
+        load_balancer_arn=load_balancer.load_balancer.arn,
+        port=9001,
+        protocol="HTTP",
+        default_actions=[
+            {
+                "type": "forward",
+                "target_group_arn": console_target_group.arn,
+            }
+        ],
     )
 
     # Create an ECS cluster for MinIO
@@ -94,7 +117,6 @@ def create_minio(
     minio = FargateService(
         "minioTool",
         cluster=cluster.arn,
-        assign_public_ip=True,
         task_definition_args={
             "task_role": {"role_arn": task_role.arn},
             "container": {
@@ -124,13 +146,34 @@ def create_minio(
                 ],
                 "port_mappings": [
                     {
-                        "container_port": 9000,
+                        "container_port": 9000,  # MinIO API
                         "host_port": 9000,
-                        "target_group": load_balancer.default_target_group,
+                        "protocol": "tcp",
+                    },
+                    {
+                        "container_port": 9001,  # MinIO Console
+                        "host_port": 9001,
+                        "protocol": "tcp",
                     },
                 ],
             },
         },
+        network_configuration={
+            "subnets": vpc.private_subnet_ids,
+            "assign_public_ip": False,  # MinIO should not be publicly accessible
+        },
+        load_balancers=[
+            {
+                "target_group_arn": api_target_group.arn,
+                "container_name": "minio",
+                "container_port": 9000,
+            },
+            {
+                "target_group_arn": console_target_group.arn,
+                "container_name": "minio",
+                "container_port": 9001,
+            },
+        ],
         desired_count=1,
     )
 
@@ -139,6 +182,7 @@ def create_minio(
 
     # Export URLs and service info
     pulumi.export("minioServiceName", minio.service.name)
-    pulumi.export("minioUrl", minio_url)
+    pulumi.export("minioApiUrl", minio_url.apply(lambda url: f"{url}:9000"))
+    pulumi.export("minioConsoleUrl", minio_url.apply(lambda url: f"{url}:9001"))
 
     return minio_url
