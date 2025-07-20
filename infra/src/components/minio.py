@@ -6,7 +6,7 @@ import pulumi_awsx as awsx
 from pulumi import Config, Output
 from pulumi_awsx.ecs import FargateService
 
-from util import ALLOW_ALL_EGRESS
+from util import ALLOW_ALL_EGRESS, add_security_group_cross_reference
 
 
 def create_minio(
@@ -14,6 +14,12 @@ def create_minio(
     vpc: awsx.ec2.Vpc,
     s3_bucket: aws.s3.Bucket,
 ) -> Output[str]:
+    aws.cloudwatch.LogGroup(
+        "minio-log-group",
+        name="/ecs/minio",
+        retention_in_days=7,
+    )
+
     # Create task role with S3 access for MinIO
     task_role = aws.iam.Role(
         "minio-task-role",
@@ -74,7 +80,7 @@ def create_minio(
         policy_arn="arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
     )
 
-    # Create security group for the load balancer
+    # Create load balancer security group
     lb_security_group = aws.ec2.SecurityGroup(
         "minio-lb-sg",
         vpc_id=vpc.vpc_id,
@@ -94,25 +100,20 @@ def create_minio(
         ],
     )
 
-    # Create security group for ECS tasks
+    # Create ECS security group
     ecs_security_group = aws.ec2.SecurityGroup(
         "minio-ecs-sg",
         vpc_id=vpc.vpc_id,
-        ingress=[
-            {
-                "protocol": "tcp",
-                "from_port": 9000,
-                "to_port": 9000,
-                "security_groups": [lb_security_group.id],
-            },
-            {
-                "protocol": "tcp",
-                "from_port": 9001,
-                "to_port": 9001,
-                "security_groups": [lb_security_group.id],
-            },
-        ],
         egress=ALLOW_ALL_EGRESS,
+    )
+
+    # Add cross-reference rules between load balancer and ECS
+    add_security_group_cross_reference(
+        source_sg=lb_security_group,
+        target_sg=ecs_security_group,
+        ports=[9000, 9001],
+        source_name="lb",
+        target_name="ecs",
     )
 
     # Create an Application Load Balancer with explicit security groups
