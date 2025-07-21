@@ -4,10 +4,10 @@ config:
   plerion_infra:rdsInstanceClass: db.t3.micro
   plerion_infra:s3BucketName: dev-captures
   plerion_infra:dynamoTableName: sessions
-  plerion_infra:dbUsername: plerion_admin
-  plerion_infra:dbPassword:
+  plerion_infra:postgres-user: plerion_admin
+  plerion_infra:postgres-password:
     secure: AAABAH2DOU93xUn367kk2BV9aJMsM9efsb8H07dn6MIrnr9xF6ph/Q==
   plerion_infra:lambdaDockerfile: ../../api/Dockerfile.lambda
-  plerion_infra:minioAccessKey: admin
-  plerion_infra:minioSecretKey:
+  plerion_infra:cloudbeaver-user: admin
+  plerion_infra:cloudbeaver-password:
     secure: AAABAJGmArPY7zVb44f7eMzSAhFx08BgxiGvZdItqD72sPZpGZQuhA==

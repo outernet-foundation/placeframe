@@ -11,8 +11,8 @@ def create_database(
     subnet_ids: Input[Sequence[Input[str]]],
 ) -> tuple[aws.rds.Instance, Output[str]]:
     instance_class: str = config.require("rdsInstanceClass")
-    db_user: str = config.require("dbUsername")
-    db_password_output = config.require_secret("dbPassword")
+    db_user: str = config.require("postgres-user")
+    db_password_output = config.require_secret("postgres-password")
 
     # Subnet group over default VPC subnets (sync lookups OK in small stacks).
     subnet_group = aws.rds.SubnetGroup(

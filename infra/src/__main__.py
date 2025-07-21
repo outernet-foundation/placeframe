@@ -72,6 +72,7 @@ create_cloudbeaver(
     vpc=vpc,
     cluster=cluster,
     security_group=cloudbeaver_security_group,
+    db=postgres_instance,
 )
 
 # 3. Lambda (container image)
