@@ -6,6 +6,8 @@ import pulumi_awsx as awsx
 from pulumi import Config
 from pulumi_awsx.ecs import FargateService
 
+from util import ALLOW_ALL_EGRESS
+
 
 def create_cloudbeaver(
     config: Config,
@@ -60,8 +62,24 @@ def create_cloudbeaver(
         ]
     )
 
+    alb_sg = aws.ec2.SecurityGroup(
+        "alb-sg",
+        vpc_id=vpc.vpc_id,
+        ingress=[{
+            "protocol":  "tcp",
+            "from_port": 80,
+            "to_port":   80,
+            "cidr_blocks": ["0.0.0.0/0"],
+        }],
+        egress=ALLOW_ALL_EGRESS,
+    )
+
     # Create a load balancer for CloudBeaver
-    load_balancer = awsx.lb.ApplicationLoadBalancer("cloudbeaver-lb", default_target_group_port=8978)
+    load_balancer = awsx.lb.ApplicationLoadBalancer(
+        "cloudbeaver-lb-2",
+        security_groups=[alb_sg.id],
+        subnet_ids=vpc.public_subnet_ids, 
+        default_target_group_port=8978)
 
     config_json = json.dumps(
         {
@@ -79,13 +97,28 @@ def create_cloudbeaver(
         }
     )
 
+    service_sg = aws.ec2.SecurityGroup(
+        "service-sg",
+        vpc_id=vpc.vpc_id,
+        description="Allow ALB to talk to CloudBeaver containers",
+        ingress=[{
+            "protocol":     "tcp",
+            "from_port":    8978,
+            "to_port":      8978,
+            "security_groups": [alb_sg.id],   # only ALB can connect
+        }],
+        egress=ALLOW_ALL_EGRESS,
+    )
     # Create the CloudBeaver ECS service
     FargateService(
         "cloudbeaver-service",
         cluster=cluster.arn,
         network_configuration={
             "subnets": vpc.private_subnet_ids,
-            "security_groups": [security_group.id],
+            "security_groups": [
+                security_group.id,
+                service_sg.id,
+            ],
         },
         desired_count=1,
         task_definition_args={
@@ -179,4 +212,7 @@ def create_cloudbeaver(
         },
     )
 
-    pulumi.export("cloudbeaverUrl", load_balancer.load_balancer.dns_name)
+    pulumi.export(
+        "cloudbeaverUrl", 
+        load_balancer.load_balancer.dns_name.apply(lambda dns_name: f"http://{dns_name}")
+    )
