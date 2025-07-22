@@ -22,6 +22,8 @@ vpc = awsx.ec2.Vpc(
     nat_gateways={
         "strategy": awsx.ec2.NatGatewayStrategy.SINGLE,
     },
+    enable_dns_hostnames=True,  # Add these
+    enable_dns_support=True,  # explicitly
 )
 
 # Security group for Lambda functions: no inbound, all outbound

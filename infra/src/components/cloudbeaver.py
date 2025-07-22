@@ -47,10 +47,11 @@ def create_cloudbeaver(
                 "security_groups": [security_group.id],
             }
         ],
+        egress=ALLOW_ALL_EGRESS,
     )
 
     # Create mount targets for the EFS in each private subnet of our VPC, so CloudBeaver can access it
-    vpc.private_subnet_ids.apply(
+    mount_targets = vpc.private_subnet_ids.apply(
         lambda subnet_ids: [
             aws.efs.MountTarget(
                 f"efs-mount-{i}",
@@ -65,12 +66,14 @@ def create_cloudbeaver(
     alb_sg = aws.ec2.SecurityGroup(
         "alb-sg",
         vpc_id=vpc.vpc_id,
-        ingress=[{
-            "protocol":  "tcp",
-            "from_port": 80,
-            "to_port":   80,
-            "cidr_blocks": ["0.0.0.0/0"],
-        }],
+        ingress=[
+            {
+                "protocol": "tcp",
+                "from_port": 80,
+                "to_port": 80,
+                "cidr_blocks": ["0.0.0.0/0"],
+            }
+        ],
         egress=ALLOW_ALL_EGRESS,
     )
 
@@ -78,40 +81,27 @@ def create_cloudbeaver(
     load_balancer = awsx.lb.ApplicationLoadBalancer(
         "cloudbeaver-lb-2",
         security_groups=[alb_sg.id],
-        subnet_ids=vpc.public_subnet_ids, 
-        default_target_group_port=8978)
-
-    config_json = json.dumps(
-        {
-            "connections": {
-                "postgres": {
-                    "provider": "postgresql",
-                    "configuration": {
-                        "host": "${POSTGRES_HOST}",
-                        "database": "postgres",
-                        "user": "${POSTGRES_USER}",
-                        "password": "${POSTGRES_PASSWORD}",
-                    },
-                }
-            }
-        }
+        subnet_ids=vpc.public_subnet_ids,
+        default_target_group_port=8978,
     )
 
     service_sg = aws.ec2.SecurityGroup(
         "service-sg",
         vpc_id=vpc.vpc_id,
         description="Allow ALB to talk to CloudBeaver containers",
-        ingress=[{
-            "protocol":     "tcp",
-            "from_port":    8978,
-            "to_port":      8978,
-            "security_groups": [alb_sg.id],   # only ALB can connect
-        }],
+        ingress=[
+            {
+                "protocol": "tcp",
+                "from_port": 8978,
+                "to_port": 8978,
+                "security_groups": [alb_sg.id],  # only ALB can connect
+            }
+        ],
         egress=ALLOW_ALL_EGRESS,
     )
     # Create the CloudBeaver ECS service
     FargateService(
-        "cloudbeaver-service",
+        "cloudbeaver-service-2",
         cluster=cluster.arn,
         network_configuration={
             "subnets": vpc.private_subnet_ids,
@@ -121,30 +111,40 @@ def create_cloudbeaver(
             ],
         },
         desired_count=1,
+        opts=pulumi.ResourceOptions(depends_on=mount_targets),
         task_definition_args={
             "execution_role": {
                 "args": {
                     "inline_policies": [
                         {
                             "policy": pulumi.Output.all(
-                                postgres_secret.arn,
-                                cloudbeaver_secret.arn
-                            ).apply(lambda arns: json.dumps({
-                                "Version": "2012-10-17",
-                                "Statement": [
+                                postgres_secret.arn, cloudbeaver_secret.arn
+                            ).apply(
+                                lambda arns: json.dumps(
                                     {
-                                        "Effect":   "Allow",
-                                        "Action":   "secretsmanager:GetSecretValue",
-                                        "Resource": arns,
+                                        "Version": "2012-10-17",
+                                        "Statement": [
+                                            {
+                                                "Effect": "Allow",
+                                                "Action": "secretsmanager:GetSecretValue",
+                                                "Resource": arns,
+                                            }
+                                        ],
                                     }
-                                ]
-                            }))
+                                )
+                            )
                         }
                     ]
                 }
             },
             "volumes": [
-                {"name": "efs", "efs_volume_configuration": {"file_system_id": efs.id}},
+                {
+                    "name": "efs",
+                    "efs_volume_configuration": {
+                        "file_system_id": efs.id,
+                        "transit_encryption": "ENABLED",
+                    },
+                },
             ],
             "containers": {
                 "cloudbeaver-init": {
@@ -154,10 +154,34 @@ def create_cloudbeaver(
                     "command": [
                         "sh",
                         "-c",
-                        f"mkdir -p /opt/cloudbeaver/conf && cat > /opt/cloudbeaver/conf/initial-data-sources.conf << 'EOF'\n{config_json}\nEOF",
+                        "\n".join(
+                            [
+                                "mkdir -p /opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver",
+                                "cat <<EOF > /opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver/data-sources.json",
+                                json.dumps(
+                                    {
+                                        "connections": {
+                                            "postgres": {
+                                                "provider": "postgresql",
+                                                "configuration": {
+                                                    "host": "${POSTGRES_HOST}",
+                                                    "database": "postgres",
+                                                    "user": "${POSTGRES_USER}",
+                                                    "password": "${POSTGRES_PASSWORD}",
+                                                },
+                                            }
+                                        }
+                                    }
+                                ),
+                                "EOF",
+                            ]
+                        ),
                     ],
                     "mount_points": [
-                        {"source_volume": "efs", "container_path": "/opt/cloudbeaver"}
+                        {
+                            "source_volume": "efs",
+                            "container_path": "/opt/cloudbeaver/workspace",
+                        }
                     ],
                     "environment": [
                         {
@@ -187,7 +211,10 @@ def create_cloudbeaver(
                         }
                     ],
                     "mount_points": [
-                        {"source_volume": "efs", "container_path": "/opt/cloudbeaver"}
+                        {
+                            "source_volume": "efs",
+                            "container_path": "/opt/cloudbeaver/workspace",
+                        }
                     ],
                     "environment": [
                         {
@@ -213,6 +240,8 @@ def create_cloudbeaver(
     )
 
     pulumi.export(
-        "cloudbeaverUrl", 
-        load_balancer.load_balancer.dns_name.apply(lambda dns_name: f"http://{dns_name}")
+        "cloudbeaverUrl",
+        load_balancer.load_balancer.dns_name.apply(
+            lambda dns_name: f"http://{dns_name}"
+        ),
     )
