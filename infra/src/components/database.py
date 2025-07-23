@@ -33,6 +33,16 @@ def create_database(
         skip_final_snapshot=True,
     )
 
+    # postgres_provider = postgresql.Provider(
+    #     "postgres-provider",
+    #     host=db_instance.address,
+    #     port=5432,
+    #     username=config.require("postgres-user"),
+    #     password=config.require_secret("postgres-password"),
+    #     database="postgres",  # Connect to default database first
+    #     sslmode="require"
+    # )
+
     # Export a connection string as an Output[str]. Note we DO NOT stringify the secret
     # at plan time; Pulumi will handle secret propagation.
     connection_string = Output.concat(

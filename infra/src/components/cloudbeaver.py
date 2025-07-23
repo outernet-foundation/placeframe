@@ -107,10 +107,23 @@ def create_cloudbeaver(
 
     # Create a load balancer for CloudBeaver
     load_balancer = awsx.lb.ApplicationLoadBalancer(
-        "cloudbeaver-lb-2",
+        "cloudbeaver-lb",
         security_groups=[alb_sg.id],
         subnet_ids=vpc.public_subnet_ids,
-        default_target_group_port=8978,
+        default_target_group=awsx.lb.TargetGroupArgs(
+            port=8978,
+            # Wait up to 60 s for in‑flight requests to drain before deregistering a target
+            deregistration_delay=60,
+            health_check=aws.lb.TargetGroupHealthCheckArgs(
+                path="/health",
+                protocol="HTTP",
+                matcher="200-299",
+                interval=30,
+                timeout=5,
+                healthy_threshold=3,
+                unhealthy_threshold=2,
+            ),
+        ),
     )
 
     service_sg = aws.ec2.SecurityGroup(
@@ -132,6 +145,8 @@ def create_cloudbeaver(
     FargateService(
         "cloudbeaver-service",
         cluster=cluster.arn,
+        desired_count=1,
+        opts=pulumi.ResourceOptions(depends_on=mount_targets),
         network_configuration={
             "subnets": vpc.private_subnet_ids,
             "security_groups": [
@@ -139,8 +154,6 @@ def create_cloudbeaver(
                 service_sg.id,
             ],
         },
-        desired_count=1,
-        opts=pulumi.ResourceOptions(depends_on=mount_targets),
         task_definition_args={
             "execution_role": {
                 "args": {
@@ -199,28 +212,42 @@ def create_cloudbeaver(
                     "command": [
                         "sh",
                         "-c",
-                        "\n".join(
-                            [
-                                "mkdir -p /opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver",
-                                "cat <<EOF > /opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver/data-sources.json",
-                                json.dumps(
-                                    {
-                                        "connections": {
-                                            "postgres": {
-                                                "provider": "postgresql",
-                                                "configuration": {
-                                                    "host": "${POSTGRES_HOST}",
-                                                    "database": "postgres",
-                                                    "user": "${POSTGRES_USER}",
-                                                    "password": "${POSTGRES_PASSWORD}",
-                                                },
-                                            }
-                                        }
+                        "\n".join([
+                            # Create directory structure
+                            "mkdir -p /opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver",
+                            
+                            # 1. Server config: Tell CloudBeaver to use PostgreSQL for its metadata
+                            "cat <<EOF > /opt/cloudbeaver/workspace/.data/.cloudbeaver.runtime.conf",
+                            json.dumps({
+                                "server": {
+                                    "database": {
+                                        "driver": "postgres-jdbc",
+                                        "url": "jdbc:postgresql://${POSTGRES_HOST}:5432/postgres",
+                                        "user": "${POSTGRES_USER}",
+                                        "password": "${POSTGRES_PASSWORD}",
+                                        "createDatabase": True,
                                     }
-                                ),
-                                "EOF",
-                            ]
-                        ),
+                                }
+                            }),
+                            "EOF",
+                            
+                            # 2. Data sources config: Pre-configure connection to your app database
+                            "cat <<EOF > /opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver/data-sources.json",
+                            json.dumps({
+                                "connections": {
+                                    "postgres": {
+                                        "provider": "postgresql",
+                                        "configuration": {
+                                            "host": "${POSTGRES_HOST}",
+                                            "database": "postgres",
+                                            "user": "${POSTGRES_USER}",
+                                            "password": "${POSTGRES_PASSWORD}",
+                                        },
+                                    }
+                                }
+                            }),
+                            "EOF",
+                        ])
                     ],
                     "mount_points": [
                         {

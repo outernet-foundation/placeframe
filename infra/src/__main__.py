@@ -1,4 +1,5 @@
 import json
+import time
 
 import pulumi
 import pulumi_aws as aws
@@ -19,7 +20,7 @@ config = Config()
 
 dockerhub_secret = aws.secretsmanager.Secret(
     "dockerhub-secret",
-    name="ecr-pullthroughcache/dockerhub",
+    name=f"ecr-pullthroughcache/dockerhub-{int(time.time())}",
     description="Credentials for pulling private or rate‐limited Docker Hub images",
 )
 

@@ -187,6 +187,7 @@ dependencies = [
     { name = "pulumi-aws" },
     { name = "pulumi-awsx" },
     { name = "pulumi-docker" },
+    { name = "pulumi-postgresql" },
 ]
 
 [package.dev-dependencies]
@@ -201,6 +202,7 @@ requires-dist = [
     { name = "pulumi-aws", specifier = ">=6.83.0" },
     { name = "pulumi-awsx", specifier = ">=2.22.0" },
     { name = "pulumi-docker", specifier = ">=4.8.0" },
+    { name = "pulumi-postgresql", specifier = ">=3.15.2" },
 ]
 
 [package.metadata.requires-dev]
@@ -310,6 +312,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/2f/d4/4f645603ce8197d2b84b11418d6c8f67a4d40e0d3e5cfdb32f5c79bb8342/pulumi_docker_build-0.0.12.tar.gz", hash = "sha256:e42119d5453df68de30eb554e0d3e6ab317e2fd25bd201296b07611b0e81e45b", size = 39357, upload-time = "2025-05-16T19:30:57.54Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/17/6f/8b4d6410f8a0ce968374a499555197b08b16dbb2e7d2752e46836fb7f6cd/pulumi_docker_build-0.0.12-py3-none-any.whl", hash = "sha256:fc9b2720650411bccd3de2c2e8dc1b26be1f3b1d4fcbde343343f6829a365e2b", size = 44056, upload-time = "2025-05-16T19:30:55.832Z" },
+]
+
+[[package]]
+name = "pulumi-postgresql"
+version = "3.15.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "parver" },
+    { name = "pulumi" },
+    { name = "semver" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5e/42/1f7bb5d21635f771054e29a82782db902ab88192f828dd45601ae2d8091d/pulumi_postgresql-3.15.2.tar.gz", hash = "sha256:d66f263484e102a83abbc1de471f9c71a60d09c4263782441437c2b8b2ad45fd", size = 47343, upload-time = "2025-06-02T23:13:10.277Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/da/bf/ddc8a6766fe9bbf1225b3af73dc781c39a212e69006e99f1ceaad70818d4/pulumi_postgresql-3.15.2-py3-none-any.whl", hash = "sha256:f21c0ea1b48a43c7188207a5ee6d8ed0092de8925c518f0c804cb3d56d426181", size = 73238, upload-time = "2025-06-02T23:13:08.224Z" },
 ]
 
 [[package]]
