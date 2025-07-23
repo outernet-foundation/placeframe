@@ -14,9 +14,24 @@ def create_cloudbeaver(
     vpc: awsx.ec2.Vpc,
     cluster: aws.ecs.Cluster,
     security_group: aws.ec2.SecurityGroup,
-    db: aws.rds.Instance,
-    repo: aws.ecr.Repository,
+    db: aws.rds.Instance
 ) -> None:
+    aws.ecr.Repository(
+        "alpine-cache-repo",
+        name="dockerhub/library/alpine",
+        force_delete=config.require_bool("devMode"),
+    )
+
+    aws.ecr.Repository(
+        "cloudbeaver-cache-repo", 
+        name="dockerhub/dbeaver/cloudbeaver",
+        force_delete=config.require_bool("devMode"),
+    )
+
+    # Get current AWS account ID and region for constructing ECR URLs
+    current = aws.get_caller_identity()
+    region = aws.get_region()
+
     # Create Secrets Manager secret for Postgres password
     postgres_secret = aws.secretsmanager.Secret("postgres-secret")
     aws.secretsmanager.SecretVersion(
@@ -100,6 +115,7 @@ def create_cloudbeaver(
         ],
         egress=ALLOW_ALL_EGRESS,
     )
+    
     # Create the CloudBeaver ECS service
     FargateService(
         "cloudbeaver-service",
@@ -129,6 +145,12 @@ def create_cloudbeaver(
                                                 "Effect": "Allow",
                                                 "Action": "secretsmanager:GetSecretValue",
                                                 "Resource": arns,
+                                            },
+                                            # Add permission required for ECR pull-through cache
+                                            {
+                                                "Effect": "Allow",
+                                                "Action": "ecr:BatchImportUpstreamImage",
+                                                "Resource": "*"
                                             }
                                         ],
                                     }
@@ -150,7 +172,9 @@ def create_cloudbeaver(
             "containers": {
                 "cloudbeaver-init": {
                     "name": "cloudbeaver-init",
-                    "image": "alpine:latest",
+                    "image": pulumi.Output.all(current.account_id, region.name).apply(
+                        lambda args: f"{args[0]}.dkr.ecr.{args[1]}.amazonaws.com/dockerhub/library/alpine:latest"
+                    ),
                     "essential": False,
                     "command": [
                         "sh",
@@ -203,7 +227,9 @@ def create_cloudbeaver(
                 },
                 "cloudbeaver": {
                     "name": "cloudbeaver",
-                    "image": "dbeaver/cloudbeaver:latest",
+                   "image": pulumi.Output.all(current.account_id, region.name).apply(
+                        lambda args: f"{args[0]}.dkr.ecr.{args[1]}.amazonaws.com/dockerhub/dbeaver/cloudbeaver:latest"
+                    ),
                     "port_mappings": [
                         {
                             "container_port": 8978,

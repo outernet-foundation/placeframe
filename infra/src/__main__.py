@@ -34,21 +34,19 @@ dockerhub_secret_version = aws.secretsmanager.SecretVersion(
         lambda args: json.dumps(
             {
                 "username": args[0],
-                "password": args[1],
+                "accessToken": args[1],
             }
         )
     ),
 )
 
-# 1) ECR repository for the image
-repo = aws.ecr.Repository("ecr-repo", force_delete=config.require_bool("devMode"))
-
 aws.ecr.PullThroughCacheRule(
-    "ecr-pull-through-cache-rule",
-    ecr_repository_prefix=repo.name,
+    "dockerhub-pull-through-cache-rule",
+    ecr_repository_prefix="dockerhub",
     upstream_registry_url="registry-1.docker.io",
     credential_arn=dockerhub_secret.arn,
 )
+
 
 # 0. VPC with security groups
 # Create a VPC with default subnet layout (public + private in each AZ)
@@ -109,8 +107,7 @@ create_cloudbeaver(
     vpc=vpc,
     cluster=cluster,
     security_group=cloudbeaver_security_group,
-    db=postgres_instance,
-    repo=repo,
+    db=postgres_instance
 )
 
 # 3. Lambda (container image)
@@ -124,7 +121,6 @@ api_lambda = create_lambda(
     s3_bucket_arn=captures_bucket.arn,
     vpc_subnet_ids=vpc.private_subnet_ids,
     vpc_security_group_ids=[lambda_security_group.id],
-    repo=repo,
 )
 
 # 4. API Gateway → Lambda proxy
