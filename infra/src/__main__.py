@@ -79,37 +79,38 @@ aws.ecr.PullThroughCacheRule(
     credential_arn=dockerhub_secret.arn,
 )
 
-# def create_vpc_interface_endpoint(vpc: awsx.ec2.Vpc, name: str) -> aws.ec2.SecurityGroup:
-#     sanitized_name = name.replace(".", "-")
-#     security_group = aws.ec2.SecurityGroup(f"{sanitized_name}-endpoint-sg", vpc_id=vpc.vpc_id, ingress=[], egress=[])
-#     aws.ec2.VpcEndpoint(
-#         f"{sanitized_name}-endpoint",
-#         vpc_id=vpc.vpc_id,
-#         service_name=f"com.amazonaws.{aws.config.region}.{name}",
-#         vpc_endpoint_type="Interface",
-#         subnet_ids=vpc.private_subnet_ids,
-#         security_group_ids=[security_group.id],
-#         private_dns_enabled=True,
-#     )
-#     return security_group
+
+def create_vpc_interface_endpoint(vpc: awsx.ec2.Vpc, name: str) -> aws.ec2.SecurityGroup:
+    sanitized_name = name.replace(".", "-")
+    security_group = aws.ec2.SecurityGroup(f"{sanitized_name}-endpoint-sg", vpc_id=vpc.vpc_id, ingress=[], egress=[])
+    aws.ec2.VpcEndpoint(
+        f"{sanitized_name}-endpoint",
+        vpc_id=vpc.vpc_id,
+        service_name=f"com.amazonaws.{aws.config.region}.{name}",
+        vpc_endpoint_type="Interface",
+        subnet_ids=vpc.private_subnet_ids,
+        security_group_ids=[security_group.id],
+        private_dns_enabled=True,
+    )
+    return security_group
 
 
 vpc = awsx.ec2.Vpc("main-vpc", nat_gateways={"strategy": awsx.ec2.NatGatewayStrategy.SINGLE}, enable_dns_hostnames=True)
-# ecr_api_security_group = create_vpc_interface_endpoint(vpc, "ecr.api")
-# ecr_dkr_security_group = create_vpc_interface_endpoint(vpc, "ecr.dkr")
-# secrets_manager_security_group = create_vpc_interface_endpoint(vpc, "secretsmanager")
-# logs_security_group = create_vpc_interface_endpoint(vpc, "logs")
+ecr_api_security_group = create_vpc_interface_endpoint(vpc, "ecr.api")
+ecr_dkr_security_group = create_vpc_interface_endpoint(vpc, "ecr.dkr")
+secrets_manager_security_group = create_vpc_interface_endpoint(vpc, "secretsmanager")
+logs_security_group = create_vpc_interface_endpoint(vpc, "logs")
 
-# # Create a VPC endpoint for S3 (gateway type rather than interface type, no security group)
-# aws.ec2.VpcEndpoint(
-#     "s3-gateway-endpoint",
-#     vpc_id=vpc.vpc_id,
-#     service_name=f"com.amazonaws.{aws.config.region}.s3",
-#     vpc_endpoint_type="Gateway",
-#     route_table_ids=vpc.private_subnet_ids.apply(
-#         lambda ids: [aws.ec2.get_route_table_output(subnet_id=subnet_id).id for subnet_id in ids]
-#     ),
-# )
+# Create a VPC endpoint for S3 (gateway type rather than interface type, no security group)
+aws.ec2.VpcEndpoint(
+    "s3-gateway-endpoint",
+    vpc_id=vpc.vpc_id,
+    service_name=f"com.amazonaws.{aws.config.region}.s3",
+    vpc_endpoint_type="Gateway",
+    route_table_ids=vpc.private_subnet_ids.apply(
+        lambda ids: [aws.ec2.get_route_table_output(subnet_id=subnet_id).id for subnet_id in ids]
+    ),
+)
 
 # Security group for Lambda functions: no inbound, all outbound
 lambda_security_group = ec2.SecurityGroup("lambda-security-group", vpc_id=vpc.vpc_id, egress=ALLOW_ALL_EGRESS)
