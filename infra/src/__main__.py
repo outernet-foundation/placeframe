@@ -2,7 +2,6 @@ import json
 
 import pulumi
 import pulumi_aws as aws
-import pulumi_aws.ec2 as ec2
 import pulumi_awsx as awsx
 from pulumi import Config
 
@@ -12,7 +11,7 @@ from components.database import create_database
 from components.gateway import create_gateway
 from components.lambdas import create_lambda
 from components.storage import create_storage
-from util import ALLOW_ALL_EGRESS
+from util import create_zero_trust_security_group
 
 # Stack config (region comes from pulumi config aws:region)
 config = Config()
@@ -82,9 +81,7 @@ aws.ecr.PullThroughCacheRule(
 
 def create_vpc_interface_endpoint(vpc: awsx.ec2.Vpc, name: str) -> aws.ec2.SecurityGroup:
     sanitized_name = name.replace(".", "-")
-    security_group = aws.ec2.SecurityGroup(
-        f"{sanitized_name}-endpoint-security-group", vpc_id=vpc.vpc_id, ingress=[], egress=[]
-    )
+    security_group = create_zero_trust_security_group(f"{sanitized_name}-endpoint", vpc.vpc_id)
     aws.ec2.VpcEndpoint(
         f"{sanitized_name}-endpoint",
         vpc_id=vpc.vpc_id,
@@ -114,24 +111,15 @@ aws.ec2.VpcEndpoint(
     ),
 )
 
-# Security group for Lambda functions: no inbound, all outbound
-lambda_security_group = ec2.SecurityGroup("lambda-security-group", vpc_id=vpc.vpc_id, egress=ALLOW_ALL_EGRESS)
-
-cloudbeaver_security_group = aws.ec2.SecurityGroup(
-    "cloudbeaver-security-group", vpc_id=vpc.vpc_id, ingress=[], egress=[]
-)
-
-# Security group for RDS: allow Lambda SG on port 5432, all outbound
-postgres_security_group = ec2.SecurityGroup("postgres-security-group", vpc_id=vpc.vpc_id, ingress=[], egress=[])
+lambda_security_group = create_zero_trust_security_group("lambda", vpc.vpc_id)
+cloudbeaver_security_group = create_zero_trust_security_group("cloudbeaver", vpc.vpc_id)
+postgres_security_group = create_zero_trust_security_group("postgres", vpc.vpc_id)
 
 # 1. S3 bucket (captures)
 captures_bucket = create_storage(config)
 
-# create_minio(config, vpc=my_vpc, s3_bucket=captures_bucket)
-
 # 2. Postgres database
 postgres_instance, connection_string = create_database(config, postgres_security_group, vpc.private_subnet_ids)
-
 
 cluster = aws.ecs.Cluster("cluster")
 

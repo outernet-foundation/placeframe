@@ -9,7 +9,7 @@ from pulumi import Config, Output
 from pulumi.resource import CustomTimeouts
 from pulumi_awsx.ecs import FargateService
 
-from util import ALLOW_ALL_EGRESS
+from util import add_reciprocal_security_group_rules
 
 
 def create_cloudbeaver(
@@ -24,22 +24,21 @@ def create_cloudbeaver(
     postgres_security_group: aws.ec2.SecurityGroup,
     db: aws.rds.Instance,
 ) -> None:
-    # Allow load balancer ingress from the internet
     load_balancer_security_group = aws.ec2.SecurityGroup(
         "load-balancer-security-group",
         vpc_id=vpc.vpc_id,
+        # Allow load balancer ingress from the internet
         ingress=[{"protocol": "tcp", "from_port": 80, "to_port": 80, "cidr_blocks": ["0.0.0.0/0"]}],
-        egress=ALLOW_ALL_EGRESS,
+        egress=[],
     )
 
-    # Allow CloudBeaver ingress from the load balancer
-    aws.vpc.SecurityGroupIngressRule(
-        "cloudbeaver-ingress-from-load-balancer",
-        security_group_id=cloudbeaver_security_group.id,
-        ip_protocol="tcp",
-        from_port=8978,
-        to_port=8978,
-        referenced_security_group_id=load_balancer_security_group.id,
+    efs_security_group = aws.ec2.SecurityGroup(
+        "cloudbeaver-efs-security-group", vpc_id=vpc.vpc_id, ingress=[], egress=[]
+    )
+
+    # Allow Cloudbeaver ingress from the load balancer and allow load balancer egress to CloudBeaver
+    add_reciprocal_security_group_rules(
+        ingress_sg=cloudbeaver_security_group, egress_sg=load_balancer_security_group, ports=[8978]
     )
 
     # For each vpc endpoint, allow endpoint ingress from Cloudbeaver and allow CloudBeaver egress to endpoint
@@ -49,43 +48,18 @@ def create_cloudbeaver(
         secrets_manager_security_group,
         logs_security_group,
     ]:
-        vpc_endpoint_name = vpc_endpoint_security_group.name.apply(lambda id: id.replace("-security-group", ""))
-
-        aws.vpc.SecurityGroupIngressRule(
-            f"{vpc_endpoint_name}-ingress-from-cloudbeaver",
-            security_group_id=vpc_endpoint_security_group.id,
-            ip_protocol="tcp",
-            from_port=443,
-            to_port=443,
-            referenced_security_group_id=cloudbeaver_security_group.id,
-        )
-        aws.vpc.SecurityGroupEgressRule(
-            f"cloudbeaver-egress-to-{vpc_endpoint_name}",
-            security_group_id=cloudbeaver_security_group.id,
-            ip_protocol="tcp",
-            from_port=443,
-            to_port=443,
-            referenced_security_group_id=vpc_endpoint_security_group.id,
+        add_reciprocal_security_group_rules(
+            ingress_sg=vpc_endpoint_security_group, egress_sg=cloudbeaver_security_group, ports=[443]
         )
 
-    # Allow Postgres ingress from CloudBeaver
-    aws.vpc.SecurityGroupIngressRule(
-        "cloudbeaver-ingress-from-postgres",
-        security_group_id=postgres_security_group.id,
-        ip_protocol="tcp",
-        from_port=5432,
-        to_port=5432,
-        referenced_security_group_id=cloudbeaver_security_group.id,
+    # Allow Postgres ingress from CloudBeaver and allow CloudBeaver egress to Postgres
+    add_reciprocal_security_group_rules(
+        ingress_sg=postgres_security_group, egress_sg=cloudbeaver_security_group, ports=[5432]
     )
 
-    # Allow EFS ingress from CloudBeaver
-    efs_security_group = aws.ec2.SecurityGroup(
-        "cloudbeaver-efs-security-group",
-        vpc_id=vpc.vpc_id,
-        ingress=[
-            {"protocol": "tcp", "from_port": 2049, "to_port": 2049, "security_groups": [cloudbeaver_security_group.id]}
-        ],
-        egress=ALLOW_ALL_EGRESS,
+    # Allow EFS ingress from CloudBeaver and allow CloudBeaver egress to EFS
+    add_reciprocal_security_group_rules(
+        ingress_sg=efs_security_group, egress_sg=cloudbeaver_security_group, ports=[2049], protocol="tcp"
     )
 
     # Create secret for postgres password
