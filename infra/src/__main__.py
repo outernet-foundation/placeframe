@@ -101,7 +101,7 @@ secrets_manager_security_group = create_vpc_interface_endpoint(vpc, "secretsmana
 logs_security_group = create_vpc_interface_endpoint(vpc, "logs")
 
 # Create a VPC endpoint for S3 (gateway type rather than interface type, no security group)
-aws.ec2.VpcEndpoint(
+s3_endpoint = aws.ec2.VpcEndpoint(
     "s3-gateway-endpoint",
     vpc_id=vpc.vpc_id,
     service_name=f"com.amazonaws.{aws.config.region}.s3",
@@ -148,6 +148,8 @@ api_lambda = create_lambda(
     vpc_subnet_ids=vpc.private_subnet_ids,
     lambda_security_group=lambda_security_group,
     postgres_security_group=postgres_security_group,
+    logs_security_group=logs_security_group,
+    s3_endpoint=s3_endpoint,
 )
 
 # 4. API Gateway → Lambda proxy

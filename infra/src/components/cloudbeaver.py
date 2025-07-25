@@ -38,7 +38,9 @@ def create_cloudbeaver(
 
     # Allow Cloudbeaver ingress from the load balancer and allow load balancer egress to CloudBeaver
     add_reciprocal_security_group_rules(
-        ingress_sg=cloudbeaver_security_group, egress_sg=load_balancer_security_group, ports=[8978]
+        ingress_security_group=cloudbeaver_security_group,
+        egress_security_group=load_balancer_security_group,
+        ports=[8978],
     )
 
     # For each vpc endpoint, allow endpoint ingress from Cloudbeaver and allow CloudBeaver egress to endpoint
@@ -49,17 +51,22 @@ def create_cloudbeaver(
         logs_security_group,
     ]:
         add_reciprocal_security_group_rules(
-            ingress_sg=vpc_endpoint_security_group, egress_sg=cloudbeaver_security_group, ports=[443]
+            ingress_security_group=vpc_endpoint_security_group,
+            egress_security_group=cloudbeaver_security_group,
+            ports=[443],
         )
 
     # Allow Postgres ingress from CloudBeaver and allow CloudBeaver egress to Postgres
     add_reciprocal_security_group_rules(
-        ingress_sg=postgres_security_group, egress_sg=cloudbeaver_security_group, ports=[5432]
+        ingress_security_group=postgres_security_group, egress_security_group=cloudbeaver_security_group, ports=[5432]
     )
 
     # Allow EFS ingress from CloudBeaver and allow CloudBeaver egress to EFS
     add_reciprocal_security_group_rules(
-        ingress_sg=efs_security_group, egress_sg=cloudbeaver_security_group, ports=[2049], protocol="tcp"
+        ingress_security_group=efs_security_group,
+        egress_security_group=cloudbeaver_security_group,
+        ports=[2049],
+        protocol="tcp",
     )
 
     # Create secret for postgres password

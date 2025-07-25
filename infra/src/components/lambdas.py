@@ -22,6 +22,8 @@ import pulumi_aws as aws
 import pulumi_docker as docker  # top-level module (we'll pass dicts for inputs)
 from pulumi import Config, Input, Output
 
+from util import add_reciprocal_security_group_rules
+
 # ---------------------------------------------------------------------------
 # Container-image FastAPI Lambda
 # ---------------------------------------------------------------------------
@@ -34,18 +36,30 @@ def create_lambda(
     vpc_subnet_ids: Input[Sequence[Input[str]]],
     lambda_security_group: aws.ec2.SecurityGroup,
     postgres_security_group: aws.ec2.SecurityGroup,
+    logs_security_group: aws.ec2.SecurityGroup,
+    s3_endpoint: aws.ec2.VpcEndpoint,
     memory_size: int = 512,
     timeout_seconds: int = 30,
     resource_name: str = "apiLambdaFunction",
 ) -> aws.lambda_.Function:
-    # Allow Postgress ingress from Lambda
-    aws.vpc.SecurityGroupIngressRule(
-        "lambda-ingress-from-postgres",
-        security_group_id=postgres_security_group.id,
+    # Allow Postgres ingress from the Lambda and allow Lambda egress to Postgres
+    add_reciprocal_security_group_rules(
+        ingress_security_group=postgres_security_group, egress_security_group=lambda_security_group, ports=[5432]
+    )
+
+    # Allow logs ingress from the Lambda and allow Lambda egress to CloudWatch Logs
+    add_reciprocal_security_group_rules(
+        ingress_security_group=logs_security_group, egress_security_group=lambda_security_group, ports=[443]
+    )
+
+    # Allow Lambda egress to S3 (via VPC endpoint)
+    aws.vpc.SecurityGroupEgressRule(
+        "lambda-egress-to-s3",
+        security_group_id=lambda_security_group.id,
         ip_protocol="tcp",
-        from_port=5432,
-        to_port=5432,
-        referenced_security_group_id=lambda_security_group.id,
+        from_port=443,
+        to_port=443,
+        prefix_list_id=s3_endpoint.prefix_list_id,
     )
 
     repo = aws.ecr.Repository("lambda-repo", force_delete=config.require_bool("devMode"))
