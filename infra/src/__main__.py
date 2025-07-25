@@ -1,17 +1,18 @@
 import json
 
-import pulumi
-import pulumi_aws as aws
-import pulumi_awsx as awsx
-from pulumi import Config
+from pulumi import Config, Output, export
+from pulumi_aws import get_region
+from pulumi_aws.ec2 import SecurityGroup, VpcEndpoint, get_route_table_output
+from pulumi_aws.ecr import PullThroughCacheRule
+from pulumi_aws.ecs import Cluster
+from pulumi_aws.secretsmanager import Secret, SecretVersion
+from pulumi_awsx.ec2 import NatGatewayStrategy, Vpc
 
-# from components import vpc
 from components.cloudbeaver import create_cloudbeaver
 from components.database import create_database
 from components.gateway import create_gateway
 from components.lambdas import create_lambda
 from components.storage import create_storage
-from util import create_zero_trust_security_group
 
 # Stack config (region comes from pulumi config aws:region)
 config = Config()
@@ -56,22 +57,22 @@ config = Config()
 #     "ci-role-pulumi", role=ci_role.name, policy_arn="arn:aws:iam::aws:policy/AdministratorAccess"
 # )
 
-dockerhub_secret = aws.secretsmanager.Secret(
+dockerhub_secret = Secret(
     "dockerhub-secret",
     name="ecr-pullthroughcache/dockerhub-2",
     description="Credentials for pulling private or rate‐limited Docker Hub images",
 )
 
 # 1b. Store your username + token
-dockerhub_secret_version = aws.secretsmanager.SecretVersion(
+dockerhub_secret_version = SecretVersion(
     "dockerhub-secret-version",
     secret_id=dockerhub_secret.id,
-    secret_string=pulumi.Output.all(
-        config.require("dockerhub-username"), config.require_secret("dockerhub-password")
-    ).apply(lambda args: json.dumps({"username": args[0], "accessToken": args[1]})),
+    secret_string=Output.all(config.require("dockerhub-username"), config.require_secret("dockerhub-password")).apply(
+        lambda args: json.dumps({"username": args[0], "accessToken": args[1]})
+    ),
 )
 
-aws.ecr.PullThroughCacheRule(
+PullThroughCacheRule(
     "dockerhub-pull-through-cache-rule",
     ecr_repository_prefix="dockerhub",
     upstream_registry_url="registry-1.docker.io",
@@ -79,13 +80,13 @@ aws.ecr.PullThroughCacheRule(
 )
 
 
-def create_vpc_interface_endpoint(vpc: awsx.ec2.Vpc, name: str) -> aws.ec2.SecurityGroup:
+def create_vpc_interface_endpoint(vpc: Vpc, name: str) -> SecurityGroup:
     sanitized_name = name.replace(".", "-")
-    security_group = create_zero_trust_security_group(f"{sanitized_name}-endpoint", vpc.vpc_id)
-    aws.ec2.VpcEndpoint(
+    security_group = SecurityGroup(f"{sanitized_name}-endpoint-security-group", vpc_id=vpc.vpc_id)
+    VpcEndpoint(
         f"{sanitized_name}-endpoint",
         vpc_id=vpc.vpc_id,
-        service_name=f"com.amazonaws.{aws.config.region}.{name}",
+        service_name=f"com.amazonaws.{get_region().name}.{name}",
         vpc_endpoint_type="Interface",
         subnet_ids=vpc.private_subnet_ids,
         security_group_ids=[security_group.id],
@@ -94,26 +95,27 @@ def create_vpc_interface_endpoint(vpc: awsx.ec2.Vpc, name: str) -> aws.ec2.Secur
     return security_group
 
 
-vpc = awsx.ec2.Vpc("main-vpc", nat_gateways={"strategy": awsx.ec2.NatGatewayStrategy.NONE}, enable_dns_hostnames=True)
+vpc = Vpc("main-vpc", nat_gateways={"strategy": NatGatewayStrategy.NONE}, enable_dns_hostnames=True)
 ecr_api_security_group = create_vpc_interface_endpoint(vpc, "ecr.api")
 ecr_dkr_security_group = create_vpc_interface_endpoint(vpc, "ecr.dkr")
 secrets_manager_security_group = create_vpc_interface_endpoint(vpc, "secretsmanager")
 logs_security_group = create_vpc_interface_endpoint(vpc, "logs")
+sts_security_group = create_vpc_interface_endpoint(vpc, "sts")
 
 # Create a VPC endpoint for S3 (gateway type rather than interface type, no security group)
-s3_endpoint = aws.ec2.VpcEndpoint(
+s3_endpoint = VpcEndpoint(
     "s3-gateway-endpoint",
     vpc_id=vpc.vpc_id,
-    service_name=f"com.amazonaws.{aws.config.region}.s3",
+    service_name=f"com.amazonaws.{get_region().name}.s3",
     vpc_endpoint_type="Gateway",
     route_table_ids=vpc.private_subnet_ids.apply(
-        lambda ids: [aws.ec2.get_route_table_output(subnet_id=subnet_id).id for subnet_id in ids]
+        lambda ids: [get_route_table_output(subnet_id=subnet_id).id for subnet_id in ids]
     ),
 )
 
-lambda_security_group = create_zero_trust_security_group("lambda", vpc.vpc_id)
-cloudbeaver_security_group = create_zero_trust_security_group("cloudbeaver", vpc.vpc_id)
-postgres_security_group = create_zero_trust_security_group("postgres", vpc.vpc_id)
+lambda_security_group = SecurityGroup("lambda-security-group", vpc_id=vpc.vpc_id)
+cloudbeaver_security_group = SecurityGroup("cloudbeaver-security-group", vpc_id=vpc.vpc_id)
+postgres_security_group = SecurityGroup("postgres-security-group", vpc_id=vpc.vpc_id)
 
 # 1. S3 bucket (captures)
 captures_bucket = create_storage(config)
@@ -121,7 +123,7 @@ captures_bucket = create_storage(config)
 # 2. Postgres database
 postgres_instance, connection_string = create_database(config, postgres_security_group, vpc.private_subnet_ids)
 
-cluster = aws.ecs.Cluster("cluster")
+cluster = Cluster("cluster")
 
 create_cloudbeaver(
     config,
@@ -132,8 +134,10 @@ create_cloudbeaver(
     ecr_dkr_security_group=ecr_dkr_security_group,
     secrets_manager_security_group=secrets_manager_security_group,
     logs_security_group=logs_security_group,
+    sts_security_group=sts_security_group,
     postgres_security_group=postgres_security_group,
     db=postgres_instance,
+    s3_endpoint=s3_endpoint,
 )
 
 # 3. Lambda (container image)
@@ -149,6 +153,7 @@ api_lambda = create_lambda(
     lambda_security_group=lambda_security_group,
     postgres_security_group=postgres_security_group,
     logs_security_group=logs_security_group,
+    sts_security_group=sts_security_group,
     s3_endpoint=s3_endpoint,
 )
 
@@ -156,6 +161,6 @@ api_lambda = create_lambda(
 api_endpoint_output = create_gateway(api_lambda)
 
 # 5. Stack outputs
-pulumi.export("apiUrl", api_endpoint_output)
-pulumi.export("capturesBucketId", captures_bucket.id)
-pulumi.export("dbEndpointAddress", postgres_instance.address)
+export("apiUrl", api_endpoint_output)
+export("capturesBucketId", captures_bucket.id)
+export("dbEndpointAddress", postgres_instance.address)

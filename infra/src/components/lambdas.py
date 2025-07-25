@@ -1,32 +1,18 @@
-"""
-Lambda component helpers.
-
-Builds a container image (multi-stage Dockerfile in `image_context`) with
-pulumi-docker, pushes it to ECR, and creates an IMAGE-type Lambda that runs your
-FastAPI+Mangum app.
-
-Python note: the pulumi-docker provider’s nested input objects (`DockerBuild`,
-`Registry`, etc.) are *not* imported as symbols at the top level in Python; pass
-them as dicts as shown below (this is the pattern used in Pulumi’s official
-Python examples).
-"""
-
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-import pulumi
-import pulumi_aws as aws
-import pulumi_docker as docker  # top-level module (we'll pass dicts for inputs)
-from pulumi import Config, Input, Output
+import pulumi_docker as docker
+from pulumi import Config, Input, Output, export
+from pulumi_aws.ec2 import SecurityGroup, VpcEndpoint
+from pulumi_aws.ecr import Repository, get_authorization_token
+from pulumi_aws.iam import Role, RolePolicy, RolePolicyAttachment
+from pulumi_aws.lambda_ import Function
+from pulumi_aws.vpc import SecurityGroupEgressRule
 from pulumi_awsx.ec2 import Vpc
 
 from util import add_egress_to_dns_rule, add_reciprocal_security_group_rules
-
-# ---------------------------------------------------------------------------
-# Container-image FastAPI Lambda
-# ---------------------------------------------------------------------------
 
 
 def create_lambda(
@@ -34,26 +20,44 @@ def create_lambda(
     environment_vars: dict[str, Input[str]],
     s3_bucket_arn: Input[str],
     vpc: Vpc,
-    lambda_security_group: aws.ec2.SecurityGroup,
-    postgres_security_group: aws.ec2.SecurityGroup,
-    logs_security_group: aws.ec2.SecurityGroup,
-    s3_endpoint: aws.ec2.VpcEndpoint,
+    lambda_security_group: SecurityGroup,
+    postgres_security_group: SecurityGroup,
+    logs_security_group: SecurityGroup,
+    sts_security_group: SecurityGroup,
+    s3_endpoint: VpcEndpoint,
     memory_size: int = 512,
     timeout_seconds: int = 30,
     resource_name: str = "apiLambdaFunction",
-) -> aws.lambda_.Function:
+) -> Function:
     # Allow Postgres ingress from the Lambda and allow Lambda egress to Postgres
     add_reciprocal_security_group_rules(
-        ingress_security_group=postgres_security_group, egress_security_group=lambda_security_group, ports=[5432]
+        to_resource_name="postgres",
+        from_resource_name="lambda",
+        from_security_group=lambda_security_group,
+        to_security_group=postgres_security_group,
+        ports=[5432],
     )
 
     # Allow logs ingress from the Lambda and allow Lambda egress to CloudWatch Logs
     add_reciprocal_security_group_rules(
-        ingress_security_group=logs_security_group, egress_security_group=lambda_security_group, ports=[443]
+        from_resource_name="lambda",
+        to_resource_name="cloudwatch-logs",
+        from_security_group=lambda_security_group,
+        to_security_group=logs_security_group,
+        ports=[443],
+    )
+
+    # Allow STS ingress from the Lambda and allow Lambda egress to STS
+    add_reciprocal_security_group_rules(
+        from_resource_name="lambda",
+        to_resource_name="sts",
+        from_security_group=lambda_security_group,
+        to_security_group=sts_security_group,
+        ports=[443],
     )
 
     # Allow Lambda egress to S3 (via VPC endpoint)
-    aws.vpc.SecurityGroupEgressRule(
+    SecurityGroupEgressRule(
         "lambda-egress-to-s3",
         security_group_id=lambda_security_group.id,
         ip_protocol="tcp",
@@ -63,12 +67,12 @@ def create_lambda(
     )
 
     # Allow Lambda egress VPC Resolve for DNS queries
-    add_egress_to_dns_rule(lambda_security_group, vpc)
+    add_egress_to_dns_rule("lambda", lambda_security_group, vpc)
 
-    repo = aws.ecr.Repository("lambda-repo", force_delete=config.require_bool("devMode"))
+    repo = Repository("lambda-repo", force_delete=config.require_bool("devMode"))
 
     # Create a basic Lambda execution role (logs only).
-    role = aws.iam.Role(
+    role = Role(
         resource_name=resource_name,
         assume_role_policy=json.dumps({
             "Version": "2012-10-17",
@@ -78,13 +82,13 @@ def create_lambda(
         }),
     )
 
-    aws.iam.RolePolicyAttachment(
+    RolePolicyAttachment(
         "lambdaVpcAccessPolicy",
         role=role.name,
         policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
     )
 
-    aws.iam.RolePolicy(
+    RolePolicy(
         "lambdaS3Access",
         role=role.id,
         policy=Output.all(s3_bucket_arn).apply(
@@ -95,7 +99,7 @@ def create_lambda(
         ),
     )
 
-    aws.iam.RolePolicyAttachment(
+    RolePolicyAttachment(
         resource_name=f"{resource_name}-basicExecution",
         role=role.name,
         policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
@@ -107,7 +111,7 @@ def create_lambda(
         raise FileNotFoundError(f"Dockerfile not found: {dockerfile}")
 
     # 2) Credentials for pushing to ECR (no registry_id arg; avoids Output→str type mismatch)
-    creds = aws.ecr.get_authorization_token()
+    creds = get_authorization_token()
 
     # 3) Build fully-qualified image name as an Output[str]
     #    repo.repository_url is Output[str]; concat returns Output[str]
@@ -122,7 +126,7 @@ def create_lambda(
     )
 
     # 5) Lambda from image
-    fn = aws.lambda_.Function(
+    fn = Function(
         resource_name=resource_name,
         package_type="Image",
         image_uri=image.repo_digest,  # Output[str]
@@ -139,6 +143,6 @@ def create_lambda(
     )
 
     # Convenience export (optional)
-    pulumi.export("apiImageUri", image.image_name)
+    export("apiImageUri", image.image_name)
 
     return fn

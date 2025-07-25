@@ -1,114 +1,133 @@
 import json
 from pathlib import Path
 
-import pulumi
-import pulumi_aws as aws
-import pulumi_awsx as awsx
-import pulumi_docker as docker  # top-level module (we'll pass dicts for inputs)
-from pulumi import Config, Output
-from pulumi.resource import CustomTimeouts
+import pulumi_docker as docker
+from pulumi import Config, Output, ResourceOptions, export
+from pulumi_aws import get_caller_identity, get_region
+from pulumi_aws.cloudwatch import LogGroup
+from pulumi_aws.ec2 import SecurityGroup, VpcEndpoint
+from pulumi_aws.ecr import Repository, get_authorization_token
+from pulumi_aws.ecs import Cluster
+from pulumi_aws.efs import FileSystem, MountTarget
+from pulumi_aws.lb import TargetGroupHealthCheckArgs
+from pulumi_aws.rds import Instance
+from pulumi_aws.secretsmanager import Secret, SecretVersion
+from pulumi_aws.vpc import SecurityGroupEgressRule, SecurityGroupIngressRule
+from pulumi_awsx.ec2 import Vpc
 from pulumi_awsx.ecs import FargateService
+from pulumi_awsx.lb import ApplicationLoadBalancer, TargetGroupArgs
 
 from util import add_egress_to_dns_rule, add_reciprocal_security_group_rules
 
 
 def create_cloudbeaver(
     config: Config,
-    vpc: awsx.ec2.Vpc,
-    cluster: aws.ecs.Cluster,
-    cloudbeaver_security_group: aws.ec2.SecurityGroup,
-    ecr_api_security_group: aws.ec2.SecurityGroup,
-    ecr_dkr_security_group: aws.ec2.SecurityGroup,
-    secrets_manager_security_group: aws.ec2.SecurityGroup,
-    logs_security_group: aws.ec2.SecurityGroup,
-    postgres_security_group: aws.ec2.SecurityGroup,
-    db: aws.rds.Instance,
+    vpc: Vpc,
+    cluster: Cluster,
+    cloudbeaver_security_group: SecurityGroup,
+    ecr_api_security_group: SecurityGroup,
+    ecr_dkr_security_group: SecurityGroup,
+    secrets_manager_security_group: SecurityGroup,
+    logs_security_group: SecurityGroup,
+    sts_security_group: SecurityGroup,
+    postgres_security_group: SecurityGroup,
+    s3_endpoint: VpcEndpoint,
+    db: Instance,
 ) -> None:
-    load_balancer_security_group = aws.ec2.SecurityGroup(
-        "load-balancer-security-group",
-        vpc_id=vpc.vpc_id,
-        # Allow load balancer ingress from the internet
-        ingress=[{"protocol": "tcp", "from_port": 80, "to_port": 80, "cidr_blocks": ["0.0.0.0/0"]}],
-        egress=[],
-    )
+    load_balancer_security_group = SecurityGroup("load-balancer-security-group", vpc_id=vpc.vpc_id)
+    efs_security_group = SecurityGroup("cloudbeaver-efs-security-group", vpc_id=vpc.vpc_id)
 
-    efs_security_group = aws.ec2.SecurityGroup(
-        "cloudbeaver-efs-security-group", vpc_id=vpc.vpc_id, ingress=[], egress=[]
-    )
-
-    # Allow Cloudbeaver egress to the VPC DNS resolver
-    # Allow CloudBeaver to send DNS queries (UDP) to the VPC resolver
-    aws.vpc.SecurityGroupEgressRule(
-        "cloudbeaver-dns-udp-egress",
-        security_group_id=cloudbeaver_security_group.id,
-        ip_protocol="udp",
-        from_port=53,
-        to_port=53,
-        cidr_ipv4=vpc.vpc.vpc_cidr_block,  # or "10.0.0.2/32" for the single resolver IP
+    # Allow load balancer ingress from the internet
+    SecurityGroupIngressRule(
+        "load-balancer-ingress-http",
+        security_group_id=load_balancer_security_group.id,
+        ip_protocol="tcp",
+        from_port=80,
+        to_port=80,
+        cidr_ipv4="0.0.0.0/0",
     )
 
     # Allow CloudBeaver egress to the VPC resolver for DNS queries
-    add_egress_to_dns_rule(cloudbeaver_security_group, vpc)
+    add_egress_to_dns_rule("cloudbeaver", cloudbeaver_security_group, vpc)
 
     # Allow Cloudbeaver ingress from the load balancer and allow load balancer egress to CloudBeaver
     add_reciprocal_security_group_rules(
-        ingress_security_group=cloudbeaver_security_group,
-        egress_security_group=load_balancer_security_group,
+        from_resource_name="load-balancer",
+        to_resource_name="cloudbeaver",
+        from_security_group=load_balancer_security_group,
+        to_security_group=cloudbeaver_security_group,
         ports=[8978],
     )
 
     # For each vpc endpoint, allow endpoint ingress from Cloudbeaver and allow CloudBeaver egress to endpoint
-    for vpc_endpoint_security_group in [
-        ecr_api_security_group,
-        ecr_dkr_security_group,
-        secrets_manager_security_group,
-        logs_security_group,
+    for name, vpc_endpoint_security_group in [
+        ("ecr-api", ecr_api_security_group),
+        ("ecr-dkr", ecr_dkr_security_group),
+        ("secretsmanager", secrets_manager_security_group),
+        ("logs", logs_security_group),
+        ("sts", sts_security_group),
     ]:
         add_reciprocal_security_group_rules(
-            ingress_security_group=vpc_endpoint_security_group,
-            egress_security_group=cloudbeaver_security_group,
+            from_resource_name="cloudbeaver",
+            to_resource_name=name,
+            from_security_group=cloudbeaver_security_group,
+            to_security_group=vpc_endpoint_security_group,
             ports=[443],
         )
 
+    # Allow Cloudbeaver egress to S3 (required for pulling images because ecr uses s3 for image layer blobs)
+    SecurityGroupEgressRule(
+        "cloudbeaver-egress-to-s3",
+        security_group_id=cloudbeaver_security_group.id,
+        ip_protocol="tcp",
+        from_port=443,
+        to_port=443,
+        prefix_list_id=s3_endpoint.prefix_list_id,
+    )
+
     # Allow Postgres ingress from CloudBeaver and allow CloudBeaver egress to Postgres
     add_reciprocal_security_group_rules(
-        ingress_security_group=postgres_security_group, egress_security_group=cloudbeaver_security_group, ports=[5432]
+        from_resource_name="cloudbeaver",
+        to_resource_name="postgres",
+        from_security_group=cloudbeaver_security_group,
+        to_security_group=postgres_security_group,
+        ports=[5432],
     )
 
     # Allow EFS ingress from CloudBeaver and allow CloudBeaver egress to EFS
     add_reciprocal_security_group_rules(
-        ingress_security_group=efs_security_group,
-        egress_security_group=cloudbeaver_security_group,
+        from_resource_name="cloudbeaver",
+        to_resource_name="cloudbeaver-efs",
+        from_security_group=cloudbeaver_security_group,
+        to_security_group=efs_security_group,
         ports=[2049],
         protocol="tcp",
     )
 
     # Create secret for postgres password
-    postgres_secret = aws.secretsmanager.Secret("postgres-secret")
-    aws.secretsmanager.SecretVersion(
+    postgres_secret = Secret("postgres-secret")
+    SecretVersion(
         "postgres-secret-version",
         secret_id=postgres_secret.id,
         secret_string=config.require_secret("postgres-password"),
     )
 
     # Create secret for CloudBeaver admin password
-    cloudbeaver_secret = aws.secretsmanager.Secret("cloudbeaver-secret")
-    aws.secretsmanager.SecretVersion(
+    cloudbeaver_secret = Secret("cloudbeaver-secret")
+    SecretVersion(
         "cloudbeaver-secret-version",
         secret_id=cloudbeaver_secret.id,
         secret_string=config.require_secret("cloudbeaver-password"),
     )
 
     # Create repos for image pull-through cache
-    aws.ecr.Repository(
-        "alpine-cache-repo", name="dockerhub/library/alpine", force_delete=config.require_bool("devMode")
-    )
-    aws.ecr.Repository(
+    Repository("alpine-cache-repo", name="dockerhub/library/alpine", force_delete=config.require_bool("devMode"))
+    Repository(
         "cloudbeaver-cache-repo", name="dockerhub/dbeaver/cloudbeaver", force_delete=config.require_bool("devMode")
     )
 
     # Create a policy allowing CloudBeaver to access secrets and use the pull-through cache
-    policy = pulumi.Output.all(postgres_secret.arn, cloudbeaver_secret.arn).apply(
+    policy = Output.all(postgres_secret.arn, cloudbeaver_secret.arn).apply(
         lambda arns: json.dumps({
             "Version": "2012-10-17",
             "Statement": [
@@ -119,9 +138,9 @@ def create_cloudbeaver(
     )
 
     # Create a Docker image for CloudBeaver initialization
-    init_image_repo = aws.ecr.Repository("cloudbeaver-init-repo", force_delete=config.require_bool("devMode"))
+    init_image_repo = Repository("cloudbeaver-init-repo", force_delete=config.require_bool("devMode"))
     dockerfile = Path(config.require("cloudbeaver-init-dockerfile")).resolve()
-    creds = aws.ecr.get_authorization_token()
+    creds = get_authorization_token()
     docker.Image(
         "cloudbeaver-init-image",
         build={"dockerfile": str(dockerfile), "context": str(dockerfile.parent), "platform": "linux/amd64"},
@@ -130,27 +149,25 @@ def create_cloudbeaver(
     )
 
     # Create EFS for CloudBeaver workspace
-    efs = aws.efs.FileSystem("cloudbeaver-efs")
+    efs = FileSystem("cloudbeaver-efs")
 
     # Create mount targets for the EFS in each private subnet of our VPC
     mount_targets = vpc.private_subnet_ids.apply(
         lambda subnet_ids: [
-            aws.efs.MountTarget(
-                f"efs-mount-{i}", file_system_id=efs.id, subnet_id=sid, security_groups=[efs_security_group.id]
-            )
+            MountTarget(f"efs-mount-{i}", file_system_id=efs.id, subnet_id=sid, security_groups=[efs_security_group.id])
             for i, sid in enumerate(subnet_ids)
         ]
     )
 
     # Create load balancer
-    load_balancer = awsx.lb.ApplicationLoadBalancer(
+    load_balancer = ApplicationLoadBalancer(
         "cloudbeaver-lb",
         security_groups=[load_balancer_security_group.id],
         subnet_ids=vpc.public_subnet_ids,
-        default_target_group=awsx.lb.TargetGroupArgs(
+        default_target_group=TargetGroupArgs(
             port=8978,
             deregistration_delay=60,  # Wait 60s before deregistering unhealthy instances (down from default of 300, for faster rotation since we only have one instance)
-            health_check=aws.lb.TargetGroupHealthCheckArgs(
+            health_check=TargetGroupHealthCheckArgs(
                 interval=15,  # Check every 15 seconds (down from default of 30)
                 healthy_threshold=2,  # We are healthy after 30 seconds (down from default of 5*30, for faster deployments)
                 unhealthy_threshold=10,  # We are unhealthy after 150 seconds (up from default of 3*30, because CloudBeaver can take a while to start up)
@@ -159,13 +176,11 @@ def create_cloudbeaver(
     )
 
     # Create log groups
-    aws.cloudwatch.LogGroup("cloudbeaver-log-group", name="/ecs/cloudbeaver", retention_in_days=7)
-    aws.cloudwatch.LogGroup("cloudbeaver-init-log-group", name="/ecs/cloudbeaver-init", retention_in_days=7)
+    LogGroup("cloudbeaver-log-group", name="/ecs/cloudbeaver", retention_in_days=7)
+    LogGroup("cloudbeaver-init-log-group", name="/ecs/cloudbeaver-init", retention_in_days=7)
 
     # Precompute some Input strings
-    db_url = pulumi.Output.all(db.address, db.port).apply(
-        lambda args: f"jdbc:postgresql://{args[0]}:{args[1]}/postgres"
-    )
+    db_url = Output.all(db.address, db.port).apply(lambda args: f"jdbc:postgresql://{args[0]}:{args[1]}/postgres")
     cloudbeaver_url = load_balancer.load_balancer.dns_name.apply(lambda dns_name: f"http://{dns_name}")
 
     # Create Fargate service
@@ -173,7 +188,7 @@ def create_cloudbeaver(
         "cloudbeaver-service",
         cluster=cluster.arn,
         desired_count=1,
-        opts=pulumi.ResourceOptions(depends_on=mount_targets, custom_timeouts=CustomTimeouts(create="5m")),
+        opts=ResourceOptions(depends_on=mount_targets),
         network_configuration={"subnets": vpc.private_subnet_ids, "security_groups": [cloudbeaver_security_group.id]},
         task_definition_args={
             "execution_role": {"args": {"inline_policies": [{"policy": policy}]}},
@@ -189,7 +204,7 @@ def create_cloudbeaver(
                         "log_driver": "awslogs",
                         "options": {
                             "awslogs-group": "/ecs/cloudbeaver-init",
-                            "awslogs-region": aws.get_region().name,
+                            "awslogs-region": get_region().name,
                             "awslogs-stream-prefix": "ecs",
                         },
                     },
@@ -204,12 +219,12 @@ def create_cloudbeaver(
                 },
                 "cloudbeaver": {
                     "name": "cloudbeaver",
-                    "image": f"{aws.get_caller_identity().account_id}.dkr.ecr.{aws.get_region().name}.amazonaws.com/dockerhub/dbeaver/cloudbeaver:latest",
+                    "image": f"{get_caller_identity().account_id}.dkr.ecr.{get_region().name}.amazonaws.com/dockerhub/dbeaver/cloudbeaver:latest",
                     "log_configuration": {
                         "log_driver": "awslogs",
                         "options": {
                             "awslogs-group": "/ecs/cloudbeaver",
-                            "awslogs-region": aws.get_region().name,
+                            "awslogs-region": get_region().name,
                             "awslogs-stream-prefix": "ecs",
                         },
                     },
@@ -237,4 +252,4 @@ def create_cloudbeaver(
     )
 
     # Export load balancer URL
-    pulumi.export("cloudbeaverUrl", cloudbeaver_url)
+    export("cloudbeaverUrl", cloudbeaver_url)
