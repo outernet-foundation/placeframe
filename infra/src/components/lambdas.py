@@ -15,14 +15,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Sequence
 
 import pulumi
 import pulumi_aws as aws
 import pulumi_docker as docker  # top-level module (we'll pass dicts for inputs)
 from pulumi import Config, Input, Output
+from pulumi_awsx.ec2 import Vpc
 
-from util import add_reciprocal_security_group_rules
+from util import add_egress_to_dns_rule, add_reciprocal_security_group_rules
 
 # ---------------------------------------------------------------------------
 # Container-image FastAPI Lambda
@@ -33,7 +33,7 @@ def create_lambda(
     config: Config,
     environment_vars: dict[str, Input[str]],
     s3_bucket_arn: Input[str],
-    vpc_subnet_ids: Input[Sequence[Input[str]]],
+    vpc: Vpc,
     lambda_security_group: aws.ec2.SecurityGroup,
     postgres_security_group: aws.ec2.SecurityGroup,
     logs_security_group: aws.ec2.SecurityGroup,
@@ -61,6 +61,9 @@ def create_lambda(
         to_port=443,
         prefix_list_id=s3_endpoint.prefix_list_id,
     )
+
+    # Allow Lambda egress VPC Resolve for DNS queries
+    add_egress_to_dns_rule(lambda_security_group, vpc)
 
     repo = aws.ecr.Repository("lambda-repo", force_delete=config.require_bool("devMode"))
 
@@ -132,7 +135,7 @@ def create_lambda(
                 "S3_BUCKET_ARN": s3_bucket_arn,  # Pass S3 bucket ARN to Lambda
             }
         },
-        vpc_config={"subnet_ids": vpc_subnet_ids, "security_group_ids": [lambda_security_group.id]},
+        vpc_config={"subnet_ids": vpc.private_subnet_ids, "security_group_ids": [lambda_security_group.id]},
     )
 
     # Convenience export (optional)

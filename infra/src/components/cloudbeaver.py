@@ -9,7 +9,7 @@ from pulumi import Config, Output
 from pulumi.resource import CustomTimeouts
 from pulumi_awsx.ecs import FargateService
 
-from util import add_reciprocal_security_group_rules
+from util import add_egress_to_dns_rule, add_reciprocal_security_group_rules
 
 
 def create_cloudbeaver(
@@ -35,6 +35,20 @@ def create_cloudbeaver(
     efs_security_group = aws.ec2.SecurityGroup(
         "cloudbeaver-efs-security-group", vpc_id=vpc.vpc_id, ingress=[], egress=[]
     )
+
+    # Allow Cloudbeaver egress to the VPC DNS resolver
+    # Allow CloudBeaver to send DNS queries (UDP) to the VPC resolver
+    aws.vpc.SecurityGroupEgressRule(
+        "cloudbeaver-dns-udp-egress",
+        security_group_id=cloudbeaver_security_group.id,
+        ip_protocol="udp",
+        from_port=53,
+        to_port=53,
+        cidr_ipv4=vpc.vpc.vpc_cidr_block,  # or "10.0.0.2/32" for the single resolver IP
+    )
+
+    # Allow CloudBeaver egress to the VPC resolver for DNS queries
+    add_egress_to_dns_rule(cloudbeaver_security_group, vpc)
 
     # Allow Cloudbeaver ingress from the load balancer and allow load balancer egress to CloudBeaver
     add_reciprocal_security_group_rules(

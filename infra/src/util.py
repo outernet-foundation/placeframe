@@ -2,6 +2,7 @@ from typing import List
 
 import pulumi_aws as aws
 from pulumi import Input
+from pulumi_awsx.ec2 import Vpc
 
 
 def create_zero_trust_security_group(name: str, vpc_id: Input[str]) -> aws.ec2.SecurityGroup:
@@ -34,3 +35,22 @@ def add_reciprocal_security_group_rules(
             to_port=port,
             referenced_security_group_id=ingress_security_group.id,
         )
+
+
+def add_egress_to_dns_rule(security_group: aws.ec2.SecurityGroup, vpc: Vpc) -> None:
+    aws.vpc.SecurityGroupEgressRule(
+        f"{security_group.name}-egress-to-dns-udp",
+        security_group_id=security_group.id,
+        ip_protocol="udp",
+        from_port=53,
+        to_port=53,
+        cidr_ipv4=vpc.vpc.cidr_block,
+    )
+    aws.vpc.SecurityGroupEgressRule(
+        f"{security_group.name}-egress-to-dns-tcp",
+        security_group_id=security_group.id,
+        ip_protocol="tcp",
+        from_port=53,
+        to_port=53,
+        cidr_ipv4=vpc.vpc.cidr_block,
+    )

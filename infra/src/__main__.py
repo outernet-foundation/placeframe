@@ -145,7 +145,7 @@ api_lambda = create_lambda(
         "CAPTURES_BUCKET": captures_bucket.bucket,
     },
     s3_bucket_arn=captures_bucket.arn,
-    vpc_subnet_ids=vpc.private_subnet_ids,
+    vpc=vpc,
     lambda_security_group=lambda_security_group,
     postgres_security_group=postgres_security_group,
     logs_security_group=logs_security_group,
