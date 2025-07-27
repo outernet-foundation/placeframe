@@ -93,7 +93,7 @@ def create_vpc_interface_endpoint(vpc: Vpc, name: str) -> SecurityGroup:
 
 vpc = Vpc(
     "main-vpc",
-    number_of_availability_zones=2,  # Minimum of 2 AZs required for RDS
+    number_of_availability_zones=2,  # Minimum of 2 AZs required for RDS and ECS
     # Let AWS assign DNS hostnames within the VPC (needed so tasks, ENIs, and private‑DNS endpoints resolve correctly)
     enable_dns_hostnames=True,
     # Don't create any NAT Gateways; we don't need them and they cost money.
