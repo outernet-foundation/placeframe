@@ -5,14 +5,13 @@ from pathlib import Path
 
 import pulumi_docker as docker
 from pulumi import Config, Input, Output, export
-from pulumi_aws.ec2 import SecurityGroup, VpcEndpoint
+from pulumi_aws.ec2 import VpcEndpoint
 from pulumi_aws.ecr import Repository, get_authorization_token
 from pulumi_aws.iam import Role, RolePolicy, RolePolicyAttachment
 from pulumi_aws.lambda_ import Function
-from pulumi_aws.vpc import SecurityGroupEgressRule
 from pulumi_awsx.ec2 import Vpc
 
-from util import add_egress_to_dns_rule, add_reciprocal_security_group_rules
+from components.security_group import SecurityGroup
 
 
 def create_lambda(
@@ -21,6 +20,8 @@ def create_lambda(
     s3_bucket_arn: Input[str],
     vpc: Vpc,
     lambda_security_group: SecurityGroup,
+    ecr_api_security_group: SecurityGroup,
+    ecr_dkr_security_group: SecurityGroup,
     postgres_security_group: SecurityGroup,
     logs_security_group: SecurityGroup,
     sts_security_group: SecurityGroup,
@@ -29,45 +30,26 @@ def create_lambda(
     timeout_seconds: int = 30,
     resource_name: str = "apiLambdaFunction",
 ) -> Function:
-    # Allow Postgres ingress from the Lambda and allow Lambda egress to Postgres
-    add_reciprocal_security_group_rules(
-        to_resource_name="postgres",
-        from_resource_name="lambda",
-        from_security_group=lambda_security_group,
-        to_security_group=postgres_security_group,
-        ports=[5432],
+    # Allow connections to required services
+    postgres_security_group.allow_ingress(from_security_group=lambda_security_group, ports=[5432])
+
+    # For each VPC endpoint, allow Lambda to access it
+    for vpc_endpoint_security_group in [
+        ecr_api_security_group,
+        ecr_dkr_security_group,
+        logs_security_group,
+        sts_security_group,
+    ]:
+        vpc_endpoint_security_group.allow_ingress(from_security_group=lambda_security_group, ports=[443])
+
+    # Allow Lambda egress to S3 bucket
+    lambda_security_group.allow_egress_prefix_list(
+        prefix_list_name="s3", prefix_list_id=s3_endpoint.prefix_list_id, ports=[443]
     )
 
-    # Allow logs ingress from the Lambda and allow Lambda egress to CloudWatch Logs
-    add_reciprocal_security_group_rules(
-        from_resource_name="lambda",
-        to_resource_name="cloudwatch-logs",
-        from_security_group=lambda_security_group,
-        to_security_group=logs_security_group,
-        ports=[443],
-    )
-
-    # Allow STS ingress from the Lambda and allow Lambda egress to STS
-    add_reciprocal_security_group_rules(
-        from_resource_name="lambda",
-        to_resource_name="sts",
-        from_security_group=lambda_security_group,
-        to_security_group=sts_security_group,
-        ports=[443],
-    )
-
-    # Allow Lambda egress to S3 (via VPC endpoint)
-    SecurityGroupEgressRule(
-        "lambda-egress-to-s3",
-        security_group_id=lambda_security_group.id,
-        ip_protocol="tcp",
-        from_port=443,
-        to_port=443,
-        prefix_list_id=s3_endpoint.prefix_list_id,
-    )
-
-    # Allow Lambda egress VPC Resolve for DNS queries
-    add_egress_to_dns_rule("lambda", lambda_security_group, vpc)
+    # Allow egress to VPC CIDR for DNS resolution
+    lambda_security_group.allow_egress_cidr(cidr_name="vpc-cidr", cidr=vpc.vpc.cidr_block, ports=[53])
+    lambda_security_group.allow_egress_cidr(cidr_name="vpc-cidr", cidr=vpc.vpc.cidr_block, ports=[53], protocol="udp")
 
     repo = Repository("lambda-repo", force_delete=config.require_bool("devMode"))
 

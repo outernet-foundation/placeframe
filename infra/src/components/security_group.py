@@ -27,7 +27,7 @@ class SecurityGroup(ComponentResource):
     def allow_ingress(self, from_security_group: SecurityGroup, ports: List[int], protocol: str = "tcp") -> None:
         for port in ports:
             ingress_rule = aws.vpc.SecurityGroupIngressRule(
-                f"{self._name}-ingress-from-{from_security_group._name}-{port}",
+                f"{self._name}-ingress-from-{from_security_group._name}-{port}-{protocol}",
                 security_group_id=self._security_group.id,
                 ip_protocol=protocol,
                 from_port=port,
@@ -36,7 +36,7 @@ class SecurityGroup(ComponentResource):
                 opts=ResourceOptions(parent=self),
             )
             egress_rule = aws.vpc.SecurityGroupEgressRule(
-                f"{from_security_group._name}-egress-to-{self._name}-{port}",
+                f"{from_security_group._name}-egress-to-{self._name}-{port}-{protocol}",
                 security_group_id=from_security_group._security_group.id,
                 ip_protocol=protocol,
                 from_port=port,
@@ -51,7 +51,7 @@ class SecurityGroup(ComponentResource):
         for port in ports:
             self._rule_ids.append(
                 aws.vpc.SecurityGroupIngressRule(
-                    f"{self._name}-ingress-from-{cidr_name}-{port}",
+                    f"{self._name}-ingress-from-{cidr_name}-{port}-{protocol}",
                     security_group_id=self._security_group.id,
                     ip_protocol=protocol,
                     from_port=port,
@@ -65,7 +65,7 @@ class SecurityGroup(ComponentResource):
         for port in ports:
             self._rule_ids.append(
                 aws.vpc.SecurityGroupEgressRule(
-                    f"{self._name}-egress-to-{cidr_name}-{port}",
+                    f"{self._name}-egress-to-{cidr_name}-{port}-{protocol}",
                     security_group_id=self._security_group.id,
                     ip_protocol=protocol,
                     from_port=port,
@@ -81,7 +81,7 @@ class SecurityGroup(ComponentResource):
         for port in ports:
             self._rule_ids.append(
                 aws.vpc.SecurityGroupEgressRule(
-                    f"{self._name}-egress-to-prefix-list-{prefix_list_name}-{port}",
+                    f"{self._name}-egress-to-prefix-list-{prefix_list_name}-{port}-{protocol}",
                     security_group_id=self._security_group.id,
                     ip_protocol=protocol,
                     from_port=port,

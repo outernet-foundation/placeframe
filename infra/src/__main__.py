@@ -2,7 +2,7 @@ import json
 
 from pulumi import Config, Output, export
 from pulumi_aws import get_region
-from pulumi_aws.ec2 import SecurityGroup, VpcEndpoint, get_route_table_output
+from pulumi_aws.ec2 import VpcEndpoint, get_route_table_output
 from pulumi_aws.ecr import PullThroughCacheRule
 from pulumi_aws.ecs import Cluster
 from pulumi_awsx.ec2 import NatGatewayStrategy, SubnetAllocationStrategy, Vpc
@@ -12,6 +12,7 @@ from components.database import create_database
 from components.gateway import create_gateway
 from components.lambdas import create_lambda
 from components.secret import Secret
+from components.security_group import SecurityGroup
 from components.storage import create_storage
 
 # Stack config (region comes from pulumi config aws:region)
@@ -158,6 +159,8 @@ api_lambda = create_lambda(
     s3_bucket_arn=captures_bucket.arn,
     vpc=vpc,
     lambda_security_group=lambda_security_group,
+    ecr_api_security_group=ecr_api_security_group,
+    ecr_dkr_security_group=ecr_dkr_security_group,
     postgres_security_group=postgres_security_group,
     logs_security_group=logs_security_group,
     sts_security_group=sts_security_group,

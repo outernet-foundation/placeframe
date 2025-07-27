@@ -6,18 +6,17 @@ import pulumi_docker as docker
 from pulumi import Config, Output, ResourceOptions, export
 from pulumi_aws import get_caller_identity, get_region
 from pulumi_aws.cloudwatch import LogGroup
-from pulumi_aws.ec2 import SecurityGroup, VpcEndpoint
+from pulumi_aws.ec2 import VpcEndpoint
 from pulumi_aws.ecr import Repository, get_authorization_token
 from pulumi_aws.ecs import Cluster
 from pulumi_aws.efs import FileSystem, MountTarget
 from pulumi_aws.lb import Listener, LoadBalancer, TargetGroup
 from pulumi_aws.rds import Instance
-from pulumi_aws.vpc import SecurityGroupEgressRule, SecurityGroupIngressRule
 from pulumi_awsx.ec2 import Vpc
 from pulumi_awsx.ecs import FargateService
 
 from components.secret import Secret
-from util import add_egress_to_dns_rule, add_reciprocal_security_group_rules
+from components.security_group import SecurityGroup
 
 
 def create_cloudbeaver(
@@ -39,73 +38,40 @@ def create_cloudbeaver(
     load_balancer_security_group = SecurityGroup("load-balancer-security-group", vpc_id=vpc.vpc_id)
     efs_security_group = SecurityGroup("cloudbeaver-efs-security-group", vpc_id=vpc.vpc_id)
 
-    # Allow load balancer ingress from the internet
-    SecurityGroupIngressRule(
-        "load-balancer-ingress-http",
-        security_group_id=load_balancer_security_group.id,
-        ip_protocol="tcp",
-        from_port=80,
-        to_port=80,
-        cidr_ipv4="0.0.0.0/0",
+    # Allow http ingress to the load balancer
+    load_balancer_security_group.allow_ingress_cidr(cidr="0.0.0.0/0", cidr_name="vpc-cidr", ports=[80], protocol="tcp")
+
+    # Allow egress to the VPC CIDR for DNS resolution
+    cloudbeaver_security_group.allow_egress_cidr(cidr_name="vpc-cidr", cidr=vpc.vpc.cidr_block, ports=[53])
+    cloudbeaver_security_group.allow_egress_cidr(
+        cidr_name="vpc-cidr", cidr=vpc.vpc.cidr_block, ports=[53], protocol="udp"
     )
 
-    # Allow CloudBeaver egress to the VPC resolver for DNS queries
-    add_egress_to_dns_rule("cloudbeaver", cloudbeaver_security_group, vpc)
+    # Allow load balancer to access CloudBeaver
+    cloudbeaver_security_group.allow_ingress(from_security_group=load_balancer_security_group, ports=[8978])
 
-    # Allow Cloudbeaver ingress from the load balancer and allow load balancer egress to CloudBeaver
-    add_reciprocal_security_group_rules(
-        from_resource_name="load-balancer",
-        to_resource_name="cloudbeaver",
-        from_security_group=load_balancer_security_group,
-        to_security_group=cloudbeaver_security_group,
-        ports=[8978],
-    )
-
-    # For each vpc endpoint, allow endpoint ingress from Cloudbeaver and allow CloudBeaver egress to endpoint
-    for name, vpc_endpoint_security_group in [
-        ("ecr-api", ecr_api_security_group),
-        ("ecr-dkr", ecr_dkr_security_group),
-        ("secretsmanager", secrets_manager_security_group),
-        ("logs", logs_security_group),
-        ("sts", sts_security_group),
+    # For each VPC endpoint, allow Cloudbeaver to access it
+    for vpc_endpoint_security_group in [
+        ecr_api_security_group,
+        ecr_dkr_security_group,
+        secrets_manager_security_group,
+        logs_security_group,
+        sts_security_group,
     ]:
-        add_reciprocal_security_group_rules(
-            from_resource_name="cloudbeaver",
-            to_resource_name=name,
-            from_security_group=cloudbeaver_security_group,
-            to_security_group=vpc_endpoint_security_group,
-            ports=[443],
-        )
+        vpc_endpoint_security_group.allow_ingress(from_security_group=cloudbeaver_security_group, ports=[443])
 
     # Allow Cloudbeaver egress to S3 (required for pulling images because ecr uses s3 for image layer blobs)
-    SecurityGroupEgressRule(
-        "cloudbeaver-egress-to-s3",
-        security_group_id=cloudbeaver_security_group.id,
-        ip_protocol="tcp",
-        from_port=443,
-        to_port=443,
-        prefix_list_id=s3_endpoint.prefix_list_id,
+    cloudbeaver_security_group.allow_egress_prefix_list(
+        prefix_list_name="s3", prefix_list_id=s3_endpoint.prefix_list_id, ports=[443]
     )
 
-    # Allow Postgres ingress from CloudBeaver and allow CloudBeaver egress to Postgres
-    add_reciprocal_security_group_rules(
-        from_resource_name="cloudbeaver",
-        to_resource_name="postgres",
-        from_security_group=cloudbeaver_security_group,
-        to_security_group=postgres_security_group,
-        ports=[5432],
-    )
+    # Allow CloudBeaver to access Postgres
+    postgres_security_group.allow_ingress(from_security_group=cloudbeaver_security_group, ports=[5432])
 
-    # Allow EFS ingress from CloudBeaver and allow CloudBeaver egress to EFS
-    add_reciprocal_security_group_rules(
-        from_resource_name="cloudbeaver",
-        to_resource_name="cloudbeaver-efs",
-        from_security_group=cloudbeaver_security_group,
-        to_security_group=efs_security_group,
-        ports=[2049],
-        protocol="tcp",
-    )
+    # Allow CloudBeaver to access EFS
+    efs_security_group.allow_ingress(from_security_group=cloudbeaver_security_group, ports=[2049])
 
+    # Create secrets for Postgres and CloudBeaver passwords
     postgres_secret = Secret("postgres-secret", secret_string=config.require_secret("postgres-password"))
     cloudbeaver_secret = Secret("cloudbeaver-secret", secret_string=config.require_secret("cloudbeaver-password"))
 
