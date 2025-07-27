@@ -1,0 +1,15 @@
+{
+  "generatorName": "csharp",
+  "globalProperties": {
+    "apiTests": false,
+    "modelTests": false,
+    "modelDocs": false,
+    "apiDocs": false
+  },
+  "additionalProperties": {
+    "library": "unityWebRequest",
+    "packageName": "PlerionClient",
+    "packageVersion": "0.1.0",
+    "targetFramework": "netstandard2.0"
+  }
+}

@@ -1,0 +1,241 @@
+openapi: 3.1.0
+info:
+  title: Plerion API
+  version: 0.0.1
+servers:
+- url: /
+paths:
+  /captures:
+    get:
+      operationId: get_captures
+      parameters:
+      - description: Optional list of filenames to filter by
+        explode: true
+        in: query
+        name: filenames
+        required: false
+        schema:
+          items:
+            type: string
+          nullable: true
+          type: array
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/CaptureModel"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Captures
+      tags:
+      - captures
+    post:
+      operationId: create_capture
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Body_create_capture"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptureModel"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Create Capture
+      tags:
+      - captures
+  /captures/{id}:
+    get:
+      operationId: get_capture
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptureModel"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Capture
+      tags:
+      - captures
+  /captures/{id}/file:
+    get:
+      operationId: download_capture_file
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "307":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "200":
+          content:
+            application/octet-stream:
+              schema:
+                format: binary
+                type: string
+          description: OK
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Download Capture File
+      tags:
+      - captures
+    put:
+      operationId: upload_capture_file
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          title: Id
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              format: binary
+              type: string
+        required: true
+      responses:
+        "307":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Upload Capture File
+      tags:
+      - captures
+components:
+  schemas:
+    Body_create_capture:
+      properties:
+        filename:
+          title: Filename
+          type: string
+      required:
+      - filename
+      title: Body_create_capture
+    CaptureModel:
+      example:
+        filename: filename
+        uploaded_at: 2000-01-23T04:56:07.000+00:00
+        created_at: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          nullable: true
+          type: string
+        filename:
+          maxLength: 255
+          nullable: true
+          type: string
+        created_at:
+          format: date-time
+          nullable: true
+          type: string
+        uploaded_at:
+          format: date-time
+          nullable: true
+          type: string
+      title: CaptureModel
+      extra: {}
+    HTTPValidationError:
+      example:
+        detail:
+        - msg: msg
+          loc:
+          - ValidationError_loc_inner
+          - ValidationError_loc_inner
+          type: type
+        - msg: msg
+          loc:
+          - ValidationError_loc_inner
+          - ValidationError_loc_inner
+          type: type
+      properties:
+        detail:
+          items:
+            $ref: "#/components/schemas/ValidationError"
+          type: array
+      title: HTTPValidationError
+    ValidationError:
+      example:
+        msg: msg
+        loc:
+        - ValidationError_loc_inner
+        - ValidationError_loc_inner
+        type: type
+      properties:
+        loc:
+          items:
+            $ref: "#/components/schemas/ValidationError_loc_inner"
+          type: array
+        msg:
+          title: Message
+          type: string
+        type:
+          title: Error Type
+          type: string
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    ValidationError_loc_inner:
+      anyOf:
+      - type: string
+      - type: integer
+

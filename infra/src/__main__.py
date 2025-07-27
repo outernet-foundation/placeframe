@@ -5,7 +5,7 @@ from pulumi_aws import get_region
 from pulumi_aws.ec2 import SecurityGroup, VpcEndpoint, get_route_table_output
 from pulumi_aws.ecr import PullThroughCacheRule
 from pulumi_aws.ecs import Cluster
-from pulumi_awsx.ec2 import NatGatewayStrategy, Vpc
+from pulumi_awsx.ec2 import NatGatewayStrategy, SubnetAllocationStrategy, Vpc
 
 from components.cloudbeaver import create_cloudbeaver
 from components.database import create_database
@@ -59,7 +59,7 @@ config = Config()
 
 dockerhub_secret = Secret(
     "dockerhub-secret",
-    name="ecr-pullthroughcache/dockerhub-2",
+    name_prefix="ecr-pullthroughcache/",
     secret_string=Output.all(config.require("dockerhub-username"), config.require_secret("dockerhub-password")).apply(
         lambda args: json.dumps({"username": args[0], "accessToken": args[1]})
     ),
@@ -81,14 +81,26 @@ def create_vpc_interface_endpoint(vpc: Vpc, name: str) -> SecurityGroup:
         vpc_id=vpc.vpc_id,
         service_name=f"com.amazonaws.{get_region().name}.{name}",
         vpc_endpoint_type="Interface",
-        subnet_ids=vpc.private_subnet_ids,
+        subnet_ids=vpc.private_subnet_ids.apply(
+            lambda ids: [ids[0]]
+        ),  # Only create endpoint in one subnet to reduce costs
         security_group_ids=[security_group.id],
         private_dns_enabled=True,
     )
     return security_group
 
 
-vpc = Vpc("main-vpc", nat_gateways={"strategy": NatGatewayStrategy.NONE}, enable_dns_hostnames=True)
+vpc = Vpc(
+    "main-vpc",
+    number_of_availability_zones=2,  # Minimum of 2 AZs required for RDS
+    # Let AWS assign DNS hostnames within the VPC (needed so tasks, ENIs, and private‑DNS endpoints resolve correctly)
+    enable_dns_hostnames=True,
+    # Don't create any NAT Gateways; we don't need them and they cost money.
+    nat_gateways={"strategy": NatGatewayStrategy.NONE},
+    # This will be the default in the future, but for now we need to explicitly set it
+    subnet_strategy=SubnetAllocationStrategy.AUTO,
+)
+
 ecr_api_security_group = create_vpc_interface_endpoint(vpc, "ecr.api")
 ecr_dkr_security_group = create_vpc_interface_endpoint(vpc, "ecr.dkr")
 secrets_manager_security_group = create_vpc_interface_endpoint(vpc, "secretsmanager")
@@ -121,6 +133,8 @@ cluster = Cluster("cluster")
 create_cloudbeaver(
     config,
     vpc=vpc,
+    private_subnet_ids=vpc.private_subnet_ids,
+    public_subnet_ids=vpc.public_subnet_ids,
     cluster=cluster,
     cloudbeaver_security_group=cloudbeaver_security_group,
     ecr_api_security_group=ecr_api_security_group,

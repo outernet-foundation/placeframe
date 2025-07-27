@@ -1,0 +1,29 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "🔄 Watch Python → Generate C# client",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/watchmedo",
+      "args": [
+        "shell-command",
+        "--recursive",
+        "--patterns=src/routers/*.py",
+        "--ignore-patterns=openapi.json,*.cs",
+        "--command",
+        "uv run -m src.openapi.generate"
+      ],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "never",
+        "echo": true,
+        "focus": false,
+        "panel": "dedicated"
+      },
+      "problemMatcher": [],
+      "runOptions": {
+        "runOn": "folderOpen"
+      }
+    }
+  ]
+}

@@ -1,12 +1,14 @@
 from functools import lru_cache
-from typing import Optional
+from typing import Optional, cast
 
 from pydantic import AnyHttpUrl, PostgresDsn, ValidationError, model_validator
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    postgres_dsn: PostgresDsn
+    postgres_dsn: PostgresDsn = cast(
+        PostgresDsn, "postgresql://postgres:postgres@localhost:5432/postgres"
+    )
     s3_endpoint_url: Optional[AnyHttpUrl] = None
     s3_access_key: Optional[str] = None
     s3_secret_key: Optional[str] = None

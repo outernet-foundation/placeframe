@@ -1,12 +1,19 @@
 import asyncio
 from contextlib import asynccontextmanager
+from typing import cast
 
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from mangum import Mangum
+from piccolo.engine import engine_finder  # type: ignore[import-untyped]
 
-from .db.conf import DB
+from .db.piccolo_shims import PostgresEngine
 from .routers.captures import router as captures_router
+
+try:
+    DB = cast(PostgresEngine, engine_finder())
+except Exception as e:
+    print("Error finding database engine:", e)
 
 try:
     asyncio.get_running_loop()

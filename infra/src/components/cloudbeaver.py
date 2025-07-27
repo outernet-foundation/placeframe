@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Sequence
 
 import pulumi_docker as docker
 from pulumi import Config, Output, ResourceOptions, export
@@ -9,12 +10,11 @@ from pulumi_aws.ec2 import SecurityGroup, VpcEndpoint
 from pulumi_aws.ecr import Repository, get_authorization_token
 from pulumi_aws.ecs import Cluster
 from pulumi_aws.efs import FileSystem, MountTarget
-from pulumi_aws.lb import TargetGroupHealthCheckArgs
+from pulumi_aws.lb import Listener, LoadBalancer, TargetGroup
 from pulumi_aws.rds import Instance
 from pulumi_aws.vpc import SecurityGroupEgressRule, SecurityGroupIngressRule
 from pulumi_awsx.ec2 import Vpc
 from pulumi_awsx.ecs import FargateService
-from pulumi_awsx.lb import ApplicationLoadBalancer, TargetGroupArgs
 
 from components.secret import Secret
 from util import add_egress_to_dns_rule, add_reciprocal_security_group_rules
@@ -23,6 +23,8 @@ from util import add_egress_to_dns_rule, add_reciprocal_security_group_rules
 def create_cloudbeaver(
     config: Config,
     vpc: Vpc,
+    private_subnet_ids: Output[Sequence[str]],
+    public_subnet_ids: Output[Sequence[str]],
     cluster: Cluster,
     cloudbeaver_security_group: SecurityGroup,
     ecr_api_security_group: SecurityGroup,
@@ -139,29 +141,42 @@ def create_cloudbeaver(
     efs = FileSystem("cloudbeaver-efs")
 
     # Create mount targets for the EFS in each private subnet of our VPC
-    mount_targets = vpc.private_subnet_ids.apply(
+    mount_targets = private_subnet_ids.apply(
         lambda subnet_ids: [
             MountTarget(f"efs-mount-{i}", file_system_id=efs.id, subnet_id=sid, security_groups=[efs_security_group.id])
             for i, sid in enumerate(subnet_ids)
         ]
     )
 
-    # Create load balancer
-    load_balancer = ApplicationLoadBalancer(
-        "cloudbeaver-lb",
-        security_groups=[load_balancer_security_group.id],
-        subnet_ids=vpc.public_subnet_ids,
-        default_target_group=TargetGroupArgs(
-            port=8978,
-            deregistration_delay=60,  # Wait 60s before deregistering unhealthy instances (down from default of 300, for faster rotation since we only have one instance)
-            health_check=TargetGroupHealthCheckArgs(
-                path="/",
-                protocol="HTTP",
-                interval=15,  # Check every 15 seconds (down from default of 30)
-                healthy_threshold=2,  # We are healthy after 30 seconds (down from default of 5*30, for faster deployments)
-                unhealthy_threshold=10,  # We are unhealthy after 150 seconds (up from default of 3*30, because CloudBeaver can take a while to start up)
-            ),
-        ),
+    # 1) Create the ALB itself
+    load_balancer = LoadBalancer(
+        "cloudbeaver-lb", security_groups=[load_balancer_security_group.id], subnets=public_subnet_ids
+    )
+
+    # 2) Create the Target Group
+    load_balancer_target_group = TargetGroup(
+        "cloudbeaver-lb-tg",
+        port=8978,
+        protocol="HTTP",
+        target_type="ip",
+        vpc_id=load_balancer.vpc_id,
+        deregistration_delay=60,  # Wait 60s before deregistering unhealthy instances (down from default of 300, for faster rotation since we only have one instance)
+        health_check={
+            "path": "/",
+            "protocol": "HTTP",
+            "interval": 15,  # Check every 15 seconds (down from default of 30)
+            "healthy_threshold": 2,  # We are healthy after 30 seconds (down from default of 5*30, for faster deployments)
+            "unhealthy_threshold": 10,  # We are unhealthy after 150 seconds (up from default of 3*30, because CloudBeaver can take a while to start up)
+        },
+    )
+
+    # 3) Create the Listener, forwarding to our TG
+    Listener(
+        "cloudbeaver-lb-listener",
+        load_balancer_arn=load_balancer.arn,
+        port=80,
+        protocol="HTTP",
+        default_actions=[{"type": "forward", "target_group_arn": load_balancer_target_group.arn}],
     )
 
     # Create log groups
@@ -170,7 +185,7 @@ def create_cloudbeaver(
 
     # Precompute some Input strings
     db_url = Output.all(db.address, db.port).apply(lambda args: f"jdbc:postgresql://{args[0]}:{args[1]}/postgres")
-    cloudbeaver_url = load_balancer.load_balancer.dns_name.apply(lambda dns_name: f"http://{dns_name}")
+    cloudbeaver_url = load_balancer.dns_name.apply(lambda dns_name: f"http://{dns_name}")
 
     # Create Fargate service
     FargateService(
@@ -178,7 +193,7 @@ def create_cloudbeaver(
         cluster=cluster.arn,
         desired_count=1,
         opts=ResourceOptions(depends_on=mount_targets),
-        network_configuration={"subnets": vpc.private_subnet_ids, "security_groups": [cloudbeaver_security_group.id]},
+        network_configuration={"subnets": private_subnet_ids, "security_groups": [cloudbeaver_security_group.id]},
         task_definition_args={
             "execution_role": {"args": {"inline_policies": [{"policy": policy}]}},
             "volumes": [
@@ -218,7 +233,7 @@ def create_cloudbeaver(
                         },
                     },
                     "port_mappings": [
-                        {"container_port": 8978, "host_port": 8978, "target_group": load_balancer.default_target_group}
+                        {"container_port": 8978, "host_port": 8978, "target_group": load_balancer_target_group}
                     ],
                     "mount_points": [{"source_volume": "efs", "container_path": "/opt/cloudbeaver/workspace"}],
                     "environment": [

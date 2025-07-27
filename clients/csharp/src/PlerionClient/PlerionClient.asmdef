@@ -1,0 +1,7 @@
+{
+    "name": "PlerionClient",
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Newtonsoft.Json.dll"
+    ]
+}

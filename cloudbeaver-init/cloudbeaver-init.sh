@@ -24,3 +24,5 @@ cat > "$CONFIG_DIR/data-sources.json" << EOF
   }
 }
 EOF
+
+echo "CloudBeaver configuration initialized."
