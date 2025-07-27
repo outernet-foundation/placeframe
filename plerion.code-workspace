@@ -10,7 +10,8 @@
       "path": "infra"
     },
     {
-      "path": "clients/csharp"
+      "path": "clients/unity",
+      "name": "client-unity"
     }
   ],
   "settings": {
