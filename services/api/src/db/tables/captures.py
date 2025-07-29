@@ -21,6 +21,6 @@ class Capture(Table):
         default=TimestampNow(),
     )
 
-    uploadd_at = Timestamp(
+    uploaded_at = Timestamp(
         null=True,
     )

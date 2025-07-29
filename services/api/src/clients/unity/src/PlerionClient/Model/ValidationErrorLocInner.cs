@@ -20,6 +20,7 @@ using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
+using FileParameter = PlerionClient.Client.FileParameter;
 using OpenAPIDateConverter = PlerionClient.Client.OpenAPIDateConverter;
 using System.Reflection;
 

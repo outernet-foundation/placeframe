@@ -33,7 +33,7 @@ namespace PlerionClient.Client
         public Multimap<string, string> QueryParameters { get; set; }
 
         /// <summary>
-        /// Header parameters to be applied to to the request.
+        /// Header parameters to be applied to the request.
         /// Keys may have 1 or more values associated.
         /// </summary>
         public Multimap<string, string> HeaderParameters { get; set; }
@@ -42,6 +42,11 @@ namespace PlerionClient.Client
         /// Form parameters to be sent along with the request.
         /// </summary>
         public Dictionary<string, string> FormParameters { get; set; }
+
+        /// <summary>
+        /// File parameters to be sent along with the request.
+        /// </summary>
+        public Multimap<string, FileParameter> FileParameters { get; set; }
 
         /// <summary>
         /// Cookies to be sent along with the request.
@@ -62,6 +67,7 @@ namespace PlerionClient.Client
             QueryParameters = new Multimap<string, string>();
             HeaderParameters = new Multimap<string, string>();
             FormParameters = new Dictionary<string, string>();
+            FileParameters = new Multimap<string, FileParameter>();
             Cookies = new List<Cookie>();
         }
     }

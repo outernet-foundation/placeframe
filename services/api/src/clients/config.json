@@ -7,9 +7,19 @@
     "apiDocs": false
   },
   "additionalProperties": {
-    "library": "unityWebRequest",
+    "library": "httpclient",
     "packageName": "PlerionClient",
     "packageVersion": "0.1.0",
-    "targetFramework": "netstandard2.0"
+    "targetFramework": "netstandard2.1",
+
+    "optionalProjectFile": false,
+    "optionalAssemblyInfo": false,
+
+    "validatable": false,
+    "useDataAnnotations": false,
+    "nullableReferenceTypes": false,
+
+    "useHttpClientFactory": false,
+    "usePolly": false
   }
 }

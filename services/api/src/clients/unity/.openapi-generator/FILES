@@ -1,6 +1,8 @@
 .gitignore
+PlerionClient.sln
 README.md
 api/openapi.yaml
+appveyor.yml
 git_push.sh
 src/PlerionClient/Api/CapturesApi.cs
 src/PlerionClient/Client/ApiClient.cs
@@ -8,8 +10,8 @@ src/PlerionClient/Client/ApiException.cs
 src/PlerionClient/Client/ApiResponse.cs
 src/PlerionClient/Client/ClientUtils.cs
 src/PlerionClient/Client/Configuration.cs
-src/PlerionClient/Client/ConnectionException.cs
 src/PlerionClient/Client/ExceptionFactory.cs
+src/PlerionClient/Client/FileParameter.cs
 src/PlerionClient/Client/GlobalConfiguration.cs
 src/PlerionClient/Client/IApiAccessor.cs
 src/PlerionClient/Client/IAsynchronousClient.cs
@@ -18,8 +20,7 @@ src/PlerionClient/Client/ISynchronousClient.cs
 src/PlerionClient/Client/Multimap.cs
 src/PlerionClient/Client/OpenAPIDateConverter.cs
 src/PlerionClient/Client/RequestOptions.cs
-src/PlerionClient/Client/UnexpectedResponseException.cs
-src/PlerionClient/Client/UnityWebRequestAwaiterExtension.cs
+src/PlerionClient/Client/RetryConfiguration.cs
 src/PlerionClient/Client/WebRequestPathBuilder.cs
 src/PlerionClient/Model/AbstractOpenAPISchema.cs
 src/PlerionClient/Model/BodyCreateCapture.cs
@@ -27,4 +28,4 @@ src/PlerionClient/Model/CaptureModel.cs
 src/PlerionClient/Model/HTTPValidationError.cs
 src/PlerionClient/Model/ValidationError.cs
 src/PlerionClient/Model/ValidationErrorLocInner.cs
-src/PlerionClient/PlerionClient.asmdef
+src/PlerionClient/PlerionClient.csproj

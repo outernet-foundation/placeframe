@@ -36,12 +36,12 @@
     "python.analysis.languageServerMode": "default",
     "python.analysis.diagnosticMode": "workspace",
     "emeraldwalk.runonsave": {
-      "autoClearConsole": true,
-      "showElapsed": true,
+      // "autoClearConsole": true,
+      // "showElapsed": true,
       "commands": [
         {
           // match either src/routers/*.py OR src/db/tables/*.py
-          "match": "src/(routers|db/tables)/.*\\.py$",
+          "match": ".*src[/\\\\](routers|db[/\\\\]tables)[/\\\\].*\\.py$",
           "cmd": "uv run -m src.clients.generate",
           "message": "🔄 Generating C# client…",
           "messageAfter": "✅ Done generating C# client"
