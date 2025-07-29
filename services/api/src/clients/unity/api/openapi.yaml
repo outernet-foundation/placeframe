@@ -7,7 +7,7 @@ servers:
 paths:
   /captures:
     get:
-      operationId: get_captures
+      operationId: get_captres
       parameters:
       - description: Optional list of filenames to filter by
         explode: true
@@ -35,7 +35,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
           description: Validation Error
-      summary: Get Captures
+      summary: Get Captres
       tags:
       - captures
     post:

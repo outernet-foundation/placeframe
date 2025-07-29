@@ -10,8 +10,8 @@
         "tags": [
           "captures"
         ],
-        "summary": "Get Captures",
-        "operationId": "get_captures",
+        "summary": "Get Captres",
+        "operationId": "get_captres",
         "parameters": [
           {
             "name": "filenames",
@@ -45,7 +45,7 @@
                   "items": {
                     "$ref": "#/components/schemas/CaptureModel"
                   },
-                  "title": "Response Get Captures"
+                  "title": "Response Get Captres"
                 }
               }
             }

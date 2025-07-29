@@ -1,7 +1,7 @@
 from piccolo.conf.apps import AppRegistry
 
-from .src.db.piccolo_shims import PostgresEngine
-from .src.settings import get_settings
+from src.db.piccolo_shims import PostgresEngine
+from src.settings import get_settings
 
 DB = PostgresEngine(
     config={

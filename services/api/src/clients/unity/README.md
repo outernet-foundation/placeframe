@@ -92,8 +92,8 @@ Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
 *CapturesApi* | [**CreateCapture**](CapturesApi.md#createcapture) | **POST** /captures | Create Capture
 *CapturesApi* | [**DownloadCaptureFile**](CapturesApi.md#downloadcapturefile) | **GET** /captures/{id}/file | Download Capture File
+*CapturesApi* | [**GetCaptres**](CapturesApi.md#getcaptres) | **GET** /captures | Get Captres
 *CapturesApi* | [**GetCapture**](CapturesApi.md#getcapture) | **GET** /captures/{id} | Get Capture
-*CapturesApi* | [**GetCaptures**](CapturesApi.md#getcaptures) | **GET** /captures | Get Captures
 *CapturesApi* | [**UploadCaptureFile**](CapturesApi.md#uploadcapturefile) | **PUT** /captures/{id}/file | Upload Capture File
 
 

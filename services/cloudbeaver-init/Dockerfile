@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-COPY cloudbeaver-init.sh /cloudbeaver-init.sh
-RUN chmod +x /cloudbeaver-init.sh
+COPY script.sh /script.sh
+RUN chmod +x /script.sh
 
-ENTRYPOINT ["/cloudbeaver-init.sh"]
+ENTRYPOINT ["/script.sh"]
