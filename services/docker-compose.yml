@@ -124,8 +124,8 @@ services:
       bash -c "
         uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app --reload-include '**/*.py'
       "
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     environment:
       PICCOLO_CONF: "src.db.piccolo_conf"
       POSTGRES_DSN: ${POSTGRES_DSN}

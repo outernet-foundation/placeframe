@@ -14,6 +14,10 @@ WORKDIR /workspace
 COPY automigrate/script.sh /usr/local/bin/script.sh
 RUN chmod +x /usr/local/bin/script.sh
 
+RUN apt-get update \
+ && apt-get install -y dos2unix \
+ && dos2unix /usr/local/bin/script.sh
+
 # Copy your code
 COPY api/ /workspace/
 

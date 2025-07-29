@@ -4,12 +4,13 @@
     {
       "label": "🔄 uv sync all Python projects",
       "type": "shell",
-      "command": "find . -maxdepth 3 -type f -name pyproject.toml -printf '%h\n' | uniq | xargs -I {} sh -c 'echo \"🔧 syncing {}\" && cd {} && uv sync --all-packages'",
+      "command": "python",
+      "args": [
+        "${workspaceFolder}/.vscode/sync_python_projects.py",
+        "${workspaceFolder}"
+      ],
       "problemMatcher": [],
-      "runOptions": {
-        // run this task automatically when the folder is opened
-        "runOn": "folderOpen"
-      },
+      "runOptions": { "runOn": "folderOpen" },
       "presentation": {
         "reveal": "never",
         "panel": "shared",
