@@ -58,7 +58,7 @@ def main():
     script_dir = Path(__file__).resolve().parent
     config_path = script_dir / "config.json"
     spec_path = script_dir / "openapi.json"
-    output_dir = script_dir / "clients" / "unity"
+    output_dir = script_dir / "unity"
     dump_openapi(spec_path)
     generate_client(config_path, spec_path, output_dir)
     patch_commas(output_dir)
