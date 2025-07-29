@@ -119,30 +119,32 @@ public static class ZedCaptureController
 
     public static async UniTask<IEnumerable<string>> GetCaptures()
     {
-        return await RestClient.Get<string[]>($"{jetsonIP}/captures");
+        // return await RestClient.Get<string[]>($"{jetsonIP}/captures");
+        return new List<string>(); // Placeholder for actual implementation
     }
 
     public static async UniTask<byte[]> GetCapture(string captureName)
     {
-        return await RestClient.Get<byte[]>($"{jetsonIP}/capture/{captureName}");
+        // return await RestClient.Get<byte[]>($"{jetsonIP}/capture/{captureName}");
+        return new byte[0]; // Placeholder for actual implementation
     }
 
     public static async UniTask StartCapture(
         CancellationToken cancellationToken,
         float captureInterval = 10)
     {
-        await RestClient.Post(
-            $"{jetsonIP}/start",
-            new StartCaptureRequest
-            {
-                capture_name = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss"),
-                capture_interval = captureInterval
-            });
+        // await RestClient.Post(
+        //     $"{jetsonIP}/start",
+        //     new StartCaptureRequest
+        //     {
+        //         capture_name = DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss"),
+        //         capture_interval = captureInterval
+        //     });
     }
 
     public static async UniTask StopCapture(
         CancellationToken cancellationToken)
     {
-        await RestClient.Post($"{jetsonIP}/stop", new { });
+        // await RestClient.Post($"{jetsonIP}/stop", new { });
     }
 }

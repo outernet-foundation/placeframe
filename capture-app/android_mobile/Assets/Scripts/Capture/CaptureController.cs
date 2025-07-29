@@ -10,6 +10,7 @@ using System.Linq;
 using Unity.VisualScripting;
 using PlerionClient.Client;
 using PlerionClient.Api;
+using System.IO;
 
 public class Capture
 {
@@ -27,6 +28,12 @@ public class Capture
 
 public class CaptureController : MonoBehaviour
 {
+    private enum Environment
+    {
+        Local,
+        Remote
+    }
+
     enum CaptureState
     {
         Idle,
@@ -51,15 +58,27 @@ public class CaptureController : MonoBehaviour
 
     [SerializeField][Range(0, 5)] float captureIntervalSeconds = 0.5f;
 
-    static private readonly string plerionAPIBaseUrl = "http://localhost:8000";
+    private static Environment environment = Environment.Local;
 
     static private QueueSynchronizationContext context = new QueueSynchronizationContext();
     private ObservableProperty<CaptureState> captureStatus = new ObservableProperty<CaptureState>(context, CaptureState.Idle);
     private List<Capture> captures;
     private IDisposable disposables;
+    private CapturesApi capturesApi;
 
     void Awake()
     {
+        var temp = Application.streamingAssetsPath;
+
+        var plerionAPIBaseUrl = environment switch
+        {
+            Environment.Local => Resources.Load<TextAsset>("ngrok").text,
+            Environment.Remote => "",
+            _ => throw new ArgumentOutOfRangeException(nameof(environment), environment, null)
+        };
+
+        capturesApi = new CapturesApi(new Configuration { BasePath = plerionAPIBaseUrl });
+
         ZedCaptureController.Initialize();
         UpdateCaptureList();
 
@@ -182,9 +201,6 @@ public class CaptureController : MonoBehaviour
 
     async void UpdateCaptureList()
     {
-
-        //var zedCaptureNames = await ZedCaptureController.GetCaptures();
-
         // Clear captures table
         if (captures != null)
         {
@@ -195,13 +211,6 @@ public class CaptureController : MonoBehaviour
             }
         }
 
-        // var zedCaptures = zedCaptureNames
-        //     .Select(name => new Capture
-        //     {
-        //         Name = name,
-        //         Type = Capture.Mode.Zed
-        //     });
-
         var localCaptures = LocalCaptureController
             .GetCaptures()
             .Select(name => new Capture
@@ -210,34 +219,11 @@ public class CaptureController : MonoBehaviour
                 Type = Capture.Mode.Local
             });
 
-        // @get(
-        //     "/captures",
-        //     return_dto=PiccoloDTO[Capture],       
-        //     media_type=MediaType.JSON,
-        // )
-        // async def get_captures(
-        //     filenames: List[str],                  
-        // ) -> List[Capture]:                        
-        //     return await Capture.objects().where(
-        //         Capture.filename.is_in(filenames)
-        //     )
-
-        // Populate captures table with new captures
-        // captures = zedCaptures.Concat(localCaptures).ToList();
         captures = localCaptures.ToList();
 
-        // var databaseCaptures = await RestClient.Get<List<string>>(
-        //     $"{plerionAPIBaseUrl}/captures?filenames={string.Join(",", captures.Select(c => c.Name))}");
-
-        var capturesApi = new CapturesApi(new Configuration { BasePath = plerionAPIBaseUrl });
-
-        // 2) call the typed endpoint
-        //    it returns List<PiccoloApiClient.Model.Capture>
         var capturesFromServer = await capturesApi.GetCapturesAsync(
             captures.Select(c => c.Name).ToList());
-        //captures.Select(c => c.Name).ToList());
 
-        // 3) if you still just want the filenames:
         var databaseCaptures = capturesFromServer
             .ToList();
 
@@ -261,18 +247,15 @@ public class CaptureController : MonoBehaviour
 
                 async UniTask UploadCapture(CancellationToken cancellationToken)
                 {
-                    var presignedURL = await RestClient.Post<CaptureUploadRequest, string>(
-                        $"{plerionAPIBaseUrl}/captures", new CaptureUploadRequest { filename = capture.Name });
-
                     if (capture.Type == Capture.Mode.Zed)
                     {
                         var captureData = await ZedCaptureController.GetCapture(capture.Name);
-                        await RestClient.Put(presignedURL, captureData);
+                        await capturesApi.UploadCaptureFileAsync(capture.Name, new MemoryStream(captureData), cancellationToken);
                     }
                     else if (capture.Type == Capture.Mode.Local)
                     {
                         var captureData = await LocalCaptureController.GetCapture(capture.Name);
-                        await RestClient.Put(presignedURL, captureData);
+                        await capturesApi.UploadCaptureFileAsync(capture.Name, new MemoryStream(captureData), cancellationToken);
                     }
                 }
 
