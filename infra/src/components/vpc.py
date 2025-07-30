@@ -1,4 +1,4 @@
-from typing import Dict, Sequence, overload
+from typing import Dict, Sequence, TypedDict, overload
 
 import pulumi
 import pulumi_awsx
@@ -6,13 +6,11 @@ from pulumi import ComponentResource, Input, Output, ResourceOptions
 from pulumi_aws import get_region_output
 from pulumi_aws.ec2 import VpcEndpoint, get_route_table_output
 from pulumi_awsx.ec2 import NatGatewayStrategy, SubnetAllocationStrategy
-from pydantic import BaseModel, ConfigDict
 
 from components.security_group import SecurityGroup
 
 
-class VpcInfo(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)  # allow pulumi.Input types
+class VpcInfo(TypedDict):
     id: Input[str]
     cidr_block: Input[str]
     private_subnet_ids: Input[Sequence[str]]
@@ -41,11 +39,11 @@ class Vpc(ComponentResource):
         vpc_info_out = Output.from_input(vpc_info) if vpc_info is not None else None
 
         if vpc_info_out is not None:
-            self.id = vpc_info_out.apply(lambda info: info.id)
-            self.cidr_block = vpc_info_out.apply(lambda info: info.cidr_block)
-            self.private_subnet_ids = vpc_info_out.apply(lambda info: info.private_subnet_ids)
-            self.public_subnet_ids = vpc_info_out.apply(lambda info: info.public_subnet_ids)
-            self.s3_endpoint_prefix_list_id = vpc_info_out.apply(lambda info: info.s3_endpoint_prefix_list_id)
+            self.id = vpc_info_out.apply(lambda info: info["id"])
+            self.cidr_block = vpc_info_out.apply(lambda info: info["cidr_block"])
+            self.private_subnet_ids = vpc_info_out.apply(lambda info: info["private_subnet_ids"])
+            self.public_subnet_ids = vpc_info_out.apply(lambda info: info["public_subnet_ids"])
+            self.s3_endpoint_prefix_list_id = vpc_info_out.apply(lambda info: info["s3_endpoint_prefix_list_id"])
         else:
             self._vpc: pulumi_awsx.ec2.Vpc | None = pulumi_awsx.ec2.Vpc(
                 f"{name}-vpc",
@@ -70,7 +68,9 @@ class Vpc(ComponentResource):
             if vpc_info_out is not None:
                 self.interface_security_groups[service_name] = SecurityGroup(
                     security_group_name,
-                    security_group_id=vpc_info_out.apply(lambda info: info.interface_security_group_ids[service_name]),
+                    security_group_id=vpc_info_out.apply(
+                        lambda info, svc=service_name: info["interface_security_group_ids"][svc]
+                    ),
                     opts=self._child_opts,
                 )
             elif self._vpc is not None:

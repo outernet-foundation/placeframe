@@ -46,36 +46,36 @@ def create_lambda(
 
     # Create a basic Lambda execution role (logs only).
     role = Role(
-        resource_name=resource_name,
-        assume_role_policy=s3_bucket_arn.apply(
-            lambda arn: json.dumps({
-                "Version": "2012-10-17",
-                "Statement": [{"Effect": "Allow", "Action": ["s3:GetObject", "s3:PutObject"], "Resource": f"{arn}/*"}],
-            })
-        ),
-    )
-
-    RolePolicyAttachment(
-        "lambdaVpcAccessPolicy",
-        role=role.name,
-        policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
-    )
-
-    RolePolicy(
-        "lambdaS3Access",
-        role=role.id,
-        policy=json.dumps({
+        f"{resource_name}-lambda-role",
+        assume_role_policy=json.dumps({
             "Version": "2012-10-17",
             "Statement": [
-                {"Effect": "Allow", "Action": ["s3:GetObject", "s3:PutObject"], "Resource": f"{s3_bucket_arn}/*"}
+                {"Action": "sts:AssumeRole", "Principal": {"Service": "lambda.amazonaws.com"}, "Effect": "Allow"}
             ],
         }),
     )
 
     RolePolicyAttachment(
-        resource_name=f"{resource_name}-basicExecution",
+        "lambda-basic-exec",
+        role=role.name,
+        policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
+    )
+
+    RolePolicyAttachment(
+        "lambda-vpc-access",
         role=role.name,
         policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+    )
+
+    RolePolicy(
+        "lambdaS3Access",
+        role=role.id,
+        policy=s3_bucket_arn.apply(
+            lambda arn: json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{"Effect": "Allow", "Action": ["s3:GetObject", "s3:PutObject"], "Resource": f"{arn}/*"}],
+            })
+        ),
     )
 
     # Validate build context early; helps surface mis-path errors during preview.

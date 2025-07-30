@@ -178,7 +178,9 @@ def create_cloudbeaver(
                 },
                 "cloudbeaver": {
                     "name": "cloudbeaver",
-                    "image": f"{get_caller_identity().account_id}.dkr.ecr.{get_region_output().name}.amazonaws.com/dockerhub/dbeaver/cloudbeaver:latest",
+                    "image": get_region_output().name.apply(
+                        lambda r: f"{get_caller_identity().account_id}.dkr.ecr.{r}.amazonaws.com/dockerhub/dbeaver/cloudbeaver:latest"
+                    ),
                     "log_configuration": {
                         "log_driver": "awslogs",
                         "options": {

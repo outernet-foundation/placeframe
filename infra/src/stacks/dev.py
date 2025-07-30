@@ -1,4 +1,6 @@
-from pulumi import Config, StackReference, export
+from typing import cast
+
+from pulumi import Config, Output, StackReference, export
 from pulumi_aws.ecs import Cluster
 
 from components.cloudbeaver import create_cloudbeaver
@@ -7,11 +9,14 @@ from components.gateway import create_gateway
 from components.lambdas import create_lambda
 from components.security_group import SecurityGroup
 from components.storage import create_storage
-from components.vpc import Vpc
+from components.vpc import Vpc, VpcInfo
 
 
 def create_dev_stack(config: Config):
-    vpc = Vpc(name="main-vpc", vpc_info=StackReference("plerion_infra/infra/core").require_output("vpc-info"))
+    vpc = Vpc(
+        name="main-vpc",
+        vpc_info=cast(Output[VpcInfo], StackReference("tyler-s-hatch/plerion_infra/core").require_output("vpc-info")),
+    )
 
     lambda_security_group = SecurityGroup("lambda-security-group", vpc_id=vpc.id)
     cloudbeaver_security_group = SecurityGroup("cloudbeaver-security-group", vpc_id=vpc.id)

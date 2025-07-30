@@ -66,12 +66,12 @@ def create_core_stack(config: Config):
     vpc = Vpc(name="main-vpc")
     export(
         "vpc-info",
-        VpcInfo(
-            id=vpc.id,
-            cidr_block=vpc.cidr_block,
-            private_subnet_ids=vpc.private_subnet_ids,
-            public_subnet_ids=vpc.public_subnet_ids,
-            interface_security_group_ids={service: sg.id for service, sg in vpc.interface_security_groups.items()},
-            s3_endpoint_prefix_list_id=vpc.s3_endpoint_prefix_list_id,
-        ).model_dump(),
+        VpcInfo({
+            "id": vpc.id,
+            "cidr_block": vpc.cidr_block,
+            "private_subnet_ids": vpc.private_subnet_ids,
+            "public_subnet_ids": vpc.public_subnet_ids,
+            "interface_security_group_ids": {service: sg.id for service, sg in vpc.interface_security_groups.items()},
+            "s3_endpoint_prefix_list_id": vpc.s3_endpoint_prefix_list_id,
+        }),
     )

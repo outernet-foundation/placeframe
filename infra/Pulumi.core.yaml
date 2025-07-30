@@ -1,0 +1,5 @@
+environment:
+  - default/dev
+
+config:
+  aws:region: us-east-1
