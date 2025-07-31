@@ -25,12 +25,12 @@ def create_lambda(
     resource_name: str = "apiLambdaFunction",
 ) -> Function:
     # Allow connections to required services
-    postgres_security_group.allow_ingress(from_security_group=lambda_security_group, ports=[5432])
+    lambda_security_group.allow_egress_reciprocal(to_security_group=postgres_security_group, ports=[5432])
 
     # For each VPC endpoint, allow Lambda to access it
     for service_name in ["ecr.api", "ecr.dkr", "logs", "sts"]:
-        vpc.interface_security_groups[service_name].allow_ingress(
-            from_security_group=lambda_security_group, ports=[443]
+        lambda_security_group.allow_egress_reciprocal(
+            to_security_group=vpc.interface_security_groups[service_name], ports=[443]
         )
 
     # Allow Lambda egress to S3 bucket

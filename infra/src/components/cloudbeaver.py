@@ -31,17 +31,17 @@ def create_cloudbeaver(
     # Allow http ingress to the load balancer from anywhere
     load_balancer_security_group.allow_ingress_cidr(cidr_name="vpc-cidr", cidr="0.0.0.0/0", ports=[80], protocol="tcp")
 
+    # Allow the load balancer to access CloudBeaver
+    cloudbeaver_security_group.allow_ingress_reciprocal(from_security_group=load_balancer_security_group, ports=[8978])
+
     # Allow egress to the VPC CIDR for DNS resolution
     cloudbeaver_security_group.allow_egress_cidr(cidr_name="vpc-cidr", cidr=vpc.cidr_block, ports=[53])
     cloudbeaver_security_group.allow_egress_cidr(cidr_name="vpc-cidr", cidr=vpc.cidr_block, ports=[53], protocol="udp")
 
-    # Allow the load balancer to access CloudBeaver
-    cloudbeaver_security_group.allow_ingress(from_security_group=load_balancer_security_group, ports=[8978])
-
     # For each VPC endpoint, allow Cloudbeaver to access it
     for service_name in ["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts"]:
-        vpc.interface_security_groups[service_name].allow_ingress(
-            from_security_group=cloudbeaver_security_group, ports=[443]
+        cloudbeaver_security_group.allow_egress_reciprocal(
+            to_security_group=vpc.interface_security_groups[service_name], ports=[443]
         )
 
     # Allow Cloudbeaver egress to S3 (required for pulling images because ecr uses s3 for image layer blobs)
@@ -50,10 +50,10 @@ def create_cloudbeaver(
     )
 
     # Allow CloudBeaver to access Postgres
-    postgres_security_group.allow_ingress(from_security_group=cloudbeaver_security_group, ports=[5432])
+    cloudbeaver_security_group.allow_egress_reciprocal(to_security_group=postgres_security_group, ports=[5432])
 
     # Allow CloudBeaver to access EFS
-    efs_security_group.allow_ingress(from_security_group=cloudbeaver_security_group, ports=[2049])
+    cloudbeaver_security_group.allow_egress_reciprocal(to_security_group=efs_security_group, ports=[2049])
 
     # Create secrets for Postgres and CloudBeaver passwords
     postgres_secret = Secret("postgres-secret", secret_string=config.require_secret("postgres-password"))
@@ -147,7 +147,9 @@ def create_cloudbeaver(
         "cloudbeaver-service",
         cluster=cluster.arn,
         desired_count=1,
-        opts=ResourceOptions(depends_on=mount_targets.apply(lambda mts: Output.all(*[mt.id for mt in mts]))),
+        opts=ResourceOptions(depends_on= Output.all(
+            *[mt.id for mt in mount_targets]
+        )),
         network_configuration={"subnets": vpc.private_subnet_ids, "security_groups": [cloudbeaver_security_group.id]},
         task_definition_args={
             "execution_role": {"args": {"inline_policies": [{"policy": policy}]}},
