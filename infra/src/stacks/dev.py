@@ -1,6 +1,6 @@
 from typing import cast
 
-from pulumi import Config, Output, StackReference, export
+from pulumi import Config, Output, StackReference
 from pulumi_aws.ecs import Cluster
 
 from components.api import create_api
@@ -12,10 +12,8 @@ from components.vpc import Vpc, VpcInfo
 
 
 def create_dev_stack(config: Config):
-    vpc = Vpc(
-        name="main-vpc",
-        vpc_info=cast(Output[VpcInfo], StackReference("tyler-s-hatch/plerion_infra/core").require_output("vpc-info")),
-    )
+    core_stack = StackReference("tyler-s-hatch/plerion_infra/core")
+    vpc = Vpc(name="main-vpc", vpc_info=cast(Output[VpcInfo], core_stack.require_output("vpc-info")))
 
     lambda_security_group = SecurityGroup("lambda-security-group", vpc_id=vpc.id)
     cloudbeaver_security_group = SecurityGroup("cloudbeaver-security-group", vpc_id=vpc.id)
@@ -31,6 +29,7 @@ def create_dev_stack(config: Config):
 
     create_cloudbeaver(
         config,
+        core_stack,
         vpc=vpc,
         cluster=cluster,
         cloudbeaver_security_group=cloudbeaver_security_group,
@@ -39,8 +38,9 @@ def create_dev_stack(config: Config):
     )
 
     # 3. Lambda (container image)
-    api_url = create_api(
+    create_api(
         config,
+        core_stack,
         environment_vars={
             # Pulumi Inputs are OK here; secrets stay secret
             "POSTGRES_DSN": connection_string,
@@ -51,8 +51,3 @@ def create_dev_stack(config: Config):
         lambda_security_group=lambda_security_group,
         postgres_security_group=postgres_security_group,
     )
-
-    # 5. Stack outputs
-    export("apiUrl", api_url)
-    export("capturesBucketId", captures_bucket.id)
-    export("dbEndpointAddress", postgres_instance.address)

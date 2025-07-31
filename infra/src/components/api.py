@@ -3,12 +3,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from pulumi import Config, Input, Output
-from pulumi_aws.apigatewayv2 import Api, Integration, Route, Stage
+from pulumi import Config, Input, Output, StackReference, export
+from pulumi_aws.apigatewayv2 import Api, ApiMapping, DomainName, Integration, Route, Stage
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecr import Repository, get_authorization_token
 from pulumi_aws.iam import Role, RolePolicy, RolePolicyAttachment
 from pulumi_aws.lambda_ import Function, Permission
+from pulumi_aws.route53 import Record
 from pulumi_docker import Image
 
 from components.security_group import SecurityGroup
@@ -17,6 +18,7 @@ from components.vpc import Vpc
 
 def create_api(
     config: Config,
+    core_stack: StackReference,
     environment_vars: dict[str, Input[str]],
     s3_bucket_arn: Output[str],
     vpc: Vpc,
@@ -25,6 +27,11 @@ def create_api(
     memory_size: int = 512,
     timeout_seconds: int = 30,
 ):
+    # Get zone and certificate info from core stack
+    zone_id = core_stack.require_output("zone-id")
+    zone_name = core_stack.require_output("zone-name")
+    certificate_arn = core_stack.require_output("certificate-arn")
+
     # Allow connections to required services
     lambda_security_group.allow_egress_reciprocal(to_security_group=postgres_security_group, ports=[5432])
 
@@ -138,7 +145,7 @@ def create_api(
 
     log_group = LogGroup("httpApiLogs", retention_in_days=7)
 
-    Stage(
+    stage = Stage(
         resource_name="defaultStage",
         api_id=api.id,
         name="$default",
@@ -158,6 +165,34 @@ def create_api(
         },
     )
 
+    domain_name = zone_name.apply(lambda zone_name: f"api.{zone_name}")
+
+    domain = DomainName(
+        "api-domain",
+        domain_name=domain_name,
+        domain_name_configuration={
+            "certificate_arn": certificate_arn,
+            "endpoint_type": "REGIONAL",
+            "security_policy": "TLS_1_2",
+        },
+    )
+
+    ApiMapping(resource_name="api-mapping", api_id=api.id, domain_name=domain.domain_name, stage=stage.name)
+
+    Record(
+        "api-domain-record",
+        name=domain_name,
+        type="A",
+        zone_id=zone_id,
+        aliases=[
+            {
+                "name": domain.domain_name_configuration.target_domain_name,
+                "zone_id": domain.domain_name_configuration.hosted_zone_id,
+                "evaluate_target_health": False,
+            }
+        ],
+    )
+
     # ← NEW: allow API Gateway to invoke the Lambda
     Permission(
         resource_name="apiGatewayPermission",
@@ -167,4 +202,4 @@ def create_api(
         source_arn=api.execution_arn.apply(lambda arn: f"{arn}/*/*"),
     )
 
-    return api.api_endpoint
+    export("api-url", domain.domain_name.apply(lambda domain_name: f"https://{domain_name}"))

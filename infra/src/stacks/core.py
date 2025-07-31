@@ -1,52 +1,37 @@
 import json
 
 from pulumi import Config, Output, export
+from pulumi_aws.acm import Certificate, CertificateValidation
 from pulumi_aws.ecr import PullThroughCacheRule
+from pulumi_aws.route53 import Record, Zone
 
 from components.secret import Secret
 from components.vpc import Vpc, VpcInfo
 
 
 def create_core_stack(config: Config):
-    # oidc_provider = aws.iam.OpenIdConnectProvider(
-    #     "github-oidc-provider", url="https://token.actions.githubusercontent.com", client_id_lists=["sts.amazonaws.com"]
-    # )
+    domain = config.require("domain")
 
-    # trust_policy = pulumi.Output.all(oidc_provider.arn).apply(
-    #     lambda arn: json.dumps({
-    #         "Version": "2012-10-17",
-    #         "Statement": [
-    #             {
-    #                 "Effect": "Allow",
-    #                 "Principal": {"Federated": arn[0]},
-    #                 "Action": "sts:AssumeRoleWithWebIdentity",
-    #                 "Condition": {
-    #                     "StringEquals": {f"{oidc_provider.url}:aud": "sts.amazonaws.com"},
-    #                     "StringLike": {
-    #                         f"{oidc_provider.url}:sub": [
-    #                             "repo:outernet-foundation/plerion:refs/heads/main",
-    #                             "repo:outernet-foundation/plerion:refs/heads/env/*",
-    #                         ]
-    #                     },
-    #                 },
-    #             }
-    #         ],
-    #     })
-    # )
+    zone = Zone("main-zone", name=domain)
 
-    # ci_role = aws.iam.Role("ci-role", assume_role_policy=trust_policy)
+    certificate = Certificate(
+        "main-certificate", domain_name=f"*.{domain}", subject_alternative_names=[domain], validation_method="DNS"
+    )
 
-    # aws.iam.RolePolicyAttachment(
-    #     "ci-role-ecr", role=ci_role.name, policy_arn="arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
-    # )
+    validation = certificate.domain_validation_options[0]
 
-    # aws.iam.RolePolicyAttachment(
-    #     "ci-role-ecs", role=ci_role.name, policy_arn="arn:aws:iam::aws:policy/AmazonECS_FullAccess"
-    # )
+    validation_record = Record(
+        "validation-record",
+        zone_id=zone.id,
+        name=validation.resource_record_name,
+        type=validation.resource_record_type,
+        records=[validation.resource_record_value],
+        ttl=300,
+    )
 
-    # aws.iam.RolePolicyAttachment(
-    #     "ci-role-pulumi", role=ci_role.name, policy_arn="arn:aws:iam::aws:policy/AdministratorAccess"
-    # )
+    CertificateValidation(
+        "certValidation", certificate_arn=certificate.arn, validation_record_fqdns=[validation_record.fqdn]
+    )
 
     dockerhub_secret = Secret(
         "dockerhub-secret",
@@ -64,6 +49,11 @@ def create_core_stack(config: Config):
     )
 
     vpc = Vpc(name="main-vpc")
+
+    export("zone-id", zone.id)
+    export("zone-name", zone.name)
+    export("zone-name-servers", zone.name_servers)
+    export("certificate-arn", certificate.arn)
     export(
         "vpc-info",
         VpcInfo({
