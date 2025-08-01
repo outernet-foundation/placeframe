@@ -51,7 +51,7 @@ def create_core_stack(config: Config):
 
     vpc = Vpc(name="main-vpc")
 
-    create_tailscale_bridge()
+    create_tailscale_bridge(vpc=vpc, config=config, zone_id=zone.id, domain=domain, certificate_arn=certificate.arn)
 
     export("zone-id", zone.id)
     export("zone-name", zone.name)

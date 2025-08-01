@@ -1,14 +1,22 @@
-from pulumi import Config
+import json
+
+from pulumi import Config, Input
+from pulumi_aws import get_caller_identity, get_region_output
+from pulumi_aws.cloudwatch import LogGroup
+from pulumi_aws.ecr import Repository
 from pulumi_aws.ecs import Cluster
 from pulumi_aws.lb import Listener, ListenerRule, LoadBalancer, TargetGroup
 from pulumi_aws.route53 import Record
 from pulumi_awsx.ecs import FargateService
 
+from components.secret import Secret
 from components.security_group import SecurityGroup
 from components.vpc import Vpc
 
 
-def create_tailscale_bridge(config: Config, vpc: Vpc, zone_id: str, domain: str, certificate_arn: str):
+def create_tailscale_bridge(
+    config: Config, vpc: Vpc, zone_id: Input[str], domain: Input[str], certificate_arn: Input[str]
+):
     people: list[str] = config.require_object("people")
 
     cluster = Cluster("tailscale-bridge-cluster")
@@ -25,9 +33,10 @@ def create_tailscale_bridge(config: Config, vpc: Vpc, zone_id: str, domain: str,
         from_security_group=load_balancer_security_group, ports=[80]
     )
 
-    # Allow egress to the VPC CIDR for DNS resolution
-    tailscale_bridge_security_group.allow_egress_cidr(cidr_name="vpc", cidr=vpc.cidr_block, ports=[53])
-    tailscale_bridge_security_group.allow_egress_cidr(cidr_name="vpc", cidr=vpc.cidr_block, ports=[53], protocol="udp")
+    vpc.allow_endpoint_access(
+        security_group=tailscale_bridge_security_group,
+        interfaces=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts"],
+    )
 
     # Allow egress to the tailscale control plane
     tailscale_bridge_security_group.allow_egress_cidr(
@@ -68,14 +77,23 @@ def create_tailscale_bridge(config: Config, vpc: Vpc, zone_id: str, domain: str,
         ],
     )
 
+    # Create repos for image pull-through cache
+    Repository(
+        "tailscale-cache-repo", name="dockerhub/tailscale/tailscale", force_delete=config.require_bool("devMode")
+    )
+    Repository("caddy-cache-repo", name="dockerhub/library/caddy", force_delete=config.require_bool("devMode"))
+
     local_services = {"cloudbeaver": 8978, "minio": 9000, "minioconsole": 9001, "api": 8000}
 
     for name in people:
-        ip = config.require(f"{name}:ip")
-        auth_key = config.require_secret(f"{name}:auth-key")
+        ip = config.require(f"{name}-ip")
+        auth_key_secret = Secret(f"{name}-auth-key-secret", secret_string=config.require_secret(f"{name}-auth-key"))
+
+        LogGroup(f"tailscale-{name}-log-group", name=f"/ecs/tailscale/{name}", retention_in_days=7)
+        LogGroup(f"tailscale-caddy-{name}-log-group", name=f"/ecs/tailscale-caddy/{name}", retention_in_days=7)
 
         target_group = TargetGroup(
-            f"tailscale-bridge-{name}-target-group",
+            f"tsb-{name}-tg",
             port=80,
             protocol="HTTP",
             target_type="ip",
@@ -84,22 +102,33 @@ def create_tailscale_bridge(config: Config, vpc: Vpc, zone_id: str, domain: str,
         )
 
         ListenerRule(
-            f"rule-{name}",
+            f"tailscale-listener-rule-{name}",
             listener_arn=https_listener.arn,
             actions=[{"type": "forward", "target_group_arn": target_group.arn}],
-            conditions=[{"host_header": {"values": [f"*.{name}.{domain}"]}}],
+            conditions=[{"host_header": {"values": [f"{name}-*.{domain}"]}}],
         )
 
         for local_service in local_services:
             Record(
                 f"{local_service}-{name}",
                 zone_id=zone_id,
-                name=f"{local_service}.{name}.{domain}",
+                name=f"{name}-{local_service}.{domain}",
                 type="A",
                 aliases=[
                     {"name": load_balancer.dns_name, "zone_id": load_balancer.zone_id, "evaluate_target_health": False}
                 ],
             )
+
+        # Create a policy allowing the tailscale bridge to access secrets and use the pull-through cache
+        policy = auth_key_secret.arn.apply(
+            lambda arn: json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [
+                    {"Effect": "Allow", "Action": "secretsmanager:GetSecretValue", "Resource": [arn]},
+                    {"Effect": "Allow", "Action": "ecr:BatchImportUpstreamImage", "Resource": "*"},
+                ],
+            })
+        )
 
         FargateService(
             f"tailscale-bridge-{name}-service",
@@ -110,34 +139,56 @@ def create_tailscale_bridge(config: Config, vpc: Vpc, zone_id: str, domain: str,
                 "security_groups": [tailscale_bridge_security_group.id],
             },
             task_definition_args={
+                "execution_role": {"args": {"inline_policies": [{"policy": policy}]}},
                 "containers": {
                     "tailscale": {
                         "name": "tailscale",
-                        "image": "tailscale/tailscale:stable",
+                        "image": get_region_output().name.apply(
+                            lambda r: f"{get_caller_identity().account_id}.dkr.ecr.{r}.amazonaws.com/dockerhub/tailscale/tailscale:latest"
+                        ),
                         "command": [
                             "/bin/sh",
                             "-c",
                             "tailscaled --tun=userspace-networking & "
-                            f"tailscale up --hostname=bridge-{name} --authkey={auth_key} --reset && "
+                            f"tailscale up --hostname=bridge-{name} --authkey=$TS_AUTH_KEY --reset && "
                             "sleep infinity",
                         ],
+                        "secrets": [{"name": "TS_AUTH_KEY", "value_from": auth_key_secret.arn}],
+                        "log_configuration": {
+                            "log_driver": "awslogs",
+                            "options": {
+                                "awslogs-group": f"/ecs/tailscale/{name}",
+                                "awslogs-region": get_region_output().name,
+                                "awslogs-stream-prefix": "ecs",
+                            },
+                        },
                     },
                     "caddy": {
                         "name": "caddy",
-                        "image": "caddy:2",
-                        "port_mappings": [{"container_port": 80, "host_port": 80, "target_group": target_group}],
+                        "image": get_region_output().name.apply(
+                            lambda r: f"{get_caller_identity().account_id}.dkr.ecr.{r}.amazonaws.com/dockerhub/library/caddy:latest"
+                        ),
+                        "port_mappings": [{"container_port": 80, "target_group": target_group}],
                         "command": [
                             "/bin/sh",
                             "-c",
                             "cat >/etc/caddy/Caddyfile <<'EOF'\n"
                             + "\n".join(
-                                f"{sub}.{name}.{domain} {{ reverse_proxy {ip}:{port} }}"
-                                for sub, port in local_services.items()
+                                f"{name}-{local_service}.{domain} {{ reverse_proxy {ip}:{port} }}"
+                                for local_service, port in local_services.items()
                             )
                             + "\nEOF\n"
                             + "caddy run --adapter caddyfile --config /etc/caddy/Caddyfile",
                         ],
+                        "log_configuration": {
+                            "log_driver": "awslogs",
+                            "options": {
+                                "awslogs-group": f"/ecs/tailscale-caddy/{name}",
+                                "awslogs-region": get_region_output().name,
+                                "awslogs-stream-prefix": "ecs",
+                            },
+                        },
                     },
-                }
+                },
             },
         )

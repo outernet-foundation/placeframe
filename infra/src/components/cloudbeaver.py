@@ -36,26 +36,16 @@ def create_cloudbeaver(
     load_balancer_security_group = SecurityGroup("load-balancer-security-group", vpc_id=vpc.id)
     efs_security_group = SecurityGroup("cloudbeaver-efs-security-group", vpc_id=vpc.id)
 
-    # Allow http ingress to the load balancer from anywhere
+    # Allow http/https ingress to the load balancer from anywhere
     load_balancer_security_group.allow_ingress_cidr(cidr_name="anywhere", cidr="0.0.0.0/0", ports=[80], protocol="tcp")
     load_balancer_security_group.allow_ingress_cidr(cidr_name="anywhere", cidr="0.0.0.0/0", ports=[443], protocol="tcp")
 
     # Allow the load balancer to access CloudBeaver
     cloudbeaver_security_group.allow_ingress_reciprocal(from_security_group=load_balancer_security_group, ports=[8978])
 
-    # Allow egress to the VPC CIDR for DNS resolution
-    cloudbeaver_security_group.allow_egress_cidr(cidr_name="vpc", cidr=vpc.cidr_block, ports=[53])
-    cloudbeaver_security_group.allow_egress_cidr(cidr_name="vpc", cidr=vpc.cidr_block, ports=[53], protocol="udp")
-
-    # For each VPC endpoint, allow Cloudbeaver to access it
-    for service_name in ["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts"]:
-        cloudbeaver_security_group.allow_egress_reciprocal(
-            to_security_group=vpc.interface_security_groups[service_name], ports=[443]
-        )
-
-    # Allow Cloudbeaver egress to S3 (required for pulling images because ecr uses s3 for image layer blobs)
-    cloudbeaver_security_group.allow_egress_prefix_list(
-        prefix_list_name="s3", prefix_list_id=vpc.s3_endpoint_prefix_list_id, ports=[443]
+    # Allow cloudbeaver access to various vpc endpoints
+    vpc.allow_endpoint_access(
+        security_group=cloudbeaver_security_group, interfaces=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts"]
     )
 
     # Allow CloudBeaver to access Postgres
