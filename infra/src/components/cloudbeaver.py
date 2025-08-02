@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-import pulumi_docker as docker
 from pulumi import Config, Output, StackReference, export
 from pulumi_aws import get_caller_identity, get_region_output
 from pulumi_aws.cloudwatch import LogGroup
@@ -12,6 +11,7 @@ from pulumi_aws.lb import Listener, LoadBalancer, TargetGroup
 from pulumi_aws.rds import Instance
 from pulumi_aws.route53 import Record
 from pulumi_awsx.ecs import FargateService
+from pulumi_docker import Image
 
 from components.secret import Secret
 from components.security_group import SecurityGroup
@@ -79,7 +79,7 @@ def create_cloudbeaver(
     init_image_repo = Repository("cloudbeaver-init-repo", force_delete=config.require_bool("devMode"))
     dockerfile = Path(config.require("cloudbeaver-init-dockerfile")).resolve()
     creds = get_authorization_token()
-    init_image = docker.Image(
+    init_image = Image(
         "cloudbeaver-init-image",
         build={"dockerfile": str(dockerfile), "context": str(dockerfile.parent), "platform": "linux/amd64"},
         image_name=Output.concat(init_image_repo.repository_url, ":", "latest"),

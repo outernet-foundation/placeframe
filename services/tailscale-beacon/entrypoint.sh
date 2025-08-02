@@ -1,37 +1,25 @@
-#!/bin/sh
+#!/usr/bin/env bash
 set -euo pipefail
 
-# (1) Bootstrap logging
-exec > >(tee -a /var/log/beacon-bootstrap.log) 2>&1
+# Required env vars (no defaults)
+: "${TS_AUTHKEY:?TS_AUTHKEY must be set (injected as an ECS task secret)}"
+: "${TAILNET_NAME:?TAILNET_NAME must be set (your tailnet name)}"
+: "${CADDYFILE:?CADDYFILE must be set (text of the Caddyfile)}"
 
-# (2) Fetch runtime config from env or SSM
-: "${SECRET_ARN:?SECRET_ARN must be set}"
-: "${TAILNET_NAME:?TAILNET_NAME must be set}"
-: "${CADDY_SERVICES:=api:8000 cloudbeaver:8978 minio:9000 minioconsole:9001}"
-REGION="${REGION:-us-east-1}"
+# Start tailscaled daemon
+nohup tailscaled \
+  --state=/var/lib/tailscale/tailscaled.state \
+  --socket=/run/tailscale/tailscaled.sock \
+  --tun=userspace-networking \
+  >/var/log/tailscaled.log 2>&1 &
 
-# (3) Start CloudWatch Agent
-sed "s|\${REGION}|${REGION}|g" /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json.tmpl \
-  > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
-amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+# Start tailscale client and wait for it to connect
+tailscale --socket=/run/tailscale/tailscaled.sock up \
+  --authkey="${TS_AUTHKEY}" \
+  --hostname="${TS_HOSTNAME}" \
+  --accept-dns=true \
+  --timeout=30s
 
-# (4) Start tailscaled and auth
-systemctl enable --now tailscaled
-AUTH_KEY=$(aws secretsmanager get-secret-value \
-  --region "$REGION" --secret-id "$SECRET_ARN" \
-  --query SecretString --output text)
-TS_AUTHKEY="$AUTH_KEY" tailscale up --hostname=beacon --accept-dns=true
-
-# (5) Render Caddyfile from template
-sb=""
-for kv in $CADDY_SERVICES; do
-  name=${kv%%:*}; port=${kv##*:}
-  sb+="    $name  $port\n"
-done
-awk -v sb="$sb" -v tn="$TAILNET_NAME" \
-  '{gsub("#SERVICES#", sb); gsub("\\${TAILNET_NAME}", tn); print}' \
-  /etc/caddy/Caddyfile.tmpl >/etc/caddy/Caddyfile
-
-# (6) Launch Caddy
-caddy validate --config /etc/caddy/Caddyfile
+# Start Caddy
+echo "${CADDYFILE}" > /etc/caddy/Caddyfile
 exec caddy run --config /etc/caddy/Caddyfile

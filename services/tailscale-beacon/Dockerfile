@@ -1,28 +1,31 @@
-# 1) Base on AL2023 so you get DNF, AWS CLI v2, CloudWatch Agent, etc.
-FROM amazonlinux:2023
+FROM debian:bookworm-slim
 
-# 2) Install Tailscale & Caddy in one layer
-RUN set -euxo pipefail \
-  && yum -y install curl dnf-plugins-core \
-  && curl -fsSL https://tailscale.com/install.sh | sh \
-  # add Caddy repo and install
-  && rpm --import https://rpm.caddyserver.com/pubkey.gpg \
-  && dnf config-manager --add-repo https://rpm.caddyserver.com/caddy.repo \
-  && yum -y install caddy \
-  # install CloudWatch Agent
-  && yum -y install amazon-cloudwatch-agent \
-  && mkdir -p /opt/aws/amazon-cloudwatch-agent/etc
+RUN set -eux; \
+    # Add Caddy repo
+    echo "deb [trusted=yes] https://dl.cloudsmith.io/public/caddy/stable/debian/bookworm any-version main" \
+      > /etc/apt/sources.list.d/caddy-stable.list; \
+    # Install prerequisites and Caddy
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+      apt-transport-https \
+      ca-certificates \
+      curl \
+      gnupg \
+      caddy; \
+    # Install Tailscale
+    curl -fsSL https://tailscale.com/install.sh | sh; \
+    # Cleanup and prepare dirs
+    rm -rf /var/lib/apt/lists/*; \
+    mkdir -p /var/lib/tailscale /run/tailscale
 
-# 3) Copy in your Caddyfile template
-COPY Caddyfile.tmpl /etc/caddy/Caddyfile.tmpl
-
-# 4) Add our tiny entrypoint
+# Copy and make entrypoint executable
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
+# Ensure entrypoint script is in Unix format
 RUN apt-get update \
- && apt-get install -y dos2unix \
- && dos2unix /usr/local/bin/entrypoint.sh
- 
-# 5) Default command
+     && apt-get install -y dos2unix \
+     && dos2unix /usr/local/bin/entrypoint.sh
+
+# Set the entrypoint
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
