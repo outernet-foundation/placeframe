@@ -1,4 +1,3 @@
-# automigrate/Dockerfile
 FROM python:3.12-slim
 
 ENV VENV_DIR=/opt/venv
@@ -12,15 +11,15 @@ ENV PICCOLO_CONF="src.db.conf"
 
 WORKDIR /workspace
 
-# Copy the watch script
-COPY automigrate/script.sh /usr/local/bin/script.sh
-RUN chmod +x /usr/local/bin/script.sh
-
-RUN apt-get update \
- && apt-get install -y dos2unix \
- && dos2unix /usr/local/bin/script.sh
-
 # Copy your code
 COPY api/ /workspace/
 
-CMD ["/usr/local/bin/script.sh"]
+# Copy the watch script
+COPY automigrate/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+RUN apt-get update \
+ && apt-get install -y dos2unix \
+ && dos2unix /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

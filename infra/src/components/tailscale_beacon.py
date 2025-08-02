@@ -14,7 +14,7 @@ from components.security_group import SecurityGroup
 from components.vpc import Vpc
 
 
-def create_tailscale_bridge(
+def create_tailscale_beacon(
     config: Config, vpc: Vpc, zone_id: Input[str], domain: Input[str], certificate_arn: Input[str]
 ):
     people: list[str] = config.require_object("people")

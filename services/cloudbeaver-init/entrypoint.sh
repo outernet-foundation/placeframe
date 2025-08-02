@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 CONFIG_DIR="/opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver"

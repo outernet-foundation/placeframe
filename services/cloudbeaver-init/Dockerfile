@@ -1,9 +1,10 @@
-FROM alpine:latest
+FROM debian:bookworm-slim
 
-COPY script.sh /script.sh
-RUN chmod +x /script.sh
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-RUN apk add --no-cache dos2unix \
- && dos2unix /script.sh
+RUN apt-get update \
+ && apt-get install -y dos2unix \
+ && dos2unix /usr/local/bin/entrypoint.sh
 
-ENTRYPOINT ["/script.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
