@@ -40,6 +40,9 @@ def render_caddyfile(domain: str, tailnet: str, svc_to_port: dict[str, int]) -> 
     handle @pair {{
         reverse_proxy {{
             to {{http.regexp.pair.1}}.{tailnet}.ts.net:{{http.vars.port}}
+            transport http {{
+                forward_proxy_url http://127.0.0.1:1055
+            }}
         }}
     }}
 
@@ -209,11 +212,7 @@ def create_tailscale_beacon(
                 "tailscale-beacon": {
                     "name": "tailscale-beacon",
                     "image": tailscale_beacon_image.repo_digest,
-                    "environment": [
-                        {"name": "CADDYFILE", "value": caddyfile_text},
-                        {"name": "ALL_PROXY", "value": "socks5h://127.0.0.1:1055"},
-                        {"name": "NO_PROXY", "value": "127.0.0.1,localhost,169.254.170.2,169.254.169.254"},
-                    ],
+                    "environment": [{"name": "CADDYFILE", "value": caddyfile_text}],
                     "secrets": [{"name": "TS_AUTHKEY", "value_from": tailscale_auth_key_secret.arn}],
                     "port_mappings": [{"container_port": 80, "host_port": 80, "target_group": target_group}],
                     "log_configuration": {
