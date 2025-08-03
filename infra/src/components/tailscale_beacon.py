@@ -24,8 +24,13 @@ from components.vpc import Vpc
 # Ports come from a service→port map rendered into a Caddy `map` block.
 # ─────────────────────────────────────────────────────────────────────────────
 def render_caddyfile(domain: str, tailnet: str, svc_to_port: dict[str, int]) -> str:
-    services = "\n".join(f"{svc} {port}" for svc, port in svc_to_port.items())
-    return f"""
+    # Escape dots in the domain for the regex
+    domain_re = domain.replace(".", r"\.")
+
+    # Deterministic, nicely indented service→port map
+    service_lines = "\n".join(f"        {svc} {port}" for svc, port in sorted(svc_to_port.items()))
+
+    return f"""\
 {{
     admin off
     auto_https off
@@ -33,15 +38,18 @@ def render_caddyfile(domain: str, tailnet: str, svc_to_port: dict[str, int]) -> 
 
 :80 {{
     respond /health 200
-    
-    @pair host_regexp ^([^-]+)-([^.]+)\\.{domain}$
-    map {{re.pair.2}} {{port}} {{
+
+    @pair vars_regexp host ^([^-]+)-([^.]+)\\.{domain_re}$
+
+    # Map captured service name → port into http.vars.port
+    map {{re.pair.2}} {{http.vars.port}} {{
         default 0
-        {services}
+{service_lines}
     }}
 
     handle @pair {{
-        reverse_proxy http://{{re.pair.1}}.{tailnet}.ts.net:{{port}}
+        # No scheme so placeholders are allowed in the address
+        reverse_proxy {{re.pair.1}}.{tailnet}.ts.net:{{http.vars.port}}
     }}
 
     respond 404
@@ -174,6 +182,8 @@ def create_tailscale_beacon(
     caddyfile_text = Output.all(domain, tailnet_name).apply(
         lambda args: render_caddyfile(args[0], args[1], service_map)
     )
+
+    caddyfile_text.apply(lambda x: print(f"Caddyfile:\n{x}"))
 
     # Execution role inline policy to allow ECS to pull the secret value for TS_AUTHKEY
     policy = tailscale_auth_key_secret.arn.apply(

@@ -11,7 +11,6 @@ tailscaled \
   --state=/var/lib/tailscale/tailscaled.state \
   --socket=/run/tailscale/tailscaled.sock \
   --tun=userspace-networking \
-  --verbose=2 \
   >/var/log/tailscaled.log 2>&1 &
 
 # Wait for daemon to be ready
