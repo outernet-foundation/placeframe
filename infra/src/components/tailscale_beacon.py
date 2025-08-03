@@ -16,19 +16,10 @@ from components.security_group import SecurityGroup
 from components.vpc import Vpc
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Caddyfile renderer (engineer-service host pattern → tailnet MagicDNS + port)
-# Example host: alice-cloudbeaver.example.com
-# Captures:    engineer = re.pair.1  (alice)
-#              service  = re.pair.2  (cloudbeaver)
-# Ports come from a service→port map rendered into a Caddy `map` block.
-# ─────────────────────────────────────────────────────────────────────────────
 def render_caddyfile(domain: str, tailnet: str, svc_to_port: dict[str, int]) -> str:
-    # Escape dots in the domain for the regex
-    domain_re = domain.replace(".", r"\.")
-
-    # Deterministic, nicely indented service→port map
-    service_lines = "\n".join(f"        {svc} {port}" for svc, port in sorted(svc_to_port.items()))
+    service_names = "|".join(sorted(svc_to_port))
+    port_mappings = "\n        ".join(f"{svc} {port}" for svc, port in sorted(svc_to_port.items()))
+    escaped_domain = domain.replace(".", r"\.")
 
     return f"""\
 {{
@@ -39,17 +30,17 @@ def render_caddyfile(domain: str, tailnet: str, svc_to_port: dict[str, int]) -> 
 :80 {{
     respond /health 200
 
-    @pair vars_regexp host ^([^-]+)-([^.]+)\\.{domain_re}$
+    @pair header_regexp pair Host ^([^.]+?)-({service_names})\\.{escaped_domain}$
 
-    # Map captured service name → port into http.vars.port
-    map {{re.pair.2}} {{http.vars.port}} {{
+    map {{http.regexp.pair.2}} {{http.vars.port}} {{
         default 0
-{service_lines}
+        {port_mappings}
     }}
 
     handle @pair {{
-        # No scheme so placeholders are allowed in the address
-        reverse_proxy {{re.pair.1}}.{tailnet}.ts.net:{{http.vars.port}}
+        reverse_proxy {{
+            to {{http.regexp.pair.1}}.{tailnet}.ts.net:{{http.vars.port}}
+        }}
     }}
 
     respond 404
@@ -79,12 +70,8 @@ def create_tailscale_beacon(
     )
 
     # Allow egress for DNS resolution (required for curl and tailscale to resolve hostnames)
-    tailscale_bridge_security_group.allow_egress_cidr(
-        cidr_name="dns", cidr="0.0.0.0/0", ports=[53], protocol="udp"
-    )
-    tailscale_bridge_security_group.allow_egress_cidr(
-        cidr_name="dns", cidr="0.0.0.0/0", ports=[53], protocol="tcp"
-    )
+    tailscale_bridge_security_group.allow_egress_cidr(cidr_name="dns", cidr="0.0.0.0/0", ports=[53], protocol="udp")
+    tailscale_bridge_security_group.allow_egress_cidr(cidr_name="dns", cidr="0.0.0.0/0", ports=[53], protocol="tcp")
 
     # Allow egress to the tailscale control plane (HTTPS) and DERP (WireGuard over UDP)
     tailscale_bridge_security_group.allow_egress_cidr(
@@ -95,9 +82,7 @@ def create_tailscale_beacon(
     )
 
     # Add HTTP for bootstrap DNS fallback
-    tailscale_bridge_security_group.allow_egress_cidr(
-        cidr_name="tailscale-bootstrap", cidr="0.0.0.0/0", ports=[80]
-    )
+    tailscale_bridge_security_group.allow_egress_cidr(cidr_name="tailscale-bootstrap", cidr="0.0.0.0/0", ports=[80])
 
     # Add STUN for NAT traversal (used during connection establishment)
     tailscale_bridge_security_group.allow_egress_cidr(
@@ -113,9 +98,7 @@ def create_tailscale_beacon(
     # Public ALB (TLS at ALB; HTTP to task)
     # ─────────────────────────────────────────────────────────────────────────
     load_balancer = LoadBalancer(
-        "tailscale-bridge-lb",
-        security_groups=[load_balancer_security_group.id],
-        subnets=vpc.public_subnet_ids,
+        "tailscale-bridge-lb", security_groups=[load_balancer_security_group.id], subnets=vpc.public_subnet_ids
     )
 
     # Fargate requires target_type="ip"
@@ -125,6 +108,7 @@ def create_tailscale_beacon(
         port=80,
         protocol="HTTP",
         target_type="ip",
+        deregistration_delay=30,
         health_check={"path": "/health", "matcher": "200-399"},
     )
 
@@ -138,15 +122,12 @@ def create_tailscale_beacon(
         default_actions=[{"type": "forward", "target_group_arn": target_group.arn}],
     )
 
-    # Optional: HTTP → HTTPS redirect
     Listener(
         "tailscale-bridge-http-listener",
         load_balancer_arn=load_balancer.arn,
         port=80,
         protocol="HTTP",
-        default_actions=[
-            {"type": "redirect", "redirect": {"protocol": "HTTPS", "port": "443", "status_code": "HTTP_301"}}
-        ],
+        default_actions=[{"type": "forward", "target_group_arn": target_group.arn}],
     )
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -167,7 +148,7 @@ def create_tailscale_beacon(
         "tailscale-auth-key-secret", secret_string=config.require_secret("tailscale-auth-key")
     )
 
-    tailnet_name = config.require("tailscale-tailnet-name")
+    tailnet_name = config.require("tailnet-name")
 
     # Service→port mapping for memorable names (can be overridden via config)
     # e.g., pulumi config set caddy-services '{"api":8000,"cloudbeaver":8978,"minio":9000,"minioconsole":9001}'
@@ -187,15 +168,27 @@ def create_tailscale_beacon(
 
     # Execution role inline policy to allow ECS to pull the secret value for TS_AUTHKEY
     policy = tailscale_auth_key_secret.arn.apply(
-        lambda arn: json.dumps(
-            {
-                "Version": "2012-10-17",
-                "Statement": [
-                    {"Effect": "Allow", "Action": "secretsmanager:GetSecretValue", "Resource": [arn]},
-                ],
-            }
-        )
+        lambda arn: json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{"Effect": "Allow", "Action": "secretsmanager:GetSecretValue", "Resource": [arn]}],
+        })
     )
+
+    ssm_inline = json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "ssmmessages:CreateControlChannel",
+                    "ssmmessages:CreateDataChannel",
+                    "ssmmessages:OpenControlChannel",
+                    "ssmmessages:OpenDataChannel",
+                ],
+                "Resource": "*",
+            }
+        ],
+    })
 
     LogGroup("tailscale-beacon-log-group", name="/ecs/tailscale-beacon", retention_in_days=7)
 
@@ -203,6 +196,7 @@ def create_tailscale_beacon(
         "tailscale-beacon-service",
         cluster=cluster.arn,
         desired_count=1,
+        enable_execute_command=True,
         network_configuration={
             "subnets": vpc.public_subnet_ids,
             "security_groups": [tailscale_bridge_security_group.id],
@@ -210,11 +204,16 @@ def create_tailscale_beacon(
         },
         task_definition_args={
             "execution_role": {"args": {"inline_policies": [{"policy": policy}]}},
+            "task_role": {"args": {"inline_policies": [{"policy": ssm_inline}]}},
             "containers": {
                 "tailscale-beacon": {
                     "name": "tailscale-beacon",
                     "image": tailscale_beacon_image.repo_digest,
-                    "environment": [{"name": "CADDYFILE", "value": caddyfile_text}],
+                    "environment": [
+                        {"name": "CADDYFILE", "value": caddyfile_text},
+                        {"name": "ALL_PROXY", "value": "socks5h://127.0.0.1:1055"},
+                        {"name": "NO_PROXY", "value": "127.0.0.1,localhost,169.254.170.2,169.254.169.254"},
+                    ],
                     "secrets": [{"name": "TS_AUTHKEY", "value_from": tailscale_auth_key_secret.arn}],
                     "port_mappings": [{"container_port": 80, "host_port": 80, "target_group": target_group}],
                     "log_configuration": {
@@ -225,19 +224,19 @@ def create_tailscale_beacon(
                             "awslogs-stream-prefix": "ecs",
                         },
                     },
-                },
+                }
             },
         },
     )
 
-    people: list[str] = config.require_object("people")
-    print(f"People: {people}")
-    for person_name in people:
+    tailnet_devices: list[str] = config.require_object("tailnet-devices")
+    print(f"Devices: {tailnet_devices}")
+    for device_name in tailnet_devices:
         for service_name in service_map.keys():
             Record(
-                f"{person_name}-{service_name}",
+                f"{device_name}-{service_name}",
                 zone_id=zone_id,
-                name=Output.concat(person_name, "-", service_name, ".", domain),
+                name=Output.concat(device_name, "-", service_name, ".", domain),
                 type="A",
                 aliases=[
                     {"name": load_balancer.dns_name, "zone_id": load_balancer.zone_id, "evaluate_target_health": False}

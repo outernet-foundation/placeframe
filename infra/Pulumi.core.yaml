@@ -5,4 +5,3 @@ config:
   aws:region: us-east-1
   plerion_infra:devMode: true
   plerion_infra:tailscale-beacon-dockerfile: ../../services/tailscale-beacon/Dockerfile
-  plerion_infra:tailscale-tailnet-name: tylerhatch.com

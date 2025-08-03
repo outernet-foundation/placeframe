@@ -11,6 +11,7 @@ tailscaled \
   --state=/var/lib/tailscale/tailscaled.state \
   --socket=/run/tailscale/tailscaled.sock \
   --tun=userspace-networking \
+  --socks5-server=127.0.0.1:1055 \
   >/var/log/tailscaled.log 2>&1 &
 
 # Wait for daemon to be ready
@@ -44,7 +45,7 @@ echo "Connecting to Tailscale..."
 if ! tailscale --socket=/run/tailscale/tailscaled.sock up \
     --authkey="${TS_AUTHKEY}" \
     --hostname=beacon \
-    --accept-dns=false \
+    --accept-dns=true \
     --timeout=60s; then
     echo "ERROR: Failed to connect to Tailscale"
     echo "=== Tailscaled log (last 100 lines) ==="
@@ -64,6 +65,9 @@ echo "Verifying Tailscale connection..."
 tailscale --socket=/run/tailscale/tailscaled.sock status
 
 echo "Tailscale connected successfully"
+
+export ALL_PROXY=socks5h://127.0.0.1:1055
+export NO_PROXY=127.0.0.1,localhost,169.254.170.2,169.254.169.254
 
 # Start Caddy
 echo "${CADDYFILE}" > /etc/caddy/Caddyfile
