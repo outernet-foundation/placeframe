@@ -70,12 +70,30 @@ def create_tailscale_beacon(
         interfaces=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts"],
     )
 
+    # Allow egress for DNS resolution (required for curl and tailscale to resolve hostnames)
+    tailscale_bridge_security_group.allow_egress_cidr(
+        cidr_name="dns", cidr="0.0.0.0/0", ports=[53], protocol="udp"
+    )
+    tailscale_bridge_security_group.allow_egress_cidr(
+        cidr_name="dns", cidr="0.0.0.0/0", ports=[53], protocol="tcp"
+    )
+
     # Allow egress to the tailscale control plane (HTTPS) and DERP (WireGuard over UDP)
     tailscale_bridge_security_group.allow_egress_cidr(
         cidr_name="tailscale-control-plane", cidr="0.0.0.0/0", ports=[443]
     )
     tailscale_bridge_security_group.allow_egress_cidr(
         cidr_name="tailscale-derp", cidr="0.0.0.0/0", ports=[41641], protocol="udp"
+    )
+
+    # Add HTTP for bootstrap DNS fallback
+    tailscale_bridge_security_group.allow_egress_cidr(
+        cidr_name="tailscale-bootstrap", cidr="0.0.0.0/0", ports=[80]
+    )
+
+    # Add STUN for NAT traversal (used during connection establishment)
+    tailscale_bridge_security_group.allow_egress_cidr(
+        cidr_name="tailscale-stun", cidr="0.0.0.0/0", ports=[3478], protocol="udp"
     )
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -176,8 +194,9 @@ def create_tailscale_beacon(
         cluster=cluster.arn,
         desired_count=1,
         network_configuration={
-            "subnets": vpc.private_subnet_ids,
+            "subnets": vpc.public_subnet_ids,
             "security_groups": [tailscale_bridge_security_group.id],
+            "assign_public_ip": True,
         },
         task_definition_args={
             "execution_role": {"args": {"inline_policies": [{"policy": policy}]}},
