@@ -1,0 +1,1 @@
+tailscale serve --bg --tcp 8000 tcp://localhost:8000

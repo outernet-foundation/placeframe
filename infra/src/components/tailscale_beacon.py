@@ -1,5 +1,7 @@
 import json
+import re
 from pathlib import Path
+from string import Template
 
 from pulumi import Config, Input, Output
 from pulumi_aws import get_region_output
@@ -18,37 +20,75 @@ from components.vpc import Vpc
 
 def render_caddyfile(domain: str, tailnet: str, svc_to_port: dict[str, int]) -> str:
     service_names = "|".join(sorted(svc_to_port))
+    # Need 8 spaces for proper indentation in the map block
     port_mappings = "\n        ".join(f"{svc} {port}" for svc, port in sorted(svc_to_port.items()))
-    escaped_domain = domain.replace(".", r"\.")
+    escaped_domain = re.escape(domain)  # safe for regex
 
-    return f"""\
-{{
+    tpl = Template(r"""{
     admin off
     auto_https off
-}}
+    debug
+}
 
-:80 {{
+:80 {
+    log {
+        output stdout
+        format console
+        level DEBUG
+    }
+    
     respond /health 200
+    
+    @pair header_regexp pair Host ^([^.]+?)-(${SERVICE_NAMES})\.${ESCAPED_DOMAIN}$$
+    
+    handle @pair {
+        header {
+            X-Map-Source "{http.regexp.pair.2}"
+            X-Up-Port-BEFORE "{http.vars.up_port}"
+        }
+                   
 
-    @pair header_regexp pair Host ^([^.]+?)-({service_names})\\.{escaped_domain}$
 
-    map {{http.regexp.pair.2}} {{http.vars.port}} {{
-        default 0
-        {port_mappings}
-    }}
+        map {http.regexp.pair.2} {up_port} {
+            api "8000"
+            cloudbeaver "8978"
+            minio "9000"
+            minioconsole "9001"
+            default "0
+        }
+                    
+        header {
+            X-Up-Port-COPY "{http.vars.up_port_copy}"
+        } 
 
-    handle @pair {{
-        reverse_proxy {{
-            to {{http.regexp.pair.1}}.{tailnet}.ts.net:{{http.vars.port}}
-            transport http {{
-                forward_proxy_url http://127.0.0.1:1055
-            }}
-        }}
-    }}
+        # Show the result of the map
+        header {
+            X-Up-Port-AFTER "{up_port}"
+        }
+                   
+        vars {
+            up_port_literal 8000
+        }
+                   
+        header {
+            X-Up-Port-LITERAL "{http.vars.up_port_literal}"
+        }
 
+        # Short-circuit so you can read the values without proxying
+        respond 200
+    }
+    
     respond 404
-}}
-"""
+}
+""")
+
+    return tpl.substitute(
+        SERVICE_NAMES=service_names, ESCAPED_DOMAIN=escaped_domain, PORT_MAPPINGS=port_mappings, TAILNET=tailnet
+    )
+
+    return tpl.substitute(
+        SERVICE_NAMES=service_names, ESCAPED_DOMAIN=escaped_domain, PORT_MAPPINGS=port_mappings, TAILNET=tailnet
+    )
 
 
 def create_tailscale_beacon(
