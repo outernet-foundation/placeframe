@@ -85,7 +85,14 @@ def create_core_stack(config: Config):
         credential_arn=dockerhub_secret.arn,
     )
 
-    PullThroughCacheRule("ghcr-pull-through-cache-rule", ecr_repository_prefix="ghcr", upstream_registry_url="ghcr.io")
+    # ghcr_secret = Secret("ghcr-secret", name_prefix="ecr-pullthroughcache/", secret_string=Output.from_input(""))
+
+    # PullThroughCacheRule(
+    #     "ghcr-pull-through-cache-rule",
+    #     ecr_repository_prefix="ghcr",
+    #     upstream_registry_url="ghcr.io",
+    #     credential_arn=ghcr_secret.arn,
+    # )
 
     vpc = Vpc(name="main-vpc")
 
