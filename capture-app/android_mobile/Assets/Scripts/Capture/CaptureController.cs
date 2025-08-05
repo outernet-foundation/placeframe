@@ -308,6 +308,8 @@ public class CaptureController : MonoBehaviour
                         var captureData = await LocalCaptureController.GetCapture(capture.Name);
                         await capturesApi.UploadCaptureFileAsync(response.Id.ToString(), new MemoryStream(captureData), cancellationToken);
                     }
+
+                    UpdateCaptureList();
                 }
 
                 capture.disposables = capture.Row.uploadButton.onClick
