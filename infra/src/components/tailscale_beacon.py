@@ -15,44 +15,9 @@ from components.secret import Secret
 from components.security_group import SecurityGroup
 from components.vpc import Vpc
 
-# def render_caddyfile(domain: str, tailnet: str, svc_to_port: dict[str, int]) -> str:
-#     service_names = "|".join(sorted(svc_to_port))
-#     # Need 8 spaces for proper indentation in the map block
-#     port_mappings = "\n        ".join(f"{svc} {port}" for svc, port in sorted(svc_to_port.items()))
-#     escaped_domain = re.escape(domain)  # safe for regex
-
-#     tpl = Template(r"""
-# :80 {
-#     respond /health 200
-
-#     @pair header_regexp pair Host ^([^.]+?)-(${SERVICE_NAMES})\.${ESCAPED_DOMAIN}$$
-
-#     handle @pair {
-#         map {http.regexp.pair.2} {up_port} {
-#             ${PORT_MAPPINGS}
-#             default 0
-#         }
-
-#         reverse_proxy {http.regexp.pair.1}.${TAILNET}.ts.net:{up_port} {
-#             header_up Host {upstream_hostport}
-
-#             transport http {
-#                 forward_proxy_url socks5://127.0.0.1:1055
-#             }
-#         }
-#     }
-
-#     respond 404
-# }
-# """)
-
-#     return tpl.substitute(
-#         SERVICE_NAMES=service_names, ESCAPED_DOMAIN=escaped_domain, PORT_MAPPINGS=port_mappings, TAILNET=tailnet
-#     )
-
 
 def create_tailscale_beacon(
-    config: Config, vpc: Vpc, zone_id: Input[str], domain: Input[str], certificate_arn: Input[str]
+    config: Config, vpc: Vpc, zone_id: Input[str], domain: Input[str], certificate_arn: Input[str], cluster: Cluster
 ):
     load_balancer_security_group = SecurityGroup("tailscale-bridge-load-balancer-security-group", vpc_id=vpc.id)
     tailscale_bridge_security_group = SecurityGroup("tailscale-bridge-security-group", vpc_id=vpc.id)
@@ -91,11 +56,6 @@ def create_tailscale_beacon(
     tailscale_bridge_security_group.allow_egress_cidr(
         cidr_name="tailscale-stun", cidr="0.0.0.0/0", ports=[3478], protocol="udp"
     )
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # ECS Cluster (Fargate — no capacity config needed)
-    # ─────────────────────────────────────────────────────────────────────────
-    cluster = Cluster("tailscale-beacon-cluster")
 
     # ─────────────────────────────────────────────────────────────────────────
     # Public ALB (TLS at ALB; HTTP to task)
@@ -170,21 +130,21 @@ def create_tailscale_beacon(
         })
     )
 
-    ssm_inline = json.dumps({
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Action": [
-                    "ssmmessages:CreateControlChannel",
-                    "ssmmessages:CreateDataChannel",
-                    "ssmmessages:OpenControlChannel",
-                    "ssmmessages:OpenDataChannel",
-                ],
-                "Resource": "*",
-            }
-        ],
-    })
+    # ssm_inline = json.dumps({
+    #     "Version": "2012-10-17",
+    #     "Statement": [
+    #         {
+    #             "Effect": "Allow",
+    #             "Action": [
+    #                 "ssmmessages:CreateControlChannel",
+    #                 "ssmmessages:CreateDataChannel",
+    #                 "ssmmessages:OpenControlChannel",
+    #                 "ssmmessages:OpenDataChannel",
+    #             ],
+    #             "Resource": "*",
+    #         }
+    #     ],
+    # })
 
     LogGroup("tailscale-beacon-log-group", name="/ecs/tailscale-beacon", retention_in_days=7)
 
@@ -196,11 +156,12 @@ def create_tailscale_beacon(
         network_configuration={
             "subnets": vpc.public_subnet_ids,
             "security_groups": [tailscale_bridge_security_group.id],
+            # to do: create DNS resolver for the service instead of using public IPs
             "assign_public_ip": True,
         },
         task_definition_args={
             "execution_role": {"args": {"inline_policies": [{"policy": policy}]}},
-            "task_role": {"args": {"inline_policies": [{"policy": ssm_inline}]}},
+            # "task_role": {"args": {"inline_policies": [{"policy": ssm_inline}]}},
             "containers": {
                 "tailscale-beacon": {
                     "name": "tailscale-beacon",

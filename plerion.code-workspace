@@ -37,11 +37,11 @@
         "source.sortMembers": "explicit"
       }
     },
-    "dotnet.defaultSolution": "capture-app/android_mobile/android_mobile.sln",
     "[json]": {
-      "editor.formatOnSave": true,
       "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
+    "editor.formatOnSave": true,
+    "dotnet.defaultSolution": "capture-app/android_mobile/android_mobile.sln",
     "python.languageServer": "Pylance",
     "python.analysis.languageServerMode": "default",
     "python.analysis.diagnosticMode": "workspace",

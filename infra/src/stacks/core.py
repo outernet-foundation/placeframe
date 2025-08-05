@@ -3,14 +3,51 @@ import json
 from pulumi import Config, Output, export
 from pulumi_aws.acm import Certificate, CertificateValidation
 from pulumi_aws.ecr import PullThroughCacheRule
+from pulumi_aws.ecs import Cluster
+from pulumi_aws.iam import OpenIdConnectProvider, Role, RolePolicyAttachment
 from pulumi_aws.route53 import Record, Zone
 
+from components.github_runner import create_github_runner
 from components.secret import Secret
 from components.tailscale_beacon import create_tailscale_beacon
 from components.vpc import Vpc, VpcInfo
 
 
 def create_core_stack(config: Config):
+    # 1) Create the GitHub OIDC provider (if you haven’t already)
+    github_oidc = OpenIdConnectProvider(
+        "githubOidcProvider",
+        url="https://token.actions.githubusercontent.com",
+        client_id_lists=["sts.amazonaws.com"],
+        thumbprint_lists=["6938fd4d98bab03faadb97b34396831e3780aea1"],
+    )
+
+    # 2) Create an IAM role that trusts that provider on your main branch
+    oidc_role = Role(
+        "githubActionsRole",
+        assume_role_policy=Output.all(github_oidc.arn).apply(
+            lambda arn: json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {"Federated": arn},
+                        "Action": "sts:AssumeRoleWithWebIdentity",
+                        "Condition": {
+                            "StringLike": {
+                                # adjust repo & branch as needed
+                                "token.actions.githubusercontent.com:sub": "repo:myOrg/myRepo:ref:refs/heads/main"
+                            }
+                        },
+                    }
+                ],
+            })
+        ),
+    )
+
+    # 3) Attach whatever policies you need, e.g. full Pulumi permissions
+    RolePolicyAttachment("pulumiAccess", role=oidc_role.name, policy_arn="arn:aws:iam::aws:policy/PowerUserAccess")
+
     domain = config.require("domain")
 
     zone = Zone("main-zone", name=domain)
@@ -51,8 +88,14 @@ def create_core_stack(config: Config):
 
     vpc = Vpc(name="main-vpc")
 
-    create_tailscale_beacon(vpc=vpc, config=config, zone_id=zone.id, domain=domain, certificate_arn=certificate.arn)
+    cluster = Cluster("tooling-cluster")
 
+    create_github_runner(vpc=vpc, config=config, cluster=cluster)
+    create_tailscale_beacon(
+        vpc=vpc, config=config, zone_id=zone.id, domain=domain, certificate_arn=certificate.arn, cluster=cluster
+    )
+
+    export("github_actions_role_arn", oidc_role.arn)
     export("zone-id", zone.id)
     export("zone-name", zone.name)
     export("zone-name-servers", zone.name_servers)
