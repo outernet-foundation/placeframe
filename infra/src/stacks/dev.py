@@ -26,7 +26,7 @@ def create_dev_stack(config: Config):
     # 2. Postgres database
     postgres_instance, connection_string = create_database(config, postgres_security_group, vpc.private_subnet_ids)
 
-    cluster = Cluster("tooling-cluster")
+    cluster = Cluster("dev-tooling-cluster")
 
     create_github_runner(vpc=vpc, config=config, cluster=cluster, postgres_security_group=postgres_security_group)
 

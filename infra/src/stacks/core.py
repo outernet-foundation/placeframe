@@ -85,18 +85,24 @@ def create_core_stack(config: Config):
         credential_arn=dockerhub_secret.arn,
     )
 
-    # ghcr_secret = Secret("ghcr-secret", name_prefix="ecr-pullthroughcache/", secret_string=Output.from_input(""))
+    ghcr_secret = Secret(
+        "ghcr-secret",
+        name_prefix="ecr-pullthroughcache/",
+        secret_string=Output.all(config.require("github-username"), config.require_secret("github-pat")).apply(
+            lambda args: json.dumps({"username": args[0], "accessToken": args[1]})
+        ),
+    )
 
-    # PullThroughCacheRule(
-    #     "ghcr-pull-through-cache-rule",
-    #     ecr_repository_prefix="ghcr",
-    #     upstream_registry_url="ghcr.io",
-    #     credential_arn=ghcr_secret.arn,
-    # )
+    PullThroughCacheRule(
+        "ghcr-pull-through-cache-rule",
+        ecr_repository_prefix="ghcr",
+        upstream_registry_url="ghcr.io",
+        credential_arn=ghcr_secret.arn,
+    )
 
     vpc = Vpc(name="main-vpc")
 
-    cluster = Cluster("tooling-cluster")
+    cluster = Cluster("core-tooling-cluster")
 
     create_tailscale_beacon(
         vpc=vpc, config=config, zone_id=zone.id, domain=domain, certificate_arn=certificate.arn, cluster=cluster

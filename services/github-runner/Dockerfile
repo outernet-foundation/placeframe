@@ -1,5 +1,5 @@
 # Dockerfile
-FROM ghcr.io/actions/runner:latest
+FROM ghcr.io/actions/actions-runner:latest
 
 # Allow root to install our tiny deps
 USER root

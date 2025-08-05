@@ -7,6 +7,7 @@ from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecr import Repository, get_authorization_token
 from pulumi_aws.ecs import Cluster
 from pulumi_awsx.ecs import FargateService
+from pulumi_command.local import Command
 from pulumi_docker import Image
 
 from components.secret import Secret
@@ -41,6 +42,17 @@ def create_github_runner(config: Config, vpc: Vpc, cluster: Cluster, postgres_se
             "Version": "2012-10-17",
             "Statement": [{"Effect": "Allow", "Action": "secretsmanager:GetSecretValue", "Resource": [arn]}, {}],
         })
+    )
+
+    Command(
+        "docker-login-ghcr",
+        create=Output.concat(
+            "echo ",
+            config.require("github-pat"),
+            " | docker login ghcr.io --username ",
+            config.require("github-username"),
+            " --password-stdin",
+        ),
     )
 
     # Create a Docker image for GitHub Runner

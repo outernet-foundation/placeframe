@@ -424,6 +424,7 @@ dependencies = [
     { name = "pulumi" },
     { name = "pulumi-aws" },
     { name = "pulumi-awsx" },
+    { name = "pulumi-command" },
     { name = "pulumi-docker" },
     { name = "pulumi-postgresql" },
     { name = "pydantic" },
@@ -444,6 +445,7 @@ requires-dist = [
     { name = "pulumi", specifier = ">=3.183.0" },
     { name = "pulumi-aws", specifier = ">=6.83.0" },
     { name = "pulumi-awsx", specifier = ">=2.22.0" },
+    { name = "pulumi-command", specifier = ">=1.1.0" },
     { name = "pulumi-docker", specifier = ">=4.8.0" },
     { name = "pulumi-postgresql", specifier = ">=3.15.2" },
     { name = "pydantic", specifier = ">=2.11.7" },
@@ -518,6 +520,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/2b/99/02c171e4f54fe7b89bf06435dc98b5f6656684ece73535915abb83e804a2/pulumi_awsx-2.22.0.tar.gz", hash = "sha256:1852b2e0f57a80b2e325b9223b2538665d0ac512637f737494815c6aa67ff28b", size = 104537, upload-time = "2025-06-25T17:46:13.272Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e6/41/04295b10120bb95ded11476804bf2eb70827116d8ecddc880888dad4b3cb/pulumi_awsx-2.22.0-py3-none-any.whl", hash = "sha256:6607557dfc88431457f9a737e488a23e4fa9ce8c006a70efe433729973ce7253", size = 121001, upload-time = "2025-06-25T17:46:11.601Z" },
+]
+
+[[package]]
+name = "pulumi-command"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "parver" },
+    { name = "pulumi" },
+    { name = "semver" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/96/b4/03d37a61e49b636b7cd5ba72a28996f07a18d815e6ba2343f6071b77fc51/pulumi_command-1.1.0.tar.gz", hash = "sha256:509b2709938aacfb13717b7b537d728375cd90b409093bf24dacab17d9294a4a", size = 33072, upload-time = "2025-05-27T18:25:11.671Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/99/f4/c89295ca63e2555cda4b4e16069200cf04262ac87ae263c48562f8297cc8/pulumi_command-1.1.0-py3-none-any.whl", hash = "sha256:d6a62444a1a9a26ded354b668a9cf88c0becd4faacabe4adafbc8dbb65af96c4", size = 36859, upload-time = "2025-05-27T18:25:10.401Z" },
 ]
 
 [[package]]
