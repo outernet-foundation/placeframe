@@ -20,10 +20,8 @@ from components.vpc import Vpc
 def create_api(
     config: Config,
     core_stack: StackReference,
-    captures_bucket_name: Output[str],
     s3_bucket_arn: Output[str],
     vpc: Vpc,
-    lambda_security_group: SecurityGroup,
     postgres_security_group: SecurityGroup,
     postgres_connection_secret: Secret,
     memory_size: int = 512,
@@ -34,25 +32,20 @@ def create_api(
     zone_name = core_stack.require_output("zone-name")
     certificate_arn = core_stack.require_output("certificate-arn")
 
+    lambda_security_group = SecurityGroup("lambda-security-group", vpc_id=vpc.id)
+
     # Allow connections to required services
     lambda_security_group.allow_egress_reciprocal(to_security_group=postgres_security_group, ports=[5432])
 
-    # For each VPC endpoint, allow Lambda to access it
-    for service_name in ["ecr.api", "ecr.dkr", "logs", "sts"]:
-        lambda_security_group.allow_egress_reciprocal(
-            to_security_group=vpc.interface_security_groups[service_name], ports=[443]
-        )
-
-    # Allow Lambda egress to S3 bucket
-    lambda_security_group.allow_egress_prefix_list(
-        prefix_list_name="s3", prefix_list_id=vpc.s3_endpoint_prefix_list_id, ports=[443]
+    vpc.allow_endpoint_access(
+        security_group=lambda_security_group, endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"]
     )
 
     # Allow egress to VPC CIDR for DNS resolution
     lambda_security_group.allow_egress_cidr(cidr_name="vpc-cidr", cidr=vpc.cidr_block, ports=[53])
     lambda_security_group.allow_egress_cidr(cidr_name="vpc-cidr", cidr=vpc.cidr_block, ports=[53], protocol="udp")
 
-    LogGroup("/aws/lambda/api-lambda", retention_in_days=7)
+    # LogGroup("api-lambda-log-group", name="/aws/lambda/api-lambda", retention_in_days=7)
 
     repo = Repository("lambda-repo", force_delete=config.require_bool("devMode"))
 

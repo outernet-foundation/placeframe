@@ -34,7 +34,7 @@ def create_tailscale_beacon(
     # Private interface endpoints the task may hit (image pulls/logs/secrets)
     vpc.allow_endpoint_access(
         security_group=tailscale_bridge_security_group,
-        interfaces=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts"],
+        endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts"],
     )
 
     # Allow egress for DNS resolution (required for curl and tailscale to resolve hostnames)

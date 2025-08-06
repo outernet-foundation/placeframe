@@ -22,7 +22,6 @@ def create_cloudbeaver(
     config: Config,
     core_stack: StackReference,
     vpc: Vpc,
-    cloudbeaver_security_group: SecurityGroup,
     postgres_security_group: SecurityGroup,
     db: Instance,
     cluster: Cluster,
@@ -32,6 +31,7 @@ def create_cloudbeaver(
     zone_name = core_stack.require_output("zone-name")
     certificate_arn = core_stack.require_output("certificate-arn")
 
+    cloudbeaver_security_group = SecurityGroup("cloudbeaver-security-group", vpc_id=vpc.id)
     load_balancer_security_group = SecurityGroup("load-balancer-security-group", vpc_id=vpc.id)
     efs_security_group = SecurityGroup("cloudbeaver-efs-security-group", vpc_id=vpc.id)
 
@@ -45,7 +45,7 @@ def create_cloudbeaver(
     # Allow cloudbeaver access to various vpc endpoints
     vpc.allow_endpoint_access(
         security_group=cloudbeaver_security_group,
-        interfaces=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
+        endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
     )
 
     # Allow CloudBeaver to access Postgres

@@ -20,7 +20,7 @@ def create_database(
     db_instance = aws.rds.Instance(
         resource_name="postgres-instance",
         engine="postgres",
-        engine_version="15.7",
+        engine_version="15",
         instance_class=instance_class,
         allocated_storage=20,
         db_subnet_group_name=subnet_group.id,

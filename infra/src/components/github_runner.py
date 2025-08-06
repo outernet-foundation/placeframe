@@ -25,7 +25,7 @@ def create_github_runner(config: Config, vpc: Vpc, cluster: Cluster, postgres_se
     # Private interface endpoints the task may hit (image pulls/logs/secrets)
     vpc.allow_endpoint_access(
         security_group=github_runner_security_group,
-        interfaces=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
+        endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
     )
 
     # Allow egress for DNS resolution (required for curl and tailscale to resolve hostnames)

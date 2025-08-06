@@ -17,8 +17,6 @@ def create_dev_stack(config: Config):
 
     vpc = Vpc(name="main-vpc", vpc_info=cast(Output[VpcInfo], core_stack.require_output("vpc-info")))
 
-    lambda_security_group = SecurityGroup("lambda-security-group", vpc_id=vpc.id)
-    cloudbeaver_security_group = SecurityGroup("cloudbeaver-security-group", vpc_id=vpc.id)
     postgres_security_group = SecurityGroup("postgres-security-group", vpc_id=vpc.id)
 
     # 1. S3 bucket (captures)
@@ -37,7 +35,6 @@ def create_dev_stack(config: Config):
         config,
         core_stack,
         vpc=vpc,
-        cloudbeaver_security_group=cloudbeaver_security_group,
         postgres_security_group=postgres_security_group,
         db=postgres_instance,
         cluster=cluster,
@@ -47,10 +44,8 @@ def create_dev_stack(config: Config):
     create_api(
         config,
         core_stack,
-        captures_bucket_name=captures_bucket.bucket,
         s3_bucket_arn=captures_bucket.arn,
         vpc=vpc,
-        lambda_security_group=lambda_security_group,
         postgres_security_group=postgres_security_group,
         postgres_connection_secret=postgres_connection_secret,
     )

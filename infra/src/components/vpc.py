@@ -122,7 +122,7 @@ class Vpc(ComponentResource):
             "interface_security_group_ids": {service: sg.id for service, sg in self.interface_security_groups.items()},
         })
 
-    def allow_endpoint_access(self, security_group: SecurityGroup, interfaces: Sequence[str]):
+    def allow_endpoint_access(self, security_group: SecurityGroup, endpoints: Sequence[str]):
         # Maybe lock down the CIDR block?
         #
         # From chatgpt: "You allow DNS egress to the entire VPC CIDR on 53. Stricter is better: Allow UDP/TCP
@@ -134,7 +134,7 @@ class Vpc(ComponentResource):
         security_group.allow_egress_cidr(cidr_name="vpc", cidr=self.cidr_block, ports=[53])
         security_group.allow_egress_cidr(cidr_name="vpc", cidr=self.cidr_block, ports=[53], protocol="udp")
 
-        for interface in interfaces:
+        for interface in endpoints:
             if interface == "s3":
                 security_group.allow_egress_prefix_list(
                     prefix_list_name="s3", prefix_list_id=self.s3_endpoint_prefix_list_id, ports=[443]
