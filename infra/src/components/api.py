@@ -41,11 +41,7 @@ def create_api(
         security_group=lambda_security_group, endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"]
     )
 
-    # Allow egress to VPC CIDR for DNS resolution
-    lambda_security_group.allow_egress_cidr(cidr_name="vpc-cidr", cidr=vpc.cidr_block, ports=[53])
-    lambda_security_group.allow_egress_cidr(cidr_name="vpc-cidr", cidr=vpc.cidr_block, ports=[53], protocol="udp")
-
-    # LogGroup("api-lambda-log-group", name="/aws/lambda/api-lambda", retention_in_days=7)
+    LogGroup("api-lambda-log-group", name="/aws/lambda/api-lambda", retention_in_days=7)
 
     repo = Repository("lambda-repo", force_delete=config.require_bool("devMode"))
 

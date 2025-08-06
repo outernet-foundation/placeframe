@@ -167,6 +167,7 @@ def create_cloudbeaver(
     # Create Fargate service
     FargateService(
         "cloudbeaver-service",
+        name="cloudbeaver-service",
         cluster=cluster.arn,
         desired_count=1,
         network_configuration={"subnets": vpc.private_subnet_ids, "security_groups": [cloudbeaver_security_group.id]},

@@ -1,5 +1,2065 @@
 [
   {
+    "date": "2025-08-03T14:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001798337
+  },
+  {
+    "date": "2025-08-03T14:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010972
+  },
+  {
+    "date": "2025-08-03T14:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-03T14:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246851269
+  },
+  {
+    "date": "2025-08-03T14:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-03T14:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450099045
+  },
+  {
+    "date": "2025-08-03T14:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-03T14:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.8e-05
+  },
+  {
+    "date": "2025-08-03T14:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.095
+  },
+  {
+    "date": "2025-08-03T15:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001798337
+  },
+  {
+    "date": "2025-08-03T15:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043015004
+  },
+  {
+    "date": "2025-08-03T15:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-03T15:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.025210289
+  },
+  {
+    "date": "2025-08-03T15:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-03T15:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450072069
+  },
+  {
+    "date": "2025-08-03T15:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-03T15:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 7.92e-05
+  },
+  {
+    "date": "2025-08-03T15:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0997152906
+  },
+  {
+    "date": "2025-08-03T16:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001874151
+  },
+  {
+    "date": "2025-08-03T16:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043011709
+  },
+  {
+    "date": "2025-08-03T16:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-03T16:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0245486972
+  },
+  {
+    "date": "2025-08-03T16:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-03T16:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450144889
+  },
+  {
+    "date": "2025-08-03T16:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-03T16:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 4.44e-05
+  },
+  {
+    "date": "2025-08-03T16:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0975467791
+  },
+  {
+    "date": "2025-08-03T17:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001877356
+  },
+  {
+    "date": "2025-08-03T17:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-03T17:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-03T17:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0263320886
+  },
+  {
+    "date": "2025-08-03T17:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-03T17:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0457672694
+  },
+  {
+    "date": "2025-08-03T17:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-03T17:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 3.2e-05
+  },
+  {
+    "date": "2025-08-03T17:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0965411392
+  },
+  {
+    "date": "2025-08-03T18:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.000190837
+  },
+  {
+    "date": "2025-08-03T18:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-03T18:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-03T18:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0240335533
+  },
+  {
+    "date": "2025-08-03T18:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-03T18:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0485881777
+  },
+  {
+    "date": "2025-08-03T18:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-03T18:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 5.44e-05
+  },
+  {
+    "date": "2025-08-03T18:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0951772542
+  },
+  {
+    "date": "2025-08-03T19:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001923754
+  },
+  {
+    "date": "2025-08-03T19:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-03T19:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-03T19:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246854468
+  },
+  {
+    "date": "2025-08-03T19:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-03T19:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450070488
+  },
+  {
+    "date": "2025-08-03T19:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-03T19:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 2.12e-05
+  },
+  {
+    "date": "2025-08-03T19:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.095
+  },
+  {
+    "date": "2025-08-03T20:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001923754
+  },
+  {
+    "date": "2025-08-03T20:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-03T20:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-03T20:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246851358
+  },
+  {
+    "date": "2025-08-03T20:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-03T20:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450086439
+  },
+  {
+    "date": "2025-08-03T20:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-03T20:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 2.12e-05
+  },
+  {
+    "date": "2025-08-03T20:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.095
+  },
+  {
+    "date": "2025-08-03T21:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001923754
+  },
+  {
+    "date": "2025-08-03T21:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010759
+  },
+  {
+    "date": "2025-08-03T21:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-03T21:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246851397
+  },
+  {
+    "date": "2025-08-03T21:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-03T21:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450054267
+  },
+  {
+    "date": "2025-08-03T21:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-03T21:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 2.6e-05
+  },
+  {
+    "date": "2025-08-03T21:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.095
+  },
+  {
+    "date": "2025-08-03T22:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001923754
+  },
+  {
+    "date": "2025-08-03T22:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010767
+  },
+  {
+    "date": "2025-08-03T22:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-03T22:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0232703353
+  },
+  {
+    "date": "2025-08-03T22:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-03T22:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0484930667
+  },
+  {
+    "date": "2025-08-03T22:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-03T22:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 3.52e-05
+  },
+  {
+    "date": "2025-08-03T22:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.094750368
+  },
+  {
+    "date": "2025-08-03T23:00:00Z",
+    "category": "AWS Cost Explorer",
+    "cost": 0.0037725806
+  },
+  {
+    "date": "2025-08-03T23:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001940488
+  },
+  {
+    "date": "2025-08-03T23:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-03T23:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-03T23:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0257738161
+  },
+  {
+    "date": "2025-08-03T23:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-03T23:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0478380941
+  },
+  {
+    "date": "2025-08-03T23:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-03T23:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.84e-05
+  },
+  {
+    "date": "2025-08-03T23:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0961251742
+  },
+  {
+    "date": "2025-08-04T00:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T00:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-04T00:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T00:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0280548211
+  },
+  {
+    "date": "2025-08-04T00:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T00:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0466420703
+  },
+  {
+    "date": "2025-08-04T00:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T00:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 3.36e-05
+  },
+  {
+    "date": "2025-08-04T00:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0971859877
+  },
+  {
+    "date": "2025-08-04T01:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T01:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-04T01:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T01:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0263340392
+  },
+  {
+    "date": "2025-08-04T01:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T01:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0479497645
+  },
+  {
+    "date": "2025-08-04T01:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T01:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 7.84e-05
+  },
+  {
+    "date": "2025-08-04T01:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0968477156
+  },
+  {
+    "date": "2025-08-04T02:00:00Z",
+    "category": "AWS Cost Explorer",
+    "cost": 0.01
+  },
+  {
+    "date": "2025-08-04T02:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T02:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-04T02:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T02:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0262134975
+  },
+  {
+    "date": "2025-08-04T02:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T02:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0461740641
+  },
+  {
+    "date": "2025-08-04T02:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T02:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 3.84e-05
+  },
+  {
+    "date": "2025-08-04T02:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.096226758
+  },
+  {
+    "date": "2025-08-04T03:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T03:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010888
+  },
+  {
+    "date": "2025-08-04T03:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T03:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246851316
+  },
+  {
+    "date": "2025-08-04T03:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T03:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450048219
+  },
+  {
+    "date": "2025-08-04T03:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T03:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.48e-05
+  },
+  {
+    "date": "2025-08-04T03:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0950150722
+  },
+  {
+    "date": "2025-08-04T04:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T04:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043011414
+  },
+  {
+    "date": "2025-08-04T04:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T04:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246851288
+  },
+  {
+    "date": "2025-08-04T04:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T04:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450030667
+  },
+  {
+    "date": "2025-08-04T04:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T04:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.2e-05
+  },
+  {
+    "date": "2025-08-04T04:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0950146479
+  },
+  {
+    "date": "2025-08-04T05:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T05:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-04T05:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T05:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246851316
+  },
+  {
+    "date": "2025-08-04T05:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T05:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.045009533
+  },
+  {
+    "date": "2025-08-04T05:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T05:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.08e-05
+  },
+  {
+    "date": "2025-08-04T05:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0950165014
+  },
+  {
+    "date": "2025-08-04T06:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T06:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-04T06:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T06:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246852814
+  },
+  {
+    "date": "2025-08-04T06:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T06:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450052055
+  },
+  {
+    "date": "2025-08-04T06:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T06:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.76e-05
+  },
+  {
+    "date": "2025-08-04T06:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.095015149
+  },
+  {
+    "date": "2025-08-04T07:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T07:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-04T07:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T07:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246851361
+  },
+  {
+    "date": "2025-08-04T07:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T07:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450064547
+  },
+  {
+    "date": "2025-08-04T07:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T07:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.96e-05
+  },
+  {
+    "date": "2025-08-04T07:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0950150478
+  },
+  {
+    "date": "2025-08-04T08:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T08:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-04T08:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T08:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246851316
+  },
+  {
+    "date": "2025-08-04T08:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T08:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450042682
+  },
+  {
+    "date": "2025-08-04T08:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T08:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.72e-05
+  },
+  {
+    "date": "2025-08-04T08:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0950154489
+  },
+  {
+    "date": "2025-08-04T09:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T09:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-04T09:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T09:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246854455
+  },
+  {
+    "date": "2025-08-04T09:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T09:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450071204
+  },
+  {
+    "date": "2025-08-04T09:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T09:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.16e-05
+  },
+  {
+    "date": "2025-08-04T09:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0950149078
+  },
+  {
+    "date": "2025-08-04T10:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T10:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-04T10:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T10:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246851298
+  },
+  {
+    "date": "2025-08-04T10:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T10:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.045005648
+  },
+  {
+    "date": "2025-08-04T10:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T10:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 5.52e-05
+  },
+  {
+    "date": "2025-08-04T10:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0950151589
+  },
+  {
+    "date": "2025-08-04T11:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T11:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043011085
+  },
+  {
+    "date": "2025-08-04T11:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T11:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246854402
+  },
+  {
+    "date": "2025-08-04T11:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T11:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450061991
+  },
+  {
+    "date": "2025-08-04T11:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T11:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.64e-05
+  },
+  {
+    "date": "2025-08-04T11:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0950146029
+  },
+  {
+    "date": "2025-08-04T12:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T12:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.004301455
+  },
+  {
+    "date": "2025-08-04T12:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T12:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246851449
+  },
+  {
+    "date": "2025-08-04T12:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T12:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450070276
+  },
+  {
+    "date": "2025-08-04T12:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T12:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 2.04e-05
+  },
+  {
+    "date": "2025-08-04T12:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0950161053
+  },
+  {
+    "date": "2025-08-04T13:00:00Z",
+    "category": "AWS Cost Explorer",
+    "cost": 0.09
+  },
+  {
+    "date": "2025-08-04T13:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T13:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010767
+  },
+  {
+    "date": "2025-08-04T13:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T13:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246852525
+  },
+  {
+    "date": "2025-08-04T13:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T13:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450032547
+  },
+  {
+    "date": "2025-08-04T13:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T13:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 2.96e-05
+  },
+  {
+    "date": "2025-08-04T13:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.095015134
+  },
+  {
+    "date": "2025-08-04T14:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T14:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010882
+  },
+  {
+    "date": "2025-08-04T14:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T14:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0249325423
+  },
+  {
+    "date": "2025-08-04T14:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T14:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.045722608
+  },
+  {
+    "date": "2025-08-04T14:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T14:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 0.0001072
+  },
+  {
+    "date": "2025-08-04T14:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0952413449
+  },
+  {
+    "date": "2025-08-04T15:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T15:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043011929
+  },
+  {
+    "date": "2025-08-04T15:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T15:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0246851306
+  },
+  {
+    "date": "2025-08-04T15:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T15:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450279387
+  },
+  {
+    "date": "2025-08-04T15:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T15:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 0.0001156
+  },
+  {
+    "date": "2025-08-04T15:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0950221164
+  },
+  {
+    "date": "2025-08-04T16:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T16:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043011186
+  },
+  {
+    "date": "2025-08-04T16:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T16:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0253565366
+  },
+  {
+    "date": "2025-08-04T16:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T16:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0594204655
+  },
+  {
+    "date": "2025-08-04T16:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T16:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 9.04e-05
+  },
+  {
+    "date": "2025-08-04T16:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0978690237
+  },
+  {
+    "date": "2025-08-04T17:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T17:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-04T17:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T17:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0248871302
+  },
+  {
+    "date": "2025-08-04T17:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T17:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0484257311
+  },
+  {
+    "date": "2025-08-04T17:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T17:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 7.8e-05
+  },
+  {
+    "date": "2025-08-04T17:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.096160115
+  },
+  {
+    "date": "2025-08-04T18:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T18:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-04T18:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T18:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0272015353
+  },
+  {
+    "date": "2025-08-04T18:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T18:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0452137871
+  },
+  {
+    "date": "2025-08-04T18:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T18:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 7.44e-05
+  },
+  {
+    "date": "2025-08-04T18:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0962009886
+  },
+  {
+    "date": "2025-08-04T19:00:00Z",
+    "category": "AWS Cost Explorer",
+    "cost": 0.01
+  },
+  {
+    "date": "2025-08-04T19:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T19:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043011611
+  },
+  {
+    "date": "2025-08-04T19:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T19:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0323530636
+  },
+  {
+    "date": "2025-08-04T19:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T19:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450222312
+  },
+  {
+    "date": "2025-08-04T19:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T19:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 7.24e-05
+  },
+  {
+    "date": "2025-08-04T19:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0983018851
+  },
+  {
+    "date": "2025-08-04T20:00:00Z",
+    "category": "AWS Cost Explorer",
+    "cost": 0.01
+  },
+  {
+    "date": "2025-08-04T20:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T20:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043011816
+  },
+  {
+    "date": "2025-08-04T20:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T20:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0270566075
+  },
+  {
+    "date": "2025-08-04T20:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T20:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0451348712
+  },
+  {
+    "date": "2025-08-04T20:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T20:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 8.44e-05
+  },
+  {
+    "date": "2025-08-04T20:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0961952192
+  },
+  {
+    "date": "2025-08-04T21:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946818
+  },
+  {
+    "date": "2025-08-04T21:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043011091
+  },
+  {
+    "date": "2025-08-04T21:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T21:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0257963267
+  },
+  {
+    "date": "2025-08-04T21:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T21:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0456117265
+  },
+  {
+    "date": "2025-08-04T21:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T21:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 0.0001136
+  },
+  {
+    "date": "2025-08-04T21:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0960678956
+  },
+  {
+    "date": "2025-08-04T22:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946836
+  },
+  {
+    "date": "2025-08-04T22:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.004301104
+  },
+  {
+    "date": "2025-08-04T22:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T22:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.024685
+  },
+  {
+    "date": "2025-08-04T22:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T22:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0459044235
+  },
+  {
+    "date": "2025-08-04T22:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T22:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 9.44e-05
+  },
+  {
+    "date": "2025-08-04T22:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0950609789
+  },
+  {
+    "date": "2025-08-04T23:00:00Z",
+    "category": "AWS Cost Explorer",
+    "cost": 0.0037090323
+  },
+  {
+    "date": "2025-08-04T23:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946842
+  },
+  {
+    "date": "2025-08-04T23:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043011076
+  },
+  {
+    "date": "2025-08-04T23:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-04T23:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0265379979
+  },
+  {
+    "date": "2025-08-04T23:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-04T23:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0458492261
+  },
+  {
+    "date": "2025-08-04T23:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-04T23:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 9.6e-05
+  },
+  {
+    "date": "2025-08-04T23:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0965358415
+  },
+  {
+    "date": "2025-08-05T00:00:00Z",
+    "category": "AWS Cost Explorer",
+    "cost": 0.02
+  },
+  {
+    "date": "2025-08-05T00:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946895
+  },
+  {
+    "date": "2025-08-05T00:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043011017
+  },
+  {
+    "date": "2025-08-05T00:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-05T00:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.0251351496
+  },
+  {
+    "date": "2025-08-05T00:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-05T00:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0451108805
+  },
+  {
+    "date": "2025-08-05T00:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-05T00:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 3e-05
+  },
+  {
+    "date": "2025-08-05T00:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0953232853
+  },
+  {
+    "date": "2025-08-05T01:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946938
+  },
+  {
+    "date": "2025-08-05T01:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043012232
+  },
+  {
+    "date": "2025-08-05T01:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-05T01:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.024685
+  },
+  {
+    "date": "2025-08-05T01:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-05T01:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450696182
+  },
+  {
+    "date": "2025-08-05T01:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-05T01:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 5.52e-05
+  },
+  {
+    "date": "2025-08-05T01:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.0950847251
+  },
+  {
+    "date": "2025-08-05T02:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946964
+  },
+  {
+    "date": "2025-08-05T02:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-05T02:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-05T02:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.024685
+  },
+  {
+    "date": "2025-08-05T02:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-05T02:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450057402
+  },
+  {
+    "date": "2025-08-05T02:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-05T02:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.52e-05
+  },
+  {
+    "date": "2025-08-05T02:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.095
+  },
+  {
+    "date": "2025-08-05T03:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946964
+  },
+  {
+    "date": "2025-08-05T03:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010794
+  },
+  {
+    "date": "2025-08-05T03:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-05T03:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.024685
+  },
+  {
+    "date": "2025-08-05T03:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-05T03:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450117334
+  },
+  {
+    "date": "2025-08-05T03:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-05T03:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.72e-05
+  },
+  {
+    "date": "2025-08-05T03:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.095
+  },
+  {
+    "date": "2025-08-05T04:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946964
+  },
+  {
+    "date": "2025-08-05T04:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043011785
+  },
+  {
+    "date": "2025-08-05T04:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-05T04:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.024685
+  },
+  {
+    "date": "2025-08-05T04:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-05T04:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450152452
+  },
+  {
+    "date": "2025-08-05T04:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-05T04:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 2.12e-05
+  },
+  {
+    "date": "2025-08-05T04:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.095
+  },
+  {
+    "date": "2025-08-05T05:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946964
+  },
+  {
+    "date": "2025-08-05T05:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-05T05:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-05T05:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.024685
+  },
+  {
+    "date": "2025-08-05T05:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-05T05:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450140124
+  },
+  {
+    "date": "2025-08-05T05:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-05T05:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.12e-05
+  },
+  {
+    "date": "2025-08-05T05:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.095
+  },
+  {
+    "date": "2025-08-05T06:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946964
+  },
+  {
+    "date": "2025-08-05T06:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-05T06:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-05T06:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.024685
+  },
+  {
+    "date": "2025-08-05T06:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-05T06:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450056943
+  },
+  {
+    "date": "2025-08-05T06:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-05T06:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 4.52e-05
+  },
+  {
+    "date": "2025-08-05T06:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.095
+  },
+  {
+    "date": "2025-08-05T07:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946964
+  },
+  {
+    "date": "2025-08-05T07:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-05T07:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-05T07:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.024685
+  },
+  {
+    "date": "2025-08-05T07:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-05T07:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450085607
+  },
+  {
+    "date": "2025-08-05T07:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-05T07:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.44e-05
+  },
+  {
+    "date": "2025-08-05T07:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.095
+  },
+  {
+    "date": "2025-08-05T08:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946964
+  },
+  {
+    "date": "2025-08-05T08:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-05T08:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-05T08:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.024685
+  },
+  {
+    "date": "2025-08-05T08:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-05T08:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450046667
+  },
+  {
+    "date": "2025-08-05T08:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-05T08:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 2.08e-05
+  },
+  {
+    "date": "2025-08-05T08:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.095
+  },
+  {
+    "date": "2025-08-05T09:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946964
+  },
+  {
+    "date": "2025-08-05T09:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-05T09:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-05T09:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.024685
+  },
+  {
+    "date": "2025-08-05T09:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-05T09:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450062238
+  },
+  {
+    "date": "2025-08-05T09:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-05T09:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.12e-05
+  },
+  {
+    "date": "2025-08-05T09:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.095
+  },
+  {
+    "date": "2025-08-05T10:00:00Z",
+    "category": "Amazon EC2 Container Registry (ECR)",
+    "cost": 0.0001946964
+  },
+  {
+    "date": "2025-08-05T10:00:00Z",
+    "category": "EC2 - Other",
+    "cost": 0.0043010755
+  },
+  {
+    "date": "2025-08-05T10:00:00Z",
+    "category": "Amazon Elastic Compute Cloud - Compute",
+    "cost": 0.0464
+  },
+  {
+    "date": "2025-08-05T10:00:00Z",
+    "category": "Amazon Elastic Container Service",
+    "cost": 0.024685
+  },
+  {
+    "date": "2025-08-05T10:00:00Z",
+    "category": "Amazon Elastic File System",
+    "cost": 2.92e-08
+  },
+  {
+    "date": "2025-08-05T10:00:00Z",
+    "category": "Amazon Elastic Load Balancing",
+    "cost": 0.0450052174
+  },
+  {
+    "date": "2025-08-05T10:00:00Z",
+    "category": "Amazon Relational Database Service",
+    "cost": 0.0210913978
+  },
+  {
+    "date": "2025-08-05T10:00:00Z",
+    "category": "Amazon Route 53",
+    "cost": 1.28e-05
+  },
+  {
+    "date": "2025-08-05T10:00:00Z",
+    "category": "Amazon Virtual Private Cloud",
+    "cost": 0.095
+  },
+  {
     "date": "2025-08-05T11:00:00Z",
     "category": "Amazon EC2 Container Registry (ECR)",
     "cost": 0.0001946964
@@ -833,6 +2893,231 @@
     "date": "2025-08-06T04:00:00Z",
     "category": "Amazon Virtual Private Cloud",
     "cost": 0.06
+  },
+  {
+    "date": "2025-08-03T14:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2366853893
+  },
+  {
+    "date": "2025-08-03T15:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2419847476
+  },
+  {
+    "date": "2025-08-03T16:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2391343782
+  },
+  {
+    "date": "2025-08-03T17:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.24065273529999998
+  },
+  {
+    "date": "2025-08-03T18:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2398367247
+  },
+  {
+    "date": "2025-08-03T19:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.23669857349999998
+  },
+  {
+    "date": "2025-08-03T20:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2366998576
+  },
+  {
+    "date": "2025-08-03T21:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.23670144469999999
+  },
+  {
+    "date": "2025-08-03T22:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2385338491
+  },
+  {
+    "date": "2025-08-03T23:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2455146163
+  },
+  {
+    "date": "2025-08-04T00:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2439036634
+  },
+  {
+    "date": "2025-08-04T01:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2431971036
+  },
+  {
+    "date": "2025-08-04T02:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2506399039
+  },
+  {
+    "date": "2025-08-04T03:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.23670702329999999
+  },
+  {
+    "date": "2025-08-04T04:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2367020936
+  },
+  {
+    "date": "2025-08-04T05:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2367091503
+  },
+  {
+    "date": "2025-08-04T06:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2367104202
+  },
+  {
+    "date": "2025-08-04T07:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2367134229
+  },
+  {
+    "date": "2025-08-04T08:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.236709233
+  },
+  {
+    "date": "2025-08-04T09:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.236706258
+  },
+  {
+    "date": "2025-08-04T10:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.23674832099999998
+  },
+  {
+    "date": "2025-08-04T11:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.23670985949999998
+  },
+  {
+    "date": "2025-08-04T12:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2367162416
+  },
+  {
+    "date": "2025-08-04T13:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.3267204267
+  },
+  {
+    "date": "2025-08-04T14:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2379908922
+  },
+  {
+    "date": "2025-08-04T15:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.23683808739999998
+  },
+  {
+    "date": "2025-08-04T16:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2547236532
+  },
+  {
+    "date": "2025-08-04T17:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2415381606
+  },
+  {
+    "date": "2025-08-04T18:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2406778953
+  },
+  {
+    "date": "2025-08-04T19:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2577368498
+  },
+  {
+    "date": "2025-08-04T20:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2504583883
+  },
+  {
+    "date": "2025-08-04T21:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2395767667
+  },
+  {
+    "date": "2025-08-04T22:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.23773201700000002
+  },
+  {
+    "date": "2025-08-04T23:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2447153166
+  },
+  {
+    "date": "2025-08-05T00:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2575865336
+  },
+  {
+    "date": "2025-08-05T01:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.23688188729999998
+  },
+  {
+    "date": "2025-08-05T02:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.23669313909999998
+  },
+  {
+    "date": "2025-08-05T03:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2367011362
+  },
+  {
+    "date": "2025-08-05T04:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2367087471
+  },
+  {
+    "date": "2025-08-05T05:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2366974113
+  },
+  {
+    "date": "2025-08-05T06:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.23672309319999998
+  },
+  {
+    "date": "2025-08-05T07:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.23669515959999998
+  },
+  {
+    "date": "2025-08-05T08:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2366976656
+  },
+  {
+    "date": "2025-08-05T09:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2366896227
+  },
+  {
+    "date": "2025-08-05T10:00:00Z",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.2366902163
   },
   {
     "date": "2025-08-05T11:00:00Z",

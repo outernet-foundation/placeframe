@@ -54,6 +54,7 @@ def create_github_runner(config: Config, vpc: Vpc, cluster: Cluster, postgres_se
 
     FargateService(
         "github-runner-service",
+        name="github-runner-service",
         cluster=cluster.arn,
         desired_count=1,  # one runner; bump up for parallelism
         network_configuration={

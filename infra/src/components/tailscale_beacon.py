@@ -150,6 +150,7 @@ def create_tailscale_beacon(
 
     FargateService(
         "tailscale-beacon-service",
+        name="tailscale-beacon-service",
         cluster=cluster.arn,
         desired_count=1,
         enable_execute_command=True,

@@ -23,9 +23,7 @@ def create_dev_stack(config: Config):
     captures_bucket = create_storage(config)
 
     # 2. Postgres database
-    postgres_instance, postgres_connection_secret = create_database(
-        config, postgres_security_group, vpc.private_subnet_ids
-    )
+    postgres_instance, postgres_connection_secret = create_database(config, postgres_security_group, vpc)
 
     cluster = Cluster("dev-tooling-cluster")
 

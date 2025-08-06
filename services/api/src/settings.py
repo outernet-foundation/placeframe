@@ -46,12 +46,19 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     try:
+        print("Loading settings...")
         settings = Settings()
+        print("Settings loaded successfully.")
 
         if settings.postgres_dsn_arn:
+            print("Fetching Postgres DSN from Secrets Manager...")
+            print(settings.postgres_dsn_arn)
             client: SecretsManagerClient = boto3.client("secretsmanager")  # type: ignore
+            print("Client created, fetching secret...")
             response = client.get_secret_value(SecretId=settings.postgres_dsn_arn)
+            print("Secret fetched successfully.")
             settings.postgres_dsn = cast(PostgresDsn, response.get("SecretString"))
+            print("Postgres DSN set from Secrets Manager.")
 
         return settings
     except ValidationError as e:

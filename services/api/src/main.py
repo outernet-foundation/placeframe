@@ -8,6 +8,11 @@ from fastapi.routing import APIRoute
 from mangum import Mangum
 
 from .routers.captures import router as captures_router
+from .settings import get_settings
+
+print("Starting API...")
+settings = get_settings()
+print("Settings loaded.")
 
 
 # Make codegened client functions use the same name as their corresponding server functions
@@ -24,7 +29,9 @@ async def lifespan(_: FastAPI):
         # Must import here so connection occurs after event loop is running
         from .db.conf import DB
 
+        print("Starting DB connection pool...")
         await DB.start_connection_pool()
+        print("DB connection pool started.")
         try:
             yield
         finally:
@@ -41,6 +48,7 @@ app = FastAPI(
 )
 
 
+# Custom Swagger UI to add add -L to curl commands so they follow redirects
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
     orig_resp: HTMLResponse = get_swagger_ui_html(

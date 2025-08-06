@@ -5,7 +5,6 @@ environment:
 config:
   aws:region: us-east-1
   plerion_infra:devMode: "true"
-  plerion_infra:rdsInstanceClass: db.t3.micro
   plerion_infra:s3BucketName: dev-captures
   plerion_infra:lambdaDockerfile: ../../services/api/Dockerfile.lambda
   plerion_infra:cloudbeaver-init-dockerfile: ../../services/cloudbeaver-init/Dockerfile
