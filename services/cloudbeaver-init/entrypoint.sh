@@ -1,10 +1,24 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-CONFIG_DIR="/opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver"
-mkdir -p "$CONFIG_DIR"
+# --- 1) Require all env vars up front ---
+: "${POSTGRES_HOST}"
+: "${POSTGRES_DB}"
+: "${POSTGRES_USER}"
+: "${POSTGRES_PASSWORD}"
+: "${CB_ADMIN_NAME}"
+: "${CB_ADMIN_PASSWORD}"
 
-cat > "$CONFIG_DIR/data-sources.json" << EOF
+# --- 2) Define workspace paths on EFS ---
+WORKSPACE="/opt/cloudbeaver/workspace"
+RUNTIME="$WORKSPACE/.data/.cloudbeaver.runtime.conf"
+MARKER="$WORKSPACE/.data/.admin.seed"
+CONFIG_DIR="$WORKSPACE/GlobalConfiguration/.dbeaver"
+
+mkdir -p "$CONFIG_DIR" "$WORKSPACE/.data"
+
+# --- 3) Write out your JDBC connection JSON ---
+cat > "$CONFIG_DIR/data-sources.json" <<EOF
 {
   "folders": {},
   "connections": {
@@ -25,4 +39,21 @@ cat > "$CONFIG_DIR/data-sources.json" << EOF
 }
 EOF
 
-echo "CloudBeaver configuration initialized."
+echo "📄 data-sources.json written."
+
+# --- 4) Idempotent admin‐seed logic ---
+HASH="$(printf '%s:%s' "$CB_ADMIN_NAME" "$CB_ADMIN_PASSWORD" | sha256sum | awk '{print $1}')"
+CURRENT="$(cat "$MARKER" 2>/dev/null || true)"
+
+if [[ "$HASH" != "$CURRENT" ]]; then
+  echo "🔄 Admin credentials changed (or first run); resetting CloudBeaver setup..."
+  if [[ -f "$RUNTIME" ]]; then
+    # Remove the serverName line to force first-run flow
+    sed -i '/"serverName"[[:space:]]*:/d' "$RUNTIME" || true
+  fi
+  echo "$HASH" > "$MARKER"
+else
+  echo "✅ Admin credentials unchanged; no reset needed."
+fi
+
+echo "Init sidecar complete."

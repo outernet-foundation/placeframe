@@ -65,7 +65,7 @@ def create_cloudbeaver(
     )
 
     # Create a policy allowing CloudBeaver to access secrets and use the pull-through cache
-    policy = Output.all(postgres_secret.base_arn, cloudbeaver_secret.base_arn).apply(
+    policy = Output.all(postgres_secret.arn, cloudbeaver_secret.arn).apply(
         lambda arns: json.dumps({
             "Version": "2012-10-17",
             "Statement": [
@@ -204,8 +204,20 @@ def create_cloudbeaver(
                         {"name": "POSTGRES_PORT", "value": "5432"},
                         {"name": "POSTGRES_DB", "value": "postgres"},
                         {"name": "POSTGRES_USER", "value": config.require("postgres-user")},
+                        {"name": "CB_ADMIN_NAME", "value": config.require("cloudbeaver-user")},
+                        {
+                            "name": "_CB_ADMIN_NAME_VERSION",
+                            "value": cloudbeaver_secret.version_id,
+                        },  # Force update on secret change
+                        {
+                            "name": "_POSTGRES_PASSWORD_VERSION",
+                            "value": postgres_secret.version_id,
+                        },  # Force update on secret change
                     ],
-                    "secrets": [{"name": "POSTGRES_PASSWORD", "value_from": postgres_secret.versioned_arn}],
+                    "secrets": [
+                        {"name": "POSTGRES_PASSWORD", "value_from": postgres_secret.arn},
+                        {"name": "CB_ADMIN_PASSWORD", "value_from": cloudbeaver_secret.arn},
+                    ],
                 },
                 "cloudbeaver": {
                     "name": "cloudbeaver",
@@ -232,10 +244,18 @@ def create_cloudbeaver(
                         {"name": "CLOUDBEAVER_DB_URL", "value": db_url},
                         {"name": "CLOUDBEAVER_DB_USER", "value": config.require("postgres-user")},
                         {"name": "CLOUDBEAVER_DB_SCHEMA", "value": "cloudbeaver"},
+                        {
+                            "name": "CLOUDBEAVER_DB_USER_VERSION",
+                            "value": postgres_secret.version_id,
+                        },  # Force update on secret change
+                        {
+                            "name": "CLOUDBEAVER_DB_PASSWORD_VERSION",
+                            "value": cloudbeaver_secret.version_id,
+                        },  # Force update on secret change
                     ],
                     "secrets": [
-                        {"name": "CLOUDBEAVER_DB_PASSWORD", "value_from": postgres_secret.versioned_arn},
-                        {"name": "CB_ADMIN_PASSWORD", "value_from": cloudbeaver_secret.versioned_arn},
+                        {"name": "CLOUDBEAVER_DB_PASSWORD", "value_from": postgres_secret.arn},
+                        {"name": "CB_ADMIN_PASSWORD", "value_from": cloudbeaver_secret.arn},
                     ],
                     "depends_on": [{"container_name": "cloudbeaver-init", "condition": "SUCCESS"}],
                 },

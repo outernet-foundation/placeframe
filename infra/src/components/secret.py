@@ -49,8 +49,7 @@ class Secret(ComponentResource):
             f"{resource_name}-version", secret_id=self._secret.id, secret_string=secret_string, opts=self._child_opts
         )
 
-        self.base_arn = self._secret.arn
-        self.versioned_arn = Output.all(arn=self._secret.arn, version_id=self._secret_version.version_id).apply(
-            lambda args: f"{args['arn']}:::{args['version_id']}"
-        )
-        self.register_outputs({"versioned_arn": self.versioned_arn, "base_arn": self.base_arn})
+        self.arn = self._secret.arn
+        self.version_id = self._secret_version.version_id
+
+        self.register_outputs({"arn": self.arn, "version_id": self.version_id})

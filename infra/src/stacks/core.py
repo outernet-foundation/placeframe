@@ -47,7 +47,7 @@ def create_core_stack(config: Config):
         "dockerhub-pull-through-cache-rule",
         ecr_repository_prefix="dockerhub",
         upstream_registry_url="registry-1.docker.io",
-        credential_arn=dockerhub_secret.base_arn,
+        credential_arn=dockerhub_secret.arn,
     )
 
     vpc = Vpc(name="main-vpc")

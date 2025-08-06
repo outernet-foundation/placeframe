@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Required env vars
-: "${TS_AUTHKEY?}"
+: "${TS_AUTHKEY}"
 : "${SERVICES}"
 : "${DOMAIN}"
 : "${TAILNET}"

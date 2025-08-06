@@ -41,8 +41,6 @@ def create_api(
         security_group=lambda_security_group, endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"]
     )
 
-    LogGroup("api-lambda-log-group", name="/aws/lambda/api-lambda", retention_in_days=7)
-
     repo = Repository("lambda-repo", force_delete=config.require_bool("devMode"))
 
     # Create a basic Lambda execution role (logs only).
@@ -72,7 +70,7 @@ def create_api(
         "lambdaS3Access",
         role=role.id,
         policy=Output.all(
-            s3_bucket_arn=s3_bucket_arn, postgres_connection_secret_arn=postgres_connection_secret.base_arn
+            s3_bucket_arn=s3_bucket_arn, postgres_connection_secret_arn=postgres_connection_secret.arn
         ).apply(
             lambda args: json.dumps({
                 "Version": "2012-10-17",
@@ -106,7 +104,7 @@ def create_api(
 
     # 4) Build & push the image (dict style inputs: see Pulumi docs Python examples)
     image = Image(
-        "apiImage",
+        "api-image",
         build={"dockerfile": str(dockerfile), "context": str(dockerfile.parent), "platform": "linux/amd64"},
         image_name=image_name,
         registry={"server": creds.proxy_endpoint, "username": creds.user_name, "password": creds.password},
@@ -122,15 +120,19 @@ def create_api(
         timeout=timeout_seconds,
         memory_size=memory_size,
         environment={
-            "variables": {"S3_BUCKET_ARN": s3_bucket_arn, "POSTGRES_DSN_ARN": postgres_connection_secret.versioned_arn}
+            "variables": {
+                "S3_BUCKET_ARN": s3_bucket_arn,
+                "POSTGRES_DSN_ARN": postgres_connection_secret.arn,
+                "POSTGRES_DSN_VERSION": postgres_connection_secret.version_id,  # Force update on secret change
+            }
         },
         vpc_config={"subnet_ids": vpc.private_subnet_ids, "security_group_ids": [lambda_security_group.id]},
     )
 
-    api = Api(resource_name="httpApi", protocol_type="HTTP")
+    api = Api(resource_name="api-http-api", protocol_type="HTTP")
 
     integration = Integration(
-        resource_name="lambdaProxyIntegration",
+        resource_name="lambda-proxy-integration",
         api_id=api.id,
         integration_type="AWS_PROXY",
         integration_uri=fn.invoke_arn,
@@ -144,10 +146,10 @@ def create_api(
         target=integration.id.apply(lambda iid: f"integrations/{iid}"),
     )
 
-    log_group = LogGroup("httpApiLogs", retention_in_days=7)
+    log_group = LogGroup("api-http-api-logs", retention_in_days=7)
 
     stage = Stage(
-        resource_name="defaultStage",
+        resource_name="default-stage",
         api_id=api.id,
         name="$default",
         auto_deploy=True,
@@ -196,7 +198,7 @@ def create_api(
 
     # ← NEW: allow API Gateway to invoke the Lambda
     Permission(
-        resource_name="apiGatewayPermission",
+        resource_name="api-gateway-permission",
         action="lambda:InvokeFunction",
         function=fn.name,
         principal="apigateway.amazonaws.com",
