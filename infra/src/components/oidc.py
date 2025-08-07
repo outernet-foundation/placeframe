@@ -40,16 +40,12 @@ def create_oidc(config: Config, database_connection_secret: Secret) -> None:
     RolePolicy(
         "ci-db-secret-policy",
         role=github_oidc_role.id,
-        policy=json.dumps({
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Action": ["secretsmanager:GetSecretValue"],
-                    "Resource": database_connection_secret.arn,
-                }
-            ],
-        }),
+        policy=database_connection_secret.arn.apply(
+            lambda arn: json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [{"Effect": "Allow", "Action": ["secretsmanager:GetSecretValue"], "Resource": arn}],
+            })
+        ),
     )
 
     github_provider = Provider(
@@ -64,7 +60,7 @@ def create_oidc(config: Config, database_connection_secret: Secret) -> None:
 
     ActionsSecret(
         "github-actions-role-arn",
-        secret_name="GITHUB_ACTIONS_ROLE_ARN",
+        secret_name="OIDC_ROLE_ARN",
         repository=config.require("github-repo"),
         plaintext_value=github_oidc_role.arn,
         opts=ResourceOptions(provider=github_provider),
