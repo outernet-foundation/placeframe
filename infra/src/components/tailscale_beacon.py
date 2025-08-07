@@ -1,15 +1,14 @@
 import json
-from pathlib import Path
 
-from pulumi import Config, Input, Output
+from pulumi import Config, Input, Output, export
 from pulumi_aws import get_region_output
 from pulumi_aws.cloudwatch import LogGroup
-from pulumi_aws.ecr import Repository, get_authorization_token
+from pulumi_aws.ecr import Repository, get_image
 from pulumi_aws.ecs import Cluster
+from pulumi_aws.iam import Role
 from pulumi_aws.lb import Listener, LoadBalancer, TargetGroup
 from pulumi_aws.route53 import Record
 from pulumi_awsx.ecs import FargateService
-from pulumi_docker import Image
 
 from components.secret import Secret
 from components.security_group import SecurityGroup
@@ -17,7 +16,13 @@ from components.vpc import Vpc
 
 
 def create_tailscale_beacon(
-    config: Config, vpc: Vpc, zone_id: Input[str], domain: Input[str], certificate_arn: Input[str], cluster: Cluster
+    config: Config,
+    vpc: Vpc,
+    zone_id: Input[str],
+    domain: Input[str],
+    certificate_arn: Input[str],
+    cluster: Cluster,
+    github_oidc_provider_arn: Output[str],
 ):
     load_balancer_security_group = SecurityGroup("tailscale-bridge-load-balancer-security-group", vpc_id=vpc.id)
     tailscale_bridge_security_group = SecurityGroup("tailscale-bridge-security-group", vpc_id=vpc.id)
@@ -96,14 +101,10 @@ def create_tailscale_beacon(
     # ─────────────────────────────────────────────────────────────────────────
     # Container image (single container runs tailscaled + Caddy via entrypoint)
     # ─────────────────────────────────────────────────────────────────────────
-    tailscale_beacon_repo = Repository("tailscale-beacon-repo", force_delete=config.require_bool("devMode"))
-    dockerfile = Path(config.require("tailscale-beacon-dockerfile")).resolve()
-    creds = get_authorization_token()
-    tailscale_beacon_image = Image(
-        "tailscale-beacon-image",
-        build={"dockerfile": str(dockerfile), "context": str(dockerfile.parent), "platform": "linux/amd64"},
-        image_name=Output.concat(tailscale_beacon_repo.repository_url, ":", "latest"),
-        registry={"server": creds.proxy_endpoint, "username": creds.user_name, "password": creds.password},
+    tailscale_beacon_image_repo = Repository("tailscale-beacon-image-repo", force_delete=config.require_bool("devMode"))
+    tailscale_beacon_image = get_image(repository_name="tailscale-beacon-image-repo", image_tag="latest")
+    tailscale_beacon_image_repo_digest = Output.concat(
+        tailscale_beacon_image_repo.repository_url, "@", tailscale_beacon_image.image_digest
     )
 
     # Tailscale auth key (ECS task secret)
@@ -145,11 +146,10 @@ def create_tailscale_beacon(
         },
         task_definition_args={
             "execution_role": {"args": {"inline_policies": [{"policy": policy}]}},
-            # "task_role": {"args": {"inline_policies": [{"policy": ssm_inline}]}},
             "containers": {
                 "tailscale-beacon": {
                     "name": "tailscale-beacon",
-                    "image": tailscale_beacon_image.repo_digest,
+                    "image": tailscale_beacon_image_repo_digest,
                     "environment": [
                         {"name": "TAILNET", "value": tailnet_name},
                         {"name": "DOMAIN", "value": domain},
@@ -187,3 +187,59 @@ def create_tailscale_beacon(
                     {"name": load_balancer.dns_name, "zone_id": load_balancer.zone_id, "evaluate_target_health": False}
                 ],
             )
+
+    github_org = config.require("github-org")
+    github_repo = config.require("github-repo")
+
+    github_assume_role_policy = github_oidc_provider_arn.apply(
+        lambda arn: json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"Federated": arn},
+                    "Action": "sts:AssumeRoleWithWebIdentity",
+                    "Condition": {
+                        "StringLike": {
+                            "token.actions.githubusercontent.com:sub": (
+                                f"repo:{github_org}/{github_repo}:ref:refs/heads/{config.require('github-branch')}"
+                            )
+                        },
+                        "StringEquals": {"token.actions.githubusercontent.com:aud": "sts.amazonaws.com"},
+                    },
+                }
+            ],
+        })
+    )
+
+    github_actions_docker_role = Role(
+        "github-actions-docker-role",
+        assume_role_policy=github_assume_role_policy,
+        inline_policies=[
+            {
+                "name": "ecr-policy",
+                "policy": json.dumps({
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ecr:GetAuthorizationToken",
+                                "ecr:BatchCheckLayerAvailability",
+                                "ecr:GetDownloadUrlForLayer",
+                                "ecr:BatchGetImage",
+                                "ecr:InitiateLayerUpload",
+                                "ecr:UploadLayerPart",
+                                "ecr:CompleteLayerUpload",
+                                "ecr:PutImage",
+                            ],
+                            "Resource": tailscale_beacon_image_repo.arn,
+                        }
+                    ],
+                }),
+            }
+        ],
+    )
+
+    export("tailscale-beacon-image-repo", tailscale_beacon_image_repo.repository_url)
+    export("tailscale-beacon-image-repo-role-arn", github_actions_docker_role.arn)

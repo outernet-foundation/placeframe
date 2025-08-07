@@ -25,6 +25,9 @@
       "**/__pycache__": true,
       "**/*.meta": true
     },
+    "files.associations": {
+      ".github/CODEOWNERS": "plaintext"
+    },
     "[python]": {
       "editor.codeActionsOnSave": {
         "source.fixAll.ruff": "explicit"

@@ -4,6 +4,7 @@ from pulumi import Config, export
 from pulumi_aws.acm import Certificate, CertificateValidation
 from pulumi_aws.ecr import PullThroughCacheRule
 from pulumi_aws.ecs import Cluster
+from pulumi_aws.iam import OpenIdConnectProvider
 from pulumi_aws.route53 import Record, Zone
 
 from components.secret import Secret
@@ -12,6 +13,13 @@ from components.vpc import Vpc, VpcInfo
 
 
 def create_core_stack(config: Config):
+    github_oidc_provider = OpenIdConnectProvider(
+        "github-oidc-provider",
+        url="https://token.actions.githubusercontent.com",
+        client_id_lists=["sts.amazonaws.com"],
+        thumbprint_lists=["6938fd4d98bab03faadb97b34396831e3780aea1"],  # GitHub OIDC thumbprint
+    )
+
     domain = config.require("domain")
 
     zone = Zone("main-zone", name=domain)
@@ -55,9 +63,16 @@ def create_core_stack(config: Config):
     cluster = Cluster("core-tooling-cluster")
 
     create_tailscale_beacon(
-        vpc=vpc, config=config, zone_id=zone.id, domain=domain, certificate_arn=certificate.arn, cluster=cluster
+        vpc=vpc,
+        config=config,
+        zone_id=zone.id,
+        domain=domain,
+        certificate_arn=certificate.arn,
+        cluster=cluster,
+        github_oidc_provider_arn=github_oidc_provider.arn,
     )
 
+    export("github_oidc_provider_arn", github_oidc_provider.arn)
     export("zone-id", zone.id)
     export("zone-name", zone.name)
     export("zone-name-servers", zone.name_servers)
