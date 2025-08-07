@@ -29,7 +29,7 @@ jobs:
       - name: Authenticate with Pulumi (OIDC)
         uses: pulumi/auth-actions@v1
         with:
-          organization: tyler-s-hatch
+          organization: outernet-foundation
           requested-token-type: urn:pulumi:token-type:access_token:personal
           scope: user:tyler-s-hatch
 
