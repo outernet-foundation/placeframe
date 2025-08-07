@@ -103,8 +103,11 @@ jobs:
       - name: Install uv & sync migrations deps
         run: |
           pip install uv --root-user-action=ignore
-          cd services/api
-          uv sync --only-group migrations --prune --frozen
+
+      - name: Install dependencies
+        working-directory: services/api
+        run: |
+          uv sync --frozen
 
       - name: Run Piccolo migrations
         working-directory: services/api
