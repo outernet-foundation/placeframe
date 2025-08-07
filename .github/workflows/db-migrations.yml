@@ -18,6 +18,10 @@ jobs:
       DB_ROLE_ARN:   ${{ steps.db-role.outputs.val }}
       BEACON_REPO:   ${{ steps.beacon-repo.outputs.val }}
       BEACON_ROLE:   ${{ steps.beacon-role.outputs.val }}
+    defaults:
+      run:
+        working-directory: infra   # ← point this at your Pulumi project dir
+
     steps:
       - uses: actions/checkout@v4
 
