@@ -45,9 +45,8 @@ jobs:
 
       - name: Run Piccolo migrations
         working-directory: services/api
-        env:
-          POSTGRES_DSN: $PROD_DB_CONNECTION
-          PICCOLO_CONF: src.db.conf
         run: |
+          export POSTGRES_DSN="$PROD_DB_CONNECTION"
+          export PICCOLO_CONF=src.db.conf
           uv run piccolo migrations new all --auto --auto_input=y
           uv run piccolo migrations forward all
