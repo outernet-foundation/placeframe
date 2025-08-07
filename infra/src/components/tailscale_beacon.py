@@ -178,10 +178,10 @@ def create_tailscale_beacon(
                     lambda arn: json.dumps({
                         "Version": "2012-10-17",
                         "Statement": [
+                            {"Effect": "Allow", "Action": ["ecr:GetAuthorizationToken"], "Resource": "*"},
                             {
                                 "Effect": "Allow",
                                 "Action": [
-                                    "ecr:GetAuthorizationToken",
                                     "ecr:BatchCheckLayerAvailability",
                                     "ecr:GetDownloadUrlForLayer",
                                     "ecr:BatchGetImage",
@@ -191,7 +191,7 @@ def create_tailscale_beacon(
                                     "ecr:PutImage",
                                 ],
                                 "Resource": arn,
-                            }
+                            },
                         ],
                     })
                 ),
