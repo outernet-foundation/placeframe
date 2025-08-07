@@ -30,13 +30,7 @@ jobs:
         uses: pulumi/auth-actions@v1
         with:
           organization: tyler-s-hatch
-          # this gives you a stack-scoped access token in PULUMI_ACCESS_TOKEN:
-          requested-token-type: urn:pulumi:token-type:access_token:environment
-          
-      - name: Inject ESC environment (Pulumi token & AWS creds)
-        uses: pulumi/esc-action@v1
-        with:
-          environment: tyler-s-hatch/plerion/core
+          requested-token-type: urn:pulumi:token-type:access_token:organization
 
       - name: Export DB migrations role ARN
         id: db-role
