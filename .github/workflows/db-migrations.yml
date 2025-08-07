@@ -39,15 +39,15 @@ jobs:
 
       - name: Export DB migrations role ARN
         id: db-role
-        run: echo "DB_ROLE_ARN=$(pulumi stack output --stack dev github_actions_db_migrations_role_arn)" >> $GITHUB_OUTPUT
+        run: echo "val=$(pulumi stack output --stack dev github_actions_db_migrations_role_arn)" >> $GITHUB_OUTPUT
 
       - name: Export Beacon repo URL
         id: beacon-repo
-        run: echo "BEACON_REPO=$(pulumi stack output --stack core tailscale-beacon-image-repo)" >> $GITHUB_OUTPUT
+        run: echo "val=$(pulumi stack output --stack core tailscale-beacon-image-repo)" >> $GITHUB_OUTPUT
 
       - name: Export Beacon push-role ARN
         id: beacon-role
-        run: echo "BEACON_ROLE=$(pulumi stack output --stack core tailscale-beacon-image-repo-role-arn)" >> $GITHUB_OUTPUT
+        run: echo "val=$(pulumi stack output --stack core tailscale-beacon-image-repo-role-arn)" >> $GITHUB_OUTPUT
 
   # ───────────────────────────────────────────────────────────────────────────
   # ⓶ Build & push the Tailscale-beacon image
