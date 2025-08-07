@@ -26,13 +26,13 @@ def create_dev_stack(config: Config):
     # 2. Postgres database
     postgres_instance, postgres_connection_secret = create_database(config, postgres_security_group, vpc)
 
-    create_oidc(config, postgres_connection_secret)
-
     cluster = Cluster("dev-tooling-cluster")
 
-    create_github_runner(vpc=vpc, config=config, cluster=cluster, postgres_security_group=postgres_security_group)
+    github_runner_image_repo = create_github_runner(
+        vpc=vpc, config=config, cluster=cluster, postgres_security_group=postgres_security_group
+    )
 
-    create_cloudbeaver(
+    cloudbeaver_init_image_repo = create_cloudbeaver(
         config,
         core_stack,
         vpc=vpc,
@@ -42,11 +42,15 @@ def create_dev_stack(config: Config):
     )
 
     # 3. Lambda (container image)
-    create_api(
+    api_image_repo = create_api(
         config,
         core_stack,
         s3_bucket_arn=captures_bucket.arn,
         vpc=vpc,
         postgres_security_group=postgres_security_group,
         postgres_connection_secret=postgres_connection_secret,
+    )
+
+    create_oidc(
+        config, postgres_connection_secret, [github_runner_image_repo, cloudbeaver_init_image_repo, api_image_repo]
     )

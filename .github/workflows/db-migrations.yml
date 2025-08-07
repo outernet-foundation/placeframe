@@ -10,7 +10,19 @@ permissions:
   contents: read
 
 jobs:
-  migrate:
+  build-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.DOCKER_ROLE_ARN }}
+          aws-region: us-east-1
+
+  migrate-db:
     runs-on: self-hosted
 
     steps:
@@ -20,7 +32,7 @@ jobs:
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
+          role-to-assume: ${{ secrets.DB_MIGRATIONS_ROLE_ARN }}
           aws-region: us-east-1
 
       - name: Retrieve DB URL from Secrets Manager
@@ -36,7 +48,7 @@ jobs:
 
       - name: Install UV
         run: |
-          pip install uv
+          pip install uv --root-user-action=ignore
         
       - name: Install dependencies
         working-directory: services/api
