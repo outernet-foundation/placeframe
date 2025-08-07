@@ -8,6 +8,9 @@ from components.secret import Secret
 
 
 def create_oidc(config: Config, database_connection_secret: Secret) -> None:
+    github_org = config.require("github-org")
+    github_repo = config.require("github-repo")
+
     github_oidc = OpenIdConnectProvider(
         "githubOidcProvider",
         url="https://token.actions.githubusercontent.com",
@@ -27,7 +30,9 @@ def create_oidc(config: Config, database_connection_secret: Secret) -> None:
                         "Action": "sts:AssumeRoleWithWebIdentity",
                         "Condition": {
                             "StringLike": {
-                                "token.actions.githubusercontent.com:sub": f"repo:{config.require('github-repo')}:ref:refs/heads/{config.require('github-branch')}"
+                                "token.actions.githubusercontent.com:sub": (
+                                    f"repo:{github_org}/{github_repo}:ref:refs/heads/{config.require('github-branch')}"
+                                )
                             },
                             "StringEquals": {"token.actions.githubusercontent.com:aud": "sts.amazonaws.com"},
                         },
@@ -55,13 +60,13 @@ def create_oidc(config: Config, database_connection_secret: Secret) -> None:
             "installation_id": config.require("github-app-installation-id"),
             "pem_file": config.require_secret("github-app-private-key"),
         },
-        owner=config.require("github-org"),
+        owner=github_org,
     )
 
     ActionsSecret(
         "github-actions-role-arn",
         secret_name="OIDC_ROLE_ARN",
-        repository=config.require("github-repo"),
+        repository=github_repo,
         plaintext_value=github_oidc_role.arn,
         opts=ResourceOptions(provider=github_provider),
     )
