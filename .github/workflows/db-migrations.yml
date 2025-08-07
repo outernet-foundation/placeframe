@@ -31,6 +31,7 @@ jobs:
         with:
           organization: tyler-s-hatch
           requested-token-type: urn:pulumi:token-type:access_token:personal
+          scope: user:tyler-s-hatch
 
       - name: Export DB migrations role ARN
         id: db-role
