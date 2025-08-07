@@ -397,6 +397,10 @@ dev = [
     { name = "ruff" },
     { name = "watchdog" },
 ]
+migrations = [
+    { name = "piccolo", extra = ["postgres"] },
+    { name = "pydantic-settings" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -416,6 +420,10 @@ dev = [
     { name = "openapi-generator-cli", specifier = ">=7.14.0" },
     { name = "ruff", specifier = ">=0.12.3" },
     { name = "watchdog", specifier = ">=6.0.0" },
+]
+migrations = [
+    { name = "piccolo", extras = ["postgres"], specifier = ">=1.27.1" },
+    { name = "pydantic-settings", specifier = ">=2.10.1" },
 ]
 
 [[package]]
