@@ -7,11 +7,13 @@ from pulumi import Config, Output, StackReference, export
 from pulumi_aws.apigatewayv2 import Api, ApiMapping, DomainName, Integration, Route, Stage
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecr import Repository, get_authorization_token
-from pulumi_aws.iam import Role, RolePolicy, RolePolicyAttachment
+from pulumi_aws.iam import Role
 from pulumi_aws.lambda_ import Function, Permission
 from pulumi_aws.route53 import Record
+from pulumi_aws.s3 import Bucket
 from pulumi_docker import Image
 
+from components.role_policies import allow_s3, allow_secret_get
 from components.secret import Secret
 from components.security_group import SecurityGroup
 from components.vpc import Vpc
@@ -20,7 +22,7 @@ from components.vpc import Vpc
 def create_api(
     config: Config,
     core_stack: StackReference,
-    s3_bucket_arn: Output[str],
+    s3_bucket: Bucket,
     vpc: Vpc,
     postgres_security_group: SecurityGroup,
     postgres_connection_secret: Secret,
@@ -35,13 +37,12 @@ def create_api(
     lambda_security_group = SecurityGroup(
         "lambda-security-group",
         vpc=vpc,
-        rules=[{"to_security_group": postgres_security_group, "ports": [5432]}],
         vpc_endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
+        rules=[{"to_security_group": postgres_security_group, "ports": [5432]}],
     )
 
     repo = Repository("lambda-repo", force_delete=config.require_bool("devMode"))
 
-    # Create a basic Lambda execution role (logs only).
     role = Role(
         "api-lambda-role",
         assume_role_policy=json.dumps({
@@ -50,42 +51,11 @@ def create_api(
                 {"Action": "sts:AssumeRole", "Principal": {"Service": "lambda.amazonaws.com"}, "Effect": "Allow"}
             ],
         }),
-    )
-
-    RolePolicyAttachment(
-        "lambda-vpc-access",
-        role=role.name,
-        policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
-    )
-
-    RolePolicyAttachment(
-        "lambda-basic-exec",
-        role=role.name,
-        policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-    )
-
-    RolePolicy(
-        "lambdaS3Access",
-        role=role.id,
-        policy=Output.all(
-            s3_bucket_arn=s3_bucket_arn, postgres_connection_secret_arn=postgres_connection_secret.arn
-        ).apply(
-            lambda args: json.dumps({
-                "Version": "2012-10-17",
-                "Statement": [
-                    {
-                        "Effect": "Allow",
-                        "Action": ["s3:GetObject", "s3:PutObject"],
-                        "Resource": f"{args['s3_bucket_arn']}/*",
-                    },
-                    {
-                        "Effect": "Allow",
-                        "Action": ["secretsmanager:GetSecretValue"],
-                        "Resource": f"{args['postgres_connection_secret_arn']}",
-                    },
-                ],
-            })
-        ),
+        managed_policy_arns=[
+            "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+            "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
+        ],
+        inline_policies=[{"policy": allow_secret_get([postgres_connection_secret])}, {"policy": allow_s3(s3_bucket)}],
     )
 
     # Validate build context early; helps surface mis-path errors during preview.
@@ -119,7 +89,7 @@ def create_api(
         memory_size=memory_size,
         environment={
             "variables": {
-                "S3_BUCKET_ARN": s3_bucket_arn,
+                "S3_BUCKET_ARN": s3_bucket.arn,
                 "POSTGRES_DSN_ARN": postgres_connection_secret.arn,
                 "POSTGRES_DSN_VERSION": postgres_connection_secret.version_id,  # Force update on secret change
             }

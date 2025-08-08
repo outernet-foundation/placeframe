@@ -145,6 +145,8 @@ def create_cloudbeaver(
         aliases=[{"name": load_balancer.dns_name, "zone_id": load_balancer.zone_id, "evaluate_target_health": True}],
     )
 
+    cloudbeaver_db_url = Output.concat("jdbc:postgresql://", db.address, ":", db.port.apply(str), "/postgres")
+
     # Service
     get_images_output(repository_name=cloudbeaver_init_image_repo.name).apply(
         lambda images_data: None
@@ -218,16 +220,11 @@ def create_cloudbeaver(
                             {"name": "CB_SERVER_URL", "value": domain.apply(lambda d: f"https://{d}")},
                             {"name": "CB_ADMIN_NAME", "value": config.require("cloudbeaver-user")},
                             {"name": "CLOUDBEAVER_DB_DRIVER", "value": "postgres-jdbc"},
+                            {"name": "CLOUDBEAVER_DB_URL", "value": cloudbeaver_db_url},
                             {"name": "CLOUDBEAVER_DB_USER", "value": config.require("postgres-user")},
                             {"name": "CLOUDBEAVER_DB_SCHEMA", "value": "cloudbeaver"},
                             {"name": "CLOUDBEAVER_DB_USER_VERSION", "value": postgres_secret.version_id},
-                            {"name": "CLOUDBEAVER_DB_PASSWORD_VERSION", "value": cloudbeaver_secret.version_id},
-                            {
-                                "name": "CLOUDBEAVER_DB_URL",
-                                "value": Output.concat(
-                                    "jdbc:postgresql://", db.address, ":", db.port.apply(str), "/postgres"
-                                ),
-                            },
+                            {"name": "_CLOUDBEAVER_DB_PASSWORD_VERSION", "value": cloudbeaver_secret.version_id},
                         ],
                     },
                 },

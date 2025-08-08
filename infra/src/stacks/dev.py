@@ -47,7 +47,7 @@ def create_dev_stack(config: Config):
     create_api(
         config,
         core_stack,
-        s3_bucket_arn=captures_bucket.arn,
+        s3_bucket=captures_bucket,
         vpc=vpc,
         postgres_security_group=postgres_security_group,
         postgres_connection_secret=postgres_connection_secret,

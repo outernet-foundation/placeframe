@@ -4,6 +4,7 @@ from typing import Dict, List
 from pulumi import Config, Output
 from pulumi_aws.ecr import Repository
 from pulumi_aws.iam import Role
+from pulumi_aws.s3 import Bucket
 
 from components.secret import Secret
 
@@ -75,5 +76,14 @@ def allow_secret_get(secrets: List[Secret]):
         lambda arns: json.dumps({
             "Version": "2012-10-17",
             "Statement": [{"Effect": "Allow", "Action": ["secretsmanager:GetSecretValue"], "Resource": arns}],
+        })
+    )
+
+
+def allow_s3(s3_bucket: Bucket):
+    return s3_bucket.arn.apply(
+        lambda arn: json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [{"Effect": "Allow", "Action": ["s3:GetObject", "s3:PutObject"], "Resource": f"{arn}/*"}],
         })
     )
