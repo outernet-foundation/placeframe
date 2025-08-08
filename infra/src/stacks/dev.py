@@ -19,7 +19,7 @@ def create_dev_stack(config: Config):
 
     vpc = Vpc(name="main-vpc", vpc_info=cast(Output[VpcInfo], core_stack.require_output("vpc-info")))
 
-    postgres_security_group = SecurityGroup("postgres-security-group", vpc_id=vpc.id)
+    postgres_security_group = SecurityGroup("postgres-security-group", vpc=vpc)
 
     # 1. S3 bucket (captures)
     captures_bucket = create_storage(config)

@@ -17,23 +17,15 @@ def create_github_runner(config: Config, vpc: Vpc, cluster: Cluster, postgres_se
         "github-app-secret", secret_string=config.require_secret("github-app-private-key")
     )
 
-    github_runner_security_group = SecurityGroup("github-runner-security-group", vpc_id=vpc.id)
-
-    # Allow the runner to access Postgres
-    github_runner_security_group.allow_egress_reciprocal(to_security_group=postgres_security_group, ports=[5432])
-
-    # Private interface endpoints the task may hit (image pulls/logs/secrets)
-    vpc.allow_endpoint_access(
-        security_group=github_runner_security_group,
-        endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
+    github_runner_security_group = SecurityGroup(
+        "github-runner-security-group",
+        vpc=vpc,
+        vpc_endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
+        rules=[
+            {"to_cidr": "0.0.0.0/0", "ports": [443]},  # Allow egress to the GitHub API
+            {"to_security_group": postgres_security_group, "ports": [5432]},
+        ],
     )
-
-    # Allow egress for DNS resolution (required for curl and tailscale to resolve hostnames)
-    github_runner_security_group.allow_egress_cidr(cidr_name="dns", cidr="0.0.0.0/0", ports=[53], protocol="udp")
-    github_runner_security_group.allow_egress_cidr(cidr_name="dns", cidr="0.0.0.0/0", ports=[53], protocol="tcp")
-
-    # Allow egress to the GitHub API
-    github_runner_security_group.allow_egress_cidr(cidr_name="github-api", cidr="0.0.0.0/0", ports=[443])
 
     policy = github_app_private_key_secret.arn.apply(
         lambda arn: json.dumps({

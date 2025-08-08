@@ -1,4 +1,4 @@
-from typing import Dict, Sequence, TypedDict, overload
+from typing import Dict, Sequence, TypedDict, cast, overload
 
 import pulumi
 import pulumi_awsx
@@ -58,7 +58,7 @@ class Vpc(ComponentResource):
             )
 
             self.id = self._vpc.vpc_id
-            self.cidr_block = self._vpc.vpc.cidr_block
+            self.cidr_block = cast(Input[str], self._vpc.vpc.cidr_block)
             self.private_subnet_ids = self._vpc.private_subnet_ids
             self.public_subnet_ids = self._vpc.public_subnet_ids
 
@@ -68,13 +68,14 @@ class Vpc(ComponentResource):
             if vpc_info_out is not None:
                 self.interface_security_groups[service_name] = SecurityGroup(
                     security_group_name,
+                    vpc=self,
                     security_group_id=vpc_info_out.apply(
                         lambda info, svc=service_name: info["interface_security_group_ids"][svc]
                     ),
                     opts=self._child_opts,
                 )
             elif self._vpc is not None:
-                security_group = SecurityGroup(security_group_name, vpc_id=self._vpc.vpc_id, opts=self._child_opts)
+                security_group = SecurityGroup(security_group_name, vpc=self, opts=self._child_opts)
                 VpcEndpoint(
                     f"{sanitized_name}-endpoint",
                     vpc_id=self._vpc.vpc_id,
@@ -121,25 +122,3 @@ class Vpc(ComponentResource):
             "s3_endpoint_prefix_list_id": self.s3_endpoint_prefix_list_id,
             "interface_security_group_ids": {service: sg.id for service, sg in self.interface_security_groups.items()},
         })
-
-    def allow_endpoint_access(self, security_group: SecurityGroup, endpoints: Sequence[str]):
-        # Maybe lock down the CIDR block?
-        #
-        # From chatgpt: "You allow DNS egress to the entire VPC CIDR on 53. Stricter is better: Allow UDP/TCP
-        # 53 only to the VPC resolver (the VPC base address + 2 for each subnet). If your SG helper doesn’t have
-        # a “to resolver” convenience, calculate those IPs per subnet and allow to that set only."
-
-        # resolver_ips = [str(ip_network(cidr).network_address + 2) for cidr in vpc.private_subnet_cidrs]
-
-        security_group.allow_egress_cidr(cidr_name="vpc", cidr=self.cidr_block, ports=[53])
-        security_group.allow_egress_cidr(cidr_name="vpc", cidr=self.cidr_block, ports=[53], protocol="udp")
-
-        for interface in endpoints:
-            if interface == "s3":
-                security_group.allow_egress_prefix_list(
-                    prefix_list_name="s3", prefix_list_id=self.s3_endpoint_prefix_list_id, ports=[443]
-                )
-            else:
-                security_group.allow_egress_reciprocal(
-                    to_security_group=self.interface_security_groups[interface], ports=[443]
-                )

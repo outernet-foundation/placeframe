@@ -24,42 +24,38 @@ def create_tailscale_beacon(
     cluster: Cluster,
     github_oidc_provider_arn: Output[str],
 ):
-    load_balancer_security_group = SecurityGroup("tailscale-bridge-load-balancer-security-group", vpc_id=vpc.id)
-    tailscale_bridge_security_group = SecurityGroup("tailscale-bridge-security-group", vpc_id=vpc.id)
-
-    # Allow http/https ingress to the load balancer from anywhere
-    load_balancer_security_group.allow_ingress_cidr(cidr_name="anywhere", cidr="0.0.0.0/0", ports=[80], protocol="tcp")
-    load_balancer_security_group.allow_ingress_cidr(cidr_name="anywhere", cidr="0.0.0.0/0", ports=[443], protocol="tcp")
-
-    # Allow the load balancer to access the service task (port 80)
-    tailscale_bridge_security_group.allow_ingress_reciprocal(
-        from_security_group=load_balancer_security_group, ports=[80]
+    tailscale_bridge_security_group = SecurityGroup(
+        "tailscale-bridge-security-group",
+        vpc=vpc,
+        vpc_endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
+        rules=[
+            {"to_cidr": "0.0.0.0/0", "ports": [53], "protocols": ["udp", "tcp"]},
+            {
+                "to_cidr": "0.0.0.0/0",
+                "ports": [53],
+                "protocols": ["udp", "tcp"],
+            },  # temp hack, Allow egress for DNS resolution (required for curl and tailscale to resolve hostnames), need a real nat instance instead
+            {"to_cidr": "0.0.0.0/0", "ports": [443]},  # Allow egress to the tailscale control plane (HTTPS)
+            {
+                "to_cidr": "0.0.0.0/0",
+                "ports": [80],
+            },  # Allow egress to the tailscale control plane (HTTP) can this be removed?
+            {
+                "to_cidr": "0.0.0.0/0",
+                "ports": [41641],
+                "protocols": ["udp"],
+            },  # Allow egress to the tailscale DERP servers (WireGuard over UDP)
+            {"to_cidr": "0.0.0.0/0", "ports": [3478], "protocols": ["udp"]},  # Allow egress for STUN (NAT traversal)
+        ],
     )
 
-    # Private interface endpoints the task may hit (image pulls/logs/secrets)
-    vpc.allow_endpoint_access(
-        security_group=tailscale_bridge_security_group,
-        endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts"],
-    )
-
-    # Allow egress for DNS resolution (required for curl and tailscale to resolve hostnames)
-    tailscale_bridge_security_group.allow_egress_cidr(cidr_name="dns", cidr="0.0.0.0/0", ports=[53], protocol="udp")
-    tailscale_bridge_security_group.allow_egress_cidr(cidr_name="dns", cidr="0.0.0.0/0", ports=[53], protocol="tcp")
-
-    # Allow egress to the tailscale control plane (HTTPS) and DERP (WireGuard over UDP)
-    tailscale_bridge_security_group.allow_egress_cidr(
-        cidr_name="tailscale-control-plane", cidr="0.0.0.0/0", ports=[443]
-    )
-    tailscale_bridge_security_group.allow_egress_cidr(
-        cidr_name="tailscale-derp", cidr="0.0.0.0/0", ports=[41641], protocol="udp"
-    )
-
-    # Add HTTP for bootstrap DNS fallback
-    tailscale_bridge_security_group.allow_egress_cidr(cidr_name="tailscale-bootstrap", cidr="0.0.0.0/0", ports=[80])
-
-    # Add STUN for NAT traversal (used during connection establishment)
-    tailscale_bridge_security_group.allow_egress_cidr(
-        cidr_name="tailscale-stun", cidr="0.0.0.0/0", ports=[3478], protocol="udp"
+    load_balancer_security_group = SecurityGroup(
+        "tailscale-bridge-load-balancer-security-group",
+        vpc=vpc,
+        rules=[
+            {"from_cidr": "0.0.0.0/0", "ports": [80, 443]},
+            {"to_security_group": tailscale_bridge_security_group, "ports": [80]},
+        ],
     )
 
     # ─────────────────────────────────────────────────────────────────────────

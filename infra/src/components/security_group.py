@@ -1,24 +1,70 @@
 from __future__ import annotations
 
-from typing import List, overload
+from typing import List, NotRequired, Required, Sequence, TypedDict, Union, assert_never, overload
 
 import pulumi_aws as aws
 from pulumi import ComponentResource, Input, Output, ResourceOptions
+from pulumi_aws.vpc import SecurityGroupEgressRule, SecurityGroupIngressRule
+
+from components.vpc import Vpc
 
 
-# TODO I completely misunderstood parts of pulumi's dependency model and need to rewrite this
+class _BaseRule(TypedDict):
+    ports: Required[Sequence[int]]
+    protocols: NotRequired[Sequence[str]]
+
+
+class _ToSG(_BaseRule, total=False):
+    to_security_group: Required[SecurityGroup]
+
+
+class _ToPrefix(_BaseRule, total=False):
+    to_prefix_list_id: Required[Input[str]]
+
+
+class _ToCidr(_BaseRule, total=False):
+    to_cidr: Required[Input[str]]
+
+
+class _FromCidr(_BaseRule, total=False):
+    from_cidr: Required[Input[str]]
+
+
+SecurityGroupRule = Union[_ToSG, _ToPrefix, _ToCidr, _FromCidr]
+
+
 class SecurityGroup(ComponentResource):
     @overload
-    def __init__(self, name: str, *, vpc_id: Input[str], opts: ResourceOptions | None = None) -> None: ...
+    def __init__(
+        self,
+        name: str,
+        vpc: Vpc,
+        *,
+        vpc_endpoints: List[str] | None = None,
+        rules: List[SecurityGroupRule] = [],
+        opts: ResourceOptions | None = None,
+    ) -> None: ...
+
     @overload
-    def __init__(self, name: str, *, security_group_id: Input[str], opts: ResourceOptions | None = None) -> None: ...
+    def __init__(
+        self,
+        name: str,
+        vpc: Vpc,
+        *,
+        security_group_id: Input[str],
+        vpc_endpoints: List[str] | None = None,
+        rules: List[SecurityGroupRule] = [],
+        opts: ResourceOptions | None = None,
+    ) -> None: ...
 
     def __init__(
         self,
         name: str,
+        vpc: Vpc,
         *,
-        vpc_id: Input[str] | None = None,
         security_group_id: Input[str] | None = None,
+        vpc_endpoints: List[str] | None = None,
+        rules: List[SecurityGroupRule] = [],
         opts: ResourceOptions | None = None,
     ):
         super().__init__("custom:SecurityGroup", name, opts=opts)
@@ -27,106 +73,94 @@ class SecurityGroup(ComponentResource):
         self._name = name
         self._rule_ids: List[Output[str]] = []
 
-        if vpc_id is not None:
-            self._security_group = aws.ec2.SecurityGroup(name, vpc_id=vpc_id, opts=self._child_opts)
-        elif security_group_id is not None:
+        if security_group_id is not None:
             self._security_group = aws.ec2.get_security_group_output(id=security_group_id)
         else:
-            raise ValueError("Either vpc_id or security_group_id must be provided")
+            self._security_group = aws.ec2.SecurityGroup(name, vpc_id=vpc.id, opts=self._child_opts)
+
+        self.id = self._security_group.id
+        self.arn = self._security_group.arn
+
+        if vpc_endpoints:
+            # Allow access to VPC DNS resolver
+            #     # Maybe lock down the CIDR block?
+            #     #
+            #     # From chatgpt: "You allow DNS egress to the entire VPC CIDR on 53. Stricter is better: Allow UDP/TCP
+            #     # 53 only to the VPC resolver (the VPC base address + 2 for each subnet). If your SG helper doesn’t have
+            #     # a “to resolver” convenience, calculate those IPs per subnet and allow to that set only."
+            rules.append({"to_cidr": vpc.cidr_block, "ports": [53], "protocols": ["tcp", "udp"]})
+
+            for endpoint in vpc_endpoints:
+                if endpoint == "s3":
+                    rules.append({"to_cidr": endpoint, "ports": [443]})
+                else:
+                    rules.append({"to_security_group": vpc.interface_security_groups[endpoint], "ports": [443]})
+
+        for rule in rules:
+            ports = rule["ports"]
+            protocols = rule["protocols"] if "protocols" in rule else ["tcp"]
+
+            for port in ports:
+                for protocol in protocols:
+                    if "to_security_group" in rule:
+                        to_security_group = rule["to_security_group"]
+                        SecurityGroupEgressRule(
+                            f"{self._name}-egress-to-{to_security_group._name}-{port}-{protocol}",
+                            security_group_id=self._security_group.id,
+                            ip_protocol=protocol,
+                            from_port=port,
+                            to_port=port,
+                            referenced_security_group_id=to_security_group._security_group.id,
+                            opts=self._child_opts,
+                        )
+
+                        SecurityGroupIngressRule(
+                            f"{to_security_group._name}-ingress-from-{self._name}-{port}-{protocol}",
+                            security_group_id=to_security_group._security_group.id,
+                            ip_protocol=protocol,
+                            from_port=port,
+                            to_port=port,
+                            referenced_security_group_id=self._security_group.id,
+                            opts=self._child_opts,
+                        )
+
+                    elif "to_prefix_list_id" in rule:
+                        to_prefix_list_id = rule["to_prefix_list_id"]
+                        SecurityGroupEgressRule(
+                            f"{self._name}-egress-to-prefix-list-{to_prefix_list_id}-{port}-{protocol}",
+                            security_group_id=self._security_group.id,
+                            ip_protocol=protocol,
+                            from_port=port,
+                            to_port=port,
+                            prefix_list_id=to_prefix_list_id,
+                            opts=self._child_opts,
+                        )
+
+                    elif "to_cidr" in rule:
+                        to_cidr = rule["to_cidr"]
+                        SecurityGroupEgressRule(
+                            f"{self._name}-egress-to-cidr-{to_cidr}-{port}-{protocol}",
+                            security_group_id=self._security_group.id,
+                            ip_protocol=protocol,
+                            from_port=port,
+                            to_port=port,
+                            cidr_ipv4=to_cidr,
+                            opts=self._child_opts,
+                        )
+
+                    elif "from_cidr" in rule:
+                        from_cidr = rule["from_cidr"]
+                        SecurityGroupIngressRule(
+                            f"{self._name}-ingress-from-cidr-{from_cidr}-{port}-{protocol}",
+                            security_group_id=self._security_group.id,
+                            ip_protocol=protocol,
+                            from_port=port,
+                            to_port=port,
+                            cidr_ipv4=from_cidr,
+                            opts=self._child_opts,
+                        )
+
+                    else:
+                        assert_never(rule)
 
         self.register_outputs({"id": self.id, "arn": self.arn})
-
-    @property
-    def id(self) -> Output[str]:
-        return Output.all(self._security_group.id, *self._rule_ids).apply(lambda args: args[0])
-
-    @property
-    def arn(self) -> Output[str]:
-        return Output.all(self._security_group.arn, *self._rule_ids).apply(lambda args: args[0])
-
-    def allow_traffic(
-        self,
-        from_security_group: SecurityGroup,
-        to_security_group: SecurityGroup,
-        ports: List[int],
-        protocol: str = "tcp",
-    ) -> None:
-        for port in ports:
-            ingress_rule = aws.vpc.SecurityGroupIngressRule(
-                f"{to_security_group._name}-ingress-from-{from_security_group._name}-{port}-{protocol}",
-                security_group_id=to_security_group._security_group.id,
-                ip_protocol=protocol,
-                from_port=port,
-                to_port=port,
-                referenced_security_group_id=from_security_group._security_group.id,
-                opts=self._child_opts,
-            )
-            egress_rule = aws.vpc.SecurityGroupEgressRule(
-                f"{from_security_group._name}-egress-to-{to_security_group._name}-{port}-{protocol}",
-                security_group_id=from_security_group._security_group.id,
-                ip_protocol=protocol,
-                from_port=port,
-                to_port=port,
-                referenced_security_group_id=to_security_group._security_group.id,
-                opts=self._child_opts,
-            )
-            self._rule_ids.append(ingress_rule.id)
-            self._rule_ids.append(egress_rule.id)
-
-    def allow_ingress_reciprocal(
-        self, from_security_group: SecurityGroup, ports: List[int], protocol: str = "tcp"
-    ) -> None:
-        self.allow_traffic(
-            from_security_group=from_security_group, to_security_group=self, ports=ports, protocol=protocol
-        )
-
-    def allow_egress_reciprocal(
-        self, to_security_group: SecurityGroup, ports: List[int], protocol: str = "tcp"
-    ) -> None:
-        self.allow_traffic(
-            from_security_group=self, to_security_group=to_security_group, ports=ports, protocol=protocol
-        )
-
-    def allow_ingress_cidr(self, cidr: Input[str], cidr_name: str, ports: List[int], protocol: str = "tcp") -> None:
-        for port in ports:
-            self._rule_ids.append(
-                aws.vpc.SecurityGroupIngressRule(
-                    f"{self._name}-ingress-from-{cidr_name}-{port}-{protocol}",
-                    security_group_id=self._security_group.id,
-                    ip_protocol=protocol,
-                    from_port=port,
-                    to_port=port,
-                    cidr_ipv4=cidr,
-                    opts=self._child_opts,
-                ).id
-            )
-
-    def allow_egress_cidr(self, cidr: Input[str], cidr_name: str, ports: List[int], protocol: str = "tcp") -> None:
-        for port in ports:
-            self._rule_ids.append(
-                aws.vpc.SecurityGroupEgressRule(
-                    f"{self._name}-egress-to-{cidr_name}-{port}-{protocol}",
-                    security_group_id=self._security_group.id,
-                    ip_protocol=protocol,
-                    from_port=port,
-                    to_port=port,
-                    cidr_ipv4=cidr,
-                    opts=self._child_opts,
-                ).id
-            )
-
-    def allow_egress_prefix_list(
-        self, prefix_list_id: Input[str], prefix_list_name: str, ports: List[int], protocol: str = "tcp"
-    ) -> None:
-        for port in ports:
-            self._rule_ids.append(
-                aws.vpc.SecurityGroupEgressRule(
-                    f"{self._name}-egress-to-prefix-list-{prefix_list_name}-{port}-{protocol}",
-                    security_group_id=self._security_group.id,
-                    ip_protocol=protocol,
-                    from_port=port,
-                    to_port=port,
-                    prefix_list_id=prefix_list_id,
-                    opts=self._child_opts,
-                ).id
-            )

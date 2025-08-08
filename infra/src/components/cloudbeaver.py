@@ -31,28 +31,27 @@ def create_cloudbeaver(
     zone_name = core_stack.require_output("zone-name")
     certificate_arn = core_stack.require_output("certificate-arn")
 
-    cloudbeaver_security_group = SecurityGroup("cloudbeaver-security-group", vpc_id=vpc.id)
-    load_balancer_security_group = SecurityGroup("load-balancer-security-group", vpc_id=vpc.id)
-    efs_security_group = SecurityGroup("cloudbeaver-efs-security-group", vpc_id=vpc.id)
+    efs_security_group = SecurityGroup("cloudbeaver-efs-security-group", vpc=vpc)
 
-    # Allow http/https ingress to the load balancer from anywhere
-    load_balancer_security_group.allow_ingress_cidr(cidr_name="anywhere", cidr="0.0.0.0/0", ports=[80], protocol="tcp")
-    load_balancer_security_group.allow_ingress_cidr(cidr_name="anywhere", cidr="0.0.0.0/0", ports=[443], protocol="tcp")
-
-    # Allow the load balancer to access CloudBeaver
-    cloudbeaver_security_group.allow_ingress_reciprocal(from_security_group=load_balancer_security_group, ports=[8978])
-
-    # Allow cloudbeaver access to various vpc endpoints
-    vpc.allow_endpoint_access(
-        security_group=cloudbeaver_security_group,
-        endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
+    cloudbeaver_security_group = SecurityGroup(
+        "cloudbeaver-security-group",
+        vpc=vpc,
+        vpc_endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
+        rules=[
+            {"from_cidr": "0.0.0.0/0", "ports": [8978]},
+            {"to_security_group": efs_security_group, "ports": [2049]},
+            {"to_security_group": postgres_security_group, "ports": [5432]},
+        ],
     )
 
-    # Allow CloudBeaver to access Postgres
-    cloudbeaver_security_group.allow_egress_reciprocal(to_security_group=postgres_security_group, ports=[5432])
-
-    # Allow CloudBeaver to access EFS
-    cloudbeaver_security_group.allow_egress_reciprocal(to_security_group=efs_security_group, ports=[2049])
+    load_balancer_security_group = SecurityGroup(
+        "load-balancer-security-group",
+        vpc=vpc,
+        rules=[
+            {"from_cidr": "0.0.0.0/0", "ports": [80, 443]},
+            {"to_security_group": cloudbeaver_security_group, "ports": [8978]},
+        ],
+    )
 
     # Create secrets for Postgres and CloudBeaver passwords
     postgres_secret = Secret("postgres-secret", secret_string=config.require_secret("postgres-password"))

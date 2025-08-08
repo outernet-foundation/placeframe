@@ -32,13 +32,11 @@ def create_api(
     zone_name = core_stack.require_output("zone-name")
     certificate_arn = core_stack.require_output("certificate-arn")
 
-    lambda_security_group = SecurityGroup("lambda-security-group", vpc_id=vpc.id)
-
-    # Allow connections to required services
-    lambda_security_group.allow_egress_reciprocal(to_security_group=postgres_security_group, ports=[5432])
-
-    vpc.allow_endpoint_access(
-        security_group=lambda_security_group, endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"]
+    lambda_security_group = SecurityGroup(
+        "lambda-security-group",
+        vpc=vpc,
+        rules=[{"to_security_group": postgres_security_group, "ports": [5432]}],
+        vpc_endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
     )
 
     repo = Repository("lambda-repo", force_delete=config.require_bool("devMode"))
