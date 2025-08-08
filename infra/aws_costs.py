@@ -96,15 +96,15 @@ def build_filters(args: argparse.Namespace) -> Dict[str, Any]:
     if args.record_type:
         conditions.append({"Dimensions": {"Key": "RECORD_TYPE", "Values": [args.record_type]}})
 
-    if args.usage_contains:
-        conditions.append({
-            "Dimensions": {"Key": "USAGE_TYPE", "MatchOptions": ["CONTAINS"], "Values": [args.usage_contains]}
-        })
+    # if args.usage_contains:
+    #     conditions.append({
+    #         "Dimensions": {"Key": "USAGE_TYPE", "MatchOptions": ["CONTAINS"], "Values": [args.usage_contains]}
+    #     })
 
-    if args.op_contains:
-        conditions.append({
-            "Dimensions": {"Key": "OPERATION", "MatchOptions": ["CONTAINS"], "Values": [args.op_contains]}
-        })
+    # if args.op_contains:
+    #     conditions.append({
+    #         "Dimensions": {"Key": "OPERATION", "MatchOptions": ["CONTAINS"], "Values": [args.op_contains]}
+    #     })
 
     if not conditions:
         return {}
@@ -155,21 +155,43 @@ def main():
             groups = result.get("Groups", [])
             rows: List[Tuple[Dict[str, Any], float, str]] = []
 
+            # Map dimension -> index in group["Keys"]
+            dim_index = {}
+            for i, gb in enumerate(group_by):
+                if gb.get("Type") == "DIMENSION":
+                    dim_index[gb.get("Key")] = i
+
             for g in groups:
-                keys = g.get("Keys", [])
+                keys = g.get("Keys", []) or []
+                # Build the human-readable category label
                 if keys:
                     category = " / ".join(k.replace('"', "").replace("\n", " ").strip() for k in keys)
                 else:
                     category = "Unknown"
 
+                # Pull metric
                 cost_str = g.get("Metrics", {}).get(args.metric, {}).get("Amount", "0")  # type: ignore
                 try:
                     cost = float(cost_str or 0.0)
                 except (TypeError, ValueError):
                     cost = 0.0
+                if cost <= 0:
+                    continue
 
-                if cost > 0:
-                    rows.append((g, cost, category))
+                # --- LOCAL SUBSTRING FILTERS (case-insensitive) ---
+                # Only applied if that dimension is actually grouped.
+                if args.usage_contains and "USAGE_TYPE" in dim_index:
+                    usage_val = keys[dim_index["USAGE_TYPE"]]
+                    if args.usage_contains.lower() not in usage_val.lower():
+                        continue
+
+                if args.op_contains and "OPERATION" in dim_index:
+                    op_val = keys[dim_index["OPERATION"]]
+                    if args.op_contains.lower() not in op_val.lower():
+                        continue
+                # --------------------------------------------------
+
+                rows.append((g, cost, category))
 
             if args.top:
                 rows.sort(key=lambda x: x[1], reverse=True)

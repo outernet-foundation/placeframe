@@ -1,6 +1,6 @@
 from pulumi_aws import get_region_output
 from pulumi_aws.cloudwatch import LogGroup
-from pulumi_aws.ecs import TaskDefinitionLogConfigurationArgsDict
+from pulumi_awsx.ecs._inputs import TaskDefinitionLogConfigurationArgsDict
 
 
 def log_configuration(log_group: LogGroup) -> TaskDefinitionLogConfigurationArgsDict:

@@ -1,5 +1,4 @@
 from pulumi import Config, Input, Output, export
-from pulumi_aws import get_region_output
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecr import Repository, get_images_output
 from pulumi_aws.ecs import Cluster
@@ -8,6 +7,7 @@ from pulumi_aws.route53 import Record
 from pulumi_awsx.ecs import FargateService
 
 from components.ecr import repo_digest
+from components.log import log_configuration
 from components.role_policies import allow_repo_push, allow_secret_get, create_github_actions_role
 from components.secret import Secret
 from components.security_group import SecurityGroup
@@ -26,7 +26,9 @@ def create_tailscale_beacon(
     github_oidc_provider_arn: Output[str],
 ):
     # Log groups
-    LogGroup("tailscale-beacon-log-group", name="/ecs/tailscale-beacon", retention_in_days=7)
+    tailscale_beacon_log_group = LogGroup(
+        "tailscale-beacon-log-group", name="/ecs/tailscale-beacon", retention_in_days=7
+    )
 
     # Secrets
     tailscale_auth_key_secret = Secret(
@@ -158,25 +160,15 @@ def create_tailscale_beacon(
                     "tailscale-beacon": {
                         "name": "tailscale-beacon",
                         "image": repo_digest(tailscale_beacon_image_repo),
+                        "log_configuration": log_configuration(tailscale_beacon_log_group),
+                        "port_mappings": [{"container_port": 80, "host_port": 80, "target_group": target_group}],
+                        "secrets": [{"name": "TS_AUTHKEY", "value_from": tailscale_auth_key_secret.arn}],
                         "environment": [
                             {"name": "TAILNET", "value": config.require("tailnet-name")},
                             {"name": "DOMAIN", "value": domain},
                             {"name": "SERVICES", "value": " ".join(f"{k}:{v}" for k, v in service_map.items())},
-                            {
-                                "name": "TS_AUTHKEY_VERSION",
-                                "value": tailscale_auth_key_secret.version_id,
-                            },  # Force update on secret change
+                            {"name": "TS_AUTHKEY_VERSION", "value": tailscale_auth_key_secret.version_id},
                         ],
-                        "secrets": [{"name": "TS_AUTHKEY", "value_from": tailscale_auth_key_secret.arn}],
-                        "port_mappings": [{"container_port": 80, "host_port": 80, "target_group": target_group}],
-                        "log_configuration": {
-                            "log_driver": "awslogs",
-                            "options": {
-                                "awslogs-group": "/ecs/tailscale-beacon",
-                                "awslogs-region": get_region_output().region,
-                                "awslogs-stream-prefix": "ecs",
-                            },
-                        },
                     }
                 },
             },

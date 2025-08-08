@@ -1,0 +1,107 @@
+[
+  {
+    "date": "2025-07-20",
+    "category": "EC2 - Other / NatGateway-Hours",
+    "cost": 0.45
+  },
+  {
+    "date": "2025-07-20",
+    "category": "EC2 - Other / NatGateway-Bytes",
+    "cost": 0.0725173608
+  },
+  {
+    "date": "2025-07-21",
+    "category": "EC2 - Other / NatGateway-Hours",
+    "cost": 0.99
+  },
+  {
+    "date": "2025-07-21",
+    "category": "EC2 - Other / NatGateway-Bytes",
+    "cost": 0.2794874557
+  },
+  {
+    "date": "2025-07-22",
+    "category": "EC2 - Other / NatGateway-Bytes",
+    "cost": 1.1109392425
+  },
+  {
+    "date": "2025-07-22",
+    "category": "EC2 - Other / NatGateway-Hours",
+    "cost": 1.08
+  },
+  {
+    "date": "2025-07-23",
+    "category": "EC2 - Other / NatGateway-Bytes",
+    "cost": 7.1608156612
+  },
+  {
+    "date": "2025-07-23",
+    "category": "EC2 - Other / NatGateway-Hours",
+    "cost": 1.08
+  },
+  {
+    "date": "2025-07-24",
+    "category": "EC2 - Other / NatGateway-Bytes",
+    "cost": 5.3665331903
+  },
+  {
+    "date": "2025-07-24",
+    "category": "EC2 - Other / NatGateway-Hours",
+    "cost": 1.125
+  },
+  {
+    "date": "2025-07-25",
+    "category": "EC2 - Other / NatGateway-Hours",
+    "cost": 0.63
+  },
+  {
+    "date": "2025-07-25",
+    "category": "EC2 - Other / NatGateway-Bytes",
+    "cost": 1.19e-08
+  },
+  {
+    "date": "2025-07-27",
+    "category": "EC2 - Other / NatGateway-Hours",
+    "cost": 0.18
+  },
+  {
+    "date": "2025-07-27",
+    "category": "EC2 - Other / NatGateway-Bytes",
+    "cost": 1.7e-09
+  },
+  {
+    "date": "2025-07-20",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.5225173608
+  },
+  {
+    "date": "2025-07-21",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 1.2694874557
+  },
+  {
+    "date": "2025-07-22",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 2.1909392425
+  },
+  {
+    "date": "2025-07-23",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 8.2408156612
+  },
+  {
+    "date": "2025-07-24",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 6.4915331903
+  },
+  {
+    "date": "2025-07-25",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.6300000119
+  },
+  {
+    "date": "2025-07-27",
+    "category": "\ud83d\udcca TOTAL",
+    "cost": 0.1800000017
+  }
+]
