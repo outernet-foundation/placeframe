@@ -22,7 +22,7 @@ def create_dev_stack(config: Config):
     postgres_security_group = SecurityGroup("postgres-security-group", vpc=vpc)
 
     # 1. S3 bucket (captures)
-    captures_bucket = create_storage(config)
+    captures_bucket = create_storage(core_stack)
 
     # 2. Postgres database
     postgres_instance, postgres_dsn_secret = create_database(config, postgres_security_group, vpc)

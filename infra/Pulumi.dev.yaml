@@ -6,7 +6,3 @@ config:
   aws:region: us-east-1
   plerion_infra:devMode: "true"
   plerion_infra:github-branch: main
-  plerion_infra:s3BucketName: dev-captures
-  plerion_infra:lambdaDockerfile: ../../services/api/Dockerfile.lambda
-  plerion_infra:cloudbeaver-init-dockerfile: ../../services/cloudbeaver-init/Dockerfile
-  plerion_infra:github-runner-dockerfile: ../../services/github-runner/Dockerfile
