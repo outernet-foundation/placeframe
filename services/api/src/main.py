@@ -5,14 +5,11 @@ from fastapi import FastAPI
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute
-from mangum import Mangum
 
 from .routers.captures import router as captures_router
 from .settings import get_settings
 
-print("Starting API...")
 settings = get_settings()
-print("Settings loaded.")
 
 
 # Make codegened client functions use the same name as their corresponding server functions
@@ -83,7 +80,5 @@ async def custom_swagger_ui_html():
         headers=filtered_headers,
     )
 
-
-handler = Mangum(app)
 
 app.include_router(captures_router)
