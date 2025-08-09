@@ -25,7 +25,7 @@ def create_dev_stack(config: Config):
     captures_bucket = create_storage(config)
 
     # 2. Postgres database
-    postgres_instance, postgres_connection_secret = create_database(config, postgres_security_group, vpc)
+    postgres_instance, postgres_dsn_secret = create_database(config, postgres_security_group, vpc)
 
     cluster = Cluster("dev-cluster")
 
@@ -50,7 +50,7 @@ def create_dev_stack(config: Config):
         s3_bucket=captures_bucket,
         vpc=vpc,
         postgres_security_group=postgres_security_group,
-        postgres_connection_secret=postgres_connection_secret,
+        postgres_dsn_secret=postgres_dsn_secret,
         github_oidc_provider_arn=github_oidc_provider_arn,
     )
 
@@ -83,7 +83,7 @@ def create_dev_stack(config: Config):
         inline_policies=[
             {
                 "name": "db-secret-policy",
-                "policy": postgres_connection_secret.arn.apply(
+                "policy": postgres_dsn_secret.arn.apply(
                     lambda arn: json.dumps({
                         "Version": "2012-10-17",
                         "Statement": [

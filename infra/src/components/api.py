@@ -23,7 +23,7 @@ def create_api(
     github_oidc_provider_arn: Output[str],
     s3_bucket: Bucket,
     postgres_security_group: SecurityGroup,
-    postgres_connection_secret: Secret,
+    postgres_dsn_secret: Secret,
 ) -> None:
     # Log groups
     api_log_group = LogGroup("api-log-group", name="/ecs/api", retention_in_days=7)
@@ -124,7 +124,7 @@ def create_api(
                 "execution_role": {
                     "args": {
                         "inline_policies": [
-                            {"policy": allow_secret_get([postgres_connection_secret])},
+                            {"policy": allow_secret_get([postgres_dsn_secret])},
                             {"policy": allow_s3(s3_bucket)},
                         ]
                     }
@@ -135,10 +135,8 @@ def create_api(
                         "image": repo_digest(api_image_repo),
                         "log_configuration": log_configuration(api_log_group),
                         "port_mappings": [{"container_port": 8000, "host_port": 8000, "target_group": target_group}],
-                        "secrets": [{"name": "POSTGRES_DSN", "value_from": postgres_connection_secret.arn}],
-                        "environment": [
-                            {"name": "_POSTGRES_DSN_VERSION", "value": postgres_connection_secret.version_id}
-                        ],
+                        "secrets": [{"name": "POSTGRES_DSN", "value_from": postgres_dsn_secret.arn}],
+                        "environment": [{"name": "_POSTGRES_DSN_VERSION", "value": postgres_dsn_secret.version_id}],
                     }
                 },
             },

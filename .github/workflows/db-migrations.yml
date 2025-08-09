@@ -19,6 +19,7 @@ jobs:
       CLOUDBEAVER_INIT_ROLE: ${{ steps.cloudbeaver-role.outputs.val }}
       API_REPO: ${{ steps.api-repo.outputs.val }}
       API_ROLE: ${{ steps.api-role.outputs.val }}
+      POSTGRES_DSN: ${{ steps.postgres-dsn-secret.outputs.val }}
     defaults:
       run:
         working-directory: infra # ← point this at your Pulumi project dir
@@ -65,6 +66,10 @@ jobs:
       - name: Export API push-role ARN
         id: api-role
         run: echo "val=$(pulumi stack output --stack dev api-image-repo-role-arn)" >> $GITHUB_OUTPUT
+
+      - name: Export Postgres DSN secret ARN
+        id: postgres-dsn-secret
+        run: echo "val=$(pulumi stack output --stack dev postgres-dsn-secret-arn)" >> $GITHUB_OUTPUT
 
   build-beacon:
     needs: prepare
@@ -144,11 +149,11 @@ jobs:
           role-to-assume: ${{ needs.prepare.outputs.DB_ROLE_ARN }}
           aws-region: us-east-1
 
-      - name: Fetch DB URL from Secrets Manager
-        id: get-db-url
+      - name: Fetch Postgres DSN secret
+        id: get-postgres-dsn
         uses: aws-actions/aws-secretsmanager-get-secrets@v1
         with:
-          secret-ids: prod/db/connection
+          secret-ids: POSTGRES_DSN, ${{ needs.prepare.outputs.POSTGRES_DSN }}
 
       - name: Setup Python & UV
         uses: actions/setup-python@v4
@@ -167,7 +172,7 @@ jobs:
       - name: Run Piccolo migrations
         working-directory: services/api
         run: |
-          export POSTGRES_DSN="$PROD_DB_CONNECTION"
+          export POSTGRES_DSN="$POSTGRES_DSN"
           export PICCOLO_CONF=src.db.conf
           uv run piccolo migrations new all --auto --auto_input=y
           uv run piccolo migrations forward all

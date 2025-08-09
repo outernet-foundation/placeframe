@@ -1,5 +1,5 @@
 import pulumi_aws as aws
-from pulumi import Config, Output
+from pulumi import Config, Output, export
 
 from components.secret import Secret
 from components.security_group import SecurityGroup
@@ -12,7 +12,7 @@ def create_database(config: Config, security_group: SecurityGroup, vpc: Vpc) -> 
 
     subnet_group = aws.rds.SubnetGroup(resource_name="db-subnet-group", subnet_ids=vpc.private_subnet_ids)
 
-    db_instance = aws.rds.Instance(
+    postgres = aws.rds.Instance(
         "postgres",
         db_name="postgres",
         engine="postgres",
@@ -26,12 +26,13 @@ def create_database(config: Config, security_group: SecurityGroup, vpc: Vpc) -> 
         skip_final_snapshot=True,
     )
 
-    connection_secret = Secret(
-        "db-connection-secret",
-        name="prod/db/connection",
+    postgres_dsn_secret = Secret(
+        "postgres-dsn-secret",
         secret_string=Output.concat(
-            "postgresql://", db_user, ":", db_password_output, "@", db_instance.address, ":5432/postgres"
+            "postgresql://", db_user, ":", db_password_output, "@", postgres.address, ":5432/postgres"
         ),
     )
 
-    return db_instance, connection_secret
+    export("postgres-dsn-secret-arn", postgres_dsn_secret.arn)
+
+    return postgres, postgres_dsn_secret

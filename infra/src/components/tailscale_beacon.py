@@ -47,8 +47,8 @@ def create_tailscale_beacon(
     )
 
     # Exports
-    export("tailscale-beacon-repo", tailscale_beacon_image_repo.repository_url)
-    export("tailscale-beacon-repo-role-arn", github_actions_role.arn)
+    export("tailscale-beacon-image-repo", tailscale_beacon_image_repo.repository_url)
+    export("tailscale-beacon-image-repo-role-arn", github_actions_role.arn)
 
     # Security groups
     tailscale_beacon_security_group = SecurityGroup(
@@ -167,7 +167,7 @@ def create_tailscale_beacon(
                             {"name": "TAILNET", "value": config.require("tailnet-name")},
                             {"name": "DOMAIN", "value": domain},
                             {"name": "SERVICES", "value": " ".join(f"{k}:{v}" for k, v in service_map.items())},
-                            {"name": "TS_AUTHKEY_VERSION", "value": tailscale_auth_key_secret.version_id},
+                            {"name": "_TS_AUTHKEY_VERSION", "value": tailscale_auth_key_secret.version_id},
                         ],
                     }
                 },

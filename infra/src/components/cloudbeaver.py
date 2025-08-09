@@ -37,8 +37,10 @@ def create_cloudbeaver(
     )
 
     # Secrets
-    postgres_secret = Secret("postgres-secret", secret_string=config.require_secret("postgres-password"))
-    cloudbeaver_secret = Secret("cloudbeaver-secret", secret_string=config.require_secret("cloudbeaver-password"))
+    postgres_password_secret = Secret("postgres-secret", secret_string=config.require_secret("postgres-password"))
+    cloudbeaver_password_secret = Secret(
+        "cloudbeaver-secret", secret_string=config.require_secret("cloudbeaver-password")
+    )
 
     # Image repos
     cloudbeaver_init_image_repo = Repository("cloudbeaver-init-repo", force_delete=config.require_bool("devMode"))
@@ -164,7 +166,7 @@ def create_cloudbeaver(
                 "execution_role": {
                     "args": {
                         "inline_policies": [
-                            {"policy": allow_secret_get([cloudbeaver_secret, postgres_secret])},
+                            {"policy": allow_secret_get([cloudbeaver_password_secret, postgres_password_secret])},
                             {"policy": allow_repo_pullthrough([cloudbeaver_image_repo])},
                         ]
                     }
@@ -189,8 +191,8 @@ def create_cloudbeaver(
                         "log_configuration": log_configuration(cloudbeaver_init_log_group),
                         "mount_points": [{"source_volume": "efs", "container_path": "/opt/cloudbeaver/workspace"}],
                         "secrets": [
-                            {"name": "POSTGRES_PASSWORD", "value_from": postgres_secret.arn},
-                            {"name": "CB_ADMIN_PASSWORD", "value_from": cloudbeaver_secret.arn},
+                            {"name": "POSTGRES_PASSWORD", "value_from": postgres_password_secret.arn},
+                            {"name": "CB_ADMIN_PASSWORD", "value_from": cloudbeaver_password_secret.arn},
                         ],
                         "environment": [
                             {"name": "POSTGRES_HOST", "value": db.address},
@@ -198,8 +200,8 @@ def create_cloudbeaver(
                             {"name": "POSTGRES_DB", "value": "postgres"},
                             {"name": "POSTGRES_USER", "value": config.require("postgres-user")},
                             {"name": "CB_ADMIN_NAME", "value": config.require("cloudbeaver-user")},
-                            {"name": "_CB_ADMIN_NAME_VERSION", "value": cloudbeaver_secret.version_id},
-                            {"name": "_POSTGRES_PASSWORD_VERSION", "value": postgres_secret.version_id},
+                            {"name": "_CB_ADMIN_NAME_VERSION", "value": cloudbeaver_password_secret.version_id},
+                            {"name": "_POSTGRES_PASSWORD_VERSION", "value": postgres_password_secret.version_id},
                         ],
                     },
                     "cloudbeaver": {
@@ -212,8 +214,8 @@ def create_cloudbeaver(
                             {"container_port": 8978, "host_port": 8978, "target_group": load_balancer_target_group}
                         ],
                         "secrets": [
-                            {"name": "CLOUDBEAVER_DB_PASSWORD", "value_from": postgres_secret.arn},
-                            {"name": "CB_ADMIN_PASSWORD", "value_from": cloudbeaver_secret.arn},
+                            {"name": "CLOUDBEAVER_DB_PASSWORD", "value_from": postgres_password_secret.arn},
+                            {"name": "CB_ADMIN_PASSWORD", "value_from": cloudbeaver_password_secret.arn},
                         ],
                         "environment": [
                             {"name": "CB_SERVER_NAME", "value": "CloudBeaver"},
@@ -223,8 +225,11 @@ def create_cloudbeaver(
                             {"name": "CLOUDBEAVER_DB_URL", "value": cloudbeaver_db_url},
                             {"name": "CLOUDBEAVER_DB_USER", "value": config.require("postgres-user")},
                             {"name": "CLOUDBEAVER_DB_SCHEMA", "value": "cloudbeaver"},
-                            {"name": "CLOUDBEAVER_DB_USER_VERSION", "value": postgres_secret.version_id},
-                            {"name": "_CLOUDBEAVER_DB_PASSWORD_VERSION", "value": cloudbeaver_secret.version_id},
+                            {"name": "CLOUDBEAVER_DB_USER_VERSION", "value": postgres_password_secret.version_id},
+                            {
+                                "name": "_CLOUDBEAVER_DB_PASSWORD_VERSION",
+                                "value": cloudbeaver_password_secret.version_id,
+                            },
                         ],
                     },
                 },
