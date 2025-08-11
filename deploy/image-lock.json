@@ -1,0 +1,14 @@
+{
+  "api": {
+    "tag": "git-95d8e18d733d895a3aad3b2913dcc9383c3b577a",
+    "repo_digest": "339712749848.dkr.ecr.us-east-1.amazonaws.com/api-repo-a4dc018@sha256:57126ffb9c8f5e079b92f8da5c496a7a65d88aa96bcecf2e30a9db1c88eaaacb"
+  },
+  "cloudbeaver-init": {
+    "tag": "git-95d8e18d733d895a3aad3b2913dcc9383c3b577a",
+    "repo_digest": "339712749848.dkr.ecr.us-east-1.amazonaws.com/cloudbeaver-init-repo-3311f27@sha256:8c947c364fab5314a6230cef53c588664a80b660667b6fc3d5c664e3a7498d44"
+  },
+  "tailscale-beacon": {
+    "tag": "git-95d8e18d733d895a3aad3b2913dcc9383c3b577a",
+    "repo_digest": "339712749848.dkr.ecr.us-east-1.amazonaws.com/tailscale-beacon-image-repo-fe9b4fc@sha256:6be7c1110b957a6902a374130280f4b6c5ddf00b8de2da8f2f0c9d01d20899e7"
+  }
+}
