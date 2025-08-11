@@ -40,7 +40,7 @@ def create_api(
     )
 
     # Exports
-    export("api-image-repo", api_image_repo.repository_url)
+    export("api-image-repo-url", api_image_repo.repository_url)
     export("api-image-repo-role-arn", github_actions_role.arn)
 
     # Security groups

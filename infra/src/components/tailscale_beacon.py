@@ -47,7 +47,7 @@ def create_tailscale_beacon(
     )
 
     # Exports
-    export("tailscale-beacon-image-repo", tailscale_beacon_image_repo.repository_url)
+    export("tailscale-beacon-image-repo-url", tailscale_beacon_image_repo.repository_url)
     export("tailscale-beacon-image-repo-role-arn", github_actions_role.arn)
 
     # Security groups

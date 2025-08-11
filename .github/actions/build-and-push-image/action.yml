@@ -1,0 +1,48 @@
+name: build-push
+description: Build & push a service image to ECR using per-service role/repo from Pulumi outputs
+inputs:
+  service:           { required: true, description: "Service name" }
+  image_tag:         { required: true, description: "Immutable image tag" }
+  context:           { required: true, description: "Docker build context path for this service" }
+  pulumi-org:        { required: true, description: "Pulumi Cloud org (for authentication)" }
+  stack:             { required: true, description: "Pulumi stack to pull repo and role ARNs from" }
+  working-directory: { required: false, default: ".", description: "Pulumi project directory (if not repo root)" }
+runs:
+  using: composite
+  steps:
+    - name: Authenticate with Pulumi
+      uses: pulumi/auth-actions@v1
+      with:
+        organization: ${{ inputs.pulumi-org }}
+
+    - name: Get ARNs
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        set -euo pipefail
+        ROLE_ARN="$(pulumi stack output --stack '${{ inputs.stack }}' '${{ inputs.service }}-image-repo-role-arn')"
+        REPO_URL="$(pulumi stack output --stack '${{ inputs.stack }}' '${{ inputs.service }}-image-repo-url')"
+        REGION="$(sed -n 's#.*\.dkr\.ecr\.\([^.]*\)\.amazonaws\.com/.*#\1#p' <<<"$REPO_URL")"
+
+        echo "ROLE_ARN=$ROLE_ARN"      >> $GITHUB_ENV
+        echo "AWS_REGION=$REGION"      >> $GITHUB_ENV
+        echo "ECR_REPO_URL=$REPO_URL"  >> $GITHUB_ENV
+
+    - name: Authenticate with AWS
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ env.ROLE_ARN }}
+        aws-region:     ${{ env.AWS_REGION }}
+
+    - name: Authenticate with ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    - name: Build and push ${{ inputs.service }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        IMAGE="${ECR_REPO_URL}:${{ inputs.image_tag }}"
+        echo "Building $IMAGE from ${{ inputs.context }}"
+        docker build -t "$IMAGE" "${{ inputs.context }}"
+        docker push "$IMAGE"

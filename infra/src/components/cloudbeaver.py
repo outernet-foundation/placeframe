@@ -57,7 +57,7 @@ def create_cloudbeaver(
     )
 
     # Exports
-    export("cloudbeaver-init-image-repo", cloudbeaver_init_image_repo.repository_url)
+    export("cloudbeaver-init-image-repo-url", cloudbeaver_init_image_repo.repository_url)
     export("cloudbeaver-init-image-repo-role-arn", github_actions_role.arn)
 
     # Security Groups
