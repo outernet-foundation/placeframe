@@ -65,9 +65,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "repo_url=$(pulumi stack output --stack ${{ matrix.services.stack }} ${{ matrix.services.name }}-image-repo-url)" >> $GITHUB_OUTPUT
+          REPO_URL=$(pulumi stack output --stack ${{ matrix.services.stack }} ${{ matrix.services.name }}-image-repo-url)
+          echo "repo_url=$REPO_URL" >> $GITHUB_OUTPUT
           echo "role_arn=$(pulumi stack output --stack ${{ matrix.services.stack }} ${{ matrix.services.name }}-image-repo-role-arn)" >> $GITHUB_OUTPUT
-          echo "region=$(sed -n 's#.*\.dkr\.ecr\.\([^.]*\)\.amazonaws\.com/.*#\1#p' <<<"$repo_url")" >> $GITHUB_OUTPUT
+          echo "region=$(sed -n 's#.*\.dkr\.ecr\.\([^.]*\)\.amazonaws\.com/.*#\1#p' <<<"$REPO_URL")" >> $GITHUB_OUTPUT
 
       - name: Authenticate with AWS
         uses: aws-actions/configure-aws-credentials@v4
