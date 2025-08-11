@@ -13,13 +13,13 @@ permissions:
   pull-requests: write
   id-token: write
 
+
+env:
+  DEPLOY_BRANCH: bot/deploy
+
 jobs:
   prepare:
     runs-on: ubuntu-latest
-
-    env:
-      DEPLOY_BRANCH: bot/deploy
-      BASE_BRANCH: main
 
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +29,8 @@ jobs:
         run: |
           git config user.name  "ci-bot"
           git config user.email "ci-bot@yourcompany.com"
-          git checkout -B "$DEPLOY_BRANCH" "$BASE_BRANCH"
+          git checkout -B "${{ env.DEPLOY_BRANCH }}" "${{ github.ref_name}}"
+          git push --force-with-lease "${{ env.DEPLOY_BRANCH }}"
 
       - name: Authenticate with Pulumi (OIDC)
         uses: pulumi/auth-actions@v1
@@ -75,7 +76,7 @@ jobs:
         id: head
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
-      - name: Build & push ${{ matrix.services.name }}
+      - name: Build & push image
         id: build
         uses: ./.github/actions/build-and-push-image
         with:
@@ -84,7 +85,7 @@ jobs:
           build-context:     ${{ matrix.services.context }}
           stack:             ${{ matrix.services.stack }}
 
-      - name: Emit image lock snippet for ${{ matrix.services.name }}
+      - name: Write image lock json
         run: |
           jq -n \
             --arg service "${{ steps.build.outputs.service }}" \
