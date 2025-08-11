@@ -58,6 +58,9 @@ jobs:
           fetch-depth: 0
           ref: ${{ env.DEPLOY_BRANCH }}
 
+      - name: Install Pulumi CLI
+        uses: pulumi/setup-pulumi@v2
+
       - name: Authenticate with Pulumi (OIDC)
         uses: pulumi/auth-actions@v1
         with:
@@ -127,6 +130,9 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ env.DEPLOY_BRANCH }}
+
+      - name: Install Pulumi CLI
+        uses: pulumi/setup-pulumi@v2
 
       - name: Authenticate with Pulumi (OIDC)
         uses: pulumi/auth-actions@v1
