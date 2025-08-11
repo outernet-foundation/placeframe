@@ -30,7 +30,7 @@ jobs:
           git config user.name  "ci-bot"
           git config user.email "ci-bot@yourcompany.com"
           git checkout -B "${{ env.DEPLOY_BRANCH }}" "${{ github.ref_name}}"
-          git push --force-with-lease "${{ env.DEPLOY_BRANCH }}"
+          git push --force-with-lease origin "${{ env.DEPLOY_BRANCH }}"
 
       - name: Authenticate with Pulumi (OIDC)
         uses: pulumi/auth-actions@v1
