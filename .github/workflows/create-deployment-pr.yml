@@ -48,7 +48,7 @@ jobs:
       matrix:
         services:
           - { name: "api",              context: "./services/api",               stack: "dev"  }
-          - { name: "cloudbeaver-init",  context: "./services/cloudbeaver-init", stack: "dev"  }
+          - { name: "cloudbeaver-init", context: "./services/cloudbeaver-init", stack: "dev"  }
           - { name: "tailscale-beacon", context: "./services/tailscale-beacon",  stack: "core" }
         
     steps:
@@ -57,6 +57,9 @@ jobs:
         with: 
           fetch-depth: 0
           ref: ${{ env.DEPLOY_BRANCH }}
+
+      - name: Install Pulumi CLI
+        uses: pulumi/setup-pulumi@v2
 
       - name: Authenticate with Pulumi (OIDC)
         uses: pulumi/auth-actions@v1
@@ -128,6 +131,9 @@ jobs:
           fetch-depth: 0
           ref: ${{ env.DEPLOY_BRANCH }}
 
+      - name: Install Pulumi CLI
+        uses: pulumi/setup-pulumi@v2
+
       - name: Authenticate with Pulumi (OIDC)
         uses: pulumi/auth-actions@v1
         with:
@@ -147,12 +153,27 @@ jobs:
           app-id: ${{ steps.esc.outputs.github-app-id }}
           private-key: ${{ steps.esc.outputs.github-app-private-key }}
 
+      # - name: Get Pulumi stack outputs
+      #   id: pulumi-outputs
+      #   shell: bash
+      #   run: |
+      #     echo "postgres_dsn_secret_arn=$(pulumi stack output --stack dev postgres-dsn-secret-arn)" >> $GITHUB_OUTPUT
+      #     echo "role_arn=$(pulumi stack output --stack dev postgres-migrations-role-arn)" >> $GITHUB_OUTPUT
+
       - name: Get Pulumi stack outputs
         id: pulumi-outputs
         shell: bash
         run: |
-          echo "postgres_dsn_arn=$(pulumi stack output --stack dev postgres-dsn-secret-arn)" >> $GITHUB_OUTPUT
-          echo "role_arn=$(pulumi stack output --stack dev postgres-migrations-role-arn)" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          arn="$(pulumi stack output --stack dev postgres-dsn-secret-arn | tr -d '\r\n')"
+          if [[ -z "$arn" ]]; then
+            echo "postgres-dsn-secret-arn was empty; ensure the stack and output exist" >&2
+            exit 1
+          fi
+          echo "postgres_dsn_secret_arn=$arn" >> "$GITHUB_OUTPUT"
+          role="$(pulumi stack output --stack dev postgres-migrations-role-arn | tr -d '\r\n')"
+          [[ -n "$role" ]] || { echo "role ARN empty"; exit 1; }
+          echo "role_arn=$role" >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS creds for SecretsManager
         uses: aws-actions/configure-aws-credentials@v4
@@ -164,7 +185,7 @@ jobs:
         id: get-postgres-dsn
         uses: aws-actions/aws-secretsmanager-get-secrets@v2
         with:
-          secret-ids: POSTGRES_DSN,${{ steps.pulumi-outputs.outputs.postgres_dsn_arn }}
+          secret-ids: POSTGRES_DSN,${{ steps.pulumi-outputs.outputs.postgres_dsn_secret_arn }}
 
       - name: Setup Python
         uses: actions/setup-python@v4
