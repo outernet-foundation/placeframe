@@ -17,46 +17,28 @@ env:
   DEPLOY_BRANCH: bot/deploy
 
 jobs:
-  prepare:
+  prepare-deployment-branch:
     runs-on: ubuntu-latest
+
+    outputs:
+      sha: ${{ steps.prepare-deployment-branch.outputs.sha }}
 
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
 
-      - name: Prepare deploy branch
+      - name: Prepare deployment branch
+        id: prepare-deployment-branch
         run: |
           git config user.name  "ci-bot"
           git config user.email "ci-bot@yourcompany.com"
           git checkout -B "${{ env.DEPLOY_BRANCH }}" "${{ github.ref_name }}"
           git push --force-with-lease origin "${{ env.DEPLOY_BRANCH }}"
-
-      - name: Authenticate with Pulumi (OIDC)
-        uses: pulumi/auth-actions@v1
-        with:
-          organization: tyler-s-hatch
-          requested-token-type: urn:pulumi:token-type:access_token:personal
-          scope: user:tyler-s-hatch
-
-      - name: Export Pulumi outputs (dev)
-        working-directory: infra
-        run: pulumi stack output --stack dev --json > dev.json
-
-      - name: Export Pulumi outputs (core)
-        working-directory: infra
-        run: pulumi stack output --stack core --json > core.json
-
-      - name: Upload outputs as artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: pulumi-outputs
-          path: |
-            infra/dev.json
-            infra/core.json
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       
   build-and-push-images:
     runs-on: ubuntu-latest
-    needs: prepare
+    needs: prepare-deployment-branch
 
     strategy:
       matrix:
@@ -71,44 +53,27 @@ jobs:
           fetch-depth: 0
           ref: ${{ env.DEPLOY_BRANCH }}
 
-      - name: Determine PR head SHA (local)
-        id: head
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Download Pulumi outputs 
-        uses: actions/download-artifact@v4
+      - name: Authenticate with Pulumi (OIDC)
+        uses: pulumi/auth-actions@v1
         with:
-          name: pulumi-outputs
-          path: pulumi-outputs
+          organization: tyler-s-hatch
+          requested-token-type: urn:pulumi:token-type:access_token:personal
+          scope: user:tyler-s-hatch
 
-      - name: Extract per-service outputs
-        id: pulumi-outputs
+      - name: Get Pulumi stack outputs
+        id: pulumi-stack-outputs
         shell: bash
         run: |
           set -euo pipefail
-          FILE="pulumi-outputs/${{ matrix.services.stack }}.json"
-          SERVICE="${{ matrix.services.name }}"
-          
-          # Debug output
-          echo "Looking for file: $FILE"
-          echo "Service name: $SERVICE"
-          ls -la pulumi-outputs/
-          
-          # Extract values
-          REPO_URL=$(jq -e -r --arg svc "$SERVICE" '.[$svc + "-image-repo-url"]' "$FILE")
-          ROLE=$(jq -e -r --arg svc "$SERVICE" '.[$svc + "-image-repo-role-arn"]' "$FILE")
-          REGION=$(sed -n 's#.*\.dkr\.ecr\.\([^.]*\)\.amazonaws\.com/.*#\1#p' <<<"$REPO_URL")
-          
-          # Output with underscores (required by GitHub Actions)
-          echo "repo_url=$REPO_URL" >> $GITHUB_OUTPUT
-          echo "role=$ROLE" >> $GITHUB_OUTPUT
-          echo "region=$REGION" >> $GITHUB_OUTPUT
+          echo "repo_url=$(pulumi stack output --stack ${{ matrix.services.stack }} ${{ matrix.services.name }}-image-repo-url)" >> $GITHUB_OUTPUT
+          echo "role_arn=$(pulumi stack output --stack ${{ matrix.services.stack }} ${{ matrix.services.name }}-image-repo-role-arn)" >> $GITHUB_OUTPUT
+          echo "region=$(sed -n 's#.*\.dkr\.ecr\.\([^.]*\)\.amazonaws\.com/.*#\1#p' <<<"$repo_url")" >> $GITHUB_OUTPUT
 
       - name: Authenticate with AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ steps.pulumi-outputs.outputs.role }}
-          aws-region: ${{ steps.pulumi-outputs.outputs.region }}
+          role-to-assume: ${{ steps.pulumi-stack-outputs.outputs.role_arn }}
+          aws-region: ${{ steps.pulumi-stack-outputs.outputs.region }}
 
       - name: Authenticate with ECR
         id: login-ecr
@@ -119,7 +84,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          IMAGE="${{ steps.pulumi-outputs.outputs.repo_url }}:git-${{ steps.head.outputs.sha }}"
+          IMAGE="${{ steps.pulumi-stack-outputs.outputs.repo_url }}:git-${{ needs.prepare-deployment-branch.outputs.sha }}"
           echo "Building $IMAGE from ${{ matrix.services.context }}"
           docker build -t "$IMAGE" "${{ matrix.services.context }}"
           docker push "$IMAGE"
@@ -128,13 +93,13 @@ jobs:
           # Set outputs for later use
           echo "repo_digest=$DIGEST" >> $GITHUB_OUTPUT
           echo "service=${{ matrix.services.name }}" >> $GITHUB_OUTPUT
-          echo "tag=git-${{ steps.head.outputs.sha }}" >> $GITHUB_OUTPUT
+          echo "tag=git-${{ needs.prepare-deployment-branch.outputs.sha }}" >> $GITHUB_OUTPUT
 
       - name: Write image lock json
         run: |
           jq -n \
             --arg service "${{ matrix.services.name }}" \
-            --arg tag "git-${{ steps.head.outputs.sha }}" \
+            --arg tag "git-${{ needs.prepare-deployment-branch.outputs.sha }}" \
             --arg repo_digest "${{ steps.build-and-push.outputs.repo_digest }}" \
             '{($service): {tag:$tag, repo_digest:$repo_digest}}' \
             > "lock-${{ matrix.services.name }}.json"
@@ -145,7 +110,7 @@ jobs:
           path: lock-${{ matrix.services.name }}.json
 
   generate-migrations-and-create-deploy-pr:
-    runs-on: self-hosted
+    runs-on: self-hosted # required in order for piccolo to connect to postgres
     needs: build-and-push-images
       
     steps:
@@ -154,32 +119,36 @@ jobs:
           fetch-depth: 0
           ref: ${{ env.DEPLOY_BRANCH }}
 
-      - name: Download Pulumi outputs
-        uses: actions/download-artifact@v4
+      - name: Authenticate with Pulumi (OIDC)
+        uses: pulumi/auth-actions@v1
         with:
-          name: pulumi-outputs
-          path: pulumi-outs
+          organization: tyler-s-hatch
+          requested-token-type: urn:pulumi:token-type:access_token:personal
+          scope: user:tyler-s-hatch
 
-      - name: Read DB role + DSN from Pulumi outputs
+      - uses: pulumi/esc-action@v1
+        id: esc
+        with:
+          environment: tyler-s-hatch/core
+
+      - name: Generate GitHub App Token
+        id: generate_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ steps.esc.outputs.github-app-id }}
+          private-key: ${{ steps.esc.outputs.github-private-key }}
+
+      - name: Get Pulumi stack outputs
         id: pulumi-outputs
         shell: bash
         run: |
-          set -euo pipefail
-          FILE="pulumi-outs/dev.json"  # Fixed path
-          
-          # Debug
-          echo "Looking for file: $FILE"
-          ls -la pulumi-outs/
-          
-          DB_ROLE_ARN=$(jq -e -r '."postgres-migrations-role-arn"' "$FILE")
-          POSTGRES_DSN_ARN=$(jq -e -r '."postgres-dsn-secret-arn"' "$FILE")
-          echo "db_role_arn=$DB_ROLE_ARN" >> "$GITHUB_OUTPUT"
-          echo "postgres_dsn_arn=$POSTGRES_DSN_ARN" >> "$GITHUB_OUTPUT"
+          echo "postgres_dsn_arn=$(pulumi stack output --stack dev postgres-dsn-secret-arn)" >> $GITHUB_OUTPUT
+          echo "role_arn=$(pulumi stack output --stack dev postgres-migrations-role-arn)" >> $GITHUB_OUTPUT
 
       - name: Configure AWS creds for SecretsManager
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ steps.pulumi-outputs.outputs.db_role_arn }}
+          role-to-assume: ${{ steps.pulumi-outputs.outputs.role_arn }}
           aws-region: us-east-1
 
       - name: Fetch Postgres DSN secret
@@ -239,7 +208,7 @@ jobs:
 
       - name: Open / refresh Deploy PR
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
         run: |
           set -e
           
