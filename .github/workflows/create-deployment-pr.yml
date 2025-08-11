@@ -153,27 +153,14 @@ jobs:
           app-id: ${{ steps.esc.outputs.github-app-id }}
           private-key: ${{ steps.esc.outputs.github-app-private-key }}
 
-      # - name: Get Pulumi stack outputs
-      #   id: pulumi-outputs
-      #   shell: bash
-      #   run: |
-      #     echo "postgres_dsn_secret_arn=$(pulumi stack output --stack dev postgres-dsn-secret-arn)" >> $GITHUB_OUTPUT
-      #     echo "role_arn=$(pulumi stack output --stack dev postgres-migrations-role-arn)" >> $GITHUB_OUTPUT
-
       - name: Get Pulumi stack outputs
         id: pulumi-outputs
+        working-directory: infra
         shell: bash
         run: |
           set -euo pipefail
-          arn="$(pulumi stack output --stack dev postgres-dsn-secret-arn | tr -d '\r\n')"
-          if [[ -z "$arn" ]]; then
-            echo "postgres-dsn-secret-arn was empty; ensure the stack and output exist" >&2
-            exit 1
-          fi
-          echo "postgres_dsn_secret_arn=$arn" >> "$GITHUB_OUTPUT"
-          role="$(pulumi stack output --stack dev postgres-migrations-role-arn | tr -d '\r\n')"
-          [[ -n "$role" ]] || { echo "role ARN empty"; exit 1; }
-          echo "role_arn=$role" >> "$GITHUB_OUTPUT"
+          echo "postgres_dsn_secret_arn=$(pulumi stack output --stack dev postgres-dsn-secret-arn)" >> $GITHUB_OUTPUT
+          echo "role_arn=$(pulumi stack output --stack dev postgres-migrations-role-arn)" >> $GITHUB_OUTPUT
 
       - name: Configure AWS creds for SecretsManager
         uses: aws-actions/configure-aws-credentials@v4
