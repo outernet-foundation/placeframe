@@ -131,7 +131,7 @@ jobs:
       - uses: pulumi/esc-action@v1
         id: esc
         with:
-          environment: tyler-s-hatch/core
+          environment: tyler-s-hatch/plerion/core
 
       - name: Generate GitHub App Token
         id: generate_token
