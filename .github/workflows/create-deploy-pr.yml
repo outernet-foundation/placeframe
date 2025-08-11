@@ -81,6 +81,7 @@ jobs:
           name: pulumi-outputs
           path: pulumi-outputs
             
+          
       - name: Extract per-service outputs
         id: pulumi-outputs
         shell: bash
