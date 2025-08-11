@@ -13,7 +13,6 @@ permissions:
   pull-requests: write
   id-token: write
 
-
 env:
   DEPLOY_BRANCH: bot/deploy
 
@@ -29,7 +28,7 @@ jobs:
         run: |
           git config user.name  "ci-bot"
           git config user.email "ci-bot@yourcompany.com"
-          git checkout -B "${{ env.DEPLOY_BRANCH }}" "${{ github.ref_name}}"
+          git checkout -B "${{ env.DEPLOY_BRANCH }}" "${{ github.ref_name }}"
           git push --force-with-lease origin "${{ env.DEPLOY_BRANCH }}"
 
       - name: Authenticate with Pulumi (OIDC)
@@ -70,7 +69,7 @@ jobs:
       - uses: actions/checkout@v4
         with: 
           fetch-depth: 0
-          ref: bot/deploy
+          ref: ${{ env.DEPLOY_BRANCH }}
 
       - name: Determine PR head SHA (local)
         id: head
@@ -89,16 +88,27 @@ jobs:
           set -euo pipefail
           FILE="pulumi-outputs/${{ matrix.services.stack }}.json"
           SERVICE="${{ matrix.services.name }}"
+          
+          # Debug output
+          echo "Looking for file: $FILE"
+          echo "Service name: $SERVICE"
+          ls -la pulumi-outputs/
+          
+          # Extract values
           REPO_URL=$(jq -e -r --arg svc "$SERVICE" '.[$svc + "-image-repo-url"]' "$FILE")
-          echo "repo-url=$REPO_URL" >> $GITHUB_OUTPUT
-          echo "role=$(jq -e -r --arg svc "$SERVICE" '.[$svc + "-image-repo-role-arn"]' "$FILE")" >> $GITHUB_OUTPUT
-          echo "region=$(sed -n 's#.*\.dkr\.ecr\.\([^.]*\)\.amazonaws\.com/.*#\1#p' <<<"$REPO_URL")" >> $GITHUB_OUTPUT
+          ROLE=$(jq -e -r --arg svc "$SERVICE" '.[$svc + "-image-repo-role-arn"]' "$FILE")
+          REGION=$(sed -n 's#.*\.dkr\.ecr\.\([^.]*\)\.amazonaws\.com/.*#\1#p' <<<"$REPO_URL")
+          
+          # Output with underscores (required by GitHub Actions)
+          echo "repo_url=$REPO_URL" >> $GITHUB_OUTPUT
+          echo "role=$ROLE" >> $GITHUB_OUTPUT
+          echo "region=$REGION" >> $GITHUB_OUTPUT
 
       - name: Authenticate with AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ steps.pulumi-outputs.outputs.role }}
-          aws-region:     ${{ steps.pulumi-outputs.outputs.region }}
+          aws-region: ${{ steps.pulumi-outputs.outputs.region }}
 
       - name: Authenticate with ECR
         id: login-ecr
@@ -109,19 +119,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          IMAGE="${{ steps.pulumi-outputs.outputs.repo-url }}:git-${{ steps.head.outputs.sha }}"
-          echo "Building $IMAGE from ${{ matrix.services.build-context }}"
-          docker build -t "$IMAGE" "${{ matrix.services.build-context }}"
+          IMAGE="${{ steps.pulumi-outputs.outputs.repo_url }}:git-${{ steps.head.outputs.sha }}"
+          echo "Building $IMAGE from ${{ matrix.services.context }}"
+          docker build -t "$IMAGE" "${{ matrix.services.context }}"
           docker push "$IMAGE"
-          echo "repo-digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")" >> $GITHUB_OUTPUT
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")
+          
+          # Set outputs for later use
+          echo "repo_digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "service=${{ matrix.services.name }}" >> $GITHUB_OUTPUT
+          echo "tag=git-${{ steps.head.outputs.sha }}" >> $GITHUB_OUTPUT
 
       - name: Write image lock json
         run: |
           jq -n \
             --arg service "${{ matrix.services.name }}" \
             --arg tag "git-${{ steps.head.outputs.sha }}" \
-            --arg repo-digest "${{ steps.build-and-push.outputs.repo-digest }}" \
-            '{($service): {tag:$tag, repo-digest:$repo-digest}}' \
+            --arg repo_digest "${{ steps.build-and-push.outputs.repo_digest }}" \
+            '{($service): {tag:$tag, repo_digest:$repo_digest}}' \
             > "lock-${{ matrix.services.name }}.json"
 
       - uses: actions/upload-artifact@v4
@@ -135,11 +150,13 @@ jobs:
 
     permissions:
       contents: write
+      pull-requests: write  # Add this permission for PR operations
+      
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: bot/deploy
+          ref: ${{ env.DEPLOY_BRANCH }}
 
       - name: Download Pulumi outputs
         uses: actions/download-artifact@v4
@@ -152,10 +169,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          FILE="pulumi-outs/outs-dev.json"  # adjust if your file lives elsewhere
+          FILE="pulumi-outs/dev.json"  # Fixed path
+          
+          # Debug
+          echo "Looking for file: $FILE"
+          ls -la pulumi-outs/
+          
           DB_ROLE_ARN=$(jq -e -r '."postgres-migrations-role-arn"' "$FILE")
           POSTGRES_DSN_ARN=$(jq -e -r '."postgres-dsn-secret-arn"' "$FILE")
-          echo "db_role_arn=$DB_ROLE_ARN"       >> "$GITHUB_OUTPUT"
+          echo "db_role_arn=$DB_ROLE_ARN" >> "$GITHUB_OUTPUT"
           echo "postgres_dsn_arn=$POSTGRES_DSN_ARN" >> "$GITHUB_OUTPUT"
 
       - name: Configure AWS creds for SecretsManager
@@ -214,7 +236,7 @@ jobs:
 
           if ! git diff --cached --quiet; then
             git commit -m "chore(deploy): update image-lock.json and migrations"
-            git push --force-with-lease origin bot/deploy
+            git push --force-with-lease origin ${{ env.DEPLOY_BRANCH }}
           else
             echo "No changes to lock file or migrations"
           fi
@@ -228,8 +250,8 @@ jobs:
           TITLE="Deploy (bot)"
           BODY="Merging this PR will apply migrations and deploy infra/images."
 
-          if gh pr view bot/deploy --base main >/dev/null 2>&1; then
-            gh pr edit bot/deploy --base main --title "$TITLE" --body "$BODY"
+          if gh pr view ${{ env.DEPLOY_BRANCH }} --base main >/dev/null 2>&1; then
+            gh pr edit ${{ env.DEPLOY_BRANCH }} --base main --title "$TITLE" --body "$BODY"
           else
-            gh pr create --head bot/deploy --base main --title "$TITLE" --body "$BODY"
+            gh pr create --head ${{ env.DEPLOY_BRANCH }} --base main --title "$TITLE" --body "$BODY"
           fi
