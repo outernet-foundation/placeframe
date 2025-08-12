@@ -28,17 +28,15 @@ jobs:
         uses: actions/checkout@v4
         with: { fetch-depth: 0 }
 
-      - name: Prepare deployment branch
+      - name: Ensure remote deploy branch exists, create git sha tag
         id: prepare-deployment-branch
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name  "ci-bot"
-          git config user.email "ci-bot@yourcompany.com"
-          git checkout -B "${{ env.DEPLOY_BRANCH }}" origin/"${{ github.ref_name }}"
-          git reset --hard
-          git clean -xfd
-          git push --force-with-lease origin "${{ env.DEPLOY_BRANCH }}"
+          if ! git ls-remote --exit-code --heads origin bot/deploy >/dev/null 2>&1; then
+            git checkout -B bot/deploy origin/main
+            git push origin bot/deploy
+          fi
           echo "sha_tag=git-$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   build-and-push-images:
@@ -57,7 +55,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ env.DEPLOY_BRANCH }}
+          ref: ${{ github.ref_name }}
 
       - name: Calculate tree hash
         id: tree-hash
@@ -171,6 +169,7 @@ jobs:
           path: lock-${{ matrix.services.name }}.json
 
   generate-migrations-and-create-deploy-pr:
+
     runs-on: self-hosted # required in order for piccolo to connect to postgres
     needs: build-and-push-images
 
@@ -181,6 +180,15 @@ jobs:
           fetch-depth: 0
           ref: ${{ env.DEPLOY_BRANCH }}
 
+      - name: Reset deployment branch
+        id: reset-deployment-branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -B "${{ env.DEPLOY_BRANCH }}" origin/"${{ github.ref_name }}"
+          git reset --hard
+          git clean -xfd
+
       - name: Setup Pulumi
         uses: pulumi/setup-pulumi@v2
 
@@ -190,7 +198,6 @@ jobs:
           organization: tyler-s-hatch
           requested-token-type: urn:pulumi:token-type:access_token:personal
           scope: user:tyler-s-hatch
-
 
       # - uses: pulumi/esc-action@v1
       #   id: esc
