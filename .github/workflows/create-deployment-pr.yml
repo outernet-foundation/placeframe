@@ -101,6 +101,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo "${{ steps.pulumi.outputs.repo_name }}"
+          echo "${{ steps.tree-hash.outputs.tree_tag }}"
           if DIGEST=$(aws ecr describe-images \
               --repository-name "${{ steps.pulumi.outputs.repo_name }}" \
               --image-ids imageTag="${{ steps.tree-hash.outputs.tree_tag }}" \
