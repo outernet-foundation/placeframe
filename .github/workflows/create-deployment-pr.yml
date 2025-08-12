@@ -66,6 +66,7 @@ jobs:
           set -euo pipefail
           TREE_HASH=$(git rev-parse HEAD:${{ matrix.services.context }})
           echo "tree_tag=tree-${TREE_HASH:0:12}" >> $GITHUB_OUTPUT
+          echo $TREE_HASH
 
       - name: Setup Pulumi
         uses: pulumi/setup-pulumi@v2
@@ -133,14 +134,16 @@ jobs:
         if: steps.check.outputs.exists == 'false'
         id: build
         uses: docker/build-push-action@v6
+        env:
+          BUILDKIT_PROGRESS: plain
         with:
           context: ${{ matrix.services.context }}
           push: true
           tags: |
             ${{ steps.pulumi.outputs.repo_url }}:git-${{ needs.prepare-deployment-branch.outputs.sha }}
             ${{ steps.pulumi.outputs.repo_url }}:${{ steps.tree-hash.outputs.tree_tag }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.services.name }}
+          cache-to: type=gha,scope=${{ matrix.services.name }},mode=max
           provenance: false
 
       - name: Write image lock json
@@ -187,7 +190,7 @@ jobs:
           requested-token-type: urn:pulumi:token-type:access_token:personal
           scope: user:tyler-s-hatch
 
-          
+
       # - uses: pulumi/esc-action@v1
       #   id: esc
       #   with:
