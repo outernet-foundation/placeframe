@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      sha: ${{ steps.prepare-deployment-branch.outputs.sha }}
+      sha_tag: ${{ steps.prepare-deployment-branch.outputs.sha_tag }}
 
     steps:
       - name: Checkout code
@@ -39,7 +39,7 @@ jobs:
           git reset --hard
           git clean -xfd
           git push --force-with-lease origin "${{ env.DEPLOY_BRANCH }}"
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=git-$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   build-and-push-images:
     runs-on: ubuntu-latest
@@ -99,20 +99,7 @@ jobs:
       - name: Check for existing image
         id: check
         shell: bash
-        run: |
-          # aws ecr describe-images \
-          # --repository-name "${{ steps.pulumi.outputs.repo_name }}" \
-          # --query 'imageDetails[*].imageTags[]' \
-          # --output text || echo "Failed to list images"
-        
-          # # Now try the specific lookup
-          # echo "Looking for specific tag..."
-          # aws ecr describe-images \
-          #   --repository-name "${{ steps.pulumi.outputs.repo_name }}" \
-          #   --image-ids imageTag="${{ steps.tree-hash.outputs.tree_tag }}" \
-          #   --query 'imageDetails[0].imageDigest' \
-          #   --output text
-          
+        run: |          
           set -euo pipefail
           echo "${{ steps.pulumi.outputs.repo_name }}"
           echo "${{ steps.tree-hash.outputs.tree_tag }}"
@@ -129,23 +116,20 @@ jobs:
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
       - name: Tag existing image
         if: steps.check.outputs.exists == 'true'
         shell: bash
         run: |
-          set -euo pipefail
-          aws ecr put-image-tag \
-            --repository-name "${{ steps.pulumi.outputs.repo_name }}" \
-            --image-tag "git-${{ needs.prepare-deployment-branch.outputs.sha }}" \
-            --image-digest "${{ steps.check.outputs.digest }}"
-
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-        if: steps.check.outputs.exists == 'false'
-
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
-        if: steps.check.outputs.exists == 'false'
+          docker buildx imagetools create \
+            -t "${{ steps.pulumi.outputs.repo_url }}:${{ needs.prepare-deployment-branch.outputs.sha_tag }}" \
+            -t "${{ steps.pulumi.outputs.repo_url }}:${{ steps.tree-hash.outputs.tree_tag }}" \
+            "${{ steps.pulumi.outputs.repo_url }}@${{ steps.check.outputs.digest }}"
 
       - name: Build and push Docker image
         if: steps.check.outputs.exists == 'false'
@@ -157,7 +141,7 @@ jobs:
           context: ${{ matrix.services.context }}
           push: true
           tags: |
-            ${{ steps.pulumi.outputs.repo_url }}:git-${{ needs.prepare-deployment-branch.outputs.sha }}
+            ${{ steps.pulumi.outputs.repo_url }}:${{ needs.prepare-deployment-branch.outputs.sha_tag }}
             ${{ steps.pulumi.outputs.repo_url }}:${{ steps.tree-hash.outputs.tree_tag }}
           cache-from: type=gha,scope=${{ matrix.services.name }}
           cache-to: type=gha,scope=${{ matrix.services.name }},mode=max
@@ -175,7 +159,7 @@ jobs:
           
           jq -n \
             --arg service "${{ matrix.services.name }}" \
-            --arg tag "git-${{ needs.prepare-deployment-branch.outputs.sha }}" \
+            --arg tag "${{ needs.prepare-deployment-branch.outputs.sha_tag }}" \
             --arg repo_digest "${{ steps.pulumi.outputs.repo_url }}@$DIGEST" \
             '{($service): {tag:$tag, repo_digest:$repo_digest}}' \
             > "lock-${{ matrix.services.name }}.json"
