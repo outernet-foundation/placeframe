@@ -74,7 +74,7 @@ jobs:
         uses: pulumi/auth-actions@v1
         with:
           organization: tyler-s-hatch
-          requested-token-type: urn:pulumi:token-type:access_token:automation
+          requested-token-type: urn:pulumi:token-type:access_token:personal
           scope: user:tyler-s-hatch
 
       - name: Get Pulumi stack outputs
@@ -187,7 +187,6 @@ jobs:
           requested-token-type: urn:pulumi:token-type:access_token:personal
           scope: user:tyler-s-hatch
 
-          
       # - uses: pulumi/esc-action@v1
       #   id: esc
       #   with:
