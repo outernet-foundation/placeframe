@@ -1,4 +1,4 @@
-from pulumi import Config, Input, Output, export
+from pulumi import Config, Input, Output
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecr import Repository, get_images_output
 from pulumi_aws.ecs import Cluster
@@ -7,8 +7,8 @@ from pulumi_aws.route53 import Record
 from pulumi_awsx.ecs import FargateService
 
 from components.ecr import repo_digest
+from components.iam import allow_image_repo_actions, allow_secret_get, allow_service_deployment, create_ecs_role
 from components.log import log_configuration
-from components.role_policies import allow_image_repo_actions, allow_secret_get, create_github_actions_role
 from components.secret import Secret
 from components.security_group import SecurityGroup
 from components.vpc import Vpc
@@ -23,7 +23,8 @@ def create_tailscale_beacon(
     domain: Input[str],
     certificate_arn: Input[str],
     cluster: Cluster,
-    github_oidc_provider_arn: Output[str],
+    main_prepare_deploy_role_name: Input[str],
+    main_deploy_role_name: Input[str],
 ):
     # Log groups
     tailscale_beacon_log_group = LogGroup(
@@ -38,17 +39,8 @@ def create_tailscale_beacon(
     # Image repos
     tailscale_beacon_image_repo = Repository("tailscale-beacon-image-repo", force_delete=config.require_bool("devMode"))
 
-    # Github actions role
-    github_actions_role = create_github_actions_role(
-        "tailscale-beacon-image-repo-role",
-        config=config,
-        github_oidc_provider_arn=github_oidc_provider_arn,
-        policies={"ecr-policy": allow_image_repo_actions([tailscale_beacon_image_repo])},
-    )
-
-    # Exports
-    export("tailscale-beacon-image-repo-url", tailscale_beacon_image_repo.repository_url)
-    export("tailscale-beacon-image-repo-role-arn", github_actions_role.arn)
+    # Allow image repo action role to push to this image repo
+    allow_image_repo_actions(main_prepare_deploy_role_name, [tailscale_beacon_image_repo])
 
     # Security groups
     tailscale_beacon_security_group = SecurityGroup(
@@ -138,8 +130,12 @@ def create_tailscale_beacon(
                 ],
             )
 
+    # Execution role
+    execution_role = create_ecs_role("tailscale-beacon-exec-role")
+    allow_secret_get("tailscale-beacon-exec-role", [tailscale_auth_key_secret])
+
     # Service
-    get_images_output(repository_name=tailscale_beacon_image_repo.name).apply(
+    tailscale_service = get_images_output(repository_name=tailscale_beacon_image_repo.name).apply(
         lambda images_data: None
         if not images_data.image_ids  # If there are no images, don't create the service
         else FargateService(
@@ -153,9 +149,7 @@ def create_tailscale_beacon(
                 "assign_public_ip": True,
             },
             task_definition_args={
-                "execution_role": {
-                    "args": {"inline_policies": [{"policy": allow_secret_get([tailscale_auth_key_secret])}]}
-                },
+                "execution_role": {"role_arn": execution_role.arn},
                 "containers": {
                     "tailscale-beacon": {
                         "name": "tailscale-beacon",
@@ -174,3 +168,7 @@ def create_tailscale_beacon(
             },
         )
     )
+
+    # Allow service deployment role to deploy this service
+    if tailscale_service:
+        allow_service_deployment(main_deploy_role_name, [tailscale_service.arn], [execution_role.arn])

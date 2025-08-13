@@ -1,4 +1,4 @@
-from pulumi import Config, Output, StackReference, export
+from pulumi import Config, Input, StackReference
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecr import Repository, get_images_output
 from pulumi_aws.ecs import Cluster
@@ -8,8 +8,14 @@ from pulumi_aws.s3 import Bucket
 from pulumi_awsx.ecs import FargateService
 
 from components.ecr import repo_digest
+from components.iam import (
+    allow_image_repo_actions,
+    allow_s3,
+    allow_secret_get,
+    allow_service_deployment,
+    create_ecs_role,
+)
 from components.log import log_configuration
-from components.role_policies import allow_image_repo_actions, allow_s3, allow_secret_get, create_github_actions_role
 from components.secret import Secret
 from components.security_group import SecurityGroup
 from components.vpc import Vpc
@@ -20,10 +26,11 @@ def create_api(
     core_stack: StackReference,
     vpc: Vpc,
     cluster: Cluster,
-    github_oidc_provider_arn: Output[str],
     s3_bucket: Bucket,
     postgres_security_group: SecurityGroup,
     postgres_dsn_secret: Secret,
+    prepare_deploy_role_name: Input[str],
+    deploy_role_name: Input[str],
 ) -> None:
     # Log groups
     api_log_group = LogGroup("api-log-group", name="/ecs/api", retention_in_days=7)
@@ -31,17 +38,8 @@ def create_api(
     # Image repos
     api_image_repo = Repository("api-repo", force_delete=config.require_bool("devMode"))
 
-    # GitHub Actions role
-    github_actions_role = create_github_actions_role(
-        "api-image-repo-role",
-        config=config,
-        github_oidc_provider_arn=github_oidc_provider_arn,
-        policies={"ecr-policy": allow_image_repo_actions([api_image_repo])},
-    )
-
-    # Exports
-    export("api-image-repo-url", api_image_repo.repository_url)
-    export("api-image-repo-role-arn", github_actions_role.arn)
+    # Allow image repo actions role to push to this image repo
+    allow_image_repo_actions(prepare_deploy_role_name, [api_image_repo])
 
     # Security groups
     api_security_group = SecurityGroup(
@@ -110,8 +108,16 @@ def create_api(
         aliases=[{"name": load_balancer.dns_name, "zone_id": load_balancer.zone_id, "evaluate_target_health": True}],
     )
 
+    # Execution role
+    execution_role = create_ecs_role("api-execution-role")
+    allow_secret_get("api-execution-role", [postgres_dsn_secret])
+
+    # Task role
+    task_role = create_ecs_role("api-task-role")
+    allow_s3("api-task-role", s3_bucket)
+
     # Service
-    get_images_output(repository_name=api_image_repo.name).apply(
+    api_service = get_images_output(repository_name=api_image_repo.name).apply(
         lambda images_data: None
         if not images_data.image_ids  # If there are no images, don't create the service
         else FargateService(
@@ -121,8 +127,8 @@ def create_api(
             desired_count=1,
             network_configuration={"subnets": vpc.private_subnet_ids, "security_groups": [api_security_group.id]},
             task_definition_args={
-                "execution_role": {"args": {"inline_policies": [{"policy": allow_secret_get([postgres_dsn_secret])}]}},
-                "task_role": {"args": {"inline_policies": [{"policy": allow_s3(s3_bucket)}]}},
+                "execution_role": {"role_arn": execution_role.arn},
+                "task_role": {"role_arn": task_role.arn},
                 "containers": {
                     "api": {
                         "name": "api",
@@ -136,3 +142,7 @@ def create_api(
             },
         )
     )
+
+    # Allow service deployment role to deploy this service
+    if api_service:
+        allow_service_deployment(deploy_role_name, [api_service.arn], [execution_role.arn])

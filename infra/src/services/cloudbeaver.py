@@ -1,4 +1,4 @@
-from pulumi import Config, Output, StackReference, export
+from pulumi import Config, Input, Output, StackReference
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecr import Repository, get_images_output
 from pulumi_aws.ecs import Cluster
@@ -9,13 +9,14 @@ from pulumi_aws.route53 import Record
 from pulumi_awsx.ecs import FargateService
 
 from components.ecr import pullthrough_repo_digest, repo_digest
-from components.log import log_configuration
-from components.role_policies import (
+from components.iam import (
     allow_image_repo_actions,
     allow_repo_pullthrough,
     allow_secret_get,
-    create_github_actions_role,
+    allow_service_deployment,
+    create_ecs_role,
 )
+from components.log import log_configuration
 from components.secret import Secret
 from components.security_group import SecurityGroup
 from components.vpc import Vpc
@@ -28,7 +29,8 @@ def create_cloudbeaver(
     postgres_security_group: SecurityGroup,
     db: Instance,
     cluster: Cluster,
-    github_oidc_provider_arn: Output[str],
+    prepare_deploy_role_name: Input[str],
+    deploy_role_name: Input[str],
 ) -> None:
     # Log groups
     cloudbeaver_log_group = LogGroup("cloudbeaver-log-group", name="/ecs/cloudbeaver", retention_in_days=7)
@@ -48,17 +50,8 @@ def create_cloudbeaver(
         "cloudbeaver-repo", name="dockerhub/dbeaver/cloudbeaver", force_delete=config.require_bool("devMode")
     )
 
-    # Github actions role
-    github_actions_role = create_github_actions_role(
-        "cloudbeaver-init-image-repo-role",
-        config=config,
-        github_oidc_provider_arn=github_oidc_provider_arn,
-        policies={"ecr-policy": allow_image_repo_actions([cloudbeaver_init_image_repo])},
-    )
-
-    # Exports
-    export("cloudbeaver-init-image-repo-url", cloudbeaver_init_image_repo.repository_url)
-    export("cloudbeaver-init-image-repo-role-arn", github_actions_role.arn)
+    # Allow image repo action role to push to this image repo
+    allow_image_repo_actions(prepare_deploy_role_name, [cloudbeaver_init_image_repo])
 
     # Security Groups
     efs_security_group = SecurityGroup("cloudbeaver-efs-security-group", vpc=vpc)
@@ -147,10 +140,13 @@ def create_cloudbeaver(
         aliases=[{"name": load_balancer.dns_name, "zone_id": load_balancer.zone_id, "evaluate_target_health": True}],
     )
 
-    cloudbeaver_db_url = Output.concat("jdbc:postgresql://", db.address, ":", db.port.apply(str), "/postgres")
+    # Execution role
+    execution_role = create_ecs_role("cloudbeaver-execution-role")
+    allow_secret_get("cloudbeaver-execution-role", [cloudbeaver_password_secret, postgres_password_secret])
+    allow_repo_pullthrough("cloudbeaver-execution-role", [cloudbeaver_image_repo])
 
     # Service
-    get_images_output(repository_name=cloudbeaver_init_image_repo.name).apply(
+    cloudbeaver_service = get_images_output(repository_name=cloudbeaver_init_image_repo.name).apply(
         lambda images_data: None
         if not images_data.image_ids  # If there are no images, don't create the service
         else FargateService(
@@ -163,14 +159,7 @@ def create_cloudbeaver(
                 "security_groups": [cloudbeaver_security_group.id],
             },
             task_definition_args={
-                "execution_role": {
-                    "args": {
-                        "inline_policies": [
-                            {"policy": allow_secret_get([cloudbeaver_password_secret, postgres_password_secret])},
-                            {"policy": allow_repo_pullthrough([cloudbeaver_image_repo])},
-                        ]
-                    }
-                },
+                "execution_role": {"role_arn": execution_role.arn},
                 "volumes": [
                     {
                         "name": "efs",
@@ -222,7 +211,12 @@ def create_cloudbeaver(
                             {"name": "CB_SERVER_URL", "value": domain.apply(lambda d: f"https://{d}")},
                             {"name": "CB_ADMIN_NAME", "value": config.require("cloudbeaver-user")},
                             {"name": "CLOUDBEAVER_DB_DRIVER", "value": "postgres-jdbc"},
-                            {"name": "CLOUDBEAVER_DB_URL", "value": cloudbeaver_db_url},
+                            {
+                                "name": "CLOUDBEAVER_DB_URL",
+                                "value": Output.concat(
+                                    "jdbc:postgresql://", db.address, ":", db.port.apply(str), "/postgres"
+                                ),
+                            },
                             {"name": "CLOUDBEAVER_DB_USER", "value": config.require("postgres-user")},
                             {"name": "CLOUDBEAVER_DB_SCHEMA", "value": "cloudbeaver"},
                             {"name": "CLOUDBEAVER_DB_USER_VERSION", "value": postgres_password_secret.version_id},
@@ -236,3 +230,7 @@ def create_cloudbeaver(
             },
         )
     )
+
+    # Allow service deployment role to deploy this service
+    if cloudbeaver_service:
+        allow_service_deployment(deploy_role_name, [cloudbeaver_service.arn], [execution_role.arn])

@@ -5,8 +5,8 @@ from pulumi_aws.ecs import Cluster
 from pulumi_awsx.ecs import FargateService
 
 from components.ecr import pullthrough_repo_digest
+from components.iam import allow_repo_pullthrough, allow_secret_get, create_ecs_role
 from components.log import log_configuration
-from components.role_policies import allow_repo_pullthrough, allow_secret_get
 from components.secret import Secret
 from components.security_group import SecurityGroup
 from components.vpc import Vpc
@@ -37,6 +37,11 @@ def create_github_runner(config: Config, vpc: Vpc, cluster: Cluster, postgres_se
         ],
     )
 
+    # Execution role
+    execution_role = create_ecs_role("github-runner-execution-role")
+    allow_secret_get("github-runner-execution-role", [github_app_private_key_secret])
+    allow_repo_pullthrough("github-runner-execution-role", [github_runner_image_repo])
+
     # Service
     FargateService(
         "github-runner-service",
@@ -50,14 +55,7 @@ def create_github_runner(config: Config, vpc: Vpc, cluster: Cluster, postgres_se
             "assign_public_ip": True,
         },
         task_definition_args={
-            "execution_role": {
-                "args": {
-                    "inline_policies": [
-                        {"policy": allow_secret_get([github_app_private_key_secret])},
-                        {"policy": allow_repo_pullthrough([github_runner_image_repo])},
-                    ]
-                }
-            },
+            "execution_role": {"role_arn": execution_role.arn},
             "containers": {
                 "runner": {
                     "name": "runner",

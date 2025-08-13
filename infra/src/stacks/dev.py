@@ -1,35 +1,30 @@
-import json
 from typing import cast
 
-from pulumi import Config, Output, StackReference, export
+from pulumi import Config, Output, StackReference
 from pulumi_aws.ecs import Cluster
-from pulumi_aws.iam import Role
 
-from components.api import create_api
-from components.cloudbeaver import create_cloudbeaver
-from components.database import create_database
-from components.github_runner import create_github_runner
-from components.security_group import SecurityGroup
-from components.storage import create_storage
+from components.rds import create_database
+from components.s3 import create_storage
 from components.vpc import Vpc, VpcInfo
+from services.api import create_api
+from services.cloudbeaver import create_cloudbeaver
+from services.github_runner import create_github_runner
 
 
 def create_dev_stack(config: Config):
     core_stack = StackReference("tyler-s-hatch/plerion_infra/core")
+    main_prepare_deploy_role_name = core_stack.require_output("main-prepare-deploy-role-name")
+    main_deploy_role_name = core_stack.require_output("main-deploy-role-name")
 
     vpc = Vpc(name="main-vpc", vpc_info=cast(Output[VpcInfo], core_stack.require_output("vpc-info")))
 
-    postgres_security_group = SecurityGroup("postgres-security-group", vpc=vpc)
-
-    # 1. S3 bucket (captures)
     captures_bucket = create_storage(core_stack)
 
-    # 2. Postgres database
-    postgres_instance, postgres_dsn_secret = create_database(config, postgres_security_group, vpc)
+    postgres_instance, postgres_security_group, postgres_dsn_secret = create_database(
+        config, vpc, deploy_role_name=main_deploy_role_name
+    )
 
-    cluster = Cluster("dev-cluster")
-
-    github_oidc_provider_arn = core_stack.require_output("github_oidc_provider_arn")
+    cluster = Cluster("main-cluster")
 
     create_github_runner(vpc=vpc, config=config, cluster=cluster, postgres_security_group=postgres_security_group)
 
@@ -40,7 +35,8 @@ def create_dev_stack(config: Config):
         postgres_security_group=postgres_security_group,
         db=postgres_instance,
         cluster=cluster,
-        github_oidc_provider_arn=github_oidc_provider_arn,
+        prepare_deploy_role_name=main_prepare_deploy_role_name,
+        deploy_role_name=main_deploy_role_name,
     )
 
     create_api(
@@ -51,48 +47,6 @@ def create_dev_stack(config: Config):
         vpc=vpc,
         postgres_security_group=postgres_security_group,
         postgres_dsn_secret=postgres_dsn_secret,
-        github_oidc_provider_arn=github_oidc_provider_arn,
+        prepare_deploy_role_name=main_prepare_deploy_role_name,
+        deploy_role_name=main_deploy_role_name,
     )
-
-    github_org = config.require("github-org")
-    github_repo = config.require("github-repo")
-    github_assume_role_policy = github_oidc_provider_arn.apply(
-        lambda arn: json.dumps({
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow",
-                    "Principal": {"Federated": arn},
-                    "Action": "sts:AssumeRoleWithWebIdentity",
-                    "Condition": {
-                        "StringLike": {
-                            "token.actions.githubusercontent.com:sub": (
-                                f"repo:{github_org}/{github_repo}:ref:refs/heads/{config.require('github-branch')}"
-                            )
-                        },
-                        "StringEquals": {"token.actions.githubusercontent.com:aud": "sts.amazonaws.com"},
-                    },
-                }
-            ],
-        })
-    )
-
-    postgres_migrations_role_arn = Role(
-        "postgres-migrations-role-arn",
-        assume_role_policy=github_assume_role_policy,
-        inline_policies=[
-            {
-                "name": "db-secret-policy",
-                "policy": postgres_dsn_secret.arn.apply(
-                    lambda arn: json.dumps({
-                        "Version": "2012-10-17",
-                        "Statement": [
-                            {"Effect": "Allow", "Action": ["secretsmanager:GetSecretValue"], "Resource": arn}
-                        ],
-                    })
-                ),
-            }
-        ],
-    )
-
-    export("postgres-migrations-role-arn", postgres_migrations_role_arn.arn)
