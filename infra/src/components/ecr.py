@@ -1,36 +1,50 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Dict, TypedDict, cast
 
 from pulumi import Output
-from pulumi_aws import get_caller_identity, get_region_output
 from pulumi_aws.ecr import Repository
 
 
-def repo_digest(
-    repo: Repository, lock_path: str = "infra/image-lock.json", fallback_tag: str = ":latest"
-) -> Output[str]:
-    def pick(url: str, name: str) -> str:
+class RepoEntry(TypedDict, total=False):
+    tag: str
+    digest: str
+    contextHash: str
+
+
+def locked_image_ref(repo: Repository, lock_path: str = "infra/image-lock.json") -> Output[str]:
+    """Get locked image reference for repository."""
+
+    def build_ref(url: str, name: str) -> str:
+        # Load and parse lock file
         try:
             data = json.loads(Path(lock_path).read_text())
-            digest: Optional[str] = data.get(name) or data.get("repositories", {}).get(name, {}).get("digest")
-            if digest:
-                return f"{url}@{digest}"
         except FileNotFoundError:
-            # first run: CI/CD hasn't written the lock yet
-            pass
-        # safe fallback — will not be pulled if desired_count == 0
-        return f"{url}{fallback_tag}"
+            raise RuntimeError(f"{lock_path} not found")
 
-    return Output.all(repo.repository_url, repo.name).apply(lambda t: pick(*t))
+        if not isinstance(data, dict):
+            raise RuntimeError(f"{lock_path} must be a JSON object")
 
+        data_dict = cast(Dict[str, object], data)
 
-def pullthrough_repo_digest(repo: Repository):
-    return Output.concat(
-        get_caller_identity().account_id,
-        ".dkr.ecr.",
-        get_region_output().region,
-        ".amazonaws.com/",
-        repo.name,
-        ":latest",
-    )
+        # Find entry for this repository
+        entry_data = data_dict.get(name)
+        if not isinstance(entry_data, dict):
+            raise RuntimeError(f"Lock entry for '{name}' missing 'tag' or 'digest' in {lock_path}")
+
+        entry_dict = cast(Dict[str, object], entry_data)
+        entry: RepoEntry = {}
+
+        for field in ["tag", "digest", "contextHash"]:
+            value = entry_dict.get(field)
+            if isinstance(value, str):
+                entry[field] = value  # type: ignore[literal-required]
+
+        if not entry or "tag" not in entry or "digest" not in entry:
+            raise RuntimeError(f"Lock entry for '{name}' missing 'tag' or 'digest' in {lock_path}")
+
+        return f"{url}:{entry['tag']}@{entry['digest']}"
+
+    return repo.repository_url.apply(lambda url: repo.name.apply(lambda name: build_ref(url, name)))

@@ -6,7 +6,7 @@ from pulumi_aws.lb import Listener, LoadBalancer, TargetGroup
 from pulumi_aws.route53 import Record
 from pulumi_awsx.ecs import FargateService
 
-from components.ecr import repo_digest
+from components.ecr import locked_image_ref
 from components.log import log_configuration
 from components.role import Role, ecs_assume_role_policy
 from components.secret import Secret
@@ -152,7 +152,7 @@ def create_tailscale_beacon(
             "containers": {
                 "tailscale-beacon": {
                     "name": "tailscale-beacon",
-                    "image": repo_digest(tailscale_beacon_image_repo),
+                    "image": locked_image_ref(tailscale_beacon_image_repo),
                     "log_configuration": log_configuration(tailscale_beacon_log_group),
                     "port_mappings": [{"container_port": 80, "host_port": 80, "target_group": target_group}],
                     "secrets": [{"name": "TS_AUTHKEY", "value_from": tailscale_auth_key_secret.arn}],

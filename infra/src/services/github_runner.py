@@ -4,7 +4,7 @@ from pulumi_aws.ecr import Repository
 from pulumi_aws.ecs import Cluster
 from pulumi_awsx.ecs import FargateService
 
-from components.ecr import pullthrough_repo_digest
+from components.ecr import locked_image_ref
 from components.log import log_configuration
 from components.role import Role, ecs_assume_role_policy
 from components.secret import Secret
@@ -59,7 +59,7 @@ def create_github_runner(config: Config, vpc: Vpc, cluster: Cluster, postgres_se
             "containers": {
                 "runner": {
                     "name": "runner",
-                    "image": pullthrough_repo_digest(github_runner_image_repo),
+                    "image": locked_image_ref(github_runner_image_repo),
                     "log_configuration": log_configuration(github_runner_log_group),
                     "secrets": [{"name": "APP_PRIVATE_KEY", "value_from": github_app_private_key_secret.arn}],
                     "environment": [

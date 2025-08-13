@@ -7,7 +7,7 @@ from pulumi_aws.route53 import Record
 from pulumi_aws.s3 import Bucket
 from pulumi_awsx.ecs import FargateService
 
-from components.ecr import repo_digest
+from components.ecr import locked_image_ref
 from components.log import log_configuration
 from components.role import Role, ecs_assume_role_policy
 from components.secret import Secret
@@ -124,7 +124,7 @@ def create_api(
             "containers": {
                 "api": {
                     "name": "api",
-                    "image": repo_digest(api_image_repo),
+                    "image": locked_image_ref(api_image_repo),
                     "log_configuration": log_configuration(api_log_group),
                     "port_mappings": [{"container_port": 8000, "host_port": 8000, "target_group": target_group}],
                     "secrets": [{"name": "POSTGRES_DSN", "value_from": postgres_dsn_secret.arn}],

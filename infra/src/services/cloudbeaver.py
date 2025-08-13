@@ -8,7 +8,7 @@ from pulumi_aws.rds import Instance
 from pulumi_aws.route53 import Record
 from pulumi_awsx.ecs import FargateService
 
-from components.ecr import pullthrough_repo_digest, repo_digest
+from components.ecr import locked_image_ref
 from components.log import log_configuration
 from components.role import Role, ecs_assume_role_policy
 from components.secret import Secret
@@ -165,7 +165,7 @@ def create_cloudbeaver(
             "containers": {
                 "cloudbeaver-init": {
                     "name": "cloudbeaver-init",
-                    "image": repo_digest(cloudbeaver_init_image_repo),
+                    "image": locked_image_ref(cloudbeaver_init_image_repo),
                     "essential": False,
                     "log_configuration": log_configuration(cloudbeaver_init_log_group),
                     "mount_points": [{"source_volume": "efs", "container_path": "/opt/cloudbeaver/workspace"}],
@@ -186,7 +186,7 @@ def create_cloudbeaver(
                 "cloudbeaver": {
                     "name": "cloudbeaver",
                     "depends_on": [{"container_name": "cloudbeaver-init", "condition": "SUCCESS"}],
-                    "image": pullthrough_repo_digest(cloudbeaver_image_repo),
+                    "image": locked_image_ref(cloudbeaver_image_repo),
                     "log_configuration": log_configuration(cloudbeaver_log_group),
                     "mount_points": [{"source_volume": "efs", "container_path": "/opt/cloudbeaver/workspace"}],
                     "port_mappings": [
