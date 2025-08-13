@@ -15,8 +15,6 @@ class RepoEntry(TypedDict, total=False):
 
 
 def locked_image_ref(repo: Repository, lock_path: str = "infra/image-lock.json") -> Output[str]:
-    """Get locked image reference for repository."""
-
     def build_ref(url: str, name: str) -> str:
         # Load and parse lock file
         try:
@@ -37,7 +35,7 @@ def locked_image_ref(repo: Repository, lock_path: str = "infra/image-lock.json")
         entry_dict = cast(Dict[str, object], entry_data)
         entry: RepoEntry = {}
 
-        for field in ["tag", "digest", "contextHash"]:
+        for field in ["tag", "digest", "context-hash"]:
             value = entry_dict.get(field)
             if isinstance(value, str):
                 entry[field] = value  # type: ignore[literal-required]
