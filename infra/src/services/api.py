@@ -137,4 +137,4 @@ def create_api(
     )
 
     # Allow the deployment role to deploy this service
-    deploy_role.allow_service_deployment("api", [service.service.arn], [execution_role.arn])
+    deploy_role.allow_service_deployment("api", [service.service.arn], [execution_role.arn, task_role.arn])
