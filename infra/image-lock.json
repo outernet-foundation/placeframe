@@ -1,15 +1,15 @@
 {
   "api": {
-    "digest": "sha256:a79daedeb2819c6dda80693b65a05d39a5c2a65fdba3d4bc9f14f1b137e18d7c",
+    "digest": "sha256:00e9995bdd7cdd811d513df3895fd52bb3b3811d799ea6aba8ecc5721d2c6f4c",
     "tags": [
-      "git-46e418525990f5c5a4fc561466c7427fcc440391",
-      "tree-80030a6937371514bac53607726d1dc943fd62c0"
+      "git-afead161889908308709571cb6d657327cabd753",
+      "tree-464f8e6d055645b367c32cc495784a92e6ae0b43"
     ]
   },
   "cloudbeaver-init": {
     "digest": "sha256:2d46e2203c5b48cf34c6c23f3abe297bab22aa2d42d79e27c9fc2c5e49795c4c",
     "tags": [
-      "git-46e418525990f5c5a4fc561466c7427fcc440391",
+      "git-afead161889908308709571cb6d657327cabd753",
       "tree-20b07e3295002ab9d44146f47e4114175ab13c70"
     ]
   },
@@ -28,7 +28,7 @@
   "tailscale-beacon": {
     "digest": "sha256:6e413ded87d3c2a89f6375dceb3dd7a82c66eec49a30797655e3ae4d2e4c7208",
     "tags": [
-      "git-46e418525990f5c5a4fc561466c7427fcc440391",
+      "git-afead161889908308709571cb6d657327cabd753",
       "tree-5f2094fa1ec64f5dc246aa0f020edda3312861c3"
     ]
   }
