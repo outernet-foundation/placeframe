@@ -45,7 +45,6 @@ app = FastAPI(
 )
 
 
-# Include the OpenAPI schema at /openapi.json
 @app.get("/")
 async def root():
     return {"message": "Hello, Plerion API!"}
