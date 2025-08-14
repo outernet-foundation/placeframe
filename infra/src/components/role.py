@@ -131,6 +131,7 @@ class Role(ComponentResource):
                         {
                             "Effect": "Allow",
                             "Action": [
+                                "ecr:BatchImportUpstreamImage",
                                 "ecr:BatchCheckLayerAvailability",
                                 "ecr:GetDownloadUrlForLayer",
                                 "ecr:BatchGetImage",
