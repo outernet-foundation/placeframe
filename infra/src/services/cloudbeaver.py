@@ -2,11 +2,11 @@ from pulumi import Config, Output, StackReference, export
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecs import Cluster
 from pulumi_aws.efs import FileSystem, MountTarget
-from pulumi_aws.lb import Listener, LoadBalancer, TargetGroup
 from pulumi_aws.rds import Instance
 from pulumi_aws.route53 import Record
 from pulumi_awsx.ecs import FargateService
 
+from components.load_balancer import LoadBalancer
 from components.log import log_configuration
 from components.repository import Repository
 from components.role import Role, ecs_assume_role_policy
@@ -87,46 +87,16 @@ def create_cloudbeaver(
 
     # Load balancer
     load_balancer = LoadBalancer(
-        "cloudbeaver-lb", security_groups=[load_balancer_security_group.id], subnets=vpc.public_subnet_ids
-    )
-
-    load_balancer_target_group = TargetGroup(
-        "cloudbeaver-lb-tg",
-        port=8978,
-        protocol="HTTP",
-        target_type="ip",
-        vpc_id=load_balancer.vpc_id,
-        deregistration_delay=60,  # Wait 60s before deregistering unhealthy instances (down from default of 300, for faster rotation since we only have one instance)
-        health_check={
-            "path": "/",
-            "protocol": "HTTP",
-            "interval": 15,  # Check every 15 seconds (down from default of 30)
-            "healthy_threshold": 2,  # We are healthy after 30 seconds (down from default of 5*30, for faster deployments)
-            "unhealthy_threshold": 10,  # We are unhealthy after 150 seconds (up from default of 3*30, because CloudBeaver can take a while to start up)
-        },
-    )
-
-    Listener(
-        "cloudbeaver-https-listener",
-        load_balancer_arn=load_balancer.arn,
-        port=443,
-        protocol="HTTPS",
+        "cloudbeaver-loadbalancer",
+        "cloudbeaver",
+        vpc=vpc,
+        securityGroup=load_balancer_security_group,
         certificate_arn=core_stack.require_output("certificate-arn"),
-        default_actions=[{"type": "forward", "target_group_arn": load_balancer_target_group.arn}],
+        port=8978,
     )
 
-    Listener(
-        "cloudbeaver-http-listener",
-        load_balancer_arn=load_balancer.arn,
-        port=80,
-        protocol="HTTP",
-        default_actions=[
-            {"type": "redirect", "redirect": {"protocol": "HTTPS", "port": "443", "status_code": "HTTP_301"}}
-        ],
-    )
-
-    # DNS records
-    domain = core_stack.require_output("zone-name").apply(lambda zone_name: f"cloudbeaver.{zone_name}")
+    # DNS Records
+    domain = Output.concat("cloudbeaver.", core_stack.require_output("zone-name"))
     Record(
         "cloudbeaver-domain-record",
         zone_id=core_stack.require_output("zone-id"),
@@ -196,7 +166,7 @@ def create_cloudbeaver(
                     "log_configuration": log_configuration(cloudbeaver_log_group),
                     "mount_points": [{"source_volume": "efs", "container_path": "/opt/cloudbeaver/workspace"}],
                     "port_mappings": [
-                        {"container_port": 8978, "host_port": 8978, "target_group": load_balancer_target_group}
+                        {"container_port": 8978, "host_port": 8978, "target_group": load_balancer.target_group}
                     ],
                     "secrets": [
                         {"name": "CLOUDBEAVER_DB_PASSWORD", "value_from": postgres_password_secret.arn},

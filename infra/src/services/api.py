@@ -1,11 +1,11 @@
-from pulumi import Config, StackReference, export
+from pulumi import Config, Output, StackReference, export
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecs import Cluster
-from pulumi_aws.lb import Listener, LoadBalancer, TargetGroup
 from pulumi_aws.route53 import Record
 from pulumi_aws.s3 import Bucket
 from pulumi_awsx.ecs import FargateService
 
+from components.load_balancer import LoadBalancer
 from components.log import log_configuration
 from components.repository import Repository
 from components.role import Role, ecs_assume_role_policy
@@ -52,46 +52,16 @@ def create_api(
 
     # Load balancer
     load_balancer = LoadBalancer(
-        "api-lb", security_groups=[load_balancer_security_group.id], subnets=vpc.public_subnet_ids
-    )
-
-    target_group = TargetGroup(
-        "api-lb-tg",
-        port=8000,
-        protocol="HTTP",
-        target_type="ip",
-        vpc_id=load_balancer.vpc_id,
-        deregistration_delay=60,
-        health_check={
-            "path": "/",
-            "protocol": "HTTP",
-            "interval": 15,
-            "healthy_threshold": 2,
-            "unhealthy_threshold": 10,
-        },
-    )
-
-    Listener(
-        "api-https-listener",
-        load_balancer_arn=load_balancer.arn,
-        port=443,
-        protocol="HTTPS",
+        "api-loadbalancer",
+        "api",
+        vpc=vpc,
+        securityGroup=load_balancer_security_group,
         certificate_arn=core_stack.require_output("certificate-arn"),
-        default_actions=[{"type": "forward", "target_group_arn": target_group.arn}],
-    )
-
-    Listener(
-        "api-http-listener",
-        load_balancer_arn=load_balancer.arn,
-        port=80,
-        protocol="HTTP",
-        default_actions=[
-            {"type": "redirect", "redirect": {"protocol": "HTTPS", "port": "443", "status_code": "HTTP_301"}}
-        ],
+        port=8000,
     )
 
     # DNS Records
-    domain = core_stack.require_output("zone-name").apply(lambda zone_name: f"api.{zone_name}")
+    domain = Output.concat("api.", core_stack.require_output("zone-name"))
     Record(
         "api-domain-record",
         zone_id=core_stack.require_output("zone-id"),
@@ -128,7 +98,9 @@ def create_api(
                     "name": "api",
                     "image": digest,
                     "log_configuration": log_configuration(api_log_group),
-                    "port_mappings": [{"container_port": 8000, "host_port": 8000, "target_group": target_group}],
+                    "port_mappings": [
+                        {"container_port": 8000, "host_port": 8000, "target_group": load_balancer.target_group}
+                    ],
                     "secrets": [{"name": "POSTGRES_DSN", "value_from": postgres_dsn_secret.arn}],
                     "environment": [{"name": "_POSTGRES_DSN_VERSION", "value": postgres_dsn_secret.version_id}],
                 }
