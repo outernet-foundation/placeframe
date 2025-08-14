@@ -110,12 +110,7 @@ class Role(ComponentResource):
                             "logs:PutLogEvents",
                         ],
                         "Resource": "*",
-                    },
-                    {
-                        "Effect": "Allow",
-                        "Action": ["secretsmanager:GetSecretValue", "ssm:GetParameters"],
-                        "Resource": "*",
-                    },
+                    }
                 ],
             }),
             opts=self._child_opts,
