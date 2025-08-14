@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - '!infra/image_lock.json'
-      - '!services/api/db/migrations/**'
+      - "services/**"
+      - "!services/api/db/migrations/**"
 
 concurrency:
   group: create-deploy-pr
@@ -48,11 +48,28 @@ jobs:
     strategy:
       matrix:
         images:
-          - { name: "api", stack: "dev", first_party: true, context: "./services/api" }
-          - { name: "cloudbeaver-init", stack: "dev", first_party: true, context: "./services/cloudbeaver-init" }
-          - { name: "cloudbeaver", stack: "dev", first_party: false }
-          - { name: "tailscale-beacon", stack: "core", first_party: true, context: "./services/tailscale-beacon" }
-          - { name: "github-runner", stack: "dev", first_party: false }
+          - name: "api"
+            stack: "dev"
+            first_party: true
+            context: "./services/api"
+
+          - name: "cloudbeaver-init"
+            stack: "dev"
+            first_party: true
+            context: "./services/cloudbeaver-init"
+
+          - name: "cloudbeaver"
+            stack: "dev"
+            first_party: false
+
+          - name: "tailscale-beacon"
+            stack: "core"
+            first_party: true
+            context: "./services/tailscale-beacon"
+
+          - name: "github-runner"
+            stack: "dev"
+            first_party: false
 
     steps:
       - name: Checkout code
@@ -123,7 +140,7 @@ jobs:
           fi
 
       - name: Build and push first party image
-        if: ${{ matrix.images.first_party && steps.check.outputs.exists == 'false'}} 
+        if: ${{ matrix.images.first_party && steps.check.outputs.exists == 'false'}}
         id: build
         uses: docker/build-push-action@v6
         env:
@@ -203,7 +220,6 @@ jobs:
             echo "tags_b64=$TAGS_B64"
           } >> "$GITHUB_OUTPUT"
 
-          
       - name: Write lock snippet
         run: |
           set -euo pipefail
@@ -223,7 +239,6 @@ jobs:
           path: lock-${{ matrix.images.name }}.json
 
   generate-migrations-and-create-deploy-pr:
-
     runs-on: ubuntu-latest
     needs: build-and-push-images
 
