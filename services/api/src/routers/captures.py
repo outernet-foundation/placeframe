@@ -35,7 +35,7 @@ async def get_captures(
 
 
 @router.get("/{id}")
-async def get_capure(
+async def get_capture(
     id: str,
 ) -> CaptureModel:
     row = await Capture.objects().get(Capture.id == id)
@@ -49,7 +49,7 @@ async def get_capure(
 
 
 @router.post("")
-async def create_capture(
+async def create_captue(
     filename: str = Body(..., embed=True),
 ) -> CaptureModel:
     exists = await Capture.objects().get(Capture.filename == filename)

@@ -49,12 +49,12 @@ paths:
       tags:
       - captures
     post:
-      operationId: create_capture
+      operationId: create_captue
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Body_create_capture"
+              $ref: "#/components/schemas/Body_create_captue"
         required: true
       responses:
         "200":
@@ -69,12 +69,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
           description: Validation Error
-      summary: Create Capture
+      summary: Create Captue
       tags:
       - captures
   /captures/{id}:
     get:
-      operationId: get_capure
+      operationId: get_capture
       parameters:
       - explode: false
         in: path
@@ -97,7 +97,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
           description: Validation Error
-      summary: Get Capure
+      summary: Get Capture
       tags:
       - captures
   /captures/{id}/file:
@@ -169,14 +169,14 @@ paths:
       - captures
 components:
   schemas:
-    Body_create_capture:
+    Body_create_captue:
       properties:
         filename:
           title: Filename
           type: string
       required:
       - filename
-      title: Body_create_capture
+      title: Body_create_captue
     CaptureModel:
       example:
         filename: filename

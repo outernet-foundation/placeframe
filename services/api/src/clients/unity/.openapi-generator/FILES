@@ -24,7 +24,7 @@ src/PlerionClient/Client/RequestOptions.cs
 src/PlerionClient/Client/RetryConfiguration.cs
 src/PlerionClient/Client/WebRequestPathBuilder.cs
 src/PlerionClient/Model/AbstractOpenAPISchema.cs
-src/PlerionClient/Model/BodyCreateCapture.cs
+src/PlerionClient/Model/BodyCreateCaptue.cs
 src/PlerionClient/Model/CaptureModel.cs
 src/PlerionClient/Model/HTTPValidationError.cs
 src/PlerionClient/Model/ValidationError.cs
