@@ -206,6 +206,7 @@ jobs:
             echo "tags_b64=$TAGS_B64"
           } >> "$GITHUB_OUTPUT"
 
+          
       - name: Write lock snippet
         shell: bash
         run: |
