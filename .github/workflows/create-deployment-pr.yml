@@ -79,13 +79,12 @@ jobs:
           echo "repo_url=$REPO_URL" >> $GITHUB_OUTPUT
           echo "repo_name=$(basename $REPO_URL)" >> $GITHUB_OUTPUT
           echo "role_arn=$(pulumi stack output --stack core main-prepare-deploy-role-arn)" >> $GITHUB_OUTPUT
-          echo "region=$(echo $REPO_URL | sed -n 's#.*\.dkr\.ecr\.\([^.]*\)\.amazonaws\.com/.*#\1#p')" >> $GITHUB_OUTPUT
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ steps.pulumi.outputs.role_arn }}
-          aws-region: ${{ steps.pulumi.outputs.region }}
+          aws-region: us-east-1
 
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
