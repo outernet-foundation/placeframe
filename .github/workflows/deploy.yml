@@ -66,13 +66,13 @@ jobs:
             **/pyproject.toml
             **/uv.lock
 
-      - name: Apply migrations
-        working-directory: services/api
-        env:
-          PICCOLO_CONF: src.db.conf
-        run: |
-            uv sync --frozen 
-            uv run piccolo migrations forwards all
+    #   - name: Apply migrations
+    #     working-directory: services/api
+    #     env:
+    #       PICCOLO_CONF: src.db.conf
+    #     run: |
+    #         uv sync --frozen 
+    #         uv run piccolo migrations forwards all
 
       - name: Deploy infrastructure changes
         working-directory: infra
