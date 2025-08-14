@@ -14,15 +14,12 @@ namespace Nessle
 
         public ButtonControl() : base(UIBuilder.GameObject<Button>(typeof(HorizontalLayoutGroup)))
         {
-            var rootLayout = component.GetComponent<HorizontalLayoutGroup>();
-            rootLayout.childForceExpandWidth = false;
-            rootLayout.childForceExpandHeight = false;
-            rootLayout.childControlHeight = true;
-            rootLayout.childControlWidth = true;
-
             this.Children(
                 background = UIBuilder.Image().FillParent().IgnoreLayout(true),
-                contentLayout = UIBuilder.HorizontalLayout().ControlChildSize(true).Alignment(TextAnchor.MiddleCenter)
+                contentLayout = new UnityComponentControl<HorizontalLayoutGroup>(gameObject.GetComponent<HorizontalLayoutGroup>())
+                    .ChildForceExpand(false)
+                    .ControlChildSize(true)
+                    .Alignment(TextAnchor.MiddleCenter)
                     .Padding(new RectOffset(3, 3, 3, 3)).Spacing(5)
             );
 

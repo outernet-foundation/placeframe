@@ -8,6 +8,9 @@ namespace Nessle
     public class UIResources : ScriptableObject
     {
         public static Sprite RoundedBox => _instance._roundedBox;
+        public static Sprite ArrowDown => _instance._arrowDown;
+        public static Sprite ArrowRight => _instance._arrowRight;
+        public static Sprite Checkmark => _instance._checkmark;
         public static Color PanelColor => _instance._panelColor;
         public static Color ButtonColor => _instance._buttonColor;
         public static Color InputFieldColor => _instance._inputFieldColor;
@@ -20,6 +23,9 @@ namespace Nessle
         private static UIResources _instance => Resources.Load<UIResources>("UIResources");
 
         [SerializeField] private Sprite _roundedBox;
+        [SerializeField] private Sprite _arrowDown;
+        [SerializeField] private Sprite _arrowRight;
+        [SerializeField] private Sprite _checkmark;
         [SerializeField] public Color _panelColor;
         [SerializeField] public Color _buttonColor;
         [SerializeField] public Color _inputFieldColor;

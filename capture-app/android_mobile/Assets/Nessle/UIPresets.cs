@@ -30,7 +30,7 @@ namespace PlerionClient.Client
         {
             StylePill(button.background);
             button.background.Color(UIResources.ButtonColor);
-            button.contentLayout.Padding(new RectOffset(13, 13, 5, 5));
+            button.contentLayout.Padding(new RectOffset(13, 13, 5, 5)).Alignment(TextAnchor.MiddleCenter);
         }
 
         public static InputFieldControl PillInputField()
@@ -72,10 +72,10 @@ namespace PlerionClient.Client
             scrollRect.background.Color(UIResources.PanelColor);
         }
 
-        public static DropdownControl StandardDropdown()
-            => Dropdown().Style(StyleStandardDropdown);
+        public static ScrollingDropdownControl StandardDropdown()
+            => ScrollingDropdown().Style(StyleStandardDropdown);
 
-        public static void StyleStandardDropdown(DropdownControl dropdown)
+        public static void StyleStandardDropdown(ScrollingDropdownControl dropdown)
         {
             StylePill(dropdown.background);
 

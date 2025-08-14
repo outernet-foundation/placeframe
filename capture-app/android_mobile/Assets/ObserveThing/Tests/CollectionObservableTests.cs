@@ -144,7 +144,7 @@ namespace ObserveThing.Tests
             bool disposed = false;
 
             var rootObservable = new ManualCollectionObservable<int>();
-            var orderByObservable = rootObservable.OrderBy(x => x).Subscribe(
+            var orderByObservable = rootObservable.OrderByDynamic(x => x).Subscribe(
                 x =>
                 {
                     callCount++;
@@ -202,7 +202,7 @@ namespace ObserveThing.Tests
             bool disposed = false;
 
             var rootObservable = new ManualCollectionObservable<ManualValueObservable<int>>();
-            var orderByObservable = rootObservable.OrderBy(x => x.AsObservable()).Subscribe(
+            var orderByObservable = rootObservable.OrderByDynamic(x => x.AsObservable()).Subscribe(
                 x =>
                 {
                     callCount++;
@@ -296,7 +296,7 @@ namespace ObserveThing.Tests
             bool disposed = false;
 
             var rootObservable = new ManualCollectionObservable<int>();
-            var whereObservable = rootObservable.Where(x => x % 2 == 0).Subscribe(
+            var whereObservable = rootObservable.WhereDynamic(x => x % 2 == 0).Subscribe(
                 x =>
                 {
                     callCount++;
@@ -369,7 +369,7 @@ namespace ObserveThing.Tests
             bool disposed = false;
 
             var rootObservable = new ManualCollectionObservable<ManualValueObservable<int>>();
-            var whereObservable = rootObservable.Where(x => x.Select(x => x % 2 == 0)).Subscribe(
+            var whereObservable = rootObservable.WhereDynamic(x => x.SelectDynamic(x => x % 2 == 0)).Subscribe(
                 x =>
                 {
                     callCount++;
@@ -468,7 +468,7 @@ namespace ObserveThing.Tests
             bool disposed = false;
 
             var rootObservable = new ManualCollectionObservable<int>();
-            var distinctObservable = rootObservable.Distinct().Subscribe(
+            var distinctObservable = rootObservable.DistinctDynamic().Subscribe(
                 x =>
                 {
                     callCount++;
@@ -534,7 +534,7 @@ namespace ObserveThing.Tests
             bool disposed = false;
 
             var rootObservable = new ManualCollectionObservable<int>();
-            var concatObservable = rootObservable.Concat(new int[] { 4, 5, 6 }).Subscribe(
+            var concatObservable = rootObservable.ConcatDynamic(new int[] { 4, 5, 6 }).Subscribe(
                 x =>
                 {
                     callCount++;
@@ -596,7 +596,7 @@ namespace ObserveThing.Tests
 
             var observable1 = new ManualCollectionObservable<int>();
             var observable2 = new ManualCollectionObservable<int>();
-            var concatObservable = observable1.Concat(observable2).Subscribe(
+            var concatObservable = observable1.ConcatDynamic(observable2).Subscribe(
                 x =>
                 {
                     callCount++;
@@ -676,7 +676,7 @@ namespace ObserveThing.Tests
             bool disposed = false;
 
             var observableRoot = new ManualCollectionObservable<int[]>();
-            var concatObservable = observableRoot.SelectMany(x => x).Subscribe(
+            var concatObservable = observableRoot.SelectManyDynamic(x => x).Subscribe(
                 x =>
                 {
                     callCount++;
@@ -737,7 +737,7 @@ namespace ObserveThing.Tests
             bool disposed = false;
 
             var observableRoot = new ManualCollectionObservable<ManualCollectionObservable<int>>();
-            var concatObservable = observableRoot.SelectMany(x => x).Subscribe(
+            var concatObservable = observableRoot.SelectManyDynamic(x => x).Subscribe(
                 x =>
                 {
                     callCount++;

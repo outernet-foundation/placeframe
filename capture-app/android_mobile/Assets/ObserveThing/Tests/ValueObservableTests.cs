@@ -112,7 +112,7 @@ namespace ObserveThing.Tests
 
             var rootObservable = new ManualValueObservable<string>();
             var selectObservable = rootObservable
-                .Select(x => x?.Count(x => x == 'a') ?? 0)
+                .SelectDynamic(x => x?.Count(x => x == 'a') ?? 0)
                 .Subscribe(
                     x =>
                     {
@@ -185,7 +185,7 @@ namespace ObserveThing.Tests
             var intObservable2 = new ManualValueObservable<int>();
 
             var selectObservable = rootObservable
-                .Select(x => x ? intObservable2.AsObservable() : intObservable1.AsObservable())
+                .SelectDynamic(x => x ? intObservable2.AsObservable() : intObservable1.AsObservable())
                 .Subscribe(
                     x =>
                     {
@@ -252,7 +252,7 @@ namespace ObserveThing.Tests
             var intObservable1 = new ManualValueObservable<int>();
             var intObservable2 = new ManualValueObservable<int>();
 
-            var selectObservable = intObservable1.With(intObservable2)
+            var selectObservable = intObservable1.WithDynamic(intObservable2)
                 .Subscribe(
                     x =>
                     {

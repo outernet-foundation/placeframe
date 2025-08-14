@@ -119,7 +119,7 @@ namespace ObserveThing.Tests
 
             ManualDictionaryObservable<int, string> rootObservable = new ManualDictionaryObservable<int, string>();
 
-            rootObservable.Track(4).Subscribe(
+            rootObservable.TrackDynamic(4).Subscribe(
                 x =>
                 {
                     callCount++;
@@ -196,7 +196,7 @@ namespace ObserveThing.Tests
             ManualDictionaryObservable<int, string> rootObservable = new ManualDictionaryObservable<int, string>();
             ManualValueObservable<int> keyProvider = new ManualValueObservable<int>();
 
-            rootObservable.Track(keyProvider).Subscribe(
+            rootObservable.TrackDynamic(keyProvider).Subscribe(
                 x =>
                 {
                     callCount++;

@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: UIResources
   m_EditorClassIdentifier: 
   _roundedBox: {fileID: 21300000, guid: 015ddd0cfb8b7ee449920b61d26c3e9d, type: 3}
+  _arrowDown: {fileID: 21300000, guid: 1f29fedf121870f41a5e008fb7423c21, type: 3}
+  _arrowRight: {fileID: 21300000, guid: 2df4a3042400a29489e2dbe7d91b612f, type: 3}
   _panelColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
   _buttonColor: {r: 0.34509805, g: 0.34509805, b: 0.34509805, a: 1}
   _inputFieldColor: {r: 0.15686275, g: 0.15686275, b: 0.15686275, a: 1}

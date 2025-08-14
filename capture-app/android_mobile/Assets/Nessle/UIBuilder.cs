@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ObserveThing;
 using TMPro;
 using UnityEngine;
@@ -15,7 +16,7 @@ namespace Nessle
         public static Action<InputFieldControl> DefaultInputFieldStyle;
         public static Action<ScrollbarControl> DefaultScrollbarStyle;
         public static Action<ScrollRectControl> DefaultScrollRectStyle;
-        public static Action<DropdownControl> DefaultDropdownStyle;
+        public static Action<ScrollingDropdownControl> DefaultDropdownStyle;
 
         private static T StyleIfNecessary<T>(this T control, Action<T> defaultStyle)
         {
@@ -78,9 +79,6 @@ namespace Nessle
         public static ButtonControl Button()
             => new ButtonControl().StyleIfNecessary(DefaultButtonStyle);
 
-        public static DropdownControl Dropdown()
-            => new DropdownControl().StyleIfNecessary(DefaultDropdownStyle);
-
         public static UnityComponentControl<HorizontalLayoutGroup> HorizontalLayout()
             => ComponentControl<HorizontalLayoutGroup>().ChildForceExpand(false).ControlChildSize(false);
 
@@ -89,6 +87,17 @@ namespace Nessle
 
         public static UnityComponentControl<RectMask2D> RectMask()
             => ComponentControl<RectMask2D>();
+
+        public static ScrollingDropdownControl ScrollingDropdown(
+            IUnityComponentControl<Image> background = default,
+            IUnityComponentControl<TextMeshProUGUI> captionText = default,
+            IUnityComponentControl<Image> arrow = default,
+            ScrollRectControl template = default,
+            IUnityComponentControl<Toggle> itemToggle = default,
+            IUnityComponentControl<Image> itemBackground = default,
+            IUnityComponentControl<TextMeshProUGUI> itemLabel = default,
+            IUnityComponentControl<Image> itemCheckmark = default
+        ) => new ScrollingDropdownControl(background, captionText, arrow, template, itemToggle, itemBackground, itemLabel, itemCheckmark).StyleIfNecessary(DefaultDropdownStyle);
 
         public static ScrollRectControl ScrollRect(
             IUnityComponentControl<Image> background = default,
@@ -754,6 +763,13 @@ namespace Nessle
             return control;
         }
 
+        public static T Interactable<T>(this T control, bool interactable)
+            where T : IUnityComponentControl<Selectable>
+        {
+            control.component.interactable = interactable;
+            return control;
+        }
+
         public static T Sprite<T>(this T control, Sprite sprite)
             where T : IUnityComponentControl<Image>
         {
@@ -793,6 +809,20 @@ namespace Nessle
             where T : IUnityComponentControl<Image>
         {
             control.AddBinding(pixelsPerUnitMultiplier.Subscribe(x => control.component.pixelsPerUnitMultiplier = x.currentValue));
+            return control;
+        }
+
+        public static T PreserveAspect<T>(this T control, bool preserveAspect)
+            where T : IUnityComponentControl<Image>
+        {
+            control.component.preserveAspect = preserveAspect;
+            return control;
+        }
+
+        public static T PreserveAspect<T>(this T control, IValueObservable<bool> preserveAspect)
+            where T : IUnityComponentControl<Image>
+        {
+            control.AddBinding(preserveAspect.Subscribe(x => control.component.preserveAspect = x.currentValue));
             return control;
         }
 
@@ -1422,6 +1452,24 @@ namespace Nessle
             control.AddBinding(value.Subscribe(x => control.component.value = x.currentValue));
             return control;
         }
+
+        public static T Options<T>(this T control, params string[] options)
+            where T : IUnityComponentControl<TMP_Dropdown> => control.Options(options.Select(x => new TMP_Dropdown.OptionData(x)).ToList());
+
+        public static T Options<T>(this T control, params Sprite[] options)
+            where T : IUnityComponentControl<TMP_Dropdown> => control.Options(options.Select(x => new TMP_Dropdown.OptionData(x)).ToList());
+
+        public static T Options<T>(this T control, params TMP_Dropdown.OptionData[] options)
+            where T : IUnityComponentControl<TMP_Dropdown> => control.Options(options.ToList());
+
+        public static T Options<T>(this T control, IEnumerable<string> options)
+            where T : IUnityComponentControl<TMP_Dropdown> => control.Options(options.Select(x => new TMP_Dropdown.OptionData(x)).ToList());
+
+        public static T Options<T>(this T control, IEnumerable<Sprite> options)
+            where T : IUnityComponentControl<TMP_Dropdown> => control.Options(options.Select(x => new TMP_Dropdown.OptionData(x)).ToList());
+
+        public static T Options<T>(this T control, IEnumerable<TMP_Dropdown.OptionData> options)
+            where T : IUnityComponentControl<TMP_Dropdown> => control.Options(options.ToList());
 
         public static T Options<T>(this T control, List<TMP_Dropdown.OptionData> options)
             where T : IUnityComponentControl<TMP_Dropdown>

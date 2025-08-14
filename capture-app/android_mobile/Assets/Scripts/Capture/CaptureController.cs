@@ -16,6 +16,7 @@ using System.IO;
 
 using System.Net.Http.Headers;
 using Nessle;
+using ObserveThing;
 
 namespace PlerionClient.Client
 {
@@ -70,11 +71,10 @@ public class Capture
 
     public string Name { get; set; }
     public Mode Type { get; set; }
-    public CaptureRow Row { get; set; }
-    public IDisposable disposables { get; set; }
+    public bool Uploaded { get; set; }
 }
 
-public class CaptureController : MonoBehaviour
+public partial class CaptureController : MonoBehaviour
 {
     private enum Environment
     {
@@ -98,11 +98,11 @@ public class CaptureController : MonoBehaviour
         Errored
     }
 
-    public Button startStopButton;
-    public TMP_Text startStopButtonText;
-    public TMP_Dropdown captureMode;
-    public RectTransform capturesTable;
-    public RectTransform captureRowPrefab;
+    // public Button startStopButton;
+    // public TMP_Text startStopButtonText;
+    // public TMP_Dropdown captureMode;
+    // public RectTransform capturesTable;
+    // public RectTransform captureRowPrefab;
 
     public Canvas canvas;
 
@@ -110,7 +110,7 @@ public class CaptureController : MonoBehaviour
 
     static private QueueSynchronizationContext context = new QueueSynchronizationContext();
     private ObservableProperty<CaptureState> captureStatus = new ObservableProperty<CaptureState>(context, CaptureState.Idle);
-    private List<Capture> captures;
+    private CollectionObservable<Capture> captures = new CollectionObservable<Capture>();
     private IDisposable disposables;
     private CapturesApi capturesApi;
 
@@ -143,34 +143,31 @@ public class CaptureController : MonoBehaviour
         UIBuilder.DefaultScrollRectStyle = UIPresets.StyleStandardScrollRect;
         UIBuilder.DefaultDropdownStyle = UIPresets.StyleStandardDropdown;
 
+        IUnityComponentControl<Button> startStopButton;
+        IUnityComponentControl<TextMeshProUGUI> startStopButtonText;
+        IUnityComponentControl<TMP_Dropdown> captureMode;
+
         canvasControl = new UnityComponentControl<Canvas>(canvas).Children(UIPresets.SafeArea().FillParent().Children(
             UIBuilder.Image().FillParent().Color(UIResources.PanelColor),
-            UIBuilder.VerticalLayout().FillParent().ControlChildSize(true).ChildForceExpandWidth(true).Spacing(5).Padding(new RectOffset(5, 5, 5, 5)).Children(
+            UIBuilder.VerticalLayout().FillParent().ControlChildSize(true).ChildForceExpandWidth(true).Spacing(10).Padding(new RectOffset(10, 10, 10, 10)).Children(
                 UIPresets.VerticalScrollRect().FlexibleHeight(true).Content(
-
+                    UIBuilder.VerticalLayout().ChildForceExpandWidth(true).ControlChildSize(true).Spacing(10).Children(
+                        captures.SelectDynamic(x => ConstructCaptureRow(x).WithMetadata(x.Name)).OrderByDynamic(x => x.metadata)
+                    )
                 ),
                 UIPresets.Row().Children(
-                    UIBuilder.Button().Content(UIBuilder.Label().Text("Start Capture")),
-                    UIBuilder.Dropdown().PreferredWidth(100).PreferredHeight(25.65f).Style(x =>
-                    {
-                        x.component.options.Clear();
-                        x.component.options = new List<TMP_Dropdown.OptionData>() { new TMP_Dropdown.OptionData() { text = "cat" }, new TMP_Dropdown.OptionData() { text = "dog" } };
-                    }
+                    startStopButton = UIBuilder.Button().Content(startStopButtonText = UIBuilder.Label().Text("Start Capture")),
+                    captureMode = UIBuilder.ScrollingDropdown().Style(x => x.template.SizeDelta(new Vector2(0, 60))).PreferredWidth(100).PreferredHeight(25.65f).Options(Enum.GetNames(typeof(Capture.Mode)))
                 )
             )
-        )));
+        ));
 
-        captureMode.options.Clear();
-
-        foreach (var mode in Enum.GetValues(typeof(Capture.Mode)))
-            captureMode.options.Add(new TMP_Dropdown.OptionData(mode.ToString()));
-
-        var captureModeEventStream = captureMode
+        var captureModeEventStream = captureMode.component
             .OnValueChangedAsObservable()
             .Select(index => (Capture.Mode)index)
             .DistinctUntilChanged();
 
-        var captureControlEventStream = startStopButton
+        var captureControlEventStream = startStopButton.component
             .OnClickAsObservable()
             .WithLatestFrom(captureModeEventStream, (_, captureMode) => captureMode)
             .WithLatestFrom(captureStatus, (captureMode, captureState) => (captureMode, captureState));
@@ -178,7 +175,7 @@ public class CaptureController : MonoBehaviour
         disposables = Disposable.Combine(
 
             captureStatus
-                .Subscribe(state => startStopButtonText.text = state switch
+                .Subscribe(state => startStopButtonText.component.text = state switch
                 {
                     CaptureState.Idle => "Start Capture",
                     CaptureState.Starting => "Starting...",
@@ -190,12 +187,12 @@ public class CaptureController : MonoBehaviour
                 captureStatus
                     .Select(state =>
                         state == CaptureState.Idle || state == CaptureState.Capturing)
-                    .Subscribe(isIdleOrCapturing => startStopButton.interactable = isIdleOrCapturing),
+                    .Subscribe(isIdleOrCapturing => startStopButton.component.interactable = isIdleOrCapturing),
 
                 captureStatus
                     .Select(state =>
                         state == CaptureState.Idle)
-                    .Subscribe(isIdle => captureMode.interactable = isIdle),
+                    .Subscribe(isIdle => captureMode.component.interactable = isIdle),
 
                 captureStatus
                     .Where(state =>
@@ -236,6 +233,25 @@ public class CaptureController : MonoBehaviour
             );
     }
 
+    private IControl ConstructCaptureRow(Capture capture)
+    {
+        return UIPresets.Row().Children(
+            UIBuilder.Label()
+                .Text(capture.Name)
+                .MinHeight(25)
+                .FlexibleWidth(true),
+            UIBuilder.Label()
+                .Text(capture.Type)
+                .MinHeight(25)
+                .PreferredWidth(100),
+            UIBuilder.Button()
+                .Interactable(!capture.Uploaded)
+                .PreferredWidth(100)
+                .Content(UIBuilder.Label().Text(capture.Uploaded ? "Uploaded" : "Upload").Alignment(TextAlignmentOptions.CaplineGeoAligned))
+                .OnClick(() => UploadCapture(capture.Name, capture.Type, default).Forget())
+        );
+    }
+
     void OnDestroy()
     {
         disposables?.Dispose();
@@ -272,77 +288,39 @@ public class CaptureController : MonoBehaviour
 
     async void UpdateCaptureList()
     {
-        // Clear captures table
-        if (captures != null)
-        {
-            foreach (var capture in captures)
-            {
-                capture.disposables.Dispose();
-                Destroy(capture.Row.gameObject);
-            }
-        }
+        var localCaptures = LocalCaptureController.GetCaptures();
 
-        var localCaptures = LocalCaptureController
-            .GetCaptures()
-            .Select(name => new Capture
+        var remoteCaptures = await capturesApi.GetCapturesAsync(
+            localCaptures.ToList());
+
+        captures.Clear();
+
+        foreach (var capture in localCaptures)
+        {
+            captures.Add(new Capture()
             {
-                Name = name,
-                Type = Capture.Mode.Local
+                Name = capture,
+                Type = Capture.Mode.Local,
+                Uploaded = remoteCaptures.Select(capture => capture.Filename).Contains(capture)
             });
-
-        captures = localCaptures.ToList();
-        captures.Add(new Capture { Name = "dog", Type = Capture.Mode.Local });
-        captures.Add(new Capture { Name = "string", Type = Capture.Mode.Local });
-        captures.Add(new Capture { Name = "cats", Type = Capture.Mode.Local });
-        captures.Add(new Capture { Name = "z1", Type = Capture.Mode.Zed });
-        captures.Add(new Capture { Name = "z2", Type = Capture.Mode.Zed });
-
-        var capturesFromServer = await capturesApi.GetCapturesAsync(
-            captures.Select(c => c.Name).ToList());
-
-        var databaseCaptures = capturesFromServer
-            .ToList();
-
-        foreach (var capture in captures)
-        {
-            var gameObject = Instantiate(captureRowPrefab, capturesTable);
-            capture.Row = gameObject.GetComponent<CaptureRow>();
-            capture.Row.captureName.text = capture.Name;
-            capture.Row.captureType.text = capture.Type.ToString();
-
-            if (databaseCaptures.Select(capture => capture.Filename).Contains(capture.Name))
-            {
-                capture.Row.uploadButton.interactable = false;
-                capture.Row.uploadButtonText.text = "Uploaded";
-                capture.disposables = Disposable.Empty;
-            }
-            else
-            {
-                capture.Row.uploadButton.interactable = true;
-                capture.Row.uploadButtonText.text = "Upload";
-
-                async UniTask UploadCapture(CancellationToken cancellationToken)
-                {
-                    var response = await capturesApi.CreateCaptureAsync(new PlerionClient.Model.BodyCreateCapture(capture.Name));
-
-                    if (capture.Type == Capture.Mode.Zed)
-                    {
-                        var captureData = await ZedCaptureController.GetCapture(capture.Name);
-                        await capturesApi.UploadCaptureFileAsync(response.Id.ToString(), new MemoryStream(captureData), cancellationToken);
-                    }
-                    else if (capture.Type == Capture.Mode.Local)
-                    {
-                        var captureData = await LocalCaptureController.GetCapture(capture.Name);
-                        await capturesApi.UploadCaptureFileAsync(response.Id.ToString(), new MemoryStream(captureData), cancellationToken);
-                    }
-
-                    UpdateCaptureList();
-                }
-
-                capture.disposables = capture.Row.uploadButton.onClick
-                    .AsObservable()
-                    .SubscribeAwait(UploadCapture);
-            }
         }
+    }
+
+    private async UniTask UploadCapture(string name, Capture.Mode mode, CancellationToken cancellationToken)
+    {
+        var response = await capturesApi.CreateCaptureAsync(new PlerionClient.Model.BodyCreateCapture(name));
+
+        if (mode == Capture.Mode.Zed)
+        {
+            var captureData = await ZedCaptureController.GetCapture(name);
+            await capturesApi.UploadCaptureFileAsync(response.Id.ToString(), new MemoryStream(captureData), cancellationToken);
+        }
+        else if (mode == Capture.Mode.Local)
+        {
+            var captureData = await LocalCaptureController.GetCapture(name);
+            await capturesApi.UploadCaptureFileAsync(response.Id.ToString(), new MemoryStream(captureData), cancellationToken);
+        }
+
+        UpdateCaptureList();
     }
 }
