@@ -165,8 +165,8 @@
         "tags": [
           "captures"
         ],
-        "summary": "Upload Captre File",
-        "operationId": "upload_captre_file",
+        "summary": "Upload Capture File",
+        "operationId": "upload_capture_file",
         "parameters": [
           {
             "name": "id",

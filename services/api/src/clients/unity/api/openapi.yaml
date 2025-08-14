@@ -135,7 +135,7 @@ paths:
       tags:
       - captures
     put:
-      operationId: upload_captre_file
+      operationId: upload_capture_file
       parameters:
       - explode: false
         in: path
@@ -164,7 +164,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
           description: Validation Error
-      summary: Upload Captre File
+      summary: Upload Capture File
       tags:
       - captures
 components:

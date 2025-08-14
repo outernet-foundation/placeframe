@@ -70,7 +70,7 @@ async def create_capture(
     status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     openapi_extra={"requestBody": {"required": True, "content": binary_schema}},
 )
-async def upload_captre_file(
+async def upload_capture_file(
     request: Request,
     id: str,
     storage: Storage = Depends(get_storage),

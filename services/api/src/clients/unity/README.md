@@ -129,7 +129,7 @@ Class | Method | HTTP request | Description
 *CapturesApi* | [**DownloadCaptureFile**](docs/CapturesApi.md#downloadcapturefile) | **GET** /captures/{id}/file | Download Capture File
 *CapturesApi* | [**GetCapture**](docs/CapturesApi.md#getcapture) | **GET** /captures/{id} | Get Capture
 *CapturesApi* | [**GetCaptures**](docs/CapturesApi.md#getcaptures) | **GET** /captures | Get Captures
-*CapturesApi* | [**UploadCaptreFile**](docs/CapturesApi.md#uploadcaptrefile) | **PUT** /captures/{id}/file | Upload Captre File
+*CapturesApi* | [**UploadCaptureFile**](docs/CapturesApi.md#uploadcapturefile) | **PUT** /captures/{id}/file | Upload Capture File
 *DefaultApi* | [**Root**](docs/DefaultApi.md#root) | **GET** / | Root
 
 
