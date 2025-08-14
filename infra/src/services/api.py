@@ -1,4 +1,4 @@
-from pulumi import Config, StackReference
+from pulumi import Config, StackReference, export
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecs import Cluster
 from pulumi_aws.lb import Listener, LoadBalancer, TargetGroup
@@ -30,7 +30,8 @@ def create_api(
 
     # Image repos
     api_image_repo = Repository("api-repo", "api", force_delete=config.require_bool("devMode"))
-
+    export("api-image-repo-url", api_image_repo.url)
+    
     # Allow image repo actions role to push to this image repo
     prepare_deploy_role.allow_image_repo_actions([api_image_repo])
 

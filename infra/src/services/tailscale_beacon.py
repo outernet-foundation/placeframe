@@ -1,4 +1,4 @@
-from pulumi import Config, Input, Output
+from pulumi import Config, Input, Output, export
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecs import Cluster
 from pulumi_aws.lb import Listener, LoadBalancer, TargetGroup
@@ -37,7 +37,8 @@ def create_tailscale_beacon(
 
     # Image repos
     tailscale_beacon_image_repo = Repository("tailscale-beacon-image-repo", "tailscale-beacon", force_delete=config.require_bool("devMode"))
-
+    export("tailscale-beacon-image-repo-url", tailscale_beacon_image_repo.url)
+    
     # Allow image repo action role to push to this image repo
     prepare_deploy_role.allow_image_repo_actions([tailscale_beacon_image_repo])
 

@@ -1,4 +1,4 @@
-from pulumi import Config
+from pulumi import Config, export
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecs import Cluster
 from pulumi_awsx.ecs import FargateService
@@ -24,6 +24,7 @@ def create_github_runner(config: Config, vpc: Vpc, cluster: Cluster, postgres_se
     github_runner_image_repo = Repository(
         "github-runner-cache-repo", name="dockerhub/myoung34/github-runner", force_delete=config.require_bool("devMode")
     )
+    export("github-runner-image-repo-url", github_runner_image_repo.url)
 
     # Security groups
     github_runner_security_group = SecurityGroup(

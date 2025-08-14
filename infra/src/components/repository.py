@@ -18,10 +18,11 @@ class Repository(ComponentResource):
         self._repo = ecr.Repository(resource_name, name=name, force_delete=force_delete, opts=self._child_opts)
 
         self.resource_name = resource_name
-        
-        self.arn = self._repo.arn
 
-        self.register_outputs({"arn": self.arn})
+        self.arn = self._repo.arn
+        self.url = self._repo.repository_url
+
+        self.register_outputs({"arn": self.arn, "url": self.url})
 
     class RepoEntry(TypedDict, total=False):
         digest: str

@@ -1,4 +1,4 @@
-from pulumi import Config, Output, StackReference
+from pulumi import Config, Output, StackReference, export
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecs import Cluster
 from pulumi_aws.efs import FileSystem, MountTarget
@@ -38,10 +38,12 @@ def create_cloudbeaver(
     )
 
     # Image repos
-    cloudbeaver_init_image_repo = Repository("cloudbeaver-init-repo", name="cloudbeaver", force_delete=config.require_bool("devMode"))
+    cloudbeaver_init_image_repo = Repository("cloudbeaver-init-repo", name="cloudbeaver-init", force_delete=config.require_bool("devMode"))
     cloudbeaver_image_repo = Repository(
         "cloudbeaver-repo", name="dockerhub/dbeaver/cloudbeaver", force_delete=config.require_bool("devMode")
     )
+    export("cloudbeaver-init-image-repo-url", cloudbeaver_init_image_repo.url)
+    export("cloudbeaver-image-repo-url", cloudbeaver_image_repo.url)
 
     # Allow image repo action role to push to this image repo
     prepare_deploy_role.allow_image_repo_actions([cloudbeaver_init_image_repo])
