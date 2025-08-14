@@ -48,9 +48,9 @@ jobs:
         images:
           - { name: "api", stack: "dev", first_party: true, context: "./services/api" }
           - { name: "cloudbeaver-init", stack: "dev", first_party: true, context: "./services/cloudbeaver-init" }
-          - { name: "cloudbeaver", stack: "dev", first_party: false, docker_image: "dbeaver/cloudbeaver:latest" }
+          - { name: "cloudbeaver", stack: "dev", first_party: false }
           - { name: "tailscale-beacon", stack: "core", first_party: true, context: "./services/tailscale-beacon" }
-          - { name: "github-runner", stack: "dev", first_party: false, docker_image: "myoung34/github-runner:latest" }
+          - { name: "github-runner", stack: "dev", first_party: false }
 
     steps:
       - name: Checkout code
@@ -76,8 +76,9 @@ jobs:
         run: |
           set -euo pipefail
           REPO_URL=$(pulumi stack output --stack ${{ matrix.images.stack }} ${{ matrix.images.name }}-image-repo-url)
+          REPO_NAME="${REPO_URL#*/}"
           echo "repo_url=$REPO_URL" >> $GITHUB_OUTPUT
-          echo "repo_name=$(basename $REPO_URL)" >> $GITHUB_OUTPUT
+          echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
           echo "role_arn=$(pulumi stack output --stack core main-prepare-deploy-role-arn)" >> $GITHUB_OUTPUT
 
       - name: Configure AWS credentials
