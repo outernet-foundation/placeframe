@@ -52,7 +52,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "postgres_dsn_secret_arn=$(pulumi stack output --stack dev postgres-dsn-secret-arn)" >> $GITHUB_OUTPUT
-          echo "role_arn=$(pulumi stack output --stack core main-deploy-role)" >> $GITHUB_OUTPUT
+          echo "role_arn=$(pulumi stack output --stack core main-deploy-role-arn)" >> $GITHUB_OUTPUT
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
