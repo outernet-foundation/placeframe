@@ -23,7 +23,8 @@ def github_actions_assume_role_policy(config: Config, github_oidc_provider_arn: 
                     "Condition": {
                         "StringLike": {
                             "token.actions.githubusercontent.com:sub": [
-                                f"repo:{repo}:ref:refs/heads/{config.require('github-branch')}"
+                                f"repo:{repo}:ref:refs/heads/{config.require('github-branch')}",
+                                f"repo:{repo}:pull_request",
                                 # f"repo:{repo}:environment:{environment}",
                             ]
                         },

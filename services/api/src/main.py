@@ -35,8 +35,6 @@ async def lifespan(_: FastAPI):
             await DB.close_connection_pool()
 
 
-#
-
 app = FastAPI(
     title="Plerion API",
     version="0.0.1",
