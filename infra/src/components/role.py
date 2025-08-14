@@ -23,12 +23,12 @@ def github_actions_assume_role_policy(config: Config, github_oidc_provider_arn: 
                     "Condition": {
                         "StringLike": {
                             "token.actions.githubusercontent.com:sub": [
-                                f"repo:{repo}:ref:refs/heads/{config.require('github-branch')}",
+                                f"repo:{repo}:ref:refs/heads/{config.require('github-branch')}"
                                 # f"repo:{repo}:environment:{environment}",
                             ]
                         },
                         "StringEquals": {
-                            "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                            "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
                             # "token.actions.githubusercontent.com:repository": repo,
                             # "token.actions.githubusercontent.com:environment": environment,
                         },
@@ -92,7 +92,10 @@ class Role(ComponentResource):
         )
 
     def allow_service_deployment(
-        self, service_name: str, ecs_service_arns: Iterable[str | Output[str]], passrole_arns: Iterable[str | Output[str]]
+        self,
+        service_name: str,
+        ecs_service_arns: Iterable[str | Output[str]],
+        passrole_arns: Iterable[str | Output[str]],
     ):
         self.attach_policy(
             f"allow-ecs-service-deploy-{service_name}",
@@ -119,7 +122,7 @@ class Role(ComponentResource):
 
     def allow_image_repo_actions(self, repos: Iterable[Repository]):
         self.attach_policy(
-            f"allow-image-repo-actions-{"-".join(repo.resource_name for repo in repos)}",
+            f"allow-image-repo-actions-{'-'.join(repo.resource_name for repo in repos)}",
             Output.all(*[repo.arn for repo in repos]).apply(
                 lambda arns: json.dumps({
                     "Version": "2012-10-17",
@@ -147,24 +150,31 @@ class Role(ComponentResource):
 
     def allow_repo_pullthrough(self, repos: Iterable[Repository]):
         self.attach_policy(
-            f"allow-repo-pullthrough-{"-".join(repo.resource_name for repo in repos)}",
+            f"allow-repo-pullthrough-{'-'.join(repo.resource_name for repo in repos)}",
             Output.all(*[repo.arn for repo in repos]).apply(
                 lambda arns: json.dumps({
                     "Version": "2012-10-17",
-                    "Statement": [{"Effect": "Allow", "Action": [
-                        "ecr:BatchImportUpstreamImage", 
-                        "ecr:BatchCheckLayerAvailability",
-                        "ecr:GetDownloadUrlForLayer",
-                        "ecr:BatchGetImage",
-                        "ecr:DescribeImages"
-                    ], "Resource": arns}],
+                    "Statement": [
+                        {"Effect": "Allow", "Action": "ecr:GetAuthorizationToken", "Resource": "*"},
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ecr:BatchImportUpstreamImage",
+                                "ecr:BatchCheckLayerAvailability",
+                                "ecr:GetDownloadUrlForLayer",
+                                "ecr:BatchGetImage",
+                                "ecr:DescribeImages",
+                            ],
+                            "Resource": arns,
+                        },
+                    ],
                 })
             ),
         )
 
     def allow_secret_get(self, secrets: Iterable[Secret]):
         self.attach_policy(
-            f"allow-secret-get-{"-".join(secret._name for secret in secrets)}",
+            f"allow-secret-get-{'-'.join(secret._name for secret in secrets)}",
             Output.all(*[secret.arn for secret in secrets]).apply(
                 lambda arns: json.dumps({
                     "Version": "2012-10-17",
