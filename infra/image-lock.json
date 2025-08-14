@@ -1,0 +1,35 @@
+{
+  "api": {
+    "digest": "sha256:ed18e7c41385d89c4832a8273a1c79ceb2cdd39216ef79c5a6799f4e27c2e0b2",
+    "tags": [
+      "git-009d35c9d0a6f7bef811a73bd264a8f56b3957bc",
+      "tree-102c2617453c49255a98935d4bc6b78e7d485654"
+    ]
+  },
+  "cloudbeaver-init": {
+    "digest": "sha256:2d46e2203c5b48cf34c6c23f3abe297bab22aa2d42d79e27c9fc2c5e49795c4c",
+    "tags": [
+      "git-009d35c9d0a6f7bef811a73bd264a8f56b3957bc",
+      "tree-20b07e3295002ab9d44146f47e4114175ab13c70"
+    ]
+  },
+  "dockerhub/dbeaver/cloudbeaver": {
+    "digest": "sha256:a904a0c11f92ae4244793fcf5a6f00b9ec1d112a076415f18d4879e54d3f4dfc",
+    "tags": [
+      "latest"
+    ]
+  },
+  "dockerhub/myoung34/github-runner": {
+    "digest": "sha256:61e6bff39fde658a84429b7a38695c9aee7c54a01fee818bdb6dc92aa2b03509",
+    "tags": [
+      "latest"
+    ]
+  },
+  "tailscale-beacon": {
+    "digest": "sha256:6e413ded87d3c2a89f6375dceb3dd7a82c66eec49a30797655e3ae4d2e4c7208",
+    "tags": [
+      "git-009d35c9d0a6f7bef811a73bd264a8f56b3957bc",
+      "tree-5f2094fa1ec64f5dc246aa0f020edda3312861c3"
+    ]
+  }
+}
