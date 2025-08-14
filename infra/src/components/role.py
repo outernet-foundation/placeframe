@@ -97,6 +97,15 @@ class Role(ComponentResource):
             f"{self._resource_name}-ecs-task-execution-role-policy",
             role=self._role.name,
             policy_arn="arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+            opts=self._child_opts,
+        )
+
+    def attach_read_only_access_role_policy(self):
+        RolePolicyAttachment(
+            f"{self._resource_name}-read-only-access-role-policy",
+            role=self._role.name,
+            policy_arn="arn:aws:iam::aws:policy/ReadOnlyAccess",
+            opts=self._child_opts,
         )
 
     def allow_service_deployment(

@@ -30,6 +30,7 @@ def create_core_stack(config: Config):
         resource_name="main-deploy-role",
         assume_role_policy=github_actions_assume_role_policy(config, github_oidc_provider.arn, "main-deploy"),
     )
+    main_deploy_role.attach_read_only_access_role_policy()  # needed by pulumi to construct plans
 
     domain = config.require("domain")
 
