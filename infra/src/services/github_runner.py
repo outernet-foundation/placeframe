@@ -1,11 +1,10 @@
 from pulumi import Config
 from pulumi_aws.cloudwatch import LogGroup
-from pulumi_aws.ecr import Repository
 from pulumi_aws.ecs import Cluster
 from pulumi_awsx.ecs import FargateService
 
-from components.ecr import locked_image_ref
 from components.log import log_configuration
+from components.repository import Repository
 from components.role import Role, ecs_assume_role_policy
 from components.secret import Secret
 from components.security_group import SecurityGroup
@@ -42,6 +41,11 @@ def create_github_runner(config: Config, vpc: Vpc, cluster: Cluster, postgres_se
     execution_role.allow_secret_get([github_app_private_key_secret])
     execution_role.allow_repo_pullthrough([github_runner_image_repo])
 
+    digest = github_runner_image_repo.locked_digest()
+
+    if not digest:
+        return
+
     # Service
     FargateService(
         "github-runner-service",
@@ -59,7 +63,7 @@ def create_github_runner(config: Config, vpc: Vpc, cluster: Cluster, postgres_se
             "containers": {
                 "runner": {
                     "name": "runner",
-                    "image": locked_image_ref(github_runner_image_repo),
+                    "image": digest,
                     "log_configuration": log_configuration(github_runner_log_group),
                     "secrets": [{"name": "APP_PRIVATE_KEY", "value_from": github_app_private_key_secret.arn}],
                     "environment": [

@@ -1,13 +1,12 @@
 from pulumi import Config, Input, Output
 from pulumi_aws.cloudwatch import LogGroup
-from pulumi_aws.ecr import Repository, get_images_output
 from pulumi_aws.ecs import Cluster
 from pulumi_aws.lb import Listener, LoadBalancer, TargetGroup
 from pulumi_aws.route53 import Record
 from pulumi_awsx.ecs import FargateService
 
-from components.ecr import locked_image_ref
 from components.log import log_configuration
+from components.repository import Repository
 from components.role import Role, ecs_assume_role_policy
 from components.secret import Secret
 from components.security_group import SecurityGroup
@@ -37,7 +36,7 @@ def create_tailscale_beacon(
     )
 
     # Image repos
-    tailscale_beacon_image_repo = Repository("tailscale-beacon-image-repo", force_delete=config.require_bool("devMode"))
+    tailscale_beacon_image_repo = Repository("tailscale-beacon-image-repo", "tailscale-beacon", force_delete=config.require_bool("devMode"))
 
     # Allow image repo action role to push to this image repo
     prepare_deploy_role.allow_image_repo_actions([tailscale_beacon_image_repo])
@@ -134,14 +133,17 @@ def create_tailscale_beacon(
     execution_role = Role("tailscale-beacon-exec-role", assume_role_policy=ecs_assume_role_policy())
     execution_role.allow_secret_get([tailscale_auth_key_secret])
 
+    digest = tailscale_beacon_image_repo.locked_digest()
+
+    if not digest:
+        return
+
     # Service
     tailscale_service = FargateService(
         "tailscale-beacon-service",
         name="tailscale-beacon-service",
         cluster=cluster.arn,
-        desired_count=get_images_output(repository_name=tailscale_beacon_image_repo.name).apply(
-            lambda output: 1 if output.image_ids else 0
-        ),  # Set desired count to 0 if the image repository is empty
+        desired_count=1,
         network_configuration={
             "subnets": vpc.public_subnet_ids,
             "security_groups": [tailscale_beacon_security_group.id],
@@ -152,7 +154,7 @@ def create_tailscale_beacon(
             "containers": {
                 "tailscale-beacon": {
                     "name": "tailscale-beacon",
-                    "image": locked_image_ref(tailscale_beacon_image_repo),
+                    "image": digest,
                     "log_configuration": log_configuration(tailscale_beacon_log_group),
                     "port_mappings": [{"container_port": 80, "host_port": 80, "target_group": target_group}],
                     "secrets": [{"name": "TS_AUTHKEY", "value_from": tailscale_auth_key_secret.arn}],
@@ -168,4 +170,4 @@ def create_tailscale_beacon(
     )
 
     # Allow service deployment role to deploy this service
-    deploy_role.allow_service_deployment([tailscale_service.service.arn], [execution_role.arn])
+    deploy_role.allow_service_deployment("tailscale-beacon",[tailscale_service.service.arn], [execution_role.arn])

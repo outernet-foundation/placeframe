@@ -1,6 +1,5 @@
 from pulumi import Config, Output, StackReference
 from pulumi_aws.cloudwatch import LogGroup
-from pulumi_aws.ecr import Repository, get_images_output
 from pulumi_aws.ecs import Cluster
 from pulumi_aws.efs import FileSystem, MountTarget
 from pulumi_aws.lb import Listener, LoadBalancer, TargetGroup
@@ -8,8 +7,8 @@ from pulumi_aws.rds import Instance
 from pulumi_aws.route53 import Record
 from pulumi_awsx.ecs import FargateService
 
-from components.ecr import locked_image_ref
 from components.log import log_configuration
+from components.repository import Repository
 from components.role import Role, ecs_assume_role_policy
 from components.secret import Secret
 from components.security_group import SecurityGroup
@@ -39,7 +38,7 @@ def create_cloudbeaver(
     )
 
     # Image repos
-    cloudbeaver_init_image_repo = Repository("cloudbeaver-init-repo", force_delete=config.require_bool("devMode"))
+    cloudbeaver_init_image_repo = Repository("cloudbeaver-init-repo", name="cloudbeaver", force_delete=config.require_bool("devMode"))
     cloudbeaver_image_repo = Repository(
         "cloudbeaver-repo", name="dockerhub/dbeaver/cloudbeaver", force_delete=config.require_bool("devMode")
     )
@@ -139,14 +138,18 @@ def create_cloudbeaver(
     execution_role.allow_secret_get([cloudbeaver_password_secret, postgres_password_secret])
     execution_role.allow_repo_pullthrough([cloudbeaver_image_repo])
 
+    cloudbeaver_init_digest = cloudbeaver_init_image_repo.locked_digest()
+    cloudbeaver_digest = cloudbeaver_image_repo.locked_digest()
+
+    if not cloudbeaver_init_digest or not cloudbeaver_digest:
+        return
+
     # Service
     cloudbeaver_service = FargateService(
         "cloudbeaver-service",
         name="cloudbeaver-service",
         cluster=cluster.arn,
-        desired_count=get_images_output(repository_name=cloudbeaver_init_image_repo.name).apply(
-            lambda output: 1 if output.image_ids else 0
-        ),  # Set desired count to 0 if the cloudbeaver-init image repository is empty (the cloudbeaver repository itself is a pullthrough cache and will always have images)
+        desired_count=1,
         network_configuration={"subnets": vpc.private_subnet_ids, "security_groups": [cloudbeaver_security_group.id]},
         task_definition_args={
             "execution_role": {"role_arn": execution_role.arn},
@@ -165,7 +168,7 @@ def create_cloudbeaver(
             "containers": {
                 "cloudbeaver-init": {
                     "name": "cloudbeaver-init",
-                    "image": locked_image_ref(cloudbeaver_init_image_repo),
+                    "image": cloudbeaver_init_digest,
                     "essential": False,
                     "log_configuration": log_configuration(cloudbeaver_init_log_group),
                     "mount_points": [{"source_volume": "efs", "container_path": "/opt/cloudbeaver/workspace"}],
@@ -186,7 +189,7 @@ def create_cloudbeaver(
                 "cloudbeaver": {
                     "name": "cloudbeaver",
                     "depends_on": [{"container_name": "cloudbeaver-init", "condition": "SUCCESS"}],
-                    "image": locked_image_ref(cloudbeaver_image_repo),
+                    "image": cloudbeaver_digest,
                     "log_configuration": log_configuration(cloudbeaver_log_group),
                     "mount_points": [{"source_volume": "efs", "container_path": "/opt/cloudbeaver/workspace"}],
                     "port_mappings": [
@@ -218,4 +221,4 @@ def create_cloudbeaver(
     )
 
     # Allow service deployment role to deploy this service
-    deploy_role.allow_service_deployment([cloudbeaver_service.service.arn], [execution_role.arn])
+    deploy_role.allow_service_deployment("cloudbeaver", [cloudbeaver_service.service.arn], [execution_role.arn])

@@ -3,10 +3,10 @@ from typing import Iterable, overload
 
 from pulumi import ComponentResource, Config, Input, Output, ResourceOptions
 from pulumi_aws import iam
-from pulumi_aws.ecr import Repository
 from pulumi_aws.iam import Policy, RolePolicyAttachment, get_role_output
 from pulumi_aws.s3 import Bucket
 
+from components.repository import Repository
 from components.secret import Secret
 
 
@@ -92,10 +92,10 @@ class Role(ComponentResource):
         )
 
     def allow_service_deployment(
-        self, ecs_service_arns: Iterable[str | Output[str]], passrole_arns: Iterable[str | Output[str]]
+        self, service_name: str, ecs_service_arns: Iterable[str | Output[str]], passrole_arns: Iterable[str | Output[str]]
     ):
         self.attach_policy(
-            "allow-ecs-service-deploy",
+            f"allow-ecs-service-deploy-{service_name}",
             Output.all(service_arns=Output.all(*ecs_service_arns), passrole_arns=Output.all(*passrole_arns)).apply(
                 lambda arns: json.dumps({
                     "Version": "2012-10-17",
@@ -119,7 +119,7 @@ class Role(ComponentResource):
 
     def allow_image_repo_actions(self, repos: Iterable[Repository]):
         self.attach_policy(
-            "allow-image-repo-actions",
+            f"allow-image-repo-actions-{"-".join(repo.resource_name for repo in repos)}",
             Output.all(*[repo.arn for repo in repos]).apply(
                 lambda arns: json.dumps({
                     "Version": "2012-10-17",
@@ -147,7 +147,7 @@ class Role(ComponentResource):
 
     def allow_repo_pullthrough(self, repos: Iterable[Repository]):
         self.attach_policy(
-            "allow-repo-pullthrough",
+            f"allow-repo-pullthrough-{"-".join(repo.resource_name for repo in repos)}",
             Output.all(*[repo.arn for repo in repos]).apply(
                 lambda arns: json.dumps({
                     "Version": "2012-10-17",
@@ -158,7 +158,7 @@ class Role(ComponentResource):
 
     def allow_secret_get(self, secrets: Iterable[Secret]):
         self.attach_policy(
-            "allow-secret-get",
+            f"allow-secret-get-{"-".join(secret._name for secret in secrets)}",
             Output.all(*[secret.arn for secret in secrets]).apply(
                 lambda arns: json.dumps({
                     "Version": "2012-10-17",
@@ -169,7 +169,7 @@ class Role(ComponentResource):
 
     def allow_s3(self, s3_bucket: Bucket):
         self.attach_policy(
-            "allow-s3",
+            f"allow-s3-{s3_bucket._name}",
             s3_bucket.arn.apply(
                 lambda arn: json.dumps({
                     "Version": "2012-10-17",

@@ -1,14 +1,13 @@
 from pulumi import Config, StackReference
 from pulumi_aws.cloudwatch import LogGroup
-from pulumi_aws.ecr import Repository, get_images_output
 from pulumi_aws.ecs import Cluster
 from pulumi_aws.lb import Listener, LoadBalancer, TargetGroup
 from pulumi_aws.route53 import Record
 from pulumi_aws.s3 import Bucket
 from pulumi_awsx.ecs import FargateService
 
-from components.ecr import locked_image_ref
 from components.log import log_configuration
+from components.repository import Repository
 from components.role import Role, ecs_assume_role_policy
 from components.secret import Secret
 from components.security_group import SecurityGroup
@@ -30,7 +29,7 @@ def create_api(
     api_log_group = LogGroup("api-log-group", name="/ecs/api", retention_in_days=7)
 
     # Image repos
-    api_image_repo = Repository("api-repo", force_delete=config.require_bool("devMode"))
+    api_image_repo = Repository("api-repo", "api", force_delete=config.require_bool("devMode"))
 
     # Allow image repo actions role to push to this image repo
     prepare_deploy_role.allow_image_repo_actions([api_image_repo])
@@ -110,13 +109,16 @@ def create_api(
     task_role = Role("api-task-role", assume_role_policy=ecs_assume_role_policy())
     task_role.allow_s3(s3_bucket)
 
+    digest = api_image_repo.locked_digest()
+
+    if not digest:
+        return
+    
     service = FargateService(
         "api-service",
         name="api-service",
         cluster=cluster.arn,
-        desired_count=get_images_output(repository_name=api_image_repo.name).apply(
-            lambda output: 1 if output.image_ids else 0
-        ),  # Set desired count to 0 if the image repository is empty
+        desired_count=1,
         network_configuration={"subnets": vpc.private_subnet_ids, "security_groups": [api_security_group.id]},
         task_definition_args={
             "execution_role": {"role_arn": execution_role.arn},
@@ -124,7 +126,7 @@ def create_api(
             "containers": {
                 "api": {
                     "name": "api",
-                    "image": locked_image_ref(api_image_repo),
+                    "image": digest,
                     "log_configuration": log_configuration(api_log_group),
                     "port_mappings": [{"container_port": 8000, "host_port": 8000, "target_group": target_group}],
                     "secrets": [{"name": "POSTGRES_DSN", "value_from": postgres_dsn_secret.arn}],
@@ -135,4 +137,4 @@ def create_api(
     )
 
     # Allow the deployment role to deploy this service
-    deploy_role.allow_service_deployment([service.service.arn], [execution_role.arn])
+    deploy_role.allow_service_deployment("api", [service.service.arn], [execution_role.arn])
