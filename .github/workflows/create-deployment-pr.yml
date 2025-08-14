@@ -172,7 +172,6 @@ jobs:
           set -euo pipefail
           LOCK="infra/image-lock.json"
           KEY="${{ steps.pulumi.outputs.repo_name }}"
-          ECR_URL="${{ steps.pulumi.outputs.repo_url }}"
 
           if [ -f "$LOCK" ] && jq -e --arg k "$KEY" 'has($k) or (.repositories? and .repositories|has($k))' "$LOCK" >/dev/null 2>&1; then
             DIGEST="$(jq -r --arg k "$KEY" '
@@ -185,7 +184,9 @@ jobs:
               end' "$LOCK")"
           else
             echo "Initializing lock for $KEY from ECR tag 'latest'…"
-            docker pull "$ECR_URL:latest"
+            aws ecr batch-import-upstream-image \
+              --repository-name "$KEY" \
+              --image-id imageTag=latest
 
             DETAILS="$(aws ecr describe-images \
               --repository-name "$KEY" \
