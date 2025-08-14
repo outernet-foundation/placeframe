@@ -46,15 +46,15 @@ namespace PlerionClient.Api
         /// <returns>ApiResponse of CaptureModel</returns>
         ApiResponse<CaptureModel> CreateCaptureWithHttpInfo(BodyCreateCapture bodyCreateCapture);
         /// <summary>
-        /// Download Capture File
+        /// Download Capture Fsile
         /// </summary>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns>FileParameter</returns>
-        FileParameter DownloadCaptureFile(string id);
+        FileParameter DownloadCaptureFsile(string id);
 
         /// <summary>
-        /// Download Capture File
+        /// Download Capture Fsile
         /// </summary>
         /// <remarks>
         /// 
@@ -62,7 +62,7 @@ namespace PlerionClient.Api
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns>ApiResponse of FileParameter</returns>
-        ApiResponse<FileParameter> DownloadCaptureFileWithHttpInfo(string id);
+        ApiResponse<FileParameter> DownloadCaptureFsileWithHttpInfo(string id);
         /// <summary>
         /// Get Capture
         /// </summary>
@@ -152,7 +152,7 @@ namespace PlerionClient.Api
         /// <returns>Task of ApiResponse (CaptureModel)</returns>
         System.Threading.Tasks.Task<ApiResponse<CaptureModel>> CreateCaptureWithHttpInfoAsync(BodyCreateCapture bodyCreateCapture, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
-        /// Download Capture File
+        /// Download Capture Fsile
         /// </summary>
         /// <remarks>
         /// 
@@ -161,10 +161,10 @@ namespace PlerionClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FileParameter</returns>
-        System.Threading.Tasks.Task<FileParameter> DownloadCaptureFileAsync(string id, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<FileParameter> DownloadCaptureFsileAsync(string id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Download Capture File
+        /// Download Capture Fsile
         /// </summary>
         /// <remarks>
         /// 
@@ -173,7 +173,7 @@ namespace PlerionClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
-        System.Threading.Tasks.Task<ApiResponse<FileParameter>> DownloadCaptureFileWithHttpInfoAsync(string id, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<FileParameter>> DownloadCaptureFsileWithHttpInfoAsync(string id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// Get Capture
         /// </summary>
@@ -576,28 +576,28 @@ namespace PlerionClient.Api
         }
 
         /// <summary>
-        /// Download Capture File 
+        /// Download Capture Fsile 
         /// </summary>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns>FileParameter</returns>
-        public FileParameter DownloadCaptureFile(string id)
+        public FileParameter DownloadCaptureFsile(string id)
         {
-            PlerionClient.Client.ApiResponse<FileParameter> localVarResponse = DownloadCaptureFileWithHttpInfo(id);
+            PlerionClient.Client.ApiResponse<FileParameter> localVarResponse = DownloadCaptureFsileWithHttpInfo(id);
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// Download Capture File 
+        /// Download Capture Fsile 
         /// </summary>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <returns>ApiResponse of FileParameter</returns>
-        public PlerionClient.Client.ApiResponse<FileParameter> DownloadCaptureFileWithHttpInfo(string id)
+        public PlerionClient.Client.ApiResponse<FileParameter> DownloadCaptureFsileWithHttpInfo(string id)
         {
             // verify the required parameter 'id' is set
             if (id == null)
-                throw new PlerionClient.Client.ApiException(400, "Missing required parameter 'id' when calling CapturesApi->DownloadCaptureFile");
+                throw new PlerionClient.Client.ApiException(400, "Missing required parameter 'id' when calling CapturesApi->DownloadCaptureFsile");
 
             PlerionClient.Client.RequestOptions localVarRequestOptions = new PlerionClient.Client.RequestOptions();
 
@@ -624,7 +624,7 @@ namespace PlerionClient.Api
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("DownloadCaptureFile", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DownloadCaptureFsile", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -632,30 +632,30 @@ namespace PlerionClient.Api
         }
 
         /// <summary>
-        /// Download Capture File 
+        /// Download Capture Fsile 
         /// </summary>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FileParameter</returns>
-        public async System.Threading.Tasks.Task<FileParameter> DownloadCaptureFileAsync(string id, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<FileParameter> DownloadCaptureFsileAsync(string id, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlerionClient.Client.ApiResponse<FileParameter> localVarResponse = await DownloadCaptureFileWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            PlerionClient.Client.ApiResponse<FileParameter> localVarResponse = await DownloadCaptureFsileWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
         /// <summary>
-        /// Download Capture File 
+        /// Download Capture Fsile 
         /// </summary>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
-        public async System.Threading.Tasks.Task<PlerionClient.Client.ApiResponse<FileParameter>> DownloadCaptureFileWithHttpInfoAsync(string id, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlerionClient.Client.ApiResponse<FileParameter>> DownloadCaptureFsileWithHttpInfoAsync(string id, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'id' is set
             if (id == null)
-                throw new PlerionClient.Client.ApiException(400, "Missing required parameter 'id' when calling CapturesApi->DownloadCaptureFile");
+                throw new PlerionClient.Client.ApiException(400, "Missing required parameter 'id' when calling CapturesApi->DownloadCaptureFsile");
 
 
             PlerionClient.Client.RequestOptions localVarRequestOptions = new PlerionClient.Client.RequestOptions();
@@ -685,7 +685,7 @@ namespace PlerionClient.Api
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("DownloadCaptureFile", localVarResponse);
+                Exception _exception = this.ExceptionFactory("DownloadCaptureFsile", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 

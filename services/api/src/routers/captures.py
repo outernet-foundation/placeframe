@@ -92,7 +92,7 @@ async def upload_capture_file(
     status_code=status.HTTP_307_TEMPORARY_REDIRECT,
     responses={200: {"content": binary_schema}},
 )
-async def download_capture_file(
+async def download_capture_fsile(
     id: str,
     storage: Storage = Depends(get_storage),
 ) -> RedirectResponse:

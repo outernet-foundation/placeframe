@@ -102,7 +102,7 @@ paths:
       - captures
   /captures/{id}/file:
     get:
-      operationId: download_capture_file
+      operationId: download_capture_fsile
       parameters:
       - explode: false
         in: path
@@ -131,7 +131,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/HTTPValidationError"
           description: Validation Error
-      summary: Download Capture File
+      summary: Download Capture Fsile
       tags:
       - captures
     put:
