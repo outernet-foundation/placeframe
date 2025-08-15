@@ -51,7 +51,7 @@ class Api(ComponentResource):
             opts=ResourceOptions.merge(
                 self._child_opts,
                 ResourceOptions(retain_on_delete=True),
-                # ResourceOptions(import_=True)
+                # ResourceOptions(import_="api")
             ),
         )
         prepare_deploy_role.allow_image_repo_actions([api_image_repo])

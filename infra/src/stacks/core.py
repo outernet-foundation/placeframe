@@ -10,7 +10,7 @@ from pulumi_aws.route53 import Record, Zone
 from components.role import Role, github_actions_assume_role_policy
 from components.secret import Secret
 from components.vpc import Vpc, VpcInfo
-from services.tailscale_beacon import create_tailscale_beacon
+from services.tailscale_beacon import TailscaleBeacon
 
 
 def create_core_stack(config: Config):
@@ -74,9 +74,10 @@ def create_core_stack(config: Config):
 
     cluster = Cluster("core-tooling-cluster")
 
-    create_tailscale_beacon(
-        vpc=vpc,
+    TailscaleBeacon(
+        resource_name="tailscale-beacon",
         config=config,
+        vpc=vpc,
         zone_id=zone.id,
         domain=domain,
         certificate_arn=certificate.arn,

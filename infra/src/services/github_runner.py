@@ -47,7 +47,7 @@ class GithubRunner(ComponentResource):
             opts=ResourceOptions.merge(
                 self._child_opts,
                 ResourceOptions(retain_on_delete=True),
-                # ResourceOptions(import_=True)
+                # ResourceOptions(import_="dockerhub/myoung34/github-runner")
             ),
         )
         prepare_deploy_role.allow_image_repo_actions([github_runner_image_repo])
