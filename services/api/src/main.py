@@ -12,6 +12,7 @@ from .settings import get_settings
 settings = get_settings()
 
 
+#
 # Make codegened client functions use the same name as their corresponding server functions
 def use_handler_name(route: APIRoute) -> str:
     return route.name

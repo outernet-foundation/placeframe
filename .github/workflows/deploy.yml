@@ -43,8 +43,8 @@ jobs:
         with:
           environment: tyler-s-hatch/plerion/dev
           export-environment-variables: |
-            POSTGRES_USER=postgres-user
-            POSTGRES_PASSWORD=postgres-password
+            POSTGRES_USER
+            POSTGRES_PASSWORD
 
       - name: Generate GitHub App Token
         id: generate_token
