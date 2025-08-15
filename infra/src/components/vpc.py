@@ -95,7 +95,7 @@ class Vpc(ComponentResource):
                 self.interface_security_groups[service_name] = security_group
 
         if self._vpc is not None:
-            # Maybe switch to this?
+            # TODO:
             # route_table_ids = pulumi.Output.all(self.vpc.private_subnet_ids, self.vpc.route_table_associations).apply(
             #     lambda subs_and_assocs: [
             #         assoc.route_table_id for assoc in subs_and_assocs[1] if assoc.subnet_id in subs_and_assocs[0]

@@ -88,7 +88,7 @@ class SecurityGroup(ComponentResource):
 
         if vpc_endpoints:
             # Allow access to VPC DNS resolver
-            #     # Maybe lock down the CIDR block?
+            #     # TODO:
             #     #
             #     # From chatgpt: "You allow DNS egress to the entire VPC CIDR on 53. Stricter is better: Allow UDP/TCP
             #     # 53 only to the VPC resolver (the VPC base address + 2 for each subnet). If your SG helper doesn’t have
