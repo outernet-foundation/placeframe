@@ -34,9 +34,14 @@ jobs:
           scope: user:tyler-s-hatch
 
       - uses: pulumi/esc-action@v1
-        id: esc
+        id: esc-core
         with:
           environment: tyler-s-hatch/plerion/core
+
+      - uses: pulumi/esc-action@v1
+        id: esc-dev
+        with:
+          environment: tyler-s-hatch/plerion/dev
           export-environment-variables: |
             POSTGRES_USER=postgres-user
             POSTGRES_PASSWORD=postgres-password
@@ -45,8 +50,8 @@ jobs:
         id: generate_token
         uses: actions/create-github-app-token@v1
         with:
-          app-id: ${{ steps.esc.outputs.github-app-id }}
-          private-key: ${{ steps.esc.outputs.github-app-private-key }}
+          app-id: ${{ steps.esc-core.outputs.github-app-id }}
+          private-key: ${{ steps.esc-core.outputs.github-app-private-key }}
 
       - name: Get Pulumi stack outputs
         id: pulumi-outputs

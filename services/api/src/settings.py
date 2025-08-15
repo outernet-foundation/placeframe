@@ -15,7 +15,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
 
-    #
     @model_validator(mode="after")
     def check_storage_config(self):
         using_minio = self.s3_endpoint_url is not None
