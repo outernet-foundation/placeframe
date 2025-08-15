@@ -73,9 +73,9 @@ jobs:
           PICCOLO_CONF: src.db.conf
           POSTGRES_HOST: ${{ steps.pulumi-outputs.outputs.postgres-host }}
         run: |
-          echo "POSTGRES_HOST=${POSTGRES_HOST}"
-          echo "POSTGRES_USER=${POSTGRES_USER}"
-          echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
+          echo "POSTGRES_HOST=$POSTGRES_HOST"
+          echo "POSTGRES_USER=$POSTGRES_USER"
+          echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD"
           uv sync --frozen
           uv run piccolo migrations forwards all
 
