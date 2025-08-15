@@ -180,6 +180,20 @@ namespace Nessle
         public static ControlWithMetadata<TControl, TData> WithMetadata<TControl, TData>(this TControl control, TData data)
             where TControl : IControl => new ControlWithMetadata<TControl, TData>() { control = control, metadata = data };
 
+        public static T Value<T, U>(this T control, U value)
+            where T : IValueControl<U>
+        {
+            control.value = value;
+            return control;
+        }
+
+        public static T Value<T, U>(this T control, IValueObservable<U> value)
+            where T : IValueControl<U>
+        {
+            control.AddBinding(value.Subscribe(x => control.value = x.currentValue));
+            return control;
+        }
+
         public static T OnChange<T, U>(this T control, Action<U> onChange)
             where T : IValueControl<U>
         {

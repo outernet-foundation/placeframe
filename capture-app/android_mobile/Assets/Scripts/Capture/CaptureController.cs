@@ -1,10 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Linq;
 
 using UnityEngine;
+using UnityEngine.UI;
 
 using Cysharp.Threading.Tasks;
 using TMPro;
@@ -16,7 +16,6 @@ using Nessle;
 using ObserveThing;
 using static Nessle.UIBuilder;
 using static PlerionClient.Client.UIPresets;
-using UnityEngine.UI;
 
 namespace PlerionClient.Client
 {
@@ -195,6 +194,7 @@ namespace PlerionClient.Client
                                 .PreferredHeight(25.65f)
                                 .Options(Enum.GetNames(typeof(CaptureType)))
                                 .Interactable(App.state.captureStatus.SelectDynamic(x => x == CaptureStatus.Idle))
+                                .BindValue(App.state.captureMode, x => (CaptureType)x, x => (int)x)
                         )
                     )
             ));

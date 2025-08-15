@@ -82,6 +82,8 @@ namespace Nessle
             component.itemText = this.itemLabel.component;
 
             this.template.gameObject.SetActive(false);
+
+            component.onValueChanged.AddListener(x => value = x);
         }
     }
 }
