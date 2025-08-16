@@ -2,7 +2,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlerionClient", "src\PlerionClient\PlerionClient.csproj", "{0CC49852-81B5-4352-A6B7-642B96D60C8D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PlerionClient", "src\PlerionClient\PlerionClient.csproj", "{A4C6FB60-5FA2-4AB1-A380-22D895FC5B49}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -10,10 +10,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{0CC49852-81B5-4352-A6B7-642B96D60C8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0CC49852-81B5-4352-A6B7-642B96D60C8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0CC49852-81B5-4352-A6B7-642B96D60C8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0CC49852-81B5-4352-A6B7-642B96D60C8D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A4C6FB60-5FA2-4AB1-A380-22D895FC5B49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4C6FB60-5FA2-4AB1-A380-22D895FC5B49}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A4C6FB60-5FA2-4AB1-A380-22D895FC5B49}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A4C6FB60-5FA2-4AB1-A380-22D895FC5B49}.Release|Any CPU.Build.0 = Release|Any CPU
 		{19F1DEBC-DE5E-4517-8062-F000CD499087}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{19F1DEBC-DE5E-4517-8062-F000CD499087}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{19F1DEBC-DE5E-4517-8062-F000CD499087}.Release|Any CPU.ActiveCfg = Release|Any CPU
