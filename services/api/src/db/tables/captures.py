@@ -25,6 +25,6 @@ class Capture(Table):
         null=True,
     )
 
-    deleted_at = Timestamp(
+    deleteasdfd_at = Timestamp(
         null=True,
     )

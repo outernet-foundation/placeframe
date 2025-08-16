@@ -38,14 +38,14 @@ namespace PlerionClient.Model
         /// <param name="filename">filename.</param>
         /// <param name="createdAt">createdAt.</param>
         /// <param name="uploadedAt">uploadedAt.</param>
-        /// <param name="deletedAt">deletedAt.</param>
-        public CaptureModel(Guid? id = default, string filename = default, DateTime? createdAt = default, DateTime? uploadedAt = default, DateTime? deletedAt = default)
+        /// <param name="deleteasdfdAt">deleteasdfdAt.</param>
+        public CaptureModel(Guid? id = default, string filename = default, DateTime? createdAt = default, DateTime? uploadedAt = default, DateTime? deleteasdfdAt = default)
         {
             this.Id = id;
             this.Filename = filename;
             this.CreatedAt = createdAt;
             this.UploadedAt = uploadedAt;
-            this.DeletedAt = deletedAt;
+            this.DeleteasdfdAt = deleteasdfdAt;
         }
 
         /// <summary>
@@ -73,10 +73,10 @@ namespace PlerionClient.Model
         public DateTime? UploadedAt { get; set; }
 
         /// <summary>
-        /// Gets or Sets DeletedAt
+        /// Gets or Sets DeleteasdfdAt
         /// </summary>
-        [DataMember(Name = "deleted_at", EmitDefaultValue = true)]
-        public DateTime? DeletedAt { get; set; }
+        [DataMember(Name = "deleteasdfd_at", EmitDefaultValue = true)]
+        public DateTime? DeleteasdfdAt { get; set; }
 
         /// <summary>
         /// Returns the string presentation of the object
@@ -90,7 +90,7 @@ namespace PlerionClient.Model
             sb.Append("  Filename: ").Append(Filename).Append("\n");
             sb.Append("  CreatedAt: ").Append(CreatedAt).Append("\n");
             sb.Append("  UploadedAt: ").Append(UploadedAt).Append("\n");
-            sb.Append("  DeletedAt: ").Append(DeletedAt).Append("\n");
+            sb.Append("  DeleteasdfdAt: ").Append(DeleteasdfdAt).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }
