@@ -1,6 +1,5 @@
 from pulumi import ComponentResource, Output, ResourceOptions
-from pulumi_aws.ec2 import Instance, Route, RouteArgs, get_route_table_output
-from pulumi_aws.ssm import get_parameter_output
+from pulumi_aws.ec2 import Instance, Route, RouteArgs, get_ami_output, get_route_table_output
 
 from components.security_group import SecurityGroup
 from components.vpc import Vpc
@@ -74,9 +73,11 @@ class NatInstance(ComponentResource):
         # EC2
         instance = Instance(
             f"{resource_name}-instance",
-            ami=get_parameter_output(
-                name="/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-arm64-gp2"
-            ).value,
+            ami=get_ami_output(
+                owners=["amazon"],
+                most_recent=True,
+                filters=[{"name": "name", "values": ["amzn2-ami-kernel-5.10-hvm-*-arm64-gp2"]}],
+            ).id,
             instance_type="t4g.nano",
             subnet_id=vpc.public_subnet_ids.apply(lambda ids: ids[0]),
             vpc_security_group_ids=[security_group.id],

@@ -345,23 +345,6 @@
               "secret": false,
               "unique": false
             }
-          },
-          "deleteasdfd_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Deleteasdfd At",
-            "extra": {
-              "nullable": true,
-              "secret": false,
-              "unique": false
-            }
           }
         },
         "type": "object",

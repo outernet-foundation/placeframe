@@ -182,7 +182,6 @@ components:
         filename: filename
         uploaded_at: 2000-01-23T04:56:07.000+00:00
         created_at: 2000-01-23T04:56:07.000+00:00
-        deleteasdfd_at: 2000-01-23T04:56:07.000+00:00
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         id:
@@ -198,10 +197,6 @@ components:
           nullable: true
           type: string
         uploaded_at:
-          format: date-time
-          nullable: true
-          type: string
-        deleteasdfd_at:
           format: date-time
           nullable: true
           type: string

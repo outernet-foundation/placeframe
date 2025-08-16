@@ -24,7 +24,3 @@ class Capture(Table):
     uploaded_at = Timestamp(
         null=True,
     )
-
-    deleteasdfd_at = Timestamp(
-        null=True,
-    )
