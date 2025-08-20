@@ -21,6 +21,12 @@ def create_fastapi_app(
         redoc_url=None,
     )
 
+    async def root():
+        return RedirectResponse(url="/docs")
+
+    async def health():
+        return PlainTextResponse("ok")
+
     # Custom Swagger UI to add add -L to curl commands so they follow redirects
     async def docs():
         orig_resp = get_swagger_ui_html(
@@ -47,13 +53,11 @@ def create_fastapi_app(
             },
         )
 
-    app.add_api_route(
-        "/", RedirectResponse(url="/docs"), include_in_schema=False, methods=["GET"]
-    )
+    app.add_api_route("/", root, include_in_schema=False, methods=["GET"])
 
     app.add_api_route(
         "/health",
-        PlainTextResponse("ok"),
+        health,
         include_in_schema=False,
         methods=["GET"],
     )
