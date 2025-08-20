@@ -31,4 +31,4 @@ typeCheckingMode = "strict"
 extend-select = ["I"]
 
 [tool.uv.sources]
-common = { path = "../../common" }
+common = { path = "../../common", editable = true }
