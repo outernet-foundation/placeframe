@@ -128,19 +128,19 @@ jobs:
 
           PATHS="${{ matrix.images.hash_paths || '' }}"
 
+          IDS=""
           if [ -n "$PATHS" ]; then
-            H=""
-            # Iterate each non-empty line in hash_paths
+            # (Optional) sort/uniq if order might vary
             while IFS= read -r P; do
               [ -z "$P" ] && continue
-              H="$H $(git rev-parse HEAD:$P)"
+              IDS="$IDS $(git rev-parse HEAD:$P)"
             done <<< "$PATHS"
-
-            TREE_HASH=$(printf '%s' "$H" | sha256sum | cut -d' ' -f1)
           else
-            # Fallback: hash the single context directory (for images without hash_paths)
-            TREE_HASH=$(git rev-parse HEAD:${{ matrix.images.context }})
+            IDS="$(git rev-parse HEAD:${{ matrix.images.context }})"
           fi
+
+          # Normalize to 40 chars by hashing the IDs with SHA-1
+          TREE_HASH="$(printf '%s' "$IDS" | sha1sum | cut -d' ' -f1)"
 
           echo "tree_tag=tree-${TREE_HASH}" >> "$GITHUB_OUTPUT"
           echo "$TREE_HASH"
