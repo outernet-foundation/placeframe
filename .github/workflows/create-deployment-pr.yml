@@ -63,7 +63,7 @@ jobs:
             stack: "dev"
             first_party: true
             context: "./services/cloudbeaver-init"
-            dockerfile: "Dockerfile"
+            dockerfile: "./Dockerfile"
 
           - name: "cloudbeaver"
             stack: "dev"
@@ -73,7 +73,7 @@ jobs:
             stack: "core"
             first_party: true
             context: "./services/tailscale-beacon"
-            dockerfile: "Dockerfile"
+            dockerfile: "./Dockerfile"
 
           - name: "github-runner"
             stack: "dev"
