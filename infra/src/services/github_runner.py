@@ -71,6 +71,9 @@ class GithubRunner(ComponentResource):
         execution_role.allow_secret_get([github_app_private_key_secret])
         execution_role.allow_repo_pullthrough([github_runner_image_repo])
 
+        # Task role
+        task_role = Role("github-runner-task-role", assume_role_policy=ecs_assume_role_policy(), opts=self._child_opts)
+
         # Service
         service = FargateService(
             "github-runner-service",
@@ -83,6 +86,7 @@ class GithubRunner(ComponentResource):
             },
             task_definition_args={
                 "execution_role": {"role_arn": execution_role.arn},
+                "task_role": {"role_arn": task_role.arn},
                 "containers": {
                     "runner": {
                         "name": "runner",
@@ -102,4 +106,6 @@ class GithubRunner(ComponentResource):
             opts=self._child_opts,
         )
 
-        deploy_role.allow_service_deployment("github-runner", [service.service.arn], [execution_role.arn])
+        deploy_role.allow_service_deployment(
+            "github-runner", [service.service.arn], [execution_role.arn, task_role.arn]
+        )

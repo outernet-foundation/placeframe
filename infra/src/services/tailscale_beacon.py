@@ -141,6 +141,11 @@ class TailscaleBeacon(ComponentResource):
         execution_role.attach_ecs_task_execution_role_policy()
         execution_role.allow_secret_get([tailscale_auth_key_secret])
 
+        # Task role
+        task_role = Role(
+            "tailscale-beacon-task-role", assume_role_policy=ecs_assume_role_policy(), opts=self._child_opts
+        )
+
         # Service
         tailscale_service = FargateService(
             "tailscale-beacon-service",
@@ -154,6 +159,7 @@ class TailscaleBeacon(ComponentResource):
             },
             task_definition_args={
                 "execution_role": {"role_arn": execution_role.arn},
+                "task_role": {"role_arn": task_role.arn},
                 "containers": {
                     "tailscale-beacon": {
                         "name": "tailscale-beacon",
@@ -176,4 +182,6 @@ class TailscaleBeacon(ComponentResource):
         )
 
         # Allow service deployment role to deploy this service
-        deploy_role.allow_service_deployment("tailscale-beacon", [tailscale_service.service.arn], [execution_role.arn])
+        deploy_role.allow_service_deployment(
+            "tailscale-beacon", [tailscale_service.service.arn], [execution_role.arn, task_role.arn]
+        )

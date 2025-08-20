@@ -142,6 +142,9 @@ class Cloudbeaver(ComponentResource):
         execution_role.allow_secret_get([cloudbeaver_password_secret, postgres_password_secret])
         execution_role.allow_repo_pullthrough([cloudbeaver_image_repo])
 
+        # Task role
+        task_role = Role("cloudbeaver-task-role", assume_role_policy=ecs_assume_role_policy(), opts=self._child_opts)
+
         # Service
         cloudbeaver_service = FargateService(
             "cloudbeaver-service",
@@ -154,6 +157,7 @@ class Cloudbeaver(ComponentResource):
             },
             task_definition_args={
                 "execution_role": {"role_arn": execution_role.arn},
+                "task_role": {"role_arn": task_role.arn},
                 "volumes": [
                     {
                         "name": "efs",
@@ -226,4 +230,6 @@ class Cloudbeaver(ComponentResource):
         )
 
         # Allow service deployment role to deploy this service
-        deploy_role.allow_service_deployment("cloudbeaver", [cloudbeaver_service.service.arn], [execution_role.arn])
+        deploy_role.allow_service_deployment(
+            "cloudbeaver", [cloudbeaver_service.service.arn], [execution_role.arn, task_role.arn]
+        )
