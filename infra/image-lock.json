@@ -1,15 +1,15 @@
 {
   "api": {
-    "digest": "sha256:ae802b1cd78b699428d55b8f12ca898ad6ebfbcfa8616bc8dbc820f8884c7823",
+    "digest": "sha256:42891b10e43b16845ab5aa76f6a010a65a44bd5cb4e1e9af2f6c6bc84216257d",
     "tags": [
-      "git-eff150a5706920a1bb1b03b3d9ffefaa3434b34e",
-      "tree-b4ab38a4d7134695e666c3c371ec0afe162f3ed1"
+      "git-55b2f6fedfba8eb8e2eebab845b07a00024dc4a2",
+      "tree-965b347975b1e134ce7319089f1ee039c358b7f2"
     ]
   },
   "cloudbeaver-init": {
     "digest": "sha256:86feb130d29214908613054c4832227e6daea19bfd8dfe53ae7441116f0b7a6d",
     "tags": [
-      "git-eff150a5706920a1bb1b03b3d9ffefaa3434b34e",
+      "git-55b2f6fedfba8eb8e2eebab845b07a00024dc4a2",
       "tree-39a2c91f17b5f5e7b181fe6b78a80a1d73b41520"
     ]
   },
@@ -28,7 +28,7 @@
   "tailscale-beacon": {
     "digest": "sha256:449595499794772af68e1e2df3cc6d914e034dbae7d096c20c7ea90df20da30c",
     "tags": [
-      "git-eff150a5706920a1bb1b03b3d9ffefaa3434b34e",
+      "git-55b2f6fedfba8eb8e2eebab845b07a00024dc4a2",
       "tree-3720e15ddabee5f34493c63b408fe00e8299a4b0"
     ]
   }
