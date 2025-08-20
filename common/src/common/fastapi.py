@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 from fastapi.routing import APIRoute
 from starlette.types import StatefulLifespan, StatelessLifespan
 
@@ -20,9 +20,6 @@ def create_fastapi_app(
         docs_url=None,
         redoc_url=None,
     )
-
-    async def root():
-        return RedirectResponse(url="/docs")
 
     # Custom Swagger UI to add add -L to curl commands so they follow redirects
     async def docs():
@@ -50,7 +47,17 @@ def create_fastapi_app(
             },
         )
 
-    app.add_api_route("/", root, include_in_schema=False, methods=["GET"])
+    app.add_api_route(
+        "/", RedirectResponse(url="/docs"), include_in_schema=False, methods=["GET"]
+    )
+
+    app.add_api_route(
+        "/health",
+        PlainTextResponse("ok"),
+        include_in_schema=False,
+        methods=["GET"],
+    )
+
     app.add_api_route("/docs", docs, include_in_schema=False, methods=["GET"])
 
     return app

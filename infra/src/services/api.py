@@ -80,6 +80,13 @@ class Api(ComponentResource):
             securityGroup=load_balancer_security_group,
             certificate_arn=core_stack.require_output("certificate-arn"),
             port=8000,
+            health_check={
+                "path": "/health",
+                "protocol": "HTTP",
+                "interval": 15,
+                "healthy_threshold": 2,
+                "unhealthy_threshold": 10,
+            },
             opts=self._child_opts,
         )
 
