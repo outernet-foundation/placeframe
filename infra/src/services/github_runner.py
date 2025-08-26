@@ -3,9 +3,10 @@ from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecs import Cluster
 from pulumi_awsx.ecs import FargateService
 
+from components.assume_role_policies import ecs_assume_role_policy
 from components.log import log_configuration
 from components.repository import Repository
-from components.role import Role, ecs_assume_role_policy
+from components.role import Role
 from components.secret import Secret
 from components.security_group import SecurityGroup
 from components.vpc import Vpc

@@ -6,10 +6,11 @@ from pulumi_aws.route53 import Record
 from pulumi_aws.s3 import Bucket
 from pulumi_awsx.ecs import FargateService
 
+from components.assume_role_policies import ecs_assume_role_policy
 from components.load_balancer import LoadBalancer
 from components.log import log_configuration
 from components.repository import Repository
-from components.role import Role, ecs_assume_role_policy
+from components.role import Role
 from components.secret import Secret
 from components.security_group import SecurityGroup
 from components.vpc import Vpc
@@ -48,9 +49,41 @@ class Api(ComponentResource):
         api_image_repo = Repository(
             "api-repo",
             "api",
-            opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True, import_="api")),
+            opts=ResourceOptions.merge(
+                self._child_opts,
+                ResourceOptions(
+                    retain_on_delete=True
+                    # import_="api"
+                ),
+            ),
         )
-        prepare_deploy_role.allow_image_repo_actions([api_image_repo])
+        reconstruction_worker_image_repo = Repository(
+            "reconstruction-worker-repo",
+            "reconstruction-worker",
+            opts=ResourceOptions.merge(
+                self._child_opts,
+                ResourceOptions(
+                    retain_on_delete=True
+                    # import_="reconstruction-worker"
+                ),
+            ),
+        )
+        features_worker_image_repo = Repository(
+            "features-worker-repo",
+            "features-worker",
+            opts=ResourceOptions.merge(
+                self._child_opts,
+                ResourceOptions(
+                    retain_on_delete=True
+                    # import_="features-worker"
+                ),
+            ),
+        )
+        prepare_deploy_role.allow_image_repo_actions([
+            api_image_repo,
+            reconstruction_worker_image_repo,
+            features_worker_image_repo,
+        ])
         export("api-image-repo-url", api_image_repo.url)
 
         # Security groups
@@ -103,6 +136,21 @@ class Api(ComponentResource):
             opts=self._child_opts,
         )
 
+        # Batch jobs
+        # batch_job_environment = BatchJobEnvironment("api-batch-job-environment", vpc=vpc, opts=self._child_opts)
+
+        # features_batch_job = BatchJobDefinition(
+        #     "features-job", image_repo=features_worker_image_repo, opts=self._child_opts
+        # )
+        # features_batch_job.job_role.allow_s3(s3_bucket)
+
+        # reconstruction_batch_job = BatchJobDefinition(
+        #     "reconstruction-job", image_repo=reconstruction_worker_image_repo, opts=self._child_opts
+        # )
+        # reconstruction_batch_job.job_role.allow_batch_job_submission(
+        #     job_environment=batch_job_environment, job_definitions=[features_batch_job]
+        # )
+
         # Execution role
         execution_role = Role("api-execution-role", assume_role_policy=ecs_assume_role_policy(), opts=self._child_opts)
         execution_role.allow_secret_get([postgres_password_secret])
@@ -111,6 +159,9 @@ class Api(ComponentResource):
         # Task role
         task_role = Role("api-task-role", assume_role_policy=ecs_assume_role_policy(), opts=self._child_opts)
         task_role.allow_s3(s3_bucket)
+        # task_role.allow_batch_job_submission(
+        #     job_environment=batch_job_environment, job_definitions=[reconstruction_batch_job]
+        # )
 
         service = FargateService(
             "api-service",

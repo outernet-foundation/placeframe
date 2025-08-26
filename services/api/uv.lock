@@ -88,11 +88,11 @@ wheels = [
 ]
 
 [package.optional-dependencies]
+batch = [
+    { name = "mypy-boto3-batch" },
+]
 s3 = [
     { name = "mypy-boto3-s3" },
-]
-secretsmanager = [
-    { name = "mypy-boto3-secretsmanager" },
 ]
 
 [[package]]
@@ -290,21 +290,21 @@ wheels = [
 ]
 
 [[package]]
+name = "mypy-boto3-batch"
+version = "1.39.16"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/47/71/ee3dd4b6dcb018674d3781a8d9795e4a2d3f402af7056aa52bb98dc14319/mypy_boto3_batch-1.39.16.tar.gz", hash = "sha256:920faec6048c5687351656c050963c9c57b49f9d1570cf82c100e12f69c97879", size = 35000, upload-time = "2025-07-29T19:32:53.507Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e1/0a/dd1c4116cbb940ed6045f8d20cc292b6464d102e4ed0b7b2bc8ac8fd51ad/mypy_boto3_batch-1.39.16-py3-none-any.whl", hash = "sha256:a471ef5e27f787063a2764b192d57e285007f6f19b8caf1207397c88d86c28ca", size = 41865, upload-time = "2025-07-29T19:32:43.057Z" },
+]
+
+[[package]]
 name = "mypy-boto3-s3"
 version = "1.39.5"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/3f/42/e6cb54fb2eeaf53fe74d4cab03e6979dabd2b8df6f94ab405a1f8dd7ffbc/mypy_boto3_s3-1.39.5.tar.gz", hash = "sha256:b339a9128e96eaf74f87c40ee42711db82d31a45085ba78b262ae7683cb9e5f0", size = 75921, upload-time = "2025-07-15T22:40:03.255Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0b/ac/ef29eb1c9bd09da3466bf1dce60558a2b8643fc82b89ac8df35a1a63a23f/mypy_boto3_s3-1.39.5-py3-none-any.whl", hash = "sha256:57272e73faf0d38e65b5ed82c8b22650c8820c8d070c5b10e307fd98f247e05a", size = 82696, upload-time = "2025-07-15T22:39:46.221Z" },
-]
-
-[[package]]
-name = "mypy-boto3-secretsmanager"
-version = "1.39.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/11/5f/04ba159d9f6ed9f02e6c8dc217b7272c76ba9e5544d52788d06fcd5ae7c6/mypy_boto3_secretsmanager-1.39.0.tar.gz", hash = "sha256:e054bd86e942cf26c13596564a156d9f4dac4dc72479f1c5d1fafa9cf231290d", size = 19811, upload-time = "2025-06-30T19:48:41.674Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/35/dd/7779f989bdec22e464e9fdf72bb803f7cd0e8715e8652977a48b2ac0ff37/mypy_boto3_secretsmanager-1.39.0-py3-none-any.whl", hash = "sha256:7b652f05e05e5792c31bb30a668e77ba948462ac2e78cdf80aaf9fc6064fa387", size = 26791, upload-time = "2025-06-30T19:48:40.195Z" },
 ]
 
 [[package]]
@@ -390,15 +390,11 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "boto3-stubs", extra = ["s3", "secretsmanager"] },
+    { name = "boto3-stubs", extra = ["batch", "s3"] },
     { name = "botocore-stubs" },
     { name = "openapi-generator-cli" },
     { name = "ruff" },
     { name = "watchdog" },
-]
-migrations = [
-    { name = "piccolo", extra = ["postgres"] },
-    { name = "pydantic-settings" },
 ]
 
 [package.metadata]
@@ -413,16 +409,12 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "boto3-stubs", extras = ["batch"], specifier = ">=1.39.8" },
     { name = "boto3-stubs", extras = ["s3"], specifier = ">=1.39.7" },
-    { name = "boto3-stubs", extras = ["secretsmanager"], specifier = ">=1.39.8" },
     { name = "botocore-stubs", specifier = ">=1.38.46" },
     { name = "openapi-generator-cli", specifier = ">=7.14.0" },
     { name = "ruff", specifier = ">=0.12.3" },
     { name = "watchdog", specifier = ">=6.0.0" },
-]
-migrations = [
-    { name = "piccolo", extras = ["postgres"], specifier = ">=1.27.1" },
-    { name = "pydantic-settings", specifier = ">=2.10.1" },
 ]
 
 [[package]]

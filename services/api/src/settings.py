@@ -1,19 +1,22 @@
 from functools import lru_cache
 
-from pydantic import AnyHttpUrl, model_validator
-from pydantic_settings import BaseSettings
+from pydantic import AnyHttpUrl, Field, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env")
+
     postgres_user: str | None = None
     postgres_password: str | None = None
     postgres_host: str | None = None
+
     s3_endpoint_url: AnyHttpUrl | None = None
     s3_access_key: str | None = None
     s3_secret_key: str | None = None
 
-    class Config:
-        env_file = ".env"
+    reconstruction_job_queue: str = Field()
+    reconstruction_job_definition: str = Field()
 
     @model_validator(mode="after")
     def check_storage_config(self):
@@ -30,4 +33,4 @@ class Settings(BaseSettings):
 
 @lru_cache()
 def get_settings() -> Settings:
-    return Settings()
+    return Settings.model_validate({})

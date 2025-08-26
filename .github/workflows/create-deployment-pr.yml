@@ -79,6 +79,24 @@ jobs:
             stack: "dev"
             first_party: false
 
+          - name: "reconstruction-worker"
+            stack: "dev"
+            first_party: true
+            context: "."
+            dockerfile: "services/reconstruction-worker/Dockerfile"
+            hash_paths: |
+              services/reconstruction-worker
+              common
+
+          - name: "features-worker"
+            stack: "dev"
+            first_party: true
+            context: "."
+            dockerfile: "services/features-worker/Dockerfile"
+            hash_paths: |
+              services/features-worker
+              common
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

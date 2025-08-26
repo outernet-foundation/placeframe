@@ -1,13 +1,12 @@
-import json
-
-from pulumi import Config, export
+from pulumi import Config, Output, export
 from pulumi_aws.acm import Certificate, CertificateValidation
 from pulumi_aws.ecr import PullThroughCacheRule
 from pulumi_aws.ecs import Cluster
 from pulumi_aws.iam import OpenIdConnectProvider
 from pulumi_aws.route53 import Record, Zone
 
-from components.role import Role, github_actions_assume_role_policy
+from components.assume_role_policies import github_actions_assume_role_policy
+from components.role import Role
 from components.secret import Secret
 from components.vpc import Vpc, VpcInfo
 from services.tailscale_beacon import TailscaleBeacon
@@ -58,9 +57,10 @@ def create_core_stack(config: Config):
     dockerhub_secret = Secret(
         "dockerhub-secret",
         name_prefix="ecr-pullthroughcache/",
-        secret_string=config.require_secret("dockerhub-password").apply(
-            lambda access_token: json.dumps({"username": config.require("dockerhub-user"), "accessToken": access_token})
-        ),
+        secret_string=Output.json_dumps({
+            "username": config.require("dockerhub-user"),
+            "accessToken": config.require_secret("dockerhub-password"),
+        }),
     )
 
     PullThroughCacheRule(
