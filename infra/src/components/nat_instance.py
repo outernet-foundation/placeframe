@@ -57,13 +57,13 @@ class NatInstance(ComponentResource):
                 {
                     "cidr_name": "vpc",
                     "from_cidr": vpc.cidr_block,
-                    "ports": [0],
+                    "ports": [None],
                     "protocols": ["-1"],
                 },  # Allow ingress from VPC over all protocols
                 {
                     "cidr_name": "anywhere",
                     "to_cidr": "0.0.0.0/0",
-                    "ports": [0],
+                    "ports": [None],
                     "protocols": ["-1"],
                 },  # Allow egress to anywhere over all protocols
             ],

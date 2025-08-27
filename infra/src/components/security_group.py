@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class _BaseRule(TypedDict):
-    ports: Required[Sequence[int]]
+    ports: Required[Sequence[int | None]]
     protocols: NotRequired[Sequence[str]]
 
 
@@ -118,9 +118,8 @@ class SecurityGroup(ComponentResource):
         for rule in rules:
             ports = rule["ports"]
             protocols = rule["protocols"] if "protocols" in rule else ["tcp"]
-
             for port in ports:
-                port_string = "all" if port == 0 else port
+                port_string = "all" if port is None else port
                 for protocol in protocols:
                     protocol_string = "all" if protocol == "-1" else protocol
                     port_protocol_string = f"{port_string}-{protocol_string}"

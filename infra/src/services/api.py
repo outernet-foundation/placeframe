@@ -144,12 +144,12 @@ class Api(ComponentResource):
         batch_job_environment = BatchJobEnvironment("api-batch-job-environment", vpc=vpc, opts=self._child_opts)
 
         features_batch_job_definition = BatchJobDefinition(
-            "features-job", image_repo=features_worker_image_repo, opts=self._child_opts
+            "features-worker", image_repo=features_worker_image_repo, opts=self._child_opts
         )
         features_batch_job_definition.job_role.allow_s3(s3_bucket)
 
         reconstruction_batch_job_definition = BatchJobDefinition(
-            "reconstruction-job", image_repo=reconstruction_worker_image_repo, opts=self._child_opts
+            "reconstruction-worker", image_repo=reconstruction_worker_image_repo, opts=self._child_opts
         )
         reconstruction_batch_job_definition.job_role.allow_s3(s3_bucket)
         reconstruction_batch_job_definition.job_role.allow_batch_job_submission(
