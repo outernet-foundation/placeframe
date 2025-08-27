@@ -5,8 +5,8 @@ import boto3
 from fastapi import APIRouter, HTTPException, status
 from mypy_boto3_batch import BatchClient
 
-from db.tables.captures import Capture
-from settings import get_api_settings
+from ..db.tables.captures import Capture
+from ..settings import get_api_settings
 
 router = APIRouter(prefix="/reconstructions", tags=["reconstructions"])
 
