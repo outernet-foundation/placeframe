@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict
 import boto3
 from botocore.config import Config
 
-from .settings import get_settings
+from .settings import get_api_settings
 
 if TYPE_CHECKING:
     from mypy_boto3_s3 import S3Client
@@ -48,7 +48,7 @@ class Storage:
 
 @lru_cache(maxsize=1)
 def _build_storage() -> Storage:
-    settings = get_settings()
+    settings = get_api_settings()
 
     kwargs: Dict[str, Any] = {}
     if settings.s3_endpoint_url:

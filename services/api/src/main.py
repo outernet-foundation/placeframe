@@ -5,9 +5,9 @@ from common.fastapi import create_fastapi_app
 from fastapi import FastAPI
 
 from .routers.captures import router as captures_router
-from .settings import get_settings
+from .settings import get_api_settings
 
-settings = get_settings()
+settings = get_api_settings()
 
 
 @asynccontextmanager

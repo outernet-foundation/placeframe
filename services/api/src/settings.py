@@ -4,13 +4,15 @@ from pydantic import AnyHttpUrl, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class Settings(BaseSettings):
+class DatabaseSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
 
     postgres_user: str | None = None
     postgres_password: str | None = None
     postgres_host: str | None = None
 
+
+class ApiSettings(DatabaseSettings):
     s3_endpoint_url: AnyHttpUrl | None = None
     s3_access_key: str | None = None
     s3_secret_key: str | None = None
@@ -32,5 +34,10 @@ class Settings(BaseSettings):
 
 
 @lru_cache()
-def get_settings() -> Settings:
-    return Settings.model_validate({})
+def get_database_settings() -> DatabaseSettings:
+    return DatabaseSettings.model_validate({})
+
+
+@lru_cache()
+def get_api_settings() -> ApiSettings:
+    return ApiSettings.model_validate({})
