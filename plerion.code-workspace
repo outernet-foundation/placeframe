@@ -9,12 +9,12 @@
       "name": "api"
     },
     {
-      "path": "services/reconstruction_worker",
-      "name": "reconstruction_worker"
+      "path": "services/reconstruction-worker",
+      "name": "reconstruction-worker"
     },
     {
-      "path": "services/features_worker",
-      "name": "features_worker"
+      "path": "services/features-worker",
+      "name": "features-worker"
     },
     {
       "path": "infra"

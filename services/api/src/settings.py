@@ -19,6 +19,7 @@ class ApiSettings(DatabaseSettings):
 
     job_queue_arn: str = Field()
     reconstruction_job_definition_arn: str = Field()
+    features_job_definition_arn: str = Field()
 
     @model_validator(mode="after")
     def check_storage_config(self):

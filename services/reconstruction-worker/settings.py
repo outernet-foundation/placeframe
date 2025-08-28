@@ -9,9 +9,9 @@ class Settings(BaseSettings):
 
     capture_id: str = Field()
     job_queue_arn: str = Field()
-    job_definition_arn: str = Field()
+    features_job_definition_arn: str = Field()
 
 
 @lru_cache()
 def get_settings() -> Settings:
-    return Settings.model_validate({})
+    return Settings()  # type: ignore

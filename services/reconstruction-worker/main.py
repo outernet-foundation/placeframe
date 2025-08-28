@@ -15,9 +15,9 @@ def main():
     client: BatchClient = boto3.client("batch", region_name="us-east-1")  # type: ignore[call-arg]
 
     response = client.submit_job(
-        jobName=f"reconstruction-{settings.capture_id}",
+        jobName=f"reconstruction-features-{settings.capture_id}",
         jobQueue=settings.job_queue_arn,
-        jobDefinition=settings.job_definition_arn,
+        jobDefinition=settings.features_job_definition_arn,
         arrayProperties={"size": 2},
         containerOverrides={
             "environment": [
