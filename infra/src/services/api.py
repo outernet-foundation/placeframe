@@ -193,6 +193,7 @@ class Api(ComponentResource):
                                 "name": "RECONSTRUCTION_JOB_DEFINITION_ARN",
                                 "value": reconstruction_batch_job_definition.arn,
                             },
+                            {"name": "FEATURES_JOB_DEFINITION_ARN", "value": features_batch_job_definition.arn},
                             {"name": "_POSTGRES_PASSWORD_VERSION", "value": postgres_password_secret.version_id},
                         ],
                     }
