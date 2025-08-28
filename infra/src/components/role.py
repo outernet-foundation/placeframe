@@ -96,6 +96,20 @@ class Role(ComponentResource):
         )
 
     def attach_ec2_instance_role_policy(self):
+        # RolePolicyAttachment(
+        #     f"{self._resource_name}-ec2-instance-role",
+        #     role=self.name,
+        #     policy_arn="arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role",
+        #     opts=self._child_opts,
+        # )
+
+        # RolePolicyAttachment(
+        #     f"{self._resource_name}-ssm-managed-instance-core",
+        #     role=self.name,
+        #     policy_arn="arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+        #     opts=self._child_opts,
+        # )
+
         RolePolicy(
             f"{self._resource_name}-ec2-instance-role",
             role=self.name,
@@ -112,15 +126,23 @@ class Role(ComponentResource):
                             "ecs:Submit*",
                             "ecs:StartTelemetrySession",
                             "ecs:UpdateContainerInstancesState",
+                            "ecs:Describe*",
+                            "ecs:List*",
                         ],
                         "Resource": "*",
                     },
+                    {"Effect": "Allow", "Action": ["ec2:Describe*"], "Resource": "*"},
                     {
                         "Effect": "Allow",
-                        "Action": ["ec2:DescribeInstances", "ec2:DescribeTags", "ec2:DescribeNetworkInterfaces"],
+                        "Action": [
+                            "logs:CreateLogGroup",
+                            "logs:CreateLogStream",
+                            "logs:PutLogEvents",
+                            "logs:DescribeLogStreams",
+                            "logs:DescribeLogGroups",
+                        ],
                         "Resource": "*",
                     },
-                    {"Effect": "Allow", "Action": ["logs:CreateLogStream", "logs:PutLogEvents"], "Resource": "*"},
                 ],
             }),
             opts=self._child_opts,

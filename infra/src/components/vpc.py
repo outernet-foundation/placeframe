@@ -64,7 +64,21 @@ class Vpc(ComponentResource):
             self.private_subnet_ids = self._vpc.private_subnet_ids
             self.public_subnet_ids = self._vpc.public_subnet_ids
 
-        for service_name in ["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "batch"]:
+        for service_name in [
+            "ecr.api",
+            "ecr.dkr",
+            "secretsmanager",
+            "logs",
+            "sts",
+            "batch",
+            "ec2",
+            "ecs",
+            "ecs-agent",
+            "ecs-telemetry",
+            # "ssm",
+            # "ssmmessages",
+            # "ec2messages",
+        ]:
             sanitized_name = service_name.replace(".", "-")
             security_group_name = f"{sanitized_name}-security-group"
             if vpc_info_out is not None:

@@ -17,7 +17,22 @@ class BatchJobEnvironment(ComponentResource):
         self.security_group = SecurityGroup(
             f"{resource_name}-security-group",
             vpc=vpc,
-            vpc_endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
+            vpc_endpoints=[
+                "ecr.api",
+                "ecr.dkr",
+                "secretsmanager",
+                "logs",
+                "sts",
+                "s3",
+                "ec2",
+                "ecs",
+                "ecs-agent",
+                "ecs-telemetry",
+                # "ssm",
+                # "ssmmessages",
+                # "ec2messages",
+            ],
+            rules=[{"cidr_name": "imds", "to_cidr": "169.254.169.254/32", "ports": [80, 443], "protocols": ["tcp"]}],
             opts=self._child_opts,
         )
 
