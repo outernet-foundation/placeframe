@@ -11,7 +11,6 @@ from .settings import get_api_settings
 settings = get_api_settings()
 
 
-#
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     # Importing the DB connects to the DB, which we don't want to during openapi generation.

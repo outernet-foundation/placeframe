@@ -209,18 +209,22 @@ class Role(ComponentResource):
         )
 
     def allow_batch_job_definition_update(
-        self, deployment_name: str, job_definitions: Iterable[BatchJobDefinition | Output[BatchJobDefinition]]
+        self,
+        deployment_name: str,
+        passroles: Iterable[Role],
+        job_definitions: Iterable[BatchJobDefinition | Output[BatchJobDefinition]],
     ):
         self.attach_policy(
             f"allow-batch-job-definition-update-{deployment_name}",
             Output.json_dumps({
                 "Version": "2012-10-17",
                 "Statement": [
+                    {"Effect": "Allow", "Action": ["iam:PassRole"], "Resource": [role.arn for role in passroles]},
                     {
                         "Effect": "Allow",
                         "Action": ["batch:RegisterJobDefinition", "batch:DeregisterJobDefinition"],
                         "Resource": [job_definition.arn_prefix for job_definition in job_definitions],
-                    }
+                    },
                 ],
             }),
         )
