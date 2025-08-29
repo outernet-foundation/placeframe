@@ -1,7 +1,11 @@
-from typing import Dict
+from typing import TYPE_CHECKING, Any, Dict
 
 import boto3
-from mypy_boto3_batch import BatchClient as AwsBatchClient
+
+if TYPE_CHECKING:
+    from mypy_boto3_batch import BatchClient as AwsBatchClient
+else:
+    BatchClient = Any
 
 
 class BatchClient:
