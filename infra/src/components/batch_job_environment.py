@@ -42,7 +42,24 @@ class BatchJobEnvironment(ComponentResource):
             f"{resource_name}-instance-profile", role=self.instance_role.name, opts=self._child_opts
         )
 
-        self.compute_environment = ComputeEnvironment(
+        self.cpu_compute_environment = ComputeEnvironment(
+            f"{resource_name}-cpu-compute-environment",
+            type="MANAGED",
+            compute_resources={
+                "type": "EC2",
+                "min_vcpus": 0,
+                "max_vcpus": 32,
+                "instance_types": ["c7i-flex.large"],
+                "instance_role": self.instance_profile.arn,
+                "subnets": vpc.private_subnet_ids,
+                "security_group_ids": [self.security_group.id],
+                "ec2_configurations": [{"image_type": "ECS_AL2"}],
+            },
+            state="ENABLED",
+            opts=self._child_opts,
+        )
+
+        self.gpu_compute_environment = ComputeEnvironment(
             f"{resource_name}-compute-environment",
             type="MANAGED",
             compute_resources={
@@ -63,7 +80,10 @@ class BatchJobEnvironment(ComponentResource):
             f"{resource_name}-job-queue",
             state="ENABLED",
             priority=1,
-            compute_environment_orders=[{"order": 1, "compute_environment": self.compute_environment.arn}],
+            compute_environment_orders=[
+                {"order": 1, "compute_environment": self.cpu_compute_environment.arn},
+                {"order": 2, "compute_environment": self.gpu_compute_environment.arn},
+            ],
             opts=self._child_opts,
         )
 

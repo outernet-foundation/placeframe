@@ -144,7 +144,7 @@ class Api(ComponentResource):
         batch_job_environment = BatchJobEnvironment("api-batch-job-environment", vpc=vpc, opts=self._child_opts)
 
         features_batch_job_definition = BatchJobDefinition(
-            "features-worker", image_repo=features_worker_image_repo, opts=self._child_opts
+            "features-worker", image_repo=features_worker_image_repo, require_gpu=True, opts=self._child_opts
         )
         features_batch_job_definition.job_role.allow_s3(s3_bucket)
 

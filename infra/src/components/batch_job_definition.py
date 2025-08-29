@@ -10,7 +10,14 @@ from components.roles import ecs_execution_role, ecs_role
 
 
 class BatchJobDefinition(ComponentResource):
-    def __init__(self, resource_name: str, image_repo: Repository, *, opts: ResourceOptions | None = None):
+    def __init__(
+        self,
+        resource_name: str,
+        image_repo: Repository,
+        *,
+        require_gpu: bool = False,
+        opts: ResourceOptions | None = None,
+    ):
         super().__init__("custom:BatchJobDefinition", resource_name, opts=opts)
 
         self._resource_name = resource_name
@@ -21,6 +28,10 @@ class BatchJobDefinition(ComponentResource):
         self.execution_role = ecs_execution_role(f"{resource_name}-execution-role", opts=self._child_opts)
         self.job_role = ecs_role(f"{resource_name}-job-role", opts=self._child_opts)
 
+        resource_requirements = [{"type": "VCPU", "value": "1"}, {"type": "MEMORY", "value": "1024"}]
+        if require_gpu:
+            resource_requirements.append({"type": "GPU", "value": "1"})
+
         self.job_definition = JobDefinition(
             f"{resource_name}-job-definition",
             type="container",
@@ -28,11 +39,7 @@ class BatchJobDefinition(ComponentResource):
                 "image": image_repo.locked_digest(),
                 "executionRoleArn": self.execution_role.arn,
                 "jobRoleArn": self.job_role.arn,
-                "resourceRequirements": [
-                    {"type": "VCPU", "value": "1"},
-                    {"type": "GPU", "value": "1"},
-                    {"type": "MEMORY", "value": "1024"},
-                ],
+                "resourceRequirements": resource_requirements,
                 "logConfiguration": {
                     "logDriver": "awslogs",
                     "options": {
