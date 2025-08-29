@@ -23,11 +23,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # hack, I think I should overriding PULUMI_HOME to temp dir per run instead, but couldn't
-      # figure out how to do that correctly
-      - name: Clear any stale Pulumi token
-        run: echo "PULUMI_ACCESS_TOKEN=" >> "$GITHUB_ENV"
-
       - name: Setup Pulumi
         uses: pulumi/setup-pulumi@v2
 
