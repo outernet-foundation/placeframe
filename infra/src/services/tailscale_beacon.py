@@ -106,8 +106,8 @@ class TailscaleBeacon(ComponentResource):
 
         # Load balancer
         load_balancer = LoadBalancer(
-            "api-loadbalancer",
-            "api",
+            "tailscale-loadbalancer",
+            "tailscale",
             vpc=vpc,
             securityGroup=load_balancer_security_group,
             certificate_arn=certificate_arn,

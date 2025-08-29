@@ -60,7 +60,7 @@ class BatchJobEnvironment(ComponentResource):
         )
 
         self.gpu_compute_environment = ComputeEnvironment(
-            f"{resource_name}-compute-environment",
+            f"{resource_name}-gpu-compute-environment",
             type="MANAGED",
             compute_resources={
                 "type": "EC2",
