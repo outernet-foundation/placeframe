@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["fastapi>=0.116.1"]
+dependencies = ["fastapi>=0.116.1", "boto3>=1.39.5"]
+
+[dependency-groups]
+dev = ["boto3-stubs[batch]>=1.39.7"]
 
 [tool.pyright]
 typeCheckingMode = "strict"

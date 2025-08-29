@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "common",
-    "boto3==1.39.5",
+    "boto3>=1.39.5",
     "fastapi>=0.116.1",
     "piccolo[postgres]>=1.27.1",
     "pydantic-settings>=2.10.1",
@@ -15,7 +15,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "boto3-stubs[batch]>=1.39.8",
     "boto3-stubs[s3]>=1.39.7",
     "botocore-stubs>=1.38.46",
     "openapi-generator-cli>=7.14.0",

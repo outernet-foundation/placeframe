@@ -186,6 +186,7 @@ class Api(ComponentResource):
                         ],
                         "secrets": [{"name": "POSTGRES_PASSWORD", "value_from": postgres_password_secret.arn}],
                         "environment": [
+                            {"name": "BACKEND", "value": "aws"},
                             {"name": "POSTGRES_USER", "value": postgres_instance.username},
                             {"name": "POSTGRES_HOST", "value": postgres_instance.address},
                             {"name": "JOB_QUEUE_ARN", "value": batch_job_environment.job_queue_arn},

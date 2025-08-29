@@ -1,9 +1,7 @@
-import os
 from uuid import UUID
 
-import boto3
+from common.batch_client import create_batch_client
 from fastapi import APIRouter, HTTPException, status
-from mypy_boto3_batch import BatchClient
 
 from ..db.tables.captures import Capture
 from ..settings import get_api_settings
@@ -23,24 +21,19 @@ async def create_reconstruction(capture_id: UUID):
         )
 
     print("Creating AWS Batch client...")
-    batch: BatchClient = boto3.client(  # type: ignore[call-arg]
-        "batch", region_name=os.getenv("AWS_REGION", "us-east-1")
-    )
+    client = create_batch_client(settings.backend)
 
     print("Submitting reconstruction job to AWS Batch...")
-    batch.submit_job(
-        jobName=f"reconstruction-{capture_id}",
-        jobQueue=settings.job_queue_arn,
-        jobDefinition=settings.reconstruction_job_definition_arn_prefix,
-        containerOverrides={
-            "environment": [
-                {"name": "CAPTURE_ID", "value": str(capture_id)},
-                {"name": "JOB_QUEUE_ARN", "value": settings.job_queue_arn},
-                {
-                    "name": "FEATURES_JOB_DEFINITION_ARN_PREFIX",
-                    "value": settings.features_job_definition_arn_prefix,
-                },
-            ]
+    client.submit_job_array(
+        f"reconstruction-{capture_id}",
+        settings.job_queue_arn,
+        settings.reconstruction_job_definition_arn_prefix,
+        1,
+        {
+            "BACKEND": settings.backend,
+            "CAPTURE_ID": str(capture_id),
+            "JOB_QUEUE_ARN": settings.job_queue_arn,
+            "FEATURES_JOB_DEFINITION_ARN_PREFIX": settings.features_job_definition_arn_prefix,
         },
     )
     print("Reconstruction job submitted.")

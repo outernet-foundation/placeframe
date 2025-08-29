@@ -14,4 +14,4 @@ for dirpath, _, files in os.walk(ROOT):
 
 for d in sorted(dirs):
     print(f"🔧 syncing {d}")
-    subprocess.run(["uv", "sync", "--all-packages", "--no-editable"], cwd=d, check=True)
+    subprocess.run(["uv", "sync"], cwd=d, check=True)

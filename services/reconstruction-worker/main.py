@@ -1,45 +1,33 @@
 import random
 import time
 
-import boto3
-from mypy_boto3_batch import BatchClient
+from common.batch_client import create_batch_client
 
 from settings import get_settings
 
 settings = get_settings()
 
 
-###
 def main():
-    print(f"Starting reconstruction for capture id {settings.capture_id}")
-
-    print("Creating AWS Batch client...")
-    client: BatchClient = boto3.client("batch", region_name="us-east-1")  # type: ignore[call-arg]
-
-    print("Submitting reconstruction job to AWS Batch...")
-    response = client.submit_job(
-        jobName=f"reconstruction-features-{settings.capture_id}",
-        jobQueue=settings.job_queue_arn,
-        jobDefinition=settings.features_job_definition_arn_prefix,
-        arrayProperties={"size": 2},
-        containerOverrides={
-            "environment": [
-                {"name": "CAPTURE_ID", "value": settings.capture_id},
-            ]
-        },
+    print("Submitting job")
+    client = create_batch_client(settings.backend)
+    job_id = client.submit_job_array(
+        f"reconstruction-features-{settings.capture_id}",
+        settings.job_queue_arn,
+        settings.features_job_definition_arn_prefix,
+        2,
+        {"BACKEND": settings.backend, "CAPTURE_ID": settings.capture_id},
     )
 
-    job_id = response["jobId"]
-    print(f"Submitted job {job_id}")
-
+    print("Awaiting job completion")
     while True:
-        status = client.describe_jobs(jobs=[job_id])["jobs"][0]["status"]
+        status = client.get_job_status(job_id)
         print(f"Job {job_id} status: {status}")
         if status in ["SUCCEEDED", "FAILED"]:
             break
         time.sleep(1 + random.random())
 
-    print(f"Job {job_id} finished with status {status}")
+    print(f"Job completed with status {status}")
 
 
 if __name__ == "__main__":

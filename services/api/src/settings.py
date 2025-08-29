@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import AnyHttpUrl, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -13,6 +14,8 @@ class DatabaseSettings(BaseSettings):
 
 
 class ApiSettings(DatabaseSettings):
+    backend: Literal["aws", "compose"] = Field()
+
     s3_endpoint_url: AnyHttpUrl | None = None
     s3_access_key: str | None = None
     s3_secret_key: str | None = None
