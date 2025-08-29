@@ -17,20 +17,23 @@ class BatchClient:
         name: str,
         queue_name: str,
         job_definition_name: str,
-        array_size: int,
-        environment_variables: Dict[str, str],
+        *,
+        environment_variables: Dict[str, str] | None = None,
+        array_size: int | None = None,
     ):
         response = self.client.submit_job(
             jobName=name,
             jobQueue=queue_name,
             jobDefinition=job_definition_name,
-            arrayProperties={"size": array_size},
+            arrayProperties={"size": array_size} if array_size is not None else None,
             containerOverrides={
                 "environment": [
                     {"name": key, "value": value}
                     for key, value in environment_variables.items()
                 ]
-            },
+            }
+            if environment_variables is not None
+            else None,
         )
 
         return response["jobId"]
