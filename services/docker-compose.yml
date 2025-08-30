@@ -161,3 +161,29 @@ services:
       - api_venv:/app/services/api/.venv
       - common_venv:/app/common/.venv
       - uv_cache:/root/.cache/uv
+
+  reconstruction-worker:
+    profiles: [ "tasks" ]
+    build:
+      context: ..
+      dockerfile: services/reconstruction-worker/Dockerfile
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+
+  features-worker:
+    profiles: [ "tasks" ]
+    build:
+      context: ..
+      dockerfile: services/features-worker/Dockerfile
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]

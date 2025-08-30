@@ -11,7 +11,7 @@ settings = get_settings()
 def main():
     print("Submitting job")
     client = create_batch_client(settings.backend)
-    job_id = client.submit_job_array(
+    job_id = client.submit_job(
         f"reconstruction-features-{settings.capture_id}",
         settings.job_queue_arn,
         settings.features_job_definition_arn_prefix,

@@ -13,7 +13,7 @@ class AwsBatchClient:
     def __init__(self):
         self.client: BatchClient = boto3.client("batch", region_name="us-east-1")  # type: ignore[call-arg]
 
-    def submit_job_array(
+    def submit_job(
         self,
         name: str,
         queue_name: str,

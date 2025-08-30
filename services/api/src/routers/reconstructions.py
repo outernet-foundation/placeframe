@@ -25,7 +25,7 @@ async def create_reconstruction(capture_id: UUID):
     client = create_batch_client(settings.backend)
 
     print("Submitting reconstruction job to AWS Batch...")
-    client.submit_job_array(
+    client.submit_job(
         f"reconstruction-{capture_id}",
         settings.job_queue_arn,
         settings.reconstruction_job_definition_arn_prefix,

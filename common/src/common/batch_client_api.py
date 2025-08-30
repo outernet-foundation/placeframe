@@ -5,7 +5,7 @@ from typing import Dict, Protocol
 
 
 class BatchClient(Protocol):
-    def submit_job_array(
+    def submit_job(
         self,
         name: str,
         queue_name: str,
