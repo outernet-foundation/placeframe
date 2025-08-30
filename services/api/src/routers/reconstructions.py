@@ -29,8 +29,7 @@ async def create_reconstruction(capture_id: UUID):
         f"reconstruction-{capture_id}",
         settings.job_queue_arn,
         settings.reconstruction_job_definition_arn_prefix,
-        1,
-        {
+        environment_variables={
             "BACKEND": settings.backend,
             "CAPTURE_ID": str(capture_id),
             "JOB_QUEUE_ARN": settings.job_queue_arn,

@@ -3,15 +3,15 @@ from typing import TYPE_CHECKING, Any, Dict
 import boto3
 
 if TYPE_CHECKING:
-    from mypy_boto3_batch import BatchClient as AwsBatchClient
+    from mypy_boto3_batch import BatchClient
     from mypy_boto3_batch.type_defs import SubmitJobRequestTypeDef
 else:
     BatchClient = Any
 
 
-class BatchClient:
+class AwsBatchClient:
     def __init__(self):
-        self.client: AwsBatchClient = boto3.client("batch", region_name="us-east-1")  # type: ignore[call-arg]
+        self.client: BatchClient = boto3.client("batch", region_name="us-east-1")  # type: ignore[call-arg]
 
     def submit_job_array(
         self,
@@ -21,7 +21,7 @@ class BatchClient:
         *,
         environment_variables: Dict[str, str] | None = None,
         array_size: int | None = None,
-    ):
+    ) -> str:
         job: SubmitJobRequestTypeDef = {
             "jobName": name,
             "jobQueue": queue_name,

@@ -10,8 +10,9 @@ class BatchClient(Protocol):
         name: str,
         queue_name: str,
         job_definition_name: str,
-        array_size: int,
-        environment_variables: Dict[str, str],
+        *,
+        environment_variables: Dict[str, str] | None = None,
+        array_size: int | None = None,
     ) -> str: ...
 
     def get_job_status(self, job_id: str) -> str: ...

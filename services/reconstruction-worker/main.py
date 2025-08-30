@@ -15,8 +15,11 @@ def main():
         f"reconstruction-features-{settings.capture_id}",
         settings.job_queue_arn,
         settings.features_job_definition_arn_prefix,
-        2,
-        {"BACKEND": settings.backend, "CAPTURE_ID": settings.capture_id},
+        array_size=2,
+        environment_variables={
+            "BACKEND": settings.backend,
+            "CAPTURE_ID": settings.capture_id,
+        },
     )
 
     print("Awaiting job completion")

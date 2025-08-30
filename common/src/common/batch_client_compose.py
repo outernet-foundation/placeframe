@@ -1,7 +1,7 @@
 from typing import Dict
 
 
-class BatchClient:
+class ComposeBatchClient:
     def __init__(self): ...
 
     def submit_job_array(
@@ -9,8 +9,9 @@ class BatchClient:
         name: str,
         queue_name: str,
         job_definition_name: str,
-        array_size: int,
-        environment_variables: Dict[str, str],
+        *,
+        array_size: int | None = None,
+        environment_variables: Dict[str, str] | None = None,
     ):
         return 0
 

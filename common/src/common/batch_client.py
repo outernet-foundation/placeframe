@@ -1,8 +1,8 @@
 from typing import Literal
 
 from .batch_client_api import BatchClient
-from .batch_client_aws import BatchClient as AwsBatchClient
-from .batch_client_compose import BatchClient as ComposeBatchClient
+from .batch_client_aws import AwsBatchClient
+from .batch_client_compose import ComposeBatchClient
 
 
 def create_batch_client(backend: Literal["aws", "compose"]) -> BatchClient:
