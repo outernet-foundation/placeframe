@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "common",
+    "docker>=7.1.0",
     "boto3>=1.39.5",
     "fastapi>=0.116.1",
     "piccolo[postgres]>=1.27.1",

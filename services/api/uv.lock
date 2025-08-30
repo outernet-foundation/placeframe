@@ -433,6 +433,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "boto3" },
     { name = "common" },
+    { name = "docker" },
     { name = "fastapi" },
     { name = "piccolo", extra = ["postgres"] },
     { name = "pydantic-settings" },
@@ -452,6 +453,7 @@ dev = [
 requires-dist = [
     { name = "boto3", specifier = ">=1.39.5" },
     { name = "common", editable = "../../common" },
+    { name = "docker", specifier = ">=7.1.0" },
     { name = "fastapi", specifier = ">=0.116.1" },
     { name = "piccolo", extras = ["postgres"], specifier = ">=1.27.1" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
