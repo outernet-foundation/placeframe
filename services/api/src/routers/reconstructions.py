@@ -1,3 +1,4 @@
+from pathlib import Path
 from uuid import UUID
 
 from common.batch_client import create_batch_client
@@ -22,7 +23,9 @@ async def create_reconstruction(capture_id: UUID):
         )
 
     print("Creating AWS Batch client...")
-    client = create_batch_client(settings.backend)
+    client = create_batch_client(
+        settings.backend, Path("../docker-compose.yml").resolve()
+    )
 
     print("Submitting reconstruction job to AWS Batch...")
     client.submit_job(

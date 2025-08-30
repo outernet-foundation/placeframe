@@ -134,7 +134,7 @@ services:
     entrypoint: >
       bash -c "
         cd /app/services/api && \
-        uv run uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/services/api --reload-dir /app/common --reload-include '**/*.py'
+        uv run --no-sync uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/services/api --reload-dir /app/common --reload-include '**/*.py'
       "
     ports:
       - "8000:8000"
@@ -146,8 +146,9 @@ services:
       S3_ENDPOINT_URL: "https://${DEVICE_NAME}-minio.${DOMAIN}"
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
-      RECONSTRUCTION_JOB_DEFINITION_ARN: ${RECONSTRUCTION_JOB_DEFINITION_ARN}
-      JOB_QUEUE_ARN: ${JOB_QUEUE_ARN}
+      RECONSTRUCTION_JOB_DEFINITION_ARN_PREFIX: reconstruction-worker
+      FEATURES_JOB_DEFINITION_ARN_PREFIX: features-worker
+      JOB_QUEUE_ARN: dummy
     depends_on:
       postgres:
         condition: service_healthy

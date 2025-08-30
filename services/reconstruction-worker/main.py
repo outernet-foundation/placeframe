@@ -1,5 +1,6 @@
 import random
 import time
+from pathlib import Path
 
 from common.batch_client import create_batch_client
 
@@ -10,7 +11,9 @@ settings = get_settings()
 
 def main():
     print("Submitting job")
-    client = create_batch_client(settings.backend)
+    client = create_batch_client(
+        settings.backend, Path("../docker-compose.yml").resolve()
+    )
     job_id = client.submit_job(
         f"reconstruction-features-{settings.capture_id}",
         settings.job_queue_arn,
