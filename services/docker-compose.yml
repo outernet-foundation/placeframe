@@ -146,9 +146,10 @@ services:
       S3_ENDPOINT_URL: "https://${DEVICE_NAME}-minio.${DOMAIN}"
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
-      RECONSTRUCTION_JOB_DEFINITION_ARN_PREFIX: reconstruction-worker
-      FEATURES_JOB_DEFINITION_ARN_PREFIX: features-worker
+      RECONSTRUCTION_JOB_DEFINITION_ARN_PREFIX: reconstruction-worker:latest
+      FEATURES_JOB_DEFINITION_ARN_PREFIX: features-worker:latest
       JOB_QUEUE_ARN: dummy
+      DOCKER_HOST: unix:///var/run/docker.sock
     depends_on:
       postgres:
         condition: service_healthy
@@ -162,29 +163,18 @@ services:
       - api_venv:/app/services/api/.venv
       - common_venv:/app/common/.venv
       - uv_cache:/root/.cache/uv
+      - /var/run/docker.sock:/var/run/docker.sock
 
   reconstruction-worker:
     profiles: [ "tasks" ]
+    image: reconstruction-worker:latest
     build:
       context: ..
       dockerfile: services/reconstruction-worker/Dockerfile
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ gpu ]
 
   features-worker:
     profiles: [ "tasks" ]
+    image: features-worker:latest
     build:
       context: ..
       dockerfile: services/features-worker/Dockerfile
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ gpu ]
