@@ -19,6 +19,8 @@ def main():
         environment_variables={
             "BACKEND": settings.backend,
             "CAPTURE_ID": settings.capture_id,
+            "DEBUG": settings.debug_features,
+            "DEBUG_WAIT": settings.debug_wait_features,
         },
     )
 

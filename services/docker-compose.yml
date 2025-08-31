@@ -144,8 +144,8 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       JOB_QUEUE_ARN: dummy
-      RECONSTRUCTION_JOB_DEFINITION_ARN_PREFIX: reconstruction-worker:latest
-      FEATURES_JOB_DEFINITION_ARN_PREFIX: features-worker:latest
+      RECONSTRUCTION_JOB_DEFINITION_ARN_PREFIX: reconstruction-worker
+      FEATURES_JOB_DEFINITION_ARN_PREFIX: features-worker
       RELOAD: ${RELOAD_API}
       DEBUG: ${DEBUG_API}
       DEBUG_WAIT: ${DEBUG_WAIT_API}

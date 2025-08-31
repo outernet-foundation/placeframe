@@ -2,56 +2,39 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Attach: api",
+      "name": "Attach to API",
       "type": "debugpy",
       "request": "attach",
       "connect": { "host": "127.0.0.1", "port": 5678 },
       "justMyCode": false,
       "pathMappings": [
-        { "localRoot": "${workspaceFolder}/services/api", "remoteRoot": "/app/services/api" },
-        { "localRoot": "${workspaceFolder}/common",        "remoteRoot": "/app/common" }
+        { "localRoot": "${workspaceFolder}", "remoteRoot": "/app" },
       ]
     },
     {
-      "name": "Attach: reconstruction-worker",
+      "name": "Attach: to worker",
       "type": "debugpy",
       "request": "attach",
-      "connect": { "host": "127.0.0.1", "port": "${input:pickReconPort}" },
+      "connect": { "host": "127.0.0.1", "port": "${input:dockerWorkerPort}" },
       "justMyCode": false,
       "pathMappings": [
-        { "localRoot": "${workspaceFolder}/services/reconstruction-worker", "remoteRoot": "/app/services/reconstruction-worker" },
-        { "localRoot": "${workspaceFolder}/common",                         "remoteRoot": "/app/common" }
+        { "localRoot": "${workspaceFolder}", "remoteRoot": "/app"}
       ]
     },
-    {
-      "name": "Attach: features-worker",
-      "type": "debugpy",
-      "request": "attach",
-      "connect": { "host": "127.0.0.1", "port": "${input:pickFeaturesPort}" },
-      "justMyCode": false,
-      "pathMappings": [
-        { "localRoot": "${workspaceFolder}/services/features-worker", "remoteRoot": "/app/services/features-worker" },
-        { "localRoot": "${workspaceFolder}/common",                   "remoteRoot": "/app/common" }
-      ]
-    }
   ],
   "inputs": [
     {
-      "id": "pickReconPort",
+      "id": "dockerWorkerPort",
       "type": "command",
-      "command": "extension.commandvariable.pickStringRemember",
+      "command": "shellCommand.execute",
       "args": {
-        "description": "Select reconstruction-worker container",
-        "command": "${workspaceFolder}/.vscode/scripts/list_debug_targets.py reconstruction-worker"
-      }
-    },
-    {
-      "id": "pickFeaturesPort",
-      "type": "command",
-      "command": "extension.commandvariable.pickStringRemember",
-      "args": {
-        "description": "Select features-worker container",
-        "command": "${workspaceFolder}/.vscode/scripts/list_debug_targets.py features-worker"
+        "command": "bash -lc \"python '.vscode/scripts/list_debug_targets.py'\"",
+        "cwd": "${workspaceFolder}",
+        "description": "Select worker container",
+        "fieldSeparator": "|",
+        "useSingleResult": true,
+        "filterEmptyResults": true,
+        "warnOnStderr": true
       }
     }
   ]

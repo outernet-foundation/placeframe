@@ -1,35 +1,52 @@
 #!/usr/bin/env python3
-import json, os, subprocess, sys
+import json
+import subprocess
+import sys
+from typing import Dict, List, Optional
 
-service_filter = sys.argv[1] if len(sys.argv) > 1 else None
+def run(*args: str) -> str:
+    return subprocess.check_output(args, text=True)
 
-fmt = '{{json .ID}} {{json .Names}} {{json .Labels}}'
-ps = subprocess.check_output(
-    ["bash", "-lc", f"docker ps --filter label=plerion.debug=1 --format '{fmt}'"],
-    text=True,
-)
+def all_container_ids() -> List[str]:
+    out = run("bash", "-lc", "docker ps --format '{{json .ID}}'")
+    return [json.loads(line) for line in out.splitlines() if line.strip()]
 
-lines = []
-for raw in ps.splitlines():
-    cid_str, name_str, labels_str = raw.split(" ", 2)
-    cid   = json.loads(cid_str)
-    name  = json.loads(name_str)
-    labels = json.loads(labels_str)
+def inspect_one(container_id: str) -> Dict:
+    return json.loads(run("docker", "inspect", container_id))[0]
 
-    svc = labels.get("plerion.service", "")
-    if service_filter and svc != service_filter:
-        continue
-
-    # inspect to find the host port bound to container port 5678/tcp
-    insp = subprocess.check_output(["docker", "inspect", cid], text=True)
-    info = json.loads(insp)[0]
+def host_port_5678(info: Dict) -> Optional[str]:
     ports = (info.get("NetworkSettings", {}).get("Ports") or {}).get("5678/tcp") or []
-    host_port = ports[0]["HostPort"] if ports else None
-    if not host_port:
-        continue
+    if not ports:
+        return None
+    return ports[0].get("HostPort") or None
 
-    label = f"{name} ({svc}) : {host_port}"
-    value = host_port   # this is what the QuickPick returns
-    lines.append(f"{label}|{value}")
+def main() -> None:
+    found = 0
+    for container_id in all_container_ids():
+        info = inspect_one(container_id)
 
-print("\n".join(lines))
+        labels = (info.get("Config", {}) or {}).get("Labels", {}) or {}
+        service = labels.get("service") or ""
+        if not service:
+            continue
+
+        port = host_port_5678(info)
+        if not port:
+            continue
+
+        name = (info.get("Name") or "").lstrip("/")
+        job = labels.get("job", "-")
+        task = labels.get("task", "-")
+        # value|label -> the picker returns the first field (port)
+        print(f"{port}|{service} | {name} j{job} t{task} → {port}")
+        found += 1
+
+    if found == 0:
+        print(
+            "[list_debug_targets] No attachable worker containers found. "
+            "Ensure containers have a 'service' label and publish 5678/tcp.",
+            file=sys.stderr,
+        )
+
+if __name__ == "__main__":
+    main()

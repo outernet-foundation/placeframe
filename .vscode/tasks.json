@@ -19,10 +19,26 @@
       }
     },
     {
-      "label": "plerion:build-recon-targets",
+      "label": "discover_workers",
       "type": "shell",
-      "command": "${workspaceFolder}/scripts/list_debug_targets.py reconstruction-worker 2>&1 | tee ${workspaceFolder}/.vscode/recon_targets.log > ${workspaceFolder}/.vscode/recon_targets.txt",
+      "command": "bash",
+      "args": [
+        "-lc",
+        "mkdir -p '${workspaceFolder}/.vscode/temp' && '${workspaceFolder}/.vscode/scripts/list_debug_targets.py' '${input:pickService}' 2>&1 | tee '${workspaceFolder}/.vscode/temp/targets.log' > '${workspaceFolder}/.vscode/temp/targets.txt'"
+      ],
+      "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
-    },
+    }
+  ],
+  "inputs": [
+    {
+      "id": "pickService",
+      "type": "pickString",
+      "description": "Select worker service",
+      "options": [
+        "reconstruction-worker",
+        "features-worker"
+      ]
+    }
   ]
 }

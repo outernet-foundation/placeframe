@@ -4,7 +4,7 @@ settings = get_settings()
 
 
 def main():
-    print(f"index={settings.aws_batch_job_array_index}")
+    print(f"index={settings.batch_job_array_index}")
 
 
 if __name__ == "__main__":

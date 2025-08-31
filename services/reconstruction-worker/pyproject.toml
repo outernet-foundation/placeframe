@@ -6,14 +6,14 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = ["common", "boto3>=1.40.18", "pydantic-settings>=2.10.1"]
 
+[dependency-groups]
+dev = ["boto3-stubs[batch]>=1.40.18", "debugpy>=1.8.16"]
+
 [tool.pyright]
 typeCheckingMode = "strict"
 
 [tool.ruff.lint]
 extend-select = ["I"]
-
-[dependency-groups]
-dev = ["boto3-stubs[batch]>=1.40.18"]
 
 [tool.uv.sources]
 common = { path = "../../common", editable = true }

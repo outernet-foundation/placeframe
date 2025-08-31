@@ -38,7 +38,7 @@ class DockerBatchClient:
             environment["BATCH_JOB_ARRAY_INDEX"] = str(index)
 
             container = self._docker.containers.run(
-                image=job_definition_name,
+                image=f"{job_definition_name}:latest",
                 environment=environment,
                 volumes={
                     "/var/run/docker.sock": {
@@ -50,10 +50,9 @@ class DockerBatchClient:
                     "5678/tcp": ("127.0.0.1", 0)
                 },  # Forward the debugging port to a random host port
                 labels={
-                    "plerion.debug": "1",
-                    "plerion.service": job_definition_name,
-                    "plerion.job": job_id,
-                    "plerion.job.index": str(index),
+                    "service": job_definition_name,
+                    "job": job_id,
+                    "task": str(index),
                 },
                 detach=True,
                 remove=False,
