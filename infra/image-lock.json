@@ -2,14 +2,14 @@
   "api": {
     "digest": "sha256:3a2e917fdbb225cc9303a73d6f55343f92ac9e05120ee9dc815b9a921b777854",
     "tags": [
-      "git-636817dca005488c27fc3616545ad4369489a932",
+      "git-5513f7f533d4a84d14141985dc8152065e472a64",
       "tree-4eb24c54384ffa268d8d6025dd086d114520edef"
     ]
   },
   "cloudbeaver-init": {
     "digest": "sha256:86feb130d29214908613054c4832227e6daea19bfd8dfe53ae7441116f0b7a6d",
     "tags": [
-      "git-636817dca005488c27fc3616545ad4369489a932",
+      "git-5513f7f533d4a84d14141985dc8152065e472a64",
       "tree-39a2c91f17b5f5e7b181fe6b78a80a1d73b41520"
     ]
   },
@@ -22,7 +22,7 @@
   "features-worker": {
     "digest": "sha256:a758e657e0df27c211c1bbafc0c9ebc63aedaa8233af7f5b95b5d94d727f6cc1",
     "tags": [
-      "git-636817dca005488c27fc3616545ad4369489a932",
+      "git-5513f7f533d4a84d14141985dc8152065e472a64",
       "tree-99e15818b6d88d9a59e42774f25b5e618d7c0a05"
     ]
   },
@@ -32,17 +32,23 @@
       "latest"
     ]
   },
+  "quay/oauth2-proxy/oauth2-proxy": {
+    "digest": "sha256:786bed0f000c0f8a7b31619244ebab02406a8856a4faf3f5fb1df61fbd6c30ed",
+    "tags": [
+      "latest"
+    ]
+  },
   "reconstruction-worker": {
     "digest": "sha256:a2ef901a013e0c9086ccd98db9af3adb1696f293b180871e056c569cd90d95c8",
     "tags": [
-      "git-636817dca005488c27fc3616545ad4369489a932",
+      "git-5513f7f533d4a84d14141985dc8152065e472a64",
       "tree-032c0e2b5fb57f8cbc11fdec3a43e6f4b76797e0"
     ]
   },
   "tailscale-beacon": {
     "digest": "sha256:449595499794772af68e1e2df3cc6d914e034dbae7d096c20c7ea90df20da30c",
     "tags": [
-      "git-636817dca005488c27fc3616545ad4369489a932",
+      "git-5513f7f533d4a84d14141985dc8152065e472a64",
       "tree-3720e15ddabee5f34493c63b408fe00e8299a4b0"
     ]
   }
