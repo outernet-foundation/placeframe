@@ -50,6 +50,16 @@ jobs:
     strategy:
       matrix:
         images:
+          - name: "tailscale-beacon"
+            stack: "core"
+            first_party: true
+            context: "./services/tailscale-beacon"
+            dockerfile: "Dockerfile"
+
+          - name: "oauth2-proxy"
+            stack: "core"
+            first_party: false
+
           - name: "api"
             stack: "dev"
             first_party: true
@@ -68,12 +78,6 @@ jobs:
           - name: "cloudbeaver"
             stack: "dev"
             first_party: false
-
-          - name: "tailscale-beacon"
-            stack: "core"
-            first_party: true
-            context: "./services/tailscale-beacon"
-            dockerfile: "Dockerfile"
 
           - name: "github-runner"
             stack: "dev"
@@ -96,10 +100,6 @@ jobs:
             hash_paths: |
               services/features-worker
               common
-
-          - name: "oauth2-proxy"
-            stack: "dev"
-            first_party: false
 
     steps:
       - name: Checkout code
