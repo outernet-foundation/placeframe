@@ -302,6 +302,20 @@ namespace Nessle
             return control;
         }
 
+        public static T AnchoredPosition<T>(this T control, Vector2 anchoredPosition)
+            where T : IControl
+        {
+            control.transform.anchoredPosition = anchoredPosition;
+            return control;
+        }
+
+        public static T AnchoredPosition<T>(this T control, IValueObservable<Vector2> anchoredPosition)
+            where T : IControl
+        {
+            control.AddBinding(anchoredPosition.Subscribe(x => control.transform.anchoredPosition = x.currentValue));
+            return control;
+        }
+
         public static T SizeDelta<T>(this T control, Vector2 sizeDelta)
             where T : IControl
         {

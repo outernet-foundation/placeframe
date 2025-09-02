@@ -206,6 +206,9 @@ namespace ObserveThing
         public static IValueObservable<bool> ContainsDynamic<T>(this ICollectionObservable<T> source, IValueObservable<T> contains)
             => new ContainsCollectionObservableReactive<T>(source, contains);
 
+        public static IValueObservable<int> IndexOfDynamic<T>(this IListObservable<T> source, T value)
+            => new IndexOfObservable<T>(source, value);
+
         public static IDisposable Subscribe<T>(this IValueObservable<T> source, Action<IValueEventArgs<T>> observer = default, Action<Exception> onError = default, Action onDispose = default)
             => source.Subscribe(new Observer<IValueEventArgs<T>>() { onNext = observer, onError = onError, onDispose = onDispose });
 

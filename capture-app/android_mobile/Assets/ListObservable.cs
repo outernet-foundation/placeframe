@@ -48,6 +48,11 @@ namespace ObserveThing
                 instance.OnNext(_args);
         }
 
+        public int IndexOf(T item)
+        {
+            return _list.IndexOf(item);
+        }
+
         public void Dispose()
         {
             if (_disposed)

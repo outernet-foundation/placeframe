@@ -11,7 +11,7 @@ namespace PlerionClient.Client
         {
             if (req.Method == HttpMethod.Put &&
                 req.RequestUri != null &&
-                req.RequestUri.AbsolutePath.EndsWith("/data"))
+                req.RequestUri.AbsolutePath.EndsWith("/tar"))
             {
                 req.Headers.ExpectContinue = true;
                 if (req.Content != null && req.Content.Headers.ContentType == null)

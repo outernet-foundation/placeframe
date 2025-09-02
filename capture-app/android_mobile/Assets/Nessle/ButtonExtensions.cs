@@ -56,5 +56,17 @@ namespace Nessle
             control.props.interactable.From(interactable);
             return control;
         }
+
+        public static T Background<T>(this T control, IValueObservable<ImageProps> image)
+            where T : IControl<ButtonProps>
+        {
+
+        }
+
+        public static T Background<T>(this T control, IValueObservable<ImageStyleProps> image)
+            where T : IControl<ButtonProps>
+        {
+
+        }
     }
 }

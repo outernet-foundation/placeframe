@@ -24,28 +24,48 @@ namespace Nessle
         public static T Color<T>(this T control, IValueObservable<Color> color)
             where T : IControl<ImageProps>
         {
-            control.props.color.From(color);
+            control.props.style.color.From(color);
             return control;
         }
 
         public static T Color<T>(this T control, Color color)
             where T : IControl<ImageProps>
         {
-            control.props.color.value = color;
+            control.props.style.color.value = color;
             return control;
         }
 
         public static T Alpha<T>(this T control, float alpha)
             where T : IControl<ImageProps>
         {
-            control.props.color.value = control.props.color.value.Alpha(alpha);
+            control.props.style.color.value = control.props.style.color.value.Alpha(alpha);
             return control;
         }
 
         public static T Alpha<T>(this T control, IValueObservable<float> alpha)
             where T : IControl<ImageProps>
         {
-            control.props.color.From(alpha.SelectDynamic(x => control.props.color.value.Alpha(x)));
+            control.props.style.color.From(alpha.SelectDynamic(x => control.props.style.color.value.Alpha(x)));
+            return control;
+        }
+
+        public static T Style<T>(this T control, IValueObservable<ImageStyleProps> style)
+            where T : IControl<ImageProps>
+        {
+            control.AddBinding(style.Subscribe(x =>
+            {
+                control.props.style.color.From(x.currentValue.color);
+                control.props.style.pixelsPerUnitMultiplier.From(x.currentValue.pixelsPerUnitMultiplier);
+                control.props.style.preserveAspect.From(x.currentValue.preserveAspect);
+                control.props.style.imageType.From(x.currentValue.imageType);
+            }));
+
+            return control;
+        }
+
+        public static T Style<T>(this T control, IValueObservable<ImageProps> style)
+            where T : IControl<ImageProps>
+        {
             return control;
         }
     }

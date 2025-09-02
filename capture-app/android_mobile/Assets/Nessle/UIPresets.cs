@@ -24,17 +24,17 @@ namespace PlerionClient.Client
         public static void StyleButton(ButtonProps button)
         {
             StylePill(button.background);
-            button.background.color.value = UIResources.ButtonColor;
+            button.background.style.color.value = UIResources.ButtonColor;
             button.padding.value = new RectOffset(13, 13, 7, 7);
         }
 
         public static void StyleInputField(InputFieldProps inputField)
         {
             StylePill(inputField.background);
-            inputField.background.pixelsPerUnitMultiplier.value = 2.8f;
-            inputField.background.color.value = UIResources.InputFieldColor;
-            inputField.inputText.margin.value = new Vector4(10, 0, 0, 0);
-            inputField.placeholder.margin.value = new Vector4(10, 0, 0, 0);
+            inputField.background.style.pixelsPerUnitMultiplier.value = 2.8f;
+            inputField.background.style.color.value = UIResources.InputFieldColor;
+            inputField.inputText.style.margin.value = new Vector4(10, 0, 0, 0);
+            inputField.placeholder.style.margin.value = new Vector4(10, 0, 0, 0);
         }
 
         public static void StyleScrollBar(ScrollbarProps scrollbar)
@@ -42,45 +42,45 @@ namespace PlerionClient.Client
             StylePill(scrollbar.handle);
             StylePill(scrollbar.background);
 
-            scrollbar.handle.pixelsPerUnitMultiplier.value = 8;
-            scrollbar.handle.color.value = UIResources.ScrollBarHandleColor;
+            scrollbar.handle.style.pixelsPerUnitMultiplier.value = 8;
+            scrollbar.handle.style.color.value = UIResources.ScrollBarHandleColor;
 
-            scrollbar.background.pixelsPerUnitMultiplier.value = 8;
-            scrollbar.background.color.value = UIResources.ScrollBarBackgroundColor;
+            scrollbar.background.style.pixelsPerUnitMultiplier.value = 8;
+            scrollbar.background.style.color.value = UIResources.ScrollBarBackgroundColor;
         }
 
         public static void StyleText(TextProps text)
         {
-            text.color.value = UIResources.TextColor;
-            text.fontSize.value = 14;
-            text.alignment.value = TextAlignmentOptions.CaplineLeft;
+            text.style.color.value = UIResources.TextColor;
+            text.style.fontSize.value = 14;
+            text.style.alignment.value = TextAlignmentOptions.CaplineLeft;
         }
 
         public static void StyleScrollRect(ScrollRectProps scrollRect)
         {
-            scrollRect.background.color.value = UIResources.PanelColor;
+            scrollRect.background.style.color.value = UIResources.PanelColor;
         }
 
         public static void StyleDropdown(DropdownProps dropdown)
         {
             StylePill(dropdown.background);
 
-            dropdown.background.color.value = UIResources.ButtonColor;
-            dropdown.template.background.color.value = UIResources.ButtonColor;
-            dropdown.itemBackground.color.value = UIResources.ButtonColor;
+            dropdown.background.style.color.value = UIResources.ButtonColor;
+            dropdown.template.background.style.color.value = UIResources.ButtonColor;
+            dropdown.itemBackground.style.color.value = UIResources.ButtonColor;
         }
 
         public static void StyleSlider(SliderProps slider)
         {
-            slider.foreground.color.value = UIResources.ScrollBarHandleColor;
+            slider.foreground.style.color.value = UIResources.ScrollBarHandleColor;
             slider.foreground.sprite.value = UIResources.RoundedBox;
-            slider.foreground.imageType.value = UnityEngine.UI.Image.Type.Sliced;
-            slider.foreground.pixelsPerUnitMultiplier.value = 3.7f;
+            slider.foreground.style.imageType.value = UnityEngine.UI.Image.Type.Sliced;
+            slider.foreground.style.pixelsPerUnitMultiplier.value = 3.7f;
 
-            slider.background.color.value = UIResources.ScrollBarBackgroundColor;
+            slider.background.style.color.value = UIResources.ScrollBarBackgroundColor;
             slider.background.sprite.value = UIResources.RoundedBox;
-            slider.background.imageType.value = UnityEngine.UI.Image.Type.Sliced;
-            slider.background.pixelsPerUnitMultiplier.value = 3.7f;
+            slider.background.style.imageType.value = UnityEngine.UI.Image.Type.Sliced;
+            slider.background.style.pixelsPerUnitMultiplier.value = 3.7f;
 
             slider.showHandle.value = false;
             slider.handleSize.value = 20f;
@@ -92,8 +92,8 @@ namespace PlerionClient.Client
         public static void StylePill(ImageProps image)
         {
             image.sprite.value = UIResources.RoundedBox;
-            image.imageType.value = UnityEngine.UI.Image.Type.Sliced;
-            image.pixelsPerUnitMultiplier.value = 2.8f;
+            image.style.imageType.value = UnityEngine.UI.Image.Type.Sliced;
+            image.style.pixelsPerUnitMultiplier.value = 2.8f;
         }
 
         public static IControl<LayoutProps> Row()
@@ -112,8 +112,8 @@ namespace PlerionClient.Client
 
         public static void StyleTitle(TextProps text)
         {
-            text.fontSize.value = 64;
-            text.alignment.value = TextAlignmentOptions.MidlineGeoAligned;
+            text.style.fontSize.value = 64;
+            text.style.alignment.value = TextAlignmentOptions.MidlineGeoAligned;
         }
 
         public static Control SafeArea()
@@ -212,15 +212,21 @@ namespace PlerionClient.Client
         {
             public ValueObservable<float> value { get; } = new ValueObservable<float>();
             public InputFieldProps inputField { get; } = DefaultInputFieldProps();
+
+            public FloatFieldProps()
+            {
+                inputField.contentType.value = TMP_InputField.ContentType.DecimalNumber;
+            }
         }
 
         public static Control<FloatFieldProps> FloatField(FloatFieldProps props = default)
         {
-            var inputField = new UnityInputField();
-            var control = new Control<FloatFieldProps>(props ?? new FloatFieldProps(), inputField.inputFieldComponent.gameObject);
-            control.props.inputField.contentType.value = TMP_InputField.ContentType.DecimalNumber;
+            props = props ?? new FloatFieldProps();
+            var inputField = InputField(props.inputField);
+            var control = new Control<FloatFieldProps>(props, inputField.gameObject);
+
+            control.Children(inputField);
             control.AddBinding(
-                BindInputField(control.props.inputField, inputField),
                 control.props.value.Subscribe(x => control.props.inputField.inputText.text.value = x.currentValue.ToString()),
                 control.props.inputField.inputText.text.Subscribe(x =>
                 {
@@ -269,28 +275,27 @@ namespace PlerionClient.Client
             public FloatFieldProps zField { get; } = new FloatFieldProps();
         }
 
-        public static Control<Vector3Props> Vector3()
+        public static Control<Vector3Props> Vector3(Vector3Props props = default)
         {
-            var control = new Control<Vector3Props>(new Vector3Props(), "Vector3");
-
-            control
+            props = props ?? new Vector3Props();
+            var control = Control("Vector3", props)
                 .PreferredHeight(30)
                 .Columns(
                     10,
                     PropertyLabel(
-                        Text(control.props.xLabel).Value("X"),
-                        FloatField(control.props.xField)
-                            .OnChanged(x => control.props.value.value = new Vector3(x, control.props.value.value.y, control.props.value.value.z))
+                        Text(props.xLabel).Value("X"),
+                        FloatField(props.xField)
+                            .OnChanged(x => props.value.value = new Vector3(x, props.value.value.y, props.value.value.z))
                     ),
                     PropertyLabel(
-                        Text(control.props.yLabel).Value("Y"),
-                        FloatField(control.props.yField)
-                            .OnChanged(x => control.props.value.value = new Vector3(control.props.value.value.x, x, control.props.value.value.z))
+                        Text(props.yLabel).Value("Y"),
+                        FloatField(props.yField)
+                            .OnChanged(x => props.value.value = new Vector3(props.value.value.x, x, props.value.value.z))
                     ),
                     PropertyLabel(
-                        Text(control.props.zLabel).Value("Z"),
-                        FloatField(control.props.zField)
-                            .OnChanged(x => control.props.value.value = new Vector3(control.props.value.value.x, control.props.value.value.y, x))
+                        Text(props.zLabel).Value("Z"),
+                        FloatField(props.zField)
+                            .OnChanged(x => props.value.value = new Vector3(props.value.value.x, props.value.value.y, x))
                     )
                 );
 
@@ -305,6 +310,60 @@ namespace PlerionClient.Client
             );
 
             return control;
+        }
+
+        public class TabProps
+        {
+            public ValueObservable<string> name { get; } = new ValueObservable<string>();
+            public ImageProps icon { get; } = DefaultImageProps();
+            public ImageProps selectedIcon { get; } = DefaultImageProps();
+            public ValueObservable<IControl> content { get; } = new ValueObservable<IControl>();
+        }
+
+        public class TabbedMenuProps
+        {
+            public ValueObservable<int> selectedTab { get; } = new ValueObservable<int>();
+            public ListObservable<TabProps> tabs { get; } = new ListObservable<TabProps>();
+            public TextStyleProps defaultLabelStyle { get; } = new TextStyleProps();
+            public TextStyleProps selectedLabelStyle { get; } = new TextStyleProps();
+            public ImageStyleProps background { get; } = new ImageStyleProps();
+            public ImageStyleProps selectedBackground { get; } = new ImageStyleProps();
+        }
+
+        public static Control<TabbedMenuProps> TabbedMenu(TabbedMenuProps props = default)
+        {
+            props = props ?? new TabbedMenuProps();
+            var control = Control("Tabbed Menu", props, typeof(VerticalLayoutGroup));
+            var layout = control.gameObject.GetComponent<VerticalLayoutGroup>();
+            layout.childControlHeight = true;
+            layout.childControlWidth = true;
+
+            control.Children(
+                HorizontalLayout().Style(x =>
+                {
+                    x.childControlHeight.value = true;
+                    x.childControlWidth.value = true;
+                    x.childForceExpandWidth.value = true;
+                }).Children(props.tabs.CreateDynamic(tabProps =>
+                {
+                    var index = props.tabs.IndexOfDynamic(tabProps);
+
+                    var selected = Observables.Combine(
+                        index,
+                        props.selectedTab,
+                        (index, selected) => index == selected
+                    );
+
+                    return Button()
+                        .Background(selected.SelectDynamic(x => x ? props.background : props.selectedBackground))
+                        .WithMetadata(index)
+                        .Children(
+                            Image().Style(selected.SelectDynamic(x => x ? tabProps.icon : tabProps.selectedIcon)),
+                            Text().Style(selected.SelectDynamic(x => x ? props.defaultLabelStyle : props.selectedLabelStyle)).Value(tabProps.name)
+                        );
+
+                }).OrderByDynamic(x => x.metadata))
+            );
         }
     }
 }

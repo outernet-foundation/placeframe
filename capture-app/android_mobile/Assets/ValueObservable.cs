@@ -51,6 +51,7 @@ namespace ObserveThing
 
         public void From(IValueObservable<T> source)
         {
+            _fromSubscription?.Dispose();
             _fromSubscription = source.Subscribe(x => value = x.currentValue);
         }
 

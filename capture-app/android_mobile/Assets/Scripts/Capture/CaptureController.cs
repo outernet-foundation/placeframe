@@ -100,7 +100,7 @@ namespace PlerionClient.Client
                     await LocalCaptureController.StartCapture(cancellationToken, captureIntervalSeconds);
                     break;
                 case CaptureType.Zed:
-                    await ZedCaptureController.StartCapture(cancellationToken, captureIntervalSeconds);
+                    await ZedCaptureController.StartCapture(captureIntervalSeconds, cancellationToken);
                     break;
                 default:
                     throw new Exception($"Unhandled capture type {captureType}");
@@ -114,35 +114,13 @@ namespace PlerionClient.Client
 
             // var captureData = localCaptures.ToDictionary(x => x, x => remoteCaptureList.FirstOrDefault(y => y.Id == x));
 
-            var captureData = new Dictionary<Guid, Model.CaptureModel>()
+            var captureData = new Dictionary<Guid, Model.CaptureModel>();
+
+            for (int i = 0; i < 20; i++)
             {
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Cat" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), new Model.CaptureModel() { Filename = "Dog" }},
-                { Guid.NewGuid(), null}
-            };
+                var capture = new Model.CaptureModel(Guid.NewGuid(), i.ToString());
+                captureData.Add(capture.Id, capture);
+            }
 
             App.state.captures.ExecuteActionOrDelay(
                 captureData,
@@ -175,13 +153,13 @@ namespace PlerionClient.Client
 
             if (type == CaptureType.Zed)
             {
-                var captureData = await ZedCaptureController.GetCapture(id);
-                await capturesApi.UploadCaptureFileAsync(response.Id.Value, new MemoryStream(captureData), cancellationToken);
+                var captureData = await ZedCaptureController.GetCapture(id, cancellationToken);
+                await capturesApi.UploadCaptureTarAsync(response.Id, captureData, cancellationToken);
             }
             else if (type == CaptureType.Local)
             {
                 var captureData = await LocalCaptureController.GetCapture(id);
-                await capturesApi.UploadCaptureFileAsync(response.Id.Value, new MemoryStream(captureData), cancellationToken);
+                await capturesApi.UploadCaptureTarAsync(response.Id, captureData, cancellationToken);
             }
 
             await UpdateCaptureList();
@@ -215,8 +193,6 @@ namespace PlerionClient.Client
                                     .OrderByDynamic(x => x.metadata.AsObservable())
                             )
                         ),
-                        Slider().FlexibleWidth(true).MinHeight(20),
-                        Vector3().FlexibleWidth(true).MinHeight(30),
                         Row().Children(
                             Button()
                                 .Interactable(App.state.captureStatus.SelectDynamic(x => x == CaptureStatus.Idle || x == CaptureStatus.Capturing))
@@ -266,7 +242,7 @@ namespace PlerionClient.Client
                 Button()
                     .Interactable(capture.uploaded.AsObservable().SelectDynamic(x => !x))
                     .PreferredWidth(100)
-                    .Children(Text().Style(x => x.alignment.value = TextAlignmentOptions.CaplineGeoAligned).Value(capture.uploaded.SelectDynamic(x => x ? "Uploaded" : "Upload")))
+                    .Children(Text().Style(x => x.style.alignment.value = TextAlignmentOptions.CaplineGeoAligned).Value(capture.uploaded.SelectDynamic(x => x ? "Uploaded" : "Upload")))
                     .OnClick(() => UploadCapture(capture.id, capture.type.value, default).Forget())
             );
         }

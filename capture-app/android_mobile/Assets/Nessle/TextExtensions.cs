@@ -32,14 +32,26 @@ namespace Nessle
         public static T Color<T>(this T control, IValueObservable<Color> color)
             where T : IControl<TextProps>
         {
-            control.props.color.From(color);
+            control.props.style.color.From(color);
             return control;
         }
 
         public static T Color<T>(this T control, Color color)
             where T : IControl<TextProps>
         {
-            control.props.color.value = color;
+            control.props.style.color.value = color;
+            return control;
+        }
+
+        public static T Style<T>(this T control, TextStyleProps style)
+            where T : IControl<TextProps>
+        {
+            return control;
+        }
+
+        public static T Style<T>(this T control, IValueObservable<TextStyleProps> style)
+            where T : IControl<TextProps>
+        {
             return control;
         }
     }
