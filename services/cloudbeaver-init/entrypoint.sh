@@ -43,6 +43,9 @@ EOF
 echo "📄 data-sources.json written."
 
 # --- 4) Idempotent admin‐seed logic ---
+HASH="$(printf '%s:%s' "$CB_ADMIN_NAME" "$CB_ADMIN_PASSWORD" | sha256sum | awk '{print $1}')"
+CURRENT="$(cat "$MARKER" 2>/dev/null || true)"
+
 if [[ "$HASH" != "$CURRENT" ]]; then
   echo "🔄 Admin credentials changed (or first run); FULL reset of CloudBeaver metadata..."
 
