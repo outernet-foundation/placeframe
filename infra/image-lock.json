@@ -2,15 +2,15 @@
   "api": {
     "digest": "sha256:3a2e917fdbb225cc9303a73d6f55343f92ac9e05120ee9dc815b9a921b777854",
     "tags": [
-      "git-6a5a09a17b28fc67a11b056d8f5d7095f9c9c87f",
+      "git-2aac87d3d01ddcf9fe97d4fd09a3d75db6d97634",
       "tree-4eb24c54384ffa268d8d6025dd086d114520edef"
     ]
   },
   "cloudbeaver-init": {
-    "digest": "sha256:0353684d634fa560d8ae6abca65e15336fe3cd36df5e57b34f5fbc0d3c5222a8",
+    "digest": "sha256:3a7b27f0a506aa18f060e7629127b43067f7fa2dc4d5ad7bbc90c1666ab516f0",
     "tags": [
-      "git-6a5a09a17b28fc67a11b056d8f5d7095f9c9c87f",
-      "tree-e7f3ba222554c33414ffbeb34fbc798814186463"
+      "git-2aac87d3d01ddcf9fe97d4fd09a3d75db6d97634",
+      "tree-8f45c7fb35be25baebee14c624d48176036270de"
     ]
   },
   "dockerhub/dbeaver/cloudbeaver": {
@@ -22,7 +22,7 @@
   "features-worker": {
     "digest": "sha256:a758e657e0df27c211c1bbafc0c9ebc63aedaa8233af7f5b95b5d94d727f6cc1",
     "tags": [
-      "git-6a5a09a17b28fc67a11b056d8f5d7095f9c9c87f",
+      "git-2aac87d3d01ddcf9fe97d4fd09a3d75db6d97634",
       "tree-99e15818b6d88d9a59e42774f25b5e618d7c0a05"
     ]
   },
@@ -41,14 +41,14 @@
   "reconstruction-worker": {
     "digest": "sha256:a2ef901a013e0c9086ccd98db9af3adb1696f293b180871e056c569cd90d95c8",
     "tags": [
-      "git-6a5a09a17b28fc67a11b056d8f5d7095f9c9c87f",
+      "git-2aac87d3d01ddcf9fe97d4fd09a3d75db6d97634",
       "tree-032c0e2b5fb57f8cbc11fdec3a43e6f4b76797e0"
     ]
   },
   "tailscale-beacon": {
     "digest": "sha256:449595499794772af68e1e2df3cc6d914e034dbae7d096c20c7ea90df20da30c",
     "tags": [
-      "git-6a5a09a17b28fc67a11b056d8f5d7095f9c9c87f",
+      "git-2aac87d3d01ddcf9fe97d4fd09a3d75db6d97634",
       "tree-3720e15ddabee5f34493c63b408fe00e8299a4b0"
     ]
   }
