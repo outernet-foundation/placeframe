@@ -2,6 +2,7 @@ from pulumi import ComponentResource, Config, Input, Output, ResourceOptions
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecs import Cluster
 from pulumi_aws.route53 import Record
+from pulumi_awsx.ecs import FargateService
 
 from components.load_balancer import LoadBalancer
 from components.oauth import Oauth
@@ -104,41 +105,41 @@ class AuthGateway(ComponentResource):
         task_role = ecs_role("oauth-task-role", opts=self._child_opts)
 
         # Service
-        # service = FargateService(
-        #     "oauth-service",
-        #     name="oauth-service",
-        #     cluster=cluster.arn,
-        #     desired_count=1,
-        #     network_configuration={"subnets": vpc.private_subnet_ids, "security_groups": [oauth_security_group.id]},
-        #     task_definition_args={
-        #         "execution_role": {"role_arn": execution_role.arn},
-        #         "task_role": {"role_arn": task_role.arn},
-        #         "containers": {
-        #             "oauth2-proxy": self.oauth.task_definition(
-        #                 config=config,
-        #                 zone_name=zone_name,
-        #                 log_group=auth_gateway_log_group,
-        #                 load_balancer=load_balancer,
-        #                 proxy_upstreams="static://200",
-        #             )
-        #         },
-        #     },
-        #     opts=self._child_opts,
-        # )
+        service = FargateService(
+            "auth-gateway-service",
+            name="oauth-service",
+            cluster=cluster.arn,
+            desired_count=1,
+            network_configuration={"subnets": vpc.private_subnet_ids, "security_groups": [oauth_security_group.id]},
+            task_definition_args={
+                "execution_role": {"role_arn": execution_role.arn},
+                "task_role": {"role_arn": task_role.arn},
+                "containers": {
+                    "oauth2-proxy": self.oauth.task_definition(
+                        config=config,
+                        zone_name=zone_name,
+                        log_group=auth_gateway_log_group,
+                        load_balancer=load_balancer,
+                        proxy_upstreams="static://200",
+                    )
+                },
+            },
+            opts=self._child_opts,
+        )
 
-        # # Allow service deployment
-        # deploy_role.allow_service_deployment(
-        #     "auth-gateway", passroles=[execution_role, task_role], services=[service.service]
-        # )
+        # Allow service deployment
+        deploy_role.allow_service_deployment(
+            "auth-gateway", passroles=[execution_role, task_role], services=[service.service]
+        )
 
-        # self.image_repo_name = self.oauth.image_repo.name
-        # self.client_id_secret_arn = self.oauth.client_id_secret.arn
-        # self.client_secret_secret_arn = self.oauth.client_secret_secret.arn
-        # self.cookie_secret_secret_arn = self.oauth.cookie_secret_secret.arn
+        self.image_repo_name = self.oauth.image_repo.name
+        self.client_id_secret_arn = self.oauth.client_id_secret.arn
+        self.client_secret_secret_arn = self.oauth.client_secret_secret.arn
+        self.cookie_secret_secret_arn = self.oauth.cookie_secret_secret.arn
 
-        # self.register_outputs({
-        #     "image_repo_name": self.image_repo_name,
-        #     "client_id_secret_arn": self.client_id_secret_arn,
-        #     "client_secret_secret_arn": self.client_secret_secret_arn,
-        #     "cookie_secret_secret_arn": self.cookie_secret_secret_arn,
-        # })
+        self.register_outputs({
+            "image_repo_name": self.image_repo_name,
+            "client_id_secret_arn": self.client_id_secret_arn,
+            "client_secret_secret_arn": self.client_secret_secret_arn,
+            "cookie_secret_secret_arn": self.cookie_secret_secret_arn,
+        })
