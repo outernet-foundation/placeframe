@@ -19,7 +19,7 @@ CONFIG_DIR="$WORKSPACE/GlobalConfiguration/.dbeaver"
 mkdir -p "$CONFIG_DIR" "$WORKSPACE/.data"
 
 # --- 3) Write out your JDBC connection JSON ---
-cat > "$CONFIG_DIR/data-sources.json" <<EOF
+cat > "$CONFIG_DIR/provided-connections.json" <<EOF
 {
   "folders": {},
   "connections": {
@@ -39,8 +39,7 @@ cat > "$CONFIG_DIR/data-sources.json" <<EOF
   }
 }
 EOF
-
-echo "📄 data-sources.json written."
+echo "📄 provided-connections.json written."
 
 # --- 4) Idempotent admin‐seed logic ---
 HASH="$(printf '%s:%s' "$CB_ADMIN_NAME" "$CB_ADMIN_PASSWORD" | sha256sum | awk '{print $1}')"
