@@ -194,6 +194,7 @@ class Cloudbeaver(ComponentResource):
                             {"name": "POSTGRES_PORT", "value": "5432"},
                             {"name": "POSTGRES_DB", "value": "postgres"},
                             {"name": "POSTGRES_USER", "value": config.require("postgres-user")},
+                            {"name": "CLOUDBEAVER_DB_SCHEMA", "value": "cloudbeaver"},
                             {"name": "CB_ADMIN_NAME", "value": config.require("cloudbeaver-user")},
                             {"name": "_CB_ADMIN_NAME_VERSION", "value": cloudbeaver_password_secret.version_id},
                             {"name": "_POSTGRES_PASSWORD_VERSION", "value": postgres_password_secret.version_id},

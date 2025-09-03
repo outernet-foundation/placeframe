@@ -8,6 +8,7 @@ set -euo pipefail
 : "${POSTGRES_PASSWORD}"
 : "${CB_ADMIN_NAME}"
 : "${CB_ADMIN_PASSWORD}"
+: "${CLOUDBEAVER_DB_SCHEMA}"
 
 # --- 2) Define workspace paths on EFS ---
 WORKSPACE="/opt/cloudbeaver/workspace"
@@ -49,8 +50,10 @@ CURRENT="$(cat "$MARKER" 2>/dev/null || true)"
 if [[ "$HASH" != "$CURRENT" ]]; then
   echo "🔄 Admin credentials changed (or first run); FULL reset of CloudBeaver metadata..."
 
+  export PGPASSWORD="${POSTGRES_PASSWORD}"
+
   # Drop CloudBeaver schema if present
-  psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
+  psql -h "${POSTGRES_HOST}" -p 5432 -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
        -v ON_ERROR_STOP=1 \
        -c "DROP SCHEMA IF EXISTS ${CLOUDBEAVER_DB_SCHEMA} CASCADE;"
 
