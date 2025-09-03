@@ -49,6 +49,10 @@ class AuthGateway(ComponentResource):
             "oauth-security-group",
             vpc=vpc,
             vpc_endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
+            rules=[
+                # allow HTTPS egress to the Internet (goes via your NAT if in private subnets)
+                {"cidr_name": "anywhere", "to_cidr": "0.0.0.0/0", "ports": [443]}
+            ],
             opts=self._child_opts,
         )
 
@@ -95,11 +99,10 @@ class AuthGateway(ComponentResource):
 
         # Execution role
         execution_role = ecs_execution_role("oauth-execution-role", opts=self._child_opts)
-        execution_role.allow_secret_get([
-            self.oauth.client_id_secret,
-            self.oauth.client_secret_secret,
-            self.oauth.cookie_secret_secret,
-        ])
+        execution_role.allow_secret_get(
+            "oauth-secrets",
+            [self.oauth.client_id_secret, self.oauth.client_secret_secret, self.oauth.cookie_secret_secret],
+        )
 
         # Task Role
         task_role = ecs_role("oauth-task-role", opts=self._child_opts)
@@ -107,7 +110,7 @@ class AuthGateway(ComponentResource):
         # Service
         service = FargateService(
             "auth-gateway-service",
-            name="oauth-service",
+            name="auth-gateway-service",
             cluster=cluster.arn,
             desired_count=1,
             network_configuration={"subnets": vpc.private_subnet_ids, "security_groups": [oauth_security_group.id]},
@@ -121,6 +124,7 @@ class AuthGateway(ComponentResource):
                         log_group=auth_gateway_log_group,
                         load_balancer=load_balancer,
                         proxy_upstreams="static://200",
+                        is_auth_gateway=True,
                     )
                 },
             },

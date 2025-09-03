@@ -147,7 +147,16 @@ class Cloudbeaver(ComponentResource):
 
         # Execution role
         execution_role = ecs_execution_role("cloudbeaver-execution-role", opts=self._child_opts)
-        execution_role.allow_secret_get([cloudbeaver_password_secret, postgres_password_secret])
+        execution_role.allow_secret_get(
+            "cloudbeaver-secrets",
+            [
+                cloudbeaver_password_secret,
+                postgres_password_secret,
+                oauth.client_id_secret,
+                oauth.client_secret_secret,
+                oauth.cookie_secret_secret,
+            ],
+        )
         execution_role.allow_repo_pullthrough([cloudbeaver_image_repo])
 
         # Task role
@@ -212,9 +221,6 @@ class Cloudbeaver(ComponentResource):
                         "image": cloudbeaver_image_repo.locked_digest(),
                         "log_configuration": log_configuration(cloudbeaver_log_group),
                         "mount_points": [{"source_volume": "efs", "container_path": "/opt/cloudbeaver/workspace"}],
-                        # "port_mappings": [
-                        #     {"container_port": 8978, "host_port": 8978, "target_group": load_balancer.target_group}
-                        # ],
                         "secrets": [
                             {"name": "CLOUDBEAVER_DB_PASSWORD", "value_from": postgres_password_secret.arn},
                             {"name": "CB_ADMIN_PASSWORD", "value_from": cloudbeaver_password_secret.arn},
@@ -223,6 +229,8 @@ class Cloudbeaver(ComponentResource):
                             {"name": "CB_SERVER_NAME", "value": "CloudBeaver"},
                             {"name": "CB_SERVER_URL", "value": domain.apply(lambda d: f"https://{d}")},
                             {"name": "CB_ADMIN_NAME", "value": config.require("cloudbeaver-user")},
+                            {"name": "CLOUDBEAVER_APP_ANONYMOUS_ACCESS_ENABLED", "value": "true"},
+                            {"name": "CLOUDBEAVER_APP_AUTHENTICATION_ENABLED", "value": "false"},
                             {"name": "CLOUDBEAVER_DB_DRIVER", "value": "postgres-jdbc"},
                             {
                                 "name": "CLOUDBEAVER_DB_URL",

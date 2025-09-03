@@ -278,9 +278,9 @@ class Role(ComponentResource):
             }),
         )
 
-    def allow_secret_get(self, secrets: Iterable[Secret]):
+    def allow_secret_get(self, policy_suffix: str, secrets: Iterable[Secret]):
         self.attach_policy(
-            f"allow-secret-get-{'-'.join(secret._name for secret in secrets)}",
+            f"allow-secret-get-{policy_suffix}",
             Output.json_dumps({
                 "Version": "2012-10-17",
                 "Statement": [

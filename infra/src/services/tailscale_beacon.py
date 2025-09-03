@@ -137,7 +137,7 @@ class TailscaleBeacon(ComponentResource):
 
         # Execution role
         execution_role = ecs_execution_role("tailscale-beacon-exec-role", opts=self._child_opts)
-        execution_role.allow_secret_get([tailscale_auth_key_secret])
+        execution_role.allow_secret_get("tailscale-secrets", [tailscale_auth_key_secret])
 
         # Task role
         task_role = ecs_role("tailscale-beacon-task-role", opts=self._child_opts)
@@ -149,9 +149,8 @@ class TailscaleBeacon(ComponentResource):
             cluster=cluster.arn,
             desired_count=1,
             network_configuration={
-                "subnets": vpc.public_subnet_ids,
+                "subnets": vpc.private_subnet_ids,
                 "security_groups": [tailscale_beacon_security_group.id],
-                "assign_public_ip": True,
             },
             task_definition_args={
                 "execution_role": {"role_arn": execution_role.arn},

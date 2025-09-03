@@ -78,7 +78,7 @@ def create_core_stack(config: Config):
     cluster = Cluster("core-tooling-cluster")
 
     auth_gateway = AuthGateway(
-        resource_name="a",
+        resource_name="auth-gateway",
         config=config,
         vpc=vpc,
         zone_id=zone.id,

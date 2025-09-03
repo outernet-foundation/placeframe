@@ -100,6 +100,7 @@ class Oauth(ComponentResource):
         log_group: LogGroup,
         load_balancer: LoadBalancer,
         proxy_upstreams: Input[str],
+        is_auth_gateway: bool = False,
     ):
         # Environment
         environment: Sequence[Input[TaskDefinitionKeyValuePairArgsDict]] = [
@@ -109,7 +110,8 @@ class Oauth(ComponentResource):
                 "name": "OAUTH2_PROXY_REDIRECT_URL",
                 "value": Output.concat("https://auth.", zone_name, "/oauth2/callback"),
             },
-            # {"name": "OAUTH2_PROXY_UPSTREAMS", "value": "static://200"},
+            {"name": "OAUTH2_PROXY_SKIP_PROVIDER_BUTTON", "value": "true"},
+            {"name": "OAUTH2_PROXY_PASS_HOST_HEADER", "value": "true"},
             {"name": "OAUTH2_PROXY_UPSTREAMS", "value": proxy_upstreams},
             {"name": "OAUTH2_PROXY_EMAIL_DOMAINS", "value": "*"},
             {"name": "OAUTH2_PROXY_COOKIE_SECURE", "value": "true"},
@@ -118,8 +120,15 @@ class Oauth(ComponentResource):
             {"name": "OAUTH2_PROXY_SET_XAUTHREQUEST", "value": "true"},
             {"name": "OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER", "value": "true"},
             {"name": "OAUTH2_PROXY_COOKIE_DOMAINS", "value": Output.concat(".", zone_name)},
-            {"name": "OAUTH2_PROXY_WHITELIST_DOMAIN", "value": Output.concat(".", zone_name)},
+            {"name": "OAUTH2_PROXY_WHITELIST_DOMAINS", "value": Output.concat(".", zone_name)},
         ]
+
+        if not is_auth_gateway:
+            environment.extend([
+                {"name": "OAUTH2_PROXY_PASS_ACCESS_TOKEN", "value": "true"},
+                {"name": "OAUTH2_PROXY_COOKIE_REFRESH", "value": "1h"},
+                {"name": "OAUTH2_PROXY_COOKIE_EXPIRE", "value": "168h"},
+            ])
 
         # Allow-lists
         allowed_users = config.get("oauth-allowed-users")

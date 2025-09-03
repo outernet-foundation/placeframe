@@ -66,7 +66,7 @@ class GithubRunner(ComponentResource):
 
         # Execution role
         execution_role = ecs_execution_role("github-runner-execution-role", opts=self._child_opts)
-        execution_role.allow_secret_get([github_app_private_key_secret])
+        execution_role.allow_secret_get("github-runner-secrets", [github_app_private_key_secret])
         execution_role.allow_repo_pullthrough([github_runner_image_repo])
 
         # Task role
