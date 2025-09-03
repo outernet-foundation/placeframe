@@ -52,6 +52,7 @@ class Oauth(ComponentResource):
         self._resource_name = resource_name
         self._child_opts = ResourceOptions.merge(opts, ResourceOptions(parent=self))
 
+        # non-adopt branch
         if prepare_deploy_role is not None:
             # Secrets
             self.client_id_secret = Secret(
@@ -80,6 +81,7 @@ class Oauth(ComponentResource):
             prepare_deploy_role.allow_image_repo_actions([self.image_repo])
             export("oauth2-proxy-image-repo-url", self.image_repo.url)
 
+        # adopt branch
         else:
             assert image_repo_name is not None
             assert client_id_secret_arn is not None

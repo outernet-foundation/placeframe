@@ -201,9 +201,9 @@ class Cloudbeaver(ComponentResource):
                         "image": cloudbeaver_image_repo.locked_digest(),
                         "log_configuration": log_configuration(cloudbeaver_log_group),
                         "mount_points": [{"source_volume": "efs", "container_path": "/opt/cloudbeaver/workspace"}],
-                        "port_mappings": [
-                            {"container_port": 8978, "host_port": 8978, "target_group": load_balancer.target_group}
-                        ],
+                        # "port_mappings": [
+                        #     {"container_port": 8978, "host_port": 8978, "target_group": load_balancer.target_group}
+                        # ],
                         "secrets": [
                             {"name": "CLOUDBEAVER_DB_PASSWORD", "value_from": postgres_password_secret.arn},
                             {"name": "CB_ADMIN_PASSWORD", "value_from": cloudbeaver_password_secret.arn},
@@ -226,6 +226,52 @@ class Cloudbeaver(ComponentResource):
                                 "name": "_CLOUDBEAVER_DB_PASSWORD_VERSION",
                                 "value": cloudbeaver_password_secret.version_id,
                             },
+                        ],
+                    },
+                    "oauth2-proxy": {
+                        "name": "oauth2-proxy",
+                        "image": oauth_image_repo.locked_digest(),
+                        "log_configuration": log_configuration(cloudbeaver_log_group),
+                        "port_mappings": [
+                            {"container_port": 4180, "host_port": 4180, "target_group": load_balancer.target_group}
+                        ],
+                        "environment": [
+                            {"name": "OAUTH2_PROXY_PROVIDER", "value": "github"},
+                            # Central callback on auth.* (single OAuth App for all subdomains)
+                            {
+                                "name": "OAUTH2_PROXY_REDIRECT_URL",
+                                "value": Output.concat(
+                                    "https://", "auth.", core_stack.require_output("zone-name"), "/oauth2/callback"
+                                ),
+                            },
+                            {"name": "OAUTH2_PROXY_UPSTREAMS", "value": "http://127.0.0.1:8978/"},
+                            {"name": "OAUTH2_PROXY_EMAIL_DOMAINS", "value": "*"},
+                            {"name": "OAUTH2_PROXY_COOKIE_SECURE", "value": "true"},
+                            {"name": "OAUTH2_PROXY_COOKIE_SAMESITE", "value": "lax"},
+                            {"name": "OAUTH2_PROXY_REVERSE_PROXY", "value": "true"},
+                            {"name": "OAUTH2_PROXY_SET_XAUTHREQUEST", "value": "true"},
+                            {"name": "OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER", "value": "true"},
+                            {"name": "OAUTH2_PROXY_PASS_HOST_HEADER", "value": "true"},
+                            # Shared cookie scope across subdomains
+                            {
+                                "name": "OAUTH2_PROXY_COOKIE_DOMAINS",
+                                "value": Output.concat(".", core_stack.require_output("zone-name")),
+                            },
+                            {
+                                "name": "OAUTH2_PROXY_WHITELIST_DOMAIN",
+                                "value": Output.concat(".", core_stack.require_output("zone-name")),
+                            },
+                            # IMPORTANT: listen on all interfaces for the ALB target
+                            {"name": "OAUTH2_PROXY_HTTP_ADDRESS", "value": "0.0.0.0:4180"},
+                            # Optional allow-list (reuse what you put on auth.*)
+                            # {"name": "OAUTH2_PROXY_GITHUB_USER", "value": config.get("oauth-allowed-users") or ""},
+                            # {"name": "OAUTH2_PROXY_GITHUB_ORG", "value": config.get("oauth-org") or ""},
+                            # {"name": "OAUTH2_PROXY_GITHUB_TEAM", "value": config.get("oauth-team") or ""},
+                        ],
+                        "secrets": [
+                            {"name": "OAUTH2_PROXY_CLIENT_ID", "value_from": github_client_id_secret.arn},
+                            {"name": "OAUTH2_PROXY_CLIENT_SECRET", "value_from": github_client_secret_secret.arn},
+                            {"name": "OAUTH2_PROXY_COOKIE_SECRET", "value_from": cookie_secret_secret.arn},
                         ],
                     },
                 },

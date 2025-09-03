@@ -172,4 +172,6 @@ class AuthGateway(ComponentResource):
         )
 
         # Allow service deployment
-        deploy_role.allow_service_deployment("oauth", passroles=[execution_role, task_role], services=[service.service])
+        deploy_role.allow_service_deployment(
+            "auth-gateway", passroles=[execution_role, task_role], services=[service.service]
+        )
