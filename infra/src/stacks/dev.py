@@ -34,10 +34,11 @@ def create_dev_stack(config: Config):
     oauth = Oauth(
         "cloudbeaver-oauth",
         config=config,
-        image_repo_name=core_stack.require_output("oauth-image-repo-name"),
-        client_id_secret_arn=core_stack.require_output("oauth-client-id-secret-arn"),
-        client_secret_secret_arn=core_stack.require_output("oauth-client-secret-secret-arn"),
-        cookie_secret_secret_arn=core_stack.require_output("oauth-cookie-secret-secret-arn"),
+        proxy_image_repo_name=core_stack.require_output("oauth2-proxy-image-repo-name"),
+        reverse_proxy_image_repo_name=core_stack.require_output("oauth2-reverse-proxy-image-repo-name"),
+        client_id_secret_arn=core_stack.require_output("oauth2-client-id-secret-arn"),
+        client_secret_secret_arn=core_stack.require_output("oauth2-client-secret-secret-arn"),
+        cookie_secret_secret_arn=core_stack.require_output("oauth2-cookie-secret-secret-arn"),
     )
 
     vpc = Vpc(name="main-vpc", vpc_info=cast(Output[VpcInfo], core_stack.require_output("vpc-info")))

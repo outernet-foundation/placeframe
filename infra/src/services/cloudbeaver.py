@@ -95,7 +95,7 @@ class Cloudbeaver(ComponentResource):
             vpc=vpc,
             rules=[
                 {"cidr_name": "anywhere", "from_cidr": "0.0.0.0/0", "ports": [80, 443]},
-                {"to_security_group": cloudbeaver_security_group, "ports": [4180]},
+                {"to_security_group": cloudbeaver_security_group, "ports": [4181]},
             ],
             opts=self._child_opts,
         )
@@ -107,7 +107,7 @@ class Cloudbeaver(ComponentResource):
             vpc=vpc,
             securityGroup=load_balancer_security_group,
             certificate_arn=certificate_arn,
-            port=4180,
+            port=4181,
             opts=self._child_opts,
             health_check={
                 "path": "/ping",

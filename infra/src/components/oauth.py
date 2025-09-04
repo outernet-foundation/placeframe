@@ -27,7 +27,8 @@ class Oauth(ComponentResource):
         resource_name: str,
         config: Config,
         *,
-        image_repo_name: Input[str],
+        proxy_image_repo_name: Input[str],
+        reverse_proxy_image_repo_name: Input[str],
         client_id_secret_arn: Input[str],
         client_secret_secret_arn: Input[str],
         cookie_secret_secret_arn: Input[str],
@@ -40,7 +41,8 @@ class Oauth(ComponentResource):
         config: Config,
         *,
         prepare_deploy_role: Role | None = None,
-        image_repo_name: Input[str] | None = None,
+        proxy_image_repo_name: Input[str] | None = None,
+        reverse_proxy_image_repo_name: Input[str] | None = None,
         client_id_secret_arn: Input[str] | None = None,
         client_secret_secret_arn: Input[str] | None = None,
         cookie_secret_secret_arn: Input[str] | None = None,
@@ -55,14 +57,18 @@ class Oauth(ComponentResource):
         if prepare_deploy_role is not None:
             # Secrets
             self.client_id_secret = Secret(
-                "oauth-client-id", secret_string=config.require_secret("oauth-client-id"), opts=self._child_opts
+                "oauth2-client-id", secret_string=config.require_secret("oauth2-client-id"), opts=self._child_opts
             )
             self.client_secret_secret = Secret(
-                "oauth-client-secret", secret_string=config.require_secret("oauth-client-secret"), opts=self._child_opts
+                "oauth2-client-secret",
+                secret_string=config.require_secret("oauth2-client-secret"),
+                opts=self._child_opts,
             )
             # python -c 'import os,base64; print(base64.urlsafe_b64encode(os.urandom(32)).decode())'
             self.cookie_secret_secret = Secret(
-                "oauth-cookie-secret", secret_string=config.require_secret("oauth-cookie-secret"), opts=self._child_opts
+                "oauth2-cookie-secret",
+                secret_string=config.require_secret("oauth2-cookie-secret"),
+                opts=self._child_opts,
             )
 
             # Image repos
@@ -95,20 +101,24 @@ class Oauth(ComponentResource):
 
         # adopt branch
         else:
-            assert image_repo_name is not None
+            assert proxy_image_repo_name is not None
+            assert reverse_proxy_image_repo_name is not None
             assert client_id_secret_arn is not None
             assert client_secret_secret_arn is not None
             assert cookie_secret_secret_arn is not None
 
-            self.client_id_secret = Secret("oauth-client-id", arn=client_id_secret_arn, opts=self._child_opts)
+            self.client_id_secret = Secret("oauth2-client-id", arn=client_id_secret_arn, opts=self._child_opts)
             self.client_secret_secret = Secret(
-                "oauth-client-secret", arn=client_secret_secret_arn, opts=self._child_opts
+                "oauth2-client-secret", arn=client_secret_secret_arn, opts=self._child_opts
             )
             self.cookie_secret_secret = Secret(
-                "oauth-cookie-secret", arn=cookie_secret_secret_arn, opts=self._child_opts
+                "oauth2-cookie-secret", arn=cookie_secret_secret_arn, opts=self._child_opts
             )
             self.proxy_image_repo = Repository(
-                "oauth2-proxy-repo", name=image_repo_name, adopt=True, opts=self._child_opts
+                "oauth2-proxy-repo", name=proxy_image_repo_name, adopt=True, opts=self._child_opts
+            )
+            self.reverse_proxy_image_repo = Repository(
+                "oauth2-reverse-proxy-repo", name=reverse_proxy_image_repo_name, adopt=True, opts=self._child_opts
             )
 
     def proxy_task_definition(
@@ -141,15 +151,15 @@ class Oauth(ComponentResource):
         ]
 
         # Allow-lists
-        allowed_users = config.get("oauth-allowed-users")
+        allowed_users = config.get("oauth2-allowed-users")
         if allowed_users:
             environment.append({"name": "OAUTH2_PROXY_GITHUB_USER", "value": allowed_users})
 
-        github_org = config.get("oauth-org")
+        github_org = config.get("oauth2-org")
         if github_org:
             environment.append({"name": "OAUTH2_PROXY_GITHUB_ORG", "value": github_org})
 
-        github_team = config.get("oauth-team")
+        github_team = config.get("oauth2-team")
         if github_team:
             environment.append({"name": "OAUTH2_PROXY_GITHUB_TEAM", "value": github_team})
 
@@ -183,9 +193,9 @@ class Oauth(ComponentResource):
     def reverse_proxy_task_definition(self, log_group: LogGroup, load_balancer: LoadBalancer):
         task_definition: TaskDefinitionContainerDefinitionArgsDict = {
             "name": "oauth2-reverse-proxy",
-            "image": self.proxy_image_repo.locked_digest(),
+            "image": self.reverse_proxy_image_repo.locked_digest(),
             "log_configuration": log_configuration(log_group),
-            "port_mappings": [{"container_port": 4180, "host_port": 4180, "target_group": load_balancer.target_group}],
+            "port_mappings": [{"container_port": 4181, "host_port": 4181, "target_group": load_balancer.target_group}],
             "environment": [{"name": "UPSTREAM", "value": "127.0.0.1:4180"}],
         }
 

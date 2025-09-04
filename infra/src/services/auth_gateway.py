@@ -46,7 +46,7 @@ class AuthGateway(ComponentResource):
 
         # Security Groups
         oauth_security_group = SecurityGroup(
-            "oauth-security-group",
+            "auth-gateway-security-group",
             vpc=vpc,
             vpc_endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
             rules=[
@@ -57,7 +57,7 @@ class AuthGateway(ComponentResource):
         )
 
         load_balancer_security_group = SecurityGroup(
-            "oauth-load-balancer-security-group",
+            "auth-gateway-load-balancer-security-group",
             vpc=vpc,
             rules=[
                 {"cidr_name": "anywhere", "from_cidr": "0.0.0.0/0", "ports": [80, 443]},
@@ -68,8 +68,8 @@ class AuthGateway(ComponentResource):
 
         # Load Balancer
         load_balancer = LoadBalancer(
-            "oauth-loadbalancer",
-            "oauth",
+            "auth-gateway-loadbalancer",
+            "auth-gateway",
             vpc=vpc,
             securityGroup=load_balancer_security_group,
             certificate_arn=certificate_arn,
@@ -87,7 +87,7 @@ class AuthGateway(ComponentResource):
         # DNS Record
         domain = Output.concat("auth.", zone_name)
         Record(
-            "oauth-domain-record",
+            "auth-gateway-domain-record",
             zone_id=zone_id,
             name=domain,
             type="A",
@@ -98,14 +98,14 @@ class AuthGateway(ComponentResource):
         )
 
         # Execution role
-        execution_role = ecs_execution_role("oauth-execution-role", opts=self._child_opts)
+        execution_role = ecs_execution_role("auth-gateway-execution-role", opts=self._child_opts)
         execution_role.allow_secret_get(
-            "oauth-secrets",
+            "auth-gateway-secrets",
             [self.oauth.client_id_secret, self.oauth.client_secret_secret, self.oauth.cookie_secret_secret],
         )
 
         # Task Role
-        task_role = ecs_role("oauth-task-role", opts=self._child_opts)
+        task_role = ecs_role("auth-gateway-task-role", opts=self._child_opts)
 
         # Service
         service = FargateService(
@@ -135,13 +135,15 @@ class AuthGateway(ComponentResource):
             "auth-gateway", passroles=[execution_role, task_role], services=[service.service]
         )
 
-        self.image_repo_name = self.oauth.proxy_image_repo.name
+        self.proxy_image_repo_name = self.oauth.proxy_image_repo.name
+        self.reverse_proxy_image_repo_name = self.oauth.reverse_proxy_image_repo.name
         self.client_id_secret_arn = self.oauth.client_id_secret.arn
         self.client_secret_secret_arn = self.oauth.client_secret_secret.arn
         self.cookie_secret_secret_arn = self.oauth.cookie_secret_secret.arn
 
         self.register_outputs({
-            "image_repo_name": self.image_repo_name,
+            "proxy_image_repo_name": self.proxy_image_repo_name,
+            "reverse_proxy_image_repo_name": self.reverse_proxy_image_repo_name,
             "client_id_secret_arn": self.client_id_secret_arn,
             "client_secret_secret_arn": self.client_secret_secret_arn,
             "cookie_secret_secret_arn": self.cookie_secret_secret_arn,
