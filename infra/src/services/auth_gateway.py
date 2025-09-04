@@ -118,13 +118,12 @@ class AuthGateway(ComponentResource):
                 "execution_role": {"role_arn": execution_role.arn},
                 "task_role": {"role_arn": task_role.arn},
                 "containers": {
-                    "oauth2-proxy": self.oauth.task_definition(
+                    "oauth2-proxy": self.oauth.proxy_task_definition(
                         config=config,
                         zone_name=zone_name,
                         log_group=auth_gateway_log_group,
                         load_balancer=load_balancer,
                         proxy_upstreams="static://200",
-                        is_auth_gateway=True,
                     )
                 },
             },
@@ -136,7 +135,7 @@ class AuthGateway(ComponentResource):
             "auth-gateway", passroles=[execution_role, task_role], services=[service.service]
         )
 
-        self.image_repo_name = self.oauth.image_repo.name
+        self.image_repo_name = self.oauth.proxy_image_repo.name
         self.client_id_secret_arn = self.oauth.client_id_secret.arn
         self.client_secret_secret_arn = self.oauth.client_secret_secret.arn
         self.cookie_secret_secret_arn = self.oauth.cookie_secret_secret.arn

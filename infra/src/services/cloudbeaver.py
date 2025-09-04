@@ -172,12 +172,14 @@ class Cloudbeaver(ComponentResource):
                     }
                 ],
                 "containers": {
-                    "oauth2-proxy": oauth.task_definition(
+                    "oauth2-proxy": oauth.proxy_task_definition(
                         config=config,
                         zone_name=zone_name,
                         log_group=cloudbeaver_log_group,
-                        load_balancer=load_balancer,
                         proxy_upstreams="http://127.0.0.1:8978/",
+                    ),
+                    "oauth2-reverse-proxy": oauth.reverse_proxy_task_definition(
+                        log_group=cloudbeaver_log_group, load_balancer=load_balancer
                     ),
                     "cloudbeaver-init": {
                         "name": "cloudbeaver-init",
@@ -190,11 +192,10 @@ class Cloudbeaver(ComponentResource):
                             {"name": "CB_ADMIN_PASSWORD", "value_from": cloudbeaver_password_secret.arn},
                         ],
                         "environment": [
+                            {"name": "POSTGRES_USER", "value": config.require("postgres-user")},
                             {"name": "POSTGRES_HOST", "value": db.address},
                             {"name": "POSTGRES_PORT", "value": "5432"},
                             {"name": "POSTGRES_DB", "value": "postgres"},
-                            {"name": "POSTGRES_USER", "value": config.require("postgres-user")},
-                            {"name": "CLOUDBEAVER_DB_SCHEMA", "value": "cloudbeaver"},
                             {"name": "CB_ADMIN_NAME", "value": config.require("cloudbeaver-user")},
                             {"name": "_CB_ADMIN_NAME_VERSION", "value": cloudbeaver_password_secret.version_id},
                             {"name": "_POSTGRES_PASSWORD_VERSION", "value": postgres_password_secret.version_id},
@@ -206,31 +207,6 @@ class Cloudbeaver(ComponentResource):
                         "image": cloudbeaver_image_repo.locked_digest(),
                         "log_configuration": log_configuration(cloudbeaver_log_group),
                         "mount_points": [{"source_volume": "efs", "container_path": "/opt/cloudbeaver/workspace"}],
-                        "secrets": [
-                            {"name": "CLOUDBEAVER_DB_PASSWORD", "value_from": postgres_password_secret.arn},
-                            {"name": "CB_ADMIN_PASSWORD", "value_from": cloudbeaver_password_secret.arn},
-                        ],
-                        "environment": [
-                            {"name": "CB_SERVER_NAME", "value": "CloudBeaver"},
-                            {"name": "CB_SERVER_URL", "value": domain.apply(lambda d: f"https://{d}")},
-                            {"name": "CB_ADMIN_NAME", "value": config.require("cloudbeaver-user")},
-                            {"name": "CLOUDBEAVER_APP_ANONYMOUS_ACCESS_ENABLED", "value": "true"},
-                            {"name": "CLOUDBEAVER_APP_AUTHENTICATION_ENABLED", "value": "false"},
-                            {"name": "CLOUDBEAVER_DB_DRIVER", "value": "postgres-jdbc"},
-                            {
-                                "name": "CLOUDBEAVER_DB_URL",
-                                "value": Output.concat(
-                                    "jdbc:postgresql://", db.address, ":", db.port.apply(str), "/postgres"
-                                ),
-                            },
-                            {"name": "CLOUDBEAVER_DB_USER", "value": config.require("postgres-user")},
-                            {"name": "CLOUDBEAVER_DB_SCHEMA", "value": "cloudbeaver"},
-                            {"name": "CLOUDBEAVER_DB_USER_VERSION", "value": postgres_password_secret.version_id},
-                            {
-                                "name": "_CLOUDBEAVER_DB_PASSWORD_VERSION",
-                                "value": cloudbeaver_password_secret.version_id,
-                            },
-                        ],
                     },
                 },
             },

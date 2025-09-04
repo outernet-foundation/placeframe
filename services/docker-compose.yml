@@ -92,8 +92,8 @@ services:
       interval: 5s
       retries: 12
 
-  minio-proxy:
-    build: ./minio-proxy
+  minio-reverse-proxy:
+    build: ./minio-reverse-proxy
     ports:
       - "9000:9000"
       - "9001:9001"

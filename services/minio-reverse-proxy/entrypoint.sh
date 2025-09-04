@@ -18,7 +18,7 @@ cat > /etc/caddy/Caddyfile <<EOF
 }
 EOF
 
-echo "Starting MinIO proxy with Caddy..."
+echo "Starting MinIO reverse proxy with Caddy..."
 
 # Start Caddy
 exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile

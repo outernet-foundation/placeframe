@@ -60,6 +60,12 @@ jobs:
             stack: "core"
             first_party: false
 
+          - name: "oauth2-reverse-proxy"
+            stack: "core"
+            first_party: true
+            context: "./services/oauth2-reverse-proxy"
+            dockerfile: "Dockerfile"
+
           - name: "api"
             stack: "dev"
             first_party: true

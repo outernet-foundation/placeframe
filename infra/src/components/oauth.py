@@ -2,7 +2,11 @@ from typing import Sequence, overload
 
 from pulumi import ComponentResource, Config, Input, Output, ResourceOptions, export
 from pulumi_aws.cloudwatch import LogGroup
-from pulumi_awsx.ecs._inputs import TaskDefinitionContainerDefinitionArgsDict, TaskDefinitionKeyValuePairArgsDict
+from pulumi_awsx.ecs._inputs import (
+    TaskDefinitionContainerDefinitionArgsDict,
+    TaskDefinitionKeyValuePairArgsDict,
+    TaskDefinitionPortMappingArgsDict,
+)
 
 from components.load_balancer import LoadBalancer
 from components.log import log_configuration
@@ -61,10 +65,10 @@ class Oauth(ComponentResource):
                 "oauth-cookie-secret", secret_string=config.require_secret("oauth-cookie-secret"), opts=self._child_opts
             )
 
-            # Image repo
-            self.image_repo = Repository(
+            # Image repos
+            self.proxy_image_repo = Repository(
                 "oauth2-proxy-repo",
-                "quay/oauth2-proxy/oauth2-proxy",
+                name="quay/oauth2-proxy/oauth2-proxy",
                 opts=ResourceOptions.merge(
                     self._child_opts,
                     ResourceOptions(
@@ -73,9 +77,21 @@ class Oauth(ComponentResource):
                     ),
                 ),
             )
+            self.reverse_proxy_image_repo = Repository(
+                "oauth2-reverse-proxy-repo",
+                name="oauth2-reverse-proxy",
+                opts=ResourceOptions.merge(
+                    self._child_opts,
+                    ResourceOptions(
+                        retain_on_delete=True
+                        # import_="oauth2-reverse-proxy",
+                    ),
+                ),
+            )
 
-            prepare_deploy_role.allow_image_repo_actions([self.image_repo])
-            export("oauth2-proxy-image-repo-url", self.image_repo.url)
+            prepare_deploy_role.allow_image_repo_actions([self.proxy_image_repo, self.reverse_proxy_image_repo])
+            export("oauth2-proxy-image-repo-url", self.proxy_image_repo.url)
+            export("oauth2-reverse-proxy-image-repo-url", self.reverse_proxy_image_repo.url)
 
         # adopt branch
         else:
@@ -91,16 +107,17 @@ class Oauth(ComponentResource):
             self.cookie_secret_secret = Secret(
                 "oauth-cookie-secret", arn=cookie_secret_secret_arn, opts=self._child_opts
             )
-            self.image_repo = Repository("oauth2-proxy-repo", name=image_repo_name, adopt=True, opts=self._child_opts)
+            self.proxy_image_repo = Repository(
+                "oauth2-proxy-repo", name=image_repo_name, adopt=True, opts=self._child_opts
+            )
 
-    def task_definition(
+    def proxy_task_definition(
         self,
         config: Config,
         zone_name: Input[str],
         log_group: LogGroup,
-        load_balancer: LoadBalancer,
         proxy_upstreams: Input[str],
-        is_auth_gateway: bool = False,
+        load_balancer: LoadBalancer | None = None,  # load balancer provided only for the auth gateway
     ):
         # Environment
         environment: Sequence[Input[TaskDefinitionKeyValuePairArgsDict]] = [
@@ -123,13 +140,6 @@ class Oauth(ComponentResource):
             {"name": "OAUTH2_PROXY_WHITELIST_DOMAINS", "value": Output.concat(".", zone_name)},
         ]
 
-        if not is_auth_gateway:
-            environment.extend([
-                {"name": "OAUTH2_PROXY_PASS_ACCESS_TOKEN", "value": "true"},
-                {"name": "OAUTH2_PROXY_COOKIE_REFRESH", "value": "1h"},
-                {"name": "OAUTH2_PROXY_COOKIE_EXPIRE", "value": "168h"},
-            ])
-
         # Allow-lists
         allowed_users = config.get("oauth-allowed-users")
         if allowed_users:
@@ -143,17 +153,40 @@ class Oauth(ComponentResource):
         if github_team:
             environment.append({"name": "OAUTH2_PROXY_GITHUB_TEAM", "value": github_team})
 
+        port_mapping: TaskDefinitionPortMappingArgsDict = {"container_port": 4180, "host_port": 4180}
+
+        if not load_balancer:
+            # If this is not the auth gateway, we need to set some additional environment variables
+            environment.extend([
+                {"name": "OAUTH2_PROXY_PASS_ACCESS_TOKEN", "value": "true"},
+                {"name": "OAUTH2_PROXY_COOKIE_REFRESH", "value": "1h"},
+                {"name": "OAUTH2_PROXY_COOKIE_EXPIRE", "value": "168h"},
+            ])
+        else:
+            port_mapping["target_group"] = load_balancer.target_group
+
         task_definition: TaskDefinitionContainerDefinitionArgsDict = {
             "name": "oauth2-proxy",
-            "image": self.image_repo.locked_digest(),
+            "image": self.proxy_image_repo.locked_digest(),
             "log_configuration": log_configuration(log_group),
-            "port_mappings": [{"container_port": 4180, "host_port": 4180, "target_group": load_balancer.target_group}],
+            "port_mappings": [port_mapping],
             "environment": environment,
             "secrets": [
                 {"name": "OAUTH2_PROXY_CLIENT_ID", "value_from": self.client_id_secret.arn},
                 {"name": "OAUTH2_PROXY_CLIENT_SECRET", "value_from": self.client_secret_secret.arn},
                 {"name": "OAUTH2_PROXY_COOKIE_SECRET", "value_from": self.cookie_secret_secret.arn},
             ],
+        }
+
+        return task_definition
+
+    def reverse_proxy_task_definition(self, log_group: LogGroup, load_balancer: LoadBalancer):
+        task_definition: TaskDefinitionContainerDefinitionArgsDict = {
+            "name": "oauth2-reverse-proxy",
+            "image": self.proxy_image_repo.locked_digest(),
+            "log_configuration": log_configuration(log_group),
+            "port_mappings": [{"container_port": 4180, "host_port": 4180, "target_group": load_balancer.target_group}],
+            "environment": [{"name": "UPSTREAM", "value": "127.0.0.1:4180"}],
         }
 
         return task_definition
