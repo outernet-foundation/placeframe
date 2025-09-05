@@ -1,11 +1,14 @@
+import os
 from functools import lru_cache
 from typing import Literal
 
 from pydantic import AnyHttpUrl, Field, model_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class DatabaseSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env")
+
     postgres_user: str | None = None
     postgres_password: str | None = None
     postgres_host: str | None = None
@@ -47,4 +50,7 @@ def get_database_settings() -> DatabaseSettings:
 
 @lru_cache()
 def get_api_settings() -> ApiSettings:
+    if os.environ.get("CODEGEN"):
+        return ApiSettings.model_construct()
+
     return ApiSettings()  # type: ignore

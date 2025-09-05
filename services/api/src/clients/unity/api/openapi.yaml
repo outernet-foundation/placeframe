@@ -161,6 +161,121 @@ paths:
       summary: Upload Capture Tar
       tags:
       - captures
+  /reconstructions:
+    post:
+      operationId: create_reconstruction
+      parameters:
+      - explode: true
+        in: query
+        name: capture_id
+        required: true
+        schema:
+          format: uuid
+          title: Capture Id
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Create Reconstruction
+      tags:
+      - reconstructions
+  /nodes:
+    get:
+      operationId: get_nodes
+      parameters:
+      - description: Optional list of Ids to filter by
+        explode: true
+        in: query
+        name: ids
+        required: false
+        schema:
+          items:
+            format: uuid
+            type: string
+          nullable: true
+          type: array
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/NodeModel"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Nodes
+      tags:
+      - nodes
+    post:
+      operationId: create_node
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Body_create_node"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NodeModel"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Create Node
+      tags:
+      - nodes
+  /nodes/{id}:
+    get:
+      operationId: get_node
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NodeModel"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Node
+      tags:
+      - nodes
 components:
   schemas:
     Body_create_capture:
@@ -176,6 +291,19 @@ components:
       - filename
       - id
       title: Body_create_capture
+    Body_create_node:
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        filename:
+          title: Filename
+          type: string
+      required:
+      - filename
+      - id
+      title: Body_create_node
     CaptureModel:
       example:
         filename: filename
@@ -236,6 +364,47 @@ components:
             $ref: "#/components/schemas/ValidationError"
           type: array
       title: HTTPValidationError
+    NodeModel:
+      example:
+        filename: filename
+        uploaded_at: 2000-01-23T04:56:07.000+00:00
+        created_at: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+          extra:
+            nullable: false
+            secret: false
+            unique: false
+        filename:
+          maxLength: 255
+          title: Filename
+          type: string
+          extra:
+            nullable: false
+            secret: false
+            unique: true
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+          extra:
+            nullable: false
+            secret: false
+            unique: false
+        uploaded_at:
+          format: date-time
+          nullable: true
+          type: string
+      required:
+      - created_at
+      - filename
+      - id
+      title: NodeModel
+      extra: {}
     ValidationError:
       example:
         msg: msg

@@ -5,6 +5,7 @@ from common.fastapi import create_fastapi_app
 from fastapi import FastAPI
 
 from .routers.captures import router as captures_router
+from .routers.nodes import router as nodes_router
 from .routers.reconstructions import router as reconstructions_router
 from .settings import get_api_settings
 
@@ -36,3 +37,4 @@ app = create_fastapi_app(
 
 app.include_router(captures_router)
 app.include_router(reconstructions_router)
+app.include_router(nodes_router)

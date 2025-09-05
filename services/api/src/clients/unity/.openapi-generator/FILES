@@ -5,6 +5,8 @@ api/openapi.yaml
 appveyor.yml
 git_push.sh
 src/PlerionClient/Api/CapturesApi.cs
+src/PlerionClient/Api/NodesApi.cs
+src/PlerionClient/Api/ReconstructionsApi.cs
 src/PlerionClient/Client/ApiClient.cs
 src/PlerionClient/Client/ApiException.cs
 src/PlerionClient/Client/ApiResponse.cs
@@ -24,8 +26,10 @@ src/PlerionClient/Client/RetryConfiguration.cs
 src/PlerionClient/Client/WebRequestPathBuilder.cs
 src/PlerionClient/Model/AbstractOpenAPISchema.cs
 src/PlerionClient/Model/BodyCreateCapture.cs
+src/PlerionClient/Model/BodyCreateNode.cs
 src/PlerionClient/Model/CaptureModel.cs
 src/PlerionClient/Model/HTTPValidationError.cs
+src/PlerionClient/Model/NodeModel.cs
 src/PlerionClient/Model/ValidationError.cs
 src/PlerionClient/Model/ValidationErrorLocInner.cs
 src/PlerionClient/PlerionClient.csproj

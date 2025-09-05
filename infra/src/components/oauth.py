@@ -137,31 +137,20 @@ class Oauth(ComponentResource):
                 "name": "OAUTH2_PROXY_REDIRECT_URL",
                 "value": Output.concat("https://auth.", zone_name, "/oauth2/callback"),
             },
-            {"name": "OAUTH2_PROXY_SKIP_PROVIDER_BUTTON", "value": "true"},
-            {"name": "OAUTH2_PROXY_PASS_HOST_HEADER", "value": "true"},
+            # {"name": "OAUTH2_PROXY_SKIP_PROVIDER_BUTTON", "value": "true"},
+            # {"name": "OAUTH2_PROXY_PASS_HOST_HEADER", "value": "true"},
             {"name": "OAUTH2_PROXY_UPSTREAMS", "value": proxy_upstreams},
             {"name": "OAUTH2_PROXY_EMAIL_DOMAINS", "value": "*"},
-            {"name": "OAUTH2_PROXY_COOKIE_SECURE", "value": "true"},
-            {"name": "OAUTH2_PROXY_COOKIE_SAMESITE", "value": "lax"},
+            # {"name": "OAUTH2_PROXY_COOKIE_SECURE", "value": "true"},
+            # {"name": "OAUTH2_PROXY_COOKIE_SAMESITE", "value": "lax"},
             {"name": "OAUTH2_PROXY_REVERSE_PROXY", "value": "true"},
-            {"name": "OAUTH2_PROXY_SET_XAUTHREQUEST", "value": "true"},
-            {"name": "OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER", "value": "true"},
+            # {"name": "OAUTH2_PROXY_SET_XAUTHREQUEST", "value": "true"},
+            # {"name": "OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER", "value": "true"},
             {"name": "OAUTH2_PROXY_COOKIE_DOMAINS", "value": Output.concat(".", zone_name)},
             {"name": "OAUTH2_PROXY_WHITELIST_DOMAINS", "value": Output.concat(".", zone_name)},
+            {"name": "OAUTH2_PROXY_SCOPE", "value": "read:user,user:email,read:org"},
+            {"name": "OAUTH2_PROXY_GITHUB_ORG", "value": config.require("oauth2-allowed-org")},
         ]
-
-        # Allow-lists
-        allowed_users = config.get("oauth2-allowed-users")
-        if allowed_users:
-            environment.append({"name": "OAUTH2_PROXY_GITHUB_USER", "value": allowed_users})
-
-        github_org = config.get("oauth2-org")
-        if github_org:
-            environment.append({"name": "OAUTH2_PROXY_GITHUB_ORG", "value": github_org})
-
-        github_team = config.get("oauth2-team")
-        if github_team:
-            environment.append({"name": "OAUTH2_PROXY_GITHUB_TEAM", "value": github_team})
 
         port_mapping: TaskDefinitionPortMappingArgsDict = {"container_port": 4180, "host_port": 4180}
 

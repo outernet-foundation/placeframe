@@ -130,14 +130,20 @@ Class | Method | HTTP request | Description
 *CapturesApi* | [**GetCapture**](docs/CapturesApi.md#getcapture) | **GET** /captures/{id} | Get Capture
 *CapturesApi* | [**GetCaptures**](docs/CapturesApi.md#getcaptures) | **GET** /captures | Get Captures
 *CapturesApi* | [**UploadCaptureTar**](docs/CapturesApi.md#uploadcapturetar) | **PUT** /captures/{id}/tar | Upload Capture Tar
+*NodesApi* | [**CreateNode**](docs/NodesApi.md#createnode) | **POST** /nodes | Create Node
+*NodesApi* | [**GetNode**](docs/NodesApi.md#getnode) | **GET** /nodes/{id} | Get Node
+*NodesApi* | [**GetNodes**](docs/NodesApi.md#getnodes) | **GET** /nodes | Get Nodes
+*ReconstructionsApi* | [**CreateReconstruction**](docs/ReconstructionsApi.md#createreconstruction) | **POST** /reconstructions | Create Reconstruction
 
 
 <a id="documentation-for-models"></a>
 ## Documentation for Models
 
  - [Model.BodyCreateCapture](docs/BodyCreateCapture.md)
+ - [Model.BodyCreateNode](docs/BodyCreateNode.md)
  - [Model.CaptureModel](docs/CaptureModel.md)
  - [Model.HTTPValidationError](docs/HTTPValidationError.md)
+ - [Model.NodeModel](docs/NodeModel.md)
  - [Model.ValidationError](docs/ValidationError.md)
  - [Model.ValidationErrorLocInner](docs/ValidationErrorLocInner.md)
 
