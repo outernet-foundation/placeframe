@@ -180,8 +180,8 @@ namespace PlerionClient.Client
                     })
                     .FillParent()
                     .Children(
-                        ScrollRect().Style(x => x.horizontal.value = false).FlexibleHeight(true).Children(
-                            VerticalLayout().Style(x =>
+                        ScrollRect().Style(x => x.horizontal.value = false).FlexibleHeight(true).Content(
+                            VerticalLayout().FillParentWidth().FitContentVertical(ContentSizeFitter.FitMode.PreferredSize).Style(x =>
                             {
                                 x.childForceExpandWidth.value = true;
                                 x.childControlWidth.value = true;

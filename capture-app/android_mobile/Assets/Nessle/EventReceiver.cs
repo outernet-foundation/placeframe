@@ -73,7 +73,12 @@ namespace Nessle
             => _rectTransform = GetComponent<RectTransform>();
 
         protected override void OnRectTransformDimensionsChange()
-            => RaiseOnReceivedEvent(_rectTransform.rect);
+        {
+            if (_rectTransform == null)
+                _rectTransform = GetComponent<RectTransform>();
+
+            RaiseOnReceivedEvent(_rectTransform.rect);
+        }
     }
 
     public class UIEventReceiver<T> : UIBehaviour

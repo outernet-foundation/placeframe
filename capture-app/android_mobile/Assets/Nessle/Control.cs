@@ -35,8 +35,6 @@ namespace Nessle
         public GameObject gameObject { get; private set; }
         public RectTransform transform { get; private set; }
         public IValueObservable<Rect> rect => _rect;
-        public RectTransform childParentOverride { get; set; }
-        public RectTransform childParent => childParentOverride == null ? transform : childParentOverride;
 
         private ValueObservable<Rect> _rect = new ValueObservable<Rect>();
         private HashSet<IControl> _children = new HashSet<IControl>();
@@ -99,7 +97,7 @@ namespace Nessle
             }
 
             _children.Add(child);
-            child.transform.SetParent(childParent, false);
+            child.transform.SetParent(transform, false);
         }
 
         public void RemoveChild(IControl child)

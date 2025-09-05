@@ -16,7 +16,7 @@ namespace Nessle
 {
     public static class UIBuilder
     {
-        public static Action<TextProps> DefaultTextStyle;
+        public static Action<TextStyleProps> DefaultTextStyle;
         public static Action<ImageProps> DefaultImageStyle;
         public static Action<ButtonProps> DefaultButtonStyle;
         public static Action<InputFieldProps> DefaultInputFieldStyle;
@@ -24,9 +24,9 @@ namespace Nessle
         public static Action<ScrollRectProps> DefaultScrollRectStyle;
         public static Action<DropdownProps> DefaultDropdownStyle;
 
-        public static TextProps DefaultTextProps()
+        public static TextStyleProps DefaultTextStyleProps()
         {
-            var props = new TextProps();
+            var props = new TextStyleProps();
             DefaultTextStyle?.Invoke(props);
             return props;
         }
@@ -137,7 +137,7 @@ namespace Nessle
         public class TextProps : IDisposable
         {
             public ValueObservable<string> text { get; } = new ValueObservable<string>();
-            public TextStyleProps style { get; } = new TextStyleProps();
+            public TextStyleProps style { get; } = DefaultTextStyleProps();
 
             public void Dispose()
             {
@@ -173,14 +173,14 @@ namespace Nessle
         }
 
         public static Control<TextProps> Text(TextProps props = default)
-            => Text(props ?? DefaultTextProps(), out var _);
+            => Text(props, out var _);
 
         private static Control<TextProps> Text(out TextMeshProUGUI textComponent)
-            => Text(new TextProps(), out textComponent);
+            => Text(null, out textComponent);
 
         private static Control<TextProps> Text(TextProps props, out TextMeshProUGUI textComponent)
         {
-            props = props ?? DefaultTextProps();
+            props = props ?? new TextProps();
             var control = new Control<TextProps>(props, "Text", typeof(TextMeshProUGUI));
             var text = control.gameObject.GetComponent<TextMeshProUGUI>();
 
@@ -372,8 +372,8 @@ namespace Nessle
             public ValueObservable<bool> readOnly { get; } = new ValueObservable<bool>();
             public ValueObservable<TMP_LineType> lineType { get; } = new ValueObservable<TMP_LineType>();
             public ValueObservable<int> characterLimit { get; } = new ValueObservable<int>();
-            public TextProps inputText { get; } = DefaultTextProps();
-            public TextProps placeholder { get; } = DefaultTextProps();
+            public TextProps inputText { get; } = new TextProps();
+            public TextProps placeholder { get; } = new TextProps();
             public ImageProps background { get; } = DefaultImageProps();
 
             public void Dispose()
@@ -513,6 +513,7 @@ namespace Nessle
             public ValueObservable<ScrollRectScrollbarVisibility> verticalScrollbarVisibility { get; } = new ValueObservable<ScrollRectScrollbarVisibility>(ScrollRectScrollbarVisibility.AutoHideAndExpandViewport);
             public ValueObservable<float> horizontalScrollbarSpacing { get; } = new ValueObservable<float>(3);
             public ValueObservable<float> verticalScrollbarSpacing { get; } = new ValueObservable<float>(3);
+            public ValueObservable<IControl> content { get; } = new ValueObservable<IControl>();
             public ImageProps background { get; } = DefaultImageProps();
             public ScrollbarProps verticalScrollbar { get; } = DefaultScrollbarProps();
             public ScrollbarProps horizontalScrollbar { get; } = DefaultScrollbarProps();
@@ -536,6 +537,7 @@ namespace Nessle
                 verticalScrollbarVisibility.Dispose();
                 horizontalScrollbarSpacing.Dispose();
                 verticalScrollbarSpacing.Dispose();
+                content.Dispose();
                 background.Dispose();
                 verticalScrollbar.Dispose();
                 horizontalScrollbar.Dispose();
@@ -551,18 +553,12 @@ namespace Nessle
             var scrollRect = control.gameObject.GetComponent<ScrollRect>();
 
             IControl viewport = default;
-            IControl content = default;
 
             control.Children(
                 Image(props.background).Name("Background").FillParent(),
                 viewport = new Control("Viewport", typeof(RectMask2D))
                     .SetPivot(new Vector2(0, 1f))
-                    .FillParent()
-                    .Children(
-                        content = new Control("Content", typeof(ContentSizeFitter), typeof(VerticalLayoutGroup))
-                            .SetPivot(new Vector2(0, 1))
-                            .AnchorToTop()
-                    ),
+                    .FillParent(),
                 Scrollbar(props.horizontalScrollbar, out var horizontalScrollbar)
                     .SetPivot(Vector2.zero)
                     .AnchorMin(Vector2.zero)
@@ -577,21 +573,11 @@ namespace Nessle
                     .OffsetMax(Vector2.zero)
             );
 
-            var contentSizeFitter = content.gameObject.GetComponent<ContentSizeFitter>();
-            var contentLayout = content.gameObject.GetComponent<VerticalLayoutGroup>();
-
-            contentLayout.childControlWidth = true;
-            contentLayout.childControlHeight = true;
-            contentLayout.childForceExpandWidth = false;
-            contentLayout.childForceExpandHeight = false;
-
             scrollRect.viewport = viewport.transform;
             scrollRect.horizontalScrollbar = horizontalScrollbar;
             scrollRect.verticalScrollbar = verticalScrollbar;
-            scrollRect.content = content.transform;
             scrollRect.onValueChanged.AddListener(x => props.value.value = x);
 
-            control.childParentOverride = (RectTransform)scrollRect.content.transform;
             control.AddBinding(
                 props.value.Subscribe(x => scrollRect.normalizedPosition = x.currentValue),
                 props.movementType.Subscribe(x => scrollRect.movementType = x.currentValue),
@@ -602,33 +588,14 @@ namespace Nessle
                 props.verticalScrollbarVisibility.Subscribe(x => scrollRect.verticalScrollbarVisibility = x.currentValue),
                 props.horizontalScrollbarSpacing.Subscribe(x => scrollRect.horizontalScrollbarSpacing = x.currentValue),
                 props.verticalScrollbarSpacing.Subscribe(x => scrollRect.verticalScrollbarSpacing = x.currentValue),
-                props.horizontal.Subscribe(x =>
+                props.horizontal.Subscribe(x => scrollRect.horizontal = x.currentValue),
+                props.vertical.Subscribe(x => scrollRect.vertical = x.currentValue),
+                props.content.Subscribe(x =>
                 {
-                    if (x.currentValue)
-                    {
-                        scrollRect.horizontal = true;
-                        contentSizeFitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
-                    }
-                    else
-                    {
-                        scrollRect.horizontal = false;
-                        contentSizeFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-                        content.transform.FillParentWidth();
-                    }
-                }),
-                props.vertical.Subscribe(x =>
-                {
-                    if (x.currentValue)
-                    {
-                        scrollRect.vertical = true;
-                        contentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-                    }
-                    else
-                    {
-                        scrollRect.vertical = false;
-                        contentSizeFitter.verticalFit = ContentSizeFitter.FitMode.Unconstrained;
-                        content.transform.FillParentHeight();
-                    }
+                    x.currentValue.SetParent(control);
+                    x.currentValue.transform.SetParent(scrollRect.viewport, false);
+                    scrollRect.content = x.currentValue.transform;
+                    x.currentValue.SetPivot(new Vector2(0, 1)).AnchorToTop();
                 })
             );
 
@@ -646,11 +613,11 @@ namespace Nessle
             public ListObservable<string> options { get; } = new ListObservable<string>();
 
             public ImageProps background { get; } = DefaultImageProps();
-            public TextStyleProps captionText { get; }
+            public TextStyleProps captionText { get; } = DefaultTextStyleProps();
             public ImageProps arrow { get; } = DefaultImageProps();
             public ScrollRectProps template { get; } = DefaultScrollRectProps();
             public ImageProps itemBackground { get; } = DefaultImageProps();
-            public TextStyleProps itemText { get; }
+            public TextStyleProps itemText { get; } = DefaultTextStyleProps();
             public ImageProps itemCheckmark { get; } = DefaultImageProps();
 
             public void Dispose()
@@ -676,41 +643,50 @@ namespace Nessle
             var control = new Control<DropdownProps>(props, "Dropdown", typeof(TMP_Dropdown));
             var dropdown = control.gameObject.GetComponent<TMP_Dropdown>();
 
-            IControl content;
             IControl itemToggle;
 
             control.Children(
                 Image(props.background, out var background).Name("Background").FillParent(),
                 Text(out var captionText).Name("CaptionText").Style(props.captionText).FillParent(),
                 Image(props.arrow, out var arrow).Name("Arrow").AnchorToRight().SizeDelta(new Vector2(10, 10)).AnchoredPosition(new Vector2(-15f, -1.2f)),
-                ScrollRect(props.template, out var template).SizeDelta(new Vector2(0, 150)).SetPivot(new Vector2(0, 1)).FillParentWidth().AnchorToBottom().Children(
-                    content = VerticalLayout().Name("Content")
-                        .FitContentVertical(ContentSizeFitter.FitMode.PreferredSize)
-                        .SetPivot(new Vector2(0.5f, 1f))
-                        .AnchorToTop()
-                        .FillParentWidth()
-                        .SizeDelta(new Vector2(0, 150f))
-                        .Style(x =>
-                        {
-                            x.childControlWidth.value = true;
-                            x.childControlHeight.value = true;
-                        }),
-                    itemToggle = Control("Item Toggle", typeof(Toggle)).PreferredHeight(30).Children(
-                        Image(props.itemBackground, out var itemBackground)
-                            .Name("Item Background")
-                            .FillParent(),
-                        Text(out var itemText)
-                            .Name("Item Text")
-                            .Style(props.itemText)
-                            .FillParent(),
-                        Image(props.itemCheckmark, out var itemCheckmark)
-                            .Name("Item Checkmark")
-                            .SetPivot(new Vector2(1f, 0.5f))
-                            .SizeDelta(new Vector2(15, 15))
-                            .AnchorToRight()
-                            .AnchoredPosition(new Vector3(-10, 0, 0))
+                ScrollRect(props.template, out var template)
+                    .SizeDelta(new Vector2(0, 150))
+                    .SetPivot(new Vector2(0, 1))
+                    .FillParentWidth()
+                    .AnchorToBottom()
+                    .Style(x =>
+                    {
+                        x.horizontal.value = false;
+                        x.movementType.value = ScrollRectMovementType.Clamped;
+                        x.inertia.value = false;
+                    })
+                    .Content(
+                        VerticalLayout().Name("Content")
+                            .FillParentWidth()
+                            .FitContentVertical(ContentSizeFitter.FitMode.PreferredSize)
+                            .Style(x =>
+                            {
+                                x.childControlWidth.value = true;
+                                x.childControlHeight.value = true;
+                                x.childForceExpandWidth.value = true;
+                            }).Children(
+                                itemToggle = Control("Item Toggle", typeof(Toggle)).PreferredHeight(30).Children(
+                                    Image(props.itemBackground, out var itemBackground)
+                                        .Name("Item Background")
+                                        .FillParent(),
+                                    Text(out var itemText)
+                                        .Name("Item Text")
+                                        .Style(props.itemText)
+                                        .FillParent(),
+                                    Image(props.itemCheckmark, out var itemCheckmark)
+                                        .Name("Item Checkmark")
+                                        .SetPivot(new Vector2(1f, 0.5f))
+                                        .SizeDelta(new Vector2(15, 15))
+                                        .AnchorToRight()
+                                        .AnchoredPosition(new Vector3(-10, 0, 0))
+                            )
+                        )
                     )
-                )
             );
 
             var itemToggleComponent = itemToggle.gameObject.GetComponent<Toggle>();
@@ -731,6 +707,20 @@ namespace Nessle
                 props.interactable.Subscribe(x => dropdown.interactable = x.currentValue)
             );
 
+            return control;
+        }
+
+        public static T Content<T>(this T control, IControl content)
+            where T : IControl<ScrollRectProps>
+        {
+            control.props.content.value = content;
+            return control;
+        }
+
+        public static T Content<T>(this T control, IValueObservable<IControl> content)
+            where T : IControl<ScrollRectProps>
+        {
+            control.props.content.From(content);
             return control;
         }
     }

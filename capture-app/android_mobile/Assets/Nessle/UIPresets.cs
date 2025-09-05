@@ -49,11 +49,11 @@ namespace PlerionClient.Client
             scrollbar.background.style.color.value = UIResources.ScrollBarBackgroundColor;
         }
 
-        public static void StyleText(TextProps text)
+        public static void StyleText(TextStyleProps style)
         {
-            text.style.color.value = UIResources.TextColor;
-            text.style.fontSize.value = 14;
-            text.style.alignment.value = TextAlignmentOptions.CaplineLeft;
+            style.color.value = UIResources.TextColor;
+            style.fontSize.value = 14;
+            style.alignment.value = TextAlignmentOptions.CaplineLeft;
         }
 
         public static void StyleScrollRect(ScrollRectProps scrollRect)
@@ -68,6 +68,7 @@ namespace PlerionClient.Client
             dropdown.background.style.color.value = UIResources.ButtonColor;
             dropdown.template.background.style.color.value = UIResources.ButtonColor;
             dropdown.itemBackground.style.color.value = UIResources.ButtonColor;
+            dropdown.captionText.margin.value = new Vector4(15, 0, 0, 0);
         }
 
         public static void StyleSlider(SliderProps slider)
@@ -266,9 +267,9 @@ namespace PlerionClient.Client
             public ValueObservable<Vector3> value { get; } = new ValueObservable<Vector3>();
             public LayoutProps layout { get; } = new LayoutProps();
 
-            public TextProps xLabel { get; } = DefaultTextProps();
-            public TextProps yLabel { get; } = DefaultTextProps();
-            public TextProps zLabel { get; } = DefaultTextProps();
+            public TextProps xLabel { get; } = new TextProps();
+            public TextProps yLabel { get; } = new TextProps();
+            public TextProps zLabel { get; } = new TextProps();
 
             public FloatFieldProps xField { get; } = new FloatFieldProps();
             public FloatFieldProps yField { get; } = new FloatFieldProps();
@@ -312,58 +313,58 @@ namespace PlerionClient.Client
             return control;
         }
 
-        public class TabProps
-        {
-            public ValueObservable<string> name { get; } = new ValueObservable<string>();
-            public ImageProps icon { get; } = DefaultImageProps();
-            public ImageProps selectedIcon { get; } = DefaultImageProps();
-            public ValueObservable<IControl> content { get; } = new ValueObservable<IControl>();
-        }
+        // public class TabProps
+        // {
+        //     public ValueObservable<string> name { get; } = new ValueObservable<string>();
+        //     public ImageProps icon { get; } = DefaultImageProps();
+        //     public ImageProps selectedIcon { get; } = DefaultImageProps();
+        //     public ValueObservable<IControl> content { get; } = new ValueObservable<IControl>();
+        // }
 
-        public class TabbedMenuProps
-        {
-            public ValueObservable<int> selectedTab { get; } = new ValueObservable<int>();
-            public ListObservable<TabProps> tabs { get; } = new ListObservable<TabProps>();
-            public TextStyleProps defaultLabelStyle { get; } = new TextStyleProps();
-            public TextStyleProps selectedLabelStyle { get; } = new TextStyleProps();
-            public ImageStyleProps background { get; } = new ImageStyleProps();
-            public ImageStyleProps selectedBackground { get; } = new ImageStyleProps();
-        }
+        // public class TabbedMenuProps
+        // {
+        //     public ValueObservable<int> selectedTab { get; } = new ValueObservable<int>();
+        //     public ListObservable<TabProps> tabs { get; } = new ListObservable<TabProps>();
+        //     public TextStyleProps defaultLabelStyle { get; } = new TextStyleProps();
+        //     public TextStyleProps selectedLabelStyle { get; } = new TextStyleProps();
+        //     public ImageStyleProps background { get; } = new ImageStyleProps();
+        //     public ImageStyleProps selectedBackground { get; } = new ImageStyleProps();
+        // }
 
-        public static Control<TabbedMenuProps> TabbedMenu(TabbedMenuProps props = default)
-        {
-            props = props ?? new TabbedMenuProps();
-            var control = Control("Tabbed Menu", props, typeof(VerticalLayoutGroup));
-            var layout = control.gameObject.GetComponent<VerticalLayoutGroup>();
-            layout.childControlHeight = true;
-            layout.childControlWidth = true;
+        // public static Control<TabbedMenuProps> TabbedMenu(TabbedMenuProps props = default)
+        // {
+        //     props = props ?? new TabbedMenuProps();
+        //     var control = Control("Tabbed Menu", props, typeof(VerticalLayoutGroup));
+        //     var layout = control.gameObject.GetComponent<VerticalLayoutGroup>();
+        //     layout.childControlHeight = true;
+        //     layout.childControlWidth = true;
 
-            control.Children(
-                HorizontalLayout().Style(x =>
-                {
-                    x.childControlHeight.value = true;
-                    x.childControlWidth.value = true;
-                    x.childForceExpandWidth.value = true;
-                }).Children(props.tabs.CreateDynamic(tabProps =>
-                {
-                    var index = props.tabs.IndexOfDynamic(tabProps);
+        //     control.Children(
+        //         HorizontalLayout().Style(x =>
+        //         {
+        //             x.childControlHeight.value = true;
+        //             x.childControlWidth.value = true;
+        //             x.childForceExpandWidth.value = true;
+        //         }).Children(props.tabs.CreateDynamic(tabProps =>
+        //         {
+        //             var index = props.tabs.IndexOfDynamic(tabProps);
 
-                    var selected = Observables.Combine(
-                        index,
-                        props.selectedTab,
-                        (index, selected) => index == selected
-                    );
+        //             var selected = Observables.Combine(
+        //                 index,
+        //                 props.selectedTab,
+        //                 (index, selected) => index == selected
+        //             );
 
-                    return Button()
-                        .Background(selected.SelectDynamic(x => x ? props.background : props.selectedBackground))
-                        .WithMetadata(index)
-                        .Children(
-                            Image().Style(selected.SelectDynamic(x => x ? tabProps.icon : tabProps.selectedIcon)),
-                            Text().Style(selected.SelectDynamic(x => x ? props.defaultLabelStyle : props.selectedLabelStyle)).Value(tabProps.name)
-                        );
+        //             return Button()
+        //                 .Background(selected.SelectDynamic(x => x ? props.background : props.selectedBackground))
+        //                 .WithMetadata(index)
+        //                 .Children(
+        //                     Image().Style(selected.SelectDynamic(x => x ? tabProps.icon : tabProps.selectedIcon)),
+        //                     Text().Style(selected.SelectDynamic(x => x ? props.defaultLabelStyle : props.selectedLabelStyle)).Value(tabProps.name)
+        //                 );
 
-                }).OrderByDynamic(x => x.metadata))
-            );
-        }
+        //         }).OrderByDynamic(x => x.metadata))
+        //     );
+        // }
     }
 }

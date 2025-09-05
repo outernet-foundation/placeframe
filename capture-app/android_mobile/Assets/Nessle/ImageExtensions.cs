@@ -49,6 +49,16 @@ namespace Nessle
             return control;
         }
 
+        public static T Style<T>(this T control, ImageStyleProps style)
+            where T : IControl<ImageProps>
+        {
+            control.props.style.color.From(style.color);
+            control.props.style.pixelsPerUnitMultiplier.From(style.pixelsPerUnitMultiplier);
+            control.props.style.preserveAspect.From(style.preserveAspect);
+            control.props.style.imageType.From(style.imageType);
+            return control;
+        }
+
         public static T Style<T>(this T control, IValueObservable<ImageStyleProps> style)
             where T : IControl<ImageProps>
         {
@@ -60,12 +70,6 @@ namespace Nessle
                 control.props.style.imageType.From(x.currentValue.imageType);
             }));
 
-            return control;
-        }
-
-        public static T Style<T>(this T control, IValueObservable<ImageProps> style)
-            where T : IControl<ImageProps>
-        {
             return control;
         }
     }
