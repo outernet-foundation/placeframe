@@ -41,6 +41,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Entrypoint
 RUN apt-get update && apt-get install -y --no-install-recommends dos2unix && rm -rf /var/lib/apt/lists/*
-RUN dos2unix /app/services/api/entrypoint.sh && chmod +x /app/services/api/entrypoint.sh
+COPY services/api/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN dos2unix /usr/local/bin/entrypoint.sh && chmod +x /usr/local/bin/entrypoint.sh
 
-ENTRYPOINT ["/app/services/api/entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.13"
 
 [[package]]
@@ -551,7 +551,7 @@ requires-dist = [
     { name = "common", editable = "../../common" },
     { name = "fastapi", specifier = ">=0.116.1" },
     { name = "openapi-generator-cli", specifier = ">=7.14.0" },
-    { name = "pyzed", marker = "python_full_version == '3.13.*' and platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux'", index = "file:///home/tyler/Repos/plerion/capture-app/zed/third-party/pyzed" },
+    { name = "pyzed", marker = "python_full_version == '3.13.*' and platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux'", index = "file:///C:/Users/Tyler/repos/plerion/capture-app/zed/third-party/pyzed" },
     { name = "scipy", specifier = ">=1.16.1" },
     { name = "uvicorn", specifier = ">=0.35.0" },
 ]

@@ -28,7 +28,7 @@
       "type": "command",
       "command": "shellCommand.execute",
       "args": {
-        "command": "bash -lc \"python '.vscode/scripts/list_debug_targets.py'\"",
+        "command": "python '.vscode/scripts/list_debug_targets.py'",
         "cwd": "${workspaceFolder}",
         "description": "Select worker container",
         "fieldSeparator": "|",

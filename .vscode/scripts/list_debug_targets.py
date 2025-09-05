@@ -8,7 +8,7 @@ def run(*args: str) -> str:
     return subprocess.check_output(args, text=True)
 
 def all_container_ids() -> List[str]:
-    out = run("bash", "-lc", "docker ps --format '{{json .ID}}'")
+    out = run("docker", "ps", "--format", "{{json .ID}}")
     return [json.loads(line) for line in out.splitlines() if line.strip()]
 
 def inspect_one(container_id: str) -> Dict:
