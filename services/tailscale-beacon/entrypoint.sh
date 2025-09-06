@@ -105,7 +105,7 @@ NOREWRITE_REGEX="$(join_regex "${NOREWRITE_SVCS[@]}")"
 cat > /etc/caddy/Caddyfile <<EOF
 :80 {
     respond /health 200
-=
+
     # Match <device>-<service>.<DOMAIN> for services that PRESERVE Host
     @norewrite header_regexp norewrite Host ^([^.]+?)-(${NOREWRITE_REGEX})\.${ESCAPED_DOMAIN}\$
     handle @norewrite {
