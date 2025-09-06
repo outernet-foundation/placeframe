@@ -2,14 +2,14 @@
   "api": {
     "digest": "sha256:bf3a02c1a0dcb5c6e769dffa8ae7e4cfe45232432560ddf20634b2d0149f548d",
     "tags": [
-      "git-17be90e6100593174ffd47e33d48bb788b748e7f",
+      "git-2623ef0a79652786ad02b28a3fc45a46ae7d6759",
       "tree-9617c1013487f96382513838189beedc37db21f1"
     ]
   },
   "cloudbeaver-init": {
     "digest": "sha256:85e126297c317566b3a793f7b7d35426cca01a9bd75c4e785a9a3a9a35ff901d",
     "tags": [
-      "git-17be90e6100593174ffd47e33d48bb788b748e7f",
+      "git-2623ef0a79652786ad02b28a3fc45a46ae7d6759",
       "tree-35393dbab04f6920166c56352ea709020f4b6939"
     ]
   },
@@ -22,7 +22,7 @@
   "features-worker": {
     "digest": "sha256:a8a3e20f2de48715692bc23681ded4d9d992ceb48c81dc3a6a0a4fefc3fe0ed1",
     "tags": [
-      "git-17be90e6100593174ffd47e33d48bb788b748e7f",
+      "git-2623ef0a79652786ad02b28a3fc45a46ae7d6759",
       "tree-e4ee6629ac02e531921463ed68e31189b62b90cb"
     ]
   },
@@ -41,22 +41,22 @@
   "oauth2-reverse-proxy": {
     "digest": "sha256:5511e89304e6f5a951fc3f6e3a35effa7048624ca10ecf63cc36e428eee3dc7d",
     "tags": [
-      "git-17be90e6100593174ffd47e33d48bb788b748e7f",
+      "git-2623ef0a79652786ad02b28a3fc45a46ae7d6759",
       "tree-a1e64612b85c20e8887c3bd043827b1f29719f69"
     ]
   },
   "reconstruction-worker": {
     "digest": "sha256:17c34839a8cb4930d345b00aba8a76e85a0100ec2467137b6663ece38678281c",
     "tags": [
-      "git-17be90e6100593174ffd47e33d48bb788b748e7f",
+      "git-2623ef0a79652786ad02b28a3fc45a46ae7d6759",
       "tree-4ac02c40e02aa3d276b1fa0ec8dc2fc4fa50a1ac"
     ]
   },
   "tailscale-beacon": {
-    "digest": "sha256:c4e228f8294baacb2ced2d34bffbf2b8b8b1e90f4c9eee45c801a36567f7aa48",
+    "digest": "sha256:bde4673ae34c1df49fefb7b3c19e61fbda0446396fe0a632f8162dd9f30d4560",
     "tags": [
-      "git-17be90e6100593174ffd47e33d48bb788b748e7f",
-      "tree-77599054363469433822ee9e9845b72bbc18dfc6"
+      "git-2623ef0a79652786ad02b28a3fc45a46ae7d6759",
+      "tree-a5c64a433cb7700fb6ffa3edcb18eadbabefff86"
     ]
   }
 }
