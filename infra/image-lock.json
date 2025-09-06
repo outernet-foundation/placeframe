@@ -1,15 +1,15 @@
 {
   "api": {
-    "digest": "sha256:7a995c4890c0203cde7671de8a8a9edfec942017a62a704ff393f8836efaaca6",
+    "digest": "sha256:bf3a02c1a0dcb5c6e769dffa8ae7e4cfe45232432560ddf20634b2d0149f548d",
     "tags": [
-      "git-42099ac27a6441828e804237253aeddb0182087a",
-      "tree-8f98d7170325f4c49e9bc5e97278d50a42cb9f92"
+      "git-377a5cafa283ac55996bc98b769c242bd7b6082c",
+      "tree-9617c1013487f96382513838189beedc37db21f1"
     ]
   },
   "cloudbeaver-init": {
     "digest": "sha256:85e126297c317566b3a793f7b7d35426cca01a9bd75c4e785a9a3a9a35ff901d",
     "tags": [
-      "git-42099ac27a6441828e804237253aeddb0182087a",
+      "git-377a5cafa283ac55996bc98b769c242bd7b6082c",
       "tree-35393dbab04f6920166c56352ea709020f4b6939"
     ]
   },
@@ -22,7 +22,7 @@
   "features-worker": {
     "digest": "sha256:a8a3e20f2de48715692bc23681ded4d9d992ceb48c81dc3a6a0a4fefc3fe0ed1",
     "tags": [
-      "git-42099ac27a6441828e804237253aeddb0182087a",
+      "git-377a5cafa283ac55996bc98b769c242bd7b6082c",
       "tree-e4ee6629ac02e531921463ed68e31189b62b90cb"
     ]
   },
@@ -41,22 +41,22 @@
   "oauth2-reverse-proxy": {
     "digest": "sha256:5511e89304e6f5a951fc3f6e3a35effa7048624ca10ecf63cc36e428eee3dc7d",
     "tags": [
-      "git-42099ac27a6441828e804237253aeddb0182087a",
+      "git-377a5cafa283ac55996bc98b769c242bd7b6082c",
       "tree-a1e64612b85c20e8887c3bd043827b1f29719f69"
     ]
   },
   "reconstruction-worker": {
     "digest": "sha256:17c34839a8cb4930d345b00aba8a76e85a0100ec2467137b6663ece38678281c",
     "tags": [
-      "git-42099ac27a6441828e804237253aeddb0182087a",
+      "git-377a5cafa283ac55996bc98b769c242bd7b6082c",
       "tree-4ac02c40e02aa3d276b1fa0ec8dc2fc4fa50a1ac"
     ]
   },
   "tailscale-beacon": {
-    "digest": "sha256:fa882b5f6b28e0cad5f867d9e0fa08d52da306539a69bd29cb878f12d72d0c96",
+    "digest": "sha256:449595499794772af68e1e2df3cc6d914e034dbae7d096c20c7ea90df20da30c",
     "tags": [
-      "git-42099ac27a6441828e804237253aeddb0182087a",
-      "tree-7bc4931359de928c030d31b4e41bb75a04e6f86f"
+      "git-377a5cafa283ac55996bc98b769c242bd7b6082c",
+      "tree-3720e15ddabee5f34493c63b408fe00e8299a4b0"
     ]
   }
 }
