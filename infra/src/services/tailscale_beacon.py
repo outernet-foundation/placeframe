@@ -14,7 +14,6 @@ from components.security_group import SecurityGroup
 from components.vpc import Vpc
 
 service_map: dict[str, int] = {"api": 8000, "cloudbeaver": 8978, "minio": 9000, "minioconsole": 9001}
-services_requiring_host_rewrite: list[str] = ["api"]
 
 
 class TailscaleBeacon(ComponentResource):
@@ -168,13 +167,7 @@ class TailscaleBeacon(ComponentResource):
                         "environment": [
                             {"name": "TAILNET", "value": config.require("tailnet-name")},
                             {"name": "DOMAIN", "value": domain},
-                            {
-                                "name": "SERVICES",
-                                "value": " ".join(
-                                    f"{name}:{port}{':rewrite' if name in services_requiring_host_rewrite else ''}"
-                                    for name, port in service_map.items()
-                                ),
-                            },
+                            {"name": "SERVICES", "value": " ".join(f"{k}:{v}" for k, v in service_map.items())},
                             {"name": "_TS_AUTHKEY_VERSION", "value": tailscale_auth_key_secret.version_id},
                         ],
                     }

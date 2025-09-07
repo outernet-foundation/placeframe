@@ -73,70 +73,46 @@ echo "Tailscale connected successfully"
 # Escape domain for regex
 ESCAPED_DOMAIN=${DOMAIN//./\\.}
 
-# Parse SERVICES entries: name:port[:rewrite]
-# Default (no third field) means "norewrite" (preserve branded Host; e.g., for MinIO SigV4)
-REWRITE_SVCS=()
-NOREWRITE_SVCS=()
-PORT_MAP_REWRITE=""
-PORT_MAP_NOREWRITE=""
-
-for spec in $SERVICES; do
-    IFS=: read -r svc port mode <<< "$spec"
-    mode="${mode:-norewrite}"
-    if [[ -z "$svc" || -z "$port" ]]; then
-        echo "ERROR: invalid SERVICES entry '$spec' (expected name:port[:requires_host_rewrite])" >&2
-        exit 1
-    fi
-    if [[ "$mode" == "rewrite" ]]; then
-        REWRITE_SVCS+=("$svc")
-        PORT_MAP_REWRITE+="            $svc $port"$'\n'
-    else
-        NOREWRITE_SVCS+=("$svc")
-        PORT_MAP_NOREWRITE+="            $svc $port"$'\n'
-    fi
-done
-
-join_regex() { local IFS='|'; echo "$*"; }
-
-REWRITE_REGEX="$(join_regex "${REWRITE_SVCS[@]}")"
-NOREWRITE_REGEX="$(join_regex "${NOREWRITE_SVCS[@]}")"
+# Build the SERVICE_REGEX for the header_regexp
+SERVICE_REGEX=$(printf '%s\n' $SERVICES | cut -d: -f1 | paste -sd'|' -)
 
 # Generate Caddyfile
 cat > /etc/caddy/Caddyfile <<EOF
 :80 {
     respond /health 200
 
-    # Match <device>-<service>.<DOMAIN> for services that PRESERVE Host
-    @norewrite header_regexp norewrite Host ^([^.]+?)-(${NOREWRITE_REGEX})\.${ESCAPED_DOMAIN}\$
-    handle @norewrite {
-        # Map service -> port
-        map {http.regexp.norewrite.2} {up_port} {
-            ${PORT_MAP_NOREWRITE}            
+    # Match <device>-<service>.<DOMAIN>
+    @pair header_regexp pair Host ^([^.]+?)-(${SERVICE_REGEX})\.${ESCAPED_DOMAIN}\$
+    handle @pair {
+        # Map the matched service to its port
+        map {http.regexp.pair.2} {up_port} {
+            $(for pair in $SERVICES; do
+                svc=${pair%%:*}
+                port=${pair##*:}
+                printf '%s %s\n' "$svc" "$port"
+            done)
             default 0
         }
-        # Proxy to <device>.<TAILNET>.ts.net:<port>
-        reverse_proxy {http.regexp.norewrite.1}.${TAILNET}.ts.net:{up_port} {
-            # NOTE: Tailnet reachability comes from the SOCKS5 dial below, not Host.
-            # We preserve the branded Host for services that require it (e.g., MinIO SigV4).
-            header_up Host {host}
-            transport http {
-                forward_proxy_url socks5://127.0.0.1:1055
-            }
-        }
-    }
 
-    # Match <device>-<service>.<DOMAIN> for services that REQUIRE Host rewrite
-    @rewrite header_regexp rewrite Host ^([^.]+?)-(${REWRITE_REGEX})\.${ESCAPED_DOMAIN}\$
-    handle @rewrite {
-        # Map service -> port
-        map {http.regexp.rewrite.2} {up_port} {
-            ${PORT_MAP_REWRITE}            
-            default 0
-        }
         # Proxy to <device>.<TAILNET>.ts.net:<port>
-        reverse_proxy {http.regexp.rewrite.1}.${TAILNET}.ts.net:{up_port} {
-            # Set Host to the tailnet authority so upstream vhosts/redirects/CSRF checks behave.
+        reverse_proxy {http.regexp.pair.1}.${TAILNET}.ts.net:{up_port} {
+            # We can’t run Tailscale in L3/TUN mode on Fargate (no TUN/CAP_NET_ADMIN), so the beacon 
+            # uses userspace + SOCKS5.
+            #
+            # It accepts branded hosts like <device>-<svc>.<domain> but actually dials 
+            # <device>.<tailnet>.ts.net:<port>. In HTTP/1.1 the Host header is the request 
+            # authority; if we forward the branded Host while the TCP destination is the tailnet 
+            # authority, upstreams see an authority mismatch (vhost routing/absolute redirects/CSRF 
+            # allowlists) and may close the connection (EOF/502). 
+            #
+            # We therefore set `header_up Host {upstream_hostport}` so the upstream’s HTTP authority 
+            # matches the tailnet socket we opened.
+            #
+            # MinIO is a special case: AWS SigV4 includes Host in the signature and clients sign the 
+            # branded host, so after rewriting at the beacon we run a tiny local front-proxy on the 
+            # engineer machine that restores the branded Host before the request reaches MinIO. 
             header_up Host {upstream_hostport}
+            
             transport http {
                 forward_proxy_url socks5://127.0.0.1:1055
             }
@@ -146,9 +122,6 @@ cat > /etc/caddy/Caddyfile <<EOF
     respond 404
 }
 EOF
-
-echo "Generated Caddyfile:"
-cat /etc/caddy/Caddyfile
 
 # Format Caddyfile for readability
 caddy fmt --overwrite /etc/caddy/Caddyfile
