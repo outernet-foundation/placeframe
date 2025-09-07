@@ -118,6 +118,7 @@ cat > /etc/caddy/Caddyfile <<EOF
         reverse_proxy {http.regexp.norewrite.1}.${TAILNET}.ts.net:{up_port} {
             # NOTE: Tailnet reachability comes from the SOCKS5 dial below, not Host.
             # We preserve the branded Host for services that require it (e.g., MinIO SigV4).
+            header_up Host {host}
             transport http {
                 forward_proxy_url socks5://127.0.0.1:1055
             }
