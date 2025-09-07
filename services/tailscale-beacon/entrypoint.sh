@@ -146,6 +146,9 @@ cat > /etc/caddy/Caddyfile <<EOF
 }
 EOF
 
+echo "Generated Caddyfile:"
+cat /etc/caddy/Caddyfile
+
 # Format Caddyfile for readability
 caddy fmt --overwrite /etc/caddy/Caddyfile
 
