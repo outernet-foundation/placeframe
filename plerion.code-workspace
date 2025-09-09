@@ -5,8 +5,21 @@
       "name": "root"
     },
     {
+      "path": "common"
+    },
+    {
+      "path": "scripts"
+    },
+    {
+      "path": "infra"
+    },
+    {
       "path": "services/api",
       "name": "api"
+    },
+    {
+      "path": "services/database-manager",
+      "name": "database-manager"
     },
     {
       "path": "services/reconstruction-worker",
@@ -17,23 +30,12 @@
       "name": "features-worker"
     },
     {
-      "path": "services/database-manager",
-      "name": "database-manager"
-    },
-    {
-      "path": "infra"
-    },
-    {
       "path": "capture-app/android_mobile",
       "name": "capture-app-android-mobile"
     },
     {
       "path": "capture-app/zed",
       "name": "capture-app-zed"
-    },
-    {
-      "path": "common",
-      "name": "common"
     }
   ],
   "settings": {

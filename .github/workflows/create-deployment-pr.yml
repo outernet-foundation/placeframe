@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/create-deployment-pr.yml"
+      - "services/images.json"
       - "services/**"
       - "common/**"
       - "!services/api/src/db/migrations/**"
@@ -22,6 +23,17 @@ env:
   DEPLOY_BRANCH: bot/deploy
 
 jobs:
+  prepare-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.prepare_matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: prepare_matrix
+        shell: bash
+        run: |
+          echo "matrix=$(jq -c 'with_entries(.value.name=.key)|{include:[.[]|. + {hash_paths_str:((.hash_paths//[])|join("\n"))}]}' services/images.json)" >> "$GITHUB_OUTPUT"
+
   prepare-deployment-branch:
     runs-on: ubuntu-latest
 
@@ -48,64 +60,7 @@ jobs:
     needs: prepare-deployment-branch
 
     strategy:
-      matrix:
-        images:
-          - name: "tailscale-beacon"
-            stack: "core"
-            first_party: true
-            context: "./services/tailscale-beacon"
-            dockerfile: "Dockerfile"
-
-          - name: "oauth2-proxy"
-            stack: "core"
-            first_party: false
-
-          - name: "oauth2-reverse-proxy"
-            stack: "core"
-            first_party: true
-            context: "./services/oauth2-reverse-proxy"
-            dockerfile: "Dockerfile"
-
-          - name: "api"
-            stack: "dev"
-            first_party: true
-            context: "."
-            dockerfile: "services/api/Dockerfile"
-            hash_paths: |
-              services/api
-              common
-
-          - name: "cloudbeaver-init"
-            stack: "dev"
-            first_party: true
-            context: "./services/cloudbeaver-init"
-            dockerfile: "Dockerfile"
-
-          - name: "cloudbeaver"
-            stack: "dev"
-            first_party: false
-
-          - name: "github-runner"
-            stack: "dev"
-            first_party: false
-
-          - name: "reconstruction-worker"
-            stack: "dev"
-            first_party: true
-            context: "."
-            dockerfile: "services/reconstruction-worker/Dockerfile"
-            hash_paths: |
-              services/reconstruction-worker
-              common
-
-          - name: "features-worker"
-            stack: "dev"
-            first_party: true
-            context: "."
-            dockerfile: "services/features-worker/Dockerfile"
-            hash_paths: |
-              services/features-worker
-              common
+      matrix: ${{ fromJson(needs.prepare_matrix.outputs.matrix) }}
 
     steps:
       - name: Checkout code

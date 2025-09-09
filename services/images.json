@@ -1,0 +1,61 @@
+{
+  "tailscale-beacon": {
+    "stack": "core",
+    "first_party": true,
+    "context": "./services/tailscale-beacon",
+    "dockerfile": "Dockerfile"
+  },
+  "oauth2-proxy": {
+    "stack": "core",
+    "first_party": false
+  },
+  "oauth2-reverse-proxy": {
+    "stack": "core",
+    "first_party": true,
+    "context": "./services/oauth2-reverse-proxy",
+    "dockerfile": "Dockerfile"
+  },
+  "api": {
+    "stack": "dev",
+    "first_party": true,
+    "context": ".",
+    "dockerfile": "services/api/Dockerfile",
+    "hash_paths": ["services/api", "common"]
+  },
+  "cloudbeaver-init": {
+    "stack": "dev",
+    "first_party": true,
+    "context": "./services/cloudbeaver",
+    "dockerfile": "init.Dockerfile",
+    "hash_paths": ["services/cloudbeaver", "common"]
+  },
+  "cloudbeaver": {
+    "stack": "dev",
+    "first_party": false
+  },
+  "github-runner": {
+    "stack": "dev",
+    "first_party": false
+  },
+  "reconstruction-worker": {
+    "stack": "dev",
+    "first_party": true,
+    "context": ".",
+    "dockerfile": "services/reconstruction-worker/Dockerfile",
+    "hash_paths": ["services/reconstruction-worker", "common"]
+  },
+  "features-worker": {
+    "stack": "dev",
+    "first_party": true,
+    "context": ".",
+    "dockerfile": "services/features-worker/Dockerfile",
+    "hash_paths": ["services/features-worker", "common"]
+  },
+  "database-manager": {
+    "stack": "dev",
+    "first_party": true,
+    "context": "./services/database-manager",
+    "dockerfile": "Dockerfile",
+    "hash_paths": ["services/database-manager", "common"]
+  }
+}
