@@ -73,26 +73,10 @@ class Oauth(ComponentResource):
 
             # Image repos
             self.proxy_image_repo = Repository(
-                "oauth2-proxy-repo",
-                name="quay/oauth2-proxy/oauth2-proxy",
-                opts=ResourceOptions.merge(
-                    self._child_opts,
-                    ResourceOptions(
-                        retain_on_delete=True
-                        # import_="quay.io/oauth2-proxy/oauth2-proxy",
-                    ),
-                ),
+                "oauth2-proxy-repo", name="quay/oauth2-proxy/oauth2-proxy", opts=self._child_opts
             )
             self.reverse_proxy_image_repo = Repository(
-                "oauth2-reverse-proxy-repo",
-                name="oauth2-reverse-proxy",
-                opts=ResourceOptions.merge(
-                    self._child_opts,
-                    ResourceOptions(
-                        retain_on_delete=True
-                        # import_="oauth2-reverse-proxy",
-                    ),
-                ),
+                "oauth2-reverse-proxy-repo", name="oauth2-reverse-proxy", opts=self._child_opts
             )
 
             prepare_deploy_role.allow_image_repo_actions([self.proxy_image_repo, self.reverse_proxy_image_repo])

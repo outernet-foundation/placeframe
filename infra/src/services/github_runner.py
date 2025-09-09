@@ -42,12 +42,7 @@ class GithubRunner(ComponentResource):
 
         # Image repos
         github_runner_image_repo = Repository(
-            "github-runner-cache-repo",
-            name="dockerhub/myoung34/github-runner",
-            force_delete=config.require_bool("devMode"),
-            opts=ResourceOptions.merge(
-                self._child_opts, ResourceOptions(retain_on_delete=True, import_="dockerhub/myoung34/github-runner")
-            ),
+            "github-runner-cache-repo", name="dockerhub/myoung34/github-runner", opts=self._child_opts
         )
         prepare_deploy_role.allow_image_repo_actions([github_runner_image_repo])
         export("github-runner-image-repo-url", github_runner_image_repo.url)

@@ -50,13 +50,7 @@ class TailscaleBeacon(ComponentResource):
 
         # Image repos
         tailscale_beacon_image_repo = Repository(
-            "tailscale-beacon-image-repo",
-            "tailscale-beacon",
-            opts=ResourceOptions.merge(
-                self._child_opts,
-                # ResourceOptions(retain_on_delete=True),
-                ResourceOptions(import_="tailscale-beacon"),
-            ),
+            "tailscale-beacon-image-repo", "tailscale-beacon", opts=self._child_opts
         )
         prepare_deploy_role.allow_image_repo_actions([tailscale_beacon_image_repo])
         export("tailscale-beacon-image-repo-url", tailscale_beacon_image_repo.url)

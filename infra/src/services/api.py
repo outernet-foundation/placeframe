@@ -50,39 +50,11 @@ class Api(ComponentResource):
         )
 
         # Image repos
-        api_image_repo = Repository(
-            "api-repo",
-            "api",
-            opts=ResourceOptions.merge(
-                self._child_opts,
-                ResourceOptions(
-                    retain_on_delete=True
-                    # import_="api"
-                ),
-            ),
-        )
+        api_image_repo = Repository("api-repo", "api", opts=self._child_opts)
         reconstruction_worker_image_repo = Repository(
-            "reconstruction-worker-repo",
-            "reconstruction-worker",
-            opts=ResourceOptions.merge(
-                self._child_opts,
-                ResourceOptions(
-                    retain_on_delete=True
-                    # import_="reconstruction-worker"
-                ),
-            ),
+            "reconstruction-worker-repo", "reconstruction-worker", opts=self._child_opts
         )
-        features_worker_image_repo = Repository(
-            "features-worker-repo",
-            "features-worker",
-            opts=ResourceOptions.merge(
-                self._child_opts,
-                ResourceOptions(
-                    retain_on_delete=True
-                    # import_="features-worker"
-                ),
-            ),
-        )
+        features_worker_image_repo = Repository("features-worker-repo", "features-worker", opts=self._child_opts)
         prepare_deploy_role.allow_image_repo_actions([
             api_image_repo,
             reconstruction_worker_image_repo,

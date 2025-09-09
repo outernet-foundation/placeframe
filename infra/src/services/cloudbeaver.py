@@ -58,18 +58,10 @@ class Cloudbeaver(ComponentResource):
 
         # Image repos
         cloudbeaver_init_image_repo = Repository(
-            "cloudbeaver-init-repo",
-            name="cloudbeaver-init",
-            opts=ResourceOptions.merge(
-                self._child_opts, ResourceOptions(retain_on_delete=True, import_="cloudbeaver-init")
-            ),
+            "cloudbeaver-init-repo", name="cloudbeaver-init", opts=self._child_opts
         )
         cloudbeaver_image_repo = Repository(
-            "cloudbeaver-repo",
-            name="dockerhub/dbeaver/cloudbeaver",
-            opts=ResourceOptions.merge(
-                self._child_opts, ResourceOptions(retain_on_delete=True, import_="dockerhub/dbeaver/cloudbeaver")
-            ),
+            "cloudbeaver-repo", name="dockerhub/dbeaver/cloudbeaver", opts=self._child_opts
         )
         prepare_deploy_role.allow_image_repo_actions([cloudbeaver_init_image_repo, cloudbeaver_image_repo])
         export("cloudbeaver-init-image-repo-url", cloudbeaver_init_image_repo.url)
