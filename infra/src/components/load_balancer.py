@@ -20,9 +20,7 @@ class LoadBalancer(ComponentResource):
         port: Input[int] | None = None,
         protocol: Input[str] | None = "HTTP",
         deregistration_delay: Input[int] = 60,
-        health_check: TargetGroupHealthCheckArgsDict = TargetGroupHealthCheckArgsDict(
-            path="/", protocol="HTTP", interval=15, healthy_threshold=2, unhealthy_threshold=10
-        ),
+        health_check: TargetGroupHealthCheckArgsDict | None = None,
         opts: ResourceOptions | None = None,
     ):
         super().__init__("custom:LoadBalancer", resource_name, opts=opts)
@@ -44,6 +42,11 @@ class LoadBalancer(ComponentResource):
             internal=internal,
             opts=self._child_opts,
         )
+
+        if target_type != "lambda" and health_check is None:
+            health_check = TargetGroupHealthCheckArgsDict(
+                path="/", protocol="HTTP", interval=15, healthy_threshold=2, unhealthy_threshold=10
+            )
 
         self.target_group = TargetGroup(
             f"{service_name}-lb-tg",

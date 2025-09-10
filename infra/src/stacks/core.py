@@ -120,14 +120,7 @@ def create_core_stack(config: Config):
     )
 
     DatabaseManager(
-        "database-manager",
-        config=config,
-        zone_name=zone.name,
-        zone_id=zone.id,
-        certificate_arn=certificate.arn,
-        vpc=vpc,
-        rds=rds,
-        cloudbeaver=cloudbeaver,
+        "database-manager", config=config, certificate_arn=certificate.arn, vpc=vpc, rds=rds, cloudbeaver=cloudbeaver
     )
 
     TailscaleBeacon(

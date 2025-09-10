@@ -20,8 +20,6 @@ class DatabaseManager(ComponentResource):
         self,
         resource_name: str,
         config: Config,
-        zone_name: Input[str],
-        zone_id: Input[str],
         certificate_arn: Input[str],
         vpc: Vpc,
         rds: RDSInstance,
@@ -60,7 +58,7 @@ class DatabaseManager(ComponentResource):
         )
 
         # Security group
-        lambda_sg = SecurityGroup(
+        security_group = SecurityGroup(
             "database-manager-security-group",
             vpc=vpc,
             vpc_endpoints=[],
@@ -72,7 +70,7 @@ class DatabaseManager(ComponentResource):
             opts=self._child_opts,
         )
 
-        # Roles
+        # Role
         role = lambda_role(f"{resource_name}-lambda-role", opts=self._child_opts)
 
         # Service
@@ -86,7 +84,7 @@ class DatabaseManager(ComponentResource):
                 architectures=["x86_64"],  # hardcoded
                 memory_size=1024,  # hardcoded
                 timeout=60,  # hardcoded
-                vpc_config={"subnet_ids": vpc.private_subnet_ids, "security_group_ids": [lambda_sg.id]},
+                vpc_config={"subnet_ids": vpc.private_subnet_ids, "security_group_ids": [security_group.id]},
                 environment={
                     "variables": {
                         "POSTGRES_HOST": rds.address,
