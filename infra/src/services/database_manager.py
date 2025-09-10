@@ -93,9 +93,10 @@ class DatabaseManager(ComponentResource):
                         "CLOUDBEAVER_URL": cloudbeaver.load_balancer.dns_name,
                         "CLOUDBEAVER_ADMIN_USER": config.require("cloudbeaver-user"),
                         "POSTGRES_PASSWORD_ARN": rds.password_secret.arn,
-                        "CLOUDBEAVER_ADMIN_PASSWORD": cloudbeaver.password_secret.arn,
-                        "_POSTGRES_PASSWORD_VERSION": rds.password_secret.version_id,
-                        "_CLOUDBEAVER_ADMIN_PASSWORD_VERSION": cloudbeaver.password_secret.version_id,
+                        "CLOUDBEAVER_ADMIN_PASSWORD_ARN": cloudbeaver.password_secret.arn,
+                        # Force redeployment when secrets change
+                        "POSTGRES_PASSWORD_VERSION": rds.password_secret.version_id,
+                        "CLOUDBEAVER_ADMIN_PASSWORD_VERSION": cloudbeaver.password_secret.version_id,
                     }
                 },
                 opts=self._child_opts,

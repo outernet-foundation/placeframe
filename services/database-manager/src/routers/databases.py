@@ -17,7 +17,7 @@ from ..settings import get_settings
 router = APIRouter(prefix="/databases", tags=["databases"])
 
 
-####
+#
 @router.post("")
 def create_database(
     name: str = Body(..., embed=True),

@@ -163,7 +163,7 @@ def build_push_lock(image_name: str):
 
         # Build and push the image
         run_streaming(
-            f'docker buildx build --push --platform linux/amd64,linux/arm64 -t {repo_url}:{tree_hash} -t {repo_url}:{git_hash} -f "{workspace_dir / image_spec.context / image_spec.dockerfile}" "{workspace_dir / image_spec.context}"'
+            f'docker buildx build --push --platform linux/amd64 --provenance=false -t {repo_url}:{tree_hash} -t {repo_url}:{git_hash} -f "{workspace_dir / image_spec.context / image_spec.dockerfile}" "{workspace_dir / image_spec.context}"'
         )
 
         # Get the digest of the newly pushed image

@@ -61,9 +61,9 @@
   },
   "database-manager": {
     "tags": [
-      "2b8746f3748279fada4a5cad2d85a09ce72898c7",
-      "94b81a0cc1a1fc573d7dd4a5207591f257788773"
+      "6d833957a604be9d1acd6fd18e5b68ca5f7e5d08",
+      "3d5d794b069cc52205cae6685d3b2a9a5775d12d"
     ],
-    "digest": "Name:      339712749848.dkr.ecr.us-east-1.amazonaws.com/database-manager:2b8746f3748279fada4a5cad2d85a09ce72898c7\nMediaType: application/vnd.oci.image.index.v1+json\nDigest:    sha256:f75089bc460801d905510c0452e80ebe41f7a1106b981472f957163c1a805af2\n           \nManifests: \n  Name:        339712749848.dkr.ecr.us-east-1.amazonaws.com/database-manager:2b8746f3748279fada4a5cad2d85a09ce72898c7@sha256:6a5e888cd1d27b05edac7ce7e4482f8894e95a733fe464f81a9e02e2f9dbf697\n  MediaType:   application/vnd.oci.image.manifest.v1+json\n  Platform:    linux/amd64\n               \n  Name:        339712749848.dkr.ecr.us-east-1.amazonaws.com/database-manager:2b8746f3748279fada4a5cad2d85a09ce72898c7@sha256:063fb906e3dbe1cf63e0ce3eb55504dc5302319cdbaa55f28188e32a664b641c\n  MediaType:   application/vnd.oci.image.manifest.v1+json\n  Platform:    linux/arm64\n               \n  Name:        339712749848.dkr.ecr.us-east-1.amazonaws.com/database-manager:2b8746f3748279fada4a5cad2d85a09ce72898c7@sha256:2b1ac19cb7c5b363575624c71c787432b4b9b71a803c21d56873abca13549065\n  MediaType:   application/vnd.oci.image.manifest.v1+json\n  Platform:    unknown/unknown\n  Annotations: \n    vnd.docker.reference.digest: sha256:6a5e888cd1d27b05edac7ce7e4482f8894e95a733fe464f81a9e02e2f9dbf697\n    vnd.docker.reference.type:   attestation-manifest\n               \n  Name:        339712749848.dkr.ecr.us-east-1.amazonaws.com/database-manager:2b8746f3748279fada4a5cad2d85a09ce72898c7@sha256:377bd52726526ec53e2b144fc647c219d5b664af81b012b5f087258d64cbf980\n  MediaType:   application/vnd.oci.image.manifest.v1+json\n  Platform:    unknown/unknown\n  Annotations: \n    vnd.docker.reference.digest: sha256:063fb906e3dbe1cf63e0ce3eb55504dc5302319cdbaa55f28188e32a664b641c\n    vnd.docker.reference.type:   attestation-manifest"
+    "digest": "Name:      339712749848.dkr.ecr.us-east-1.amazonaws.com/database-manager:6d833957a604be9d1acd6fd18e5b68ca5f7e5d08\nMediaType: application/vnd.docker.distribution.manifest.v2+json\nDigest:    sha256:bc6d0c7dcae5adc36a64231b3280c086423e0b88f8c9f3eb9cd562b7e63bfe67"
   }
 }
