@@ -70,3 +70,21 @@ def ec2_role(resource_name: str, opts: ResourceOptions | None = None):
     role.attach_ec2_instance_role_policy()
 
     return role
+
+
+def lambda_role(resource_name: str, opts: ResourceOptions | None = None):
+    role = Role(
+        resource_name,
+        assume_role_policy=json.dumps({
+            "Version": "2012-10-17",
+            "Statement": [
+                {"Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}
+            ],
+        }),
+        opts=opts,
+    )
+
+    role.attach_lambda_basic_execution_role_policy()
+    role.attach_lambda_vpc_access_execution_role_policy()
+
+    return role

@@ -41,10 +41,16 @@ class Cloudbeaver(ComponentResource):
 
         # Log groups
         cloudbeaver_log_group = LogGroup(
-            "cloudbeaver-log-group", name="/ecs/cloudbeaver", retention_in_days=7, opts=self._child_opts
+            "cloudbeaver-log-group",
+            name="/ecs/cloudbeaver",
+            retention_in_days=7,
+            opts=ResourceOptions.merge(self._child_opts, ResourceOptions(import_="/ecs/cloudbeaver")),
         )
         cloudbeaver_init_log_group = LogGroup(
-            "cloudbeaver-init-log-group", name="/ecs/cloudbeaver-init", retention_in_days=7, opts=self._child_opts
+            "cloudbeaver-init-log-group",
+            name="/ecs/cloudbeaver-init",
+            retention_in_days=7,
+            opts=ResourceOptions.merge(self._child_opts, ResourceOptions(import_="/ecs/cloudbeaver-init")),
         )
 
         # Secrets
@@ -57,61 +63,28 @@ class Cloudbeaver(ComponentResource):
             "cloudbeaver-init-repo",
             name="cloudbeaver-init",
             opts=ResourceOptions.merge(
-                self._child_opts,
-                ResourceOptions(
-                    retain_on_delete=True
-                    #   import_="cloudbeaver-init"
-                ),
+                self._child_opts, ResourceOptions(retain_on_delete=True, import_="cloudbeaver-init")
             ),
         )
         cloudbeaver_image_repo = Repository(
             "cloudbeaver-repo",
             name="dockerhub/dbeaver/cloudbeaver",
             opts=ResourceOptions.merge(
-                self._child_opts,
-                ResourceOptions(
-                    retain_on_delete=True
-                    #    import_="dockerhub/dbeaver/cloudbeaver"
-                ),
+                self._child_opts, ResourceOptions(retain_on_delete=True, import_="dockerhub/dbeaver/cloudbeaver")
             ),
         )
         prepare_deploy_role.allow_image_repo_actions([cloudbeaver_init_image_repo, cloudbeaver_image_repo])
         export("cloudbeaver-init-image-repo-url", cloudbeaver_init_image_repo.url)
         export("cloudbeaver-image-repo-url", cloudbeaver_image_repo.url)
 
-        # EFS
-        efs = EFS("cloudbeaver-efs", vpc=vpc, opts=self._child_opts)
-
-        # Security Groups
-        cloudbeaver_security_group = SecurityGroup(
-            "cloudbeaver-security-group",
-            vpc=vpc,
-            vpc_endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
-            rules=[
-                {"to_security_group": efs.security_group, "ports": [2049]},
-                {"to_security_group": rds.security_group, "ports": [5432]},
-            ],
-            opts=self._child_opts,
-        )
-
-        self.load_balancer_security_group = SecurityGroup(
-            "load-balancer-security-group",
-            vpc=vpc,
-            rules=[
-                {"cidr_name": "anywhere", "from_cidr": "0.0.0.0/0", "ports": [80, 443]},
-                {"to_security_group": cloudbeaver_security_group, "ports": [4181]},
-            ],
-            opts=self._child_opts,
-        )
-
         # Load balancer
         self.load_balancer = LoadBalancer(
             "cloudbeaver-loadbalancer",
             "cloudbeaver",
             vpc=vpc,
-            securityGroup=self.load_balancer_security_group,
             certificate_arn=certificate_arn,
             port=4181,
+            ingress_cidr="0.0.0.0/0",
             opts=self._child_opts,
             health_check={
                 "path": "/ping",
@@ -120,6 +93,22 @@ class Cloudbeaver(ComponentResource):
                 "healthy_threshold": 2,
                 "unhealthy_threshold": 10,
             },
+        )
+
+        # EFS
+        efs = EFS("cloudbeaver-efs", vpc=vpc, opts=self._child_opts)
+
+        # Security group
+        cloudbeaver_security_group = SecurityGroup(
+            "cloudbeaver-security-group",
+            vpc=vpc,
+            vpc_endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
+            rules=[
+                {"from_security_group": self.load_balancer.security_group, "ports": [4181]},
+                {"to_security_group": efs.security_group, "ports": [2049]},
+                {"to_security_group": rds.security_group, "ports": [5432]},
+            ],
+            opts=self._child_opts,
         )
 
         # DNS Records

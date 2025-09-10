@@ -97,20 +97,6 @@ class Role(ComponentResource):
         )
 
     def attach_ec2_instance_role_policy(self):
-        # RolePolicyAttachment(
-        #     f"{self._resource_name}-ec2-instance-role",
-        #     role=self.name,
-        #     policy_arn="arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role",
-        #     opts=self._child_opts,
-        # )
-
-        # RolePolicyAttachment(
-        #     f"{self._resource_name}-ssm-managed-instance-core",
-        #     role=self.name,
-        #     policy_arn="arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
-        #     opts=self._child_opts,
-        # )
-
         RolePolicy(
             f"{self._resource_name}-ec2-instance-role",
             role=self.name,
@@ -177,6 +163,46 @@ class Role(ComponentResource):
                             "logs:DescribeLogStreams",
                             "logs:GetLogEvents",
                             "logs:FilterLogEvents",
+                        ],
+                        "Resource": "*",
+                    }
+                ],
+            }),
+            opts=self._child_opts,
+        )
+
+    def attach_lambda_basic_execution_role_policy(self):
+        RolePolicy(
+            f"{self._resource_name}-lambda-basic-execution-role",
+            role=self.name,
+            policy=json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+                        "Resource": "*",
+                    }
+                ],
+            }),
+            opts=self._child_opts,
+        )
+
+    def attach_lambda_vpc_access_execution_role_policy(self):
+        RolePolicy(
+            f"{self._resource_name}-lambda-vpc-access-execution-role",
+            role=self.name,
+            policy=json.dumps({
+                "Version": "2012-10-17",
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Action": [
+                            "ec2:CreateNetworkInterface",
+                            "ec2:DescribeNetworkInterfaces",
+                            "ec2:DeleteNetworkInterface",
+                            "ec2:AssignPrivateIpAddresses",
+                            "ec2:UnassignPrivateIpAddresses",
                         ],
                         "Resource": "*",
                     }

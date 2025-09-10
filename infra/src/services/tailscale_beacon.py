@@ -61,12 +61,26 @@ class TailscaleBeacon(ComponentResource):
         prepare_deploy_role.allow_image_repo_actions([tailscale_beacon_image_repo])
         export("tailscale-beacon-image-repo-url", tailscale_beacon_image_repo.url)
 
+        # Load balancer
+        load_balancer = LoadBalancer(
+            "tailscale-beacon-loadbalancer",
+            "tailscale-beacon",
+            vpc=vpc,
+            certificate_arn=certificate_arn,
+            port=80,
+            ingress_cidr="0.0.0.0/0",
+            deregistration_delay=30,
+            health_check={"path": "/health", "matcher": "200-399"},
+            opts=self._child_opts,
+        )
+
         # Security groups
         tailscale_beacon_security_group = SecurityGroup(
             "tailscale-beacon-security-group",
             vpc=vpc,
             vpc_endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
             rules=[
+                {"from_security_group": load_balancer.security_group, "ports": [80]},
                 {
                     "cidr_name": "anywhere",
                     "to_cidr": "0.0.0.0/0",
@@ -91,29 +105,6 @@ class TailscaleBeacon(ComponentResource):
                     "protocols": ["udp"],
                 },  # Allow egress for STUN (NAT traversal)
             ],
-            opts=self._child_opts,
-        )
-
-        load_balancer_security_group = SecurityGroup(
-            "tailscale-beacon-load-balancer-security-group",
-            vpc=vpc,
-            rules=[
-                {"cidr_name": "anywhere", "from_cidr": "0.0.0.0/0", "ports": [80, 443]},
-                {"to_security_group": tailscale_beacon_security_group, "ports": [80]},
-            ],
-            opts=self._child_opts,
-        )
-
-        # Load balancer
-        load_balancer = LoadBalancer(
-            "tailscale-loadbalancer",
-            "tailscale",
-            vpc=vpc,
-            securityGroup=load_balancer_security_group,
-            certificate_arn=certificate_arn,
-            port=80,
-            deregistration_delay=30,
-            health_check={"path": "/health", "matcher": "200-399"},
             opts=self._child_opts,
         )
 

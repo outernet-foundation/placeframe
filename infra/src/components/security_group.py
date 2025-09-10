@@ -21,6 +21,10 @@ class _ToSG(_BaseRule, total=False):
     to_security_group: Required[SecurityGroup]
 
 
+class _FromSG(_BaseRule, total=False):
+    from_security_group: Required[SecurityGroup]
+
+
 class _ToPrefix(_BaseRule, total=False):
     prefix_name: Required[str]
     to_prefix_list_id: Required[Input[str]]
@@ -36,7 +40,7 @@ class _FromCidr(_BaseRule, total=False):
     from_cidr: Required[Input[str]]
 
 
-SecurityGroupRule = Union[_ToSG, _ToPrefix, _ToCidr, _FromCidr]
+SecurityGroupRule = Union[_ToSG, _FromSG, _ToPrefix, _ToCidr, _FromCidr]
 
 
 def amazon_provided_dns_cidr(vpc_cidr: Input[str]) -> Output[str]:
@@ -138,6 +142,28 @@ class SecurityGroup(ComponentResource):
                         SecurityGroupIngressRule(
                             f"{to_security_group._name}-ingress-from-{self._resource_name}-{port_protocol_string}",
                             security_group_id=to_security_group._security_group.id,
+                            ip_protocol=protocol,
+                            from_port=port,
+                            to_port=port,
+                            referenced_security_group_id=self._security_group.id,
+                            opts=self._child_opts,
+                        )
+
+                    elif "from_security_group" in rule:
+                        from_security_group = rule["from_security_group"]
+                        SecurityGroupIngressRule(
+                            f"{self._resource_name}-ingress-from-{from_security_group._name}-{port_protocol_string}",
+                            security_group_id=self._security_group.id,
+                            ip_protocol=protocol,
+                            from_port=port,
+                            to_port=port,
+                            referenced_security_group_id=from_security_group._security_group.id,
+                            opts=self._child_opts,
+                        )
+
+                        SecurityGroupEgressRule(
+                            f"{from_security_group._name}-egress-to-{self._resource_name}-{port_protocol_string}",
+                            security_group_id=from_security_group._security_group.id,
                             ip_protocol=protocol,
                             from_port=port,
                             to_port=port,

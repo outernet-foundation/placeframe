@@ -44,35 +44,13 @@ class AuthGateway(ComponentResource):
             opts=self._child_opts,
         )
 
-        # Security Groups
-        oauth_security_group = SecurityGroup(
-            "auth-gateway-security-group",
-            vpc=vpc,
-            vpc_endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
-            rules=[
-                # allow HTTPS egress to the Internet (goes via your NAT if in private subnets)
-                {"cidr_name": "anywhere", "to_cidr": "0.0.0.0/0", "ports": [443]}
-            ],
-            opts=self._child_opts,
-        )
-
-        load_balancer_security_group = SecurityGroup(
-            "auth-gateway-load-balancer-security-group",
-            vpc=vpc,
-            rules=[
-                {"cidr_name": "anywhere", "from_cidr": "0.0.0.0/0", "ports": [80, 443]},
-                {"to_security_group": oauth_security_group, "ports": [4180]},
-            ],
-            opts=self._child_opts,
-        )
-
         # Load Balancer
         load_balancer = LoadBalancer(
             "auth-gateway-loadbalancer",
             "auth-gateway",
             vpc=vpc,
-            securityGroup=load_balancer_security_group,
             certificate_arn=certificate_arn,
+            ingress_cidr="0.0.0.0/0",
             port=4180,
             health_check={
                 "path": "/ping",
@@ -81,6 +59,18 @@ class AuthGateway(ComponentResource):
                 "healthy_threshold": 2,
                 "unhealthy_threshold": 10,
             },
+            opts=self._child_opts,
+        )
+
+        # Security Groups
+        oauth_security_group = SecurityGroup(
+            "auth-gateway-security-group",
+            vpc=vpc,
+            vpc_endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3"],
+            rules=[
+                {"from_security_group": load_balancer.security_group, "ports": [4180]},
+                {"cidr_name": "anywhere", "to_cidr": "0.0.0.0/0", "ports": [443]},
+            ],
             opts=self._child_opts,
         )
 
