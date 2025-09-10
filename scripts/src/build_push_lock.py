@@ -9,6 +9,43 @@ from typing import List, Literal
 
 from pydantic import BaseModel, model_validator
 
+services_dir = Path("../services").resolve()
+infra_dir = Path("../infra").resolve()
+
+
+def run_command(command: str, cwd: Path | None = None) -> str:
+    print(f"Running command: {command}")
+
+    try:
+        process = subprocess.run(
+            command.split(),
+            cwd=cwd,
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(
+                process.returncode,
+                command,
+                output=process.stdout,
+                stderr=process.stderr,
+            )
+        if process.stdout:
+            print(process.stdout)
+        if process.stderr:
+            print(process.stderr)
+        return process.stdout
+    except subprocess.CalledProcessError as e:
+        print(f"Command '{command}' failed with exit code {e.returncode}")
+        if e.output:
+            print("Output:")
+            print(e.output)
+        if e.stderr:
+            print("Error output:")
+            print(e.stderr)
+        raise
+
 
 class ImageSpec(BaseModel):
     stack: Literal["core", "dev", "prod"]
@@ -31,7 +68,7 @@ class ImageSpec(BaseModel):
 
 
 def get_image_spec(image_name: str) -> ImageSpec:
-    images_path = Path("services") / "images.json"
+    images_path = services_dir / "images.json"
     if not images_path.is_file():
         raise FileNotFoundError(f"Images file not found: {images_path}")
     with images_path.open("r", encoding="utf-8") as file:
@@ -42,17 +79,11 @@ def get_image_spec(image_name: str) -> ImageSpec:
 
 
 def get_digest(ref: str):
-    process = subprocess.run(
-        ["docker", "buildx", "imagetools", "inspect", "--format", "{{json .}}", ref],
-        text=True,
-        capture_output=True,
+    output = run_command(
+        f"docker buildx imagetools inspect --format '{{{{json .}}}}' {ref}"
     )
-
-    if process.returncode == 0:
-        output = json.loads(process.stdout)
-        return output["Digest"]
-    else:
-        return None
+    output = json.loads(output)
+    return output["Digest"]
 
 
 def build_push_lock(image_name: str):
@@ -66,36 +97,20 @@ def build_push_lock(image_name: str):
     tree_hash = hashlib.sha1(
         " ".join(
             [
-                subprocess.run(
-                    ["git", "rev-parse", f"HEAD:{path}"],
-                    check=True,
-                    text=True,
-                    capture_output=True,
-                ).stdout.strip()
+                run_command(f"git rev-parse HEAD:{path}")
                 for path in image_spec.hash_paths or [image_spec.context]
             ]
         ).encode()
     ).hexdigest()
 
     # Get current git hash
-    git_hash = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        check=True,
-        text=True,
-        capture_output=True,
-    ).stdout.strip()
+    git_hash = run_command("git rev-parse HEAD").strip()
 
     # Get repo URL from Pulumi
-    stack = image_spec.stack
-    process = subprocess.run(
-        ["pulumi", "stack", "output", "--stack", stack, f"{image_name}-image-repo-url"],
-        check=True,
-        text=True,
-        capture_output=True,
-    )
-    if not process.stdout:
-        raise RuntimeError("Failed to get repo URL from Pulumi")
-    repo_url = process.stdout.strip()
+    repo_url = run_command(
+        f"pulumi stack output --stack {image_spec.stack} {image_name}-image-repo-url",
+        cwd=infra_dir,
+    ).strip()
 
     # Check if image with this tag already exists and get its digest
     digest = get_digest(f"{repo_url}:{tree_hash}")
@@ -103,25 +118,10 @@ def build_push_lock(image_name: str):
     # If the image doesn't exist, build and push it
     if digest is None:
         assert image_spec.dockerfile is not None
-        process = subprocess.run(
-            [
-                "docker",
-                "buildx",
-                "build",
-                "--push",
-                "--platform",
-                "linux/amd64,linux/arm64",
-                "-t",
-                f"{repo_url}:{tree_hash}",
-                "-t",
-                f"{repo_url}:{git_hash}",
-                "-f",
-                image_spec.dockerfile,
-                image_spec.context,
-            ],
-            check=True,
-            text=True,
-            capture_output=True,
+
+        # Build and push the image
+        run_command(
+            f"docker buildx build --push --platform linux/amd64,linux/arm64 -t {repo_url}:{tree_hash} -t {repo_url}:{git_hash} -f {services_dir / image_spec.dockerfile} {services_dir / image_spec.context}"
         )
 
         # Get the digest of the newly pushed image
@@ -130,7 +130,7 @@ def build_push_lock(image_name: str):
             raise RuntimeError("Failed to get digest of the pushed image")
 
     # Load the lock file or initialize an empty one
-    lock_path = Path("infra") / "image-lock.json"
+    lock_path = infra_dir / "image-lock.json"
     if lock_path.is_file():
         with lock_path.open("r", encoding="utf-8") as file:
             lock_data = json.load(file)
@@ -147,13 +147,13 @@ def build_push_lock(image_name: str):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python main.py <image-name>")
+        print("Usage: uv run build_push_lock.py <image-name>")
         sys.exit(1)
 
     image_name = sys.argv[1]
+
     try:
         build_push_lock(image_name)
         print(f"Successfully built and pushed image '{image_name}'")
     except Exception as e:
         print(f"Error: {e}")
-        sys.exit(1)

@@ -17,6 +17,40 @@
         "revealProblems": "onProblem",
         "close": true
       }
+    },
+    {
+      "label": "Prelaunch: Debug standalone script",
+      "type": "shell",
+      "command": "echo DEBUGPY_READY && uv run --with debugpy -m debugpy --connect 127.0.0.1:5678 ${file} ${input:scriptArgs}",
+      "options": {
+        "cwd": "${workspaceFolder}/scripts"
+      },
+      "isBackground": true,
+      "problemMatcher": [
+        {
+          "owner": "custom",
+          "fileLocation": ["absolute"],
+          "pattern": {
+            "regexp": "^(?=a)b",
+            "file": 1,
+            "message": 1
+          },
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": "DEBUGPY_READY",
+            "endsPattern": "DEBUGPY_READY"
+          }
+        }
+      ],
+      "presentation": { "revealProblems": "never" }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "scriptArgs",
+      "type": "promptString",
+      "description": "Args to pass to the script (e.g. --foo 42 --bar \"hello world\")",
+      "default": ""
     }
   ]
 }

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pulumi import ComponentResource, Config, Input, Output, ResourceOptions
+from pulumi import ComponentResource, Config, Input, Output, ResourceOptions, export
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.lambda_ import Function as LambdaFunction
 from pulumi_aws.lambda_ import Permission as LambdaPermission
@@ -44,6 +44,7 @@ class DatabaseManager(ComponentResource):
         database_manager_image_repo = Repository(
             "database-manager-repo", name="database-manager", opts=self._child_opts
         )
+        export("database-manager-image-repo-url", database_manager_image_repo.url)
 
         # Load balancer
         load_balancer = LoadBalancer(

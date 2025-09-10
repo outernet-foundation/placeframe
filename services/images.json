@@ -15,27 +15,34 @@
     "context": "./services/oauth2-reverse-proxy",
     "dockerfile": "Dockerfile"
   },
-  "api": {
-    "stack": "dev",
-    "first_party": true,
-    "context": ".",
-    "dockerfile": "services/api/Dockerfile",
-    "hash_paths": ["services/api", "common"]
-  },
   "cloudbeaver-init": {
-    "stack": "dev",
+    "stack": "core",
     "first_party": true,
     "context": "./services/cloudbeaver",
     "dockerfile": "init.Dockerfile",
     "hash_paths": ["services/cloudbeaver", "common"]
   },
   "cloudbeaver": {
-    "stack": "dev",
+    "stack": "core",
     "first_party": false
+  },
+  "database-manager": {
+    "stack": "core",
+    "first_party": true,
+    "context": "./services/database-manager",
+    "dockerfile": "Dockerfile",
+    "hash_paths": ["services/database-manager", "common"]
   },
   "github-runner": {
     "stack": "dev",
     "first_party": false
+  },
+  "api": {
+    "stack": "dev",
+    "first_party": true,
+    "context": ".",
+    "dockerfile": "services/api/Dockerfile",
+    "hash_paths": ["services/api", "common"]
   },
   "reconstruction-worker": {
     "stack": "dev",
@@ -50,12 +57,5 @@
     "context": ".",
     "dockerfile": "services/features-worker/Dockerfile",
     "hash_paths": ["services/features-worker", "common"]
-  },
-  "database-manager": {
-    "stack": "dev",
-    "first_party": true,
-    "context": "./services/database-manager",
-    "dockerfile": "Dockerfile",
-    "hash_paths": ["services/database-manager", "common"]
   }
 }

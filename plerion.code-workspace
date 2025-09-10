@@ -67,6 +67,7 @@
     },
     "editor.formatOnSave": true,
     "dotnet.defaultSolution": "capture-app/android_mobile/android_mobile.sln",
+    "debug.onTaskErrors": "debugAnyway",
     "python.terminal.activateEnvironment": true,
     "python.useEnvironmentsExtension": true,
     "python.languageServer": "Pylance",
