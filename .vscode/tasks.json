@@ -4,11 +4,10 @@
     {
       "label": "uv sync all Python projects",
       "type": "shell",
-      "command": "python",
-      "args": [
-        "${workspaceFolder}/.vscode/scripts/sync_python_projects.py",
-        "${workspaceFolder}"
-      ],
+      "command": "uv run src/sync_python_projects.py ${workspaceFolder}",
+      "options": {
+        "cwd": "${workspaceFolder}/scripts"
+      },
       "problemMatcher": [],
       "runOptions": { "runOn": "folderOpen" },
       "presentation": {

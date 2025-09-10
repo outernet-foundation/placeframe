@@ -18,8 +18,8 @@
   "cloudbeaver-init": {
     "stack": "core",
     "first_party": true,
-    "context": "./services/cloudbeaver",
-    "dockerfile": "init.Dockerfile",
+    "context": "./services/cloudbeaver-init",
+    "dockerfile": "Dockerfile",
     "hash_paths": ["services/cloudbeaver", "common"]
   },
   "cloudbeaver": {
@@ -29,8 +29,8 @@
   "database-manager": {
     "stack": "core",
     "first_party": true,
-    "context": "./services/database-manager",
-    "dockerfile": "Dockerfile",
+    "context": ".",
+    "dockerfile": "services/database-manager/Dockerfile",
     "hash_paths": ["services/database-manager", "common"]
   },
   "github-runner": {

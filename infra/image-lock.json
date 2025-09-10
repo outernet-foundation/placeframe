@@ -58,5 +58,12 @@
       "git-f9ab1f0591a1b5938909547274e7738cb69d1212",
       "tree-ec18b87b06d5c6350791902f4a40d475bcd077c5"
     ]
+  },
+  "database-manager": {
+    "tags": [
+      "2b8746f3748279fada4a5cad2d85a09ce72898c7",
+      "6c4dc04e1576574532ca75c2b57d7e561827fe66"
+    ],
+    "digest": "Name:      339712749848.dkr.ecr.us-east-1.amazonaws.com/database-manager:2b8746f3748279fada4a5cad2d85a09ce72898c7\nMediaType: application/vnd.oci.image.index.v1+json\nDigest:    sha256:f75089bc460801d905510c0452e80ebe41f7a1106b981472f957163c1a805af2\n           \nManifests: \n  Name:        339712749848.dkr.ecr.us-east-1.amazonaws.com/database-manager:2b8746f3748279fada4a5cad2d85a09ce72898c7@sha256:6a5e888cd1d27b05edac7ce7e4482f8894e95a733fe464f81a9e02e2f9dbf697\n  MediaType:   application/vnd.oci.image.manifest.v1+json\n  Platform:    linux/amd64\n               \n  Name:        339712749848.dkr.ecr.us-east-1.amazonaws.com/database-manager:2b8746f3748279fada4a5cad2d85a09ce72898c7@sha256:063fb906e3dbe1cf63e0ce3eb55504dc5302319cdbaa55f28188e32a664b641c\n  MediaType:   application/vnd.oci.image.manifest.v1+json\n  Platform:    linux/arm64\n               \n  Name:        339712749848.dkr.ecr.us-east-1.amazonaws.com/database-manager:2b8746f3748279fada4a5cad2d85a09ce72898c7@sha256:2b1ac19cb7c5b363575624c71c787432b4b9b71a803c21d56873abca13549065\n  MediaType:   application/vnd.oci.image.manifest.v1+json\n  Platform:    unknown/unknown\n  Annotations: \n    vnd.docker.reference.digest: sha256:6a5e888cd1d27b05edac7ce7e4482f8894e95a733fe464f81a9e02e2f9dbf697\n    vnd.docker.reference.type:   attestation-manifest\n               \n  Name:        339712749848.dkr.ecr.us-east-1.amazonaws.com/database-manager:2b8746f3748279fada4a5cad2d85a09ce72898c7@sha256:377bd52726526ec53e2b144fc647c219d5b664af81b012b5f087258d64cbf980\n  MediaType:   application/vnd.oci.image.manifest.v1+json\n  Platform:    unknown/unknown\n  Annotations: \n    vnd.docker.reference.digest: sha256:063fb906e3dbe1cf63e0ce3eb55504dc5302319cdbaa55f28188e32a664b641c\n    vnd.docker.reference.type:   attestation-manifest"
   }
 }

@@ -1,25 +1,33 @@
 from __future__ import annotations
 
-import hashlib
 import json
+import os
+import shlex
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import List, Literal
 
 from pydantic import BaseModel, model_validator
 
-services_dir = Path("../services").resolve()
-infra_dir = Path("../infra").resolve()
+workspace_dir = Path("..").resolve()
+services_dir = workspace_dir / "services"
+infra_dir = workspace_dir / "infra"
 
 
-def run_command(command: str, cwd: Path | None = None) -> str:
+def run_command(
+    command: str,
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+):
     print(f"Running command: {command}")
 
     try:
         process = subprocess.run(
-            command.split(),
+            shlex.split(command, posix=True),
             cwd=cwd,
+            env=env,
             check=True,
             text=True,
             capture_output=True,
@@ -37,14 +45,37 @@ def run_command(command: str, cwd: Path | None = None) -> str:
             print(process.stderr)
         return process.stdout
     except subprocess.CalledProcessError as e:
-        print(f"Command '{command}' failed with exit code {e.returncode}")
+        print(f"Command failed with exit code {e.returncode}")
         if e.output:
-            print("Output:")
             print(e.output)
         if e.stderr:
-            print("Error output:")
             print(e.stderr)
         raise
+
+
+def run_streaming(command: str, cwd: Path | None = None) -> None:
+    """
+    Run a long command and stream combined stdout/stderr line-by-line to our console.
+    Raises CalledProcessError on non-zero exit.
+    """
+    print(f"Running (streaming): {command}")
+    proc = subprocess.Popen(
+        shlex.split(command, posix=True),
+        cwd=str(cwd) if cwd else None,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,  # line-buffered in text mode
+    )
+    assert proc.stdout is not None
+    try:
+        for line in proc.stdout:
+            # docker buildx often emits frequent updates; flush so they appear immediately
+            print(line, end="", flush=True)
+    finally:
+        rc = proc.wait()
+        if rc != 0:
+            raise subprocess.CalledProcessError(rc, command)
 
 
 class ImageSpec(BaseModel):
@@ -79,11 +110,13 @@ def get_image_spec(image_name: str) -> ImageSpec:
 
 
 def get_digest(ref: str):
-    output = run_command(
-        f"docker buildx imagetools inspect --format '{{{{json .}}}}' {ref}"
-    )
-    output = json.loads(output)
-    return output["Digest"]
+    try:
+        out = run_command(
+            f'docker buildx imagetools inspect --format "{{{{.Manifest.Digest}}}}" {ref}'
+        ).strip()
+        return out or None
+    except subprocess.CalledProcessError:
+        return None
 
 
 def build_push_lock(image_name: str):
@@ -93,15 +126,20 @@ def build_push_lock(image_name: str):
 
     assert image_spec.context is not None
 
-    # Compute tree hash
-    tree_hash = hashlib.sha1(
-        " ".join(
-            [
-                run_command(f"git rev-parse HEAD:{path}")
-                for path in image_spec.hash_paths or [image_spec.context]
-            ]
-        ).encode()
-    ).hexdigest()
+    # Compute tree hash of the relevant paths
+    # NOTE!!!: This creates a completely different hash than the logic in the workflow file
+    with tempfile.TemporaryDirectory() as td:
+        env = os.environ.copy()
+        env["GIT_INDEX_FILE"] = str(Path(td) / "index")
+        env["GIT_OBJECT_DIRECTORY"] = str(Path(td) / "objects")
+        os.makedirs(env["GIT_OBJECT_DIRECTORY"], exist_ok=True)
+        hash_paths = image_spec.hash_paths or [image_spec.context]
+        run_command(
+            f"git add -A -- {(' '.join(shlex.quote(path) for path in hash_paths))}",
+            env=env,
+            cwd=workspace_dir,
+        )
+        tree_hash = run_command("git write-tree", env=env, cwd=workspace_dir).strip()
 
     # Get current git hash
     git_hash = run_command("git rev-parse HEAD").strip()
@@ -116,12 +154,16 @@ def build_push_lock(image_name: str):
     digest = get_digest(f"{repo_url}:{tree_hash}")
 
     # If the image doesn't exist, build and push it
-    if digest is None:
+    if digest is not None:
+        print(
+            f"Image {image_name} with tag {tree_hash} already exists, skipping build."
+        )
+    else:
         assert image_spec.dockerfile is not None
 
         # Build and push the image
-        run_command(
-            f"docker buildx build --push --platform linux/amd64,linux/arm64 -t {repo_url}:{tree_hash} -t {repo_url}:{git_hash} -f {services_dir / image_spec.dockerfile} {services_dir / image_spec.context}"
+        run_streaming(
+            f'docker buildx build --push --platform linux/amd64,linux/arm64 -t {repo_url}:{tree_hash} -t {repo_url}:{git_hash} -f "{workspace_dir / image_spec.context / image_spec.dockerfile}" "{workspace_dir / image_spec.context}"'
         )
 
         # Get the digest of the newly pushed image

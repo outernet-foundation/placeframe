@@ -36,8 +36,8 @@
       "type": "command",
       "command": "shellCommand.execute",
       "args": {
-        "command": "python '.vscode/scripts/list_debug_targets.py'",
-        "cwd": "${workspaceFolder}",
+        "command": "uv run src/list_debug_targets.py",
+        "cwd": "${workspaceFolder}/scripts",
         "description": "Select worker container",
         "fieldSeparator": "|",
         "useSingleResult": true,

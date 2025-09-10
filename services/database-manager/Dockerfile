@@ -1,42 +1,46 @@
+# ---------- Stage 0: provide uv binary ----------
 FROM ghcr.io/astral-sh/uv:0.7.22 AS uv
 
-# First, bundle the dependencies into the task root.
-FROM public.ecr.aws/lambda/python:3.13 AS builder
+# ---------- Stage 1: install deps (incl. local 'common') into Lambda task root ----------
+FROM public.ecr.aws/lambda/python:3.13 AS deps
 
-# Don't buffer stdout/stderr (so logs appear immediately)
-ENV PYTHONUNBUFFERED=1
+ARG LAMBDA_TASK_ROOT=/var/task
+WORKDIR ${LAMBDA_TASK_ROOT}
 
-# Disable writing .pyc files to disk
-ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_NO_INSTALLER_METADATA=1 \
+    UV_LINK_MODE=copy
 
-# Enable bytecode compilation, to improve cold-start performance.
-ENV UV_COMPILE_BYTECODE=1
-
-# Disable installer metadata, to create a deterministic layer.
-ENV UV_NO_INSTALLER_METADATA=1
-
-# Enable copy mode to support bind mount caching.
-ENV UV_LINK_MODE=copy
-
-# Bundle the dependencies into the Lambda task root via `uv pip install --target`.
+# We mount only what's needed for resolution at this layer:
+# - the service's lockfile and pyproject
+# - the local "common/" folder at /common (so the file:///common path resolves)
 #
-# Omit any local packages (`--no-emit-workspace`) and development dependencies (`--no-dev`).
-# This ensures that the Docker layer cache is only invalidated when the `pyproject.toml` or `uv.lock`
-# files change, but remains robust to changes in the application code.
+# Then we export locked requirements (no dev, no editable) and install them
+# directly into the Lambda task root.
 RUN --mount=from=uv,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv export --frozen --no-emit-workspace --no-dev --no-editable -o requirements.txt && \
-    uv pip install -r requirements.txt --target "${LAMBDA_TASK_ROOT}"
+    --mount=type=bind,source=services/database-manager/uv.lock,target=/uv.lock,ro \
+    --mount=type=bind,source=services/database-manager/pyproject.toml,target=/pyproject.toml,ro \
+    --mount=type=bind,source=common,target=/common,ro \
+    uv export --frozen --no-dev --no-editable -o /requirements.txt && \
+    uv pip install -r /requirements.txt --target "${LAMBDA_TASK_ROOT}"
 
+# ---------- Stage 2: final Lambda runtime ----------
 FROM public.ecr.aws/lambda/python:3.13
 
-# Copy the runtime dependencies from the builder stage.
-COPY --from=builder ${LAMBDA_TASK_ROOT} ${LAMBDA_TASK_ROOT}
+# Make the app importable
+ENV PYTHONPATH="/var/task:/var/task/src"
 
-# Copy the application code.
-COPY ./src ${LAMBDA_TASK_ROOT}/src
+# Bring in everything installed in the deps stage (3rd-party + built local 'common')
+COPY --from=deps /var/task /var/task
 
-# Set the AWS Lambda handler.
-CMD ["src.main.handler"]
+# Copy the service code last for tight rebuilds
+# (paths are from the build context root)
+COPY services/database-manager/src /var/task/src
+
+# If your handler is src/main.py with `handler = Mangum(app)`, use:
+CMD ["main.handler"]
+# If it lives under a package (e.g., src/database_manager/main.py), switch to:
+# CMD ["database_manager.main.handler"]
