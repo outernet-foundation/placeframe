@@ -25,3 +25,6 @@ name = "pyzed"
 url = "third-party/pyzed"
 format = "flat"
 explicit = true
+
+[tool.ruff]
+extend = "../../ruff.toml"

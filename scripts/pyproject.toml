@@ -8,3 +8,6 @@ dependencies = [
   "debugpy>=1.8.16",
   "pydantic>=2.11.7"
 ]
+
+[tool.ruff]
+extend = "../ruff.toml"

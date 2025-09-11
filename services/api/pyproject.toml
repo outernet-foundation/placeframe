@@ -24,3 +24,6 @@ dev = [
 
 [tool.uv.sources]
 common = { path = "../../common", editable = true }
+
+[tool.ruff]
+extend = "../../ruff.toml"

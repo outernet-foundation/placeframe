@@ -23,3 +23,6 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/common"]
 force-include = { "src/common/py.typed" = "common/py.typed" }
+
+[tool.ruff]
+extend = "../ruff.toml"

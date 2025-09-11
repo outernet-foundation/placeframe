@@ -11,3 +11,6 @@ dev = ["boto3-stubs[batch]>=1.40.18", "debugpy>=1.8.16"]
 
 [tool.uv.sources]
 common = { path = "../../common", editable = true }
+
+[tool.ruff]
+extend = "../../ruff.toml"
