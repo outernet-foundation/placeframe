@@ -51,7 +51,7 @@ class AuthGateway(ComponentResource):
             vpc=vpc,
             certificate_arn=certificate_arn,
             ingress_cidr="0.0.0.0/0",
-            port=4180,
+            target_port=4180,
             health_check={
                 "path": "/ping",
                 "protocol": "HTTP",

@@ -3,10 +3,12 @@ from typing import cast
 from pulumi import Config, Output, StackReference
 from pulumi_aws.ecs import Cluster
 
-from components.nat_instance import NatInstance
 from components.role import Role
 from components.s3 import create_storage
+from components.security_group import SecurityGroup
 from components.vpc import Vpc, VpcInfo
+from services.api import Api
+from services.github_runner import GithubRunner
 
 
 def create_dev_stack(config: Config):
@@ -14,6 +16,8 @@ def create_dev_stack(config: Config):
     zone_name = core_stack.require_output("zone-name")
     zone_id = core_stack.require_output("zone-id")
     certificate_arn = core_stack.require_output("certificate-arn")
+    rds_security_group_id = core_stack.require_output("rds-security-group-id")
+    rds_address = core_stack.require_output("rds-address")
 
     main_prepare_deploy_role = Role(
         "main-prepare-deploy-role",
@@ -28,33 +32,33 @@ def create_dev_stack(config: Config):
 
     vpc = Vpc(name="main-vpc", vpc_info=cast(Output[VpcInfo], core_stack.require_output("vpc-info")))
 
-    NatInstance("main-nat", vpc=vpc)
+    rds_security_group = SecurityGroup("rds-security-group", vpc=vpc, security_group_id=rds_security_group_id)
 
     captures_bucket = create_storage(core_stack)
 
     cluster = Cluster("main-cluster")
 
-    # GithubRunner(
-    #     resource_name="github-runner",
-    #     vpc=vpc,
-    #     config=config,
-    #     cluster=cluster,
-    #     postgres_security_group=postgres_security_group,
-    #     prepare_deploy_role=main_prepare_deploy_role,
-    #     deploy_role=main_deploy_role,
-    # )
+    GithubRunner(
+        resource_name="github-runner",
+        vpc=vpc,
+        config=config,
+        cluster=cluster,
+        postgres_security_group=rds_security_group,
+        prepare_deploy_role=main_prepare_deploy_role,
+        deploy_role=main_deploy_role,
+    )
 
-    # Api(
-    #     resource_name="api",
-    #     config=config,
-    #     zone_id=zone_id,
-    #     zone_name=zone_name,
-    #     certificate_arn=certificate_arn,
-    #     cluster=cluster,
-    #     s3_bucket=captures_bucket,
-    #     vpc=vpc,
-    #     postgres_security_group=postgres_security_group,
-    #     postgres_instance=postgres_instance,
-    #     prepare_deploy_role=main_prepare_deploy_role,
-    #     deploy_role=main_deploy_role,
-    # )
+    Api(
+        resource_name="api",
+        config=config,
+        zone_id=zone_id,
+        zone_name=zone_name,
+        certificate_arn=certificate_arn,
+        vpc=vpc,
+        cluster=cluster,
+        s3_bucket=captures_bucket,
+        rds_security_group=rds_security_group,
+        rds_address=rds_address,
+        prepare_deploy_role=main_prepare_deploy_role,
+        deploy_role=main_deploy_role,
+    )

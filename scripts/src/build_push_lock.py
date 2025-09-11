@@ -7,7 +7,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import List, Literal
+from typing import List, Literal, TypedDict, cast
 
 from pydantic import BaseModel, model_validator
 
@@ -109,12 +109,17 @@ def get_image_spec(image_name: str) -> ImageSpec:
         return ImageSpec(**images[image_name])
 
 
-def get_digest(ref: str):
+class _Manifest(TypedDict, total=False):
+    digest: str
+
+
+def get_digest(ref: str) -> str | None:
     try:
-        out = run_command(
-            f'docker buildx imagetools inspect --format "{{{{.Manifest.Digest}}}}" {ref}'
-        ).strip()
-        return out or None
+        output = run_command(
+            f"docker buildx imagetools inspect --format '{{{{json .Manifest}}}}' {shlex.quote(ref)}"
+        )
+        ouput_json = json.loads(output)
+        return cast(_Manifest, ouput_json).get("digest")
     except subprocess.CalledProcessError:
         return None
 
@@ -139,10 +144,12 @@ def build_push_lock(image_name: str):
             env=env,
             cwd=workspace_dir,
         )
-        tree_hash = run_command("git write-tree", env=env, cwd=workspace_dir).strip()
+        tree_hash_tag = (
+            f"tree-{run_command('git write-tree', env=env, cwd=workspace_dir).strip()}"
+        )
 
-    # Get current git hash
-    git_hash = run_command("git rev-parse HEAD").strip()
+    # Current commit hash (tag like your CI's "git-<sha>")
+    git_hash_tag = f"git-{run_command('git rev-parse HEAD').strip()}"
 
     # Get repo URL from Pulumi
     repo_url = run_command(
@@ -151,23 +158,23 @@ def build_push_lock(image_name: str):
     ).strip()
 
     # Check if image with this tag already exists and get its digest
-    digest = get_digest(f"{repo_url}:{tree_hash}")
+    digest = get_digest(f"{repo_url}:{tree_hash_tag}")
 
     # If the image doesn't exist, build and push it
     if digest is not None:
         print(
-            f"Image {image_name} with tag {tree_hash} already exists, skipping build."
+            f"Image {image_name} with tag {tree_hash_tag} already exists, skipping build."
         )
     else:
         assert image_spec.dockerfile is not None
 
         # Build and push the image
         run_streaming(
-            f'docker buildx build --push --platform linux/amd64 --provenance=false -t {repo_url}:{tree_hash} -t {repo_url}:{git_hash} -f "{workspace_dir / image_spec.context / image_spec.dockerfile}" "{workspace_dir / image_spec.context}"'
+            f'docker buildx build --push --platform linux/amd64 --provenance=false -t {repo_url}:{git_hash_tag} -t {repo_url}:{tree_hash_tag} -f "{workspace_dir / image_spec.context / image_spec.dockerfile}" "{workspace_dir / image_spec.context}"'
         )
 
         # Get the digest of the newly pushed image
-        digest = get_digest(f"{repo_url}:{tree_hash}")
+        digest = get_digest(f"{repo_url}:{tree_hash_tag}")
         if digest is None:
             raise RuntimeError("Failed to get digest of the pushed image")
 
@@ -182,7 +189,7 @@ def build_push_lock(image_name: str):
         lock_data = {}
 
     # Update the lock file
-    lock_data[image_name] = {"tags": [tree_hash, git_hash], "digest": digest}
+    lock_data[image_name] = {"digest": digest, "tags": [tree_hash_tag, git_hash_tag]}
 
     # Write back the lock file
     with lock_path.open("w", encoding="utf-8") as file:

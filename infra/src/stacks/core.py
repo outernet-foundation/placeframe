@@ -5,12 +5,13 @@ from pulumi_aws.ecs import Cluster
 from pulumi_aws.iam import OpenIdConnectProvider
 from pulumi_aws.route53 import Record, Zone
 
+from components.nat_instance import NatInstance
 from components.oauth import Oauth
 from components.rds import RDSInstance
 from components.role import Role
 from components.roles import github_actions_assume_role_policy
 from components.secret import Secret
-from components.vpc import Vpc, VpcInfo
+from components.vpc import Vpc
 from services.auth_gateway import AuthGateway
 from services.cloudbeaver import Cloudbeaver
 from services.database_manager import DatabaseManager
@@ -25,6 +26,8 @@ def create_core_stack(config: Config):
         thumbprint_lists=["6938fd4d98bab03faadb97b34396831e3780aea1"],  # GitHub OIDC thumbprint
     )
 
+    # Roles for GitHub Actions
+
     main_prepare_deploy_role = Role(
         resource_name="main-prepare-deploy-role",
         assume_role_policy=github_actions_assume_role_policy(config, github_oidc_provider.arn, "main-prepare-deploy"),
@@ -35,6 +38,13 @@ def create_core_stack(config: Config):
         assume_role_policy=github_actions_assume_role_policy(config, github_oidc_provider.arn, "main-deploy"),
     )
     main_deploy_role.attach_read_only_access_role_policy()  # needed by pulumi to construct plans
+
+    export("main-prepare-deploy-role-arn", main_prepare_deploy_role.arn)
+    export("main-prepare-deploy-role-name", main_prepare_deploy_role.name)
+    export("main-deploy-role-arn", main_deploy_role.arn)
+    export("main-deploy-role-name", main_deploy_role.name)
+
+    # DNS
 
     domain = config.require("domain")
 
@@ -59,6 +69,13 @@ def create_core_stack(config: Config):
         "certValidation", certificate_arn=certificate.arn, validation_record_fqdns=[validation_record.fqdn]
     )
 
+    export("zone-id", zone.id)
+    export("zone-name", zone.name)
+    export("zone-name-servers", zone.name_servers)
+    export("certificate-arn", certificate.arn)
+
+    # ECR Pull Through Cache Rules
+
     dockerhub_secret = Secret(
         "dockerhub-secret",
         name_prefix="ecr-pullthroughcache/",
@@ -77,7 +94,11 @@ def create_core_stack(config: Config):
 
     PullThroughCacheRule("quay-pull-through-cache-rule", ecr_repository_prefix="quay", upstream_registry_url="quay.io")
 
+    # Core Infrastructure
+
     vpc = Vpc(name="main-vpc")
+
+    NatInstance("main-nat", vpc=vpc)
 
     rds = RDSInstance("cloudbeaver-rds", config=config, vpc=vpc)
 
@@ -133,24 +154,4 @@ def create_core_stack(config: Config):
         cluster=cluster,
         deploy_role=main_deploy_role,
         prepare_deploy_role=main_prepare_deploy_role,
-    )
-
-    export("main-prepare-deploy-role-arn", main_prepare_deploy_role.arn)
-    export("main-prepare-deploy-role-name", main_prepare_deploy_role.name)
-    export("main-deploy-role-arn", main_deploy_role.arn)
-    export("main-deploy-role-name", main_deploy_role.name)
-    export("zone-id", zone.id)
-    export("zone-name", zone.name)
-    export("zone-name-servers", zone.name_servers)
-    export("certificate-arn", certificate.arn)
-    export(
-        "vpc-info",
-        VpcInfo({
-            "id": vpc.id,
-            "cidr_block": vpc.cidr_block,
-            "private_subnet_ids": vpc.private_subnet_ids,
-            "public_subnet_ids": vpc.public_subnet_ids,
-            "interface_security_group_ids": {service: sg.id for service, sg in vpc.interface_security_groups.items()},
-            "s3_endpoint_prefix_list_id": vpc.s3_endpoint_prefix_list_id,
-        }),
     )

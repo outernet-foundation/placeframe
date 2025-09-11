@@ -67,7 +67,7 @@ class TailscaleBeacon(ComponentResource):
             "tailscale-beacon",
             vpc=vpc,
             certificate_arn=certificate_arn,
-            port=80,
+            target_port=80,
             ingress_cidr="0.0.0.0/0",
             deregistration_delay=30,
             health_check={"path": "/health", "matcher": "200-399"},

@@ -17,7 +17,7 @@ class LoadBalancer(ComponentResource):
         *,
         internal: bool = False,
         target_type: Input[str] = "ip",
-        port: Input[int] | None = None,
+        target_port: Input[int] | None = None,
         protocol: Input[str] | None = "HTTP",
         deregistration_delay: Input[int] = 60,
         health_check: TargetGroupHealthCheckArgsDict | None = None,
@@ -38,7 +38,7 @@ class LoadBalancer(ComponentResource):
         self.load_balancer = lb.LoadBalancer(
             f"{service_name}-lb",
             security_groups=[self.security_group.id],
-            subnets=vpc.public_subnet_ids,
+            subnets=vpc.private_subnet_ids if internal else vpc.public_subnet_ids,
             internal=internal,
             opts=self._child_opts,
         )
@@ -50,7 +50,7 @@ class LoadBalancer(ComponentResource):
 
         self.target_group = TargetGroup(
             f"{service_name}-lb-tg",
-            port=port,
+            port=target_port,
             protocol=protocol,
             target_type=target_type,
             vpc_id=self.load_balancer.vpc_id,

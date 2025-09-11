@@ -4,7 +4,7 @@ from typing import Dict, Sequence, TypedDict, cast, overload
 
 import pulumi
 import pulumi_awsx
-from pulumi import ComponentResource, Input, Output, ResourceOptions
+from pulumi import ComponentResource, Input, Output, ResourceOptions, export
 from pulumi_aws import get_region_output
 from pulumi_aws.ec2 import VpcEndpoint, get_route_table_output
 from pulumi_awsx.ec2 import NatGatewayStrategy, SubnetAllocationStrategy
@@ -122,6 +122,21 @@ class Vpc(ComponentResource):
             )
 
             self.s3_endpoint_prefix_list_id = s3_endpoint.prefix_list_id
+
+        if vpc_info_out is None:
+            export(
+                "vpc-info",
+                VpcInfo({
+                    "id": self.id,
+                    "cidr_block": self.cidr_block,
+                    "private_subnet_ids": self.private_subnet_ids,
+                    "public_subnet_ids": self.public_subnet_ids,
+                    "interface_security_group_ids": {
+                        service: sg.id for service, sg in self.interface_security_groups.items()
+                    },
+                    "s3_endpoint_prefix_list_id": self.s3_endpoint_prefix_list_id,
+                }),
+            )
 
         self.register_outputs({
             "vpc_id": self.id,

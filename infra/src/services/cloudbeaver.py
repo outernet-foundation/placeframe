@@ -83,7 +83,7 @@ class Cloudbeaver(ComponentResource):
             "cloudbeaver",
             vpc=vpc,
             certificate_arn=certificate_arn,
-            port=4181,
+            target_port=4181,
             ingress_cidr="0.0.0.0/0",
             opts=self._child_opts,
             health_check={

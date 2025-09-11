@@ -1,7 +1,6 @@
 from pulumi import ComponentResource, Config, Input, Output, ResourceOptions, export
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecs import Cluster
-from pulumi_aws.rds import Instance
 from pulumi_aws.route53 import Record
 from pulumi_aws.s3 import Bucket
 from pulumi_awsx.ecs import FargateService
@@ -29,8 +28,8 @@ class Api(ComponentResource):
         vpc: Vpc,
         cluster: Cluster,
         s3_bucket: Bucket,
-        postgres_security_group: SecurityGroup,
-        postgres_instance: Instance,
+        rds_security_group: SecurityGroup,
+        rds_address: Input[str],
         prepare_deploy_role: Role,
         deploy_role: Role,
         *,
@@ -92,33 +91,14 @@ class Api(ComponentResource):
         export("reconstruction-worker-image-repo-url", reconstruction_worker_image_repo.url)
         export("features-worker-image-repo-url", features_worker_image_repo.url)
 
-        # Security groups
-        api_security_group = SecurityGroup(
-            "api-security-group",
-            vpc=vpc,
-            vpc_endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3", "batch"],
-            rules=[{"to_security_group": postgres_security_group, "ports": [5432]}],
-            opts=self._child_opts,
-        )
-
-        load_balancer_security_group = SecurityGroup(
-            "api-load-balancer-security-group",
-            vpc=vpc,
-            rules=[
-                {"cidr_name": "anywhere", "from_cidr": "0.0.0.0/0", "ports": [80, 443]},
-                {"to_security_group": api_security_group, "ports": [8000]},
-            ],
-            opts=self._child_opts,
-        )
-
         # Load balancer
         load_balancer = LoadBalancer(
             "api-loadbalancer",
             "api",
             vpc=vpc,
-            securityGroup=load_balancer_security_group,
             certificate_arn=certificate_arn,
-            port=8000,
+            target_port=8000,
+            ingress_cidr="0.0.0.0/0",
             health_check={
                 "path": "/health",
                 "protocol": "HTTP",
@@ -126,6 +106,18 @@ class Api(ComponentResource):
                 "healthy_threshold": 2,
                 "unhealthy_threshold": 10,
             },
+            opts=self._child_opts,
+        )
+
+        # Security groups
+        api_security_group = SecurityGroup(
+            "api-security-group",
+            vpc=vpc,
+            vpc_endpoints=["ecr.api", "ecr.dkr", "secretsmanager", "logs", "sts", "s3", "batch"],
+            rules=[
+                {"from_security_group": load_balancer.security_group, "ports": [8000]},
+                {"to_security_group": rds_security_group, "ports": [5432]},
+            ],
             opts=self._child_opts,
         )
 
@@ -190,8 +182,8 @@ class Api(ComponentResource):
                         "secrets": [{"name": "POSTGRES_PASSWORD", "value_from": postgres_password_secret.arn}],
                         "environment": [
                             {"name": "BACKEND", "value": "aws"},
-                            {"name": "POSTGRES_USER", "value": postgres_instance.username},
-                            {"name": "POSTGRES_HOST", "value": postgres_instance.address},
+                            {"name": "POSTGRES_USER", "value": "api"},
+                            {"name": "POSTGRES_HOST", "value": rds_address},
                             {"name": "JOB_QUEUE_ARN", "value": batch_job_environment.job_queue_arn},
                             {
                                 "name": "RECONSTRUCTION_JOB_DEFINITION_ARN_PREFIX",

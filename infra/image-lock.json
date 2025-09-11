@@ -60,10 +60,10 @@
     ]
   },
   "database-manager": {
+    "digest": "sha256:bc6d0c7dcae5adc36a64231b3280c086423e0b88f8c9f3eb9cd562b7e63bfe67",
     "tags": [
-      "6d833957a604be9d1acd6fd18e5b68ca5f7e5d08",
-      "3d5d794b069cc52205cae6685d3b2a9a5775d12d"
-    ],
-    "digest": "Name:      339712749848.dkr.ecr.us-east-1.amazonaws.com/database-manager:6d833957a604be9d1acd6fd18e5b68ca5f7e5d08\nMediaType: application/vnd.docker.distribution.manifest.v2+json\nDigest:    sha256:bc6d0c7dcae5adc36a64231b3280c086423e0b88f8c9f3eb9cd562b7e63bfe67"
+      "tree-6d833957a604be9d1acd6fd18e5b68ca5f7e5d08",
+      "git-73e36d31a29abd9bcfa44b1c9007e3c5197758eb"
+    ]
   }
 }

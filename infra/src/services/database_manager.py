@@ -102,20 +102,20 @@ class DatabaseManager(ComponentResource):
                 opts=self._child_opts,
             )
 
-            TargetGroupAttachment(
-                f"{resource_name}-tga",
-                target_group_arn=load_balancer.target_group.arn,
-                target_id=lambda_function.arn,
-                opts=self._child_opts,
-            )
-
-            LambdaPermission(
+            permission = LambdaPermission(
                 f"{resource_name}-invoke",
                 action="lambda:InvokeFunction",
                 function=lambda_function.name,
                 principal="elasticloadbalancing.amazonaws.com",
-                source_arn=load_balancer.arn,
+                source_arn=load_balancer.target_group.arn,
                 opts=self._child_opts,
+            )
+
+            TargetGroupAttachment(
+                f"{resource_name}-tga",
+                target_group_arn=load_balancer.target_group.arn,
+                target_id=lambda_function.arn,
+                opts=self._child_opts.merge(ResourceOptions(depends_on=[permission])),
             )
 
         self.register_outputs({})
