@@ -26,13 +26,6 @@
     "stack": "core",
     "first_party": false
   },
-  "database-manager": {
-    "stack": "core",
-    "first_party": true,
-    "context": ".",
-    "dockerfile": "services/database-manager/Dockerfile",
-    "hash_paths": ["services/database-manager", "common"]
-  },
   "github-runner": {
     "stack": "dev",
     "first_party": false
@@ -57,5 +50,19 @@
     "context": ".",
     "dockerfile": "tasks/extract-match-features/Dockerfile",
     "hash_paths": ["tasks/extract-match-features", "common"]
+  },
+  "create-database": {
+    "stack": "dev",
+    "first_party": true,
+    "context": ".",
+    "dockerfile": "tasks/create-database/Dockerfile",
+    "hash_paths": ["tasks/create-database", "common"]
+  },
+  "delete-database": {
+    "stack": "dev",
+    "first_party": true,
+    "context": ".",
+    "dockerfile": "tasks/delete-database/Dockerfile",
+    "hash_paths": ["tasks/delete-database", "common"]
   }
 }

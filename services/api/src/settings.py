@@ -22,8 +22,8 @@ class ApiSettings(DatabaseSettings):
     s3_secret_key: str | None = None
 
     job_queue_arn: str = Field()
-    reconstruction_job_definition_arn_prefix: str = Field()
-    features_job_definition_arn_prefix: str = Field()
+    reconstruction_job_definition_id: str = Field()
+    features_job_definition_id: str = Field()
 
     debug_reconstruction: bool | None = None
     debug_wait_reconstruction: bool | None = None
@@ -36,9 +36,7 @@ class ApiSettings(DatabaseSettings):
         creds_provided = self.s3_access_key and self.s3_secret_key
 
         if using_minio and not creds_provided:
-            raise ValueError(
-                "S3_ACCESS_KEY and S3_SECRET_KEY are required when S3_ENDPOINT_URL is set."
-            )
+            raise ValueError("S3_ACCESS_KEY and S3_SECRET_KEY are required when S3_ENDPOINT_URL is set.")
 
         return self
 

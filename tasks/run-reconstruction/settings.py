@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     capture_id: str = Field()
     job_queue_arn: str = Field()
-    features_job_definition_arn_prefix: str = Field()
+    features_job_definition_id: str = Field()
 
     debug_features: bool | None = None
     debug_wait_features: bool | None = None

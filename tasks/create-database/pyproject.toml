@@ -1,0 +1,16 @@
+[project]
+name = "create-database"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "common",
+    "pydantic-settings>=2.10.1",
+]
+
+[tool.uv.sources]
+common = { path = "../../common", editable = true }
+
+[tool.ruff]
+extend = "../../ruff.toml"

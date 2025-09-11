@@ -12,10 +12,7 @@ def main():
     print("Submitting job")
     client = create_batch_client(settings.backend)
 
-    environment = {
-        "BACKEND": settings.backend,
-        "CAPTURE_ID": settings.capture_id,
-    }
+    environment = {"BACKEND": settings.backend, "CAPTURE_ID": settings.capture_id}
 
     if settings.debug_features:
         environment["DEBUG"] = "true"
@@ -25,7 +22,7 @@ def main():
     job_id = client.submit_job(
         f"reconstruction-features-{settings.capture_id}",
         settings.job_queue_arn,
-        settings.features_job_definition_arn_prefix,
+        settings.features_job_definition_id,
         array_size=2,
         environment=environment,
     )

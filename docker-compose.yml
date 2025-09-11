@@ -28,7 +28,6 @@ services:
 
   automigrate:
     build:
-      context: .
       dockerfile: services/automigrate/Dockerfile
     volumes:
       - ./api:/workspace
@@ -42,9 +41,7 @@ services:
         condition: service_healthy
 
   cloudbeaver_init:
-    build:
-      context: ./services/cloudbeaver-init
-      dockerfile: Dockerfile
+    build: services/cloudbeaver-init/Dockerfile
     volumes:
       - cloudbeaver_data:/opt/cloudbeaver/workspace
     environment:
@@ -93,7 +90,7 @@ services:
       retries: 12
 
   minio-reverse-proxy:
-    build: ./services/minio-reverse-proxy
+    build: services/minio-reverse-proxy
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -120,7 +117,6 @@ services:
 
   api:
     build:
-      context: .
       dockerfile: services/api/Dockerfile
     working_dir: /app
     ports:
@@ -136,8 +132,8 @@ services:
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       JOB_QUEUE_ARN: dummy
-      RECONSTRUCTION_JOB_DEFINITION_ARN_PREFIX: run-reconstruction
-      FEATURES_JOB_DEFINITION_ARN_PREFIX: extract-match-features
+      RECONSTRUCTION_JOB_DEFINITION_ID: plerion-run-reconstruction
+      FEATURES_JOB_DEFINITION_ID: plerion-extract-match-features
       RELOAD: ${RELOAD_API}
       DEBUG: ${DEBUG_API}
       DEBUG_WAIT: ${DEBUG_WAIT_API}
@@ -158,16 +154,22 @@ services:
       - uv_cache:/root/.cache/uv
       - /var/run/docker.sock:/var/run/docker.sock
 
+  create-database:
+    profiles: [ "tasks" ]
+    build:
+      dockerfile: tasks/create-database/Dockerfile
+
+  delete-database:
+    profiles: [ "tasks" ]
+    build:
+      dockerfile: tasks/delete-database/Dockerfile
+
   run-reconstruction:
     profiles: [ "tasks" ]
-    image: run-reconstruction
     build:
-      context: .
       dockerfile: tasks/run-reconstruction/Dockerfile
 
   extract-match-features:
     profiles: [ "tasks" ]
-    image: extract-match-features
     build:
-      context: .
       dockerfile: tasks/extract-match-features/Dockerfile

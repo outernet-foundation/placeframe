@@ -4,14 +4,12 @@
     "scripts",
     "infra",
     "services/api",
-    "services/database-manager",
     "tasks/run-reconstruction",
     "tasks/extract-match-features",
     "capture-app/android_mobile",
     "capture-app/zed"
   ],
   "exclude": ["**/.venv/**", "**/__pycache__/**", "**/node_modules/**"],
-  "ignore": ["services/database-manager/src/clients/**"],
   "typeCheckingMode": "strict",
   "pythonVersion": "3.13",
   "executionEnvironments": [
@@ -46,12 +44,21 @@
       ]
     },
     {
-      "root": "services/database-manager",
+      "root": "tasks/create-database",
       "extraPaths": [
         "common/.venv/Lib/site-packages",
         "common/.venv/lib/python3.13/site-packages",
-        "services/database-manager/.venv/Lib/site-packages",
-        "services/database-manager/.venv/lib/python3.13/site-packages"
+        "tasks/create-database/.venv/Lib/site-packages",
+        "tasks/create-database/.venv/lib/python3.13/site-packages"
+      ]
+    },
+    {
+      "root": "tasks/delete-database",
+      "extraPaths": [
+        "common/.venv/Lib/site-packages",
+        "common/.venv/lib/python3.13/site-packages",
+        "tasks/delete-database/.venv/Lib/site-packages",
+        "tasks/delete-database/.venv/lib/python3.13/site-packages"
       ]
     },
     {

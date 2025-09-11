@@ -17,8 +17,7 @@ async def create_reconstruction(capture_id: UUID):
     # Validate capture id exists
     if not await Capture.objects().get(Capture.id == capture_id):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Capture with id {capture_id} not found",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Capture with id {capture_id} not found"
         )
 
     print("Creating AWS Batch client...")
@@ -28,7 +27,7 @@ async def create_reconstruction(capture_id: UUID):
         "BACKEND": settings.backend,
         "CAPTURE_ID": str(capture_id),
         "JOB_QUEUE_ARN": settings.job_queue_arn,
-        "FEATURES_JOB_DEFINITION_ARN_PREFIX": settings.features_job_definition_arn_prefix,
+        "FEATURES_JOB_DEFINITION_ID": settings.features_job_definition_id,
     }
 
     if settings.debug_reconstruction:
@@ -44,7 +43,7 @@ async def create_reconstruction(capture_id: UUID):
     client.submit_job(
         f"reconstruction-{capture_id}",
         settings.job_queue_arn,
-        settings.reconstruction_job_definition_arn_prefix,
+        settings.reconstruction_job_definition_id,
         environment=environment,
     )
     print("Reconstruction job submitted.")

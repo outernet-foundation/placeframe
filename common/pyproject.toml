@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.116.1",
     "boto3>=1.39.5",
     "docker>=7.1.0",
+    "psycopg>=3.2.10",
 ]
 
 [dependency-groups]
