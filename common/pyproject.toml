@@ -16,12 +16,6 @@ dev = [
     "types-docker>=7.1.0.20250907",
 ]
 
-[tool.pyright]
-typeCheckingMode = "strict"
-
-[tool.ruff.lint]
-extend-select = ["I"]
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

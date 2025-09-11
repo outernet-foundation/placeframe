@@ -22,12 +22,5 @@ dev = [
     "openapi-generator-cli>=7.14.0"
 ]
 
-[tool.pyright]
-typeCheckingMode = "strict"
-ignore = ["src/clients"]
-
-[tool.ruff.lint]
-extend-select = ["I"]
-
 [tool.uv.sources]
 common = { path = "../../common", editable = true }

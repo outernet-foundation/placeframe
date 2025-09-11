@@ -24,9 +24,3 @@ dev = [
 
 [tool.uv.sources]
 common = { path = "../../common", editable = true }
-
-[tool.pyright]
-typeCheckingMode = "strict"
-
-[tool.ruff.lint]
-extend-select = ["I"]

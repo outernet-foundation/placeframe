@@ -22,15 +22,5 @@ dev = [
     "botocore-stubs>=1.38.46",
 ]
 
-# [tool.pyright]
-# typeCheckingMode = "strict"
-
-# [tool.ruff.lint]
-# extend-select = ["I"]
-
-# [tool.ruff]
-# line-length = 120
-# preview = true
-
-# [tool.ruff.format]
-# skip-magic-trailing-comma = true
+[tool.ruff]
+extend = "../ruff.toml"
