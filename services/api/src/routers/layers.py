@@ -67,6 +67,8 @@ async def upsert_layers(layers: List[LayerModel]):
     - If a layer has an id but doesn't exist → insert it.
     - If a layer has no id → generate a new UUID and insert it.
     """
+    if len(layers) == 0:
+        return
 
     for layer in layers:
         data = layer.model_dump()
@@ -102,6 +104,9 @@ async def upsert_layers(layers: List[LayerModel]):
 async def delete_layers(
     ids: List[UUID],
 ):
+    if len(ids) == 0:
+        return ids
+
     # First fetch which ids actually exist
     existing = await Layer.select(Layer.id).where(Layer.id.is_in(ids))  # type: ignore
     existing_ids = [str(row["id"]) for row in existing]

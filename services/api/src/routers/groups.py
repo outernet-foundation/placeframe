@@ -101,6 +101,9 @@ async def upsert_groups(groups: List[GroupModel]):
 async def delete_groups(
     ids: List[UUID],
 ):
+    if len(ids) == 0:
+        return ids
+
     # First fetch which ids actually exist
     existing = await Group.select(Group.id).where(Group.id.is_in(ids))  # type: ignore
     existing_ids = [str(row["id"]) for row in existing]

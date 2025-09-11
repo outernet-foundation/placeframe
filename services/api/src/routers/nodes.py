@@ -1,5 +1,5 @@
 from typing import List, Optional, cast
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import ConfigDict
@@ -73,7 +73,7 @@ async def upsert_nodes(nodes: List[NodeModel]):
         # Generate an id if missing
         node_id = data.get("id")
         if not node_id:
-            node_id = UUID()
+            node_id = uuid4()
             data["id"] = node_id
 
         # Update or insert
@@ -98,6 +98,9 @@ async def upsert_nodes(nodes: List[NodeModel]):
 
 @router.delete("/", response_model=List[UUID])
 async def delete_nodes(ids: List[UUID]):
+    if len(ids) == 0:
+        return ids
+
     # First fetch which ids actually exist
     existing = await Node.select(Node.id).where(Node.id.is_in(ids))  # type: ignore
     existing_ids = [str(row["id"]) for row in existing]

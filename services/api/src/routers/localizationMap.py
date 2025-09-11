@@ -112,6 +112,9 @@ async def upsert_localizationMaps(localizationMaps: List[LocalizationMapModel]):
 # DELETE
 @router.delete("/", response_model=List[UUID])
 async def delete_localizationMaps(ids: List[UUID]):
+    if len(ids) == 0:
+        return ids
+
     # First fetch which ids actually exist
     existing = await LocalizationMap.select(LocalizationMap.id).where(  # type: ignore
         LocalizationMap.id.is_in(ids)
