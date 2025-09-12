@@ -89,6 +89,8 @@ services:
       - "8978:8978"
     volumes:
       - cloudbeaver_data:/opt/cloudbeaver/workspace
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8978" ]
       interval: 1s
