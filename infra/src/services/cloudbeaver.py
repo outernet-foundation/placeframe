@@ -1,4 +1,4 @@
-from pulumi import ComponentResource, Config, Input, Output, ResourceOptions, export
+from pulumi import ComponentResource, Config, Input, Output, ResourceOptions
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecs import Cluster
 from pulumi_aws.route53 import Record
@@ -74,9 +74,6 @@ class Cloudbeaver(ComponentResource):
         prepare_deploy_role.allow_image_repo_actions(
             "cloudbeaver", [initialize_cloudbeaver_image_repo, cloudbeaver_image_repo, create_database_image_repo]
         )
-        export("initialize-cloudbeaver-image-repo-url", initialize_cloudbeaver_image_repo.url)
-        export("cloudbeaver-image-repo-url", cloudbeaver_image_repo.url)
-        export("create-database-image-repo-url", create_database_image_repo.url)
 
         # Load balancer
         self.load_balancer = LoadBalancer(

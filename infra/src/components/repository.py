@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from typing import Dict, List, TypedDict, cast
 
-from pulumi import ComponentResource, Input, Output, ResourceOptions
+from pulumi import ComponentResource, Input, Output, ResourceOptions, export
 from pulumi_aws import ecr
 from pulumi_aws.ecr import get_repository_output
 
@@ -34,6 +34,8 @@ class Repository(ComponentResource):
         self.name = name
         self.arn = self._repo.arn
         self.url = self._repo.repository_url
+
+        export(f"{self.resource_name}-image-repo-url", self.url)
 
         self.register_outputs({"name": self.name, "arn": self.arn, "url": self.url})
 

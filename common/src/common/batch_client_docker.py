@@ -5,7 +5,6 @@ import uuid
 from typing import Dict, Literal
 
 import docker
-from docker.types import DeviceRequest
 
 Status = Literal["SUBMITTED", "RUNNING", "SUCCEEDED", "FAILED", "UNKNOWN"]
 
@@ -41,30 +40,19 @@ class DockerBatchClient:
                 image=f"{job_definition_name}:latest",
                 environment=environment,
                 volumes={
-                    "/var/run/docker.sock": {
-                        "bind": "/var/run/docker.sock",
-                        "mode": "rw",
-                    }
+                    "/var/run/docker.sock": {"bind": "/var/run/docker.sock", "mode": "rw"}
                 },  # So task can submit subtasks
-                ports={
-                    "5678/tcp": ("127.0.0.1", 0)
-                },  # Forward the debugging port to a random host port
-                labels={
-                    "service": job_definition_name,
-                    "job": job_id,
-                    "task": str(index),
-                },
+                ports={"5678/tcp": ("127.0.0.1", 0)},  # Forward the debugging port to a random host port
+                labels={"service": job_definition_name, "job": job_id, "task": str(index)},
                 detach=True,
                 remove=False,
-                device_requests=[DeviceRequest(count=-1, capabilities=[["gpu"]])],
+                # device_requests=[DeviceRequest(count=-1, capabilities=[["gpu"]])],
             )
 
             container_id = container.id
             assert container_id is not None
             self.jobs[job_id][container_id] = "SUBMITTED"
-            threading.Thread(
-                target=self._wait_for_exit, args=(job_id, container_id), daemon=True
-            ).start()
+            threading.Thread(target=self._wait_for_exit, args=(job_id, container_id), daemon=True).start()
 
         return job_id
 

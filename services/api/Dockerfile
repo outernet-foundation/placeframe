@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project --no-editable
 
 # Copy application code
-COPY services/api/ /app/services/api
+COPY services/api/ .
 
 # Install the project itself
 RUN --mount=type=cache,target=/root/.cache/uv \

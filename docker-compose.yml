@@ -21,8 +21,8 @@ services:
       MINIO_SERVER_URL: "https://${DEVICE_NAME}-minio.${DOMAIN}"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/ready" ]
-      interval: 5s
-      retries: 12
+      interval: 1s
+      retries: 60
 
   minio-reverse-proxy:
     build: services/minio-reverse-proxy
@@ -91,9 +91,9 @@ services:
       - cloudbeaver_data:/opt/cloudbeaver/workspace
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8978" ]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+      interval: 1s
+      timeout: 1s
+      retries: 90
 
   create-database:
     build:
@@ -125,7 +125,7 @@ services:
       create-database:
         condition: service_completed_successfully
     volumes:
-      - ./api:/workspace
+      - ./services/api:/workspace
     environment:
       POSTGRES_HOST: ${POSTGRES_HOST}
       DATABASE_NAME: ${API_DATABASE_NAME}
@@ -145,7 +145,7 @@ services:
       - "5678:5678"
     volumes:
       - ./services/api:/app/services/api
-      - ../common:/app/common
+      - ./common:/app/common
       - uv_cache:/root/.cache/uv
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
@@ -160,7 +160,7 @@ services:
       JOB_QUEUE_ARN: dummy
       RECONSTRUCTION_JOB_DEFINITION_ID: plerion-run-reconstruction
       FEATURES_JOB_DEFINITION_ID: plerion-extract-match-features
-      RELOAD: ${RELOAD_API}
+      RELOAD: true
       DEBUG: ${DEBUG_API}
       DEBUG_WAIT: ${DEBUG_WAIT_API}
       DEBUG_RECONSTRUCTION: ${DEBUG_RECONSTRUCTION}

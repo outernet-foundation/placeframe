@@ -81,7 +81,7 @@ if __name__ == "__main__":
         task: str = labels.get("task", "-")
 
         # value|label (VS Code picker expects the first field to be the value)
-        print(f"{port}|{service} | {name} j{job} t{task} → {port}")
+        print(f"{port}|{service} | {name} {job} {task}")
         found += 1
 
     if found == 0:
