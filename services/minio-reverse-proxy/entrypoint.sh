@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 cat > /etc/caddy/Caddyfile <<EOF
 :9000 {
