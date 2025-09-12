@@ -12,32 +12,19 @@ from typing import List, Literal, TypedDict, cast
 from pydantic import BaseModel, model_validator
 
 workspace_dir = Path("..").resolve()
-services_dir = workspace_dir / "services"
 infra_dir = workspace_dir / "infra"
 
 
-def run_command(
-    command: str,
-    cwd: Path | None = None,
-    env: dict[str, str] | None = None,
-):
+def run_command(command: str, cwd: Path | None = None, env: dict[str, str] | None = None):
     print(f"Running command: {command}")
 
     try:
         process = subprocess.run(
-            shlex.split(command, posix=True),
-            cwd=cwd,
-            env=env,
-            check=True,
-            text=True,
-            capture_output=True,
+            shlex.split(command, posix=True), cwd=cwd, env=env, check=True, text=True, capture_output=True
         )
         if process.returncode != 0:
             raise subprocess.CalledProcessError(
-                process.returncode,
-                command,
-                output=process.stdout,
-                stderr=process.stderr,
+                process.returncode, command, output=process.stdout, stderr=process.stderr
             )
         if process.stdout:
             print(process.stdout)
@@ -99,7 +86,7 @@ class ImageSpec(BaseModel):
 
 
 def get_image_spec(image_name: str) -> ImageSpec:
-    images_path = services_dir / "images.json"
+    images_path = workspace_dir / "images.json"
     if not images_path.is_file():
         raise FileNotFoundError(f"Images file not found: {images_path}")
     with images_path.open("r", encoding="utf-8") as file:
@@ -115,9 +102,7 @@ class _Manifest(TypedDict, total=False):
 
 def get_digest(ref: str) -> str | None:
     try:
-        output = run_command(
-            f"docker buildx imagetools inspect --format '{{{{json .Manifest}}}}' {shlex.quote(ref)}"
-        )
+        output = run_command(f"docker buildx imagetools inspect --format '{{{{json .Manifest}}}}' {shlex.quote(ref)}")
         ouput_json = json.loads(output)
         return cast(_Manifest, ouput_json).get("digest")
     except subprocess.CalledProcessError:
@@ -139,22 +124,15 @@ def build_push_lock(image_name: str):
         env["GIT_OBJECT_DIRECTORY"] = str(Path(td) / "objects")
         os.makedirs(env["GIT_OBJECT_DIRECTORY"], exist_ok=True)
         hash_paths = image_spec.hash_paths or [image_spec.context]
-        run_command(
-            f"git add -A -- {(' '.join(shlex.quote(path) for path in hash_paths))}",
-            env=env,
-            cwd=workspace_dir,
-        )
-        tree_hash_tag = (
-            f"tree-{run_command('git write-tree', env=env, cwd=workspace_dir).strip()}"
-        )
+        run_command(f"git add -A -- {(' '.join(shlex.quote(path) for path in hash_paths))}", env=env, cwd=workspace_dir)
+        tree_hash_tag = f"tree-{run_command('git write-tree', env=env, cwd=workspace_dir).strip()}"
 
     # Current commit hash (tag like your CI's "git-<sha>")
     git_hash_tag = f"git-{run_command('git rev-parse HEAD').strip()}"
 
     # Get repo URL from Pulumi
     repo_url = run_command(
-        f"pulumi stack output --stack {image_spec.stack} {image_name}-image-repo-url",
-        cwd=infra_dir,
+        f"pulumi stack output --stack {image_spec.stack} {image_name}-image-repo-url", cwd=infra_dir
     ).strip()
 
     # Check if image with this tag already exists and get its digest
@@ -162,9 +140,7 @@ def build_push_lock(image_name: str):
 
     # If the image doesn't exist, build and push it
     if digest is not None:
-        print(
-            f"Image {image_name} with tag {tree_hash_tag} already exists, skipping build."
-        )
+        print(f"Image {image_name} with tag {tree_hash_tag} already exists, skipping build.")
     else:
         assert image_spec.dockerfile is not None
 

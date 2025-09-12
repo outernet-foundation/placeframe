@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import json
 import sys
+from pathlib import Path
+from typing import Any, Dict
 
-from common.database_utils import cloudbeaver_gql, cloudbeaver_login, postgres_cursor
+from common.database_utils import postgres_cursor
 from psycopg import sql
 
 from .settings import get_settings
@@ -35,40 +37,29 @@ def main():
                 )
             )
 
-        # CloudBeaver connection must not exist
-        cloudbeaver_api_url, opener = cloudbeaver_login(
-            cloudbeaver_url=str(settings.cloudbeaver_url),
-            cloudbeaver_admin_user=settings.cloudbeaver_admin_user,
-            cloudbeaver_admin_password=settings.cloudbeaver_admin_password,
-        )
+        # Add a new connection to CloudBeaver for the new database
+        data_sources_path = Path("/opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver/data-sources.json")
+        with data_sources_path.open("rw", encoding="utf-8") as f:
+            data: Dict[str, Any] = json.load(f)
 
-        # Create CloudBeaver connection
-        cloudbeaver_gql(
-            opener,
-            cloudbeaver_api_url,
-            {
-                "query": (
-                    "mutation C($pid:ID!,$cfg:ConnectionConfig!){"
-                    "connection:createConnection(projectId:$pid,config:$cfg){id name}}"
-                ),
-                "variables": {
-                    "pid": "g_GlobalConfiguration",
-                    "cfg": {
-                        "configurationType": "MANUAL",
-                        "driverId": "postgresql",
-                        "name": settings.database_name,
-                        "host": settings.postgres_host,
-                        "port": 5432,
-                        "databaseName": settings.database_name,
-                        "authModelId": "native",
-                        "credentials": {"userName": settings.database_name, "userPassword": settings.database_password},
-                        "properties": {},
-                    },
+            data["connections"][settings.database_name] = {
+                "provider": "postgresql",
+                "driver": "postgres-jdbc",
+                "name": settings.database_name,
+                "save-password": True,
+                "configuration": {
+                    "host": settings.postgres_host,
+                    "port": "5432",
+                    "database": settings.database_name,
+                    "url": f"jdbc:postgresql://{settings.postgres_host}:5432/{settings.database_name}",
+                    "type": "dev",
+                    "configurationType": "MANUAL",
+                    "closeIdleConnection": True,
                 },
-            },
-        )
+            }
 
-        print(json.dumps({"ok": True}))
+            json.dump(data, f, indent=2)
+
     except Exception as e:
         print(str(e))
         sys.exit(1)

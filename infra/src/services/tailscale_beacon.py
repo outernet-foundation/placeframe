@@ -52,13 +52,9 @@ class TailscaleBeacon(ComponentResource):
         tailscale_beacon_image_repo = Repository(
             "tailscale-beacon-image-repo",
             "tailscale-beacon",
-            opts=ResourceOptions.merge(
-                self._child_opts,
-                # ResourceOptions(retain_on_delete=True),
-                ResourceOptions(import_="tailscale-beacon"),
-            ),
+            opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True)),
         )
-        prepare_deploy_role.allow_image_repo_actions([tailscale_beacon_image_repo])
+        prepare_deploy_role.allow_image_repo_actions("tailscale_beacon", [tailscale_beacon_image_repo])
         export("tailscale-beacon-image-repo-url", tailscale_beacon_image_repo.url)
 
         # Load balancer

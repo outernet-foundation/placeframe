@@ -41,16 +41,13 @@ class Cloudbeaver(ComponentResource):
 
         # Log groups
         cloudbeaver_log_group = LogGroup(
-            "cloudbeaver-log-group",
-            name="/ecs/cloudbeaver",
-            retention_in_days=7,
-            opts=ResourceOptions.merge(self._child_opts, ResourceOptions(import_="/ecs/cloudbeaver")),
+            "cloudbeaver-log-group", name="/ecs/cloudbeaver", retention_in_days=7, opts=self._child_opts
         )
-        cloudbeaver_init_log_group = LogGroup(
-            "cloudbeaver-init-log-group",
-            name="/ecs/cloudbeaver-init",
+        initialize_cloudbeaver_log_group = LogGroup(
+            "initialize-cloudbeaver-log-group",
+            name="/ecs/initialize-cloudbeaver",
             retention_in_days=7,
-            opts=ResourceOptions.merge(self._child_opts, ResourceOptions(import_="/ecs/cloudbeaver-init")),
+            opts=self._child_opts,
         )
 
         # Secrets
@@ -59,23 +56,27 @@ class Cloudbeaver(ComponentResource):
         )
 
         # Image repos
-        cloudbeaver_init_image_repo = Repository(
-            "cloudbeaver-init-repo",
-            name="cloudbeaver-init",
-            opts=ResourceOptions.merge(
-                self._child_opts, ResourceOptions(retain_on_delete=True, import_="cloudbeaver-init")
-            ),
+        initialize_cloudbeaver_image_repo = Repository(
+            "initialize-cloudbeaver-repo",
+            name="initialize-cloudbeaver",
+            opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True)),
         )
         cloudbeaver_image_repo = Repository(
             "cloudbeaver-repo",
             name="dockerhub/dbeaver/cloudbeaver",
-            opts=ResourceOptions.merge(
-                self._child_opts, ResourceOptions(retain_on_delete=True, import_="dockerhub/dbeaver/cloudbeaver")
-            ),
+            opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True)),
         )
-        prepare_deploy_role.allow_image_repo_actions([cloudbeaver_init_image_repo, cloudbeaver_image_repo])
-        export("cloudbeaver-init-image-repo-url", cloudbeaver_init_image_repo.url)
+        create_database_image_repo = Repository(
+            "create-database-repo",
+            name="create-database",
+            opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True)),
+        )
+        prepare_deploy_role.allow_image_repo_actions(
+            "cloudbeaver", [initialize_cloudbeaver_image_repo, cloudbeaver_image_repo, create_database_image_repo]
+        )
+        export("initialize-cloudbeaver-image-repo-url", initialize_cloudbeaver_image_repo.url)
         export("cloudbeaver-image-repo-url", cloudbeaver_image_repo.url)
+        export("create-database-image-repo-url", create_database_image_repo.url)
 
         # Load balancer
         self.load_balancer = LoadBalancer(
@@ -179,11 +180,11 @@ class Cloudbeaver(ComponentResource):
                         "oauth2-reverse-proxy": oauth.reverse_proxy_task_definition(
                             log_group=cloudbeaver_log_group, load_balancer=self.load_balancer
                         ),
-                        "cloudbeaver-init": {
-                            "name": "cloudbeaver-init",
-                            "image": cloudbeaver_init_image_repo.locked_digest(),
+                        "initialize-cloudbeaver": {
+                            "name": "initialize-cloudbeaver",
+                            "image": initialize_cloudbeaver_image_repo.locked_digest(),
                             "essential": False,
-                            "log_configuration": log_configuration(cloudbeaver_init_log_group),
+                            "log_configuration": log_configuration(initialize_cloudbeaver_log_group),
                             "mount_points": [{"source_volume": "efs", "container_path": "/opt/cloudbeaver/workspace"}],
                             "secrets": [
                                 {"name": "POSTGRES_PASSWORD", "value_from": rds.password_secret.arn},
@@ -201,7 +202,7 @@ class Cloudbeaver(ComponentResource):
                         },
                         "cloudbeaver": {
                             "name": "cloudbeaver",
-                            "depends_on": [{"container_name": "cloudbeaver-init", "condition": "SUCCESS"}],
+                            "depends_on": [{"container_name": "initialize-cloudbeaver", "condition": "SUCCESS"}],
                             "image": cloudbeaver_image_repo.locked_digest(),
                             "log_configuration": log_configuration(cloudbeaver_log_group),
                             "mount_points": [{"source_volume": "efs", "container_path": "/opt/cloudbeaver/workspace"}],

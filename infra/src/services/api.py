@@ -82,11 +82,9 @@ class Api(ComponentResource):
                 ),
             ),
         )
-        prepare_deploy_role.allow_image_repo_actions([
-            api_image_repo,
-            reconstruction_task_image_repo,
-            features_task_image_repo,
-        ])
+        prepare_deploy_role.allow_image_repo_actions(
+            "api", [api_image_repo, reconstruction_task_image_repo, features_task_image_repo]
+        )
         export("api-image-repo-url", api_image_repo.url)
         export("run-reconstruction-image-repo-url", reconstruction_task_image_repo.url)
         export("extract-match-features-image-repo-url", features_task_image_repo.url)

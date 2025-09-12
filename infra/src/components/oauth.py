@@ -95,7 +95,9 @@ class Oauth(ComponentResource):
                 ),
             )
 
-            prepare_deploy_role.allow_image_repo_actions([self.proxy_image_repo, self.reverse_proxy_image_repo])
+            prepare_deploy_role.allow_image_repo_actions(
+                "oauth2", [self.proxy_image_repo, self.reverse_proxy_image_repo]
+            )
             export("oauth2-proxy-image-repo-url", self.proxy_image_repo.url)
             export("oauth2-reverse-proxy-image-repo-url", self.reverse_proxy_image_repo.url)
 

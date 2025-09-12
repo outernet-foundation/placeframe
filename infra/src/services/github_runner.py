@@ -48,7 +48,7 @@ class GithubRunner(ComponentResource):
                 self._child_opts, ResourceOptions(retain_on_delete=True, import_="dockerhub/myoung34/github-runner")
             ),
         )
-        prepare_deploy_role.allow_image_repo_actions([github_runner_image_repo])
+        prepare_deploy_role.allow_image_repo_actions("github_runner", [github_runner_image_repo])
         export("github-runner-image-repo-url", github_runner_image_repo.url)
 
         # Security groups

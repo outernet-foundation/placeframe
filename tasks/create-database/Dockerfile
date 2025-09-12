@@ -1,24 +1,39 @@
-FROM ghcr.io/astral-sh/uv:0.7.22-python3.13-bookworm-slim AS dev
+FROM ghcr.io/astral-sh/uv:0.7.22 AS uv
 
-WORKDIR /app/tasks/create-database
+# First, bundle the dependencies into the task root.
+FROM public.ecr.aws/lambda/python:3.13 AS builder
 
-COPY tasks/create-database/pyproject.toml tasks/create-database/uv.lock ./
+# Don't buffer stdout/stderr (so logs appear immediately)
+ENV PYTHONUNBUFFERED=1
 
-# Copy common
-COPY common/ /app/common
+# Disable writing .pyc files to disk
+ENV PYTHONDONTWRITEBYTECODE=1
 
-# Install dependencies
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-install-project --no-editable
+# Enable bytecode compilation, to improve cold-start performance.
+ENV UV_COMPILE_BYTECODE=1
 
-# Copy application code
-COPY tasks/create-database/ .
+# Disable installer metadata, to create a deterministic layer.
+ENV UV_NO_INSTALLER_METADATA=1
 
-# Install the project itself
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-editable
+# Enable copy mode to support bind mount caching.
+ENV UV_LINK_MODE=copy
 
-# Copy the entrypoint and make it executable
-COPY --chmod=0755 tasks/create-database/entrypoint.sh /usr/local/bin/entrypoint.sh
+# https://docs.astral.sh/uv/guides/integration/aws-lambda/#getting-started
+RUN --mount=from=uv,source=/uv,target=/bin/uv \
+    --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=tasks/create-database/uv.lock,target=uv.lock \
+    --mount=type=bind,source=tasks/create-database/pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=common,target=/common,ro \
+    uv export --frozen --no-emit-workspace --no-dev --no-editable -o requirements.txt && \
+    uv pip install -r requirements.txt --target "${LAMBDA_TASK_ROOT}"
 
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+FROM public.ecr.aws/lambda/python:3.13
+
+# Copy the runtime dependencies from the builder stage.
+COPY --from=builder ${LAMBDA_TASK_ROOT} ${LAMBDA_TASK_ROOT}
+
+# Copy the application code.
+COPY ./tasks/create-database/src ${LAMBDA_TASK_ROOT}/src
+
+# Set the AWS Lambda handler.
+CMD ["src.main.main"]

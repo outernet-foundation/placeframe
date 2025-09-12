@@ -4,6 +4,6 @@ environment:
 config:
   aws:region: us-east-1
   plerion_infra:github-branch: main
-  plerion_infra:deploy-cloudbeaver: true
+  plerion_infra:deploy-cloudbeaver: false
   plerion_infra:deploy-tailscale-beacon: true
   plerion_infra:deploy-auth-gateway: true

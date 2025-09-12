@@ -262,9 +262,9 @@ class Role(ComponentResource):
             }),
         )
 
-    def allow_image_repo_actions(self, repos: Iterable[Repository]):
+    def allow_image_repo_actions(self, deployment_name: str, repos: Iterable[Repository]):
         self.attach_policy(
-            f"allow-image-repo-actions-{'-'.join(repo.resource_name for repo in repos)}",
+            f"allow-image-repo-actions-{deployment_name}",
             Output.json_dumps({
                 "Version": "2012-10-17",
                 "Statement": [

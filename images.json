@@ -15,12 +15,12 @@
     "context": "services/oauth2-reverse-proxy",
     "dockerfile": "Dockerfile"
   },
-  "cloudbeaver-init": {
+  "initialize-cloudbeaver": {
     "stack": "core",
     "first_party": true,
-    "context": "services/cloudbeaver-init",
+    "context": "tasks/initialize-cloudbeaver",
     "dockerfile": "Dockerfile",
-    "hash_paths": ["services/cloudbeaver", "common"]
+    "hash_paths": ["tasks/initialize-cloudbeaver", "common"]
   },
   "cloudbeaver": {
     "stack": "core",
@@ -52,14 +52,14 @@
     "hash_paths": ["tasks/extract-match-features", "common"]
   },
   "create-database": {
-    "stack": "dev",
+    "stack": "core",
     "first_party": true,
     "context": ".",
     "dockerfile": "tasks/create-database/Dockerfile",
     "hash_paths": ["tasks/create-database", "common"]
   },
   "delete-database": {
-    "stack": "dev",
+    "stack": "core",
     "first_party": true,
     "context": ".",
     "dockerfile": "tasks/delete-database/Dockerfile",

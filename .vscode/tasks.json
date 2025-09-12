@@ -20,28 +20,21 @@
     {
       "label": "Prelaunch: Debug standalone script",
       "type": "shell",
-      "command": "echo DEBUGPY_READY && uv run --with debugpy -m debugpy --connect 127.0.0.1:5678 ${file} ${input:scriptArgs}",
-      "options": {
-        "cwd": "${workspaceFolder}/scripts"
-      },
+      "command": "uv run --with debugpy -m debugpy --log-to-stderr --listen 127.0.0.1:5678 --wait-for-client ${file} ${input:scriptArgs}",
+      "options": { "cwd": "${workspaceFolder}/scripts" },
       "isBackground": true,
       "problemMatcher": [
         {
-          "owner": "custom",
+          "owner": "debugpy",
           "fileLocation": ["absolute"],
-          "pattern": {
-            "regexp": "^(?=a)b",
-            "file": 1,
-            "message": 1
-          },
+          "pattern": { "regexp": ".", "file": 1, "message": 1 },
           "background": {
             "activeOnStart": true,
-            "beginsPattern": "DEBUGPY_READY",
-            "endsPattern": "DEBUGPY_READY"
+            "beginsPattern": "^.*",
+            "endsPattern": "^.*wait_for_client().*"
           }
         }
-      ],
-      "presentation": { "revealProblems": "never" }
+      ]
     }
   ],
   "inputs": [

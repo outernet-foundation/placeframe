@@ -25,7 +25,7 @@
       "name": "Debug standalone script",
       "type": "debugpy",
       "request": "attach",
-      "listen": { "host": "127.0.0.1", "port": 5678 },
+      "connect": { "host": "127.0.0.1", "port": 5678 },
       "justMyCode": false,
       "preLaunchTask": "Prelaunch: Debug standalone script"
     }
