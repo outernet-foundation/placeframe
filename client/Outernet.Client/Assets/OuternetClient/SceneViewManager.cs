@@ -23,7 +23,7 @@ namespace Outernet.Client
         static public void Initialize()
         {
             LocalizedReferenceFrame.onTransformMatriciesChanged += () =>
-                App.ExecuteActionOrDelay(new UpdateNodeLocationsAction(LocalizedReferenceFrame.EcefToLocalTransform, _nodes.Values.Select(x => x.props).ToArray()));
+                App.ExecuteActionOrDelay(new SetEcefToLocalMatrixAction(LocalizedReferenceFrame.EcefToLocalTransform));
 
             subscriptions = Disposable.Combine(
                 App.State_Old.users.ObserveAdd().Subscribe(addEvent =>
@@ -67,39 +67,40 @@ namespace Outernet.Client
                     Toast.ShowToast($"User {removeEvent.Value.Value.userName.Value} left");
                 }),
 
-                App.state.nodes.Each(kvp => SetupNode(kvp.value))
+                App.state.exhibits.Each(kvp => SetupExhibit(kvp.value))
             );
         }
 
-        static private IDisposable SetupNode(NodeState node)
+        static private IDisposable SetupExhibit(ExhibitState exhibit)
         {
-            var transform = App.state.transforms[node.id];
-            var localTransform = LocalizedReferenceFrame.EcefToLocal(transform.position.value, transform.rotation.value);
+            var node = App.state.nodes[exhibit.id];
+            var transform = App.state.transforms[exhibit.id];
             var instance = ClientNode.Create(
-                uuid: node.id,
-                position: localTransform.position,
-                rotation: localTransform.rotation,
+                uuid: exhibit.id,
+                localPosition: transform.localPosition.value,
+                localRotation: transform.localRotation.value,
                 bind: props => Bindings.Compose(
-                    props.bounds.From(transform.bounds),
-                    props.link.From(node.link),
-                    props.linkType.From(node.linkType),
-                    props.label.From(node.label),
-                    props.labelType.From(node.labelType),
-                    props.labelScale.From(node.labelScale),
+                    props.bounds.From(transform.localBounds),
+                    props.link.From(exhibit.link),
+                    props.linkType.From(exhibit.linkType),
+                    props.label.From(exhibit.label),
+                    props.labelType.From(exhibit.labelType),
+                    props.labelScale.From(exhibit.labelScale),
                     props.labelDimensions.Derive(
                         _ => props.labelDimensions.value = new Vector2(
-                            node.labelWidth.value,
-                            node.labelHeight.value
+                            exhibit.labelWidth.value,
+                            exhibit.labelHeight.value
                         ),
                         ObservationScope.Self,
-                        node.labelWidth,
-                        node.labelHeight
+                        exhibit.labelWidth,
+                        exhibit.labelHeight
                     ),
                     props.visible.From(node.visible),
-                    props.exhibitOpen.BindTo(node.exhibitOpen),
-                    Bindings.BindECEFTransform(node.exhibitPosition, node.exhibitRotation, props.exhibitPosition, props.exhibitRotation),
-                    props.exhibitPanelDimensions.BindTo(node.exhibitPanelDimensions),
-                    props.exhibitPanelScrollPosition.BindTo(node.exhibitPanelScrollPosition),
+                    props.exhibitOpen.BindTo(exhibit.exhibitOpen),
+                    props.exhibitLocalPosition.BindTo(exhibit.exhibitLocalPosition),
+                    props.exhibitLocalRotation.BindTo(exhibit.exhibitLocalRotation),
+                    props.exhibitPanelDimensions.BindTo(exhibit.exhibitPanelDimensions),
+                    props.exhibitPanelScrollPosition.BindTo(exhibit.exhibitPanelScrollPosition),
                     props.hoveredRemotely.From(
                         x => node.hoveringUsers.count > 1 || (
                             App.ClientID.HasValue &&
@@ -115,11 +116,11 @@ namespace Outernet.Client
                         interactingUser => interactingUser == App.ClientID.Value,
                         interactingLocally => interactingLocally ? App.ClientID.Value : node.interactingUser.value
                     ),
-                    Bindings.OnRelease(() => _nodes.Remove(node.id))
+                    Bindings.OnRelease(() => _nodes.Remove(exhibit.id))
                 )
             );
 
-            _nodes.Add(node.id, instance);
+            _nodes.Add(exhibit.id, instance);
             return instance;
         }
 

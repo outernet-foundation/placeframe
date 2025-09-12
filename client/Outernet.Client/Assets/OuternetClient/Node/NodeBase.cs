@@ -20,8 +20,8 @@ namespace Outernet.Client
         public ObservablePrimitive<Shared.LabelType> labelType { get; private set; }
         public ObservablePrimitive<float> labelScale { get; private set; }
         public ObservablePrimitive<Vector2> labelDimensions { get; private set; }
-        public ObservablePrimitive<Vector3> position { get; set; }
-        public ObservablePrimitive<Quaternion> rotation { get; set; }
+        public ObservablePrimitive<Vector3> localPosition { get; set; }
+        public ObservablePrimitive<Quaternion> localRotation { get; set; }
         public ObservablePrimitive<Bounds> bounds { get; private set; }
         public ObservablePrimitive<bool> visible { get; private set; }
 
@@ -31,8 +31,8 @@ namespace Outernet.Client
         public ObservablePrimitive<bool> interacting { get; private set; }
 
         public ObservablePrimitive<bool> exhibitOpen { get; private set; }
-        public ObservablePrimitive<Vector3> exhibitPosition { get; private set; }
-        public ObservablePrimitive<Quaternion> exhibitRotation { get; private set; }
+        public ObservablePrimitive<Vector3> exhibitLocalPosition { get; private set; }
+        public ObservablePrimitive<Quaternion> exhibitLocalRotation { get; private set; }
         public ObservablePrimitive<Vector2> exhibitPanelDimensions { get; private set; }
         public ObservablePrimitive<float> exhibitPanelScrollPosition { get; private set; }
 
@@ -47,8 +47,8 @@ namespace Outernet.Client
             Shared.LabelType labelType = default,
             float labelScale = default,
             Vector2 labelDimensions = default,
-            Vector3 position = default,
-            Quaternion? rotation = default,
+            Vector3 localPosition = default,
+            Quaternion? localRotation = default,
             Bounds bounds = default,
             bool visible = default,
             bool exhibitOpen = default,
@@ -66,13 +66,13 @@ namespace Outernet.Client
             this.labelType = new ObservablePrimitive<Shared.LabelType>(labelType);
             this.labelScale = new ObservablePrimitive<float>(labelScale);
             this.labelDimensions = new ObservablePrimitive<Vector2>(labelDimensions);
-            this.position = new ObservablePrimitive<Vector3>(position);
-            this.rotation = new ObservablePrimitive<Quaternion>(rotation ?? Quaternion.identity);
+            this.localPosition = new ObservablePrimitive<Vector3>(localPosition);
+            this.localRotation = new ObservablePrimitive<Quaternion>(localRotation ?? Quaternion.identity);
             this.bounds = new ObservablePrimitive<Bounds>(bounds);
             this.visible = new ObservablePrimitive<bool>(visible);
             this.exhibitOpen = new ObservablePrimitive<bool>(exhibitOpen);
-            this.exhibitPosition = new ObservablePrimitive<Vector3>(exhibitPosition);
-            this.exhibitRotation = new ObservablePrimitive<Quaternion>(exhibitRotation ?? Quaternion.identity);
+            this.exhibitLocalPosition = new ObservablePrimitive<Vector3>(exhibitPosition);
+            this.exhibitLocalRotation = new ObservablePrimitive<Quaternion>(exhibitRotation ?? Quaternion.identity);
             this.exhibitPanelDimensions = new ObservablePrimitive<Vector2>(exhibitPanelDimensions);
             this.exhibitPanelScrollPosition = new ObservablePrimitive<float>(exhibitPanelScrollPosition);
         }
@@ -104,18 +104,18 @@ namespace Outernet.Client
 
         private void LateUpdate()
         {
-            if (props.position.value != transform.position)
-                props.position.ExecuteSet(transform.position, logLevel: FofX.LogLevel.None);
+            if (props.localPosition.value != transform.position)
+                props.localPosition.ExecuteSet(transform.position, logLevel: FofX.LogLevel.None);
 
-            if (props.rotation.value != transform.rotation)
-                props.rotation.ExecuteSet(transform.rotation, logLevel: FofX.LogLevel.None);
+            if (props.localRotation.value != transform.rotation)
+                props.localRotation.ExecuteSet(transform.rotation, logLevel: FofX.LogLevel.None);
         }
 
         protected override void Bind()
         {
             AddBinding(
-                props.position.OnChange(x => transform.position = x),
-                props.rotation.OnChange(x => transform.rotation = x),
+                props.localPosition.OnChange(x => transform.position = x),
+                props.localRotation.OnChange(x => transform.rotation = x),
                 _collider.BindBounds(props.bounds),
                 props.labelType.OnChange(HandleLabelTypeChanged),
                 gameObject.BindActive(props.visible)
@@ -259,13 +259,13 @@ namespace Outernet.Client
         private IDisposable SetupExhibit()
         {
             var exhibit = ClientExhibit.Create(
-                position: props.exhibitPosition.value,
-                rotation: props.exhibitRotation.value,
+                position: props.exhibitLocalPosition.value,
+                rotation: props.exhibitLocalRotation.value,
                 panelDimensions: props.exhibitPanelDimensions.value,
                 panelScrollPosition: props.exhibitPanelScrollPosition.value,
                 bind: exhibitProps => Bindings.Compose(
-                    exhibitProps.position.BindTo(props.exhibitPosition),
-                    exhibitProps.rotation.BindTo(props.exhibitRotation),
+                    exhibitProps.position.BindTo(props.exhibitLocalPosition),
+                    exhibitProps.rotation.BindTo(props.exhibitLocalRotation),
                     exhibitProps.panelScrollPosition.BindTo(props.exhibitPanelScrollPosition),
                     exhibitProps.panelDimensions.BindTo(props.exhibitPanelDimensions),
                     exhibitProps.interacting.BindTo(props.interacting),
@@ -279,10 +279,10 @@ namespace Outernet.Client
                 )
             );
 
-            exhibit.Open(props.position.value, props.rotation.value);
+            exhibit.Open(props.localPosition.value, props.localRotation.value);
 
             return Bindings.OnRelease(() => exhibit
-                .Close(props.position.value, props.rotation.value)
+                .Close(props.localPosition.value, props.localRotation.value)
                 .ContinueWith(exhibit.Dispose)
             );
         }

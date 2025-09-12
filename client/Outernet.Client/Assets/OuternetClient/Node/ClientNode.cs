@@ -30,8 +30,8 @@ namespace Outernet.Client
                         (position, rotation),
                         (data, props) =>
                         {
-                            props.exhibitPosition.value = data.position;
-                            props.exhibitRotation.value = data.rotation;
+                            props.exhibitLocalPosition.value = data.position;
+                            props.exhibitLocalRotation.value = data.rotation;
                             props.exhibitPanelDimensions.value = new Vector2(1, 0.7f);
                             props.exhibitPanelScrollPosition.value = 1f;
                             props.exhibitOpen.value = true;
@@ -83,8 +83,8 @@ namespace Outernet.Client
             Shared.LabelType labelType = default,
             float labelScale = default,
             Vector2 labelDimensions = default,
-            Vector3 position = default,
-            Quaternion? rotation = default,
+            Vector3 localPosition = default,
+            Quaternion? localRotation = default,
             Bounds bounds = default,
             bool visible = default,
             bool exhibitOpen = default,
@@ -105,8 +105,8 @@ namespace Outernet.Client
                 labelType,
                 labelScale,
                 labelDimensions,
-                position,
-                rotation,
+                localPosition,
+                localRotation,
                 bounds,
                 visible,
                 exhibitOpen,

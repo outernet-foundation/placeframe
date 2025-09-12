@@ -20,11 +20,6 @@ namespace Outernet.Client.AuthoringTools
 
         private void Awake()
         {
-            LocalizedReferenceFrame.onTransformMatriciesChanged += () => App.ExecuteActionOrDelay(
-                new UpdateNodeLocationsAction(LocalizedReferenceFrame.EcefToLocalTransform, _nodes.Values.Select(x => x.props).ToArray()),
-                new UpdateMapLocationsAction(LocalizedReferenceFrame.EcefToLocalTransform, _maps.Values.Select(x => x.props).ToArray())
-            );
-
             if (_instance != null)
             {
                 Destroy(this);
@@ -34,7 +29,7 @@ namespace Outernet.Client.AuthoringTools
             _instance = this;
 
             App.state.maps.Each(kvp => SetupMap(kvp.value));
-            App.state.nodes.Each(kvp => SetupNode(kvp.value));
+            App.state.exhibits.Each(kvp => SetupExhibit(kvp.value));
         }
 
         private IDisposable SetupMap(MapState map)
@@ -44,9 +39,10 @@ namespace Outernet.Client.AuthoringTools
             var view = Instantiate(AuthoringToolsPrefabs.SceneMap, sceneRoot);
             view.Setup(sceneObjectID: map.id, mapID: map.id);
             view.AddBinding(
-                Bindings.BindECEFTransform(transform.position, transform.rotation, view.props.position, view.props.rotation),
+                view.props.localPosition.From(transform.localPosition),
+                view.props.localRotation.From(transform.localRotation),
                 view.props.name.From(map.name),
-                view.props.bounds.From(transform.bounds),
+                view.props.bounds.From(transform.localBounds),
                 view.props.color.From(map.color),
                 view.props.localInputImagePositions.Derive(
                     _ => view.props.localInputImagePositions.SetValue(
@@ -65,29 +61,31 @@ namespace Outernet.Client.AuthoringTools
             return view;
         }
 
-        private IDisposable SetupNode(NodeState node)
+        private IDisposable SetupExhibit(ExhibitState exhibit)
         {
-            var transform = App.state.transforms[node.id];
+            var transform = App.state.transforms[exhibit.id];
+            var node = App.state.nodes[exhibit.id];
             var instance = AuthoringToolsNode.Create(
                 uuid: node.id,
                 parent: sceneRoot,
                 bind: props => Bindings.Compose(
-                    Bindings.BindECEFTransform(transform.position, transform.rotation, props.position, props.rotation),
-                    props.bounds.BindTo(transform.bounds),
+                    props.localPosition.BindTo(transform.localPosition),
+                    props.localRotation.BindTo(transform.localRotation),
+                    props.bounds.BindTo(transform.localBounds),
                     props.visible.From(node.visible),
-                    props.link.From(node.link),
-                    props.linkType.From(node.linkType),
-                    props.label.From(node.label),
-                    props.labelType.From(node.labelType),
-                    props.labelScale.From(node.labelScale),
+                    props.link.From(exhibit.link),
+                    props.linkType.From(exhibit.linkType),
+                    props.label.From(exhibit.label),
+                    props.labelType.From(exhibit.labelType),
+                    props.labelScale.From(exhibit.labelScale),
                     props.labelDimensions.Derive(
                         _ => props.labelDimensions.value = new Vector2(
-                            node.labelWidth.value,
-                            node.labelHeight.value
+                            exhibit.labelWidth.value,
+                            exhibit.labelHeight.value
                         ),
                         ObservationScope.Self,
-                        node.labelWidth,
-                        node.labelHeight
+                        exhibit.labelWidth,
+                        exhibit.labelHeight
                     ),
                     Bindings.OnRelease(() => _nodes.Remove(node.id))
                 )

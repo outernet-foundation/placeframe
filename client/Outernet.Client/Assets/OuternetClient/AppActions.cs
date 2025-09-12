@@ -120,16 +120,57 @@ namespace Outernet.Client
             foreach (var toRemove in oldMapsByID.Where(x => !newMapsByID.ContainsKey(x.Key)))
                 new DestroySceneObjectAction(toRemove.Key).Execute(target);
 
-            foreach (var toUpdate in newMapsByID.Select(x => x.Value))
+            foreach (var map in newMapsByID.Select(x => x.Value))
             {
+                var mapWorldTransform = Utility.EcefToLocal(
+                    target.ecefToLocalMatrix.value,
+                    new double3(map.PositionX, map.PositionY, map.PositionZ),
+                    new quaternion((float)map.RotationX, (float)map.RotationY, (float)map.RotationZ, (float)map.RotationW)
+                );
+
+                /* TODO: Parent support??
+                Vector3 localPosition;
+                Quaternion localRotation;
+
+                var mapWorldTransform = Utility.EcefToLocal(
+                    target.ecefToLocalMatrix.value,
+                    new double3(map.PositionX, map.PositionY, map.PositionZ),
+                    new quaternion((float)map.RotationX, (float)map.RotationY, (float)map.RotationZ, (float)map.RotationW)
+                );
+
+                if (!map.Parent.HasValue)
+                {
+                    localPosition = mapWorldTransform.position;
+                    localRotation = mapWorldTransform.rotation;
+                }
+                else
+                {
+                    var parent = newMapsByID[map.Parent.Value];
+                    var parentWorldTransform = Utility.EcefToLocal(
+                        target.ecefToLocalMatrix.value,
+                        new double3(parent.PositionX, parent.PositionY, parent.PositionZ),
+                        new quaternion((float)parent.RotationX, (float)parent.RotationY, (float)parent.RotationZ, (float)parent.RotationW)
+                    );
+
+                    var parentWorldToLocalMatrix = Matrix4x4.TRS(
+                        parentWorldTransform.position,
+                        parentWorldTransform.rotation,
+                        Vector3.one
+                    );
+
+                    localPosition = parentWorldToLocalMatrix.inverse.MultiplyPoint3x4(mapWorldTransform.position);
+                    localRotation = Quaternion.Inverse(parentWorldTransform.rotation) * mapWorldTransform.rotation;
+                }
+                */
+
                 new AddOrUpdateMapAction(
-                    id: toUpdate.Id,
-                    name: toUpdate.Name,
-                    position: new double3() { x = toUpdate.PositionX, y = toUpdate.PositionY, z = toUpdate.PositionZ },
-                    rotation: new Quaternion((float)toUpdate.RotationX, (float)toUpdate.RotationY, (float)toUpdate.RotationZ, (float)toUpdate.RotationW),
-                    lighting: (Shared.Lighting)toUpdate.Lighting,
-                    color: toUpdate.Color,
-                    localInputImagePositions: ParsePoints(toUpdate.Points)
+                    id: map.Id,
+                    name: map.Name,
+                    localPosition: mapWorldTransform.position,
+                    localRotation: mapWorldTransform.rotation,
+                    lighting: (Shared.Lighting)map.Lighting,
+                    color: map.Color,
+                    localInputImagePositions: ParsePoints(map.Points)
                 ).Execute(target);
             }
         }
@@ -148,8 +189,8 @@ namespace Outernet.Client
     {
         private Guid _id;
         private string _name;
-        private double3 _position;
-        private Quaternion _rotation;
+        private Vector3 _localPosition;
+        private Quaternion _localRotation;
         private Shared.Lighting _lighting;
         private long _color;
         private double3[] _localInputImagePositions;
@@ -157,16 +198,16 @@ namespace Outernet.Client
         public AddOrUpdateMapAction(
             Guid id,
             string name = default,
-            double3 position = default,
-            Quaternion rotation = default,
+            Vector3 localPosition = default,
+            Quaternion localRotation = default,
             Shared.Lighting lighting = default,
             long color = default,
             double3[] localInputImagePositions = default)
         {
             _id = id;
             _name = name;
-            _position = position;
-            _rotation = rotation;
+            _localPosition = localPosition;
+            _localRotation = localRotation;
             _lighting = lighting;
             _color = color;
             _localInputImagePositions = localInputImagePositions;
@@ -182,8 +223,8 @@ namespace Outernet.Client
             map.color.value = _color;
             map.localInputImagePositions.SetValue(_localInputImagePositions);
 
-            transform.position.value = _position;
-            transform.rotation.value = _rotation;
+            transform.localPosition.value = _localPosition;
+            transform.localRotation.value = _localRotation;
         }
     }
 
@@ -198,28 +239,61 @@ namespace Outernet.Client
 
         public override void Execute(ClientState target)
         {
-            var newMapsByID = _nodes.ToDictionary(x => x.Id);
-            var oldMapsByID = target.nodes.ToDictionary(x => x.key, x => x.value);
+            var newNodesByID = _nodes.ToDictionary(x => x.Id);
+            var oldNodesByID = target.nodes.ToDictionary(x => x.key, x => x.value);
 
-            foreach (var toRemove in oldMapsByID.Where(x => !newMapsByID.ContainsKey(x.Key)))
+            foreach (var toRemove in oldNodesByID.Where(x => !newNodesByID.ContainsKey(x.Key)))
                 new DestroySceneObjectAction(toRemove.Key).Execute(target);
 
-            foreach (var toUpdate in newMapsByID.Select(x => x.Value))
+            foreach (var node in newNodesByID.Select(x => x.Value))
             {
+                Vector3 localPosition;
+                Quaternion localRotation;
+
+                var nodeWorldTransform = Utility.EcefToLocal(
+                    target.ecefToLocalMatrix.value,
+                    new double3(node.PositionX, node.PositionY, node.PositionZ),
+                    new quaternion((float)node.RotationX, (float)node.RotationY, (float)node.RotationZ, (float)node.RotationW)
+                );
+
+                if (!node.Parent.HasValue)
+                {
+                    localPosition = nodeWorldTransform.position;
+                    localRotation = nodeWorldTransform.rotation;
+                }
+                else
+                {
+                    var parent = newNodesByID[node.Parent.Value];
+                    var parentWorldTransform = Utility.EcefToLocal(
+                        target.ecefToLocalMatrix.value,
+                        new double3(parent.PositionX, parent.PositionY, parent.PositionZ),
+                        new quaternion((float)parent.RotationX, (float)parent.RotationY, (float)parent.RotationZ, (float)parent.RotationW)
+                    );
+
+                    var parentWorldToLocalMatrix = Matrix4x4.TRS(
+                        parentWorldTransform.position,
+                        parentWorldTransform.rotation,
+                        Vector3.one
+                    );
+
+                    localPosition = parentWorldToLocalMatrix.inverse.MultiplyPoint3x4(nodeWorldTransform.position);
+                    localRotation = Quaternion.Inverse(parentWorldTransform.rotation) * nodeWorldTransform.rotation;
+                }
+
                 new AddOrUpdateNodeAction(
-                    id: toUpdate.Id,
-                    name: toUpdate.Name,
-                    label: toUpdate.Label,
-                    labelType: (Shared.LabelType)(toUpdate.LabelType.HasValue ? toUpdate.LabelType.Value : default),
-                    link: toUpdate.Link,
-                    linkType: (Shared.LinkType)(toUpdate.LinkType.HasValue ? toUpdate.LinkType.Value : default),
-                    labelScale: (float)(toUpdate.LabelScale.HasValue ? toUpdate.LabelScale.Value : default),
-                    labelWidth: (float)(toUpdate.LabelWidth.HasValue ? toUpdate.LabelWidth.Value : default),
-                    labelHeight: (float)(toUpdate.LabelHeight.HasValue ? toUpdate.LabelHeight.Value : default),
-                    layer: toUpdate.Layer.HasValue ? toUpdate.Layer.Value : Guid.Empty,
-                    parentID: toUpdate.Parent,
-                    position: new double3() { x = toUpdate.PositionX, y = toUpdate.PositionY, z = toUpdate.PositionZ },
-                    rotation: new Quaternion((float)toUpdate.RotationX, (float)toUpdate.RotationY, (float)toUpdate.RotationZ, (float)toUpdate.RotationW)
+                    id: node.Id,
+                    name: node.Name,
+                    label: node.Label,
+                    labelType: (Shared.LabelType)(node.LabelType.HasValue ? node.LabelType.Value : default),
+                    link: node.Link,
+                    linkType: (Shared.LinkType)(node.LinkType.HasValue ? node.LinkType.Value : default),
+                    labelScale: (float)(node.LabelScale.HasValue ? node.LabelScale.Value : default),
+                    labelWidth: (float)(node.LabelWidth.HasValue ? node.LabelWidth.Value : default),
+                    labelHeight: (float)(node.LabelHeight.HasValue ? node.LabelHeight.Value : default),
+                    layer: node.Layer.HasValue ? node.Layer.Value : Guid.Empty,
+                    parentID: node.Parent,
+                    localPosition: localPosition,
+                    localRotation: localRotation
                 ).Execute(target);
             }
         }
@@ -241,37 +315,13 @@ namespace Outernet.Client
         private Guid[] _hoveringUsers;
         private Guid _interactingUser;
         private bool _exhibitOpen;
-        private double3 _exhibitPosition;
-        private Quaternion _exhibitRotation;
+        private Vector3 _exhibitLocalPosition;
+        private Quaternion _exhibitLocalRotation;
         private Vector2 _exhibitPanelDimensions;
         private float _exhibitPanelScrollPosition;
 
-        private double3 _position;
-        private Quaternion _rotation;
-
-        public static AddOrUpdateNodeAction FromRecord(Guid uuid, Shared.NodeRecord record)
-        {
-            return new AddOrUpdateNodeAction(
-                uuid,
-                label: record.label.Value,
-                labelType: record.labelType.Value,
-                link: record.link.Value,
-                linkType: record.linkType.Value,
-                labelScale: record.labelScale.Value,
-                labelWidth: record.labelWidth.Value,
-                labelHeight: record.labelHeight.Value,
-                layer: record.layer.Value,
-                hoveringUsers: record.hoveringUsers.ToArray(),
-                interactingUser: record.interactingUser.Value,
-                exhibitOpen: record.exhibitOpen.Value,
-                exhibitPosition: record.exhibitGeoPose.ecefPosition.Value.ToMathematicsDouble3(),
-                exhibitRotation: record.exhibitGeoPose.ecefRotation.Value,
-                exhibitPanelDimensions: record.exhibitPanelDimensions.Value,
-                exhibitPanelScrollPosition: record.exhibitPanelScrollPosition.Value,
-                position: record.geoPose.ecefPosition.Value.ToMathematicsDouble3(),
-                rotation: record.geoPose.ecefRotation.Value
-            );
-        }
+        private Vector3 _localPosition;
+        private Quaternion _localRotation;
 
         public AddOrUpdateNodeAction(
             Guid id,
@@ -288,12 +338,12 @@ namespace Outernet.Client
             Guid[] hoveringUsers = default,
             Guid interactingUser = default,
             bool exhibitOpen = default,
-            double3 exhibitPosition = default,
-            Quaternion exhibitRotation = default,
+            Vector3 exhibitLocalPosition = default,
+            Quaternion exhibitLocalRotation = default,
             Vector2 exhibitPanelDimensions = default,
             float exhibitPanelScrollPosition = default,
-            double3 position = default,
-            Quaternion rotation = default
+            Vector3 localPosition = default,
+            Quaternion localRotation = default
         )
         {
             _id = id;
@@ -310,39 +360,41 @@ namespace Outernet.Client
             _hoveringUsers = hoveringUsers;
             _interactingUser = interactingUser;
             _exhibitOpen = exhibitOpen;
-            _exhibitPosition = exhibitPosition;
-            _exhibitRotation = exhibitRotation;
+            _exhibitLocalPosition = exhibitLocalPosition;
+            _exhibitLocalRotation = exhibitLocalRotation;
             _exhibitPanelDimensions = exhibitPanelDimensions;
             _exhibitPanelScrollPosition = exhibitPanelScrollPosition;
-            _position = position;
-            _rotation = rotation;
+            _localPosition = localPosition;
+            _localRotation = localRotation;
         }
 
         public override void Execute(ClientState target)
         {
             var node = target.nodes.GetOrAdd(_id);
             var transform = target.transforms.GetOrAdd(_id);
+            var exhibit = target.exhibits.GetOrAdd(_id);
 
             node.name.value = _name;
-            node.label.value = _label;
-            node.labelType.value = _labelType;
-            node.link.value = _link;
-            node.linkType.value = _linkType;
-            node.labelScale.value = _labelScale;
-            node.labelWidth.value = _labelWidth;
-            node.labelHeight.value = _labelHeight;
             node.layer.value = _layer;
-            node.parentID.value = _parentID;
             node.hoveringUsers.SetFrom(_hoveringUsers);
             node.interactingUser.value = _interactingUser;
-            node.exhibitOpen.value = _exhibitOpen;
-            node.exhibitPosition.value = _exhibitPosition;
-            node.exhibitRotation.value = _exhibitRotation;
-            node.exhibitPanelDimensions.value = _exhibitPanelDimensions;
-            node.exhibitPanelScrollPosition.value = _exhibitPanelScrollPosition;
 
-            transform.position.value = _position;
-            transform.rotation.value = _rotation;
+            transform.parentTransform.value = _parentID;
+            transform.localPosition.value = _localPosition;
+            transform.localRotation.value = _localRotation;
+
+            exhibit.label.value = _label;
+            exhibit.labelType.value = _labelType;
+            exhibit.link.value = _link;
+            exhibit.linkType.value = _linkType;
+            exhibit.labelScale.value = _labelScale;
+            exhibit.labelWidth.value = _labelWidth;
+            exhibit.labelHeight.value = _labelHeight;
+            exhibit.exhibitOpen.value = _exhibitOpen;
+            exhibit.exhibitLocalPosition.value = _exhibitLocalPosition;
+            exhibit.exhibitLocalRotation.value = _exhibitLocalRotation;
+            exhibit.exhibitPanelDimensions.value = _exhibitPanelDimensions;
+            exhibit.exhibitPanelScrollPosition.value = _exhibitPanelScrollPosition;
         }
     }
 
@@ -368,9 +420,9 @@ namespace Outernet.Client
 
         public override void Execute(ClientState target)
         {
-            if (target.authoringTools.nodeGroups.TryGetValue(_sceneObjectID, out var group))
+            if (target.transforms.TryGetValue(_sceneObjectID, out var transform))
             {
-                foreach (var child in group.childObjects.ToArray())
+                foreach (var child in transform.childTransforms.ToArray())
                     new DestroySceneObjectAction(child).Execute(target);
             }
 
@@ -381,58 +433,56 @@ namespace Outernet.Client
         }
     }
 
-    public class UpdateNodeLocationsAction : ObservableNodeAction<ClientState>
+    public class SetEcefToLocalMatrixAction : ObservableNodeAction<ClientState>
     {
-        private double4x4 _ecefToLocalMatrix;
-        private double4x4 _localToEcefMatrix;
-        private NodeProps[] _toUpdate;
+        private double4x4 _matrix;
+        private bool _updateTransforms;
 
-        public UpdateNodeLocationsAction(double4x4 ecefToLocalMatrix, NodeProps[] toUpdate)
+        public SetEcefToLocalMatrixAction(double4x4 matrix, bool updateTransforms = true)
         {
-            _ecefToLocalMatrix = ecefToLocalMatrix;
-            _localToEcefMatrix = math.inverse(_ecefToLocalMatrix);
-            _toUpdate = toUpdate;
+            _matrix = matrix;
+            _updateTransforms = updateTransforms;
         }
 
         public override void Execute(ClientState target)
         {
-            foreach (var clientNode in _toUpdate)
+            var prevLocalToEcefMatrix = target.localToEcefMatrix.value;
+            target.ecefToLocalMatrix.value = _matrix; // this updates target.localToEcefMatrix automatically
+
+            if (!_updateTransforms)
+                return;
+
+            foreach (var transform in target.transforms.values)
             {
-                var transform = target.transforms[clientNode.uuid.value];
-                var localNodeTransform = Utility.EcefToLocal(
-                    _ecefToLocalMatrix,
-                    transform.position.value,
-                    transform.rotation.value
-                );
-
-                clientNode.position.value = localNodeTransform.position;
-                clientNode.rotation.value = localNodeTransform.rotation;
-
-                if (clientNode.exhibitOpen.value)
+                // we only need to update roots
+                if (!transform.parentTransform.value.HasValue)
                 {
-                    var nodeState = target.nodes[clientNode.uuid.value];
+                    var ecefCoords = Utility.LocalToEcef(
+                        prevLocalToEcefMatrix,
+                        transform.localPosition.value,
+                        transform.localRotation.value
+                    );
 
-                    if (clientNode.interacting.value)
+                    var newLocalCoords = Utility.EcefToLocal(
+                        _matrix,
+                        ecefCoords.position,
+                        ecefCoords.rotation
+                    );
+
+                    transform.localPosition.value = newLocalCoords.position;
+                    transform.localRotation.value = newLocalCoords.rotation;
+                }
+
+                if (target.exhibits.TryGetValue(transform.id, out var exhibit) && exhibit.exhibitOpen.value)
+                {
+                    var nodeState = target.nodes[exhibit.id];
+
+                    if (nodeState.interactingUser.value != Guid.Empty &&
+                        nodeState.interactingUser.value == target.clientID.value)
                     {
-                        var ecefExhibitTransform = Utility.LocalToEcef(
-                            _localToEcefMatrix,
-                            clientNode.exhibitPosition.value,
-                            clientNode.exhibitRotation.value
-                        );
-
-                        nodeState.exhibitPosition.value = ecefExhibitTransform.position;
-                        nodeState.exhibitRotation.value = ecefExhibitTransform.rotation;
-                    }
-                    else
-                    {
-                        var localExhibitTransform = Utility.EcefToLocal(
-                            _ecefToLocalMatrix,
-                            nodeState.exhibitPosition.value,
-                            nodeState.exhibitRotation.value
-                        );
-
-                        clientNode.exhibitPosition.value = localExhibitTransform.position;
-                        clientNode.exhibitRotation.value = localExhibitTransform.rotation;
+                        // TODO: 
+                        // Update exhibits that are in the middle of interactions 
+                        // so they don't move when the origin does
                     }
                 }
             }

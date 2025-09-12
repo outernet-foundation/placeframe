@@ -9,11 +9,11 @@ namespace Outernet.Client.AuthoringTools
     {
         private void Update()
         {
-            if (transform.position != props.position.value)
-                props.position.ExecuteSet(transform.position);
+            if (transform.position != props.localPosition.value)
+                props.localPosition.ExecuteSet(transform.position);
 
-            if (transform.rotation != props.rotation.value)
-                props.rotation.ExecuteSet(transform.rotation);
+            if (transform.rotation != props.localRotation.value)
+                props.localRotation.ExecuteSet(transform.rotation);
 
             var prevMatrix = RuntimeGizmos.matrix;
             RuntimeGizmos.matrix = _currentView.transform.localToWorldMatrix;

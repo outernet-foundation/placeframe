@@ -178,8 +178,7 @@ namespace Outernet.Client.AuthoringTools
 
             App.ExecuteActionOrDelay(
                 new SetMapsAction(maps.ToArray()),
-                new SetNodesAction(nodes.ToArray()),
-                new SetNodeGroupsAction(nodeGroups.ToArray())
+                new SetNodesAction(nodes.ToArray())
             );
 
             Destroy(dialog.gameObject);

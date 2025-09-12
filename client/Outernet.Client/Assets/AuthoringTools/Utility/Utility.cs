@@ -44,7 +44,7 @@ namespace Outernet.Client.AuthoringTools
 
         public static void CalcSelectedGroupTransform(out Vector3 position, out Quaternion rotation)
         {
-            double3 pos = default;
+            Vector3 pos = default;
             Quaternion rot = default;
             int count = 0;
 
@@ -57,10 +57,8 @@ namespace Outernet.Client.AuthoringTools
 
             pos /= count;
 
-            var localTransform = LocalizedReferenceFrame.EcefToLocal(pos, rot);
-
-            position = localTransform.position;
-            rotation = count == 1 ? localTransform.rotation : Quaternion.identity;
+            position = pos;
+            rotation = count == 1 ? rot : Quaternion.identity;
         }
 
         public static void SetFrom<T>(this ObservableList<ObservablePrimitive<T>> list, T[] array)
@@ -157,17 +155,6 @@ namespace Outernet.Client.AuthoringTools
             return primitive.value;
         }
 
-        public static GroupModel ToGroupModel(Guid sceneObjectID)
-        {
-            var group = App.state.authoringTools.nodeGroups[sceneObjectID];
-
-            return new GroupModel(
-                id: group.id,
-                name: group.name.value,
-                parent: group.parentID.value
-            );
-        }
-
         public static LocalizationMapModel ToMapRecord(Guid sceneObjectID)
         {
             var map = App.state.maps[sceneObjectID];
@@ -179,13 +166,13 @@ namespace Outernet.Client.AuthoringTools
                 lighting: (int)map.lighting.value,
                 color: (int)map.color.value,
                 active: true,
-                positionX: transform.position.value.x,
-                positionY: transform.position.value.y,
-                positionZ: transform.position.value.z,
-                rotationX: transform.rotation.value.x,
-                rotationY: transform.rotation.value.y,
-                rotationZ: transform.rotation.value.z,
-                rotationW: transform.rotation.value.w,
+                positionX: transform.localPosition.value.x,
+                positionY: transform.localPosition.value.y,
+                positionZ: transform.localPosition.value.z,
+                rotationX: transform.localRotation.value.x,
+                rotationY: transform.localRotation.value.y,
+                rotationZ: transform.localRotation.value.z,
+                rotationW: transform.localRotation.value.w,
                 points: map.localInputImagePositions.SelectMany(EnumerateComponents).ToList()
             );
         }
@@ -200,28 +187,29 @@ namespace Outernet.Client.AuthoringTools
         public static NodeModel ToNodeModel(Guid sceneObjectID)
         {
             var node = App.state.nodes[sceneObjectID];
+            var exhibit = App.state.exhibits[sceneObjectID];
             var transform = App.state.transforms[sceneObjectID];
 
             return new NodeModel(
                 id: node.id,
                 name: node.name.value,
                 active: true,
-                positionX: transform.position.value.x,
-                positionY: transform.position.value.y,
-                positionZ: transform.position.value.z,
-                rotationX: transform.rotation.value.x,
-                rotationY: transform.rotation.value.y,
-                rotationZ: transform.rotation.value.z,
-                rotationW: transform.rotation.value.w,
-                link: node.link.value,
-                linkType: (int)node.linkType.value,
-                label: node.label.value,
-                labelType: (int)node.labelType.value,
-                labelScale: node.labelScale.value,
-                labelWidth: node.labelWidth.value,
-                labelHeight: node.labelHeight.value,
+                positionX: transform.localPosition.value.x,
+                positionY: transform.localPosition.value.y,
+                positionZ: transform.localPosition.value.z,
+                rotationX: transform.localRotation.value.x,
+                rotationY: transform.localRotation.value.y,
+                rotationZ: transform.localRotation.value.z,
+                rotationW: transform.localRotation.value.w,
+                link: exhibit.link.value,
+                linkType: (int)exhibit.linkType.value,
+                label: exhibit.label.value,
+                labelType: (int)exhibit.labelType.value,
+                labelScale: exhibit.labelScale.value,
+                labelWidth: exhibit.labelWidth.value,
+                labelHeight: exhibit.labelHeight.value,
                 layer: node.layer.value,
-                parent: node.parentID.value
+                parent: transform.parentTransform.value
             );
         }
 

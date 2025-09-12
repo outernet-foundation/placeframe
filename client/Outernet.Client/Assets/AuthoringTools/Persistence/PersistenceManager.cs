@@ -143,12 +143,6 @@ namespace Outernet.Client.AuthoringTools
                     x.value,
                     App.state.transforms[x.key]
                 )),
-                App.state.authoringTools.nodeGroups.Each(x => SetupPersistedObjectObserver(
-                    _nodeGroupPersistenceHelper,
-                    x.key,
-                    x.value,
-                    App.state.authoringTools.nodeGroups[x.key]
-                )),
                 App.state.maps.Each(x => SetupPersistedObjectObserver(
                     _mapPersistenceHelper,
                     x.key,
@@ -225,10 +219,6 @@ namespace Outernet.Client.AuthoringTools
                     .Select(Utility.ToNodeModel)
                     .ToList(),
 
-                upsertedGroups = _nodeGroupPersistenceHelper.inserts.Concat(_nodeGroupPersistenceHelper.updates)
-                    .Select(Utility.ToGroupModel)
-                    .ToList(),
-
                 upsertedMaps = _mapPersistenceHelper.inserts.Concat(_mapPersistenceHelper.updates)
                     .Select(Utility.ToMapRecord)
                     .ToList(),
@@ -238,7 +228,6 @@ namespace Outernet.Client.AuthoringTools
                     .ToList(),
 
                 deletedNodes = _nodePersistenceHelper.deletes.ToList(),
-                deletedGroups = _nodeGroupPersistenceHelper.deletes.ToList(),
                 deletedMaps = _mapPersistenceHelper.deletes.ToList(),
                 deletedLayers = _layerPersistenceHelper.deletes.ToList()
             });
@@ -261,11 +250,9 @@ namespace Outernet.Client.AuthoringTools
                 await UniTask.WhenAll(
                     PlerionAPI.api.DeleteLocalizationMapsAsync(toPersist.deletedMaps).AsUniTask(),
                     PlerionAPI.api.UpsertLocalizationMapsAsync(toPersist.upsertedMaps).AsUniTask(),
-                    PlerionAPI.api.DeleteGroupsAsync(toPersist.deletedGroups).AsUniTask(),
                     PlerionAPI.api.DeleteLayersAsync(toPersist.deletedLayers).AsUniTask(),
                     PlerionAPI.api.DeleteNodesAsync(toPersist.deletedNodes).AsUniTask(),
                     PlerionAPI.api.UpsertLayersAsync(toPersist.upsertedLayers).AsUniTask()
-                        .ContinueWith(_ => PlerionAPI.api.UpsertGroupsAsync(toPersist.upsertedGroups))
                         .ContinueWith(_ => PlerionAPI.api.UpsertNodesAsync(toPersist.upsertedNodes))
                 );
             }
@@ -293,12 +280,9 @@ namespace Outernet.Client.AuthoringTools
         private class PersistenceData
         {
             public List<NodeModel> upsertedNodes;
-            public List<GroupModel> upsertedGroups;
             public List<LocalizationMapModel> upsertedMaps;
             public List<LayerModel> upsertedLayers;
-
             public List<Guid> deletedNodes;
-            public List<Guid> deletedGroups;
             public List<Guid> deletedMaps;
             public List<Guid> deletedLayers;
         }

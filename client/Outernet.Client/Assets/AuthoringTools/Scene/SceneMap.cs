@@ -19,8 +19,8 @@ namespace Outernet.Client.AuthoringTools
         {
             public ObservablePrimitive<Guid> sceneObjectID { get; private set; }
             public ObservablePrimitive<string> name { get; private set; }
-            public ObservablePrimitive<Vector3> position { get; private set; }
-            public ObservablePrimitive<Quaternion> rotation { get; private set; }
+            public ObservablePrimitive<Vector3> localPosition { get; private set; }
+            public ObservablePrimitive<Quaternion> localRotation { get; private set; }
             public ObservablePrimitive<Bounds> bounds { get; private set; }
             public ObservablePrimitive<Guid> mapID { get; private set; }
             public ObservablePrimitive<long> color { get; private set; }
@@ -28,12 +28,12 @@ namespace Outernet.Client.AuthoringTools
 
             public Props() : base() { }
 
-            public Props(Guid sceneObjectID = default, string name = default, Vector3 position = default, Quaternion? rotation = default, Bounds bounds = default, Guid mapID = default, long color = default, params Vector3[] localInputImagePositions)
+            public Props(Guid sceneObjectID = default, string name = default, Vector3 localPosition = default, Quaternion? localRotation = default, Bounds bounds = default, Guid mapID = default, long color = default, params Vector3[] localInputImagePositions)
             {
                 this.sceneObjectID = new ObservablePrimitive<Guid>(sceneObjectID);
                 this.name = new ObservablePrimitive<string>(name);
-                this.position = new ObservablePrimitive<Vector3>(position);
-                this.rotation = new ObservablePrimitive<Quaternion>(rotation ?? Quaternion.identity);
+                this.localPosition = new ObservablePrimitive<Vector3>(localPosition);
+                this.localRotation = new ObservablePrimitive<Quaternion>(localRotation ?? Quaternion.identity);
                 this.bounds = new ObservablePrimitive<Bounds>(bounds);
                 this.mapID = new ObservablePrimitive<Guid>(mapID);
                 this.color = new ObservablePrimitive<long>(color);
@@ -50,11 +50,11 @@ namespace Outernet.Client.AuthoringTools
 
         private void Update()
         {
-            if (props.position.value != transform.position)
-                props.position.ExecuteSet(transform.position);
+            if (props.localPosition.value != transform.localPosition)
+                props.localPosition.ExecuteSet(transform.localPosition);
 
-            if (props.rotation.value != transform.rotation)
-                props.rotation.ExecuteSet(transform.rotation);
+            if (props.localRotation.value != transform.localRotation)
+                props.localRotation.ExecuteSet(transform.localRotation);
 
             for (int i = 0; i < props.localInputImagePositions.count - 1; i++)
             {
@@ -70,14 +70,14 @@ namespace Outernet.Client.AuthoringTools
         public override void Setup()
             => InitializeAndBind(new Props());
 
-        public void Setup(Guid sceneObjectID = default, string name = default, Vector3 position = default, Quaternion? rotation = default, Bounds bounds = default, Guid mapID = default, long color = default, params Vector3[] localInputImagePositions)
-            => InitializeAndBind(new Props(sceneObjectID, name, position, rotation, bounds, mapID, color, localInputImagePositions));
+        public void Setup(Guid sceneObjectID = default, string name = default, Vector3 localPosition = default, Quaternion? localRotation = default, Bounds bounds = default, Guid mapID = default, long color = default, params Vector3[] localInputImagePositions)
+            => InitializeAndBind(new Props(sceneObjectID, name, localPosition, localRotation, bounds, mapID, color, localInputImagePositions));
 
         protected override void Bind()
         {
             AddBinding(
-                props.position.OnChange(x => transform.position = x),
-                props.rotation.OnChange(x => transform.rotation = x),
+                props.localPosition.OnChange(x => transform.localPosition = x),
+                props.localRotation.OnChange(x => transform.localRotation = x),
                 props.mapID.OnChange(x =>
                 {
                     if (x != Guid.Empty)

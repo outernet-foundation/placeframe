@@ -4,6 +4,7 @@ using System.Linq;
 using FofX.Stateful;
 
 using Unity.Mathematics;
+using UnityEngine;
 
 using SimpleJSON;
 using PlerionClient.Model;
@@ -45,89 +46,17 @@ namespace Outernet.Client.AuthoringTools
                     var destComponent = componentDict.Add(_newSceneObjectID);
                     sourceComponent.CopyTo(destComponent);
 
-                    if (componentDict == target.authoringTools.nodeGroups)
+                    if (componentDict == target.transforms)
                     {
-                        var group = (NodeGroupState)destComponent;
+                        var group = (TransformState)destComponent;
 
-                        foreach (var childToDuplicate in ((NodeGroupState)sourceComponent).childObjects.ToArray())
+                        foreach (var childToDuplicate in ((TransformState)sourceComponent).childTransforms.ToArray())
                         {
                             var newChildID = Guid.NewGuid();
                             new DuplicateSceneObjectAction(childToDuplicate, newChildID).Execute(target);
-                            new SetParentGroupAction(newChildID, _newSceneObjectID).Execute(target);
+                            new SetParentTransformAction(newChildID, _newSceneObjectID).Execute(target);
                         }
                     }
-                }
-            }
-        }
-    }
-
-    public class SetNodeGroupsAction : ObservableNodeAction<ClientState>
-    {
-        private GroupModel[] _groups;
-
-        public SetNodeGroupsAction(GroupModel[] groups)
-        {
-            _groups = groups;
-        }
-
-        public override void Execute(ClientState target)
-        {
-            var newMapsByID = _groups.ToDictionary(x => x.Id);
-            var oldMapsByID = target.authoringTools.nodeGroups.ToDictionary(x => x.key, x => x.value);
-
-            foreach (var toRemove in oldMapsByID.Where(x => !newMapsByID.ContainsKey(x.Key)))
-                new DestroySceneObjectAction(toRemove.Key).Execute(target);
-
-            foreach (var toUpdate in newMapsByID.Select(x => x.Value))
-            {
-                new AddOrUpdateNodeGroupAction(
-                    id: toUpdate.Id,
-                    name: toUpdate.Name,
-                    parent: toUpdate.Parent
-                ).Execute(target);
-            }
-        }
-    }
-
-    public class AddOrUpdateNodeGroupAction : ObservableNodeAction<ClientState>
-    {
-        private Guid _id;
-        private string _name;
-        private Guid? _parent;
-        private Guid[] _children;
-
-        public AddOrUpdateNodeGroupAction(
-            Guid id,
-            string name = default,
-            Guid? parent = default,
-            params Guid[] children
-        )
-        {
-            _id = id;
-            _name = name;
-            _parent = parent;
-            _children = children;
-        }
-
-        public override void Execute(ClientState target)
-        {
-            var nodeGroup = target.authoringTools.nodeGroups.GetOrAdd(_id);
-
-            nodeGroup.name.value = _name;
-            nodeGroup.parentID.value = _parent;
-
-            foreach (var child in _children)
-            {
-                if (target.nodes.TryGetValue(child, out var node))
-                {
-                    node.parentID.value = _id;
-                    continue;
-                }
-
-                if (target.authoringTools.nodeGroups.TryGetValue(child, out var group))
-                {
-                    group.parentID.value = _id;
-                    continue;
                 }
             }
         }
@@ -181,30 +110,20 @@ namespace Outernet.Client.AuthoringTools
         }
     }
 
-    public class SetParentGroupAction : ObservableNodeAction<ClientState>
+    public class SetParentTransformAction : ObservableNodeAction<ClientState>
     {
         private Guid _id;
-        private Guid? _group;
+        private Guid? _parent;
 
-        public SetParentGroupAction(Guid id, Guid? group)
+        public SetParentTransformAction(Guid id, Guid? parent)
         {
             _id = id;
-            _group = group;
+            _parent = parent;
         }
 
         public override void Execute(ClientState target)
         {
-            if (target.nodes.TryGetValue(_id, out var node))
-            {
-                node.parentID.value = _group;
-                return;
-            }
-
-            if (target.authoringTools.nodeGroups.TryGetValue(_id, out var group))
-            {
-                group.parentID.value = _group;
-                return;
-            }
+            target.transforms[_id].parentTransform.value = _parent;
         }
     }
 
@@ -264,26 +183,32 @@ namespace Outernet.Client.AuthoringTools
         }
     }
 
-    public class SetSceneObjectTransformAction : ObservableNodeAction<ClientState>
+    public class SetTransformWorldValuesAction : ObservableNodeAction<ClientState>
     {
         private Guid _sceneObjectID;
-        private double3 _position;
-        private quaternion _rotation;
+        private Vector3 _localPosition;
+        private Quaternion _localRotation;
 
-        public SetSceneObjectTransformAction(Guid sceneObjectID, double3 position, quaternion rotation)
+        public SetTransformWorldValuesAction(Guid sceneObjectID, Vector3 position, Quaternion rotation)
         {
             _sceneObjectID = sceneObjectID;
-            _position = position;
-            _rotation = rotation;
+            _localPosition = position;
+            _localRotation = rotation;
         }
 
         public override void Execute(ClientState target)
         {
-            if (!target.transforms.TryGetValue(_sceneObjectID, out var transform))
+            var transform = target.transforms[_sceneObjectID];
+            if (!transform.parentTransform.value.HasValue)
+            {
+                transform.localPosition.value = _localPosition;
+                transform.localRotation.value = _localRotation;
                 return;
+            }
 
-            transform.position.value = _position;
-            transform.rotation.value = _rotation;
+            var parentTransform = target.transforms[transform.parentTransform.value.Value];
+            transform.localPosition.value = Matrix4x4.TRS(parentTransform.position.value, parentTransform.rotation.value, Vector3.one).inverse.MultiplyPoint3x4(_localPosition);
+            transform.localRotation.value = Quaternion.Inverse(parentTransform.rotation.value) * _localRotation;
         }
     }
 
@@ -299,34 +224,6 @@ namespace Outernet.Client.AuthoringTools
         public override void Execute(ClientState target)
         {
             target.authoringTools.locationContentLoaded.value = _locationContentLoaded;
-        }
-    }
-
-    public class UpdateMapLocationsAction : ObservableNodeAction<ClientState>
-    {
-        private double4x4 _ecefToLocalMatrix;
-        private SceneMap.Props[] _toUpdate;
-
-        public UpdateMapLocationsAction(double4x4 ecefToLocalMatrix, SceneMap.Props[] toUpdate)
-        {
-            _ecefToLocalMatrix = ecefToLocalMatrix;
-            _toUpdate = toUpdate;
-        }
-
-        public override void Execute(ClientState target)
-        {
-            foreach (var map in _toUpdate)
-            {
-                var transform = target.transforms[map.sceneObjectID.value];
-                var localNodeTransform = Client.Utility.EcefToLocal(
-                    _ecefToLocalMatrix,
-                    transform.position.value,
-                    transform.rotation.value
-                );
-
-                map.position.value = localNodeTransform.position;
-                map.rotation.value = localNodeTransform.rotation;
-            }
         }
     }
 }

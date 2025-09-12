@@ -126,20 +126,13 @@ namespace Outernet.Client.AuthoringTools
                             logLevel: FofX.LogLevel.Trace,
                             App.state.authoringTools.SelectedTransforms().Select(transform =>
                             {
-                                var objTransform = LocalizedReferenceFrame.EcefToLocal(
-                                    transform.position.value,
-                                    transform.rotation.value
-                                );
+                                var pos = prevMatrix.inverse.MultiplyPoint(transform.position.value);
+                                var rot = Quaternion.Inverse(prevRotation) * transform.rotation.value;
 
-                                objTransform.position = prevMatrix.inverse.MultiplyPoint(objTransform.position);
-                                objTransform.rotation = Quaternion.Inverse(prevRotation) * objTransform.rotation;
+                                pos = curMatrix.MultiplyPoint(pos);
+                                rot = props.rotation.value * rot;
 
-                                objTransform.position = curMatrix.MultiplyPoint(objTransform.position);
-                                objTransform.rotation = props.rotation.value * objTransform.rotation;
-
-                                var ecefTransform = LocalizedReferenceFrame.LocalToEcef(objTransform.position, objTransform.rotation);
-
-                                return new SetSceneObjectTransformAction(transform.id, ecefTransform.position, ecefTransform.rotation);
+                                return new SetTransformWorldValuesAction(transform.id, pos, rot);
                             }
                         ).ToArray());
                     },

@@ -84,10 +84,7 @@ namespace Outernet.Client.AuthoringTools
                 },
                 validate: () =>
                     App.state.authoringTools.selectedObjects.count > 0 &&
-                    App.state.authoringTools.selectedObjects.All(x =>
-                        App.state.nodes.ContainsKey(x) ||
-                        App.state.authoringTools.nodeGroups.ContainsKey(x)
-                    ),
+                    App.state.authoringTools.selectedObjects.All(App.state.nodes.ContainsKey),
                 commandKeys: new Key[]
                 {
                     Utility.GetPlatformCommandKey(),
@@ -120,16 +117,6 @@ namespace Outernet.Client.AuthoringTools
                 {
                     Utility.GetPlatformCommandKey(),
                     Key.N
-                }
-            );
-
-            SystemMenu.AddMenuItem(
-                "Create/Group",
-                CreateNewNodeGroup,
-                commandKeys: new Key[]
-                {
-                    Utility.GetPlatformCommandKey(),
-                    Key.G
                 }
             );
 
@@ -171,7 +158,7 @@ namespace Outernet.Client.AuthoringTools
             tilesetToggleTemplate.gameObject.SetActive(false);
             carryIndicator.gameObject.SetActive(false);
 
-            App.state.authoringTools.nodeGroups.Each(x => SetupGroupView(x.value));
+            // App.state.authoringTools.nodeGroups.Each(x => SetupGroupView(x.value));
             App.state.nodes.Each(x => SetupNodeView(x.value));
             App.state.maps.Each(x => SetupMapView(x.value));
 
@@ -219,64 +206,64 @@ namespace Outernet.Client.AuthoringTools
             }
         }
 
-        private IDisposable SetupGroupView(NodeGroupState nodeGroup)
-        {
-            var view = UIBuilder.Foldout(nodeGroup.name)
-                .WithDropReceiver(onDrop: _ =>
-                {
-                    SetParentGroup(
-                        App.state.authoringTools.selectedObjects.Where(x => x != nodeGroup.id),
-                        nodeGroup.id
-                    );
+        // private IDisposable SetupGroupView(NodeGroupState nodeGroup)
+        // {
+        //     var view = UIBuilder.Foldout(nodeGroup.name)
+        //         .WithDropReceiver(onDrop: _ =>
+        //         {
+        //             SetParentGroup(
+        //                 App.state.authoringTools.selectedObjects.Where(x => x != nodeGroup.id),
+        //                 nodeGroup.id
+        //             );
 
-                    RevealSelectedObjects();
-                });
+        //             RevealSelectedObjects();
+        //         });
 
-            foreach (var child in nodeGroup.childObjects)
-            {
-                if (_viewByID.TryGetValue(child, out var childView))
-                    childView.SetParent(view.content, false);
-            }
+        //     foreach (var child in nodeGroup.childObjects)
+        //     {
+        //         if (_viewByID.TryGetValue(child, out var childView))
+        //             childView.SetParent(view.content, false);
+        //     }
 
-            _viewByID.Add(nodeGroup.id, view.transform);
-            _idByView.Add(view.transform, nodeGroup.id);
-            _groupFoldouts.Add(nodeGroup.id, view);
+        //     _viewByID.Add(nodeGroup.id, view.transform);
+        //     _idByView.Add(view.transform, nodeGroup.id);
+        //     _groupFoldouts.Add(nodeGroup.id, view);
 
-            var toHighlight = view.header.AddComponent<Image>();
-            toHighlight.color = Color.clear;
+        //     var toHighlight = view.header.AddComponent<Image>();
+        //     toHighlight.color = Color.clear;
 
-            view.AddBinding(
-                BindHierarchyElement(
-                    nodeGroup.id,
-                    view.gameObject,
-                    toHighlight,
-                    AuthoringToolsPrefabs.SelectedColor,
-                    true
-                ),
-                nodeGroup.parentID.OnChange(x =>
-                {
-                    view.transform.SetParent(
-                        x.HasValue &&
-                        _groupFoldouts.TryGetValue(x.Value, out var parent) ?
-                            parent.content : nodesScrollView.content,
-                        false
-                    );
+        //     view.AddBinding(
+        //         BindHierarchyElement(
+        //             nodeGroup.id,
+        //             view.gameObject,
+        //             toHighlight,
+        //             AuthoringToolsPrefabs.SelectedColor,
+        //             true
+        //         ),
+        //         nodeGroup.parentID.OnChange(x =>
+        //         {
+        //             view.transform.SetParent(
+        //                 x.HasValue &&
+        //                 _groupFoldouts.TryGetValue(x.Value, out var parent) ?
+        //                     parent.content : nodesScrollView.content,
+        //                 false
+        //             );
 
-                    if (App.state.authoringTools.selectedObjects.Contains(nodeGroup.id))
-                        RevealSelectedObjects();
-                }),
-                nodeGroup.visible.OnChange(x => view.label.color = x ? Color.white : Color.grey),
-                Bindings.OnRelease(() =>
-                {
-                    _viewByID.Remove(nodeGroup.id);
-                    _idByView.Remove(view.transform);
-                    _groupFoldouts.Remove(nodeGroup.id);
-                    Destroy(view.gameObject);
-                })
-            );
+        //             if (App.state.authoringTools.selectedObjects.Contains(nodeGroup.id))
+        //                 RevealSelectedObjects();
+        //         }),
+        //         nodeGroup.visible.OnChange(x => view.label.color = x ? Color.white : Color.grey),
+        //         Bindings.OnRelease(() =>
+        //         {
+        //             _viewByID.Remove(nodeGroup.id);
+        //             _idByView.Remove(view.transform);
+        //             _groupFoldouts.Remove(nodeGroup.id);
+        //             Destroy(view.gameObject);
+        //         })
+        //     );
 
-            return view;
-        }
+        //     return view;
+        // }
 
         private IDisposable SetupNodeView(NodeState node)
         {
@@ -292,6 +279,8 @@ namespace Outernet.Client.AuthoringTools
             var toHighlight = view.gameObject.AddComponent<Image>();
             toHighlight.color = Color.clear;
 
+            var transform = App.state.transforms[node.id];
+
             view.AddBinding(
                 BindHierarchyElement(
                     node.id,
@@ -300,7 +289,7 @@ namespace Outernet.Client.AuthoringTools
                     AuthoringToolsPrefabs.SelectedColor,
                     true
                 ),
-                node.parentID.OnChange(x =>
+                transform.parentTransform.OnChange(x =>
                 {
                     view.transform.SetParent(
                         x.HasValue &&
@@ -351,14 +340,14 @@ namespace Outernet.Client.AuthoringTools
         }
 
         private bool CanReparent(Guid guid)
-            => App.state.nodes.ContainsKey(guid) || App.state.authoringTools.nodeGroups.ContainsKey(guid);
+            => App.state.transforms.ContainsKey(guid);
 
         private void SetParentGroup(IEnumerable<Guid> toSet, Guid? newGroup)
         {
             UndoRedoManager.RegisterUndo("Reparent");
             App.ExecuteActionOrDelay(toSet
                 .Where(CanReparent)
-                .Select(x => new SetParentGroupAction(x, newGroup))
+                .Select(x => new SetParentTransformAction(x, newGroup))
                 .ToArray()
             );
         }
@@ -432,11 +421,12 @@ namespace Outernet.Client.AuthoringTools
 
         private void RevealInHierarchy(Guid obj)
         {
-            if (App.state.authoringTools.TryGetParent(obj, out var parentID) &&
-                _groupFoldouts.TryGetValue(parentID, out var foldout))
+            if (App.state.transforms.TryGetValue(obj, out var transformState) &&
+                transformState.parentTransform.value.HasValue &&
+                _groupFoldouts.TryGetValue(transformState.parentTransform.value.Value, out var foldout))
             {
                 foldout.foldout.isOn = true;
-                RevealInHierarchy(parentID);
+                RevealInHierarchy(transformState.parentTransform.value.Value);
             }
         }
 
@@ -554,31 +544,16 @@ namespace Outernet.Client.AuthoringTools
         {
             UndoRedoManager.RegisterUndo("Create Node");
 
-            var newNodeTransform = LocalizedReferenceFrame.LocalToEcef(
-                Camera.main.transform.position + (Camera.main.transform.forward * 3f),
-                Camera.main.transform.rotation.Flatten()
-            );
-
             App.ExecuteAction(new AddOrUpdateNodeAction(
                 id: Guid.NewGuid(),
                 name: "Node",
-                position: newNodeTransform.position,
-                rotation: newNodeTransform.rotation,
+                localPosition: Camera.main.transform.position + (Camera.main.transform.forward * 3f),
+                localRotation: Camera.main.transform.rotation.Flatten(),
                 link: "Label",
                 linkType: Shared.LinkType.None,
                 labelScale: 0.1f,
                 labelWidth: 20,
                 labelHeight: 10
-            ));
-        }
-
-        private void CreateNewNodeGroup()
-        {
-            UndoRedoManager.RegisterUndo("Create Group");
-            App.ExecuteAction(new AddOrUpdateNodeGroupAction(
-                id: Guid.NewGuid(),
-                name: "Group",
-                children: App.state.authoringTools.selectedObjects.ToArray()
             ));
         }
 
@@ -700,8 +675,8 @@ namespace Outernet.Client.AuthoringTools
                 yield return child;
 
                 if (_idByView.TryGetValue(child, out var id) &&
-                    App.state.authoringTools.nodeGroups.TryGetValue(id, out var group) &&
-                    _groupFoldouts.TryGetValue(group.id, out var foldout) &&
+                    App.state.transforms.TryGetValue(id, out var transformState) &&
+                    _groupFoldouts.TryGetValue(transformState.id, out var foldout) &&
                     foldout.foldout.isOn)
                 {
                     foreach (var nestedChild in VisibleChildren(foldout.content))

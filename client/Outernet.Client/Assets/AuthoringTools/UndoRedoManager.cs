@@ -60,7 +60,6 @@ namespace Outernet.Client.AuthoringTools
                 App.state.nodes,
                 App.state.maps,
                 App.state.transforms,
-                App.state.authoringTools.nodeGroups,
                 App.state.authoringTools.selectedObjects
             );
         }

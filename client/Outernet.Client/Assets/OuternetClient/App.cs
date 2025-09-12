@@ -30,7 +30,7 @@ namespace Outernet.Client
             ConnectionManager.HubConnectionRequested.EnqueueSet(true);
 
             LocalizedReferenceFrame.onTransformMatriciesChanged += () =>
-                state.ecefToLocalMatrix.ExecuteSetOrDelay(LocalizedReferenceFrame.EcefToLocalTransform);
+                ExecuteActionOrDelay(new SetEcefToLocalMatrixAction(LocalizedReferenceFrame.EcefToLocalTransform));
 
 #if !AUTHORING_TOOLS_ENABLED
             MapManager.Enable();
