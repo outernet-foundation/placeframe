@@ -8,17 +8,8 @@ from psycopg import sql
 
 from .settings import get_settings
 
-if __name__ == "__main__":
-    # REQUIRED env:
-    #   DATABASE_NAME
-    #   DATABASE_PASSWORD
-    # name = os.environ.get("DATABASE_NAME")
-    # password = os.environ.get("DATABASE_PASSWORD")
 
-    # if not name or not password:
-    #     print("usage: set DATABASE_NAME and DATABASE_PASSWORD in the environment")
-    #     sys.exit(2)
-
+def main():
     settings = get_settings()
 
     try:
