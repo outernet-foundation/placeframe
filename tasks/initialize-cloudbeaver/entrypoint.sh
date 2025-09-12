@@ -52,7 +52,7 @@ DATA_SOURCES_JSON=$(cat <<EOF
       "configuration": {
         "host": "${POSTGRES_HOST}",
         "port": 5432,
-        "database": postgres,
+        "database": "postgres",
         "user": "${POSTGRES_ADMIN_USER}",
         "password": "${POSTGRES_ADMIN_PASSWORD}",
         "url": "jdbc:postgresql://${POSTGRES_HOST}:5432/postgres"

@@ -21,7 +21,12 @@ def main():
             # Database must not exist
             cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (settings.database_name,))
             if cursor.fetchone() is not None:
-                raise FileExistsError(f"Database already exists: {settings.database_name}")
+                if settings.backend == "docker":
+                    # Database already exists, skip creation
+                    print(f"Database {settings.database_name} already exists, skipping creation.")
+                    return
+                if settings.backend == "aws":
+                    raise RuntimeError(f"Database {settings.database_name} already exists.")
 
             # Create role
             cursor.execute(
@@ -37,11 +42,12 @@ def main():
                 )
             )
 
-        # Add a new connection to CloudBeaver for the new database
-        data_sources_path = Path("/opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver/data-sources.json")
-        with data_sources_path.open("rw", encoding="utf-8") as f:
-            data: Dict[str, Any] = json.load(f)
+            # Add a new connection to CloudBeaver for the new database
+            data_sources_path = Path("/opt/cloudbeaver/workspace/GlobalConfiguration/.dbeaver/data-sources.json")
+            with data_sources_path.open("r", encoding="utf-8") as file:
+                data: Dict[str, Any] = json.load(file)
 
+            print(json.dumps(data, indent=2))
             data["connections"][settings.database_name] = {
                 "provider": "postgresql",
                 "driver": "postgres-jdbc",
@@ -51,14 +57,22 @@ def main():
                     "host": settings.postgres_host,
                     "port": "5432",
                     "database": settings.database_name,
+                    "user": settings.database_name,
+                    "password": settings.database_password,
                     "url": f"jdbc:postgresql://{settings.postgres_host}:5432/{settings.database_name}",
-                    "type": "dev",
-                    "configurationType": "MANUAL",
-                    "closeIdleConnection": True,
                 },
             }
 
-            json.dump(data, f, indent=2)
+            with data_sources_path.open("w", encoding="utf-8") as file:
+                json.dump(data, file, indent=2)
+
+            if settings.backend == "docker":
+                # use docker sdk to restart cloudbeaver container
+                import docker
+
+                client = docker.from_env()
+                container = client.containers.get(settings.cloudbeaver_service_id)
+                container.restart()  # pyright: ignore[reportUnknownMemberType]
 
     except Exception as e:
         print(str(e))

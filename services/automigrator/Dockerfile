@@ -16,7 +16,7 @@ ENV PICCOLO_CONF="src.db.conf"
 WORKDIR /workspace
 
 # Copy the api directory to the workspace
-COPY services/api/ /workspace/
+COPY services/api/ /app/services/api
 
 # Copy the entrypoint and make it executable
 COPY --chmod=0755 services/automigrator/entrypoint.sh /usr/local/bin/entrypoint.sh

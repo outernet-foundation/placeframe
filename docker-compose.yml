@@ -97,22 +97,25 @@ services:
 
   create-database:
     build:
-      dockerfile: tasks/create-database/Dockerfile
+      dockerfile: tasks/create-database/Dockerfile.compose
     restart: "no"
     depends_on:
       postgres:
         condition: service_healthy
       cloudbeaver:
         condition: service_healthy
+    volumes:
+      - cloudbeaver_data:/opt/cloudbeaver/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - POSTGRES_HOST=${POSTGRES_HOST}
-      - POSTGRES_ADMIN_USER=${POSTGRES_ADMIN_USER}
-      - POSTGRES_ADMIN_PASSWORD=${POSTGRES_ADMIN_PASSWORD}
-      - CLOUDBEAVER_URL=http://cloudbeaver:8978/api/gql
-      - CLOUDBEAVER_ADMIN_USER=${CLOUDBEAVER_ADMIN_USER}
-      - CLOUDBEAVER_ADMIN_PASSWORD=${CLOUDBEAVER_ADMIN_PASSWORD}
-      - DATABASE_NAME=${API_DATABASE_NAME}
-      - DATABASE_PASSWORD=${API_DATABASE_PASSWORD}
+      DOCKER_HOST: unix:///var/run/docker.sock
+      BACKEND: docker
+      CLOUDBEAVER_SERVICE_ID: plerion-cloudbeaver-1
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_ADMIN_USER: ${POSTGRES_ADMIN_USER}
+      POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      DATABASE_NAME: ${API_DATABASE_NAME}
+      DATABASE_PASSWORD: ${API_DATABASE_PASSWORD}
 
   automigrator:
     build:
@@ -141,7 +144,7 @@ services:
       - "8000:8000"
       - "5678:5678"
     volumes:
-      - ./api:/app/services/api
+      - ./services/api:/app/services/api
       - ../common:/app/common
       - uv_cache:/root/.cache/uv
       - /var/run/docker.sock:/var/run/docker.sock

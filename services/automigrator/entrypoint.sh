@@ -2,8 +2,8 @@
 set -euo pipefail
 
 echo "Running initial Piccolo migrations..."
-cd /workspace
-export PYTHONPATH=/workspace
+cd /app/services/api
+export PYTHONPATH=/app/services/api
 
 # Helper function to run migration and rename if created
 run_and_rename_migration() {
