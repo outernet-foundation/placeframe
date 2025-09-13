@@ -241,6 +241,7 @@ class Cloudbeaver(ComponentResource):
             )
 
             # EFS Access Point
+            # Can I omit the creation stuff and the posix user stuff? maybe?
             efs_access_point = AccessPoint(
                 "database-management-efs-access-point",
                 file_system_id=efs.id,

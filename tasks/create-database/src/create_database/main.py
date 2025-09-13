@@ -3,23 +3,19 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any, Dict, cast
 
 from common.database_utils import postgres_cursor
 from psycopg import sql
 
-from .settings import get_settings
+from .settings import Settings, get_settings
 
 
-def main():
-    settings = get_settings()
-
-    # database_name: str
-    # database_password_plaintext: str | None = Field(default=None, validation_alias="DATABASE_PASSWORD")
-    # database_password_secret_arn: str | None = Field(default=None, validation_alias="DATABASE_PASSWORD_SECRET_ARN")
-
-    # db_plain = bool(self.database_password_plaintext)
-    # db_arn = bool(self.database_password_secret_arn)
+def main(payload: Dict[str, Any] | None = None):
+    if payload:
+        settings = Settings(**payload)
+    else:
+        settings = get_settings()
 
     try:
         with postgres_cursor(
@@ -80,6 +76,21 @@ def main():
                 client = docker.from_env()
                 container = client.containers.get(settings.cloudbeaver_service_id)
                 container.restart()  # pyright: ignore[reportUnknownMemberType]
+            elif settings.backend == "aws":
+                # Bounce the CloudBeaver ECS service to pick up the new data source (force new deployment)
+                import boto3
+
+                if TYPE_CHECKING:
+                    from mypy_boto3_ecs import ECSClient
+                else:
+                    ECSClient = Any
+
+                ecs = cast(ECSClient, boto3.client("ecs", region_name="us-east-1"))  # type: ignore[call-arg]
+
+                assert settings.ecs_cluster_arn is not None
+                ecs.update_service(
+                    cluster=settings.ecs_cluster_arn, service=settings.cloudbeaver_service_id, forceNewDeployment=True
+                )
 
     except Exception as e:
         print(str(e))
