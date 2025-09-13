@@ -50,4 +50,4 @@ def get_api_settings() -> ApiSettings:
     if os.environ.get("CODEGEN"):
         return ApiSettings.model_construct()
 
-    return ApiSettings()  # type: ignore
+    return ApiSettings.model_validate({})
