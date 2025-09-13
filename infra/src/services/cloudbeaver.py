@@ -228,14 +228,6 @@ class Cloudbeaver(ComponentResource):
 
             # Database management Lambdas
 
-            # Log group
-            database_management_log_group = LogGroup(
-                "database-management-log-group",
-                name="/aws/lambda/database-management",
-                retention_in_days=14,
-                opts=self._child_opts,
-            )
-
             # Security group
             database_management_security_group = SecurityGroup(
                 "database-management-security-group",
@@ -265,13 +257,22 @@ class Cloudbeaver(ComponentResource):
             database_management_role.allow_secret_get("cloudbeaver-lambda-secrets", [rds.password_secret])
             # role.allow_service_deployment() ? needs to be able to bounce cloudbeaver
 
-            def DatabaseManagementLambda(resource_name: str, image_repo: Repository):
-                return Function(
+            def DatabaseManagementLambda(resource_name: str, name: str, image_repo: Repository):
+                log_group = LogGroup(
+                    f"{resource_name}-log-group",
+                    name=f"/aws/lambda/{name}",
+                    retention_in_days=14,
+                    opts=self._child_opts,
+                )
+
+                function = Function(
                     resource_name,
+                    name=name,
                     package_type="Image",
                     image_uri=image_repo.locked_digest(),
                     role=database_management_role.arn,
                     timeout=900,
+                    memory_size=512,
                     vpc_config={
                         "security_group_ids": [database_management_security_group.id],
                         "subnet_ids": vpc.private_subnet_ids,
@@ -289,16 +290,16 @@ class Cloudbeaver(ComponentResource):
                         }
                     },
                     opts=ResourceOptions.merge(
-                        self._child_opts, ResourceOptions(depends_on=[database_management_security_group])
+                        self._child_opts, ResourceOptions(depends_on=[log_group, database_management_security_group])
                     ),
                 )
 
+                deploy_role.allow_lambda_deployment(resource_name, [function])
+
             if config.require_bool("deploy-create-database"):
-                create_database_lambda = DatabaseManagementLambda("create-database-lambda", create_database_image_repo)
-                deploy_role.allow_lambda_deployment("create-database-lambda", [create_database_lambda])
+                DatabaseManagementLambda("create-database-lambda", "create-database", create_database_image_repo)
 
             if config.require_bool("deploy-delete-database"):
-                delete_database_lambda = DatabaseManagementLambda("delete-database-lambda", delete_database_image_repo)
-                deploy_role.allow_lambda_deployment("delete-database-lambda", [delete_database_lambda])
+                DatabaseManagementLambda("delete-database-lambda", "delete-database", delete_database_image_repo)
 
         self.register_outputs({})
