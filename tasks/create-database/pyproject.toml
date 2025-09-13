@@ -10,11 +10,6 @@ dependencies = [
     "pydantic-settings>=2.10.1",
 ]
 
-[dependency-groups]
-dev = [
-    "boto3-stubs[ecs,secretsmanager]>=1.40.29",
-]
-
 [tool.uv.sources]
 common = { path = "../../common", editable = true }
 

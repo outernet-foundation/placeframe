@@ -22,6 +22,7 @@ WORKDIR /app/services/automigrator
 # Install dependencies
 COPY services/automigrator/pyproject.toml services/automigrator/uv.lock ./
 COPY common/ /app/common
+# COPY services/api /app/services/api
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project --no-editable
 

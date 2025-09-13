@@ -3,6 +3,8 @@ set -euo pipefail
 
 cd /app/tasks/create-database
 
+echo "Running create-database task"
+
 if [[ "${DEBUG:-}" == "true" ]]; then
   echo "Debug mode enabled"
   DEBUG_WAIT_FLAG=()
@@ -12,6 +14,5 @@ if [[ "${DEBUG:-}" == "true" ]]; then
   fi
   exec uv run --no-sync python -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 "${DEBUG_WAIT_FLAG[@]}" create-database
 else
-  echo "Debug mode disabled"
   exec uv run --no-sync create-database
 fi

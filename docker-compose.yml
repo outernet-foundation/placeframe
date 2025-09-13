@@ -5,8 +5,6 @@ volumes:
   postgres_data:
   cloudbeaver_data:
   uv_cache:
-  api_venv:
-  common_venv:
 
 services:
   minio:
@@ -127,9 +125,10 @@ services:
       create-database:
         condition: service_completed_successfully
     volumes:
-      - ./services/api:/workspace
+      - ./services/api:/app/services/api
+      - uv_cache:/root/.cache/uv
     environment:
-      API_DIR: /workspace
+      API_DIR: /app/services/api
       PICCOLO_CONF: src.db.conf
       POSTGRES_HOST: ${POSTGRES_HOST}
       DATABASE_NAME: ${API_DATABASE_NAME}

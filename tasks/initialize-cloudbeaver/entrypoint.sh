@@ -111,7 +111,7 @@ if [[ "${NEW_HASH}" != "${CURRENT_HASH}" ]]; then
   # Record new hash
   printf '%s\n' "${NEW_HASH}" > "${MARKER}"
 else
-  echo "No configuration changes detected; nothing to do."
+  echo "No configuration changes detected"
 fi
 
-echo "Init sidecar complete."
+  echo "Initialization complete"

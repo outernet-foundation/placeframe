@@ -1,17 +1,14 @@
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Dict
 
-import boto3
+from common.boto_clients import create_batch_client
 
 if TYPE_CHECKING:
-    from mypy_boto3_batch import BatchClient
     from mypy_boto3_batch.type_defs import SubmitJobRequestTypeDef
-else:
-    BatchClient = Any
 
 
 class AwsBatchClient:
     def __init__(self):
-        self.client: BatchClient = boto3.client("batch", region_name="us-east-1")  # type: ignore[call-arg]
+        self.client = create_batch_client()
 
     def submit_job(
         self,
@@ -22,17 +19,11 @@ class AwsBatchClient:
         array_size: int | None = None,
         environment: Dict[str, str] | None = None,
     ) -> str:
-        job: SubmitJobRequestTypeDef = {
-            "jobName": name,
-            "jobQueue": queue_name,
-            "jobDefinition": job_definition_name,
-        }
+        job: SubmitJobRequestTypeDef = {"jobName": name, "jobQueue": queue_name, "jobDefinition": job_definition_name}
 
         if environment is not None:
             job["containerOverrides"] = {
-                "environment": [
-                    {"name": key, "value": value} for key, value in environment.items()
-                ]
+                "environment": [{"name": key, "value": value} for key, value in environment.items()]
             }
 
         if array_size is not None:

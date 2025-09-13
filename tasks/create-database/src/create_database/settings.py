@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 from functools import cached_property, lru_cache
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import Literal
 
-import boto3
+from common.boto_clients import create_secretsmanager_client
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-if TYPE_CHECKING:
-    from mypy_boto3_secretsmanager import SecretsManagerClient
-else:
-    SecretsManagerClient = Any
 
 
 class Settings(BaseSettings):
@@ -52,26 +47,18 @@ class Settings(BaseSettings):
         if self.postgres_admin_password_plaintext:
             return self.postgres_admin_password_plaintext
 
-        client = cast(SecretsManagerClient, boto3.client("secretsmanager", region_name="us-east-1"))  # type: ignore[call-arg]
-        return cast(
-            str,
-            client.get_secret_value(
-                SecretId=self.postgres_admin_password_secret_arn  # type: ignore[arg-type]
-            )["SecretString"],
-        )
+        client = create_secretsmanager_client()
+        assert self.postgres_admin_password_secret_arn is not None
+        return client.get_secret_value(SecretId=self.postgres_admin_password_secret_arn)["SecretString"]
 
     @cached_property
     def database_password(self) -> str:
         if self.database_password_plaintext:
             return self.database_password_plaintext
 
-        client = cast(SecretsManagerClient, boto3.client("secretsmanager", region_name="us-east-1"))  # type: ignore[call-arg]
-        return cast(
-            str,
-            client.get_secret_value(
-                SecretId=self.database_password_secret_arn  # type: ignore[arg-type]
-            )["SecretString"],
-        )
+        assert self.database_password_secret_arn is not None
+        client = create_secretsmanager_client()
+        return client.get_secret_value(SecretId=self.database_password_secret_arn)["SecretString"]
 
 
 @lru_cache()
