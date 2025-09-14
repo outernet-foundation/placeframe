@@ -10,6 +10,8 @@ from pulumi import ComponentResource, Input, Output, ResourceOptions, export
 from pulumi_aws import ecr
 from pulumi_aws.ecr import get_repository_output
 
+lock_path = "images-lock.json"
+
 
 class Repository(ComponentResource):
     def __init__(self, resource_name: str, name: str | Input[str], *, opts: ResourceOptions | None = None):
@@ -39,11 +41,11 @@ class Repository(ComponentResource):
         digest: str
         tags: List[str]  # optional metadata; not used for resolution
 
-    def locked_digest(self, lock_path: str = "image-lock.json") -> Output[str]:
-        # Find the project root (folder containing Pulumi.yaml)
+    def locked_digest(self) -> Output[str]:
+        # Find the lock file by searching up from the current working directory
         project_root = Path(os.getcwd())
         while project_root != project_root.parent:
-            if (project_root / "Pulumi.yaml").exists():
+            if (project_root / lock_path).exists():
                 break
             project_root = project_root.parent
 
@@ -58,6 +60,10 @@ class Repository(ComponentResource):
         container: Dict[str, object] = cast(Dict[str, object], container_raw)
 
         def build_locked_ref(name: str, repo_url: str) -> str:
+            # if this is a third party image, use only the last part of the name
+            if "/" in name:
+                name = name.split("/")[-1]
+
             entry_raw: object = container.get(name)
             if not isinstance(entry_raw, dict):
                 # use the resolved name in the message; avoid referencing non-existent self._name

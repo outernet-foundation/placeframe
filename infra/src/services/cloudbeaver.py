@@ -189,14 +189,12 @@ class Cloudbeaver(ComponentResource):
                             "log_configuration": log_configuration(initialize_cloudbeaver_log_group),
                             "mount_points": [{"source_volume": "efs", "container_path": "/opt/cloudbeaver/workspace"}],
                             "secrets": [
-                                {"name": "POSTGRES_PASSWORD", "value_from": rds.password_secret.arn},
+                                {"name": "POSTGRES_ADMIN_PASSWORD", "value_from": rds.password_secret.arn},
                                 {"name": "CB_ADMIN_PASSWORD", "value_from": self.password_secret.arn},
                             ],
                             "environment": [
-                                {"name": "POSTGRES_USER", "value": config.require("postgres-user")},
                                 {"name": "POSTGRES_HOST", "value": rds.address},
-                                {"name": "POSTGRES_PORT", "value": "5432"},
-                                {"name": "POSTGRES_DB", "value": "postgres"},
+                                {"name": "POSTGRES_ADMIN_USER", "value": config.require("postgres-user")},
                                 {"name": "CB_ADMIN_NAME", "value": config.require("cloudbeaver-user")},
                                 {"name": "_CB_ADMIN_NAME_VERSION", "value": self.password_secret.version_id},
                                 {"name": "_POSTGRES_PASSWORD_VERSION", "value": rds.password_secret.version_id},
