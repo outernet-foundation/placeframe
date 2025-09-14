@@ -168,7 +168,7 @@ def lock_image(
         cache_type_extra: str = ""
         if cache_type == "registry":
             cache_type_extra += f"ref={image_plan['image_repo_url']}"
-        elif cache_type != "gha":
+        elif cache_type == "gha":
             cache_type_extra += f"scope={image_name}"
         else:
             raise ValueError(f"Unknown cache type: {cache_type}")
