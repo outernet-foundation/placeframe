@@ -106,9 +106,9 @@ def create_image_plan(
             shlex.quote(path) for path in (image["hash_paths"] if "hash_paths" in image else [context])
         )
         run_command(f"git add -A -- {quoted_paths_string}", env=environment, cwd=workspace_directory)
-        tree_sha_value = run_command("git write-tree", env=environment, cwd=workspace_directory).strip()
+        tree_sha = run_command("git write-tree", env=environment, cwd=workspace_directory).strip()
 
-    if image_lock is not None and tree_sha_value == next(
+    if image_lock is not None and tree_sha == next(
         (tag[5:] for tag in image_lock["tags"] if tag.startswith("tree-")), None
     ):
         return
@@ -120,7 +120,7 @@ def create_image_plan(
         "image_repo_url": image_repo_url,
         "context": context,
         "dockerfile": image["dockerfile"],
-        "tree_sha": tree_sha_value,
+        "tree_sha": tree_sha,
     }
 
 
@@ -183,22 +183,27 @@ def get_digest(ref: str):
         return None
 
 
-ImagesOption = Option(None, "--image", "--images", "-i", help="Image name; can be repeated.")
+ImageOption = Option(None, "--image", "--images", "-i", help="Image name; can be repeated.")
 AllOption = Option(False, "--all", "-all", help="Select all images in images.json")
 
 app = Typer()
 
 
 @app.command()
-def plan(images: Optional[list[str]] = ImagesOption, all_: Optional[bool] = AllOption):
+def plan(images: Optional[list[str]] = ImageOption, all_: Optional[bool] = AllOption):
     _, plan = create_plan(images, all_)
     print(json.dumps(plan, indent=2))
 
 
 @app.command()
-def lock(image: list[str] = ImagesOption, all_: bool = AllOption):
+def lock(image: list[str] = ImageOption, all_: bool = AllOption):
     images_lock, plan = create_plan(image, all_)
     lock_images(images_lock, plan)
+
+
+@app.command()
+def digest(image: str):
+    print(get_digest(image) or "Image not found")
 
 
 if __name__ == "__main__":
