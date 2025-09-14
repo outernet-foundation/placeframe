@@ -47,12 +47,6 @@ class ThirdPartyPlan(TypedDict):
 
 
 def create_plan(images: Optional[list[str]] = None, all_: Optional[bool] = False):
-    if images is None and not all_:
-        raise ValueError("Either '--images' or '--all' must be provided")
-
-    if not images_path.is_file():
-        raise FileNotFoundError(f"{images_path} not found")
-
     # Load images.json and images-lock.json
     all_images = TypeAdapter(dict[str, Image]).validate_python(json.load(images_path.open("r", encoding="utf-8")))
     images_lock = TypeAdapter(dict[str, ImageLock]).validate_python(
@@ -211,19 +205,26 @@ def get_digest(ref: str):
         return None
 
 
-ImageOption = Option(None, "--image", "--images", "-i", help="Image name; can be repeated.")
+ImageOption = Option(None, "--image", "-i", help="Image name; can be repeated.")
 AllOption = Option(False, "--all", "-a", help="Select all images in images.json")
 PlanOption = Option(None, "--plan", "-p", help="Path to a plan JSON file (dict keyed by image name).")
 CacheTypeOption = Option("registry", "--cache-type", "-c", help="Type of cache to use when building images.")
-OutputPathOption = Option("--output", "-o", help="Path to write the images-lock.json file.")
+PlanOutputPathOption = Option(..., "--output", "-o", help="Path to write the plan JSON file.")
+LockOutputPathOption = Option(None, "--output", "-o", help="Path to write the images-lock.json file.")
 
 app = Typer()
 
 
 @app.command()
 def plan(
-    images: Optional[list[str]] = ImageOption, all_: Optional[bool] = AllOption, plan_path: str = OutputPathOption
+    images: Optional[list[str]] = ImageOption, all_: Optional[bool] = AllOption, plan_path: str = PlanOutputPathOption
 ):
+    if images is None and not all_:
+        raise ValueError("Either '--images' or '--all' must be provided")
+
+    if not images_path.is_file():
+        raise FileNotFoundError(f"{images_path} not found")
+
     _, plan = create_plan(images, all_)
 
     with open(plan_path, "w") as plan_file:
@@ -236,8 +237,11 @@ def lock(
     all_: bool = AllOption,
     plan_path: Optional[str] = PlanOption,
     cache_type: str = CacheTypeOption,
-    output_path: Optional[Path] = OutputPathOption,
+    output_path: Optional[Path] = LockOutputPathOption,
 ):
+    if images is None and not all_:
+        raise ValueError("One of '--images', '--all', or '--plan' must be provided")
+
     if plan_path:
         if not Path(plan_path).is_file():
             raise FileNotFoundError(f"{plan_path} not found")
@@ -246,6 +250,9 @@ def lock(
             plan = TypeAdapter(dict[str, FirstPartyPlan | ThirdPartyPlan]).validate_python(json.load(plan_file))
             images_lock = TypeAdapter(dict[str, ImageLock]).validate_python(json.load(images_lock_file))
     else:
+        if not images_path.is_file():
+            raise FileNotFoundError(f"{images_path} not found")
+
         images_lock, plan = create_plan(images, all_)
 
     lock_images(images_lock, plan, cache_type, output_path)
