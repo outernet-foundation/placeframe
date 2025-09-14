@@ -130,7 +130,7 @@ def lock_images(
     cache_type: str,
     output_path: Path | None = None,
 ):
-    git_sha = run_command("git rev-parse --short HEAD", cwd=workspace_directory).strip()
+    git_sha = run_command("git rev-parse HEAD", cwd=workspace_directory).strip()
 
     if output_path is None:
         output_path = images_lock_path
