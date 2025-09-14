@@ -162,7 +162,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}-image-lock.json
-          path: ${{ matrix.name }}-image-lock.json
+          path: src/${{ matrix.name }}-image-lock.json
 
   generate-migrations-and-create-deploy-pr:
     runs-on: ubuntu-latest
