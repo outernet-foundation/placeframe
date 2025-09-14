@@ -96,6 +96,7 @@ jobs:
           uv run --locked src/build.py plan --all --output plan.json
           echo Plan:
           jq . plan.json
+          echo "names=$(jq -c '{name: keys}' plan.json)" >> "$GITHUB_OUTPUT"
 
       - name: Upload plan
         uses: actions/upload-artifact@v4
@@ -145,23 +146,23 @@ jobs:
       - name: Extract image plan
         run: |
           set -euo pipefail
-          jq -c --arg name '${{ matrix }}' '{($name): .[$name]}' plan.json > image-plan.json
-          echo "Image plan for ${{ matrix }}:"
+          jq -c --arg name '${{ matrix.name }}' '{($name): .[$name]}' plan.json > image-plan.json
+          echo "Image plan for ${{ matrix.name }}:"
           jq . image-plan.json
 
       - name: Lock image
         run: |
           set -euo pipefail
           cd scripts
-          uv run --locked src/build.py lock --plan image-plan.json --cache-type gha --output ${{ matrix }}-image-lock.json
-          echo "Image lock for ${{ matrix }}:"
-          jq . ${{ matrix }}-image-lock.json
+          uv run --locked src/build.py lock --plan image-plan.json --cache-type gha --output ${{ matrix.name }}-image-lock.json
+          echo "Image lock for ${{ matrix.name }}:"
+          jq . ${{ matrix.name }}-image-lock.json
 
       - name: Upload lock snippet
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix }}-image-lock.json
-          path: ${{ matrix }}-image-lock.json
+          name: ${{ matrix.name }}-image-lock.json
+          path: ${{ matrix.name }}-image-lock.json
 
   generate-migrations-and-create-deploy-pr:
     runs-on: ubuntu-latest
