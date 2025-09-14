@@ -1,4 +1,4 @@
-from pulumi import ComponentResource, Config, ResourceOptions, export
+from pulumi import ComponentResource, Config, ResourceOptions
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecs import Cluster
 from pulumi_awsx.ecs import FargateService
@@ -42,14 +42,9 @@ class GithubRunner(ComponentResource):
 
         # Image repos
         github_runner_image_repo = Repository(
-            "github-runner-cache-repo",
-            name="dockerhub/myoung34/github-runner",
-            opts=ResourceOptions.merge(
-                self._child_opts, ResourceOptions(retain_on_delete=True, import_="dockerhub/myoung34/github-runner")
-            ),
+            "github-runner-image-repo", name="dockerhub/myoung34/github-runner", opts=self._child_opts
         )
         prepare_deploy_role.allow_image_repo_actions("github_runner", [github_runner_image_repo])
-        export("github-runner-image-repo-url", github_runner_image_repo.url)
 
         # Security groups
         github_runner_security_group = SecurityGroup(

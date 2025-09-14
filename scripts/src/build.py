@@ -5,6 +5,7 @@ import os
 import shlex
 import tempfile
 from pathlib import Path
+from subprocess import CalledProcessError
 from typing import Literal, NotRequired, Optional, TypedDict, cast
 
 from common.run_command import run_command, run_streaming
@@ -34,7 +35,7 @@ class FirstPartyPlan(TypedDict):
     name: str
     kind: Literal["first_party"]
     stack: str
-    repo: str
+    image_repo_url: str
     context: str
     dockerfile: str
     tree_sha: str
@@ -44,7 +45,7 @@ class ThirdPartyPlan(TypedDict):
     name: str
     kind: Literal["third_party"]
     stack: str
-    repo: str
+    image_repo_url: str
 
 
 class _Manifest(TypedDict, total=False):
@@ -65,10 +66,19 @@ def create_plan(images: Optional[list[str]] = None, all_: Optional[bool] = False
 
     selected_images = all_images if not images else {name: all_images[name] for name in images}
 
+    stacks = {
+        stack: json.loads(
+            run_command(f"pulumi stack output --stack {shlex.quote(stack)} --json", cwd=infrastructure_directory)
+        )
+        for stack in {img["stack"] for img in selected_images.values()}
+    }
+
     return images_lock, [
         image_plan
         for image_plan in (
-            create_image_plan(image_name, image, images_lock.get(image_name))
+            create_image_plan(
+                image_name, image, images_lock.get(image_name), stacks[image["stack"]][f"{image_name}-image-repo-url"]
+            )
             for image_name, image in selected_images.items()
         )
         if image_plan is not None
@@ -76,22 +86,22 @@ def create_plan(images: Optional[list[str]] = None, all_: Optional[bool] = False
 
 
 def create_image_plan(
-    image_name: str, image: Image, image_lock: ImageLock | None
+    image_name: str, image: Image, image_lock: ImageLock | None, image_repo_url: str
 ) -> FirstPartyPlan | ThirdPartyPlan | None:
     stack = image["stack"]
 
-    image_repo = run_command(
-        f"pulumi stack output --stack {stack} {image_name}-image-repo-url", cwd=infrastructure_directory
-    ).strip()
+    # image_repo_url = run_command(
+    #     f"pulumi stack output --stack {stack} {image_name}-image-repo-url", cwd=infrastructure_directory
+    # ).strip()
 
     if not image["first_party"]:
         if image_lock is not None:
             return
 
-        return {"name": image_name, "kind": "third_party", "stack": stack, "repo": image_repo}
+        return {"name": image_name, "kind": "third_party", "stack": stack, "image_repo_url": image_repo_url}
 
-    if "context" not in image or "dockerfile" not in image or "hash_paths" not in image:
-        raise ValueError(f"first_party image '{image_name}' requires 'context', 'dockerfile', and 'hash_paths'")
+    if "context" not in image or "dockerfile" not in image:
+        raise ValueError(f"first_party image '{image_name}' requires 'context' and 'dockerfile'")
 
     context = image["context"]
 
@@ -115,9 +125,9 @@ def create_image_plan(
         "name": image_name,
         "kind": "first_party",
         "stack": stack,
-        "repo": image_repo,
-        "context": str((workspace_directory / context).resolve()),
-        "dockerfile": str((workspace_directory / context / image["dockerfile"]).resolve()),
+        "image_repo_url": image_repo_url,
+        "context": context,
+        "dockerfile": image["dockerfile"],
         "tree_sha": tree_sha_value,
     }
 
@@ -130,13 +140,8 @@ def lock_images(images_lock: dict[str, ImageLock], plan: list[FirstPartyPlan | T
             print(f"Skipping third-party image: {image_plan['name']}")
             continue
 
-        image_repo_url = run_command(
-            f"pulumi stack output --stack {image_plan['stack']} {image_plan['name']}-image-repo-url",
-            cwd=infrastructure_directory,
-        ).strip()
-
-        tree_sha_tag = f"{image_repo_url}:tree-{image_plan['tree_sha']}"
-        git_sha_tag = f"{image_repo_url}:git-{git_sha}"
+        tree_sha_tag = f"{image_plan['image_repo_url']}:tree-{image_plan['tree_sha']}"
+        git_sha_tag = f"{image_plan['image_repo_url']}:git-{git_sha}"
         digest = get_digest(tree_sha_tag)
 
         if digest is not None:
@@ -147,8 +152,8 @@ def lock_images(images_lock: dict[str, ImageLock], plan: list[FirstPartyPlan | T
             run_streaming(
                 "docker buildx build --push --platform linux/amd64 --provenance=false"
                 + f" -t {git_sha_tag} -t {tree_sha_tag}"
-                + f' -f "{image_plan["dockerfile"]}"'
-                + f' "{image_plan["context"]}"'
+                + f' -f "{workspace_directory / image_plan["context"] / image_plan["dockerfile"]}"'
+                + f' "{workspace_directory / image_plan["context"]}"'
             )
 
             digest = get_digest(tree_sha_tag)
@@ -166,12 +171,12 @@ def lock_images(images_lock: dict[str, ImageLock], plan: list[FirstPartyPlan | T
 
 
 def get_digest(ref: str) -> str | None:
-    return cast(
-        _Manifest,
-        json.loads(
-            run_command(f"docker buildx imagetools inspect --format '{{{{json .Manifest}}}}' {shlex.quote(ref)}")
-        ),
-    ).get("digest")
+    try:
+        inspect_output = run_command(f"docker buildx imagetools inspect {shlex.quote(ref)}")
+    except CalledProcessError:
+        return None
+
+    return cast(_Manifest, json.loads(inspect_output)).get("digest")
 
 
 ImagesOption = Option(None, "--image", "--images", "-i", help="Image name; can be repeated.")

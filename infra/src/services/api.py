@@ -1,4 +1,4 @@
-from pulumi import ComponentResource, Config, Input, Output, ResourceOptions, export
+from pulumi import ComponentResource, Config, Input, Output, ResourceOptions
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecs import Cluster
 from pulumi_aws.route53 import Record
@@ -49,45 +49,16 @@ class Api(ComponentResource):
         )
 
         # Image repos
-        api_image_repo = Repository(
-            "api-repo",
-            "api",
-            opts=ResourceOptions.merge(
-                self._child_opts,
-                ResourceOptions(
-                    retain_on_delete=True
-                    # import_="api"
-                ),
-            ),
-        )
+        api_image_repo = Repository("api-image-repo", "api", opts=self._child_opts)
         reconstruction_task_image_repo = Repository(
-            "run-reconstruction-repo",
-            "run-reconstruction",
-            opts=ResourceOptions.merge(
-                self._child_opts,
-                ResourceOptions(
-                    retain_on_delete=True
-                    # import_="run-reconstruction"
-                ),
-            ),
+            "run-reconstruction-image-repo", "run-reconstruction", opts=self._child_opts
         )
         features_task_image_repo = Repository(
-            "extract-match-features-repo",
-            "extract-match-features",
-            opts=ResourceOptions.merge(
-                self._child_opts,
-                ResourceOptions(
-                    retain_on_delete=True
-                    # import_="extract-match-features"
-                ),
-            ),
+            "extract-match-features-image-repo", "extract-match-features", opts=self._child_opts
         )
         prepare_deploy_role.allow_image_repo_actions(
             "api", [api_image_repo, reconstruction_task_image_repo, features_task_image_repo]
         )
-        export("api-image-repo-url", api_image_repo.url)
-        export("run-reconstruction-image-repo-url", reconstruction_task_image_repo.url)
-        export("extract-match-features-image-repo-url", features_task_image_repo.url)
 
         # Load balancer
         load_balancer = LoadBalancer(

@@ -1,4 +1,4 @@
-from pulumi import ComponentResource, Config, Input, Output, ResourceOptions, export
+from pulumi import ComponentResource, Config, Input, Output, ResourceOptions
 from pulumi_aws.cloudwatch import LogGroup
 from pulumi_aws.ecs import Cluster
 from pulumi_aws.route53 import Record
@@ -50,12 +50,9 @@ class TailscaleBeacon(ComponentResource):
 
         # Image repos
         tailscale_beacon_image_repo = Repository(
-            "tailscale-beacon-image-repo",
-            "tailscale-beacon",
-            opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True)),
+            "tailscale-beacon-image-repo", "tailscale-beacon", opts=self._child_opts
         )
         prepare_deploy_role.allow_image_repo_actions("tailscale_beacon", [tailscale_beacon_image_repo])
-        export("tailscale-beacon-image-repo-url", tailscale_beacon_image_repo.url)
 
         # Load balancer
         load_balancer = LoadBalancer(

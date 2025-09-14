@@ -59,24 +59,16 @@ class Cloudbeaver(ComponentResource):
 
         # Image repos
         initialize_cloudbeaver_image_repo = Repository(
-            "initialize-cloudbeaver-repo",
-            name="initialize-cloudbeaver",
-            opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True)),
+            "initialize-cloudbeaver-image-repo", name="initialize-cloudbeaver", opts=self._child_opts
         )
         cloudbeaver_image_repo = Repository(
-            "cloudbeaver-repo",
-            name="dockerhub/dbeaver/cloudbeaver",
-            opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True)),
+            "cloudbeaver-image-repo", name="dockerhub/dbeaver/cloudbeaver", opts=self._child_opts
         )
         create_database_image_repo = Repository(
-            "create-database-repo",
-            name="create-database",
-            opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True)),
+            "create-database-image-repo", name="create-database", opts=self._child_opts
         )
         delete_database_image_repo = Repository(
-            "delete-database-repo",
-            name="delete-database",
-            opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True)),
+            "delete-database-image-repo", name="delete-database", opts=self._child_opts
         )
         prepare_deploy_role.allow_image_repo_actions(
             "cloudbeaver",

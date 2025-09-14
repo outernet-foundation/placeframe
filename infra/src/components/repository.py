@@ -12,30 +12,26 @@ from pulumi_aws.ecr import get_repository_output
 
 
 class Repository(ComponentResource):
-    def __init__(
-        self,
-        resource_name: str,
-        name: Input[str],
-        *,
-        adopt: bool = False,
-        force_delete: bool | None = None,
-        opts: ResourceOptions | None = None,
-    ):
+    def __init__(self, resource_name: str, name: str | Input[str], *, opts: ResourceOptions | None = None):
         super().__init__("custom:Repository", resource_name, opts=opts)
 
         self.resource_name = resource_name
         self._child_opts = ResourceOptions.merge(opts, ResourceOptions(parent=self))
 
-        if adopt:
-            self._repo = get_repository_output(name=name)
+        if isinstance(name, str):
+            self._repo = ecr.Repository(
+                resource_name,
+                name=name,
+                opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True, import_=name)),
+            )
         else:
-            self._repo = ecr.Repository(resource_name, name=name, force_delete=force_delete, opts=self._child_opts)
+            self._repo = get_repository_output(name=name)
 
         self.name = name
         self.arn = self._repo.arn
         self.url = self._repo.repository_url
 
-        export(f"{self.resource_name}-image-repo-url", self.url)
+        export(f"{self.resource_name}-url", self.url)
 
         self.register_outputs({"name": self.name, "arn": self.arn, "url": self.url})
 

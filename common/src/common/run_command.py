@@ -1,26 +1,22 @@
 import shlex
-import subprocess
 from pathlib import Path
 from shlex import split
+from subprocess import PIPE, STDOUT, CalledProcessError, Popen, run
 
 
 def run_command(command: str, cwd: Path | None = None, env: dict[str, str] | None = None):
     print(f"Running command: {command}")
 
     try:
-        process = subprocess.run(
-            split(command, posix=True), cwd=cwd, env=env, check=True, text=True, capture_output=True
-        )
+        process = run(split(command, posix=True), cwd=cwd, env=env, check=True, text=True, capture_output=True)
         if process.returncode != 0:
-            raise subprocess.CalledProcessError(
-                process.returncode, command, output=process.stdout, stderr=process.stderr
-            )
+            raise CalledProcessError(process.returncode, command, output=process.stdout, stderr=process.stderr)
         if process.stdout:
             print(process.stdout)
         if process.stderr:
             print(process.stderr)
         return process.stdout
-    except subprocess.CalledProcessError as e:
+    except CalledProcessError as e:
         print(f"Command failed with exit code {e.returncode}")
         if e.output:
             print(e.output)
@@ -31,11 +27,11 @@ def run_command(command: str, cwd: Path | None = None, env: dict[str, str] | Non
 
 def run_streaming(command: str, cwd: Path | None = None) -> None:
     print(f"Running (streaming): {command}")
-    proc = subprocess.Popen(
+    proc = Popen(
         shlex.split(command, posix=True),
         cwd=str(cwd) if cwd else None,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+        stdout=PIPE,
+        stderr=STDOUT,
         text=True,
         bufsize=1,
     )
@@ -46,4 +42,4 @@ def run_streaming(command: str, cwd: Path | None = None) -> None:
     finally:
         rc = proc.wait()
         if rc != 0:
-            raise subprocess.CalledProcessError(rc, command)
+            raise CalledProcessError(rc, command)
