@@ -48,10 +48,6 @@ class ThirdPartyPlan(TypedDict):
     image_repo_url: str
 
 
-class _Manifest(TypedDict, total=False):
-    digest: str
-
-
 def create_plan(images: Optional[list[str]] = None, all_: Optional[bool] = False):
     if images is None and not all_:
         raise ValueError("Either '--images' or '--all' must be provided")
@@ -89,10 +85,6 @@ def create_image_plan(
     image_name: str, image: Image, image_lock: ImageLock | None, image_repo_url: str
 ) -> FirstPartyPlan | ThirdPartyPlan | None:
     stack = image["stack"]
-
-    # image_repo_url = run_command(
-    #     f"pulumi stack output --stack {stack} {image_name}-image-repo-url", cwd=infrastructure_directory
-    # ).strip()
 
     if not image["first_party"]:
         if image_lock is not None:
@@ -132,51 +124,63 @@ def create_image_plan(
     }
 
 
-def lock_images(images_lock: dict[str, ImageLock], plan: list[FirstPartyPlan | ThirdPartyPlan]) -> None:
+def lock_images(images_lock: dict[str, ImageLock], plan: list[FirstPartyPlan | ThirdPartyPlan]):
     git_sha = run_command("git rev-parse --short HEAD", cwd=workspace_directory).strip()
 
     for image_plan in plan:
-        if image_plan["kind"] == "third_party":
-            print(f"Skipping third-party image: {image_plan['name']}")
-            continue
+        print(f"Processing image: {image_plan['name']}")
+        images_lock[image_plan["name"]] = lock_image(image_plan, git_sha)
 
-        tree_sha_tag = f"{image_plan['image_repo_url']}:tree-{image_plan['tree_sha']}"
-        git_sha_tag = f"{image_plan['image_repo_url']}:git-{git_sha}"
-        digest = get_digest(tree_sha_tag)
-
-        if digest is not None:
-            print(f"Image with tag {tree_sha_tag} already exists, skipping build.")
-        else:
-            print(f"Building and pushing image: {image_plan['name']}")
-
-            run_streaming(
-                "docker buildx build --push --platform linux/amd64 --provenance=false"
-                + f" -t {git_sha_tag} -t {tree_sha_tag}"
-                + f' -f "{workspace_directory / image_plan["context"] / image_plan["dockerfile"]}"'
-                + f' "{workspace_directory / image_plan["context"]}"'
-            )
-
-            digest = get_digest(tree_sha_tag)
-
-            if digest is None:
-                raise RuntimeError(f"Failed to get digest for image {image_plan['name']} after push.")
-
-        images_lock[image_plan["name"]] = {
-            "digest": digest,
-            "tags": [f"tree-{image_plan['tree_sha']}", f"git-{git_sha}"],
-        }
-
+    print(f"Writing {images_lock_path}")
     with images_lock_path.open("w", encoding="utf-8") as file:
         json.dump(images_lock, file, indent=2)
 
 
-def get_digest(ref: str) -> str | None:
+def lock_image(image_plan: FirstPartyPlan | ThirdPartyPlan, git_sha: str) -> ImageLock:
+    if image_plan["kind"] == "third_party":
+        digest = get_digest(image_plan["image_repo_url"] + ":latest")
+        return {"digest": digest if digest is not None else "", "tags": ["latest"]}
+
+    tree_sha_tag = f"{image_plan['image_repo_url']}:tree-{image_plan['tree_sha']}"
+    git_sha_tag = f"{image_plan['image_repo_url']}:git-{git_sha}"
+    digest = get_digest(tree_sha_tag)
+
+    if digest is not None:
+        print(f"Image with tag {tree_sha_tag} already exists, skipping build.")
+    else:
+        print(f"Building and pushing image: {image_plan['name']}")
+
+        run_streaming(
+            "docker buildx build --push --platform linux/amd64 --provenance=false"
+            + f" --cache-from type=registry,ref={image_plan['image_repo_url']}:cache"
+            + f" --cache-to type=registry,ref={image_plan['image_repo_url']}:cache,mode=max"
+            + f" -t {git_sha_tag} -t {tree_sha_tag}"
+            + f' -f "{workspace_directory / image_plan["context"] / image_plan["dockerfile"]}"'
+            + f' "{workspace_directory / image_plan["context"]}"'
+        )
+
+        digest = get_digest(tree_sha_tag)
+
+        if digest is None:
+            raise RuntimeError(f"Failed to get digest for image {image_plan['name']} after push.")
+
+    return {"digest": digest, "tags": [f"tree-{image_plan['tree_sha']}", f"git-{git_sha}"]}
+
+
+class ManifestDict(TypedDict, total=False):
+    digest: str
+
+
+def get_digest(ref: str):
     try:
-        inspect_output = run_command(f"docker buildx imagetools inspect {shlex.quote(ref)}")
+        return cast(
+            ManifestDict,
+            json.loads(
+                run_command(f"docker buildx imagetools inspect --format '{{{{json .Manifest}}}}' {shlex.quote(ref)}")
+            ),
+        ).get("digest")  # now str | None, not Unknown
     except CalledProcessError:
         return None
-
-    return cast(_Manifest, json.loads(inspect_output)).get("digest")
 
 
 ImagesOption = Option(None, "--image", "--images", "-i", help="Image name; can be repeated.")

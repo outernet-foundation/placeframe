@@ -1,0 +1,76 @@
+{
+  "tailscale-beacon": {
+    "digest": "sha256:b4dbb1a511d8efeabf2c858b051891e0e130892da1da8088b8774108c51b0fb6",
+    "tags": [
+      "tree-affe5cdbc9b73ceb84a029a443f99d41769e4e7c",
+      "git-3ced0fa"
+    ]
+  },
+  "oauth2-reverse-proxy": {
+    "digest": "sha256:50b387b96ede7a651c0519bfb2d8ded7c810da0d6d8f3369e798b7b639338c24",
+    "tags": [
+      "tree-bd22c3210780b1c132ed5280e4d35c6f839602f3",
+      "git-3ced0fa"
+    ]
+  },
+  "initialize-cloudbeaver": {
+    "digest": "sha256:e8e8cde7b9dd8461d294ab12868da65a481322b6f2b72d6a9209a7def7102921",
+    "tags": [
+      "tree-23e95bd14cdb2dc334756fc3177afdad701c6d52",
+      "git-3ced0fa"
+    ]
+  },
+  "api": {
+    "digest": "sha256:555230b6e8a6d286377476d3a227efec52327fee92e2d05786663bfb317ca431",
+    "tags": [
+      "tree-907e6b5434bb40c144aa766062821195bd28d556",
+      "git-3ced0fa"
+    ]
+  },
+  "run-reconstruction": {
+    "digest": "sha256:76606f02b21762a1f0ac66fc2e90cdb80916ebb381e9e28288b1efc0579dea23",
+    "tags": [
+      "tree-ea919b896c14f7050abf12e737aa15eaf8005773",
+      "git-3ced0fa"
+    ]
+  },
+  "extract-match-features": {
+    "digest": "sha256:92f3166eb48782188cf5295354a4356d1465da0530530fe7d7a27546ae1f1436",
+    "tags": [
+      "tree-3774451170cf2373d31d08c53cb0bbd73258a8d7",
+      "git-3ced0fa"
+    ]
+  },
+  "create-database": {
+    "digest": "sha256:a6091184c93f731db1aac42043ac083cedc5638010bf4ee84fe5341e89985725",
+    "tags": [
+      "tree-c0e2d9c26cd102a95577a788bd4938dd5f76baa2",
+      "git-3ced0fa"
+    ]
+  },
+  "delete-database": {
+    "digest": "sha256:1fa8a096e9c05a766eae27ae832e812706720cc5a60d64ddafe8e73fa6083aca",
+    "tags": [
+      "tree-aa053d68c4fee8ce4f2080951bb9799bb3acabd6",
+      "git-3ced0fa"
+    ]
+  },
+  "oauth2-proxy": {
+    "digest": "sha256:786bed0f000c0f8a7b31619244ebab02406a8856a4faf3f5fb1df61fbd6c30ed",
+    "tags": [
+      "latest"
+    ]
+  },
+  "cloudbeaver": {
+    "digest": "sha256:5f650460cb948ed7018f96823ed4fafdf873224f18d8aadc84378a7bcc14e053",
+    "tags": [
+      "latest"
+    ]
+  },
+  "github-runner": {
+    "digest": "sha256:54aca6fa758243ee1f4aacfae174400dc09f201b2b06707979efa6e5b75708af",
+    "tags": [
+      "latest"
+    ]
+  }
+}
