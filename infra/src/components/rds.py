@@ -13,7 +13,7 @@ class RDSInstance(ComponentResource):
         self._resource_name = resource_name
         self._child_opts = ResourceOptions.merge(opts, ResourceOptions(parent=self))
 
-        username: str = config.require("postgres-user")
+        username = config.require("postgres-user")
         password = config.require_secret("postgres-password")
 
         subnet_group = SubnetGroup(resource_name="db-subnet-group", subnet_ids=vpc.private_subnet_ids)

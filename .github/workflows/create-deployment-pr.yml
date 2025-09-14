@@ -5,6 +5,7 @@ on:
     branches: [feature/data-base-manager]
     paths:
       - ".github/workflows/create-deployment-pr.yml"
+      - "scripts/src/build.py"
       - "images.json"
       - "services/**"
       - "tasks/**"

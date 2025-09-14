@@ -111,8 +111,6 @@ def create_image_plan(
         )
         run_command(f"git add -A -- {quoted_paths_string}", env=environment, cwd=workspace_directory)
         tree_sha = run_command("git write-tree", env=environment, cwd=workspace_directory).strip()
-        # temp nonce
-        tree_sha += "4"
 
     # If the image is already locked to this tree SHA, skip it
     if image_lock is not None and tree_sha == next(
@@ -138,12 +136,14 @@ def lock_images(
 ):
     git_sha = run_command("git rev-parse --short HEAD", cwd=workspace_directory).strip()
 
+    if output_path is None:
+        output_path = images_lock_path
+    else:
+        images_lock = {}
+
     for image_name, image_plan in plan.items():
         print(f"Processing image: {image_name}")
         images_lock[image_name] = lock_image(image_name, image_plan, git_sha, cache_type)
-
-    if output_path is None:
-        output_path = images_lock_path
 
     print(f"Writing {output_path}")
     with output_path.open("w", encoding="utf-8") as file:
