@@ -18,8 +18,8 @@ ENV \
 # https://docs.astral.sh/uv/guides/integration/aws-lambda/#getting-started
 RUN --mount=from=uv,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=tasks/create-database/uv.lock,target=uv.lock \
-    --mount=type=bind,source=tasks/create-database/pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=services/database-manager/uv.lock,target=uv.lock \
+    --mount=type=bind,source=services/database-manager/pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=common,target=/common,ro \
     uv export --frozen --no-emit-workspace --no-dev --no-editable -o requirements.txt && \
     uv pip install -r requirements.txt --target "${LAMBDA_TASK_ROOT}"
@@ -30,7 +30,7 @@ FROM public.ecr.aws/lambda/python:3.13
 COPY --from=builder ${LAMBDA_TASK_ROOT} ${LAMBDA_TASK_ROOT}
 
 # Copy the application code.
-COPY ./tasks/create-database/src ${LAMBDA_TASK_ROOT}/src
+COPY ./services/database-manager/src ${LAMBDA_TASK_ROOT}/src
 
 # Set the AWS Lambda handler.
 CMD ["src.main.main"]

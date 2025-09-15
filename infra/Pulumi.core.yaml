@@ -7,5 +7,4 @@ config:
   plerion_infra:deploy-cloudbeaver: true
   plerion_infra:deploy-tailscale-beacon: true
   plerion_infra:deploy-auth-gateway: true
-  plerion_infra:deploy-create-database: false
-  plerion_infra:deploy-delete-database: false
+  plerion_infra:deploy-database-manager: false

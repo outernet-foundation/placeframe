@@ -64,20 +64,9 @@ class Cloudbeaver(ComponentResource):
         cloudbeaver_image_repo = Repository(
             "cloudbeaver-image-repo", name="dockerhub/dbeaver/cloudbeaver", opts=self._child_opts
         )
-        create_database_image_repo = Repository(
-            "create-database-image-repo", name="create-database", opts=self._child_opts
-        )
-        delete_database_image_repo = Repository(
-            "delete-database-image-repo", name="delete-database", opts=self._child_opts
-        )
+        database_manager_repo = Repository("database-manager", name="database-manager", opts=self._child_opts)
         prepare_deploy_role.allow_image_repo_actions(
-            "cloudbeaver",
-            [
-                initialize_cloudbeaver_image_repo,
-                cloudbeaver_image_repo,
-                create_database_image_repo,
-                delete_database_image_repo,
-            ],
+            "cloudbeaver", [initialize_cloudbeaver_image_repo, cloudbeaver_image_repo, database_manager_repo]
         )
 
         # Load balancer
@@ -287,10 +276,7 @@ class Cloudbeaver(ComponentResource):
 
                 deploy_role.allow_lambda_deployment(resource_name, [function])
 
-            if config.require_bool("deploy-create-database"):
-                DatabaseManagementLambda("create-database-lambda", "create-database", create_database_image_repo)
-
-            if config.require_bool("deploy-delete-database"):
-                DatabaseManagementLambda("delete-database-lambda", "delete-database", delete_database_image_repo)
+            if config.require_bool("deploy-database-manager"):
+                DatabaseManagementLambda("database-manager-lambda", "database-manager", database_manager_repo)
 
         self.register_outputs({})

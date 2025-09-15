@@ -41,36 +41,16 @@
       "git-02e32dc4a232e0ff75457ab70c93f350aec2ef31"
     ]
   },
-  "create-database": {
-    "digest": "sha256:50d804f911e553fec4828e8f1458250c6a7a01b6acf8a400d2e682e87a847190",
-    "tags": [
-      "tree-14fc0064dd5db2db0938680d281d24ab8971d0042",
-      "git-02e32dc4a232e0ff75457ab70c93f350aec2ef31"
-    ]
-  },
-  "delete-database": {
-    "digest": "sha256:10140c03b34e74b58c29e6813fbb1de3675baa757b6967369458a6c49e810016",
-    "tags": [
-      "tree-cfbcbfa34f7f2d66e345bb9953df0f7f69d6b96a2",
-      "git-02e32dc4a232e0ff75457ab70c93f350aec2ef31"
-    ]
-  },
   "oauth2-proxy": {
     "digest": "sha256:786bed0f000c0f8a7b31619244ebab02406a8856a4faf3f5fb1df61fbd6c30ed",
-    "tags": [
-      "latest"
-    ]
+    "tags": ["latest"]
   },
   "cloudbeaver": {
     "digest": "sha256:5f650460cb948ed7018f96823ed4fafdf873224f18d8aadc84378a7bcc14e053",
-    "tags": [
-      "latest"
-    ]
+    "tags": ["latest"]
   },
   "github-runner": {
     "digest": "sha256:54aca6fa758243ee1f4aacfae174400dc09f201b2b06707979efa6e5b75708af",
-    "tags": [
-      "latest"
-    ]
+    "tags": ["latest"]
   }
 }

@@ -35,8 +35,12 @@
   "emeraldwalk.runonsave": {
     "commands": [
       {
-        "match": ".*src[/\\\\](routers|db[/\\\\]tables)[/\\\\].*\\.py$",
-        "cmd": "uv run -m src.clients.generate"
+        "match": ".*services[/\\\\]api[/\\\\]src[/\\\\](routers|db[/\\\\]tables)[/\\\\].*\\.py$",
+        "cmd": "cd \"${workspaceFolder}/services/api\" && uv run -m src.clients.generate"
+      },
+      {
+        "match": ".*services[/\\\\]database-manager[/\\\\]src[/\\\\](routers|db[/\\\\]tables)[/\\\\].*\\.py$",
+        "cmd": "cd \"${workspaceFolder}/services/database-manager\" && uv run -m src.clients.generate"
       }
     ]
   }

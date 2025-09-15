@@ -8,10 +8,9 @@
     "infra",
     "services/api",
     "services/automigrator",
+    "services/database-manager",
     "tasks/run-reconstruction",
     "tasks/extract-match-features",
-    "tasks/create-database",
-    "tasks/delete-database",
     "capture-app/android_mobile",
     "capture-app/zed"
   ],
@@ -54,12 +53,12 @@
       ]
     },
     {
-      "root": "tasks/create-database",
+      "root": "services/database-manager",
       "extraPaths": [
         "common/.venv/Lib/site-packages",
         "common/.venv/lib/python3.13/site-packages",
-        "tasks/create-database/.venv/Lib/site-packages",
-        "tasks/create-database/.venv/lib/python3.13/site-packages"
+        "services/database-manager/.venv/Lib/site-packages",
+        "services/database-manager/.venv/lib/python3.13/site-packages"
       ]
     },
     {

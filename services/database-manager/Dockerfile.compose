@@ -15,20 +15,20 @@ ENV \
 # Move the venv out of the project directory to prevent docker compose bind mounts from clobbering it
 ENV UV_PROJECT_ENVIRONMENT=/opt/uv/venv
 
-WORKDIR /app/tasks/create-database
+WORKDIR /app/services/database-manager
 
 # Install dependencies
-COPY tasks/create-database/pyproject.toml tasks/create-database/uv.lock ./
+COPY services/database-manager/pyproject.toml services/database-manager/uv.lock ./
 COPY common/ /app/common
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project --no-editable
 
 # Install project
-COPY tasks/create-database/ .
+COPY services/database-manager/ .
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable
 
 # Copy the entrypoint and make it executable
-COPY --chmod=0755 tasks/create-database/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY --chmod=0755 services/database-manager/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

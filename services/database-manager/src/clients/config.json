@@ -1,0 +1,19 @@
+{
+  "generatorName": "python",
+  "globalProperties": {
+    "apiTests": false,
+    "modelTests": false,
+    "modelDocs": false,
+    "apiDocs": false
+  },
+  "additionalProperties": {
+    "packageName": "plerion_client",
+    "projectName": "PlerionClient",
+    "packageVersion": "0.1.0",
+    "library": "urllib3",
+    "hideGenerationTimestamp": true
+  },
+  "typeMappings": {
+    "number": "float"
+  }
+}
