@@ -162,11 +162,15 @@ jobs:
           echo "Image plan for ${{ matrix.name }}:"
           jq . scripts/image-plan.json
 
+      # Require for layer caching
+      - name: Setup GitHub Runtime
+        uses: crazy-max/ghaction-github-runtime@v3
+
       - name: Lock image
         run: |
           set -euo pipefail
           
-          # Use Buildx 'docker-container' (not default 'docker') so --cache-to/--cache-from type=gha works.
+          # Require for layer caching
           docker buildx create --use --driver docker-container
 
           # Lock image
