@@ -106,7 +106,7 @@ def create_image_plan(
         run_command(f"git add -A -- {quoted_paths_string}", env=environment, cwd=workspace_directory)
         tree_sha = run_command("git write-tree", env=environment, cwd=workspace_directory).strip()
         # temp nonce
-        tree_sha += "10"
+        tree_sha += "11"
 
     # If the image is already locked to this tree SHA, skip it
     if image_lock is not None and tree_sha == next(
@@ -165,18 +165,18 @@ def lock_image(
         print(f"Image with tag {tree_sha_tag} already exists, skipping build.")
     else:
         print(f"Building and pushing image: {image_name}")
-        cache_type_extra: str = ""
+
         if cache_type == "registry":
-            cache_type_extra += f"ref={image_plan['image_repo_url']}:cache"
+            cache_type = f"registry,ref={image_plan['image_repo_url']}:cache"
         elif cache_type == "gha":
-            cache_type_extra += f"scope={image_name}"
+            cache_type = f"gha,scope={image_name}"
         else:
             raise ValueError(f"Unknown cache type: {cache_type}")
 
         run_streaming(
             "docker buildx build --push --platform linux/amd64 --provenance=false"
-            + f" --cache-from type={cache_type},{cache_type_extra}"
-            + f" --cache-to type={cache_type},{cache_type_extra},mode=max"
+            + f" --cache-from type={cache_type}"
+            + f" --cache-to type={cache_type},mode=max"
             + f" -t {git_sha_tag} -t {tree_sha_tag}"
             + f' -f "{workspace_directory / image_plan["context"] / image_plan["dockerfile"]}"'
             + f' "{workspace_directory / image_plan["context"]}"'
