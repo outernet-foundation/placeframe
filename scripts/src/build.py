@@ -106,7 +106,7 @@ def create_image_plan(
         run_command(f"git add -A -- {quoted_paths_string}", env=environment, cwd=workspace_directory)
         tree_sha = run_command("git write-tree", env=environment, cwd=workspace_directory).strip()
         # temp nonce
-        tree_sha += "14"
+        tree_sha += "15"
 
     # If the image is already locked to this tree SHA, skip it
     if image_lock is not None and tree_sha == next(
