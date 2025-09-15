@@ -47,6 +47,7 @@ jobs:
     outputs:
       role_arn: ${{ steps.pulumi.outputs.role_arn }}
       names: ${{ steps.plan.outputs.names }}
+      needs_lock: ${{ steps.plan.outputs.needs_lock }}
     steps:
       - uses: actions/checkout@v4
 
@@ -92,11 +93,23 @@ jobs:
         id: plan
         run: |
           set -euo pipefail
+          
+          # Create image build plan
           cd scripts
           uv run --locked src/build.py plan --all --output plan.json
+          
+          # Echo plan for logging
           echo Plan:
           jq . plan.json
-          echo "names=$(jq -c '{name: keys}' plan.json)" >> "$GITHUB_OUTPUT"
+
+          # Extract names from plan (or set to __EMPTY__ if no images to build)
+          if [ "$(jq 'keys|length' plan.json)" -eq 0 ]; then
+            echo 'needs_lock=false' >> "$GITHUB_OUTPUT"
+            echo 'names={"name":["__EMPTY__"]}' >> "$GITHUB_OUTPUT"
+          else
+            echo 'needs_lock=true' >> "$GITHUB_OUTPUT"
+            echo "names=$(jq -c '{name: keys}' plan.json)" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Upload plan
         uses: actions/upload-artifact@v4
@@ -107,6 +120,7 @@ jobs:
   lock:
     runs-on: ubuntu-latest
     needs: plan
+    if: needs.plan.outputs.needs_lock == 'true'
 
     strategy:
       matrix: ${{ fromJson(needs.plan.outputs.names) }}
@@ -166,8 +180,9 @@ jobs:
 
   generate-migrations-and-create-deploy-pr:
     runs-on: ubuntu-latest
-    needs: lock
-
+    needs: [plan, lock]
+    if: ${{ needs.plan.result == 'success' && (needs.lock.result == 'success' || needs.lock.result == 'skipped') }}
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
