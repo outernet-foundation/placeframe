@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using System.Linq;
 
 using UnityEngine;
 using UnityEngine.UI;
@@ -28,6 +29,8 @@ namespace PlerionClient.Client
         private IControl ui;
         private TaskHandle currentCaptureTask = TaskHandle.Complete;
 
+        private string localCaptureNamePath => $"{Application.persistentDataPath}/LocalCaptureNames.json";
+
         void Awake()
         {
             capturesApi = new CapturesApi(new Configuration { BasePath = App.state.plerionAPIBaseUrl.value });
@@ -43,6 +46,7 @@ namespace PlerionClient.Client
             ui = ConstructUI(canvas);
 
             App.RegisterObserver(HandleCaptureStatusChanged, App.state.captureStatus);
+            App.RegisterObserver(HandleCapturesChanged, App.state.captures);
         }
 
         void OnDestroy()
@@ -77,6 +81,16 @@ namespace PlerionClient.Client
             }
         }
 
+        private void HandleCapturesChanged(NodeChangeEventArgs args)
+        {
+            var json = new SimpleJSON.JSONObject();
+
+            foreach (var kvp in App.state.captures.Where(x => !x.Value.uploaded.value))
+                json[kvp.Key.ToString()] = kvp.Value.name.value;
+
+            File.WriteAllText(localCaptureNamePath, json.ToString());
+        }
+
         private async UniTask StopCapture(CaptureType captureType, CancellationToken cancellationToken = default)
         {
             switch (captureType)
@@ -109,18 +123,29 @@ namespace PlerionClient.Client
 
         private async UniTask UpdateCaptureList()
         {
-            // var localCaptures = LocalCaptureController.GetCaptures().ToList();
-            // var remoteCaptureList = await capturesApi.GetCapturesAsync(localCaptures);
+            Dictionary<Guid, string> captureNames = new Dictionary<Guid, string>();
 
-            // var captureData = localCaptures.ToDictionary(x => x, x => remoteCaptureList.FirstOrDefault(y => y.Id == x));
-
-            var captureData = new Dictionary<Guid, Model.CaptureModel>();
-
-            for (int i = 0; i < 20; i++)
+            if (File.Exists(localCaptureNamePath))
             {
-                var capture = new Model.CaptureModel(Guid.NewGuid(), i.ToString());
-                captureData.Add(capture.Id, capture);
+                var data = File.ReadAllText(localCaptureNamePath);
+                var json = SimpleJSON.JSONNode.Parse(data);
+
+                foreach (var kvp in json)
+                    captureNames.Add(Guid.Parse(kvp.Key), kvp.Value);
             }
+
+            var localCaptures = LocalCaptureController.GetCaptures().ToList();
+            var remoteCaptureList = await capturesApi.GetCapturesAsync(localCaptures);
+
+            var captureData = localCaptures.ToDictionary(x => x, x => remoteCaptureList.FirstOrDefault(y => y.Id == x));
+
+            // var captureData = new Dictionary<Guid, Model.CaptureModel>();
+
+            // for (int i = 0; i < 20; i++)
+            // {
+            //     var capture = new Model.CaptureModel(Guid.NewGuid(), i.ToString());
+            //     captureData.Add(capture.Id, capture);
+            // }
 
             App.state.captures.ExecuteActionOrDelay(
                 captureData,
@@ -130,26 +155,31 @@ namespace PlerionClient.Client
                         captures,
                         copy: (key, remote, local) =>
                         {
-                            if (remote == null) //capture is local only
-                            {
-                                // local.name.value = capture;
-                                local.type.value = CaptureType.Local;
-                                local.uploaded.value = false;
-                                return;
-                            }
+                            // if (remote == null) //capture is local only
+                            // {
+                            local.name.value = captureNames.TryGetValue(key, out var name) ? name : null;
+                            local.type.value = CaptureType.Local;
+                            local.uploaded.value = false;
+                            return;
+                            // }
 
                             local.name.value = remote.Filename;
                             local.type.value = CaptureType.Local;
                             local.uploaded.value = true;
                         }
                     );
+                    var key = Guid.Parse("494ea91b-453e-4795-9265-2cb35b836f78");
+                    var reloaded = state.Add(key);
+                    reloaded.name.value = captureNames.TryGetValue(key, out var name) ? name : null;
+                    reloaded.type.value = CaptureType.Local;
+                    reloaded.uploaded.value = false;
                 }
             );
         }
 
-        private async UniTask UploadCapture(Guid id, CaptureType type, CancellationToken cancellationToken)
+        private async UniTask UploadCapture(Guid id, string name, CaptureType type, CancellationToken cancellationToken)
         {
-            var response = await capturesApi.CreateCaptureAsync(new Model.BodyCreateCapture(id: id));
+            var response = await capturesApi.CreateCaptureAsync(new Model.BodyCreateCapture(id: id, filename: name));
 
             if (type == CaptureType.Zed)
             {
@@ -243,7 +273,7 @@ namespace PlerionClient.Client
                     .Interactable(capture.uploaded.AsObservable().SelectDynamic(x => !x))
                     .PreferredWidth(100)
                     .Children(Text().Style(x => x.style.alignment.value = TextAlignmentOptions.CaplineGeoAligned).Value(capture.uploaded.SelectDynamic(x => x ? "Uploaded" : "Upload")))
-                    .OnClick(() => UploadCapture(capture.id, capture.type.value, default).Forget())
+                    .OnClick(() => UploadCapture(capture.id, capture.name.value ?? capture.id.ToString(), capture.type.value, default).Forget())
             );
         }
 

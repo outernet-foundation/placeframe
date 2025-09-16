@@ -7,6 +7,7 @@ using ObserveThing;
 using System;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using Cysharp.Threading.Tasks;
 
 namespace PlerionClient.Client
 {
@@ -136,10 +137,23 @@ namespace PlerionClient.Client
                     .Value(control.props.inputText.text)
                     .FillParent()
                     .Active(inputFieldActive.SelectDynamic(x => !x))
+                    .Style(x =>
+                    {
+                        x.style.wrappingMode.value = TextWrappingModes.NoWrap;
+                        x.style.overflowMode.value = TextOverflowModes.Ellipsis;
+                    })
                     .OnPointerClick(x =>
                     {
-                        if (x.clickCount > 1)
-                            inputFieldActive.value = true;
+                        var eventSystem = EventSystem.current;
+                        var target = x.pointerPress;
+
+                        eventSystem.SetSelectedGameObject(target);
+
+                        UniTask.WaitForSeconds(0.5f).ContinueWith(() =>
+                        {
+                            if (eventSystem.currentSelectedGameObject == target)
+                                inputFieldActive.value = true;
+                        });
                     })
             );
 
