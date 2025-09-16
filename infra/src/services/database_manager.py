@@ -78,6 +78,7 @@ class DatabaseManager(ComponentResource):
                 "database-manager-function",
                 name="database-manager",
                 package_type="Image",
+                publish=True,
                 image_uri=repo.locked_digest(),
                 role=role.arn,
                 timeout=900,
@@ -91,14 +92,14 @@ class DatabaseManager(ComponentResource):
                         "POSTGRES_ADMIN_USER": config.require("postgres-user"),
                         "POSTGRES_ADMIN_PASSWORD_SECRET_ARN": rds.password_secret.arn,
                         "ECS_CLUSTER_ARN": ecs_cluster_arn,
-                        "CLOUDBEAVER_SERVICE_ARN": cloudbeaver_service_arn,
+                        "CLOUDBEAVER_SERVICE_ID": cloudbeaver_service_arn,
                         "POSTGRES_PASSWORD_VERSION_": rds.password_secret.version_id,
                     }
                 },
                 opts=ResourceOptions.merge(self._child_opts, ResourceOptions(depends_on=[log_group, security_group])),
             )
 
-            export("database-manager-function-arn", function.arn)
+            export("database-manager-function-arn", function.qualified_arn)
 
             deploy_role.allow_lambda_deployment(resource_name, [function])
 

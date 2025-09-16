@@ -57,6 +57,7 @@ def create_dev_stack(config: Config):
     Api(
         resource_name="api",
         config=config,
+        database_manager_role=database_manager_role,
         database_manager_function_arn=database_manager_function_arn,
         zone_id=zone_id,
         zone_name=zone_name,

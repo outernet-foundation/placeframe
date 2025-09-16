@@ -51,12 +51,14 @@ class Api(ComponentResource):
         api_database_password_secret = Secret(
             "api-database-password", secret_string=config.require_secret("api-database-password"), opts=self._child_opts
         )
+        # allow the database manager to read the password secret
+        policy = database_manager_role.allow_secret_get(f"{resource_name}-secrets", [api_database_password_secret])
         database = Database(
             "api-database",
-            database_manager_role=database_manager_role,
             database_manager_function_arn=database_manager_function_arn,
             name=api_database_user,
             password_secret=api_database_password_secret,
+            opts=ResourceOptions.merge(self._child_opts, ResourceOptions(depends_on=[policy])),
         )
 
         # Image repos

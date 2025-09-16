@@ -69,12 +69,12 @@ class Role(ComponentResource):
     # That bug is why we are manually writing inline policies that could be existing managed policies instead
 
     def attach_policy(self, policy_name: str, policy_json: Input[str]):
-        RolePolicy(
+        return RolePolicy(
             f"{self._resource_name}-{policy_name}-attachment", role=self.name, policy=policy_json, opts=self._child_opts
         )
 
     def attach_ecs_task_execution_role_policy(self):
-        RolePolicy(
+        return RolePolicy(
             f"{self._resource_name}-ecs-task-execution-role",
             role=self.name,
             policy=json.dumps({
@@ -98,7 +98,7 @@ class Role(ComponentResource):
         )
 
     def attach_ec2_instance_role_policy(self):
-        RolePolicy(
+        return RolePolicy(
             f"{self._resource_name}-ec2-instance-role",
             role=self.name,
             policy=json.dumps({
@@ -137,7 +137,7 @@ class Role(ComponentResource):
         )
 
     def attach_read_only_access_role_policy(self):
-        RolePolicy(
+        return RolePolicy(
             f"{self._resource_name}-read-only-access",
             role=self.name,
             policy=json.dumps({
@@ -173,7 +173,7 @@ class Role(ComponentResource):
         )
 
     def attach_lambda_basic_execution_role_policy(self):
-        RolePolicy(
+        return RolePolicy(
             f"{self._resource_name}-lambda-basic-execution-role",
             role=self.name,
             policy=json.dumps({
@@ -190,7 +190,7 @@ class Role(ComponentResource):
         )
 
     def attach_lambda_vpc_access_execution_role_policy(self):
-        RolePolicy(
+        return RolePolicy(
             f"{self._resource_name}-lambda-vpc-access-execution-role",
             role=self.name,
             policy=json.dumps({
@@ -213,7 +213,7 @@ class Role(ComponentResource):
         )
 
     def allow_lambda_deployment(self, deployment_name: str, functions: Iterable[Function | Output[Function]]):
-        self.attach_policy(
+        return self.attach_policy(
             f"allow-lambda-deployment-{deployment_name}",
             Output.json_dumps({
                 "Version": "2012-10-17",
@@ -242,7 +242,7 @@ class Role(ComponentResource):
     def allow_service_deployment(
         self, deployment_name: str, passroles: Iterable[Role], services: Iterable[Service | Output[Service]]
     ):
-        self.attach_policy(
+        return self.attach_policy(
             f"allow-ecs-service-deploy-{deployment_name}",
             Output.json_dumps({
                 "Version": "2012-10-17",
@@ -268,7 +268,7 @@ class Role(ComponentResource):
         passroles: Iterable[Role],
         job_definitions: Iterable[BatchJobDefinition | Output[BatchJobDefinition]],
     ):
-        self.attach_policy(
+        return self.attach_policy(
             f"allow-batch-job-definition-update-{deployment_name}",
             Output.json_dumps({
                 "Version": "2012-10-17",
@@ -291,7 +291,7 @@ class Role(ComponentResource):
         )
 
     def allow_image_repo_actions(self, deployment_name: str, repos: Iterable[Repository]):
-        self.attach_policy(
+        return self.attach_policy(
             f"allow-image-repo-actions-{deployment_name}",
             Output.json_dumps({
                 "Version": "2012-10-17",
@@ -318,7 +318,7 @@ class Role(ComponentResource):
         )
 
     def allow_repo_pullthrough(self, repos: Iterable[Repository]):
-        self.attach_policy(
+        return self.attach_policy(
             f"allow-repo-pullthrough-{'-'.join(repo.resource_name for repo in repos)}",
             Output.json_dumps({
                 "Version": "2012-10-17",
@@ -333,7 +333,7 @@ class Role(ComponentResource):
         )
 
     def allow_secret_get(self, policy_suffix: str, secrets: Iterable[Secret]):
-        self.attach_policy(
+        return self.attach_policy(
             f"allow-secret-get-{policy_suffix}",
             Output.json_dumps({
                 "Version": "2012-10-17",
@@ -348,7 +348,7 @@ class Role(ComponentResource):
         )
 
     def allow_s3(self, s3_bucket: Bucket):
-        self.attach_policy(
+        return self.attach_policy(
             f"allow-s3-{s3_bucket._name}",
             Output.json_dumps({
                 "Version": "2012-10-17",
@@ -364,7 +364,7 @@ class Role(ComponentResource):
 
     def allow_batch_job_submission(
         self, job_environment: BatchJobEnvironment, job_definitions: List[BatchJobDefinition]
-    ) -> None:
+    ):
         policy_json = Output.json_dumps({
             "Version": "2012-10-17",
             "Statement": [
@@ -385,4 +385,4 @@ class Role(ComponentResource):
                 },
             ],
         })
-        self.attach_policy(f"{self._resource_name}-allow-batch-job-submission", policy_json)
+        return self.attach_policy(f"{self._resource_name}-allow-batch-job-submission", policy_json)
