@@ -70,6 +70,8 @@ class DatabaseManager(ComponentResource):
         role = lambda_role("database-manager-role", opts=self._child_opts)
         role.allow_secret_get("database-managersecrets", [rds.password_secret])
         # role.allow_service_deployment() ? needs to be able to bounce cloudbeaver
+        export("database-manager-role-name", role.name)
+        export("database-manager-role-arn", role.arn)
 
         if config.require_bool("deploy-database-manager") and cloudbeaver_service_arn is not None:
             function = Function(

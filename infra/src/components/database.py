@@ -7,6 +7,9 @@ from common.boto_clients import create_lambda_client
 from pulumi import Input, ResourceOptions
 from pulumi.dynamic import CreateResult, DiffResult, Resource, ResourceProvider, UpdateResult
 
+from components.role import Role
+from components.secret import Secret
+
 
 class _DatabaseProvider(ResourceProvider):
     def create(self, props: Dict[str, Any]):
@@ -48,15 +51,19 @@ class Database(Resource):
     def __init__(
         self,
         resource_name: str,
+        database_manager_role: Role,
         database_manager_function_arn: Input[str],
-        name: Optional[Input[str]],
-        password_secret_arn: Input[str],
+        name: Input[str],
+        password_secret: Secret,
         *,
         opts: Optional[ResourceOptions] = None,
     ):
         super().__init__(
             _DatabaseProvider(),
             resource_name,
-            {"function_arn": database_manager_function_arn, "name": name, "password_secret_arn": password_secret_arn},
+            {"function_arn": database_manager_function_arn, "name": name, "password_secret_arn": password_secret.arn},
             opts,
         )
+
+        # allow the role to read the password secret
+        database_manager_role.allow_secret_get(f"{resource_name}-secrets", [password_secret])

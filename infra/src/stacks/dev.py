@@ -30,6 +30,11 @@ def create_dev_stack(config: Config):
         name=core_stack.require_output("main-deploy-role-name"),
         arn=core_stack.require_output("main-deploy-role-arn"),
     )
+    database_manager_role = Role(
+        "database-manager-role",
+        name=core_stack.require_output("database-manager-role-name"),
+        arn=core_stack.require_output("database-manager-role-arn"),
+    )
 
     vpc = Vpc(name="main-vpc", vpc_info=cast(Output[VpcInfo], core_stack.require_output("vpc-info")))
 

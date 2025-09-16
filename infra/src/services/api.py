@@ -23,6 +23,7 @@ class Api(ComponentResource):
         self,
         resource_name: str,
         config: Config,
+        database_manager_role: Role,
         database_manager_function_arn: Input[str],
         zone_id: Input[str],
         zone_name: Input[str],
@@ -52,9 +53,10 @@ class Api(ComponentResource):
         )
         database = Database(
             "api-database",
+            database_manager_role=database_manager_role,
             database_manager_function_arn=database_manager_function_arn,
             name=api_database_user,
-            password_secret_arn=api_database_password_secret.arn,
+            password_secret=api_database_password_secret,
         )
 
         # Image repos
