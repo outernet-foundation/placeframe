@@ -34,15 +34,15 @@ namespace Outernet.Client.AuthoringTools
 
         private IDisposable SetupMap(MapState map)
         {
-            var transform = App.state.transforms[map.id];
+            var node = App.state.nodes[map.id];
 
             var view = Instantiate(AuthoringToolsPrefabs.SceneMap, sceneRoot);
             view.Setup(sceneObjectID: map.id, mapID: map.id);
             view.AddBinding(
-                view.props.localPosition.From(transform.localPosition),
-                view.props.localRotation.From(transform.localRotation),
+                view.props.localPosition.From(node.localPosition),
+                view.props.localRotation.From(node.localRotation),
                 view.props.name.From(map.name),
-                view.props.bounds.From(transform.localBounds),
+                view.props.bounds.From(node.localBounds),
                 view.props.color.From(map.color),
                 view.props.localInputImagePositions.Derive(
                     _ => view.props.localInputImagePositions.SetValue(
@@ -63,15 +63,14 @@ namespace Outernet.Client.AuthoringTools
 
         private IDisposable SetupExhibit(ExhibitState exhibit)
         {
-            var transform = App.state.transforms[exhibit.id];
             var node = App.state.nodes[exhibit.id];
             var instance = AuthoringToolsNode.Create(
                 uuid: node.id,
                 parent: sceneRoot,
                 bind: props => Bindings.Compose(
-                    props.localPosition.BindTo(transform.localPosition),
-                    props.localRotation.BindTo(transform.localRotation),
-                    props.bounds.BindTo(transform.localBounds),
+                    props.localPosition.BindTo(node.localPosition),
+                    props.localRotation.BindTo(node.localRotation),
+                    props.bounds.BindTo(node.localBounds),
                     props.visible.From(node.visible),
                     props.link.From(exhibit.link),
                     props.linkType.From(exhibit.linkType),

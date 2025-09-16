@@ -74,13 +74,12 @@ namespace Outernet.Client
         static private IDisposable SetupExhibit(ExhibitState exhibit)
         {
             var node = App.state.nodes[exhibit.id];
-            var transform = App.state.transforms[exhibit.id];
             var instance = ClientNode.Create(
                 uuid: exhibit.id,
-                localPosition: transform.localPosition.value,
-                localRotation: transform.localRotation.value,
+                localPosition: node.localPosition.value,
+                localRotation: node.localRotation.value,
                 bind: props => Bindings.Compose(
-                    props.bounds.From(transform.localBounds),
+                    props.bounds.From(node.localBounds),
                     props.link.From(exhibit.link),
                     props.linkType.From(exhibit.linkType),
                     props.label.From(exhibit.label),

@@ -84,7 +84,7 @@ namespace Outernet.Client.AuthoringTools
                 },
                 validate: () =>
                     App.state.authoringTools.selectedObjects.count > 0 &&
-                    App.state.authoringTools.selectedObjects.All(App.state.nodes.ContainsKey),
+                    App.state.authoringTools.selectedObjects.All(x => !App.state.maps.ContainsKey(x)),
                 commandKeys: new Key[]
                 {
                     Utility.GetPlatformCommandKey(),
@@ -158,7 +158,6 @@ namespace Outernet.Client.AuthoringTools
             tilesetToggleTemplate.gameObject.SetActive(false);
             carryIndicator.gameObject.SetActive(false);
 
-            // App.state.authoringTools.nodeGroups.Each(x => SetupGroupView(x.value));
             App.state.nodes.Each(x => SetupNodeView(x.value));
             App.state.maps.Each(x => SetupMapView(x.value));
 
@@ -267,7 +266,8 @@ namespace Outernet.Client.AuthoringTools
 
         private IDisposable SetupNodeView(NodeState node)
         {
-            var text = UIBuilder.Text(node.name);
+            var element = App.state.nodes[node.id];
+            var text = UIBuilder.Text(element.name);
             var view = UIBuilder.VerticalLayout(text);
             view.component.padding.left = 10;
             view.component.padding.top = 3;
@@ -279,8 +279,6 @@ namespace Outernet.Client.AuthoringTools
             var toHighlight = view.gameObject.AddComponent<Image>();
             toHighlight.color = Color.clear;
 
-            var transform = App.state.transforms[node.id];
-
             view.AddBinding(
                 BindHierarchyElement(
                     node.id,
@@ -289,7 +287,7 @@ namespace Outernet.Client.AuthoringTools
                     AuthoringToolsPrefabs.SelectedColor,
                     true
                 ),
-                transform.parentTransform.OnChange(x =>
+                node.parentID.OnChange(x =>
                 {
                     view.transform.SetParent(
                         x.HasValue &&
@@ -301,7 +299,7 @@ namespace Outernet.Client.AuthoringTools
                     if (App.state.authoringTools.selectedObjects.Contains(node.id))
                         RevealSelectedObjects();
                 }),
-                node.visible.OnChange(x => text.component.color = x ? Color.white : Color.grey),
+                element.visible.OnChange(x => text.component.color = x ? Color.white : Color.grey),
                 Bindings.OnRelease(() =>
                 {
                     _viewByID.Remove(node.id);
@@ -340,14 +338,14 @@ namespace Outernet.Client.AuthoringTools
         }
 
         private bool CanReparent(Guid guid)
-            => App.state.transforms.ContainsKey(guid);
+            => App.state.nodes.ContainsKey(guid) && !App.state.maps.ContainsKey(guid);
 
         private void SetParentGroup(IEnumerable<Guid> toSet, Guid? newGroup)
         {
             UndoRedoManager.RegisterUndo("Reparent");
             App.ExecuteActionOrDelay(toSet
                 .Where(CanReparent)
-                .Select(x => new SetParentTransformAction(x, newGroup))
+                .Select(x => new SetParentIDAction(x, newGroup))
                 .ToArray()
             );
         }
@@ -421,12 +419,12 @@ namespace Outernet.Client.AuthoringTools
 
         private void RevealInHierarchy(Guid obj)
         {
-            if (App.state.transforms.TryGetValue(obj, out var transformState) &&
-                transformState.parentTransform.value.HasValue &&
-                _groupFoldouts.TryGetValue(transformState.parentTransform.value.Value, out var foldout))
+            if (App.state.nodes.TryGetValue(obj, out var nodeState) &&
+                nodeState.parentID.value.HasValue &&
+                _groupFoldouts.TryGetValue(nodeState.parentID.value.Value, out var foldout))
             {
                 foldout.foldout.isOn = true;
-                RevealInHierarchy(transformState.parentTransform.value.Value);
+                RevealInHierarchy(nodeState.parentID.value.Value);
             }
         }
 
@@ -437,7 +435,7 @@ namespace Outernet.Client.AuthoringTools
                 ", ",
                 App.state.authoringTools.selectedObjects
                     .Where(CanReparent)
-                    .Select(x => App.state.TryGetName(x, out var name) ? name.value : null)
+                    .Select(x => App.state.nodes[x].name.value)
             );
         }
 
@@ -675,7 +673,7 @@ namespace Outernet.Client.AuthoringTools
                 yield return child;
 
                 if (_idByView.TryGetValue(child, out var id) &&
-                    App.state.transforms.TryGetValue(id, out var transformState) &&
+                    App.state.nodes.TryGetValue(id, out var transformState) &&
                     _groupFoldouts.TryGetValue(transformState.id, out var foldout) &&
                     foldout.foldout.isOn)
                 {

@@ -45,18 +45,16 @@ namespace Outernet.Client.AuthoringTools
                 {
                     var destComponent = componentDict.Add(_newSceneObjectID);
                     sourceComponent.CopyTo(destComponent);
+                }
+            }
 
-                    if (componentDict == target.transforms)
-                    {
-                        var group = (TransformState)destComponent;
-
-                        foreach (var childToDuplicate in ((TransformState)sourceComponent).childTransforms.ToArray())
-                        {
-                            var newChildID = Guid.NewGuid();
-                            new DuplicateSceneObjectAction(childToDuplicate, newChildID).Execute(target);
-                            new SetParentTransformAction(newChildID, _newSceneObjectID).Execute(target);
-                        }
-                    }
+            if (target.nodes.TryGetValue(_toDuplicate, out var node))
+            {
+                foreach (var child in node.childNodes)
+                {
+                    var newChildID = Guid.NewGuid();
+                    new DuplicateSceneObjectAction(child, newChildID).Execute(target);
+                    new SetParentIDAction(newChildID, _newSceneObjectID).Execute(target);
                 }
             }
         }
@@ -110,12 +108,12 @@ namespace Outernet.Client.AuthoringTools
         }
     }
 
-    public class SetParentTransformAction : ObservableNodeAction<ClientState>
+    public class SetParentIDAction : ObservableNodeAction<ClientState>
     {
         private Guid _id;
         private Guid? _parent;
 
-        public SetParentTransformAction(Guid id, Guid? parent)
+        public SetParentIDAction(Guid id, Guid? parent)
         {
             _id = id;
             _parent = parent;
@@ -123,7 +121,7 @@ namespace Outernet.Client.AuthoringTools
 
         public override void Execute(ClientState target)
         {
-            target.transforms[_id].parentTransform.value = _parent;
+            target.nodes[_id].parentID.value = _parent;
         }
     }
 
@@ -183,33 +181,72 @@ namespace Outernet.Client.AuthoringTools
         }
     }
 
-    public class SetTransformWorldValuesAction : ObservableNodeAction<ClientState>
+    public class SetWorldTransformAction : ObservableNodeAction<ClientState>
     {
-        private Guid _sceneObjectID;
-        private Vector3 _localPosition;
-        private Quaternion _localRotation;
+        private Guid _nodeID;
+        private Vector3? _position;
+        private Quaternion? _rotation;
 
-        public SetTransformWorldValuesAction(Guid sceneObjectID, Vector3 position, Quaternion rotation)
+        public SetWorldTransformAction(Guid nodeID, Vector3? position = default, Quaternion? rotation = default)
         {
-            _sceneObjectID = sceneObjectID;
-            _localPosition = position;
-            _localRotation = rotation;
+            _nodeID = nodeID;
+            _position = position;
+            _rotation = rotation;
         }
 
         public override void Execute(ClientState target)
         {
-            var transform = target.transforms[_sceneObjectID];
-            if (!transform.parentTransform.value.HasValue)
+            var node = target.nodes[_nodeID];
+            var position = _position ?? node.position.value;
+            var rotation = _rotation ?? node.rotation.value;
+
+            if (node.parentID.value.HasValue)
             {
-                transform.localPosition.value = _localPosition;
-                transform.localRotation.value = _localRotation;
-                return;
+                var parentTransform = target.nodes[node.parentID.value.Value];
+                node.localPosition.value = Matrix4x4.TRS(parentTransform.position.value, parentTransform.rotation.value, Vector3.one).inverse.MultiplyPoint3x4(_position.Value);
+                node.localRotation.value = Quaternion.Inverse(parentTransform.rotation.value) * _rotation.Value;
+            }
+            else
+            {
+                node.localPosition.value = position;
+                node.localRotation.value = rotation;
             }
 
-            var parentTransform = target.transforms[transform.parentTransform.value.Value];
-            transform.localPosition.value = Matrix4x4.TRS(parentTransform.position.value, parentTransform.rotation.value, Vector3.one).inverse.MultiplyPoint3x4(_localPosition);
-            transform.localRotation.value = Quaternion.Inverse(parentTransform.rotation.value) * _localRotation;
+            var ecef = Client.Utility.LocalToEcef(target.localToEcefMatrix.value, position, rotation);
+            node.ecefPosition.value = ecef.position;
+            node.ecefRotation.value = ecef.rotation;
         }
+    }
+
+    public class SetLocalTransformAction : ObservableNodeAction<ClientState>
+    {
+        private Guid _nodeID;
+        private Vector3? _localPosition;
+        private Quaternion? _localRotation;
+
+        public SetLocalTransformAction(Guid nodeID, Vector3? localPosition = default, Quaternion? localRotation = default)
+        {
+            _nodeID = nodeID;
+            _localPosition = localPosition;
+            _localRotation = localRotation;
+        }
+
+        public override void Execute(ClientState target)
+        {
+            var node = target.nodes[_nodeID];
+            var position =
+
+            if (_localPosition.HasValue)
+                node.localPosition.value = _localPosition.Value;
+
+            if (_localRotation.HasValue)
+                node.localRotation.value = _localRotation.Value;
+        }
+    }
+
+    public class SetECEFTransformAction : ObservableNodeAction<ClientState>
+    {
+
     }
 
     public class SetLocationContentLoadedAction : ObservableNodeAction<ClientState>

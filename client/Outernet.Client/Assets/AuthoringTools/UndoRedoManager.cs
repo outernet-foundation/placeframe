@@ -59,7 +59,7 @@ namespace Outernet.Client.AuthoringTools
                 HandleAuthoringToolStateChanged,
                 App.state.nodes,
                 App.state.maps,
-                App.state.transforms,
+                App.state.exhibits,
                 App.state.authoringTools.selectedObjects
             );
         }

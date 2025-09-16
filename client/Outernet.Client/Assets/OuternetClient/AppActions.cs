@@ -216,7 +216,7 @@ namespace Outernet.Client
         public override void Execute(ClientState target)
         {
             var map = target.maps.GetOrAdd(_id);
-            var transform = target.transforms.GetOrAdd(_id);
+            var transform = target.nodes.GetOrAdd(_id);
 
             map.name.value = _name;
             map.lighting.value = _lighting;
@@ -371,17 +371,15 @@ namespace Outernet.Client
         public override void Execute(ClientState target)
         {
             var node = target.nodes.GetOrAdd(_id);
-            var transform = target.transforms.GetOrAdd(_id);
             var exhibit = target.exhibits.GetOrAdd(_id);
 
             node.name.value = _name;
             node.layer.value = _layer;
             node.hoveringUsers.SetFrom(_hoveringUsers);
             node.interactingUser.value = _interactingUser;
-
-            transform.parentTransform.value = _parentID;
-            transform.localPosition.value = _localPosition;
-            transform.localRotation.value = _localRotation;
+            node.parentID.value = _parentID;
+            node.localPosition.value = _localPosition;
+            node.localRotation.value = _localRotation;
 
             exhibit.label.value = _label;
             exhibit.labelType.value = _labelType;
@@ -420,9 +418,9 @@ namespace Outernet.Client
 
         public override void Execute(ClientState target)
         {
-            if (target.transforms.TryGetValue(_sceneObjectID, out var transform))
+            if (target.nodes.TryGetValue(_sceneObjectID, out var node))
             {
-                foreach (var child in transform.childTransforms.ToArray())
+                foreach (var child in node.childNodes.ToArray())
                     new DestroySceneObjectAction(child).Execute(target);
             }
 
@@ -452,10 +450,10 @@ namespace Outernet.Client
             if (!_updateTransforms)
                 return;
 
-            foreach (var transform in target.transforms.values)
+            foreach (var transform in target.nodes.values)
             {
                 // we only need to update roots
-                if (!transform.parentTransform.value.HasValue)
+                if (!transform.parentID.value.HasValue)
                 {
                     var ecefCoords = Utility.LocalToEcef(
                         prevLocalToEcefMatrix,

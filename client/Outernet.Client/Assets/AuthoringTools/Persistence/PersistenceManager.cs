@@ -65,10 +65,7 @@ namespace Outernet.Client.AuthoringTools
             }
         }
 
-        private PersistedChangeTrackingHelper<Guid> _nodePersistenceHelper =
-            new PersistedChangeTrackingHelper<Guid>();
-
-        private PersistedChangeTrackingHelper<Guid> _nodeGroupPersistenceHelper =
+        private PersistedChangeTrackingHelper<Guid> _exhibitsPersistenceHelper =
             new PersistedChangeTrackingHelper<Guid>();
 
         private PersistedChangeTrackingHelper<Guid> _mapPersistenceHelper =
@@ -86,8 +83,7 @@ namespace Outernet.Client.AuthoringTools
         private bool _settingHasPendingChanges = false;
 
         private bool _hasPendingChanges =>
-            _nodePersistenceHelper.hasPendingChanges ||
-            _nodeGroupPersistenceHelper.hasPendingChanges ||
+            _exhibitsPersistenceHelper.hasPendingChanges ||
             _mapPersistenceHelper.hasPendingChanges ||
             _layerPersistenceHelper.hasPendingChanges ||
             _persistingChanges;
@@ -127,8 +123,7 @@ namespace Outernet.Client.AuthoringTools
             if (!App.state.authoringTools.locationContentLoaded.value)
             {
                 _bindingsInitialized = false;
-                _nodePersistenceHelper.ClearChanges();
-                _nodeGroupPersistenceHelper.ClearChanges();
+                _exhibitsPersistenceHelper.ClearChanges();
                 _mapPersistenceHelper.ClearChanges();
                 _layerPersistenceHelper.ClearChanges();
                 _persistenceChangeTrackingBinding.Dispose();
@@ -137,17 +132,15 @@ namespace Outernet.Client.AuthoringTools
             }
 
             _persistenceChangeTrackingBinding = Bindings.Compose(
-                App.state.nodes.Each(x => SetupPersistedObjectObserver(
-                    _nodePersistenceHelper,
+                App.state.exhibits.Each(x => SetupPersistedObjectObserver(
+                    _exhibitsPersistenceHelper,
                     x.key,
-                    x.value,
-                    App.state.transforms[x.key]
+                    x.value
                 )),
                 App.state.maps.Each(x => SetupPersistedObjectObserver(
                     _mapPersistenceHelper,
                     x.key,
-                    x.value,
-                    App.state.transforms[x.key]
+                    x.value
                 )),
                 App.state.layers.Each(x => SetupPersistedObjectObserver(
                     _layerPersistenceHelper,
@@ -205,8 +198,7 @@ namespace Outernet.Client.AuthoringTools
 
         private void PersistChanges()
         {
-            if (!_nodePersistenceHelper.hasPendingChanges &&
-                !_nodeGroupPersistenceHelper.hasPendingChanges &&
+            if (!_exhibitsPersistenceHelper.hasPendingChanges &&
                 !_mapPersistenceHelper.hasPendingChanges &&
                 !_layerPersistenceHelper.hasPendingChanges)
             {
@@ -215,8 +207,8 @@ namespace Outernet.Client.AuthoringTools
 
             _pendingPersists.Enqueue(new PersistenceData()
             {
-                upsertedNodes = _nodePersistenceHelper.inserts.Concat(_nodePersistenceHelper.updates)
-                    .Select(Utility.ToNodeModel)
+                upsertedNodes = _exhibitsPersistenceHelper.inserts.Concat(_exhibitsPersistenceHelper.updates)
+                    .Select(Utility.ToExhibitModel)
                     .ToList(),
 
                 upsertedMaps = _mapPersistenceHelper.inserts.Concat(_mapPersistenceHelper.updates)
@@ -227,13 +219,12 @@ namespace Outernet.Client.AuthoringTools
                     .Select(Utility.ToLayerModel)
                     .ToList(),
 
-                deletedNodes = _nodePersistenceHelper.deletes.ToList(),
+                deletedNodes = _exhibitsPersistenceHelper.deletes.ToList(),
                 deletedMaps = _mapPersistenceHelper.deletes.ToList(),
                 deletedLayers = _layerPersistenceHelper.deletes.ToList()
             });
 
-            _nodePersistenceHelper.ClearChanges();
-            _nodeGroupPersistenceHelper.ClearChanges();
+            _exhibitsPersistenceHelper.ClearChanges();
             _mapPersistenceHelper.ClearChanges();
             _layerPersistenceHelper.ClearChanges();
 

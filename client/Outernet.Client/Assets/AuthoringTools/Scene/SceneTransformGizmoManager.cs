@@ -59,7 +59,7 @@ namespace Outernet.Client.AuthoringTools
             Vector3 position = Vector3.zero;
             Quaternion rotation = Quaternion.identity;
 
-            if (App.state.authoringTools.HasSelectedTransforms())
+            if (App.state.authoringTools.HasSelectedNodes())
                 Utility.CalcSelectedGroupTransform(out position, out rotation);
 
             if (props.position.value != position || props.rotation.value != rotation)
@@ -89,7 +89,7 @@ namespace Outernet.Client.AuthoringTools
                     {
                         _controlBinding.Dispose();
 
-                        if (!App.state.authoringTools.HasSelectedTransforms())
+                        if (!App.state.authoringTools.HasSelectedNodes())
                             return;
 
                         if (props.mode.value == TransformToolMode.Rotate)
@@ -105,7 +105,7 @@ namespace Outernet.Client.AuthoringTools
                 Bindings.Observer(
                     args =>
                     {
-                        if (_settingPropsTransform || !App.state.authoringTools.HasSelectedTransforms())
+                        if (_settingPropsTransform || !App.state.authoringTools.HasSelectedNodes())
                             return;
 
                         var prevRotation = GetPreviousValue(props.rotation, args.changes);
@@ -124,7 +124,7 @@ namespace Outernet.Client.AuthoringTools
 
                         App.ExecuteActionOrDelay(
                             logLevel: FofX.LogLevel.Trace,
-                            App.state.authoringTools.SelectedTransforms().Select(transform =>
+                            App.state.authoringTools.SelectedNodes().Select(transform =>
                             {
                                 var pos = prevMatrix.inverse.MultiplyPoint(transform.position.value);
                                 var rot = Quaternion.Inverse(prevRotation) * transform.rotation.value;

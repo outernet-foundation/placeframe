@@ -48,7 +48,7 @@ namespace Outernet.Client.AuthoringTools
             Quaternion rot = default;
             int count = 0;
 
-            foreach (var transform in App.state.authoringTools.SelectedTransforms())
+            foreach (var transform in App.state.authoringTools.SelectedNodes())
             {
                 pos += transform.position.value;
                 rot = transform.rotation.value;
@@ -158,7 +158,7 @@ namespace Outernet.Client.AuthoringTools
         public static LocalizationMapModel ToMapRecord(Guid sceneObjectID)
         {
             var map = App.state.maps[sceneObjectID];
-            var transform = App.state.transforms[sceneObjectID];
+            var transform = App.state.nodes[sceneObjectID];
 
             return new LocalizationMapModel(
                 id: map.id,
@@ -184,23 +184,22 @@ namespace Outernet.Client.AuthoringTools
             yield return value.z;
         }
 
-        public static NodeModel ToNodeModel(Guid sceneObjectID)
+        public static NodeModel ToExhibitModel(Guid sceneObjectID)
         {
             var node = App.state.nodes[sceneObjectID];
             var exhibit = App.state.exhibits[sceneObjectID];
-            var transform = App.state.transforms[sceneObjectID];
 
             return new NodeModel(
                 id: node.id,
                 name: node.name.value,
                 active: true,
-                positionX: transform.localPosition.value.x,
-                positionY: transform.localPosition.value.y,
-                positionZ: transform.localPosition.value.z,
-                rotationX: transform.localRotation.value.x,
-                rotationY: transform.localRotation.value.y,
-                rotationZ: transform.localRotation.value.z,
-                rotationW: transform.localRotation.value.w,
+                positionX: node.localPosition.value.x,
+                positionY: node.localPosition.value.y,
+                positionZ: node.localPosition.value.z,
+                rotationX: node.localRotation.value.x,
+                rotationY: node.localRotation.value.y,
+                rotationZ: node.localRotation.value.z,
+                rotationW: node.localRotation.value.w,
                 link: exhibit.link.value,
                 linkType: (int)exhibit.linkType.value,
                 label: exhibit.label.value,
@@ -209,7 +208,7 @@ namespace Outernet.Client.AuthoringTools
                 labelWidth: exhibit.labelWidth.value,
                 labelHeight: exhibit.labelHeight.value,
                 layer: node.layer.value,
-                parent: transform.parentTransform.value
+                parent: node.parentID.value
             );
         }
 

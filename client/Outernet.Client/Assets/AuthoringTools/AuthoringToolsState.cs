@@ -25,26 +25,26 @@ namespace Outernet.Client.AuthoringTools
 
                 yield return clientState.nodes;
                 yield return clientState.maps;
-                yield return clientState.transforms;
+                yield return clientState.exhibits;
             }
         }
 
         private ClientState _clientState => root as ClientState;
 
-        public IEnumerable<TransformState> SelectedTransforms()
-            => SelectedTransforms(selectedObjects).Distinct();
+        public IEnumerable<NodeState> SelectedNodes()
+            => SelectedNodes(selectedObjects).Distinct();
 
-        public bool HasSelectedTransforms()
-            => SelectedTransforms(selectedObjects).FirstOrDefault() != default;
+        public bool HasSelectedNodes()
+            => SelectedNodes(selectedObjects).FirstOrDefault() != default;
 
-        private IEnumerable<TransformState> SelectedTransforms(IEnumerable<Guid> sceneObjects)
+        private IEnumerable<NodeState> SelectedNodes(IEnumerable<Guid> sceneElements)
         {
-            foreach (var id in sceneObjects)
+            foreach (var id in sceneElements)
             {
-                if (_clientState.transforms.TryGetValue(id, out var transform))
-                    yield return transform;
+                if (_clientState.nodes.TryGetValue(id, out var node))
+                    yield return node;
 
-                foreach (var child in SelectedTransforms(transform.childTransforms))
+                foreach (var child in SelectedNodes(node.childNodes))
                     yield return child;
             }
         }
