@@ -7,7 +7,12 @@ using FofX;
 using FofX.Stateful;
 
 using Cysharp.Threading.Tasks;
-using Outernet.Client.AuthoringTools;
+
+#if AUTHORING_TOOLS_ENABLED
+using ViewManager = Outernet.Client.AuthoringTools.AuthoringToolsSceneViewManager;
+#else
+using ViewManager = Outernet.Client.SceneViewManager;
+#endif
 
 namespace Outernet.Client
 {
@@ -124,12 +129,12 @@ namespace Outernet.Client
                 {
                     if (!x.HasValue)
                     {
-                        transform.SetParent(AuthoringToolsSceneViewManager.sceneRoot, true);
+                        transform.SetParent(null, true);
                         return;
                     }
 
                     Guid parentID = x.Value;
-                    var parent = await AuthoringToolsSceneViewManager.GetView(parentID);
+                    var parent = await ViewManager.GetView(parentID);
 
                     if (props.parentID.value != parentID)
                         return;
@@ -140,6 +145,21 @@ namespace Outernet.Client
                 props.labelType.OnChange(HandleLabelTypeChanged),
                 gameObject.BindActive(props.visible)
             );
+
+            if (props.parentID.value.HasValue)
+                InitializeParent(props.parentID.value.Value, props.localPosition.value, props.localRotation.value).Forget();
+        }
+
+        private async UniTask InitializeParent(Guid parentID, Vector3 localPosition, Quaternion localRotation)
+        {
+            var parentView = await ViewManager.GetView(parentID);
+
+            if (props.disposed || props.parentID.value != parentID)
+                return;
+
+            transform.SetParent(parentView.transform, true);
+            transform.localPosition = localPosition;
+            transform.localRotation = localRotation;
         }
 
         private void HandleLabelTypeChanged(Shared.LabelType labelType)

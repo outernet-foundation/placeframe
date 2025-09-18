@@ -48,10 +48,9 @@ namespace Outernet.Client.AuthoringTools
             Quaternion? exhibitRotation = default,
             Vector2 exhibitPanelDimensions = default,
             float exhibitPanelScrollPosition = default,
-            Transform parent = default,
             Func<NodeProps, IDisposable> bind = default)
         {
-            AuthoringToolsNode instance = Instantiate(AuthoringToolsPrefabs.AuthoringToolsNode, parent, true);
+            AuthoringToolsNode instance = Instantiate(AuthoringToolsPrefabs.AuthoringToolsNode, localPosition, localRotation ?? Quaternion.identity);
             instance.InitializeAndBind(new NodeProps(
                 nodeID,
                 uuid,

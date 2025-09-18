@@ -10,13 +10,16 @@ using FofX.Stateful;
 using Outernet.Client.Location;
 using System.Linq;
 
+using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
+
 namespace Outernet.Client
 {
     static public class SceneViewManager
     {
         static private LocalUser localUser;
         static Dictionary<Guid, RemoteUser> remoteUsers = new Dictionary<Guid, RemoteUser>();
-        static Dictionary<Guid, ClientNode> _nodes = new Dictionary<Guid, ClientNode>();
+        private static Dictionary<Guid, TaskCompletionSource<GameObject>> _completionSources = new Dictionary<Guid, TaskCompletionSource<GameObject>>();
 
         static IDisposable subscriptions;
 
@@ -112,11 +115,12 @@ namespace Outernet.Client
                         interactingUser => interactingUser == App.ClientID.Value,
                         interactingLocally => interactingLocally ? App.ClientID.Value : node.interactingUser.value
                     ),
-                    Bindings.OnRelease(() => _nodes.Remove(exhibit.id))
+                    Bindings.OnRelease(() => _completionSources.Remove(exhibit.id))
                 )
             );
 
-            _nodes.Add(exhibit.id, instance);
+            CompleteGetViewTask(exhibit.id, instance.gameObject);
+
             return instance;
         }
 
@@ -137,6 +141,28 @@ namespace Outernet.Client
             {
                 localUser.RealUpdate();
             }
+        }
+
+        private static void CompleteGetViewTask(Guid id, GameObject view)
+        {
+            if (!_completionSources.TryGetValue(id, out var completionSource))
+            {
+                completionSource = new TaskCompletionSource<GameObject>();
+                _completionSources.Add(id, completionSource);
+            }
+
+            completionSource.SetResult(view);
+        }
+
+        public static UniTask<GameObject> GetView(Guid id)
+        {
+            if (!_completionSources.TryGetValue(id, out var completionSource))
+            {
+                completionSource = new TaskCompletionSource<GameObject>();
+                _completionSources.Add(id, completionSource);
+            }
+
+            return completionSource.Task.AsUniTask();
         }
     }
 }

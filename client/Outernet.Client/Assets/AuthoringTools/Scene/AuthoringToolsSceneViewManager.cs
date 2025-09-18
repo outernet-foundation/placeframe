@@ -4,7 +4,6 @@ using System.Linq;
 using UnityEngine;
 
 using FofX.Stateful;
-using RSG;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 
@@ -53,7 +52,7 @@ namespace Outernet.Client.AuthoringTools
                 )
             );
 
-            CompleteViewPromise(map.id, instance.gameObject);
+            CompleteGetViewTask(map.id, instance.gameObject);
 
             return instance;
         }
@@ -63,7 +62,7 @@ namespace Outernet.Client.AuthoringTools
             var node = App.state.nodes[exhibit.id];
             var instance = AuthoringToolsNode.Create(
                 uuid: node.id,
-                parent: sceneRoot,
+                parentID: node.parentID.value,
                 localPosition: node.localPosition.value,
                 localRotation: node.localRotation.value,
                 bind: props => Bindings.Compose(
@@ -85,16 +84,17 @@ namespace Outernet.Client.AuthoringTools
                         ObservationScope.Self,
                         exhibit.labelWidth,
                         exhibit.labelHeight
-                    )
+                    ),
+                    Bindings.OnRelease(() => _completionSources.Remove(exhibit.id))
                 )
             );
 
-            CompleteViewPromise(node.id, instance.gameObject);
+            CompleteGetViewTask(node.id, instance.gameObject);
 
             return instance;
         }
 
-        private void CompleteViewPromise(Guid id, GameObject view)
+        private void CompleteGetViewTask(Guid id, GameObject view)
         {
             if (!_completionSources.TryGetValue(id, out var completionSource))
             {
