@@ -1,7 +1,7 @@
 {
   "pythonVersion": "3.13",
   "typeCheckingMode": "strict",
-  "exclude": ["**/.venv/**", "**/clients/**"],
+  "exclude": ["**/.venv/**", "**/openapi_generated/**"],
   "include": [
     "common",
     "scripts",
