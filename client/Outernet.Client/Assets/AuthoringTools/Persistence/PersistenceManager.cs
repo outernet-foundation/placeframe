@@ -137,7 +137,7 @@ namespace Outernet.Client.AuthoringTools
                     x.key,
                     x.value
                 )),
-                App.state.maps.Each(x => SetupPersistedObjectObserver(
+                App.state.authoringTools.maps.Each(x => SetupPersistedObjectObserver(
                     _mapPersistenceHelper,
                     x.key,
                     x.value

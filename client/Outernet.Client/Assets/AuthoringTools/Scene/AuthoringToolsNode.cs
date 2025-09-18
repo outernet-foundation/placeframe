@@ -51,7 +51,7 @@ namespace Outernet.Client.AuthoringTools
             Transform parent = default,
             Func<NodeProps, IDisposable> bind = default)
         {
-            AuthoringToolsNode instance = Instantiate(AuthoringToolsPrefabs.AuthoringToolsNode, parent);
+            AuthoringToolsNode instance = Instantiate(AuthoringToolsPrefabs.AuthoringToolsNode, parent, true);
             instance.InitializeAndBind(new NodeProps(
                 nodeID,
                 uuid,

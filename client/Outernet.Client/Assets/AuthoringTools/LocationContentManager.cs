@@ -14,7 +14,6 @@ using FofX.Stateful;
 using Outernet.Client.Location;
 using CesiumForUnity;
 using PlerionClient.Model;
-using PlerionClient.Api;
 using PlerionClient.Client;
 
 namespace Outernet.Client.AuthoringTools
@@ -64,6 +63,10 @@ namespace Outernet.Client.AuthoringTools
 
         private async UniTask HandleUnsavedChangesAndLoadContent(double2 location, float drawDistance, double2? previousLocation, float previousDrawDistance, CancellationToken cancellationToken = default)
         {
+            App.ExecuteActionOrDelay(new SetLocationContentLoadedAction(false));
+            App.ExecuteActionOrDelay(new SetLocationContentLoadedAction(true));
+            return;
+
             if (App.state.authoringTools.hasUnsavedChanges.value)
             {
                 var dialog = Dialogs.UnsavedChangesDialog(
@@ -178,7 +181,7 @@ namespace Outernet.Client.AuthoringTools
 
             App.ExecuteActionOrDelay(
                 new SetMapsAction(maps.ToArray()),
-                new SetNodesAction(nodes.ToArray())
+                new SetExhibitsAction(nodes.ToArray())
             );
 
             Destroy(dialog.gameObject);

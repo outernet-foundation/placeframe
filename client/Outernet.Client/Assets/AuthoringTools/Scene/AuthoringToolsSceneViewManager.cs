@@ -13,12 +13,7 @@ namespace Outernet.Client.AuthoringTools
     public class AuthoringToolsSceneViewManager : MonoBehaviour
     {
         public static Transform sceneRoot => _instance.transform;
-
         private static AuthoringToolsSceneViewManager _instance;
-
-        private Dictionary<Guid, AuthoringToolsNode> _nodes = new Dictionary<Guid, AuthoringToolsNode>();
-        private Dictionary<Guid, SceneMap> _maps = new Dictionary<Guid, SceneMap>();
-
         private static Dictionary<Guid, TaskCompletionSource<GameObject>> _completionSources = new Dictionary<Guid, TaskCompletionSource<GameObject>>();
 
         private void Awake()
@@ -31,8 +26,8 @@ namespace Outernet.Client.AuthoringTools
 
             _instance = this;
 
-            App.state.maps.Each(kvp => SetupMap(kvp.value));
             App.state.exhibits.Each(kvp => SetupExhibit(kvp.value));
+            App.state.authoringTools.maps.Each(kvp => SetupMap(kvp.value));
         }
 
         private IDisposable SetupMap(MapState map)
@@ -55,11 +50,8 @@ namespace Outernet.Client.AuthoringTools
                     ),
                     ObservationScope.All,
                     map.localInputImagePositions
-                ),
-                Bindings.OnRelease(() => _maps.Remove(map.id))
+                )
             );
-
-            _maps.Add(map.id, instance);
 
             CompleteViewPromise(map.id, instance.gameObject);
 
@@ -72,6 +64,8 @@ namespace Outernet.Client.AuthoringTools
             var instance = AuthoringToolsNode.Create(
                 uuid: node.id,
                 parent: sceneRoot,
+                localPosition: node.localPosition.value,
+                localRotation: node.localRotation.value,
                 bind: props => Bindings.Compose(
                     props.parentID.BindTo(node.parentID),
                     props.localPosition.BindTo(node.localPosition),
@@ -91,12 +85,9 @@ namespace Outernet.Client.AuthoringTools
                         ObservationScope.Self,
                         exhibit.labelWidth,
                         exhibit.labelHeight
-                    ),
-                    Bindings.OnRelease(() => _nodes.Remove(node.id))
+                    )
                 )
             );
-
-            _nodes.Add(node.id, instance);
 
             CompleteViewPromise(node.id, instance.gameObject);
 

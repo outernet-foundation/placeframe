@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FofX.Stateful;
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace Outernet.Client.AuthoringTools
 {
@@ -12,6 +13,7 @@ namespace Outernet.Client.AuthoringTools
         public ObservablePrimitive<double2?> location { get; private set; }
         public ObservablePrimitive<bool> locationContentLoaded { get; private set; }
 
+        public ObservableDictionary<Guid, MapState> maps { get; private set; }
         public ObservableSet<Guid> selectedObjects { get; private set; }
 
         public ObservablePrimitive<bool> saveRequested { get; private set; }
@@ -24,7 +26,6 @@ namespace Outernet.Client.AuthoringTools
                 var clientState = root as ClientState;
 
                 yield return clientState.nodes;
-                yield return clientState.maps;
                 yield return clientState.exhibits;
             }
         }
@@ -64,5 +65,55 @@ namespace Outernet.Client.AuthoringTools
     {
         public ObservablePrimitive<string> name { get; private set; }
         public ObservablePrimitive<double2> location { get; private set; }
+    }
+
+    public class MapState : ObservableObject, IKeyedObservableNode<Guid>
+    {
+        public Guid id { get; private set; }
+        public ObservablePrimitive<string> name { get; private set; }
+        public ObservablePrimitive<Vector3> position { get; private set; }
+        public ObservablePrimitive<Quaternion> rotation { get; private set; }
+        public ObservablePrimitive<Bounds> bounds { get; private set; }
+        public ObservablePrimitive<Shared.Lighting> lighting { get; private set; }
+        public ObservablePrimitive<long> color { get; private set; }
+
+        [HideInInspectorUI]
+        public ObservablePrimitiveArray<double3> localInputImagePositions { get; private set; }
+
+        void IKeyedObservableNode<Guid>.AssignKey(Guid key)
+            => id = key;
+
+        protected override void PostInitializeInternal()
+        {
+            bounds.RegisterDerived(
+                _ =>
+                {
+                    if (localInputImagePositions.count == 0)
+                    {
+                        bounds.value = default;
+                        return;
+                    }
+
+                    var min = new Vector3(
+                        -(float)localInputImagePositions.Select(x => x.x).Min(),
+                        -(float)localInputImagePositions.Select(x => x.y).Min(),
+                        -(float)localInputImagePositions.Select(x => x.z).Min()
+                    );
+
+                    var max = new Vector3(
+                        -(float)localInputImagePositions.Select(x => x.x).Max(),
+                        -(float)localInputImagePositions.Select(x => x.y).Max(),
+                        -(float)localInputImagePositions.Select(x => x.z).Max()
+                    );
+
+                    bounds.value = new Bounds(
+                        (min + max) / 2f,
+                        max - min
+                    );
+                },
+                ObservationScope.Self,
+                localInputImagePositions
+            );
+        }
     }
 }

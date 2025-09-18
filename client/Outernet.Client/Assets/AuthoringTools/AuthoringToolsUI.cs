@@ -44,7 +44,6 @@ namespace Outernet.Client.AuthoringTools
         private Dictionary<Transform, Guid> _idByTransform = new Dictionary<Transform, Guid>();
 
         private Guid _lastSelectedElement;
-        private List<Guid> _layersInOrder = new List<Guid>();
 
         private void Awake()
         {
@@ -83,7 +82,7 @@ namespace Outernet.Client.AuthoringTools
                 },
                 validate: () =>
                     App.state.authoringTools.selectedObjects.count > 0 &&
-                    App.state.authoringTools.selectedObjects.All(x => !App.state.maps.ContainsKey(x)),
+                    App.state.authoringTools.selectedObjects.All(x => App.state.nodes.ContainsKey(x)),
                 commandKeys: new Key[]
                 {
                     Utility.GetPlatformCommandKey(),
@@ -116,6 +115,16 @@ namespace Outernet.Client.AuthoringTools
                 {
                     Utility.GetPlatformCommandKey(),
                     Key.N
+                }
+            );
+
+            SystemMenu.AddMenuItem(
+                "Create/Anchor",
+                CreateNewAnchor,
+                commandKeys: new Key[]
+                {
+                    Utility.GetPlatformCommandKey(),
+                    Key.G
                 }
             );
 
@@ -158,7 +167,7 @@ namespace Outernet.Client.AuthoringTools
             carryIndicator.gameObject.SetActive(false);
 
             App.state.nodes.Each(x => SetupNodeView(x.value));
-            App.state.maps.Each(x => SetupMapView(x.value));
+            App.state.authoringTools.maps.Each(x => SetupMapView(x.value));
 
             Bindings.Observer(
                 _ =>
@@ -204,41 +213,41 @@ namespace Outernet.Client.AuthoringTools
             }
         }
 
-        private IDisposable SetupNodeView(NodeState nodeState)
+        private IDisposable SetupNodeView(NodeState node)
         {
-            var view = UIBuilder.Foldout(nodeState.name)
+            var view = UIBuilder.Foldout(node.name)
                 .WithDropReceiver(onDrop: _ =>
                 {
                     SetParentGroup(
-                        App.state.authoringTools.selectedObjects.Where(x => x != nodeState.id),
-                        nodeState.id
+                        App.state.authoringTools.selectedObjects.Where(x => x != node.id),
+                        node.id
                     );
 
                     RevealSelectedObjects();
                 });
 
-            foreach (var child in nodeState.childNodes)
+            foreach (var child in node.childNodes)
             {
                 if (_viewByID.TryGetValue(child, out var childView))
                     childView.transform.SetParent(view.content, false);
             }
 
-            _viewByID.Add(nodeState.id, view);
-            _idByView.Add(view, nodeState.id);
-            _idByTransform.Add(view.transform, nodeState.id);
+            _viewByID.Add(node.id, view);
+            _idByView.Add(view, node.id);
+            _idByTransform.Add(view.transform, node.id);
 
             var toHighlight = view.header.AddComponent<Image>();
             toHighlight.color = Color.clear;
 
             view.AddBinding(
                 BindHierarchyElement(
-                    nodeState.id,
+                    node.id,
                     view.gameObject,
                     toHighlight,
                     AuthoringToolsPrefabs.SelectedColor,
                     true
                 ),
-                nodeState.parentID.OnChange(x =>
+                node.parentID.OnChange(x =>
                 {
                     view.transform.SetParent(
                         x.HasValue &&
@@ -247,13 +256,13 @@ namespace Outernet.Client.AuthoringTools
                         false
                     );
 
-                    if (App.state.authoringTools.selectedObjects.Contains(nodeState.id))
+                    if (App.state.authoringTools.selectedObjects.Contains(node.id))
                         RevealSelectedObjects();
                 }),
-                nodeState.visible.OnChange(x => view.label.color = x ? Color.white : Color.grey),
+                node.visible.OnChange(x => view.label.color = x ? Color.white : Color.grey),
                 Bindings.OnRelease(() =>
                 {
-                    _viewByID.Remove(nodeState.id);
+                    _viewByID.Remove(node.id);
                     _idByView.Remove(view);
                     _idByTransform.Remove(view.transform);
                     Destroy(view.gameObject);
@@ -263,9 +272,9 @@ namespace Outernet.Client.AuthoringTools
             return view;
         }
 
-        private IDisposable SetupMapView(MapState mapState)
+        private IDisposable SetupMapView(MapState map)
         {
-            var node = App.state.nodes[mapState.id];
+            var node = App.state.nodes[map.id];
 
             var view = UIBuilder.VerticalLayout(UIBuilder.Text(node.name));
             view.component.padding.left = 10;
@@ -277,7 +286,7 @@ namespace Outernet.Client.AuthoringTools
 
             view.AddBinding(
                 BindHierarchyElement(
-                    mapState.id,
+                    map.id,
                     view.gameObject,
                     toHighlight,
                     AuthoringToolsPrefabs.SelectedColor,
@@ -292,7 +301,7 @@ namespace Outernet.Client.AuthoringTools
         }
 
         private bool CanReparent(Guid guid)
-            => App.state.nodes.ContainsKey(guid) && !App.state.maps.ContainsKey(guid);
+            => App.state.nodes.ContainsKey(guid);
 
         private void SetParentGroup(IEnumerable<Guid> toSet, Guid? newGroup)
         {
@@ -345,30 +354,6 @@ namespace Outernet.Client.AuthoringTools
 
             float targetY = contentPosition.y + ((RectTransform)topmostElement).rect.yMax - nodesScrollView.content.rect.yMin;
             nodesScrollView.verticalNormalizedPosition = Mathf.Clamp01((targetY - viewportHeight) / (contentHeight - viewportHeight));
-        }
-
-        private IEnumerable<Guid> MaskToLayers(List<Guid> layers, int mask)
-        {
-            for (int i = 0; i < layers.Count; i++)
-            {
-                if ((mask & (int)Mathf.Pow(2, i)) != 0)
-                    yield return layers[i];
-            }
-        }
-
-        private int LayersToMask(List<Guid> layers, IEnumerable<Guid> visibleLayers)
-        {
-            int result = 0;
-            foreach (var layer in visibleLayers)
-            {
-                int index = layers.IndexOf(layer);
-                if (index == -1)
-                    continue;
-
-                result += (int)Mathf.Pow(2, index);
-            }
-
-            return result;
         }
 
         private void RevealInHierarchy(Guid obj)
@@ -496,7 +481,7 @@ namespace Outernet.Client.AuthoringTools
         {
             UndoRedoManager.RegisterUndo("Create Node");
 
-            App.ExecuteAction(new AddOrUpdateNodeAction(
+            App.ExecuteAction(new AddOrUpdateExhibitAction(
                 id: Guid.NewGuid(),
                 name: "Node",
                 localPosition: Camera.main.transform.position + (Camera.main.transform.forward * 3f),
@@ -506,6 +491,18 @@ namespace Outernet.Client.AuthoringTools
                 labelScale: 0.1f,
                 labelWidth: 20,
                 labelHeight: 10
+            ));
+        }
+
+        private void CreateNewAnchor()
+        {
+            UndoRedoManager.RegisterUndo("Create Anchor");
+
+            App.ExecuteAction(new AddOrUpdateNodeAction(
+                id: Guid.NewGuid(),
+                name: "Anchor",
+                localPosition: Camera.main.transform.position + (Camera.main.transform.forward * 3f),
+                localRotation: Camera.main.transform.rotation.Flatten()
             ));
         }
 
@@ -522,6 +519,14 @@ namespace Outernet.Client.AuthoringTools
                     binding.Add(inspector);
                     binding.Add(inspector.gameObject.DestroyOnRelease());
                 }
+            }
+
+            if (App.state.authoringTools.maps.TryGetValue(sceneObjectID, out var map))
+            {
+                var inspector = UIBuilder.NodeInspector(map.GetType().Name, map, LabelType.None);
+                inspector.transform.SetParent(inspectorContent, false);
+                binding.Add(inspector);
+                binding.Add(inspector.gameObject.DestroyOnRelease());
             }
 
             return binding;

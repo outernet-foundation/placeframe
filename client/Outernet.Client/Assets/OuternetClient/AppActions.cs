@@ -115,7 +115,7 @@ namespace Outernet.Client
         public override void Execute(ClientState target)
         {
             var newMapsByID = _maps.ToDictionary(x => x.Id);
-            var oldMapsByID = target.maps.ToDictionary(x => x.key, x => x.value);
+            var oldMapsByID = target.authoringTools.maps.ToDictionary(x => x.key, x => x.value);
 
             foreach (var toRemove in oldMapsByID.Where(x => !newMapsByID.ContainsKey(x.Key)))
                 new DestroySceneObjectAction(toRemove.Key).Execute(target);
@@ -180,24 +180,22 @@ namespace Outernet.Client
 
         public override void Execute(ClientState target)
         {
-            var node = target.nodes.GetOrAdd(_id);
-            var map = target.maps.GetOrAdd(_id);
+            var map = target.authoringTools.maps.GetOrAdd(_id);
 
-            node.name.value = _name;
-            node.localPosition.value = _position;
-            node.localRotation.value = _rotation;
-
+            map.name.value = _name;
+            map.position.value = _position;
+            map.rotation.value = _rotation;
             map.lighting.value = _lighting;
             map.color.value = _color;
             map.localInputImagePositions.SetValue(_localInputImagePositions);
         }
     }
 
-    public class SetNodesAction : ObservableNodeAction<ClientState>
+    public class SetExhibitsAction : ObservableNodeAction<ClientState>
     {
         private NodeModel[] _nodes;
 
-        public SetNodesAction(NodeModel[] nodes)
+        public SetExhibitsAction(NodeModel[] nodes)
         {
             _nodes = nodes;
         }
@@ -245,7 +243,7 @@ namespace Outernet.Client
                     localRotation = Quaternion.Inverse(parentWorldTransform.rotation) * nodeWorldTransform.rotation;
                 }
 
-                new AddOrUpdateNodeAction(
+                new AddOrUpdateExhibitAction(
                     id: node.Id,
                     name: node.Name,
                     label: node.Label,
@@ -264,7 +262,7 @@ namespace Outernet.Client
         }
     }
 
-    public class AddOrUpdateNodeAction : ObservableNodeAction<ClientState>
+    public class AddOrUpdateExhibitAction : ObservableNodeAction<ClientState>
     {
         private Guid _id;
         private string _name;
@@ -288,7 +286,7 @@ namespace Outernet.Client
         private Vector3 _localPosition;
         private Quaternion _localRotation;
 
-        public AddOrUpdateNodeAction(
+        public AddOrUpdateExhibitAction(
             Guid id,
             string name = default,
             string label = default,
@@ -335,16 +333,18 @@ namespace Outernet.Client
 
         public override void Execute(ClientState target)
         {
-            var node = target.nodes.GetOrAdd(_id);
-            var exhibit = target.exhibits.GetOrAdd(_id);
+            new AddOrUpdateNodeAction(
+                _id,
+                _name,
+                _layer,
+                _parentID,
+                _localPosition,
+                _localRotation,
+                _hoveringUsers,
+                _interactingUser
+            ).Execute(target);
 
-            node.name.value = _name;
-            node.layer.value = _layer;
-            node.hoveringUsers.SetFrom(_hoveringUsers);
-            node.interactingUser.value = _interactingUser;
-            node.parentID.value = _parentID;
-            node.localPosition.value = _localPosition;
-            node.localRotation.value = _localRotation;
+            var exhibit = target.exhibits.GetOrAdd(_id);
 
             exhibit.label.value = _label;
             exhibit.labelType.value = _labelType;
@@ -361,6 +361,52 @@ namespace Outernet.Client
         }
     }
 
+    public class AddOrUpdateNodeAction : ObservableNodeAction<ClientState>
+    {
+        private Guid _id;
+        private string _name;
+        private Guid? _parentID;
+        private Guid _layer;
+        private Guid[] _hoveringUsers;
+        private Guid _interactingUser;
+
+        private Vector3 _localPosition;
+        private Quaternion _localRotation;
+
+        public AddOrUpdateNodeAction(
+            Guid id,
+            string name = default,
+            Guid layer = default,
+            Guid? parentID = default,
+            Vector3 localPosition = default,
+            Quaternion localRotation = default,
+            Guid[] hoveringUsers = default,
+            Guid interactingUser = default
+        )
+        {
+            _id = id;
+            _name = name;
+            _layer = layer;
+            _parentID = parentID;
+            _hoveringUsers = hoveringUsers;
+            _interactingUser = interactingUser;
+            _localPosition = localPosition;
+            _localRotation = localRotation;
+        }
+
+        public override void Execute(ClientState target)
+        {
+            var node = target.nodes.GetOrAdd(_id);
+            node.name.value = _name;
+            node.layer.value = _layer;
+            node.hoveringUsers.SetFrom(_hoveringUsers);
+            node.interactingUser.value = _interactingUser;
+            node.parentID.value = _parentID;
+            node.localPosition.value = _localPosition;
+            node.localRotation.value = _localRotation;
+        }
+    }
+
     public class ClearSceneObjectsAction : ObservableNodeAction<ClientState>
     {
         public override void Execute(ClientState target)
@@ -368,6 +414,7 @@ namespace Outernet.Client
             foreach (var componentDict in target.authoringTools.componentDictionaries)
                 componentDict.Clear();
 
+            target.authoringTools.maps.Clear();
             target.authoringTools.selectedObjects.Clear();
         }
     }
@@ -389,6 +436,7 @@ namespace Outernet.Client
                     new DestroySceneObjectAction(child).Execute(target);
             }
 
+            target.authoringTools.maps.Remove(_sceneObjectID);
             target.authoringTools.selectedObjects.Remove(_sceneObjectID);
 
             foreach (var componentDict in target.authoringTools.componentDictionaries)

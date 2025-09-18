@@ -16,7 +16,6 @@ namespace Outernet.Client
         public ObservablePrimitive<Guid> clientID { get; private set; }
 
         public ObservableDictionary<Guid, NodeState> nodes { get; private set; }
-        public ObservableDictionary<Guid, MapState> maps { get; private set; }
         public ObservableDictionary<Guid, ExhibitState> exhibits { get; private set; }
 
         public ObservableDictionary<Guid, LayerState> layers { get; private set; }
@@ -275,72 +274,6 @@ namespace Outernet.Client
                 labelWidth,
                 labelHeight,
                 labelScale
-            );
-        }
-    }
-
-    public class MapState : ObservableObject, IKeyedObservableNode<Guid>
-    {
-        public Guid id { get; private set; }
-        public ObservablePrimitive<Shared.Lighting> lighting { get; private set; }
-        public ObservablePrimitive<long> color { get; private set; }
-
-        [HideInInspectorUI]
-        public ObservablePrimitiveArray<double3> localInputImagePositions { get; private set; }
-
-        private ClientState _clientState => root as ClientState;
-
-        void IKeyedObservableNode<Guid>.AssignKey(Guid key)
-            => id = key;
-
-        protected override void PostInitializeInternal()
-        {
-            context.RegisterObserver(
-                AwaitNode,
-                new ObserverParameters() { scope = ObservationScope.Self, isDerived = true },
-                _clientState.nodes
-            );
-        }
-
-        protected override void DisposeInternal()
-        {
-            context.DeregisterObserver(AwaitNode);
-        }
-
-        private void AwaitNode(NodeChangeEventArgs args)
-        {
-            if (!_clientState.nodes.TryGetValue(id, out var node))
-                return;
-
-            context.DeregisterObserver(AwaitNode);
-            node.localBounds.RegisterDerived(
-                _ =>
-                {
-                    if (localInputImagePositions.count == 0)
-                    {
-                        node.localBounds.value = default;
-                        return;
-                    }
-
-                    var min = new Vector3(
-                        -(float)localInputImagePositions.Select(x => x.x).Min(),
-                        -(float)localInputImagePositions.Select(x => x.y).Min(),
-                        -(float)localInputImagePositions.Select(x => x.z).Min()
-                    );
-
-                    var max = new Vector3(
-                        -(float)localInputImagePositions.Select(x => x.x).Max(),
-                        -(float)localInputImagePositions.Select(x => x.y).Max(),
-                        -(float)localInputImagePositions.Select(x => x.z).Max()
-                    );
-
-                    node.localBounds.value = new Bounds(
-                        (min + max) / 2f,
-                        max - min
-                    );
-                },
-                ObservationScope.Self,
-                localInputImagePositions
             );
         }
     }

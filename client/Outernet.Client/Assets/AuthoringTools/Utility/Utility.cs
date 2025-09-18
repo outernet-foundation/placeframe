@@ -48,10 +48,10 @@ namespace Outernet.Client.AuthoringTools
             Quaternion rot = default;
             int count = 0;
 
-            foreach (var transform in App.state.authoringTools.SelectedNodes())
+            foreach (var node in App.state.authoringTools.SelectedNodes())
             {
-                pos += transform.position.value;
-                rot = transform.rotation.value;
+                pos += node.position.value;
+                rot = node.rotation.value;
                 count++;
             }
 
@@ -157,17 +157,16 @@ namespace Outernet.Client.AuthoringTools
 
         public static LocalizationMapModel ToMapRecord(Guid nodeID)
         {
-            var node = App.state.nodes[nodeID];
-            var map = App.state.maps[nodeID];
+            var map = App.state.authoringTools.maps[nodeID];
             var ecef = Client.Utility.LocalToEcef(
                 App.state.localToEcefMatrix.value,
-                node.localPosition.value,
-                node.localRotation.value
+                map.position.value,
+                map.rotation.value
             );
 
             return new LocalizationMapModel(
                 id: map.id,
-                name: node.name.value,
+                name: map.name.value,
                 lighting: (int)map.lighting.value,
                 color: (int)map.color.value,
                 active: true,

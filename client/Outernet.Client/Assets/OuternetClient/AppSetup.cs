@@ -5,6 +5,8 @@ using FofX.Serialization;
 using Unity.Mathematics;
 using SimpleJSON;
 using Outernet.Client.AuthoringTools;
+using System;
+
 
 #if AUTHORING_TOOLS_ENABLED
 using UnityEngine.InputSystem.UI;
@@ -112,13 +114,23 @@ namespace Outernet.Client
 
         private async void GetLayersAndPopulate()
         {
-            var layers = await PlerionAPI.api.GetLayersAsync();
-            await UniTask.SwitchToMainThread();
+            App.state.layers.ExecuteActionOrDelay(x =>
+            {
+                var layer = x.Add(Guid.NewGuid());
+                layer.layerName.value = "main";
 
-            if (layers == null)
-                return;
+                layer = x.Add(Guid.NewGuid());
+                layer.layerName.value = "other";
+            });
 
-            App.ExecuteActionOrDelay(new SetLayersAction(layers.ToArray()));
+
+            // var layers = await PlerionAPI.api.GetLayersAsync();
+            // await UniTask.SwitchToMainThread();
+
+            // if (layers == null)
+            return;
+
+            // App.ExecuteActionOrDelay(new SetLayersAction(layers.ToArray()));
         }
 
         private void AddCustomSerializers()

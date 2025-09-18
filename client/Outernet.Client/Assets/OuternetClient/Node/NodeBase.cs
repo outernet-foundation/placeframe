@@ -124,7 +124,7 @@ namespace Outernet.Client
                 {
                     if (!x.HasValue)
                     {
-                        transform.parent = null;
+                        transform.SetParent(AuthoringToolsSceneViewManager.sceneRoot, true);
                         return;
                     }
 
@@ -134,7 +134,7 @@ namespace Outernet.Client
                     if (props.parentID.value != parentID)
                         return;
 
-                    transform.parent = parent.transform;
+                    transform.SetParent(parent.transform, true);
                 }),
                 _collider.BindBounds(props.localBounds),
                 props.labelType.OnChange(HandleLabelTypeChanged),
