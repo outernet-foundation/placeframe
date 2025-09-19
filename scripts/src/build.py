@@ -8,13 +8,13 @@ from pathlib import Path
 from subprocess import CalledProcessError
 from typing import Literal, NotRequired, Optional, TypedDict, cast
 
-from common.run_command import run_command, run_streaming
+from common.run_command import run_command
 from pydantic import TypeAdapter
 from typer import Option, Typer
 
 workspace_directory = Path("..").resolve()
 images_path = workspace_directory / "images.json"
-images_lock_path = workspace_directory / "images-lock.json"
+images_lock_path = workspace_directory / "images.lock"
 infrastructure_directory = workspace_directory / "infrastructure"
 
 
@@ -46,15 +46,23 @@ class ThirdPartyPlan(TypedDict):
     image_repo_url: str
 
 
-def create_plan(images: Optional[list[str]] = None, all_: Optional[bool] = False):
-    # Load images.json and images-lock.json
+def create_plan(images: Optional[list[str]] = None, stack: Optional[str] = None):
+    # Load images.json and images.lock
     all_images = TypeAdapter(dict[str, Image]).validate_python(json.load(images_path.open("r", encoding="utf-8")))
     images_lock = TypeAdapter(dict[str, ImageLock]).validate_python(
         json.load(images_lock_path.open("r", encoding="utf-8")) if images_lock_path.is_file() else {}
     )
 
     # Select images
-    selected_images = all_images if not images else {name: all_images[name] for name in images}
+    selected_images: dict[str, Image]
+    if images:
+        selected_images = {name: all_images[name] for name in images}
+    else:
+        assert stack is not None
+        if stack == "all":
+            selected_images = {name: image for name, image in all_images.items()}
+        else:
+            selected_images = {name: image for name, image in all_images.items() if image["stack"] == stack}
 
     # Get Pulumi stack outputs for selected images
     stacks: dict[str, dict[str, str]] = {}
@@ -178,13 +186,14 @@ def lock_image(
         else:
             raise ValueError(f"Unknown cache type: {cache_type}")
 
-        run_streaming(
+        run_command(
             "docker buildx build --push --platform linux/amd64 --provenance=false"
             + f" --cache-from type={cache_type}"
             + f" --cache-to type={cache_type},mode=max"
             + f" -t {git_sha_tag} -t {tree_sha_tag}"
             + f' -f "{workspace_directory / image_plan["context"] / image_plan["dockerfile"]}"'
-            + f' "{workspace_directory / image_plan["context"]}"'
+            + f' "{workspace_directory / image_plan["context"]}"',
+            stream_log=True,
         )
 
         print(f"Getting digest for image with tag: {tree_sha_tag}")
@@ -202,12 +211,12 @@ class ManifestDict(TypedDict, total=False):
 
 def get_digest(ref: str):
     try:
-        return cast(
-            ManifestDict,
-            json.loads(
-                run_command(f"docker buildx imagetools inspect --format '{{{{json .Manifest}}}}' {shlex.quote(ref)}")
-            ),
-        ).get("digest")  # now str | None, not Unknown
+        # IMPORTANT: exactly two braces, not four.
+        fmt = '"{{json .Manifest}}"'
+        # Put the ref before --format (more robust on Windows CLIs)
+        cmd = f"docker buildx imagetools inspect {ref} --format {fmt}"
+        out = run_command(cmd, log=True)
+        return cast(ManifestDict, json.loads(out)).get("digest")
     except CalledProcessError as exception:
         if "authorization failed" in exception.stderr:
             # If you hit this, you might need to add a credHelper to your ~/.docker/config.json
@@ -224,7 +233,7 @@ def get_digest(ref: str):
 
 
 ImageOption = Option(None, "--image", "-i", help="Image name; can be repeated.")
-AllOption = Option(False, "--all", "-a", help="Select all images in images.json")
+StackOption = Option(None, "--stack", "-s", help="Pulumi stack name, or all")
 PlanOption = Option(None, "--plan", "-p", help="Path to a plan JSON file (dict keyed by image name).")
 CacheTypeOption = Option("registry", "--cache-type", "-c", help="Type of cache to use when building images.")
 PlanOutputPathOption = Option(..., "--output", "-o", help="Path to write the plan JSON file.")
@@ -235,15 +244,17 @@ app = Typer()
 
 @app.command()
 def plan(
-    images: Optional[list[str]] = ImageOption, all_: Optional[bool] = AllOption, plan_path: str = PlanOutputPathOption
+    images: Optional[list[str]] = ImageOption, stack: Optional[str] = StackOption, plan_path: str = PlanOutputPathOption
 ):
-    if images is None and not all_:
-        raise ValueError("Either '--images' or '--all' must be provided")
+    if images is None and not stack:
+        raise ValueError("Either '--images' or '--stack' must be provided")
+    if stack and images is not None:
+        raise ValueError("Cannot provide both '--images' and '--stack'")
 
     if not images_path.is_file():
         raise FileNotFoundError(f"{images_path} not found")
 
-    _, plan = create_plan(images, all_)
+    _, plan = create_plan(images, stack)
 
     with open(plan_path, "w") as plan_file:
         json.dump(plan, plan_file, indent=2)
@@ -252,13 +263,15 @@ def plan(
 @app.command()
 def lock(
     images: Optional[list[str]] = ImageOption,
-    all_: bool = AllOption,
+    stack: Optional[str] = StackOption,
     plan_path: Optional[str] = PlanOption,
     cache_type: str = CacheTypeOption,
     output_path: Optional[Path] = LockOutputPathOption,
 ):
-    if images is None and not all_ and plan_path is None:
-        raise ValueError("One of '--images', '--all', or '--plan' must be provided")
+    if images is None and not stack and plan_path is None:
+        raise ValueError("Either '--images', '--stack', or '--plan' must be provided")
+    if sum([bool(stack), images is not None, plan_path is not None]) > 1:
+        raise ValueError("Only one of '--stack', '--images', or '--plan' may be provided")
 
     if plan_path:
         if not Path(plan_path).is_file():
@@ -271,7 +284,7 @@ def lock(
         if not images_path.is_file():
             raise FileNotFoundError(f"{images_path} not found")
 
-        images_lock, plan = create_plan(images, all_)
+        images_lock, plan = create_plan(images, stack)
 
     lock_images(images_lock, plan, cache_type, output_path)
 

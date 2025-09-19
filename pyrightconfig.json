@@ -6,8 +6,9 @@
     "common",
     "scripts",
     "infrastructure",
-    "services/api",
-    "services/automigrator",
+    "services/visual-localization-system/api",
+    "services/visual-localization-system/models",
+    "services/visual-localization-system/reconstruction-orchestrator",
     "services/database-manager",
     "tasks/run-reconstruction",
     "tasks/extract-match-features",
@@ -43,23 +44,36 @@
       ]
     },
     {
-      "root": "services/api",
+      "root": "services/visual-localization-system/api",
       "extraPaths": [
         "common/src",
         "common/.venv/lib/site-packages",
         "common/.venv/lib/python3.13/site-packages",
-        "services/api/.venv/Lib/site-packages",
-        "services/api/.venv/lib/python3.13/site-packages"
+        "services/visual-localization-system/models/src",
+        "services/visual-localization-system/models/.venv/Lib/site-packages",
+        "services/visual-localization-system/models/.venv/lib/python3.13/site-packages",
+        "services/visual-localization-system/api/.venv/Lib/site-packages",
+        "services/visual-localization-system/api/.venv/lib/python3.13/site-packages"
       ]
     },
     {
-      "root": "services/automigrator",
+      "root": "services/visual-localization-system/models",
+      "extraPaths": [
+        "services/visual-localization-system/models/.venv/Lib/site-packages",
+        "services/visual-localization-system/models/.venv/lib/python3.13/site-packages"
+      ]
+    },
+    {
+      "root": "services/visual-localization-system/reconstruction-orchestrator",
       "extraPaths": [
         "common/src",
-        "common/.venv/lib/site-packages",
+        "common/.venv/Lib/site-packages",
         "common/.venv/lib/python3.13/site-packages",
-        "services/automigrator/.venv/Lib/site-packages",
-        "services/automigrator/.venv/lib/python3.13/site-packages"
+        "services/visual-localization-system/models/src",
+        "services/visual-localization-system/models/.venv/Lib/site-packages",
+        "services/visual-localization-system/models/.venv/lib/python3.13/site-packages",
+        "services/visual-localization-system/reconstruction-orchestrator/.venv/Lib/site-packages",
+        "services/visual-localization-system/reconstruction-orchestrator/.venv/lib/python3.13/site-packages"
       ]
     },
     {
@@ -70,16 +84,6 @@
         "common/.venv/lib/python3.13/site-packages",
         "services/database-manager/.venv/Lib/site-packages",
         "services/database-manager/.venv/lib/python3.13/site-packages"
-      ]
-    },
-    {
-      "root": "tasks/delete-database",
-      "extraPaths": [
-        "common/src",
-        "common/.venv/Lib/site-packages",
-        "common/.venv/lib/python3.13/site-packages",
-        "tasks/delete-database/.venv/Lib/site-packages",
-        "tasks/delete-database/.venv/lib/python3.13/site-packages"
       ]
     },
     {

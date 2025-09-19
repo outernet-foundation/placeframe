@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
 
 [[package]]
@@ -121,6 +121,7 @@ dependencies = [
     { name = "boto3" },
     { name = "docker" },
     { name = "fastapi" },
+    { name = "openapi-generator-cli" },
     { name = "psycopg", extra = ["binary"] },
 ]
 
@@ -129,6 +130,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.39.5" },
     { name = "docker", specifier = ">=7.1.0" },
     { name = "fastapi", specifier = ">=0.116.1" },
+    { name = "openapi-generator-cli", specifier = ">=7.14.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
 ]
 
@@ -222,6 +224,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
+]
+
+[[package]]
+name = "openapi-generator-cli"
+version = "7.16.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/75/477c36fa8a6d1279c48c4be16155ca9985c6dbc8dd75d3bc1466d81469e9/openapi_generator_cli-7.16.0.tar.gz", hash = "sha256:a056ea34c12b989363c94025a5290ec24b714d80bac2e275bb9366c6bfda130b", size = 27710447, upload-time = "2025-09-29T01:27:50.66Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/ee/c274afa6b0817d6a80704f6ecc5cb98a655e64f5992c14d0813f1288a761/openapi_generator_cli-7.16.0-py3-none-any.whl", hash = "sha256:b4ac990a9c6d3cd7e38a1b914c089449943183fca6fff169cbd219d06123fd7d", size = 27724625, upload-time = "2025-09-29T01:27:47.333Z" },
 ]
 
 [[package]]

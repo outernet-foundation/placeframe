@@ -20,6 +20,7 @@ namespace PlerionClient.Client
     public class AppState : ObservableObject
     {
         public ObservablePrimitive<string> plerionAPIBaseUrl { get; private set; }
+        public ObservablePrimitive<string> plerionKeycloakUrl { get; private set; }
         public ObservablePrimitive<CaptureType> captureMode { get; private set; }
         public ObservablePrimitive<CaptureStatus> captureStatus { get; private set; }
         public ObservableDictionary<Guid, CaptureState> captures { get; private set; }

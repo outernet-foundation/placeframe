@@ -53,20 +53,22 @@ class DatabaseManager(ComponentResource):
         )
 
         # Role
-        role = lambda_role("database-manager-role", opts=self._child_opts)
-        role.allow_secret_get("database-managersecrets", [rds.password_secret])
-        export("database-manager-role-name", role.name)
-        export("database-manager-role-arn", role.arn)
+        self.role = lambda_role("database-manager-role", opts=self._child_opts)
+        self.role.allow_secret_get("database-managersecrets", [rds.password_secret])
+        export("database-manager-role-name", self.role.name)
+        export("database-manager-role-arn", self.role.arn)
 
         if config.require_bool("deploy-database-manager") and cloudbeaver_service_arn is not None:
-            role.allow_service_restart("database-manager-cloudbeaver-restart", services_arns=[cloudbeaver_service_arn])
+            self.role.allow_service_restart(
+                "database-manager-cloudbeaver-restart", services_arns=[cloudbeaver_service_arn]
+            )
 
-            function = Function(
+            self.function = Function(
                 "database-manager-function",
                 name="database-manager",
                 package_type="Image",
                 image_uri=repo.locked_digest(),
-                role=role.arn,
+                role=self.role.arn,
                 timeout=900,
                 memory_size=512,
                 vpc_config={"security_group_ids": [security_group.id], "subnet_ids": vpc.private_subnet_ids},
@@ -85,8 +87,8 @@ class DatabaseManager(ComponentResource):
                 opts=ResourceOptions.merge(self._child_opts, ResourceOptions(depends_on=[log_group])),
             )
 
-            export("database-manager-function-arn", function.arn)
+            export("database-manager-function-arn", self.function.arn)
 
-            deploy_role.allow_lambda_deployment(resource_name, [function])
+            deploy_role.allow_lambda_deployment(resource_name, [self.function])
 
         self.register_outputs({})

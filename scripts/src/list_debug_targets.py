@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
-from typing import Dict, List, Mapping, Optional, TypedDict, cast
+from typing import List, Mapping, Optional, TypedDict, cast
 
 
 def run(*args: str):
@@ -29,7 +29,7 @@ class NetworkSettingsTD(TypedDict, total=False):
 
 
 class ConfigTD(TypedDict, total=False):
-    Labels: Optional[Dict[str, str]]
+    Labels: Optional[dict[str, str]]
 
 
 class ContainerInfo(TypedDict, total=False):
@@ -66,7 +66,7 @@ if __name__ == "__main__":
         info = inspect_one(container_id)
 
         cfg = info.get("Config")
-        labels: Dict[str, str] = dict((cfg.get("Labels") if cfg else None) or {})
+        labels: dict[str, str] = dict((cfg.get("Labels") if cfg else None) or {})
 
         service: str = labels.get("service", "")
         if not service:

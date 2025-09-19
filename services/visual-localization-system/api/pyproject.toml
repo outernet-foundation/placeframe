@@ -1,0 +1,35 @@
+[project]
+name = "visual-localization-system-api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "common",
+    "models",
+    "boto3>=1.39.5",
+    "fastapi>=0.116.1",
+    "piccolo[postgres]>=1.27.1",
+    "pydantic-settings>=2.10.1",
+    "uvicorn[standard]>=0.35.0",
+    "debugpy>=1.8.16",
+    "sqlalchemy[asyncio]>=2.0.43",
+    "psycopg[binary]>=3.2.10",
+    "pyjwt>=2.10.1",
+    "cryptography>=46.0.1",
+]
+
+[dependency-groups]
+dev = [
+    "boto3-stubs[s3]>=1.39.7",
+    "botocore-stubs>=1.38.46",
+    "openapi-generator-cli>=7.14.0",
+    "watchdog>=6.0.0",
+]
+
+[tool.uv.sources]
+common = { path = "../../../common", editable = true }
+models = { path = "../models", editable = true }
+
+[tool.ruff]
+extend = "../../../ruff.toml"

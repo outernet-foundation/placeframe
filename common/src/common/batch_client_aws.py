@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 from common.boto_clients import create_batch_client
 
@@ -17,7 +17,7 @@ class AwsBatchClient:
         job_definition_name: str,
         *,
         array_size: int | None = None,
-        environment: Dict[str, str] | None = None,
+        environment: dict[str, str] | None = None,
     ) -> str:
         job: SubmitJobRequestTypeDef = {"jobName": name, "jobQueue": queue_name, "jobDefinition": job_definition_name}
 

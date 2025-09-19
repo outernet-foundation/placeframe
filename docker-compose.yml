@@ -121,29 +121,43 @@ services:
     entrypoint: >-
       uv run --no-sync python -m src.main
       --op create
-      --name ${API_DATABASE_NAME}
-      --password ${API_DATABASE_PASSWORD}
+      --name ${DATABASE_NAME}
+      --owner-password ${DATABASE_OWNER_PASSWORD}
+      --api-user-password ${DATABASE_API_USER_PASSWORD}
+      --auth-user-password ${DATABASE_AUTH_USER_PASSWORD}
+      --orchestration-user-password ${DATABASE_ORCHESTRATION_USER_PASSWORD}
 
-  automigrator:
-    build:
-      context: .
-      dockerfile: services/automigrator/Dockerfile
-    depends_on:
-      create-database:
-        condition: service_completed_successfully
-    volumes:
-      - ./services/api:/app/services/api
-      - uv_cache:/root/.cache/uv
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.5
+    command:
+      - start-dev
+      - --import-realm
+      - --health-enabled=true
     environment:
-      API_DIR: /app/services/api
-      PICCOLO_CONF: src.db.conf
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      DATABASE_NAME: ${API_DATABASE_NAME}
-      DATABASE_PASSWORD: ${API_DATABASE_PASSWORD}
+      API_HOSTNAME: https://${DEVICE_NAME}-api.${DOMAIN}
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: https://${DEVICE_NAME}-keycloak.${DOMAIN}
+      KC_HOSTNAME_ADMIN: https://${DEVICE_NAME}-keycloak.${DOMAIN}
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME_STRICT_HTTPS: true
+      KC_HOSTNAME_DEBUG: true
+    volumes:
+      - ./services/keycloak/realm-export:/opt/keycloak/data/import:ro
 
-  api:
+  keycloak-reverse-proxy:
+    build: services/keycloak-reverse-proxy
+    depends_on:
+      - keycloak
+    ports:
+      - "8080:8080"
+    environment:
+      DEVICE_NAME: ${DEVICE_NAME}
+      DOMAIN: ${DOMAIN}
+
+  visual-localization-system-api:
     build:
-      dockerfile: services/api/Dockerfile
+      dockerfile: services/visual-localization-system/api/Dockerfile
     depends_on:
       initialize-minio:
         condition: service_completed_successfully
@@ -151,18 +165,26 @@ services:
         condition: service_completed_successfully
     ports:
       - "8000:8000"
-      - "5678:5678"
+      - "5679:5678"
     volumes:
-      - ./services/api:/app/services/api
+      - ./services/visual-localization-system/api:/app/services/visual-localization-system/api
+      - ./services/visual-localization-system/models:/app/services/visual-localization-system/models
       - ./common:/app/common
       - uv_cache:/root/.cache/uv
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       DOCKER_HOST: unix:///var/run/docker.sock
       BACKEND: docker
+      KEYCLOAK_PUBLIC_HOST: https://${DEVICE_NAME}-keycloak.${DOMAIN}
+      KEYCLOAK_INTERNAL_HOST: ${KEYCLOAK_INTERNAL_HOST}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       POSTGRES_HOST: ${POSTGRES_HOST}
-      DATABASE_NAME: ${API_DATABASE_NAME}
-      DATABASE_PASSWORD: ${API_DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_API_USER: ${DATABASE_NAME}_api_user
+      DATABASE_AUTH_USER: ${DATABASE_NAME}_auth_user
+      DATABASE_API_USER_PASSWORD: ${DATABASE_API_USER_PASSWORD}
+      DATABASE_AUTH_USER_PASSWORD: ${DATABASE_AUTH_USER_PASSWORD}
       S3_ENDPOINT_URL: "https://${DEVICE_NAME}-minio.${DOMAIN}"
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}

@@ -1,4 +1,4 @@
-from typing import Dict, Literal, Protocol
+from typing import Literal, Protocol
 
 from .batch_client_aws import AwsBatchClient
 from .batch_client_docker import DockerBatchClient
@@ -12,7 +12,7 @@ class BatchClient(Protocol):
         job_definition_name: str,
         *,
         array_size: int | None = None,
-        environment: Dict[str, str] | None = None,
+        environment: dict[str, str] | None = None,
     ) -> str: ...
 
     def get_job_status(self, job_id: str) -> str: ...

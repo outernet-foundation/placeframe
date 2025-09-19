@@ -3,21 +3,33 @@ from __future__ import annotations
 
 import json
 import time
+from contextlib import contextmanager
+from copy import deepcopy
+
+# main.py
+from importlib.resources import files as pkg_files
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, LiteralString, cast
 
 from common.boto_clients import create_ecs_client, create_secretsmanager_client
 from common.database_utils import postgres_cursor
+from psycopg import Cursor
 from psycopg.sql import SQL, Identifier, Literal
-from typer import Exit, Option, echo, run
+from typer import Exit, Option, run
 
 from .settings import Settings, get_settings
+
+
+def _read_sql(name: str) -> str:
+    # sql is a subpackage beside this module
+    return pkg_files(f"{__package__}.sql").joinpath(name).read_text(encoding="utf-8")
+
 
 workspace_directory = Path("/mnt/efs")
 data_sources_path = workspace_directory / "GlobalConfiguration/.dbeaver/data-sources.json"
 
 
-def main(event: Dict[str, Any], _context: Any):
+def main(event: dict[str, Any], _context: Any):
     op = event.get("op")
     name = event.get("name")
 
@@ -29,136 +41,248 @@ def main(event: Dict[str, Any], _context: Any):
     settings = get_settings()
 
     if op in {"create", "update"}:
-        password_plaintext = event.get("password")
-        password_secret_arn = event.get("password_secret_arn")
-
-        if password_plaintext is not None and password_secret_arn is not None:
-            raise ValueError("Only one of password or password_secret_arn may be provided")
-        if password_plaintext is None and password_secret_arn is None:
-            raise ValueError("One of password or password_secret_arn must be provided")
-
-        if password_plaintext is not None:
-            if not isinstance(password_plaintext, str):
-                raise ValueError("password must be a non-empty string")
-            password = password_plaintext
-        else:
-            assert password_secret_arn is not None
-            if not isinstance(password_secret_arn, str):
-                raise ValueError("password_secret_arn must be a non-empty string")
-
-            password = create_secretsmanager_client().get_secret_value(SecretId=password_secret_arn)["SecretString"]
+        owner_password = _get_role_password(event, "owner")
+        api_user_password = _get_role_password(event, "api_user")
+        auth_user_password = _get_role_password(event, "auth_user")
+        orchestration_user_password = _get_role_password(event, "orchestration_user")
 
         if op == "create":
-            _create_database(name=name, password=password, settings=settings)
+            _create_database(
+                settings, name, owner_password, api_user_password, auth_user_password, orchestration_user_password
+            )
         else:
             assert op == "update"
-            _update_database(name=name, password=password, settings=settings)
+            _update_database(
+                settings, name, owner_password, api_user_password, auth_user_password, orchestration_user_password
+            )
     else:
         assert op == "delete"
-        _delete_database(name=name, settings=settings)
+        _delete_database(settings, database_name=name)
 
 
-def _create_database(*, name: str, password: str, settings: Settings) -> None:
-    with postgres_cursor(
-        host=settings.postgres_host, user=settings.postgres_admin_user, password=settings.postgres_admin_password
-    ) as cursor:
-        # Ensure database doesn't already exist
-        cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (name,))
-        if cursor.fetchone() is not None:
-            if settings.backend == "docker":
-                print(f"Database {name} already exists, skipping creation.")
-                # still update DS and bounce to ensure DS state correct
-            else:
-                pass
-                # raise RuntimeError(f"Database {name} already exists")
-        else:
-            print(f"Creating database {name}")
-            # Create database and role
-            cursor.execute(SQL("CREATE ROLE {} LOGIN PASSWORD {}").format(Identifier(name), Literal(password)))
-            cursor.execute(
-                SQL("CREATE DATABASE {} OWNER {}").format(Identifier(name), Identifier(settings.postgres_admin_user))
-            )
+def _create_database(
+    settings: Settings,
+    database_name: str,
+    owner_password: str,
+    api_user_password: str,
+    auth_user_password: str,
+    orchestration_user_password: str,
+):
+    owner = f"{database_name}_owner"
+    api_user = f"{database_name}_api_user"
+    auth_user = f"{database_name}_auth_user"
+    orchestration_user = f"{database_name}_orchestration_user"
 
-            # Connect to new DB to set permissions for role
-            with postgres_cursor(
-                host=settings.postgres_host,
-                user=settings.postgres_admin_user,
-                password=settings.postgres_admin_password,
-                database_name=name,
-            ) as cursor:
-                cursor.execute(SQL('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
-                cursor.execute(SQL("REVOKE ALL ON DATABASE {} FROM PUBLIC").format(Identifier(name)))
+    # Ensure database exists
+    if _database_exists(settings, database_name):
+        print(f"Database {database_name} already exists, skipping creation")
+    else:
+        with postgres_cursor(
+            "postgres", settings.postgres_host, settings.postgres_admin_user, settings.postgres_admin_password
+        ) as cursor:
+            print(f"Creating database {database_name}")
+
+            # Creating a database must run outside a transaction
+            with autocommit(cursor):
                 cursor.execute(
-                    SQL("GRANT CONNECT, TEMPORARY ON DATABASE {} TO {}").format(Identifier(name), Identifier(name))
+                    SQL("CREATE DATABASE {} OWNER {};").format(
+                        Identifier(database_name), Identifier(settings.postgres_admin_user)
+                    )
                 )
-                cursor.execute(SQL("REVOKE CREATE ON SCHEMA public FROM PUBLIC"))
-                cursor.execute(SQL("GRANT USAGE, CREATE ON SCHEMA public TO {}").format(Identifier(name)))
 
-    _update_cloudbeaver(name=name, password=password, settings=settings)
+    _put_roles(
+        settings,
+        database_name,
+        owner,
+        api_user,
+        auth_user,
+        orchestration_user,
+        owner_password,
+        api_user_password,
+        auth_user_password,
+        orchestration_user_password,
+    )
 
 
-def _update_database(*, name: str, password: str, settings: Settings) -> None:
+def _update_database(
+    settings: Settings,
+    database_name: str,
+    owner_password: str,
+    api_user_password: str,
+    auth_user_password: str,
+    orchestration_user_password: str,
+):
+    owner = f"{database_name}_owner"
+    api_user = f"{database_name}_api_user"
+    auth_user = f"{database_name}_auth_user"
+    orchestration_user = f"{database_name}_orchestration_user"
+
+    if not _database_exists(settings, database_name):
+        raise RuntimeError(f"Database {database_name} does not exist")
+
+    _put_roles(
+        settings,
+        database_name,
+        owner,
+        api_user,
+        auth_user,
+        orchestration_user,
+        owner_password,
+        api_user_password,
+        auth_user_password,
+        orchestration_user_password,
+    )
+
+
+def _delete_database(settings: Settings, database_name: str) -> None:
+    # Remove CloudBeaver entry first (no-op if already absent)
+    _update_cloudbeaver(settings, database_name)
+
     with postgres_cursor(
-        host=settings.postgres_host, user=settings.postgres_admin_user, password=settings.postgres_admin_password
+        "postgres", settings.postgres_host, settings.postgres_admin_user, settings.postgres_admin_password
     ) as cursor:
-        # Ensure database exists
-        cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (name,))
-        if cursor.fetchone() is None:
-            raise RuntimeError(f"Database {name} does not exist")
+        print(f"Dropping database {database_name}")
 
-        # Update role password
-        cursor.execute(SQL("ALTER ROLE {} WITH PASSWORD {}").format(Identifier(name), Literal(password)))
+        # Dropping a database must run outside a transaction
+        with autocommit(cursor):
+            # Tolerates already-missing DB and terminates active sessions
+            cursor.execute(SQL("DROP DATABASE IF EXISTS {} WITH (FORCE);").format(Identifier(database_name)))
 
-    _update_cloudbeaver(name=name, password=password, settings=settings)
+        # Drop roles if present (reverse order of creation)
+        cursor.execute(SQL("DROP ROLE IF EXISTS {};").format(Identifier(f"{database_name}_auth_user")))
+        cursor.execute(SQL("DROP ROLE IF EXISTS {};").format(Identifier(f"{database_name}_api_user")))
+        cursor.execute(SQL("DROP ROLE IF EXISTS {};").format(Identifier(f"{database_name}_owner")))
 
-    # Terminate old sessions for role so new password is enforced immediately
+    _update_cloudbeaver(settings, database_name)
+
+
+def _get_role_password(event: dict[str, Any], role_name: str):
+    password_plaintext = event.get(f"{role_name}_password")
+    password_secret_arn = event.get(f"{role_name}_password_secret_arn")
+
+    if password_plaintext is not None and password_secret_arn is not None:
+        raise ValueError(f"Only one of {role_name}_password or {role_name}_password_secret_arn may be provided")
+    if password_plaintext is None and password_secret_arn is None:
+        raise ValueError(f"One of {role_name}_password or {role_name}_password_secret_arn must be provided")
+
+    if password_plaintext is not None:
+        if not isinstance(password_plaintext, str):
+            raise ValueError(f"{role_name}_password must be a non-empty string")
+        return password_plaintext
+    else:
+        assert password_secret_arn is not None
+        if not isinstance(password_secret_arn, str):
+            raise ValueError(f"{role_name}_password_secret_arn must be a non-empty string")
+
+        return create_secretsmanager_client().get_secret_value(SecretId=password_secret_arn)["SecretString"]
+
+
+def _database_exists(settings: Settings, database_name: str):
     with postgres_cursor(
-        host=settings.postgres_host, user=settings.postgres_admin_user, password=settings.postgres_admin_password
+        "postgres", settings.postgres_host, settings.postgres_admin_user, settings.postgres_admin_password
     ) as cursor:
+        cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (database_name,))
+        return cursor.fetchone() is not None
+
+
+@contextmanager
+def autocommit(cursor: Cursor):
+    prev = cursor.connection.autocommit
+    try:
+        cursor.connection.autocommit = True
+        yield
+    finally:
+        cursor.connection.autocommit = prev
+
+
+def _put_roles(
+    settings: Settings,
+    database_name: str,
+    owner: str,
+    api_user: str,
+    auth_user: str,
+    orchestration_user: str,
+    owner_password: str,
+    api_user_password: str,
+    auth_user_password: str,
+    orchestration_user_password: str,
+):
+    # Connect to default "postgres" database to create/update roles
+    with postgres_cursor(
+        "postgres", settings.postgres_host, settings.postgres_admin_user, settings.postgres_admin_password
+    ) as cursor:
+        print(f"Creating roles for database {database_name}")
+
+        # Ensure roles exist and have correct passwords
         cursor.execute(
-            """
-            SELECT pg_terminate_backend(pid)
-            FROM pg_stat_activity
-            WHERE usename = %s AND pid <> pg_backend_pid()
-            """,
-            (name,),
+            SQL(cast(LiteralString, _read_sql("put_roles.template.sql"))).format(
+                owner=Identifier(owner),
+                owner_literal=Literal(owner),
+                owner_password=Literal(owner_password),
+                api_user=Identifier(api_user),
+                api_user_literal=Literal(api_user),
+                api_user_password=Literal(api_user_password),
+                auth_user=Identifier(auth_user),
+                auth_user_literal=Literal(auth_user),
+                auth_user_password=Literal(auth_user_password),
+                orchestration_user=Identifier(orchestration_user),
+                orchestration_user_literal=Literal(orchestration_user),
+                orchestration_user_password=Literal(orchestration_user_password),
+                database=Identifier(database_name),
+                database_literal=Literal(database_name),
+            )
         )
 
-
-def _delete_database(*, name: str, settings: Settings) -> None:
-    _update_cloudbeaver(name=name, password=None, settings=settings)
-
-    # Drop database and role
+    # Connect to new database to configure role privileges
     with postgres_cursor(
-        host=settings.postgres_host, user=settings.postgres_admin_user, password=settings.postgres_admin_password
+        database_name, settings.postgres_host, settings.postgres_admin_user, settings.postgres_admin_password
     ) as cursor:
-        cursor.execute(SQL("DROP DATABASE {} WITH (FORCE)").format(Identifier(name)))
-        cursor.execute(SQL("DROP ROLE {}").format(Identifier(name)))
+        print(f"Configuring privileges for database {database_name}")
+
+        cursor.execute(
+            SQL(cast(LiteralString, _read_sql("configure_database.template.sql"))).format(
+                database=Identifier(database_name),
+                owner=Identifier(owner),
+                api_user=Identifier(api_user),
+                auth_user=Identifier(auth_user),
+                orchestration_user=Identifier(orchestration_user),
+                auth_schema=Identifier("auth"),
+            )
+        )
+
+    _update_cloudbeaver(settings, database_name, owner, owner_password)
 
 
-def _update_cloudbeaver(*, name: str, password: str | None, settings: Settings) -> None:
+def _update_cloudbeaver(settings: Settings, database_name: str, user: str | None = None, password: str | None = None):
+    if settings.cloudbeaver_service_id is None:
+        print("CLOUDBEAVER_SERVICE_ID not set, skipping CloudBeaver update")
+        return
+
     # Load current state
     with data_sources_path.open("r", encoding="utf-8") as fh:
         current_data = json.load(fh)
 
-    new_data = json.loads(json.dumps(current_data))
+    new_data = deepcopy(current_data)
     new_data.setdefault("connections", {})
 
-    if password is None:
-        new_data["connections"].pop(name, None)
+    if user is None:
+        new_data["connections"].pop(database_name, None)
     else:
-        new_data["connections"][name] = {
+        if password is None:
+            raise ValueError("password must be provided if user is provided")
+
+        new_data["connections"][database_name] = {
             "provider": "postgresql",
             "driver": "postgres-jdbc",
-            "name": name,
+            "name": database_name,
             "save-password": True,
             "configuration": {
                 "host": settings.postgres_host,
                 "port": "5432",
-                "database": name,
-                "user": name,
+                "database": database_name,
+                "user": user,
                 "password": password,
-                "url": f"jdbc:postgresql://{settings.postgres_host}:5432/{name}",
+                "url": f"jdbc:postgresql://{settings.postgres_host}:5432/{database_name}",
             },
         }
 
@@ -210,18 +334,29 @@ def _update_cloudbeaver(*, name: str, password: str | None, settings: Settings) 
 
 def cli(
     op: str = Option(..., "--op", help="create | update | delete", case_sensitive=False),
-    name: Optional[str] = Option(..., "--name", help="Database name"),
-    password: Optional[str] = Option(None, "--password", help="DB user password"),
+    name: str = Option(..., "--name", help="Database name"),
+    owner_password: str = Option(..., "--owner-password", help="Owner role password"),
+    api_user_password: str = Option(..., "--api-user-password", help="API user role password"),
+    auth_user_password: str = Option(..., "--auth-user-password", help="Auth user role password"),
+    orchestration_user_password: str = Option(
+        ..., "--orchestration-user-password", help="Orchestration user role password"
+    ),
 ):
     if op.lower() != "create":
-        echo(f"op='{op}' not implemented; no-op.")
+        print(f"op='{op}' not implemented; no-op.")
         raise Exit(code=0)
 
-    if not password:
-        echo("Missing --password (or DB_PASSWORD).", err=True)
-        raise Exit(code=2)
-
-    main({"op": "create", "name": name, "password": password}, None)
+    main(
+        {
+            "op": "create",
+            "name": name,
+            "owner_password": owner_password,
+            "api_user_password": api_user_password,
+            "auth_user_password": auth_user_password,
+            "orchestration_user_password": orchestration_user_password,
+        },
+        None,
+    )
 
 
 if __name__ == "__main__":

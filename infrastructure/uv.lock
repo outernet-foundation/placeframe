@@ -148,6 +148,7 @@ dependencies = [
     { name = "boto3" },
     { name = "docker" },
     { name = "fastapi" },
+    { name = "openapi-generator-cli" },
     { name = "psycopg", extra = ["binary"] },
 ]
 
@@ -156,6 +157,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.39.5" },
     { name = "docker", specifier = ">=7.1.0" },
     { name = "fastapi", specifier = ">=0.116.1" },
+    { name = "openapi-generator-cli", specifier = ">=7.14.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
 ]
 
@@ -257,6 +259,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d9/1a/7afe46fcc83131a37324749c17064d5ac9b1de8947a24b29a1bd223f8d34/mypy_boto3_ce-1.40.0.tar.gz", hash = "sha256:3b8d98160b654288af42ab8b890a87a07893e4db501fc238cfa1fe038d6bad21", size = 40329, upload-time = "2025-07-31T19:37:45.002Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e8/1c/77b9f69f6bc7639fa6d026fb21b7b22b824f24c3709515ccd20379bd5d58/mypy_boto3_ce-1.40.0-py3-none-any.whl", hash = "sha256:7f867d619ae169104ce95a3fdfa50d44a12908503efd91f1f1227613885cde80", size = 45327, upload-time = "2025-07-31T19:37:43.33Z" },
+]
+
+[[package]]
+name = "openapi-generator-cli"
+version = "7.16.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/75/477c36fa8a6d1279c48c4be16155ca9985c6dbc8dd75d3bc1466d81469e9/openapi_generator_cli-7.16.0.tar.gz", hash = "sha256:a056ea34c12b989363c94025a5290ec24b714d80bac2e275bb9366c6bfda130b", size = 27710447, upload-time = "2025-09-29T01:27:50.66Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/ee/c274afa6b0817d6a80704f6ecc5cb98a655e64f5992c14d0813f1288a761/openapi_generator_cli-7.16.0-py3-none-any.whl", hash = "sha256:b4ac990a9c6d3cd7e38a1b914c089449943183fca6fff169cbd219d06123fd7d", size = 27724625, upload-time = "2025-09-29T01:27:47.333Z" },
 ]
 
 [[package]]

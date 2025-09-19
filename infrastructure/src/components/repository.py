@@ -4,13 +4,13 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Dict, List, TypedDict, cast
+from typing import List, TypedDict, cast
 
 from pulumi import ComponentResource, Input, Output, ResourceOptions, export
 from pulumi_aws import ecr
 from pulumi_aws.ecr import get_repository_output
 
-lock_path = "images-lock.json"
+lock_path = "images.lock"
 
 
 class Repository(ComponentResource):
@@ -24,7 +24,8 @@ class Repository(ComponentResource):
             self._repo = ecr.Repository(
                 resource_name,
                 name=name,
-                opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True, import_=name)),
+                # opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True, import_=name)),
+                opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True)),
             )
         else:
             self._repo = get_repository_output(name=name)
@@ -55,9 +56,9 @@ class Repository(ComponentResource):
 
         # Load and prepare the container map once (outside of apply)
         data_raw: object = json.loads(lock_file.read_text())
-        data_map: Dict[str, object] = cast(Dict[str, object], data_raw)
+        data_map: dict[str, object] = cast(dict[str, object], data_raw)
         container_raw: object = data_map.get("repositories", data_map)
-        container: Dict[str, object] = cast(Dict[str, object], container_raw)
+        container: dict[str, object] = cast(dict[str, object], container_raw)
 
         def build_locked_ref(name: str, repo_url: str) -> str:
             # if this is a third party image, use only the last part of the name
@@ -69,7 +70,7 @@ class Repository(ComponentResource):
                 # use the resolved name in the message; avoid referencing non-existent self._name
                 raise ValueError(f"Invalid or missing entry in lock file for repository '{name}': {entry_raw}")
 
-            entry_map: Dict[str, object] = cast(Dict[str, object], entry_raw)
+            entry_map: dict[str, object] = cast(dict[str, object], entry_raw)
             digest_obj: object = entry_map.get("digest")
             if not isinstance(digest_obj, str) or not digest_obj:
                 raise ValueError(f"Missing 'digest' for repository '{name}' in lock file.")

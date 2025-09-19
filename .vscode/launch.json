@@ -5,7 +5,7 @@
       "name": "Attach to API",
       "type": "debugpy",
       "request": "attach",
-      "connect": { "host": "127.0.0.1", "port": 5678 },
+      "connect": { "host": "127.0.0.1", "port": 5679 },
       "justMyCode": false,
       "pathMappings": [
         { "localRoot": "${workspaceFolder}", "remoteRoot": "/app" }
@@ -22,12 +22,24 @@
       ]
     },
     {
-      "name": "Debug standalone script",
+      "name": "Debug workspace synchronizer",
       "type": "debugpy",
       "request": "attach",
       "connect": { "host": "127.0.0.1", "port": 5678 },
       "justMyCode": false,
-      "preLaunchTask": "Prelaunch: Debug standalone script"
+      "preLaunchTask": "Prelaunch: Debug workspace synchronizer"
+    },
+    {
+      "name": "Attach to Unity - Editor",
+      "type": "vstuc",
+      "request": "attach"
+    },
+    {
+      "name": "Attach to Unity - Android",
+      "type": "vstuc",
+      "request": "attach",
+      "endPoint": "127.0.0.1:56000",
+      "preLaunchTask": "Prelaunch: Attach to Unity - Android"
     }
   ],
   "inputs": [

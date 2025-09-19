@@ -5,11 +5,11 @@ runtime:
   options:
     toolchain: uv
     # This is a very weird bug, this exact path is the only one that works and I have no idea why;
-    # I can't put itn ./.venv or in ../.pulumi_venv or in ../pulumi_venv/.venv or anything else I
+    # I can't put it in ./.venv or in ../.pulumi_venv or in ../pulumi_venv/.venv or anything else I
     # have tried, or pulumi up on the dev stack fails. I have no idea why, and cannot find any 
     # documentation on this.
     #
-    # So pollute the monorepo root with a .venv we must *shrug*
+    # So pollute the monorepo root with a .venv, we must *shrug*
     virtualenv: ../.venv
 config:
   pulumi:tags:

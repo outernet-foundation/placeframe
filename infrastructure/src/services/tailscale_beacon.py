@@ -13,7 +13,7 @@ from components.secret import Secret
 from components.security_group import SecurityGroup
 from components.vpc import Vpc
 
-service_map: dict[str, int] = {"api": 8000, "cloudbeaver": 8978, "minio": 9000, "minioconsole": 9001}
+service_map: dict[str, int] = {"api": 8000, "keycloak": 8080, "cloudbeaver": 8978, "minio": 9000, "minioconsole": 9001}
 
 
 class TailscaleBeacon(ComponentResource):

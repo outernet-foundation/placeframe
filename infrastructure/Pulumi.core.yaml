@@ -8,3 +8,4 @@ config:
   plerion_infra:deploy-tailscale-beacon: true
   plerion_infra:deploy-auth-gateway: true
   plerion_infra:deploy-database-manager: true
+  plerion_infra:deploy-zitadel: true

@@ -11,5 +11,9 @@
     "github.vscode-github-actions",
     "augustocdias.tasks-shell-input",
     "detachhead.basedpyright",
+    "supabase.postgrestools",
+    "bradymholt.pgformatter",
+    "ckolkman.vscode-postgres",
+    "pkief.material-icon-theme"
   ]
 }

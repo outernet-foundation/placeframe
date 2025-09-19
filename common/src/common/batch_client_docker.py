@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import threading
 import uuid
-from typing import Dict, Literal
+from typing import Literal
 
 import docker
 
@@ -11,7 +11,7 @@ Status = Literal["SUBMITTED", "RUNNING", "SUCCEEDED", "FAILED", "UNKNOWN"]
 
 class DockerBatchClient:
     def __init__(self) -> None:
-        self.jobs: Dict[str, Dict[str, Status]] = {}
+        self.jobs: dict[str, dict[str, Status]] = {}
         self._docker = docker.from_env()
 
     def submit_job(
@@ -21,7 +21,7 @@ class DockerBatchClient:
         job_definition_name: str,
         *,
         array_size: int | None = None,
-        environment: Dict[str, str] | None = None,
+        environment: dict[str, str] | None = None,
     ) -> str:
         if array_size is None:
             array_size = 1

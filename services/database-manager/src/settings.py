@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
 
     backend: Literal["aws", "docker"] = Field()
-    cloudbeaver_service_id: str = Field()
+    cloudbeaver_service_id: str | None = Field(default=None)
     ecs_cluster_arn: str | None = Field(default=None)
 
     postgres_host: str

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://pgtools.dev/latest/schema.json",
+  "db": {
+    "host": "127.0.0.1",
+    "port": 5432,
+    "username": "postgres",
+    "password": "password",
+    "database": "postgres",
+    "connTimeoutSecs": 10,
+    "allowStatementExecutionsAgainst": ["127.0.0.1/*", "localhost/*"]
+  },
+  "files": {
+    "ignore": ["services/database-manager/sql"]
+  }
+}

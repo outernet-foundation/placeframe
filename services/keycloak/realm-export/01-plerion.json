@@ -1,0 +1,52 @@
+{
+  "realm": "plerion-dev",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "plerion-api",
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["${API_HOSTNAME}/docs/oauth2-redirect"],
+      "webOrigins": ["${API_HOSTNAME}"],
+      "protocolMappers": [
+        {
+          "name": "aud-plerion-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "plerion-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "user",
+      "enabled": true,
+      "firstName": "Test",
+      "lastName": "Test",
+      "email": "test@example.com",
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "password", "temporary": false }
+      ]
+    },
+    {
+      "username": "user2",
+      "enabled": true,
+      "firstName": "Test2",
+      "lastName": "Test2",
+      "email": "test2@example.com",
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "password", "temporary": false }
+      ]
+    }
+  ]
+}

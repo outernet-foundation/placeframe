@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Prelaunch: Debug standalone script",
+      "label": "Prelaunch: Debug workspace synchronizer",
       "type": "shell",
-      "command": "uv run --with debugpy -m debugpy --log-to-stderr --listen 127.0.0.1:5678 --wait-for-client ${file} ${input:scriptArgs}",
+      "command": "uv run --with debugpy -m debugpy --log-to-stderr --listen 127.0.0.1:5678 --wait-for-client -m src.sync_workspace.main ${input:scriptArgs}",
       "options": { "cwd": "${workspaceFolder}/scripts" },
       "isBackground": true,
       "problemMatcher": [
@@ -19,6 +19,13 @@
           }
         }
       ]
+    },
+    {
+      "label": "Prelaunch: Attach to Unity - Android",
+      "type": "shell",
+      "command": "uv run src/forward_unity_android_debug_port.py",
+      "options": { "cwd": "${workspaceFolder}/scripts" },
+      "problemMatcher": []
     }
   ],
   "inputs": [

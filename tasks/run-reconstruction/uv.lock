@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
 
 [[package]]
@@ -130,6 +130,7 @@ dependencies = [
     { name = "boto3" },
     { name = "docker" },
     { name = "fastapi" },
+    { name = "openapi-generator-cli" },
     { name = "psycopg", extra = ["binary"] },
 ]
 
@@ -138,6 +139,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.39.5" },
     { name = "docker", specifier = ">=7.1.0" },
     { name = "fastapi", specifier = ">=0.116.1" },
+    { name = "openapi-generator-cli", specifier = ">=7.14.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
 ]
 
@@ -213,6 +215,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/c9/a8/a6023c7577ba67103425e5625bc7774b19f3a789525e0e12308b6df3819a/mypy_boto3_batch-1.40.19.tar.gz", hash = "sha256:3d9dc0b4f27546e96d257bf3751c8601f04c2934ccb504a109f5ae0c6acaf8cf", size = 35021, upload-time = "2025-08-27T19:26:54.106Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5c/3c/19ac1c4819178e4e05f28afe0c5b9f32e288dcd9f897675f9a5623d22eaa/mypy_boto3_batch-1.40.19-py3-none-any.whl", hash = "sha256:8e1d0a205cc7073de932c96d86530bb80336d54aa790bbf400d4439fd41280df", size = 41892, upload-time = "2025-08-27T19:26:46.588Z" },
+]
+
+[[package]]
+name = "openapi-generator-cli"
+version = "7.16.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/75/477c36fa8a6d1279c48c4be16155ca9985c6dbc8dd75d3bc1466d81469e9/openapi_generator_cli-7.16.0.tar.gz", hash = "sha256:a056ea34c12b989363c94025a5290ec24b714d80bac2e275bb9366c6bfda130b", size = 27710447, upload-time = "2025-09-29T01:27:50.66Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ca/ee/c274afa6b0817d6a80704f6ecc5cb98a655e64f5992c14d0813f1288a761/openapi_generator_cli-7.16.0-py3-none-any.whl", hash = "sha256:b4ac990a9c6d3cd7e38a1b914c089449943183fca6fff169cbd219d06123fd7d", size = 27724625, upload-time = "2025-09-29T01:27:47.333Z" },
 ]
 
 [[package]]

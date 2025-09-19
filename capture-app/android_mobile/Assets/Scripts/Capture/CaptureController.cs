@@ -22,9 +22,21 @@ using ObserveThing.StatefulExtensions;
 
 using static Nessle.UIBuilder;
 using static PlerionClient.Client.UIPresets;
+using System.Net.Http;
 
 namespace PlerionClient.Client
 {
+    public class KeycloakHttpHandler : DelegatingHandler
+    {
+        protected override async System.Threading.Tasks.Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var token = await Auth.GetOrRefreshToken();
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            return await base.SendAsync(request, cancellationToken);
+        }
+    }
+
     public class CaptureController : MonoBehaviour
     {
         public Canvas canvas;
@@ -38,7 +50,13 @@ namespace PlerionClient.Client
 
         void Awake()
         {
-            capturesApi = new DefaultApi(new Configuration { BasePath = App.state.plerionAPIBaseUrl.value });
+            capturesApi = new DefaultApi(
+                new HttpClient(new KeycloakHttpHandler() { InnerHandler = new HttpClientHandler() })
+                {
+                    BaseAddress = new Uri(App.state.plerionAPIBaseUrl.value)
+                },
+                App.state.plerionAPIBaseUrl.value
+            );
 
             ui = ConstructUI(canvas);
 
@@ -174,15 +192,15 @@ namespace PlerionClient.Client
 
         private async UniTask UploadCapture(Guid id, string name, CaptureType type, CancellationToken cancellationToken)
         {
-            var response = await capturesApi.CreateCaptureAsync(new Model.BodyCreateCapture(id: id, filename: name));
-
             if (type == CaptureType.Zed)
             {
+                var response = await capturesApi.CreateCaptureAsync(new Model.CaptureCreate(Model.DeviceType.Zed, name) { Id = id });
                 var captureData = await ZedCaptureController.GetCapture(id, cancellationToken);
                 await capturesApi.UploadCaptureTarAsync(response.Id, captureData, cancellationToken);
             }
             else if (type == CaptureType.Local)
             {
+                var response = await capturesApi.CreateCaptureAsync(new Model.CaptureCreate(Model.DeviceType.ARFoundation, name) { Id = id });
                 var captureData = await LocalCaptureController.GetCapture(id);
                 await capturesApi.UploadCaptureTarAsync(response.Id, captureData, cancellationToken);
             }

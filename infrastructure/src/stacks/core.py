@@ -85,11 +85,27 @@ def create_core_stack(config: Config):
         }),
     )
 
+    ghcr_secret = Secret(
+        "ghcr-secret",
+        name_prefix="ecr-pullthroughcache/",
+        secret_string=Output.json_dumps({
+            "username": config.require("ghcr-user"),
+            "accessToken": config.require_secret("ghcr-personal-access-token"),
+        }),
+    )
+
     PullThroughCacheRule(
         "dockerhub-pull-through-cache-rule",
         ecr_repository_prefix="dockerhub",
         upstream_registry_url="registry-1.docker.io",
         credential_arn=dockerhub_secret.arn,
+    )
+
+    PullThroughCacheRule(
+        "ghcr-pull-through-cache-rule",
+        ecr_repository_prefix="ghcr",
+        upstream_registry_url="ghcr.io",
+        credential_arn=ghcr_secret.arn,
     )
 
     PullThroughCacheRule("quay-pull-through-cache-rule", ecr_repository_prefix="quay", upstream_registry_url="quay.io")

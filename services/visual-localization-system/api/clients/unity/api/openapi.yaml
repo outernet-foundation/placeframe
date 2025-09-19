@@ -1,0 +1,602 @@
+openapi: 3.1.0
+info:
+  title: Plerion
+  version: 0.1.0
+servers:
+- url: /
+security:
+- oauth2:
+  - openid
+- bearerAuth: []
+paths:
+  /captures:
+    get:
+      operationId: get_captures
+      parameters:
+      - description: Optional list of Ids to filter by
+        explode: true
+        in: query
+        name: ids
+        required: false
+        schema:
+          items:
+            format: uuid
+            type: string
+          nullable: true
+          type: array
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/CaptureRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Captures
+    patch:
+      operationId: update_captures
+      parameters:
+      - explode: true
+        in: query
+        name: allow_missing
+        required: false
+        schema:
+          default: false
+          title: Allow Missing
+          type: boolean
+        style: form
+      requestBody:
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: "#/components/schemas/CaptureBatchUpdate"
+              type: array
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/CaptureRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Update Captures
+    post:
+      operationId: create_capture
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CaptureCreate"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptureRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Create Capture
+  /captures/{id}:
+    delete:
+      operationId: delete_capture
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Delete Capture
+    get:
+      operationId: get_capture
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptureRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Capture
+    patch:
+      operationId: update_capture
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CaptureUpdate"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptureRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Update Capture
+  /captures/bulk:
+    post:
+      operationId: create_captures
+      parameters:
+      - explode: true
+        in: query
+        name: overwrite
+        required: false
+        schema:
+          default: false
+          title: Overwrite
+          type: boolean
+        style: form
+      requestBody:
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: "#/components/schemas/CaptureCreate"
+              type: array
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/CaptureRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Create Captures
+  /captures/{id}/tar:
+    get:
+      operationId: download_capture_tar
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "307":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "200":
+          content:
+            application/x-tar:
+              schema:
+                format: binary
+                type: string
+          description: OK
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Download Capture Tar
+    put:
+      operationId: upload_capture_tar
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/x-tar:
+            schema:
+              format: binary
+              type: string
+        required: true
+      responses:
+        "307":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Upload Capture Tar
+  /reconstructions:
+    get:
+      operationId: get_reconstructions
+      parameters:
+      - description: Optional list of Ids to filter by
+        explode: true
+        in: query
+        name: ids
+        required: false
+        schema:
+          items:
+            format: uuid
+            type: string
+          nullable: true
+          type: array
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/ReconstructionRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Reconstructions
+    post:
+      operationId: create_reconstruction
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReconstructionCreate"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconstructionRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Create Reconstruction
+  /reconstructions/{id}:
+    delete:
+      operationId: delete_reconstruction
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Delete Reconstruction
+    get:
+      operationId: get_reconstruction
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconstructionRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Reconstruction
+components:
+  schemas:
+    CaptureBatchUpdate:
+      example:
+        filename: filename
+        device_type: ARFoundation
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
+        filename:
+          nullable: true
+          type: string
+      required:
+      - id
+      title: CaptureBatchUpdate
+    CaptureCreate:
+      example:
+        filename: filename
+        device_type: ARFoundation
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          nullable: true
+          type: string
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
+        filename:
+          title: Filename
+          type: string
+      required:
+      - device_type
+      - filename
+      title: CaptureCreate
+    CaptureRead:
+      example:
+        tenant_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        filename: filename
+        updated_at: 2000-01-23T04:56:07.000+00:00
+        created_at: 2000-01-23T04:56:07.000+00:00
+        device_type: ARFoundation
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        tenant_id:
+          format: uuid
+          title: Tenant Id
+          type: string
+        id:
+          format: uuid
+          title: Id
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
+        filename:
+          title: Filename
+          type: string
+      required:
+      - created_at
+      - device_type
+      - filename
+      - id
+      - tenant_id
+      - updated_at
+      title: CaptureRead
+    CaptureUpdate:
+      example:
+        filename: filename
+        device_type: ARFoundation
+      properties:
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
+        filename:
+          nullable: true
+          type: string
+      title: CaptureUpdate
+    DeviceType:
+      enum:
+      - ARFoundation
+      - Zed
+      title: DeviceType
+      type: string
+    HTTPValidationError:
+      example:
+        detail:
+        - msg: msg
+          loc:
+          - ValidationError_loc_inner
+          - ValidationError_loc_inner
+          type: type
+        - msg: msg
+          loc:
+          - ValidationError_loc_inner
+          - ValidationError_loc_inner
+          type: type
+      properties:
+        detail:
+          items:
+            $ref: "#/components/schemas/ValidationError"
+          type: array
+      title: HTTPValidationError
+    ReconstructionCreate:
+      example:
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        capture_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        status: queued
+      properties:
+        capture_id:
+          format: uuid
+          title: Capture Id
+          type: string
+        id:
+          format: uuid
+          nullable: true
+          type: string
+        status:
+          $ref: "#/components/schemas/ReconstructionStatus"
+      required:
+      - capture_id
+      title: ReconstructionCreate
+    ReconstructionRead:
+      example:
+        tenant_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        updated_at: 2000-01-23T04:56:07.000+00:00
+        created_at: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        capture_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        status: queued
+      properties:
+        tenant_id:
+          format: uuid
+          title: Tenant Id
+          type: string
+        capture_id:
+          format: uuid
+          title: Capture Id
+          type: string
+        id:
+          format: uuid
+          title: Id
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+        status:
+          $ref: "#/components/schemas/ReconstructionStatus"
+      required:
+      - capture_id
+      - created_at
+      - id
+      - status
+      - tenant_id
+      - updated_at
+      title: ReconstructionRead
+    ReconstructionStatus:
+      enum:
+      - queued
+      - running
+      - succeeded
+      - cancelled
+      - failed
+      title: ReconstructionStatus
+      type: string
+    ValidationError:
+      example:
+        msg: msg
+        loc:
+        - ValidationError_loc_inner
+        - ValidationError_loc_inner
+        type: type
+      properties:
+        loc:
+          items:
+            $ref: "#/components/schemas/ValidationError_loc_inner"
+          type: array
+        msg:
+          title: Message
+          type: string
+        type:
+          title: Error Type
+          type: string
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    ValidationError_loc_inner:
+      anyOf:
+      - type: string
+      - type: integer
+  securitySchemes: {}
+

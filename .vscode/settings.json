@@ -13,7 +13,8 @@
   "[python]": {
     "editor.codeActionsOnSave": {
       "source.fixAll.ruff": "explicit"
-    }
+    },
+    "editor.inlayHints.enabled": "off"
   },
   "[csharp]": {
     "editor.codeActionsOnSave": {
@@ -22,18 +23,22 @@
       "source.sortMembers": "explicit"
     }
   },
+  "[postgres]": { "editor.defaultFormatter": "bradymholt.pgformatter" },
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "workbench.iconTheme": "material-icon-theme",
+  "material-icon-theme.folders.theme": "classic",
   "editor.formatOnSave": true,
-  "dotnet.defaultSolution": "Plerion.sln",
+  "dotnet.previewSolution-freeWorkspaceMode": true,
   "debug.onTaskErrors": "debugAnyway",
   "python.languageServer": "None",
   "python.experiments.enabled": false,
   "python.experiments.optOutFrom": ["All"],
   "basedpyright.analysis.diagnosticMode": "workspace",
-  "basedpyright.analysis.inlayHints.callArgumentNames": false,
-  "basedpyright.analysis.inlayHints.variableTypes": false,
-  "basedpyright.analysis.inlayHints.functionReturnTypes": false,
-  "basedpyright.analysis.typeCheckingMode": "strict"
+  "basedpyright.analysis.typeCheckingMode": "strict",
+  "pgFormatter.configFile": "${workspaceFolder}/pg_format.conf"
 }
