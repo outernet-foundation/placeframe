@@ -98,7 +98,7 @@ namespace Outernet.Client
     }
 
     [RequireComponent(typeof(BoxCollider))]
-    public abstract class NodeBase : Control<NodeProps>
+    public abstract class Node : Control<NodeProps>
     {
         private const float scaleInterval = 1.5f;
         private BoxCollider _collider;

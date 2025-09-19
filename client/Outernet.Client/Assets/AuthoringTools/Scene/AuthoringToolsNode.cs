@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 
 namespace Outernet.Client.AuthoringTools
 {
-    public class AuthoringToolsNode : NodeBase, IPointerClickHandler
+    public class AuthoringToolsNode : Node, IPointerClickHandler
     {
         private void Update()
         {

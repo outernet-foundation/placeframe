@@ -4,7 +4,7 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 namespace Outernet.Client
 {
-    public class ClientNode : NodeBase
+    public class ClientNode : Node
     {
         private const float exhibitSpawnDistanceFromCamera = 1.5f;
         private const float exhibitOffsetDown = 0.5f;
