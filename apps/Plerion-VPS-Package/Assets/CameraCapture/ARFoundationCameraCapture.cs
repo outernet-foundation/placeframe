@@ -1,4 +1,4 @@
-#if UNITY_ANDROID
+using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
@@ -6,33 +6,56 @@ using UnityEngine.XR.ARSubsystems;
 
 namespace Plerion
 {
-    public static class ARFoundationCameraLocalizer
+    public class ARFoundationCameraProvider : ICameraProvider
     {
-        private static ARCameraManager cameraManager;
-        private static bool processingFrame = false;
+        public ARCameraManager cameraManager;
+        public bool manageCameraEnabledState;
+        private TaskCompletionSource<CameraImage?> _taskCompletionSource;
 
-        public static void Start(ARCameraManager arCameraManager)
+        public ARFoundationCameraProvider(ARCameraManager cameraManager, bool manageCameraEnabledState = true)
         {
-            cameraManager = arCameraManager;
-            cameraManager.frameReceived += OnFrameReceived;
+            this.cameraManager = cameraManager;
+            this.manageCameraEnabledState = manageCameraEnabledState;
+
+            if (manageCameraEnabledState)
+                cameraManager.enabled = false;
         }
 
-        public static void Stop()
+        public void Start()
         {
-            cameraManager.frameReceived += OnFrameReceived;
+            if (manageCameraEnabledState)
+                cameraManager.enabled = true;
         }
 
-        private static void OnFrameReceived(ARCameraFrameEventArgs args)
+        public void Stop()
         {
-            if (processingFrame) return;
+            cameraManager.frameReceived -= OnFrameReceived;
 
+            if (manageCameraEnabledState)
+                cameraManager.enabled = false;
+
+            _taskCompletionSource?.TrySetCanceled();
+            _taskCompletionSource = null;
+        }
+
+        public UniTask<CameraImage?> GetFrame()
+        {
+            if (_taskCompletionSource == null)
+            {
+                _taskCompletionSource = new TaskCompletionSource<CameraImage?>();
+                cameraManager.frameReceived += OnFrameReceived;
+            }
+
+            return _taskCompletionSource.Task.AsUniTask();
+        }
+
+        private void OnFrameReceived(ARCameraFrameEventArgs args)
+        {
             if (!cameraManager.TryAcquireLatestCpuImage(out XRCpuImage image) ||
                 !cameraManager.TryGetIntrinsics(out XRCameraIntrinsics intrinsics))
             {
                 return;
             }
-
-            processingFrame = true;
 
             var pixelBuffer = image.GetPlane(0).data.ToArray();
             var width = image.width;
@@ -60,26 +83,15 @@ namespace Plerion
                     break;
             }
 
-            LocalizeWithImage(width, height, pixelBuffer, intrinsics.focalLength, intrinsics.principalPoint, angle).Forget();
-        }
-
-        private static async UniTask LocalizeWithImage(int width, int height, byte[] pixelBuffer, Vector3 focalLength, Vector3 principalPoint, float cameraOrientation)
-        {
-            await UniTask.SwitchToMainThread();
-            await VisualPositioningSystem.LocalizeFromCameraImage(new CameraImage
+            _taskCompletionSource.TrySetResult(new CameraImage
             {
                 imageWidth = width,
                 imageHeight = height,
                 pixelBuffer = pixelBuffer,
-                focalLength = focalLength,
-                principalPoint = principalPoint,
-                cameraPosition = Camera.main.transform.position,
-                cameraRotation = Camera.main.transform.rotation,
-                cameraOrientation = Quaternion.Euler(0f, 0f, cameraOrientation),
+                focalLength = intrinsics.focalLength,
+                principalPoint = intrinsics.principalPoint,
+                cameraOrientation = Quaternion.Euler(0f, 0f, angle),
             });
-
-            processingFrame = false;
         }
     }
 }
-#endif

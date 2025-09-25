@@ -1,9 +1,9 @@
 // #if UNITY_LUMIN
 #pragma warning disable CS0618
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;
 using AOT;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
@@ -13,14 +13,12 @@ using static Plerion.NativeBindings;
 
 namespace Plerion
 {
-    public class MagicLeapCameraProvider : ICameraProvider
+    public static class MagicLeapCamera
     {
         public static bool initialized { get; private set; }
-        public static bool running { get; private set; }
         private static bool permissionGranted = false;
         private static readonly MLPermissions.Callbacks permissionCallbacks = new MLPermissions.Callbacks();
         private static ulong nativeHandle = ulong.MaxValue;
-        private static bool processingFrame = false;
         private static byte[] pixelBuffer;
 
         private static MLCameraDeviceAvailabilityStatusCallbacks deviceAvailabilityStatusCallbacks = new()
@@ -87,32 +85,9 @@ namespace Plerion
             }
         };
 
-        private static TaskCompletionSource<CameraImage?> getFrameTaskCompletionSource;
+        public static event Action<CameraImage?> onFrameReceived;
 
-        public MagicLeapCameraProvider()
-        {
-            Initialize();
-        }
-
-        public void Start()
-        {
-            StartInternal().Forget();
-        }
-
-        public void Stop()
-        {
-            StopInternal();
-        }
-
-        public Task<CameraImage?> GetFrame()
-        {
-            if (getFrameTaskCompletionSource == null)
-                getFrameTaskCompletionSource = new TaskCompletionSource<CameraImage?>();
-
-            return getFrameTaskCompletionSource.Task;
-        }
-
-        private static void Initialize()
+        public static void Initialize()
         {
             permissionCallbacks.OnPermissionGranted += (string permission) =>
             {
@@ -133,7 +108,7 @@ namespace Plerion
             MLPermissions.RequestPermission(MLPermission.Camera, permissionCallbacks);
         }
 
-        private static async UniTask StartInternal()
+        public static async UniTask Start()
         {
             if (!permissionGranted)
             {
@@ -161,7 +136,7 @@ namespace Plerion
             Check(MLCameraCaptureVideoStart(nativeHandle), "MLCameraCaptureVideoStart");
         }
 
-        private static void StopInternal()
+        public static void Stop()
         {
             Check(MLCameraCaptureVideoStop(nativeHandle), "MLCameraCaptureVideoStop");
             Check(MLCameraDisconnect(nativeHandle), "MLCameraDisconnect");
@@ -170,14 +145,8 @@ namespace Plerion
         [MonoPInvokeCallback(typeof(MLCameraCaptureCallbacks.OnVideoBufferAvailableDelegate))]
         public static void OnVideoBufferAvailableCallback(ref MLCameraOutput output, ulong _, ref MLCameraResultExtras extra, IntPtr __)
         {
-            if (extra.Intrinsics == IntPtr.Zero ||
-                getFrameTaskCompletionSource == null ||
-                processingFrame)
-            {
+            if (extra.Intrinsics == IntPtr.Zero || onFrameReceived == null)
                 return;
-            }
-
-            processingFrame = true;
 
             var mLCameraIntrinsicCalibrationParameters = Marshal.PtrToStructure<MLCameraIntrinsicCalibrationParameters>(extra.Intrinsics);
 
@@ -192,12 +161,7 @@ namespace Plerion
 
             Marshal.Copy(data, pixelBuffer, 0, size);
 
-            var completionSource = getFrameTaskCompletionSource;
-
-            getFrameTaskCompletionSource = null;
-            processingFrame = false;
-
-            completionSource.SetResult(new CameraImage
+            onFrameReceived.Invoke(new CameraImage
             {
                 imageWidth = width,
                 imageHeight = height,
