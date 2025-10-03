@@ -72,7 +72,7 @@
       "dependencies": {}
     },
     "com.outernet.plerionclient": {
-      "version": "file:C:/Users/epjec/Documents/Plerion/services/api/src/clients/unity/src/PlerionClient",
+      "version": "file:../../../services/api/src/openapi_generated/unity/src/PlerionClient",
       "depth": 0,
       "source": "local",
       "dependencies": {}
