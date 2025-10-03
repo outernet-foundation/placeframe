@@ -1,0 +1,16 @@
+{
+    "name": "com.plerion.vps",
+    "version": "1.0.0",
+    "displayName": "Plerion VPS",
+    "description": "Visual Positioning System for Unity.",
+    "unity": "6000.0.56",
+    "author": {
+        "name": "Elliot Pjecha",
+        "email": "epjecha@gmail.com"
+    },
+    "dependencies": {
+        "com.cysharp.unitask": "2.5.10",
+        "com.unity.xr.arfoundation": "6.0.6",
+        "com.unity.mathematics": "1.3.2"
+    }
+}
