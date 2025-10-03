@@ -1,0 +1,17 @@
+{
+    "name": "Plerion.VisualPositioningSystem.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:b76c1d084090fa34d9ef08917c2a0845",
+        "GUID:d8b63aba1907145bea998dd612889d6b"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

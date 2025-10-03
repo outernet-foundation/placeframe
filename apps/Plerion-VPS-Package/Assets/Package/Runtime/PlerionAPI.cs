@@ -4,8 +4,6 @@ using Cysharp.Threading.Tasks;
 using Unity.Mathematics;
 using UnityEngine;
 
-using Plerion.LegacyTestingStructures;
-
 namespace Plerion
 {
     public class LocalizationMapModel
@@ -57,7 +55,9 @@ namespace Plerion
     static public class PlerionAPI
     {
         public static async UniTask UpdateMapsFromLocation(double latitude, double longitude, double height, double radius, Lighting lighting, bool additive = false)
-            => await MapManager.UpdateMapsForLocation(latitude, longitude, height, radius, lighting, additive);
+        {
+            throw new NotImplementedException();
+        }
 
         public static async UniTask UpdateMapsFromList(Guid[] maps, bool additive = false)
         {
@@ -65,17 +65,18 @@ namespace Plerion
         }
 
         public static async UniTask<List<LocalizationMapModel>> GetLoadedMaps(bool includePoints = false)
-            => await MapManager.GetLoadedMaps();
+        {
+            throw new NotImplementedException();
+        }
 
         public static async UniTask<LocalizationMapModel> GetMap(Guid id, bool includePoints = false)
         {
             throw new NotImplementedException();
-            // return new LocalizationMapModel(id);
         }
 
         public static async UniTask<LocalizeResponse> Localize(int imageWidth, int imageHeight, Vector4 intrinsics, Quaternion cameraRotation, Quaternion cameraOrientation, byte[] cameraImage)
         {
-            return await MapManager.Localize(imageWidth, imageHeight, intrinsics, cameraRotation, cameraOrientation, cameraImage);
+            throw new NotImplementedException();
         }
     }
 }
