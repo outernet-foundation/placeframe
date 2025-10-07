@@ -95,9 +95,16 @@ namespace Outernet.Client
                 }
             );
 #endif
+            App.RegisterObserver(HandleLoggedInChanged, App.state.loggedIn);
+            initialized = true;
+        }
+
+        private void HandleLoggedInChanged(NodeChangeEventArgs args)
+        {
+            if (!App.state.loggedIn.value)
+                return;
 
             GetLayersAndPopulate();
-            initialized = true;
         }
 
         private async void GetLayersAndPopulate()

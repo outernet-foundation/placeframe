@@ -30,7 +30,12 @@ namespace Outernet.Client.AuthoringTools
 
         private void Awake()
         {
-            App.RegisterObserver(HandleLocationChanged, App.state.authoringTools.location, App.state.authoringTools.settings.nodeFetchRadius);
+            App.RegisterObserver(
+                HandleLocationChanged,
+                App.state.loggedIn,
+                App.state.authoringTools.location,
+                App.state.authoringTools.settings.nodeFetchRadius
+            );
         }
 
         private void OnDestroy()
@@ -40,6 +45,9 @@ namespace Outernet.Client.AuthoringTools
 
         private void HandleLocationChanged(NodeChangeEventArgs args)
         {
+            if (!App.state.loggedIn.value)
+                return;
+
             _updateLocationAndContentTask.Cancel();
 
             if (_loadedLocation.Equals(App.state.authoringTools.location.value) &&

@@ -82,18 +82,20 @@ namespace Outernet.Client
             TilesetManager.Initialize();
             Instantiate(mapVisualizer);
 #else
-            var canvas = Instantiate(AuthoringTools.AuthoringToolsPrefabs.Canvas);
-            var systemMenu = Instantiate(AuthoringTools.AuthoringToolsPrefabs.SystemMenu, canvas.transform);
-
             gameObject.AddComponent<AuthoringTools.AuthoringToolsApp>();
 
+            var canvas = Instantiate(AuthoringTools.AuthoringToolsPrefabs.Canvas);
+            var systemUI = Instantiate(AuthoringTools.AuthoringToolsPrefabs.SystemMenu, canvas.transform);
+            var mainUI =
 #if MAP_REGISTRATION_TOOLS_ENABLED
             Instantiate(AuthoringTools.AuthoringToolsPrefabs.MapRegistrationUI, canvas.transform);
 #else
             Instantiate(AuthoringTools.AuthoringToolsPrefabs.UI, canvas.transform);
 #endif
 
-            systemMenu.transform.SetAsLastSibling();
+            systemUI.transform.SetAsLastSibling();
+
+            Instantiate(AuthoringTools.AuthoringToolsPrefabs.LoginScreen, canvas.transform);
 
             gameObject.AddComponent<AuthoringTools.LocationContentManager>();
             gameObject.AddComponent<AuthoringTools.SettingsManager>();
@@ -112,6 +114,12 @@ namespace Outernet.Client
             var runtimeHandles = new GameObject("RuntimeHandles", typeof(AuthoringTools.RuntimeHandles));
             runtimeHandles.transform.SetParent(sceneViewRoot.transform);
 #endif
+
+#if AUTHORING_TOOLS_ENABLED
+            VPSManager.Initialize("outernet", "password");
+            App.state.loggedIn.ExecuteSet(true);
+#endif
+
             Destroy(this);
         }
 
