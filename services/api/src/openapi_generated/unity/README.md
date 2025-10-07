@@ -141,6 +141,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**GetGroups**](docs/DefaultApi.md#getgroups) | **GET** /groups | Get Groups
 *DefaultApi* | [**GetLayers**](docs/DefaultApi.md#getlayers) | **GET** /layers | Get Layers
 *DefaultApi* | [**GetLoadedMaps**](docs/DefaultApi.md#getloadedmaps) | **GET** /localizationMaps/loadedMaps | Get Loaded Maps
+*DefaultApi* | [**GetLocalizationMapByName**](docs/DefaultApi.md#getlocalizationmapbyname) | **GET** /localizationMaps/name/{name} | Get Localization Map By Name
 *DefaultApi* | [**GetLocalizationMaps**](docs/DefaultApi.md#getlocalizationmaps) | **GET** /localizationMaps | Get Localizationmaps
 *DefaultApi* | [**GetMapPoints**](docs/DefaultApi.md#getmappoints) | **GET** /localizationMaps/points/{id} | Get Map Points
 *DefaultApi* | [**GetNodes**](docs/DefaultApi.md#getnodes) | **GET** /nodes | Get Nodes

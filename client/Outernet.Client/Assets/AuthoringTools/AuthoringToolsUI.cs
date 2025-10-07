@@ -718,7 +718,7 @@ namespace Outernet.Client.AuthoringTools
         {
             try
             {
-                var newMapTransform = LocalizedReferenceFrame.LocalToEcef(
+                var newMapTransform = ReferenceFrame.UnityWorldToEcef(
                     Camera.main.transform.position + (Camera.main.transform.forward * 3f),
                     Camera.main.transform.rotation.Flatten()
                 );

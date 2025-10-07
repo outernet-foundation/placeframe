@@ -314,6 +314,24 @@ namespace PlerionClient.Api
         /// <returns>ApiResponse of List&lt;LocalizationMapModel&gt;</returns>
         ApiResponse<List<LocalizationMapModel>> GetLoadedMapsWithHttpInfo();
         /// <summary>
+        /// Get Localization Map By Name
+        /// </summary>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="name"></param>
+        /// <returns>LocalizationMapModel</returns>
+        LocalizationMapModel GetLocalizationMapByName(string name);
+
+        /// <summary>
+        /// Get Localization Map By Name
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="name"></param>
+        /// <returns>ApiResponse of LocalizationMapModel</returns>
+        ApiResponse<LocalizationMapModel> GetLocalizationMapByNameWithHttpInfo(string name);
+        /// <summary>
         /// Get Localizationmaps
         /// </summary>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -988,6 +1006,29 @@ namespace PlerionClient.Api
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;LocalizationMapModel&gt;)</returns>
         System.Threading.Tasks.Task<ApiResponse<List<LocalizationMapModel>>> GetLoadedMapsWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Get Localization Map By Name
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="name"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of LocalizationMapModel</returns>
+        System.Threading.Tasks.Task<LocalizationMapModel> GetLocalizationMapByNameAsync(string name, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Get Localization Map By Name
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="name"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (LocalizationMapModel)</returns>
+        System.Threading.Tasks.Task<ApiResponse<LocalizationMapModel>> GetLocalizationMapByNameWithHttpInfoAsync(string name, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// Get Localizationmaps
         /// </summary>
@@ -3374,6 +3415,121 @@ namespace PlerionClient.Api
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("GetLoadedMaps", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// Get Localization Map By Name 
+        /// </summary>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="name"></param>
+        /// <returns>LocalizationMapModel</returns>
+        public LocalizationMapModel GetLocalizationMapByName(string name)
+        {
+            PlerionClient.Client.ApiResponse<LocalizationMapModel> localVarResponse = GetLocalizationMapByNameWithHttpInfo(name);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// Get Localization Map By Name 
+        /// </summary>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="name"></param>
+        /// <returns>ApiResponse of LocalizationMapModel</returns>
+        public PlerionClient.Client.ApiResponse<LocalizationMapModel> GetLocalizationMapByNameWithHttpInfo(string name)
+        {
+            // verify the required parameter 'name' is set
+            if (name == null)
+                throw new PlerionClient.Client.ApiException(400, "Missing required parameter 'name' when calling DefaultApi->GetLocalizationMapByName");
+
+            PlerionClient.Client.RequestOptions localVarRequestOptions = new PlerionClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlerionClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlerionClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("name", PlerionClient.Client.ClientUtils.ParameterToString(name)); // path parameter
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<LocalizationMapModel>("/localizationMaps/name/{name}", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetLocalizationMapByName", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// Get Localization Map By Name 
+        /// </summary>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="name"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of LocalizationMapModel</returns>
+        public async System.Threading.Tasks.Task<LocalizationMapModel> GetLocalizationMapByNameAsync(string name, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlerionClient.Client.ApiResponse<LocalizationMapModel> localVarResponse = await GetLocalizationMapByNameWithHttpInfoAsync(name, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// Get Localization Map By Name 
+        /// </summary>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="name"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (LocalizationMapModel)</returns>
+        public async System.Threading.Tasks.Task<PlerionClient.Client.ApiResponse<LocalizationMapModel>> GetLocalizationMapByNameWithHttpInfoAsync(string name, System.Threading.CancellationToken cancellationToken = default)
+        {
+            // verify the required parameter 'name' is set
+            if (name == null)
+                throw new PlerionClient.Client.ApiException(400, "Missing required parameter 'name' when calling DefaultApi->GetLocalizationMapByName");
+
+
+            PlerionClient.Client.RequestOptions localVarRequestOptions = new PlerionClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlerionClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlerionClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("name", PlerionClient.Client.ClientUtils.ParameterToString(name)); // path parameter
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.GetAsync<LocalizationMapModel>("/localizationMaps/name/{name}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetLocalizationMapByName", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
