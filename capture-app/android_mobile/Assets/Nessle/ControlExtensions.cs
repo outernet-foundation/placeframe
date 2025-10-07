@@ -20,6 +20,24 @@ namespace Nessle
 
     public static class ControlExtensions
     {
+        public static T Children<T>(this T control, IValueObservable<IControl> child)
+            where T : IControl
+        {
+            control.AddBinding(child.Subscribe(args =>
+            {
+                if (args.previousValue != null)
+                {
+                    control.RemoveChild(args.previousValue);
+                    args.previousValue.Dispose();
+                }
+
+                if (args.currentValue != null)
+                    control.AddChild(args.currentValue);
+            }));
+
+            return control;
+        }
+
         public static T Children<T>(this T control, params IControl[] children)
             where T : IControl => control.Children((IEnumerable<IControl>)children);
 

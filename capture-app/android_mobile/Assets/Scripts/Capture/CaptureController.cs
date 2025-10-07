@@ -45,6 +45,7 @@ namespace PlerionClient.Client
 
             ui = ConstructUI(canvas);
 
+            App.RegisterObserver(HandleLoggedInChanged, App.state.loggedIn);
             App.RegisterObserver(HandleCaptureStatusChanged, App.state.captureStatus);
             App.RegisterObserver(HandleCapturesChanged, App.state.captures);
         }
@@ -55,12 +56,25 @@ namespace PlerionClient.Client
             currentCaptureTask.Cancel();
         }
 
+        private void HandleLoggedInChanged(NodeChangeEventArgs args)
+        {
+            if (App.state.loggedIn.value)
+            {
+                UpdateCaptureList().Forget();
+            }
+            else
+            {
+                App.state.captures.ExecuteActionOrDelay(x => x.Clear());
+            }
+        }
+
         private void HandleCaptureStatusChanged(NodeChangeEventArgs args)
         {
+
+
             switch (App.state.captureStatus.value)
             {
                 case CaptureStatus.Idle:
-                    UpdateCaptureList().Forget();
                     break;
 
                 case CaptureStatus.Starting:
@@ -75,6 +89,8 @@ namespace PlerionClient.Client
                     currentCaptureTask = TaskHandle.Execute(async token =>
                     {
                         await StopCapture(App.state.captureMode.value, token);
+                        await UpdateCaptureList();
+
                         App.state.ExecuteActionOrDelay(new SetCaptureStatusAction(CaptureStatus.Idle));
                     });
                     break;
@@ -197,59 +213,122 @@ namespace PlerionClient.Client
         {
             return new Control(canvas.gameObject).Children(SafeArea().FillParent().Children(
                 Image().FillParent().Color(UIResources.PanelColor),
-                VerticalLayout()
-                    .Style(x =>
-                    {
-                        x.childControlWidth.value = true;
-                        x.childControlHeight.value = true;
-                        x.childForceExpandWidth.value = true;
-                        x.spacing.value = 10;
-                        x.padding.value = new RectOffset(10, 10, 10, 10);
-                    })
-                    .FillParent()
-                    .Children(
-                        ScrollRect().Style(x => x.horizontal.value = false).FlexibleHeight(true).Content(
-                            VerticalLayout().FillParentWidth().FitContentVertical(ContentSizeFitter.FitMode.PreferredSize).Style(x =>
-                            {
-                                x.childForceExpandWidth.value = true;
-                                x.childControlWidth.value = true;
-                                x.childControlHeight.value = true;
-                                x.spacing.value = 10;
-                            }).Children(
-                                App.state.captures
-                                    .CreateDynamic(x => ConstructCaptureRow(x.Value).WithMetadata(x.Value.name))
-                                    .OrderByDynamic(x => x.metadata.AsObservable())
-                            )
-                        ),
-                        Row().Children(
-                            Button()
-                                .Interactable(App.state.captureStatus.SelectDynamic(x => x == CaptureStatus.Idle || x == CaptureStatus.Capturing))
-                                .Children(Text().Value(App.state.captureStatus.SelectDynamic(x =>
-                                    x switch
-                                    {
-                                        CaptureStatus.Idle => "Start Capture",
-                                        CaptureStatus.Starting => "Starting...",
-                                        CaptureStatus.Capturing => "Stop Capture",
-                                        CaptureStatus.Stopping => "Stopping...",
-                                        _ => throw new ArgumentOutOfRangeException(nameof(x), x, null)
-                                    }
-                                )))
-                                .OnClick(() =>
-                                {
-                                    if (App.state.captureStatus.value == CaptureStatus.Idle)
-                                        App.state.ExecuteAction(new SetCaptureStatusAction(CaptureStatus.Starting));
-                                    else if (App.state.captureStatus.value == CaptureStatus.Capturing)
-                                        App.state.ExecuteAction(new SetCaptureStatusAction(CaptureStatus.Stopping));
-                                }),
-                            Dropdown()
-                                .PreferredWidth(100)
-                                .PreferredHeight(29.65f)
-                                .Options(Enum.GetNames(typeof(CaptureType)))
-                                .Interactable(App.state.captureStatus.SelectDynamic(x => x == CaptureStatus.Idle))
-                                .BindValue(App.state.captureMode, x => (CaptureType)x, x => (int)x)
-                        )
-                    )
+                Control("content").FillParent().Children(App.state.loggedIn.SelectDynamic(loggedIn =>
+                    loggedIn ? ConstructCaptureListAndUI() : ConstructLoginScreen()
+                ))
             ));
+        }
+
+        private class LoginScreenProps : IDisposable
+        {
+            public ValueObservable<string> username { get; private set; } = new ValueObservable<string>();
+            public ValueObservable<string> password { get; private set; } = new ValueObservable<string>();
+
+            public void Dispose()
+            {
+                username.Dispose();
+                password.Dispose();
+            }
+        }
+
+        private IControl ConstructLoginScreen()
+        {
+            var props = new LoginScreenProps();
+            return Control(props).Children(VerticalLayout()
+                .FillParent()
+                .Anchor(new Vector2(0.5f, 0.5f))
+                .SizeDelta(new Vector2(300, 150)).Style(x =>
+                {
+                    x.childAlignment.value = TextAnchor.MiddleCenter;
+                    x.childControlWidth.value = true;
+                    x.childControlHeight.value = true;
+                    x.spacing.value = 10;
+                })
+                .Children(
+                    Row().Children(
+                        Text()
+                            .Value("Username")
+                            .PreferredWidth(70),
+                        InputField()
+                            .Text(props.username)
+                            .FlexibleWidth(true)
+                            .PreferredHeight(23)
+                            .OnChange(x => props.username.value = x)
+                    ),
+                    Row().Children(
+                        Text()
+                            .Value("Password")
+                            .PreferredWidth(70),
+                        InputField()
+                            .Text(props.password)
+                            .FlexibleWidth(true)
+                            .PreferredHeight(23)
+                            .ContentType(TMP_InputField.ContentType.Password)
+                            .OnChange(x => props.password.value = x)
+                    ),
+                    Button().Children(Text().Value("Log In")).OnClick(() =>
+                    {
+                        // login here
+                        App.state.loggedIn.ExecuteSet(true);
+                    })
+                )
+            );
+        }
+
+        private IControl ConstructCaptureListAndUI()
+        {
+            return VerticalLayout()
+                .Style(x =>
+                {
+                    x.childControlWidth.value = true;
+                    x.childControlHeight.value = true;
+                    x.childForceExpandWidth.value = true;
+                    x.spacing.value = 10;
+                    x.padding.value = new RectOffset(10, 10, 10, 10);
+                })
+                .FillParent()
+                .Children(
+                    ScrollRect().Style(x => x.horizontal.value = false).FlexibleHeight(true).Content(
+                        VerticalLayout().FillParentWidth().FitContentVertical(ContentSizeFitter.FitMode.PreferredSize).Style(x =>
+                        {
+                            x.childForceExpandWidth.value = true;
+                            x.childControlWidth.value = true;
+                            x.childControlHeight.value = true;
+                            x.spacing.value = 10;
+                        }).Children(
+                            App.state.captures
+                                .CreateDynamic(x => ConstructCaptureRow(x.Value).WithMetadata(x.Value.name))
+                                .OrderByDynamic(x => x.metadata.AsObservable())
+                        )
+                    ),
+                    Row().Children(
+                        Button()
+                            .Interactable(App.state.captureStatus.SelectDynamic(x => x == CaptureStatus.Idle || x == CaptureStatus.Capturing))
+                            .Children(Text().Value(App.state.captureStatus.SelectDynamic(x =>
+                                x switch
+                                {
+                                    CaptureStatus.Idle => "Start Capture",
+                                    CaptureStatus.Starting => "Starting...",
+                                    CaptureStatus.Capturing => "Stop Capture",
+                                    CaptureStatus.Stopping => "Stopping...",
+                                    _ => throw new ArgumentOutOfRangeException(nameof(x), x, null)
+                                }
+                            )))
+                            .OnClick(() =>
+                            {
+                                if (App.state.captureStatus.value == CaptureStatus.Idle)
+                                    App.state.ExecuteAction(new SetCaptureStatusAction(CaptureStatus.Starting));
+                                else if (App.state.captureStatus.value == CaptureStatus.Capturing)
+                                    App.state.ExecuteAction(new SetCaptureStatusAction(CaptureStatus.Stopping));
+                            }),
+                        Dropdown()
+                            .PreferredWidth(100)
+                            .PreferredHeight(29.65f)
+                            .Options(Enum.GetNames(typeof(CaptureType)))
+                            .Interactable(App.state.captureStatus.SelectDynamic(x => x == CaptureStatus.Idle))
+                            .BindValue(App.state.captureMode, x => (CaptureType)x, x => (int)x)
+                    )
+                );
         }
 
         private IControl<LayoutProps> ConstructCaptureRow(CaptureState capture)

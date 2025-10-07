@@ -30,7 +30,7 @@
       "dependencies": {}
     },
     "com.outernet.zedclient": {
-      "version": "file:../../../capture-app/zed/src/clients/unity/src/ZedClient",
+      "version": "file:../../zed/src/openapi_generated/unity/src/ZedClient",
       "depth": 0,
       "source": "local",
       "dependencies": {}
