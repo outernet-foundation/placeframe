@@ -523,6 +523,13 @@ namespace Nessle
             return control;
         }
 
+        public static T Style<T>(this T control, Style style)
+            where T : IControl
+        {
+            control.SetStyle(style);
+            return control;
+        }
+
         public static T Columns<T>(this T control, float spacing, params IControl[] controls)
             where T : IControl
         {

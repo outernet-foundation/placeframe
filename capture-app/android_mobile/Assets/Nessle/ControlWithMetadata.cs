@@ -23,6 +23,8 @@ namespace Nessle
         public GameObject gameObject => _control.gameObject;
         public IValueObservable<Rect> rect => _control.rect;
 
+        public Style style => _control.style;
+
         private IControl _control;
 
         public UnityControlWithMetadata(IControl<TProps> control, TData metadata)
@@ -65,5 +67,11 @@ namespace Nessle
 
         public void HandleControlHierarchyChanged()
             => control.HandleControlHierarchyChanged();
+
+        public void SetStyle(Style style)
+            => control.SetStyle(style);
+
+        public void UseStyle<T>(StyleProperty<T> property, Action<T> onChanged)
+            => control.UseStyle(property, onChanged);
     }
 }

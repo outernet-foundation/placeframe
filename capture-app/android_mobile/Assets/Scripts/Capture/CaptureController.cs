@@ -263,6 +263,7 @@ namespace PlerionClient.Client
                     .Interactable(capture.uploaded.AsObservable().SelectDynamic(x => !x))
                     .PreferredWidth(100)
                     .Children(Text()
+                        .Style(new Style() { { StyleProperties.Alignment, TextAlignmentOptions.CaplineGeoAligned } })
                         .Value(capture.uploaded.SelectDynamic(x => x ? "Uploaded" : "Upload")))
                     .OnClick(() => UploadCapture(capture.id, capture.name.value ?? capture.id.ToString(), capture.type.value, default).Forget())
             );

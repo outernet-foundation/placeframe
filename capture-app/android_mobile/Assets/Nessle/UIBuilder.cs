@@ -20,6 +20,19 @@ namespace Nessle
         public static Control<T> Control<T>(string identifier, T props, params Type[] components)
             => new Control<T>(identifier, props, components);
 
+        public static Style AppendStyle(this Style style, Style toAppend)
+        {
+            var result = new Style();
+
+            foreach (var entry in style)
+                result.Add(entry.Clone());
+
+            foreach (var entry in toAppend)
+                result.Add(entry.Clone());
+
+            return result;
+        }
+
         public static Control<T> Style<T>(this Control<T> control, Action<T> style)
         {
             style(control.props);
