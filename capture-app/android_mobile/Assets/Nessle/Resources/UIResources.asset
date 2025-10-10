@@ -12,6 +12,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 840ef76fa28f1674c99e685b35ed5705, type: 3}
   m_Name: UIResources
   m_EditorClassIdentifier: 
+  _text: {fileID: 5901010636218190572, guid: fa16e266187ffce4e96c745db7145c9f, type: 3}
+  _inputField: {fileID: 5753239389893161068, guid: c2017062aa2a40c47b182faa3bd04686,
+    type: 3}
+  _scrollbar: {fileID: 5396963508755658476, guid: 3a0aceadf1b686e42b0da829c72021c5,
+    type: 3}
+  _scrollRect: {fileID: 626164673108719325, guid: 5fb274f2a335372478afc1b99b8c6d96,
+    type: 3}
+  _dropdown: {fileID: 5892162200245703700, guid: c6ee57f14e20ae84abcbbad54afcaf87,
+    type: 3}
+  _button: {fileID: 2827886418502830548, guid: 592847b8c1eb350409ceae5d8c4bff9d, type: 3}
+  _horizontalLayout: {fileID: 245399730973470707, guid: 287872467c40ad2448fe0a045a0bb303,
+    type: 3}
+  _verticalLayout: {fileID: 1852009920397563416, guid: ea51958a6a4ae8b44a3bf1c0d725033d,
+    type: 3}
+  _toggle: {fileID: 3532798397269003879, guid: 1cbc9ed4453d46540a57c8f02405cbca, type: 3}
+  _slider: {fileID: 3499428300819404778, guid: 8c086077627763b46a9b09f7bac63780, type: 3}
   _roundedBox: {fileID: 21300000, guid: 015ddd0cfb8b7ee449920b61d26c3e9d, type: 3}
   _arrowDown: {fileID: 21300000, guid: 1f29fedf121870f41a5e008fb7423c21, type: 3}
   _arrowRight: {fileID: 21300000, guid: 2df4a3042400a29489e2dbe7d91b612f, type: 3}

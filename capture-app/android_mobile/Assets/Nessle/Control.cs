@@ -1,5 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using FofX;
 using ObserveThing;
 using UnityEngine;
 
@@ -8,6 +12,8 @@ namespace Nessle
     public interface IControl : IDisposable
     {
         IControl parent { get; }
+        string identifier { get; }
+        string identifierFull { get; }
         GameObject gameObject { get; }
         RectTransform transform { get; }
 
@@ -22,6 +28,8 @@ namespace Nessle
         void AddChild(IControl control);
         void RemoveChild(IControl control);
         void SetSiblingIndex(int index);
+
+        void HandleControlHierarchyChanged();
     }
 
     public interface IControl<out T> : IControl
@@ -32,6 +40,8 @@ namespace Nessle
     public class Control : IControl
     {
         public IControl parent { get; private set; }
+        public string identifier { get; private set; }
+        public string identifierFull { get; private set; }
         public GameObject gameObject { get; private set; }
         public RectTransform transform { get; private set; }
         public IValueObservable<Rect> rect => _rect;
@@ -40,12 +50,16 @@ namespace Nessle
         private HashSet<IControl> _children = new HashSet<IControl>();
         private List<IDisposable> _bindings = new List<IDisposable>();
 
-        public Control(string name = null, params Type[] components)
-            : this(new GameObject(name, components)) { }
+        public Control(string identifier, params Type[] components)
+            : this(identifier, new GameObject(identifier, components)) { }
 
-        public Control(GameObject gameObject)
+        public Control(string identifier, GameObject gameObject)
         {
+            this.identifier = identifierFull = identifier;
             this.gameObject = gameObject;
+
+            gameObject.name = identifier;
+
             transform = gameObject.GetOrAddComponent<RectTransform>();
             gameObject.GetOrAddComponent<RectTransformChangedHandler>().onReceivedEvent += x => _rect.value = x;
         }
@@ -86,6 +100,16 @@ namespace Nessle
 
             if (parent != null)
                 parent.AddChild(this);
+
+            HandleControlHierarchyChanged();
+        }
+
+        public void HandleControlHierarchyChanged()
+        {
+            identifierFull = parent == null ? identifier : $"{parent.identifierFull}.{identifier}";
+
+            foreach (var child in _children)
+                child.HandleControlHierarchyChanged();
         }
 
         public void AddChild(IControl child)
@@ -130,11 +154,11 @@ namespace Nessle
     {
         public T props { get; }
 
-        public Control(T props, string name = null, params Type[] components)
-            : this(props, new GameObject(name, components)) { }
+        public Control(string identifier, T props, params Type[] components)
+            : this(identifier, props, new GameObject(identifier, components)) { }
 
-        public Control(T props, GameObject gameObject)
-            : base(gameObject)
+        public Control(string identifier, T props, GameObject gameObject)
+            : base(identifier, gameObject)
         {
             this.props = props;
         }

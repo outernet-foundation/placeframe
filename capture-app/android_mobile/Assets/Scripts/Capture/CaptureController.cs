@@ -35,14 +35,6 @@ namespace PlerionClient.Client
         {
             capturesApi = new DefaultApi(new Configuration { BasePath = App.state.plerionAPIBaseUrl.value });
 
-            DefaultButtonStyle = StyleButton;
-            DefaultScrollbarStyle = StyleScrollBar;
-            DefaultInputFieldStyle = StyleInputField;
-            DefaultTextStyle = StyleText;
-            DefaultScrollRectStyle = StyleScrollRect;
-            DefaultDropdownStyle = StyleDropdown;
-            DefaultSliderStyle = StyleSlider;
-
             ui = ConstructUI(canvas);
 
             App.RegisterObserver(HandleCaptureStatusChanged, App.state.captureStatus);
@@ -195,9 +187,9 @@ namespace PlerionClient.Client
 
         private IControl ConstructUI(Canvas canvas)
         {
-            return new Control(canvas.gameObject).Children(SafeArea().FillParent().Children(
-                Image().FillParent().Color(UIResources.PanelColor),
-                VerticalLayout()
+            return new Control("root", canvas.gameObject).Children(SafeArea().FillParent().Children(
+                Image("background").FillParent().Color(new Color(0.2196079f, 0.2196079f, 0.2196079f, 1f)),
+                VerticalLayout("content")
                     .Style(x =>
                     {
                         x.childControlWidth.value = true;
@@ -208,8 +200,8 @@ namespace PlerionClient.Client
                     })
                     .FillParent()
                     .Children(
-                        ScrollRect().Style(x => x.horizontal.value = false).FlexibleHeight(true).Content(
-                            VerticalLayout().FillParentWidth().FitContentVertical(ContentSizeFitter.FitMode.PreferredSize).Style(x =>
+                        ScrollRect("captureList").Style(x => x.horizontal.value = false).FlexibleHeight(true).Content(
+                            VerticalLayout("content").FillParentWidth().FitContentVertical(ContentSizeFitter.FitMode.PreferredSize).Style(x =>
                             {
                                 x.childForceExpandWidth.value = true;
                                 x.childControlWidth.value = true;
@@ -221,8 +213,9 @@ namespace PlerionClient.Client
                                     .OrderByDynamic(x => x.metadata.AsObservable())
                             )
                         ),
-                        Row().Children(
+                        Row("bottomBar").Children(
                             Button()
+                                .PreferredWidth(110)
                                 .Interactable(App.state.captureStatus.SelectDynamic(x => x == CaptureStatus.Idle || x == CaptureStatus.Capturing))
                                 .Children(Text().Value(App.state.captureStatus.SelectDynamic(x =>
                                     x switch
@@ -243,7 +236,6 @@ namespace PlerionClient.Client
                                 }),
                             Dropdown()
                                 .PreferredWidth(100)
-                                .PreferredHeight(29.65f)
                                 .Options(Enum.GetNames(typeof(CaptureType)))
                                 .Interactable(App.state.captureStatus.SelectDynamic(x => x == CaptureStatus.Idle))
                                 .BindValue(App.state.captureMode, x => (CaptureType)x, x => (int)x)
@@ -270,7 +262,8 @@ namespace PlerionClient.Client
                 Button()
                     .Interactable(capture.uploaded.AsObservable().SelectDynamic(x => !x))
                     .PreferredWidth(100)
-                    .Children(Text().Style(x => x.style.alignment.value = TextAlignmentOptions.CaplineGeoAligned).Value(capture.uploaded.SelectDynamic(x => x ? "Uploaded" : "Upload")))
+                    .Children(Text()
+                        .Value(capture.uploaded.SelectDynamic(x => x ? "Uploaded" : "Upload")))
                     .OnClick(() => UploadCapture(capture.id, capture.name.value ?? capture.id.ToString(), capture.type.value, default).Forget())
             );
         }

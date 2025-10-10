@@ -15,6 +15,8 @@ namespace Nessle
         public IControl<TProps> control { get; }
         public TData metadata { get; }
         public IControl parent => control.parent;
+        public string identifier => control.identifier;
+        public string identifierFull => control.identifierFull;
         public TProps props => control.props;
 
         public RectTransform transform => _control.transform;
@@ -60,5 +62,8 @@ namespace Nessle
 
         public void Dispose()
             => control.Dispose();
+
+        public void HandleControlHierarchyChanged()
+            => control.HandleControlHierarchyChanged();
     }
 }

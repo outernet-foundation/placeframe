@@ -5,127 +5,25 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-using ImageType = UnityEngine.UI.Image.Type;
 using TMP_ContentType = TMPro.TMP_InputField.ContentType;
 using TMP_LineType = TMPro.TMP_InputField.LineType;
-using ScrollRectMovementType = UnityEngine.UI.ScrollRect.MovementType;
 using ScrollbarDirection = UnityEngine.UI.Scrollbar.Direction;
-using ScrollRectScrollbarVisibility = UnityEngine.UI.ScrollRect.ScrollbarVisibility;
+using SliderDirection = UnityEngine.UI.Slider.Direction;
 
 namespace Nessle
 {
     public static class UIBuilder
     {
-        public static Action<TextStyleProps> DefaultTextStyle;
-        public static Action<ImageProps> DefaultImageStyle;
-        public static Action<ButtonProps> DefaultButtonStyle;
-        public static Action<InputFieldProps> DefaultInputFieldStyle;
-        public static Action<ScrollbarProps> DefaultScrollbarStyle;
-        public static Action<ScrollRectProps> DefaultScrollRectStyle;
-        public static Action<DropdownProps> DefaultDropdownStyle;
+        public static Control Control(string identifier, params Type[] components)
+            => new Control(identifier, components);
 
-        public static TextStyleProps DefaultTextStyleProps()
+        public static Control<T> Control<T>(string identifier, T props, params Type[] components)
+            => new Control<T>(identifier, props, components);
+
         {
-            var props = new TextStyleProps();
-            DefaultTextStyle?.Invoke(props);
-            return props;
-        }
 
-        public static ImageProps DefaultImageProps()
-        {
-            var props = new ImageProps();
-            DefaultImageStyle?.Invoke(props);
-            return props;
-        }
 
-        public static ButtonProps DefaultButtonProps()
-        {
-            var props = new ButtonProps();
-            DefaultButtonStyle?.Invoke(props);
-            return props;
-        }
 
-        public static InputFieldProps DefaultInputFieldProps()
-        {
-            var props = new InputFieldProps();
-            DefaultInputFieldStyle?.Invoke(props);
-            return props;
-        }
-
-        public static ScrollbarProps DefaultScrollbarProps()
-        {
-            var props = new ScrollbarProps();
-            DefaultScrollbarStyle?.Invoke(props);
-            return props;
-        }
-
-        public static ScrollRectProps DefaultScrollRectProps()
-        {
-            var props = new ScrollRectProps();
-            DefaultScrollRectStyle?.Invoke(props);
-            return props;
-        }
-
-        public static DropdownProps DefaultDropdownProps()
-        {
-            var props = new DropdownProps();
-
-            props.captionText.margin.value = new Vector4(12, 0, 0, 0);
-            props.captionText.alignment.value = TextAlignmentOptions.CaplineLeft;
-
-            props.arrow.style.preserveAspect.value = true;
-            props.arrow.sprite.value = UIResources.ArrowDown;
-
-            props.itemText.margin.value = new Vector4(12, 0, 0, 0);
-            props.itemText.alignment.value = TextAlignmentOptions.CaplineLeft;
-
-            props.itemCheckmark.style.preserveAspect.value = true;
-            props.itemCheckmark.sprite.value = UIResources.Checkmark;
-
-            DefaultDropdownStyle?.Invoke(props);
-            return props;
-        }
-
-        public static Control Control(string name, params Type[] components)
-            => new Control(name, components);
-
-        public static Control<T> Control<T>(T props, params Type[] components)
-            => new Control<T>(props, "Control", components);
-
-        public static Control<T> Control<T>(string name, T props, params Type[] components)
-            => new Control<T>(props, name, components);
-
-        public static Control<T> Control<T>(T props, RectTransform control)
-            => new Control<T>(props, control.gameObject);
-
-        public static Control<T> HorizontalControl<T>(string name, Func<T, LayoutProps> selectLayoutProps, params Type[] components)
-            where T : new()
-        {
-            var props = new T();
-            return HorizontalControl(name, props, selectLayoutProps(props), components);
-        }
-
-        public static Control<T> HorizontalControl<T>(string name, T props, LayoutProps layoutProps, params Type[] components)
-        {
-            var control = new Control<T>(props, name, components);
-            var layout = control.gameObject.AddComponent<HorizontalLayoutGroup>();
-            control.AddBinding(BindLayout(layoutProps, layout));
-            return control;
-        }
-
-        public static Control<T> VerticalControl<T>(string name, Func<T, LayoutProps> selectLayoutProps, params Type[] components)
-            where T : new()
-        {
-            var props = new T();
-            return VerticalControl(name, props, selectLayoutProps(props), components);
-        }
-
-        public static Control<T> VerticalControl<T>(string name, T props, LayoutProps layoutProps, params Type[] components)
-        {
-            var control = new Control<T>(props, name, components);
-            var layout = control.gameObject.AddComponent<VerticalLayoutGroup>();
-            control.AddBinding(BindLayout(layoutProps, layout));
-            return control;
         }
 
         public static Control<T> Style<T>(this Control<T> control, Action<T> style)
@@ -137,67 +35,21 @@ namespace Nessle
         public class TextProps : IDisposable
         {
             public ValueObservable<string> text { get; } = new ValueObservable<string>();
-            public TextStyleProps style { get; } = DefaultTextStyleProps();
 
             public void Dispose()
             {
                 text.Dispose();
-                style.Dispose();
             }
         }
 
-        public class TextStyleProps : IDisposable
+        public static Control<TextProps> Text(string identifier = "text", TextProps props = default, TextMeshProUGUI prefab = default)
         {
-            public ValueObservable<float> fontSize { get; } = new ValueObservable<float>();
-            public ValueObservable<Color> color { get; } = new ValueObservable<Color>();
-            public ValueObservable<TextAlignmentOptions> alignment { get; } = new ValueObservable<TextAlignmentOptions>();
-            public ValueObservable<TMP_FontAsset> font { get; } = new ValueObservable<TMP_FontAsset>();
-            public ValueObservable<FontStyles> fontStyle { get; } = new ValueObservable<FontStyles>();
-            public ValueObservable<Vector4> margin { get; } = new ValueObservable<Vector4>();
-            public ValueObservable<TextWrappingModes> wrappingMode { get; } = new ValueObservable<TextWrappingModes>();
-            public ValueObservable<TextOverflowModes> overflowMode { get; } = new ValueObservable<TextOverflowModes>();
-            public ValueObservable<FontWeight> fontWeight { get; } = new ValueObservable<FontWeight>();
-
-            public void Dispose()
-            {
-                fontSize.Dispose();
-                color.Dispose();
-                alignment.Dispose();
-                font.Dispose();
-                fontStyle.Dispose();
-                margin.Dispose();
-                wrappingMode.Dispose();
-                overflowMode.Dispose();
-                fontWeight.Dispose();
-            }
-        }
-
-        public static Control<TextProps> Text(TextProps props = default)
-            => Text(props, out var _);
-
-        private static Control<TextProps> Text(out TextMeshProUGUI textComponent)
-            => Text(null, out textComponent);
-
-        private static Control<TextProps> Text(TextProps props, out TextMeshProUGUI textComponent)
-        {
-            props = props ?? new TextProps();
-            var control = new Control<TextProps>(props, "Text", typeof(TextMeshProUGUI));
-            var text = control.gameObject.GetComponent<TextMeshProUGUI>();
+            var text = UnityEngine.Object.Instantiate(prefab == null ? UIResources.Text : prefab);
+            var control = new Control<TextProps>(identifier, props ?? new TextProps(), text.gameObject);
 
             control.AddBinding(
-                props.text.Subscribe(x => text.text = x.currentValue),
-                props.style.fontSize.Subscribe(x => text.fontSize = x.currentValue),
-                props.style.color.Subscribe(x => text.color = x.currentValue),
-                props.style.alignment.Subscribe(x => text.alignment = x.currentValue),
-                props.style.font.Subscribe(x => text.font = x.currentValue),
-                props.style.fontStyle.Subscribe(x => text.fontStyle = x.currentValue),
-                props.style.margin.Subscribe(x => text.margin = x.currentValue),
-                props.style.wrappingMode.Subscribe(x => text.textWrappingMode = x.currentValue),
-                props.style.overflowMode.Subscribe(x => text.overflowMode = x.currentValue),
-                props.style.fontWeight.Subscribe(x => text.fontWeight = x.currentValue)
+                control.props.text.Subscribe(x => text.text = x.currentValue)
             );
-
-            textComponent = text;
 
             return control;
         }
@@ -205,98 +57,48 @@ namespace Nessle
         public class ImageProps : IDisposable
         {
             public ValueObservable<Sprite> sprite { get; } = new ValueObservable<Sprite>();
-            public ImageStyleProps style { get; } = new ImageStyleProps();
+            public ValueObservable<Color> color { get; } = new ValueObservable<Color>();
 
             public void Dispose()
             {
                 sprite.Dispose();
-                style.Dispose();
-            }
-        }
-
-        public class ImageStyleProps : IDisposable
-        {
-            public ValueObservable<Color> color { get; } = new ValueObservable<Color>(Color.white);
-            public ValueObservable<float> pixelsPerUnitMultiplier { get; } = new ValueObservable<float>();
-            public ValueObservable<bool> preserveAspect { get; } = new ValueObservable<bool>();
-            public ValueObservable<ImageType> imageType { get; } = new ValueObservable<ImageType>();
-
-            public void Dispose()
-            {
                 color.Dispose();
-                pixelsPerUnitMultiplier.Dispose();
-                preserveAspect.Dispose();
-                imageType.Dispose();
             }
         }
 
-        public static Control<ImageProps> Image(ImageProps props = default)
-            => Image(props ?? DefaultImageProps(), out var _);
-
-        private static Control<ImageProps> Image(ImageProps props, out Image imageComponent)
+        public static Control<ImageProps> Image(string identifier = "image", ImageProps props = default, Image prefab = default)
         {
-            props = props ?? DefaultImageProps();
-            var control = new Control<ImageProps>(props, "Image", typeof(Image));
-            var image = control.gameObject.GetComponent<Image>();
+            var image = prefab == null ? new GameObject(identifier, typeof(Image)).GetComponent<Image>() : UnityEngine.Object.Instantiate(prefab);
+            var control = new Control<ImageProps>(identifier, props ?? new ImageProps(), image.gameObject);
 
             control.AddBinding(
-                props.sprite.Subscribe(x => image.sprite = x.currentValue),
-                props.style.color.Subscribe(x => image.color = x.currentValue),
-                props.style.pixelsPerUnitMultiplier.Subscribe(x => image.pixelsPerUnitMultiplier = x.currentValue),
-                props.style.preserveAspect.Subscribe(x => image.preserveAspect = x.currentValue),
-                props.style.imageType.Subscribe(x => image.type = x.currentValue)
+                control.props.sprite.Subscribe(x => image.sprite = x.currentValue),
+                control.props.color.Subscribe(x => image.color = x.currentValue)
             );
-
-            imageComponent = image;
 
             return control;
         }
 
         public class ButtonProps : IDisposable
         {
-            public event Action onClick;
-            public ValueObservable<bool> selected { get; } = new ValueObservable<bool>();
-            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>(true);
-            public ValueObservable<RectOffset> padding { get; } = new ValueObservable<RectOffset>(new RectOffset());
-            public ValueObservable<float> spacing { get; } = new ValueObservable<float>(10);
-            public ImageProps background { get; } = DefaultImageProps();
+            public ValueObservable<Action> onClick { get; } = new ValueObservable<Action>();
+            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>();
 
             public void Dispose()
             {
+                onClick.Dispose();
                 interactable.Dispose();
-                background.Dispose();
-            }
-
-            public void InvokeOnClick()
-            {
-                onClick?.Invoke();
             }
         }
 
-        public static Control<ButtonProps> Button(ButtonProps props = default)
+        public static Control<ButtonProps> Button(string identifier = "button", ButtonProps props = default, Button prefab = default)
         {
-            props = props ?? DefaultButtonProps();
-            var control = new Control<ButtonProps>(props, "Button", typeof(Button), typeof(HorizontalLayoutGroup));
-            var button = control.gameObject.GetComponent<Button>();
-            var layout = control.gameObject.GetComponent<HorizontalLayoutGroup>();
+            var button = UnityEngine.Object.Instantiate(prefab == null ? UIResources.Button : prefab);
+            var control = new Control<ButtonProps>(identifier, props ?? new ButtonProps(), button.gameObject);
 
-            control.Children(Image(props.background, out var background).Name("Background").IgnoreLayout(true).FillParent());
+            button.onClick.AddListener(() => control.props.onClick.value?.Invoke());
 
-            layout.childControlWidth = true;
-            layout.childControlHeight = true;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
-            layout.childAlignment = TextAnchor.MiddleCenter;
-
-            button.targetGraphic = background;
-
-            button.onClick.AddListener(props.InvokeOnClick);
-
-            control.AddBinding(
-                props.interactable.Subscribe(x => button.interactable = x.currentValue),
-                props.padding.Subscribe(x => layout.padding = x.currentValue),
-                props.spacing.Subscribe(x => layout.spacing = x.currentValue)
-            );
+            control.AddBinding(control.props.interactable.Subscribe(x => button.interactable = x.currentValue));
 
             return control;
         }
@@ -329,173 +131,212 @@ namespace Nessle
             }
         }
 
-        public static Control<LayoutProps> HorizontalLayout(LayoutProps props = default)
+        public static Control<LayoutProps> HorizontalLayout(string identifier = "horizontalLayout.layout", LayoutProps props = default, HorizontalLayoutGroup prefab = default)
         {
-            props = props ?? new LayoutProps();
-            var control = new Control<LayoutProps>(props, "HorizontalLayout", typeof(HorizontalLayoutGroup));
-            var layout = control.gameObject.GetComponent<HorizontalLayoutGroup>();
-            control.AddBinding(BindLayout(props, layout));
-            return control;
-        }
+            var layout = UnityEngine.Object.Instantiate(prefab == null ? UIResources.HorizontalLayout : prefab);
+            var control = new Control<LayoutProps>(identifier, props ?? new LayoutProps(), layout.gameObject);
 
-        public static Control<LayoutProps> VerticalLayout(LayoutProps props = default)
-        {
-            props = props ?? new LayoutProps();
-            var control = new Control<LayoutProps>(props, "VerticalLayout", typeof(VerticalLayoutGroup));
-            var layout = control.gameObject.GetComponent<VerticalLayoutGroup>();
-            control.AddBinding(BindLayout(props, layout));
-            return control;
-        }
-
-        public static IDisposable BindLayout(LayoutProps props, HorizontalOrVerticalLayoutGroup layout)
-        {
-            return new ComposedDisposable(
-                props.padding.Subscribe(x => layout.padding = x.currentValue),
-                props.spacing.Subscribe(x => layout.spacing = x.currentValue),
-                props.childAlignment.Subscribe(x => layout.childAlignment = x.currentValue),
-                props.reverseArrangement.Subscribe(x => layout.reverseArrangement = x.currentValue),
-                props.childForceExpandHeight.Subscribe(x => layout.childForceExpandHeight = x.currentValue),
-                props.childForceExpandWidth.Subscribe(x => layout.childForceExpandWidth = x.currentValue),
-                props.childControlWidth.Subscribe(x => layout.childControlWidth = x.currentValue),
-                props.childControlHeight.Subscribe(x => layout.childControlHeight = x.currentValue),
-                props.childScaleWidth.Subscribe(x => layout.childScaleWidth = x.currentValue),
-                props.childScaleHeight.Subscribe(x => layout.childScaleHeight = x.currentValue)
+            control.AddBinding(
+                control.props.padding.Subscribe(x => layout.padding = x.currentValue),
+                control.props.spacing.Subscribe(x => layout.spacing = x.currentValue),
+                control.props.childAlignment.Subscribe(x => layout.childAlignment = x.currentValue),
+                control.props.reverseArrangement.Subscribe(x => layout.reverseArrangement = x.currentValue),
+                control.props.childForceExpandHeight.Subscribe(x => layout.childForceExpandHeight = x.currentValue),
+                control.props.childForceExpandWidth.Subscribe(x => layout.childForceExpandWidth = x.currentValue),
+                control.props.childControlWidth.Subscribe(x => layout.childControlWidth = x.currentValue),
+                control.props.childControlHeight.Subscribe(x => layout.childControlHeight = x.currentValue),
+                control.props.childScaleWidth.Subscribe(x => layout.childScaleWidth = x.currentValue),
+                control.props.childScaleHeight.Subscribe(x => layout.childScaleHeight = x.currentValue)
             );
+
+            return control;
+        }
+
+        public static Control<LayoutProps> VerticalLayout(string identifier = "verticalLayout.layout", LayoutProps props = default, VerticalLayoutGroup prefab = default)
+        {
+            var layout = UnityEngine.Object.Instantiate(prefab == null ? UIResources.VerticalLayout : prefab);
+            var control = new Control<LayoutProps>(identifier, props ?? new LayoutProps(), layout.gameObject);
+
+            control.AddBinding(
+                control.props.padding.Subscribe(x => layout.padding = x.currentValue),
+                control.props.spacing.Subscribe(x => layout.spacing = x.currentValue),
+                control.props.childAlignment.Subscribe(x => layout.childAlignment = x.currentValue),
+                control.props.reverseArrangement.Subscribe(x => layout.reverseArrangement = x.currentValue),
+                control.props.childForceExpandHeight.Subscribe(x => layout.childForceExpandHeight = x.currentValue),
+                control.props.childForceExpandWidth.Subscribe(x => layout.childForceExpandWidth = x.currentValue),
+                control.props.childControlWidth.Subscribe(x => layout.childControlWidth = x.currentValue),
+                control.props.childControlHeight.Subscribe(x => layout.childControlHeight = x.currentValue),
+                control.props.childScaleWidth.Subscribe(x => layout.childScaleWidth = x.currentValue),
+                control.props.childScaleHeight.Subscribe(x => layout.childScaleHeight = x.currentValue)
+            );
+
+            return control;
         }
 
         public class InputFieldProps : IDisposable
         {
-            public event Action<string> onEndEdit;
-
-            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>(true);
+            public ValueObservable<string> inputText { get; } = new ValueObservable<string>();
+            public ValueObservable<string> placeholderText { get; } = new ValueObservable<string>();
             public ValueObservable<TMP_ContentType> contentType { get; } = new ValueObservable<TMP_ContentType>();
             public ValueObservable<bool> readOnly { get; } = new ValueObservable<bool>();
             public ValueObservable<TMP_LineType> lineType { get; } = new ValueObservable<TMP_LineType>();
             public ValueObservable<int> characterLimit { get; } = new ValueObservable<int>();
-            public TextProps inputText { get; } = new TextProps();
-            public TextProps placeholder { get; } = new TextProps();
-            public ImageProps background { get; } = DefaultImageProps();
+            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>();
+            public ValueObservable<Action<string>> onEndEdit { get; } = new ValueObservable<Action<string>>();
 
             public void Dispose()
             {
+                inputText.Dispose();
+                placeholderText.Dispose();
                 contentType.Dispose();
                 readOnly.Dispose();
                 lineType.Dispose();
                 characterLimit.Dispose();
                 interactable.Dispose();
-                inputText.Dispose();
-                placeholder.Dispose();
-                background.Dispose();
-            }
-
-            public void RaiseEndEdit()
-            {
-                onEndEdit?.Invoke(inputText.text.value);
+                onEndEdit.Dispose();
             }
         }
 
-        public static Control<InputFieldProps> InputField(InputFieldProps props = default)
-            => InputField(props ?? DefaultInputFieldProps(), out var _);
-
-        private static Control<InputFieldProps> InputField(InputFieldProps props, out TMP_InputField inputFieldComponent)
+        public static Control<InputFieldProps> InputField(string identifier = "inputField", InputFieldProps props = default, TMP_InputField prefab = default)
         {
-            props = props ?? DefaultInputFieldProps();
-            var control = new Control<InputFieldProps>(props, "InputField", typeof(TMP_InputField));
-            var inputField = control.gameObject.GetComponent<TMP_InputField>();
-
-            IControl viewport;
-
-            control.Children(
-                Image(props.background, out var background).Name("Background").FillParent(),
-                viewport = Control("Viewport", typeof(RectMask2D)).FillParent().Children(
-                    Text(props.inputText, out var inputText).Name("InputText").FillParent(),
-                    Text(props.placeholder, out var placeholder).Name("Placeholder").FillParent()
-                )
-            );
-
-            inputField.targetGraphic = background;
-            inputField.textViewport = viewport.transform;
-            inputField.textComponent = inputText;
-            inputField.placeholder = placeholder;
+            var inputField = UnityEngine.Object.Instantiate(prefab == null ? UIResources.InputField : prefab);
+            var control = new Control<InputFieldProps>(identifier, props ?? new InputFieldProps(), inputField.gameObject);
 
             inputField.enabled = false;
             inputField.enabled = true;
 
-            inputField.onEndEdit.AddListener(x =>
-            {
-                props.inputText.text.value = x;
-                props.RaiseEndEdit();
-            });
+            inputField.onValueChanged.AddListener(x => control.props.inputText.value = x);
+            inputField.onEndEdit.AddListener(x => control.props.onEndEdit.value?.Invoke(x));
 
             control.AddBinding(
-                props.inputText.text.Subscribe(x => inputField.text = x.currentValue),
-                props.contentType.Subscribe(x => inputField.contentType = x.currentValue),
-                props.readOnly.Subscribe(x => inputField.readOnly = x.currentValue),
-                props.lineType.Subscribe(x => inputField.lineType = x.currentValue),
-                props.characterLimit.Subscribe(x => inputField.characterLimit = x.currentValue),
-                props.interactable.Subscribe(x => inputField.interactable = x.currentValue)
+                control.props.inputText.Subscribe(x => inputField.text = x.currentValue),
+                control.props.placeholderText.Subscribe(x =>
+                {
+                    if (inputField.placeholder is TextMeshProUGUI placeholder)
+                        placeholder.text = x.currentValue;
+                }),
+                control.props.contentType.Subscribe(x => inputField.contentType = x.currentValue),
+                control.props.readOnly.Subscribe(x => inputField.readOnly = x.currentValue),
+                control.props.lineType.Subscribe(x => inputField.lineType = x.currentValue),
+                control.props.characterLimit.Subscribe(x => inputField.characterLimit = x.currentValue),
+                control.props.interactable.Subscribe(x => inputField.interactable = x.currentValue)
             );
-
-            inputFieldComponent = inputField;
 
             return control;
         }
 
-        public static Control Space()
-            => new Control("Space");
+        public class FloatFieldProps : IDisposable
+        {
+            public ValueObservable<float> value { get; } = new ValueObservable<float>();
+            public ValueObservable<string> placeholderText { get; } = new ValueObservable<string>();
+            public ValueObservable<bool> readOnly { get; } = new ValueObservable<bool>();
+            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>();
+
+            public void Dispose()
+            {
+                value.Dispose();
+                placeholderText.Dispose();
+                readOnly.Dispose();
+                interactable.Dispose();
+            }
+        }
+
+        public static Control<FloatFieldProps> FloatField(string identifier = "floatField", FloatFieldProps props = default, TMP_InputField prefab = default)
+        {
+            var inputField = UnityEngine.Object.Instantiate(prefab == null ? UIResources.InputField : prefab);
+            var control = new Control<FloatFieldProps>(identifier, props ?? new FloatFieldProps(), inputField.gameObject);
+
+            inputField.enabled = false;
+            inputField.enabled = true;
+
+            inputField.onEndEdit.AddListener(x => control.props.value.value = float.TryParse(x, out var value) ? value : 0);
+
+            control.AddBinding(
+                control.props.value.Subscribe(x => inputField.text = x.currentValue.ToString()),
+                control.props.placeholderText.Subscribe(x =>
+                {
+                    if (inputField.placeholder is TextMeshProUGUI placeholder)
+                        placeholder.text = x.currentValue;
+                }),
+                control.props.readOnly.Subscribe(x => inputField.readOnly = x.currentValue),
+                control.props.interactable.Subscribe(x => inputField.interactable = x.currentValue)
+            );
+
+            return control;
+        }
+
+        public class IntFieldProps : IDisposable
+        {
+            public ValueObservable<int> value { get; } = new ValueObservable<int>();
+            public ValueObservable<string> placeholderText { get; } = new ValueObservable<string>();
+            public ValueObservable<bool> readOnly { get; } = new ValueObservable<bool>();
+            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>();
+
+            public void Dispose()
+            {
+                value.Dispose();
+                placeholderText.Dispose();
+                readOnly.Dispose();
+                interactable.Dispose();
+            }
+        }
+
+        public static Control<IntFieldProps> IntField(string identifier = "intField", IntFieldProps props = default, TMP_InputField prefab = default)
+        {
+            var inputField = UnityEngine.Object.Instantiate(prefab == null ? UIResources.InputField : prefab);
+            var control = new Control<IntFieldProps>(identifier, props ?? new IntFieldProps(), inputField.gameObject);
+
+            inputField.enabled = false;
+            inputField.enabled = true;
+
+            inputField.onEndEdit.AddListener(x => control.props.value.value = int.TryParse(x, out var value) ? value : 0);
+
+            control.AddBinding(
+                control.props.value.Subscribe(x => inputField.text = x.currentValue.ToString()),
+                control.props.placeholderText.Subscribe(x =>
+                {
+                    if (inputField.placeholder is TextMeshProUGUI placeholder)
+                        placeholder.text = x.currentValue;
+                }),
+                control.props.readOnly.Subscribe(x => inputField.readOnly = x.currentValue),
+                control.props.interactable.Subscribe(x => inputField.interactable = x.currentValue)
+            );
+
+            return control;
+        }
+
+        public static Control Space(string identifier = "space")
+            => new Control(identifier);
 
         public class ScrollbarProps : IDisposable
         {
-            public ValueObservable<bool> selected { get; } = new ValueObservable<bool>();
-            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>();
             public ValueObservable<float> value { get; } = new ValueObservable<float>();
             public ValueObservable<ScrollbarDirection> direction { get; } = new ValueObservable<ScrollbarDirection>();
             public ValueObservable<float> size { get; } = new ValueObservable<float>();
-            public ValueObservable<int> numberOfSteps { get; } = new ValueObservable<int>();
-            public ImageProps handle { get; } = DefaultImageProps();
-            public ImageProps background { get; } = DefaultImageProps();
+            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>();
 
             public void Dispose()
             {
                 value.Dispose();
                 direction.Dispose();
                 size.Dispose();
-                numberOfSteps.Dispose();
-                handle.Dispose();
-                background.Dispose();
+                interactable.Dispose();
             }
         }
 
-        public static Control<ScrollbarProps> Scrollbar(ScrollbarProps props = default)
-            => Scrollbar(props ?? DefaultScrollbarProps(), out var _);
-
-        public static Control<ScrollbarProps> Scrollbar(ScrollbarProps props, out Scrollbar scrollbarComponent)
+        public static Control<ScrollbarProps> Scrollbar(string identifier = "scrollbar", ScrollbarProps props = default, Scrollbar prefab = default)
         {
-            props = props ?? DefaultScrollbarProps();
-            var control = new Control<ScrollbarProps>(props, "Scrollbar", typeof(Scrollbar));
-            var scrollbar = control.gameObject.GetComponent<Scrollbar>();
+            var scrollbar = UnityEngine.Object.Instantiate(prefab == null ? UIResources.Scrollbar : prefab);
+            var control = new Control<ScrollbarProps>(identifier, props ?? new ScrollbarProps(), scrollbar.gameObject);
 
-            control.Children(
-                Image(props.background, out var background)
-                    .FillParent()
-                    .Children(
-                        Image(props.handle, out var handle)
-                            .FillParent()
-                    )
-            );
-
-            scrollbar.handleRect = handle.rectTransform;
-            scrollbar.targetGraphic = handle;
-            scrollbar.onValueChanged.AddListener(x => props.value.value = x);
+            scrollbar.onValueChanged.AddListener(x => control.props.value.value = x);
 
             control.AddBinding(
-                props.value.Subscribe(x => scrollbar.value = x.currentValue),
-                props.direction.Subscribe(x => scrollbar.direction = x.currentValue),
-                props.size.Subscribe(x => scrollbar.size = x.currentValue),
-                props.numberOfSteps.Subscribe(x => scrollbar.numberOfSteps = x.currentValue)
+                control.props.value.Subscribe(x => scrollbar.value = x.currentValue),
+                control.props.direction.Subscribe(x => scrollbar.direction = x.currentValue),
+                control.props.size.Subscribe(x => scrollbar.size = x.currentValue),
+                control.props.interactable.Subscribe(x => scrollbar.interactable = x.currentValue)
             );
-
-            scrollbarComponent = scrollbar;
 
             return control;
         }
@@ -505,92 +346,29 @@ namespace Nessle
             public ValueObservable<Vector2> value { get; } = new ValueObservable<Vector2>(new Vector2(0, 1));
             public ValueObservable<bool> horizontal { get; } = new ValueObservable<bool>(true);
             public ValueObservable<bool> vertical { get; } = new ValueObservable<bool>(true);
-            public ValueObservable<ScrollRectMovementType> movementType { get; } = new ValueObservable<ScrollRectMovementType>(ScrollRectMovementType.Elastic);
-            public ValueObservable<bool> inertia { get; } = new ValueObservable<bool>(true);
-            public ValueObservable<float> decelerationRate { get; } = new ValueObservable<float>(1);
-            public ValueObservable<float> scrollSensitivity { get; } = new ValueObservable<float>(1);
-            public ValueObservable<ScrollRectScrollbarVisibility> horizontalScrollbarVisibility { get; } = new ValueObservable<ScrollRectScrollbarVisibility>(ScrollRectScrollbarVisibility.AutoHideAndExpandViewport);
-            public ValueObservable<ScrollRectScrollbarVisibility> verticalScrollbarVisibility { get; } = new ValueObservable<ScrollRectScrollbarVisibility>(ScrollRectScrollbarVisibility.AutoHideAndExpandViewport);
-            public ValueObservable<float> horizontalScrollbarSpacing { get; } = new ValueObservable<float>(3);
-            public ValueObservable<float> verticalScrollbarSpacing { get; } = new ValueObservable<float>(3);
             public ValueObservable<IControl> content { get; } = new ValueObservable<IControl>();
-            public ImageProps background { get; } = DefaultImageProps();
-            public ScrollbarProps verticalScrollbar { get; } = DefaultScrollbarProps();
-            public ScrollbarProps horizontalScrollbar { get; } = DefaultScrollbarProps();
-
-            public ScrollRectProps()
-            {
-                verticalScrollbar.direction.value = ScrollbarDirection.BottomToTop;
-                horizontalScrollbar.direction.value = ScrollbarDirection.LeftToRight;
-            }
 
             public void Dispose()
             {
                 value.Dispose();
                 horizontal.Dispose();
                 vertical.Dispose();
-                movementType.Dispose();
-                inertia.Dispose();
-                decelerationRate.Dispose();
-                scrollSensitivity.Dispose();
-                horizontalScrollbarVisibility.Dispose();
-                verticalScrollbarVisibility.Dispose();
-                horizontalScrollbarSpacing.Dispose();
-                verticalScrollbarSpacing.Dispose();
                 content.Dispose();
-                background.Dispose();
-                verticalScrollbar.Dispose();
-                horizontalScrollbar.Dispose();
             }
         }
 
-        public static Control<ScrollRectProps> ScrollRect(ScrollRectProps props = default)
-            => ScrollRect(props ?? DefaultScrollRectProps(), out var _);
-
-        private static Control<ScrollRectProps> ScrollRect(ScrollRectProps props, out ScrollRect scrollRectComponent)
+        public static Control<ScrollRectProps> ScrollRect(string identifier = "scrollRect", ScrollRectProps props = default, ScrollRect prefab = default)
         {
-            var control = new Control<ScrollRectProps>(props, "ScrollRect", typeof(ScrollRect));
-            var scrollRect = control.gameObject.GetComponent<ScrollRect>();
+            var scrollRect = UnityEngine.Object.Instantiate(prefab == null ? UIResources.ScrollRect : prefab);
+            var control = new Control<ScrollRectProps>(identifier, props ?? new ScrollRectProps(), scrollRect.gameObject);
 
-            IControl viewport = default;
-
-            control.Children(
-                Image(props.background).Name("Background").FillParent(),
-                viewport = new Control("Viewport", typeof(RectMask2D))
-                    .SetPivot(new Vector2(0, 1f))
-                    .FillParent(),
-                Scrollbar(props.horizontalScrollbar, out var horizontalScrollbar)
-                    .SetPivot(Vector2.zero)
-                    .AnchorMin(Vector2.zero)
-                    .AnchorMax(Vector2.right)
-                    .OffsetMin(Vector2.zero)
-                    .OffsetMax(new Vector2(5f, 10f)),
-                Scrollbar(props.verticalScrollbar, out var verticalScrollbar)
-                    .SetPivot(Vector2.one)
-                    .AnchorMin(Vector2.right)
-                    .AnchorMax(Vector2.one)
-                    .OffsetMin(new Vector2(-10f, -5f))
-                    .OffsetMax(Vector2.zero)
-            );
-
-            scrollRect.viewport = viewport.transform;
-            scrollRect.horizontalScrollbar = horizontalScrollbar;
-            scrollRect.verticalScrollbar = verticalScrollbar;
-            scrollRect.onValueChanged.AddListener(x => props.value.value = x);
+            scrollRect.onValueChanged.AddListener(x => control.props.value.value = x);
 
             control.AddBinding(
-                props.value.Subscribe(x => scrollRect.normalizedPosition = x.currentValue),
-                props.movementType.Subscribe(x => scrollRect.movementType = x.currentValue),
-                props.inertia.Subscribe(x => scrollRect.inertia = x.currentValue),
-                props.decelerationRate.Subscribe(x => scrollRect.decelerationRate = x.currentValue),
-                props.scrollSensitivity.Subscribe(x => scrollRect.scrollSensitivity = x.currentValue),
-                props.horizontalScrollbarVisibility.Subscribe(x => scrollRect.horizontalScrollbarVisibility = x.currentValue),
-                props.verticalScrollbarVisibility.Subscribe(x => scrollRect.verticalScrollbarVisibility = x.currentValue),
-                props.horizontalScrollbarSpacing.Subscribe(x => scrollRect.horizontalScrollbarSpacing = x.currentValue),
-                props.verticalScrollbarSpacing.Subscribe(x => scrollRect.verticalScrollbarSpacing = x.currentValue),
-                props.horizontal.Subscribe(x => scrollRect.horizontal = x.currentValue),
-                props.vertical.Subscribe(x => scrollRect.vertical = x.currentValue),
-                props.content.Subscribe(x =>
+                control.props.value.Subscribe(x => scrollRect.normalizedPosition = x.currentValue),
+                control.props.horizontal.Subscribe(x => scrollRect.horizontal = x.currentValue),
+                control.props.vertical.Subscribe(x => scrollRect.vertical = x.currentValue),
+                control.props.content.Subscribe(x =>
                 {
                     x.currentValue.SetParent(control);
                     x.currentValue.transform.SetParent(scrollRect.viewport, false);
@@ -599,128 +377,95 @@ namespace Nessle
                 })
             );
 
-            scrollRectComponent = scrollRect;
-
             return control;
         }
 
         public class DropdownProps : IDisposable
         {
-            public ValueObservable<bool> selected { get; } = new ValueObservable<bool>();
-            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>(true);
             public ValueObservable<int> value { get; } = new ValueObservable<int>();
             public ValueObservable<bool> allowMultiselect { get; } = new ValueObservable<bool>();
             public ListObservable<string> options { get; } = new ListObservable<string>();
-
-            public ImageProps background { get; } = DefaultImageProps();
-            public TextStyleProps captionText { get; } = DefaultTextStyleProps();
-            public ImageProps arrow { get; } = DefaultImageProps();
-            public ScrollRectProps template { get; } = DefaultScrollRectProps();
-            public ImageProps itemBackground { get; } = DefaultImageProps();
-            public TextStyleProps itemText { get; } = DefaultTextStyleProps();
-            public ImageProps itemCheckmark { get; } = DefaultImageProps();
+            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>();
 
             public void Dispose()
             {
-                selected.Dispose();
-                interactable.Dispose();
                 value.Dispose();
                 allowMultiselect.Dispose();
                 options.Dispose();
-                background.Dispose();
-                captionText.Dispose();
-                arrow.Dispose();
-                template.Dispose();
-                itemBackground.Dispose();
-                itemText.Dispose();
-                itemCheckmark.Dispose();
+                interactable.Dispose();
             }
         }
 
-        public static Control<DropdownProps> Dropdown(DropdownProps props = default)
+        public static Control<DropdownProps> Dropdown(string identifier = "dropdown", DropdownProps props = default, TMP_Dropdown prefab = default)
         {
-            props = props ?? DefaultDropdownProps();
-            var control = new Control<DropdownProps>(props, "Dropdown", typeof(TMP_Dropdown));
-            var dropdown = control.gameObject.GetComponent<TMP_Dropdown>();
-
-            IControl itemToggle;
-
-            control.Children(
-                Image(props.background, out var background).Name("Background").FillParent(),
-                Text(out var captionText).Name("CaptionText").Style(props.captionText).FillParent(),
-                Image(props.arrow, out var arrow).Name("Arrow").AnchorToRight().SizeDelta(new Vector2(10, 10)).AnchoredPosition(new Vector2(-15f, -1.2f)),
-                ScrollRect(props.template, out var template)
-                    .SizeDelta(new Vector2(0, 150))
-                    .SetPivot(new Vector2(0, 1))
-                    .FillParentWidth()
-                    .AnchorToBottom()
-                    .Style(x =>
-                    {
-                        x.horizontal.value = false;
-                        x.movementType.value = ScrollRectMovementType.Clamped;
-                        x.inertia.value = false;
-                    })
-                    .Content(
-                        VerticalLayout().Name("Content")
-                            .FillParentWidth()
-                            .FitContentVertical(ContentSizeFitter.FitMode.PreferredSize)
-                            .Style(x =>
-                            {
-                                x.childControlWidth.value = true;
-                                x.childControlHeight.value = true;
-                                x.childForceExpandWidth.value = true;
-                            }).Children(
-                                itemToggle = Control("Item Toggle", typeof(Toggle)).PreferredHeight(30).Children(
-                                    Image(props.itemBackground, out var itemBackground)
-                                        .Name("Item Background")
-                                        .FillParent(),
-                                    Text(out var itemText)
-                                        .Name("Item Text")
-                                        .Style(props.itemText)
-                                        .FillParent(),
-                                    Image(props.itemCheckmark, out var itemCheckmark)
-                                        .Name("Item Checkmark")
-                                        .SetPivot(new Vector2(1f, 0.5f))
-                                        .SizeDelta(new Vector2(15, 15))
-                                        .AnchorToRight()
-                                        .AnchoredPosition(new Vector3(-10, 0, 0))
-                            )
-                        )
-                    )
-            );
-
-            var itemToggleComponent = itemToggle.gameObject.GetComponent<Toggle>();
-            itemToggleComponent.graphic = itemCheckmark;
-            itemToggleComponent.targetGraphic = itemBackground;
-
-            dropdown.targetGraphic = background;
-            dropdown.template = (RectTransform)template.transform;
-            dropdown.captionText = captionText;
-            dropdown.itemText = itemText;
-            dropdown.onValueChanged.AddListener(x => props.value.value = x);
-
-            template.gameObject.SetActive(false);
+            var dropdown = UnityEngine.Object.Instantiate(prefab == null ? UIResources.Dropdown : prefab);
+            var control = new Control<DropdownProps>(identifier, props ?? new DropdownProps(), dropdown.gameObject);
 
             control.AddBinding(
-                props.value.Subscribe(x => dropdown.value = x.currentValue),
-                props.options.Subscribe(_ => dropdown.options = props.options.Select(x => new TMP_Dropdown.OptionData() { text = x }).ToList()),
-                props.interactable.Subscribe(x => dropdown.interactable = x.currentValue)
+                control.props.value.Subscribe(x => dropdown.value = x.currentValue),
+                control.props.allowMultiselect.Subscribe(x => dropdown.MultiSelect = x.currentValue),
+                control.props.options.Subscribe(_ => dropdown.options = control.props.options.Select(x => new TMP_Dropdown.OptionData() { text = x }).ToList()),
+                control.props.interactable.Subscribe(x => dropdown.interactable = x.currentValue)
             );
 
             return control;
         }
 
-        public static T Content<T>(this T control, IControl content)
-            where T : IControl<ScrollRectProps>
+        public class ToggleProps : IDisposable
         {
-            control.props.content.value = content;
+            public ValueObservable<bool> isOn { get; } = new ValueObservable<bool>();
+
+            public void Dispose()
+            {
+                isOn.Dispose();
+            }
+        }
+
+        public static Control<ToggleProps> Toggle(string identifier = "toggle", ToggleProps props = default, Toggle prefab = default)
+        {
+            var toggle = UnityEngine.Object.Instantiate(prefab == null ? UIResources.Toggle : prefab);
+            var control = new Control<ToggleProps>(identifier, props ?? new ToggleProps(), toggle.gameObject);
+
+            toggle.onValueChanged.AddListener(x => control.props.isOn.value = x);
+
+            control.AddBinding(control.props.isOn.Subscribe(x => toggle.isOn = x.currentValue));
+
             return control;
         }
 
-        public static T Content<T>(this T control, IValueObservable<IControl> content)
-            where T : IControl<ScrollRectProps>
+        public class SliderProps : IDisposable
         {
-            control.props.content.From(content);
+            public ValueObservable<float> value { get; } = new ValueObservable<float>();
+            public ValueObservable<float> minValue { get; } = new ValueObservable<float>();
+            public ValueObservable<float> maxValue { get; } = new ValueObservable<float>();
+            public ValueObservable<bool> wholeNumbers { get; } = new ValueObservable<bool>();
+            public ValueObservable<SliderDirection> direction { get; } = new ValueObservable<SliderDirection>();
+
+            public void Dispose()
+            {
+                value.Dispose();
+                minValue.Dispose();
+                maxValue.Dispose();
+                wholeNumbers.Dispose();
+                direction.Dispose();
+            }
+        }
+
+        public static Control<SliderProps> Slider(string identifier = "slider", SliderProps props = default, Slider prefab = default)
+        {
+            var slider = UnityEngine.Object.Instantiate(prefab == null ? UIResources.Slider : prefab);
+            var control = new Control<SliderProps>(identifier, props ?? new SliderProps(), slider.gameObject);
+
+            slider.onValueChanged.AddListener(x => control.props.value.value = x);
+
+            control.AddBinding(
+                control.props.value.Subscribe(x => slider.value = x.currentValue),
+                control.props.minValue.Subscribe(x => slider.minValue = x.currentValue),
+                control.props.maxValue.Subscribe(x => slider.maxValue = x.currentValue),
+                control.props.wholeNumbers.Subscribe(x => slider.wholeNumbers = x.currentValue),
+                control.props.direction.Subscribe(x => slider.direction = x.currentValue)
+            );
+
             return control;
         }
     }

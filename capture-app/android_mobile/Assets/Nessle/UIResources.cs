@@ -7,34 +7,28 @@ namespace Nessle
     [CreateAssetMenu(fileName = "UIResources", menuName = "Scriptable Objects/UIResources")]
     public class UIResources : ScriptableObject
     {
-        public static Sprite RoundedBox => _instance._roundedBox;
-        public static Sprite ArrowDown => _instance._arrowDown;
-        public static Sprite ArrowRight => _instance._arrowRight;
-        public static Sprite Checkmark => _instance._checkmark;
-        public static Color PanelColor => _instance._panelColor;
-        public static Color ButtonColor => _instance._buttonColor;
-        public static Color InputFieldColor => _instance._inputFieldColor;
-        public static Color PanelHeaderColor => _instance._panelHeaderColor;
-        public static Color SectionHeaderColor => _instance._sectionHeaderColor;
-        public static Color TextColor => _instance._textColor;
-        public static Color ScrollBarHandleColor => _instance._scrollBarHandleColor;
-        public static Color ScrollBarBackgroundColor => _instance._scrollBarBackgroundColor;
-        public static EditableLabelControl EditableLabelControl => _instance._editableLabelControl;
+        public static TextMeshProUGUI Text => _instance._text;
+        public static TMP_InputField InputField => _instance._inputField;
+        public static Scrollbar Scrollbar => _instance._scrollbar;
+        public static ScrollRect ScrollRect => _instance._scrollRect;
+        public static TMP_Dropdown Dropdown => _instance._dropdown;
+        public static Button Button => _instance._button;
+        public static HorizontalLayoutGroup HorizontalLayout => _instance._horizontalLayout;
+        public static VerticalLayoutGroup VerticalLayout => _instance._verticalLayout;
+        public static Toggle Toggle => _instance._toggle;
+        public static Slider Slider => _instance._slider;
 
         private static UIResources _instance => Resources.Load<UIResources>("UIResources");
 
-        [SerializeField] private Sprite _roundedBox;
-        [SerializeField] private Sprite _arrowDown;
-        [SerializeField] private Sprite _arrowRight;
-        [SerializeField] private Sprite _checkmark;
-        [SerializeField] public Color _panelColor;
-        [SerializeField] public Color _buttonColor;
-        [SerializeField] public Color _inputFieldColor;
-        [SerializeField] public Color _panelHeaderColor;
-        [SerializeField] public Color _sectionHeaderColor;
-        [SerializeField] public Color _textColor;
-        [SerializeField] public Color _scrollBarHandleColor;
-        [SerializeField] public Color _scrollBarBackgroundColor;
-        [SerializeField] public EditableLabelControl _editableLabelControl;
+        [SerializeField] private TextMeshProUGUI _text;
+        [SerializeField] private TMP_InputField _inputField;
+        [SerializeField] private Scrollbar _scrollbar;
+        [SerializeField] private ScrollRect _scrollRect;
+        [SerializeField] private TMP_Dropdown _dropdown;
+        [SerializeField] private Button _button;
+        [SerializeField] private HorizontalLayoutGroup _horizontalLayout;
+        [SerializeField] private VerticalLayoutGroup _verticalLayout;
+        [SerializeField] private Toggle _toggle;
+        [SerializeField] private Slider _slider;
     }
 }

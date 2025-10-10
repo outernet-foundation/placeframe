@@ -8,16 +8,6 @@ using FitMode = UnityEngine.UI.ContentSizeFitter.FitMode;
 
 namespace Nessle
 {
-    // public static ToggleControl Toggle()
-    //     => new ToggleControl();
-
-    // public static Vector3Control Vector3(
-    //     UnityComponentControl<HorizontalLayoutGroup> layout = default,
-    //     UnityComponentControl<TextMeshProUGUI> xLabel = default, InputFieldControl xField = default,
-    //     UnityComponentControl<TextMeshProUGUI> yLabel = default, InputFieldControl yField = default,
-    //     UnityComponentControl<TextMeshProUGUI> zLabel = default, InputFieldControl zField = default
-    // ) => new Vector3Control(layout, xLabel, xField, yLabel, yField, zLabel, zField);
-
     public static class ControlExtensions
     {
         public static T Children<T>(this T control, params IControl[] children)
@@ -91,20 +81,6 @@ namespace Nessle
             where T : IControl
         {
             control.gameObject.SetActive(active);
-            return control;
-        }
-
-        public static T Name<T>(this T control, IValueObservable<string> name)
-            where T : IControl
-        {
-            control.AddBinding(name.Subscribe(x => control.gameObject.name = x.currentValue));
-            return control;
-        }
-
-        public static T Name<T>(this T control, string name)
-            where T : IControl
-        {
-            control.gameObject.name = name;
             return control;
         }
 

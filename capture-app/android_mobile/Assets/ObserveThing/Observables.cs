@@ -232,6 +232,13 @@ namespace ObserveThing
 
         public static IDictionaryObservable<TKey, TValue> AsObservable<TKey, TValue>(this IDictionaryObservable<TKey, TValue> observable)
             => observable;
+
+        public static T Peek<T>(this IValueObservable<T> source)
+        {
+            T result = default;
+            source.Subscribe(x => result = x.currentValue).Dispose();
+            return result;
+        }
     }
 
     public class Disposable : IDisposable

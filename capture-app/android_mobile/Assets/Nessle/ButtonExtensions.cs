@@ -11,35 +11,35 @@ namespace Nessle
         public static T OnClick<T>(this T control, Action onClick)
             where T : IControl<ButtonProps>
         {
-            control.props.onClick += onClick;
+            control.props.onClick.value = onClick;
             return control;
         }
 
         public static T Label<T>(this T control, IValueObservable<string> label)
             where T : IControl<ButtonProps>
         {
-            control.Children(Text().Style(x => x.text.From(label)));
+            control.Children(Text("label").Style(x => x.text.From(label)));
             return control;
         }
 
         public static T Label<T>(this T control, string label)
             where T : IControl<ButtonProps>
         {
-            control.Children(Text().Style(x => x.text.value = label));
+            control.Children(Text("label").Style(x => x.text.value = label));
             return control;
         }
 
         public static T Icon<T>(this T control, Sprite icon)
             where T : IControl<ButtonProps>
         {
-            control.Children(Image().Style(x => x.sprite.value = icon));
+            control.Children(Image("icon").Style(x => x.sprite.value = icon));
             return control;
         }
 
         public static T Icon<T>(this T control, IValueObservable<Sprite> icon)
             where T : IControl<ButtonProps>
         {
-            control.Children(Image().Style(x => x.sprite.From(icon)));
+            control.Children(Image("icon").Style(x => x.sprite.From(icon)));
             return control;
         }
 
@@ -56,17 +56,5 @@ namespace Nessle
             control.props.interactable.From(interactable);
             return control;
         }
-
-        // public static T Background<T>(this T control, IValueObservable<ImageProps> image)
-        //     where T : IControl<ButtonProps>
-        // {
-
-        // }
-
-        // public static T Background<T>(this T control, IValueObservable<ImageStyleProps> image)
-        //     where T : IControl<ButtonProps>
-        // {
-
-        // }
     }
 }

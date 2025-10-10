@@ -9,6 +9,34 @@ namespace Nessle
 {
     public static class DropdownExtensions
     {
+        public static T Value<T>(this T control, IValueObservable<int> value)
+            where T : IControl<DropdownProps>
+        {
+            control.props.value.From(value);
+            return control;
+        }
+
+        public static T Value<T>(this T control, int value)
+            where T : IControl<DropdownProps>
+        {
+            control.props.value.value = value;
+            return control;
+        }
+
+        public static T AllowMultiselect<T>(this T control, IValueObservable<bool> allowMultiselect)
+            where T : IControl<DropdownProps>
+        {
+            control.props.allowMultiselect.From(allowMultiselect);
+            return control;
+        }
+
+        public static T AllowMultiselect<T>(this T control, bool allowMultiselect)
+            where T : IControl<DropdownProps>
+        {
+            control.props.allowMultiselect.value = allowMultiselect;
+            return control;
+        }
+
         public static T Options<T>(this T control, params string[] options)
             where T : IControl<DropdownProps> => control.Options((IEnumerable<string>)options);
 
