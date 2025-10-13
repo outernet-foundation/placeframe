@@ -3,49 +3,44 @@ using System.Collections.Generic;
 
 namespace ObserveThing
 {
-    public interface IObserver<in T>
-    {
-        void OnNext(T args);
-        void OnError(Exception exception);
-        void OnDispose();
-    }
-
-    public sealed class Observer<T> : IObserver<T>
-    {
-        public Action<T> onNext;
-        public Action<Exception> onError;
-        public Action onDispose;
-
-        public void OnNext(T args)
-        {
-            try
-            {
-                onNext?.Invoke(args);
-            }
-            catch (Exception exc)
-            {
-                OnError(exc);
-            }
-        }
-
-        public void OnError(Exception exception)
-            => onError?.Invoke(exception);
-
-        public void OnDispose()
-            => onDispose?.Invoke();
-
-        public void Dispose()
-            => OnDispose();
-    }
-
     public interface IValueObservable<T>
     {
         IDisposable Subscribe(IObserver<IValueEventArgs<T>> observer);
     }
 
+    public interface IValueEventArgs<T>
+    {
+        T currentValue { get; }
+        T previousValue { get; }
+    }
+
+    public class ValueEventArgs<T> : IValueEventArgs<T>
+    {
+        public T currentValue { get; set; }
+        public T previousValue { get; set; }
+    }
+
+    public enum OpType
+    {
+        Add,
+        Remove
+    }
+
     public interface ICollectionObservable<out T>
     {
         IDisposable Subscribe(IObserver<ICollectionEventArgs<T>> observer);
+    }
+
+    public interface ICollectionEventArgs<out T>
+    {
+        T element { get; }
+        OpType operationType { get; }
+    }
+
+    public class CollectionEventArgs<T> : ICollectionEventArgs<T>
+    {
+        public T element { get; set; }
+        public OpType operationType { get; set; }
     }
 
     public interface IDictionaryObservable<TKey, TValue> : ICollectionObservable<KeyValuePair<TKey, TValue>>
@@ -56,60 +51,10 @@ namespace ObserveThing
             => Subscribe(observer);
     }
 
-    public interface IListObservable<out T> : ICollectionObservable<T>
-    {
-        IDisposable Subscribe(IObserver<IListEventArgs<T>> observer);
-
-        IDisposable ICollectionObservable<T>.Subscribe(IObserver<ICollectionEventArgs<T>> observer)
-            => Subscribe(observer);
-    }
-
-    public interface IValueEventArgs<T>
-    {
-        T currentValue { get; }
-        T previousValue { get; }
-    }
-
-    public enum OpType
-    {
-        Add,
-        Remove
-    }
-
-    public interface ICollectionEventArgs<out T>
-    {
-        T element { get; }
-        OpType operationType { get; }
-    }
-
-    public interface IListEventArgs<out T> : ICollectionEventArgs<T>
-    {
-        int index { get; }
-    }
-
     public interface IDictionaryEventArgs<TKey, TValue> : ICollectionEventArgs<KeyValuePair<TKey, TValue>>
     {
         TKey key { get; }
         TValue value { get; }
-    }
-
-    public class ValueEventArgs<T> : IValueEventArgs<T>
-    {
-        public T currentValue { get; set; }
-        public T previousValue { get; set; }
-    }
-
-    public class CollectionEventArgs<T> : ICollectionEventArgs<T>
-    {
-        public T element { get; set; }
-        public OpType operationType { get; set; }
-    }
-
-    public class ListEventArgs<T> : IListEventArgs<T>
-    {
-        public int index { get; set; }
-        public T element { get; set; }
-        public OpType operationType { get; set; }
     }
 
     public class DictionaryEventArgs<TKey, TValue> : IDictionaryEventArgs<TKey, TValue>
@@ -118,6 +63,26 @@ namespace ObserveThing
         public TValue value => element.Value;
         public KeyValuePair<TKey, TValue> element { get; set; }
         public OpType operationType { set; get; }
+    }
+
+    public interface IListObservable<out T> : ICollectionObservable<T>
+    {
+        IDisposable Subscribe(IObserver<IListEventArgs<T>> observer);
+
+        IDisposable ICollectionObservable<T>.Subscribe(IObserver<ICollectionEventArgs<T>> observer)
+            => Subscribe(observer);
+    }
+
+    public interface IListEventArgs<out T> : ICollectionEventArgs<T>
+    {
+        int index { get; }
+    }
+
+    public class ListEventArgs<T> : IListEventArgs<T>
+    {
+        public int index { get; set; }
+        public T element { get; set; }
+        public OpType operationType { get; set; }
     }
 
     public static class Observables

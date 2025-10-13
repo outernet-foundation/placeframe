@@ -8,53 +8,34 @@ namespace Nessle
 {
     public static class ButtonExtensions
     {
-        public static T OnClick<T>(this T control, Action onClick)
+        public static void Label<T>(this T control, IValueObservable<string> label)
             where T : IControl<ButtonProps>
         {
-            control.props.onClick.value = onClick;
-            return control;
+            control.Children(Text("label").Setup(x => x.props.text.From(label)));
         }
 
-        public static T Label<T>(this T control, IValueObservable<string> label)
+        public static void Label<T, U>(this T control, IValueObservable<U> label)
             where T : IControl<ButtonProps>
         {
-            control.Children(Text("label").Style(x => x.text.From(label)));
-            return control;
+            control.Children(Text("label").Setup(x => x.props.text.From(label)));
         }
 
-        public static T Label<T>(this T control, string label)
+        public static void Label<T>(this T control, string label)
             where T : IControl<ButtonProps>
         {
-            control.Children(Text("label").Style(x => x.text.value = label));
-            return control;
+            control.Children(Text("label").Setup(x => x.props.text.From(label)));
         }
 
-        public static T Icon<T>(this T control, Sprite icon)
+        public static void Icon<T>(this T control, Sprite icon)
             where T : IControl<ButtonProps>
         {
-            control.Children(Image("icon").Style(x => x.sprite.value = icon));
-            return control;
+            control.Children(Image("icon").Setup(x => x.props.sprite.From(icon)));
         }
 
-        public static T Icon<T>(this T control, IValueObservable<Sprite> icon)
+        public static void Icon<T>(this T control, IValueObservable<Sprite> icon)
             where T : IControl<ButtonProps>
         {
-            control.Children(Image("icon").Style(x => x.sprite.From(icon)));
-            return control;
-        }
-
-        public static T Interactable<T>(this T control, bool interactable)
-            where T : IControl<ButtonProps>
-        {
-            control.props.interactable.value = interactable;
-            return control;
-        }
-
-        public static T Interactable<T>(this T control, IValueObservable<bool> interactable)
-            where T : IControl<ButtonProps>
-        {
-            control.props.interactable.From(interactable);
-            return control;
+            control.Children(Image("icon").Setup(x => x.props.sprite.From(icon)));
         }
     }
 }

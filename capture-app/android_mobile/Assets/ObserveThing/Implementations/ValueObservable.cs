@@ -8,7 +8,7 @@ namespace ObserveThing
         public T value
         {
             get => _value;
-            set
+            private set
             {
                 if (Equals(_value, value))
                     return;
@@ -47,6 +47,12 @@ namespace ObserveThing
                 instance.Dispose();
 
             _instances.Clear();
+        }
+
+        public void From(T source)
+        {
+            _fromSubscription?.Dispose();
+            value = source;
         }
 
         public void From(IValueObservable<T> source)

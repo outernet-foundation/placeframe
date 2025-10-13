@@ -1,78 +1,31 @@
+using System;
 using ObserveThing;
+using FofX.Stateful;
 using static Nessle.UIBuilder;
-using SliderDirection = UnityEngine.UI.Slider.Direction;
 
 namespace Nessle
 {
     public static class SliderExtensions
     {
-        public static T Value<T>(this T control, IValueObservable<float> value)
+        public static T BindValue<T>(this T control, ObservablePrimitive<float> bindTo)
             where T : IControl<SliderProps>
         {
-            control.props.value.From(value);
+            control.AddBinding(
+                bindTo.Subscribe(x => control.props.value.From(x.currentValue)),
+                control.props.value.Subscribe(x => bindTo.ExecuteSetOrDelay(x.currentValue))
+            );
+
             return control;
         }
 
-        public static T Value<T>(this T control, float value)
-            where T : IControl<SliderProps>
+        public static TControl BindValue<TControl, TValue>(this TControl control, ObservablePrimitive<TValue> bindTo, Func<float, TValue> toState, Func<TValue, float> toControl)
+            where TControl : IControl<SliderProps>
         {
-            control.props.value.value = value;
-            return control;
-        }
+            control.AddBinding(
+                bindTo.Subscribe(x => control.props.value.From(toControl(x.currentValue))),
+                control.props.value.Subscribe(x => bindTo.ExecuteSetOrDelay(toState(x.currentValue)))
+            );
 
-        public static T MinValue<T>(this T control, IValueObservable<float> minValue)
-            where T : IControl<SliderProps>
-        {
-            control.props.minValue.From(minValue);
-            return control;
-        }
-
-        public static T MinValue<T>(this T control, float minValue)
-            where T : IControl<SliderProps>
-        {
-            control.props.minValue.value = minValue;
-            return control;
-        }
-
-        public static T MaxValue<T>(this T control, IValueObservable<float> maxValue)
-            where T : IControl<SliderProps>
-        {
-            control.props.maxValue.From(maxValue);
-            return control;
-        }
-
-        public static T MaxValue<T>(this T control, float maxValue)
-            where T : IControl<SliderProps>
-        {
-            control.props.maxValue.value = maxValue;
-            return control;
-        }
-
-        public static T WholeNumbers<T>(this T control, IValueObservable<bool> wholeNumbers)
-            where T : IControl<SliderProps>
-        {
-            control.props.wholeNumbers.From(wholeNumbers);
-            return control;
-        }
-
-        public static T WholeNumbers<T>(this T control, bool wholeNumbers)
-            where T : IControl<SliderProps>
-        {
-            control.props.wholeNumbers.value = wholeNumbers;
-            return control;
-        }
-
-        public static T Direction<T>(this T control, IValueObservable<SliderDirection> direction)
-            where T : IControl<SliderProps>
-        {
-            control.props.direction.From(direction);
-            return control;
-        }
-
-        public static T Direction<T>(this T control, SliderDirection direction)
-            where T : IControl<SliderProps>
-        {
-            control.props.direction.value = direction;
             return control;
         }
     }

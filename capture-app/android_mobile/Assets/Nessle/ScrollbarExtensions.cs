@@ -1,64 +1,31 @@
+using System;
 using ObserveThing;
-using ScrollbarDirection = UnityEngine.UI.Scrollbar.Direction;
+using FofX.Stateful;
 using static Nessle.UIBuilder;
 
 namespace Nessle
 {
     public static class ScrollbarExtensions
     {
-        public static T Value<T>(this T control, IValueObservable<float> value)
+        public static T BindValue<T>(this T control, ObservablePrimitive<float> bindTo)
             where T : IControl<ScrollbarProps>
         {
-            control.props.value.From(value);
+            control.AddBinding(
+                bindTo.Subscribe(x => control.props.value.From(x.currentValue)),
+                control.props.value.Subscribe(x => bindTo.ExecuteSetOrDelay(x.currentValue))
+            );
+
             return control;
         }
 
-        public static T Value<T>(this T control, float value)
-            where T : IControl<ScrollbarProps>
+        public static TControl BindValue<TControl, TValue>(this TControl control, ObservablePrimitive<TValue> bindTo, Func<float, TValue> toState, Func<TValue, float> toControl)
+            where TControl : IControl<ScrollbarProps>
         {
-            control.props.value.value = value;
-            return control;
-        }
+            control.AddBinding(
+                bindTo.Subscribe(x => control.props.value.From(toControl(x.currentValue))),
+                control.props.value.Subscribe(x => bindTo.ExecuteSetOrDelay(toState(x.currentValue)))
+            );
 
-        public static T Direction<T>(this T control, IValueObservable<ScrollbarDirection> direction)
-            where T : IControl<ScrollbarProps>
-        {
-            control.props.direction.From(direction);
-            return control;
-        }
-
-        public static T Direction<T>(this T control, ScrollbarDirection direction)
-            where T : IControl<ScrollbarProps>
-        {
-            control.props.direction.value = direction;
-            return control;
-        }
-
-        public static T Size<T>(this T control, IValueObservable<float> size)
-            where T : IControl<ScrollbarProps>
-        {
-            control.props.size.From(size);
-            return control;
-        }
-
-        public static T Size<T>(this T control, float size)
-            where T : IControl<ScrollbarProps>
-        {
-            control.props.size.value = size;
-            return control;
-        }
-
-        public static T Interactable<T>(this T control, IValueObservable<bool> interactable)
-            where T : IControl<ScrollbarProps>
-        {
-            control.props.interactable.From(interactable);
-            return control;
-        }
-
-        public static T Interactable<T>(this T control, bool interactable)
-            where T : IControl<ScrollbarProps>
-        {
-            control.props.interactable.value = interactable;
             return control;
         }
     }

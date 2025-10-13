@@ -48,27 +48,29 @@ namespace ObserveThing
                 instance.OnNext(_args);
         }
 
+        public void Clear()
+        {
+            while (_list.Count > 0)
+                RemoveAt(_list.Count - 1);
+        }
+
         public int IndexOf(T item)
         {
             return _list.IndexOf(item);
         }
 
-        public void Dispose()
+        public void From(IEnumerable<T> source)
         {
-            if (_disposed)
-                return;
-
-            _disposed = true;
-
-            foreach (var instance in _instances)
-                instance.Dispose();
-
-            _instances.Clear();
             _fromSubscription?.Dispose();
+            Clear();
+
+            foreach (var element in source)
+                Add(element);
         }
 
         public void From(IListObservable<T> source)
         {
+            _fromSubscription?.Dispose();
             _fromSubscription = source.Subscribe(
                 x =>
                 {
@@ -99,6 +101,20 @@ namespace ObserveThing
             }
 
             return instance;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+
+            foreach (var instance in _instances)
+                instance.Dispose();
+
+            _instances.Clear();
+            _fromSubscription?.Dispose();
         }
 
         private class Instance : IDisposable

@@ -61,7 +61,7 @@ namespace Nessle
             gameObject.name = identifier;
 
             transform = gameObject.GetOrAddComponent<RectTransform>();
-            gameObject.GetOrAddComponent<RectTransformChangedHandler>().onReceivedEvent += x => _rect.value = x;
+            gameObject.GetOrAddComponent<RectTransformChangedHandler>().onReceivedEvent += x => _rect.From(x);
         }
 
         public void AddBinding(IDisposable binding)

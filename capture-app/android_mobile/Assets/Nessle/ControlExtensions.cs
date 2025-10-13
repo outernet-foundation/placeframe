@@ -10,22 +10,27 @@ namespace Nessle
 {
     public static class ControlExtensions
     {
-        public static T Children<T>(this T control, params IControl[] children)
-            where T : IControl => control.Children((IEnumerable<IControl>)children);
-
-        public static T Children<T>(this T control, IEnumerable<IControl> children)
+        public static T Setup<T>(this T control, Action<T> setup)
             where T : IControl
         {
-            if (children == null)
-                return control;
-
-            foreach (var child in children)
-                child.SetParent(control);
-
+            setup(control);
             return control;
         }
 
-        public static TParent Children<TParent>(this TParent control, IListObservable<IControl> children)
+        public static void Children<T>(this T control, params IControl[] children)
+            where T : IControl => control.Children((IEnumerable<IControl>)children);
+
+        public static void Children<T>(this T control, IEnumerable<IControl> children)
+            where T : IControl
+        {
+            if (children == null)
+                return;
+
+            foreach (var child in children)
+                child.SetParent(control);
+        }
+
+        public static void Children<TParent>(this TParent control, IListObservable<IControl> children)
             where TParent : IControl
         {
             control.AddBinding(children.Subscribe(
@@ -44,21 +49,18 @@ namespace Nessle
                     }
                 }
             ));
-
-            return control;
         }
 
         public static IControlWithMetadata<TProps, TData> WithMetadata<TProps, TData>(this IControl<TProps> control, TData data)
             => new UnityControlWithMetadata<TProps, TData>(control, data);
 
-        public static T Active<T>(this T control, IValueObservable<bool> active)
+        public static void Active<T>(this T control, IValueObservable<bool> active)
             where T : IControl
         {
             control.AddBinding(active.Subscribe(x => control.gameObject.SetActive(x.currentValue)));
-            return control;
         }
 
-        public static T Selected<T>(this T control, IValueObservable<bool> selected)
+        public static void Selected<T>(this T control, IValueObservable<bool> selected)
             where T : IControl
         {
             control.AddBinding(selected.Subscribe(x =>
@@ -73,457 +75,394 @@ namespace Nessle
                     EventSystem.current.SetSelectedGameObject(null);
                 }
             }));
-
-            return control;
         }
 
-        public static T Active<T>(this T control, bool active)
+        public static void Active<T>(this T control, bool active)
             where T : IControl
         {
             control.gameObject.SetActive(active);
-            return control;
         }
 
-        public static T FillParent<T>(this T control)
+        public static void FillParent<T>(this T control)
             where T : IControl
         {
             control.transform.anchorMin = new Vector2(0, 0);
             control.transform.anchorMax = new Vector2(1, 1);
             control.transform.offsetMin = new Vector2(0, 0);
             control.transform.offsetMax = new Vector2(0, 0);
-            return control;
         }
 
-        public static T FillParentWidth<T>(this T control)
+        public static void FillParentWidth<T>(this T control)
             where T : IControl
         {
             control.transform.anchorMin = new Vector2(0, control.transform.anchorMin.y);
             control.transform.anchorMax = new Vector2(1, control.transform.anchorMax.y);
             control.transform.offsetMin = new Vector2(0, control.transform.offsetMin.y);
             control.transform.offsetMax = new Vector2(0, control.transform.offsetMax.y);
-            return control;
         }
 
-        public static T FillParentHeight<T>(this T control)
+        public static void FillParentHeight<T>(this T control)
             where T : IControl
         {
             control.transform.anchorMin = new Vector2(control.transform.anchorMin.x, 0);
             control.transform.anchorMax = new Vector2(control.transform.anchorMax.x, 1);
             control.transform.offsetMin = new Vector2(control.transform.offsetMin.x, 0);
             control.transform.offsetMax = new Vector2(control.transform.offsetMax.x, 0);
-            return control;
         }
 
-        public static T AnchorToTop<T>(this T control)
+        public static void AnchorToTop<T>(this T control)
             where T : IControl
         {
             control.transform.anchorMin = new Vector2(control.transform.anchorMin.x, 1);
             control.transform.anchorMax = new Vector2(control.transform.anchorMax.x, 1);
-            return control;
         }
 
-        public static T AnchorToBottom<T>(this T control)
+        public static void AnchorToBottom<T>(this T control)
             where T : IControl
         {
             control.transform.anchorMin = new Vector2(control.transform.anchorMin.x, 0);
             control.transform.anchorMax = new Vector2(control.transform.anchorMax.x, 0);
-            return control;
         }
 
-        public static T AnchorToLeft<T>(this T control)
+        public static void AnchorToLeft<T>(this T control)
             where T : IControl
         {
             control.transform.anchorMin = new Vector2(0, control.transform.anchorMin.y);
             control.transform.anchorMax = new Vector2(0, control.transform.anchorMax.y);
-            return control;
         }
 
-        public static T AnchorToRight<T>(this T control)
+        public static void AnchorToRight<T>(this T control)
             where T : IControl
         {
             control.transform.anchorMin = new Vector2(1, control.transform.anchorMin.y);
             control.transform.anchorMax = new Vector2(1, control.transform.anchorMax.y);
-            return control;
         }
 
-        public static T AnchorToTopLeft<T>(this T control)
+        public static void AnchorToTopLeft<T>(this T control)
             where T : IControl
         {
             control.transform.anchorMin = new Vector2(0, 1);
             control.transform.anchorMax = new Vector2(0, 1);
-            return control;
         }
 
-        public static T AnchorToTopRight<T>(this T control)
+        public static void AnchorToTopRight<T>(this T control)
             where T : IControl
         {
             control.transform.anchorMin = new Vector2(1, 1);
             control.transform.anchorMax = new Vector2(1, 1);
-            return control;
         }
 
-        public static T AnchorToBottomLeft<T>(this T control)
+        public static void AnchorToBottomLeft<T>(this T control)
             where T : IControl
         {
             control.transform.anchorMin = new Vector2(0, 0);
             control.transform.anchorMax = new Vector2(0, 0);
-            return control;
         }
 
-        public static T AnchorToBottomRight<T>(this T control)
+        public static void AnchorToBottomRight<T>(this T control)
             where T : IControl
         {
             control.transform.anchorMin = new Vector2(1, 0);
             control.transform.anchorMax = new Vector2(1, 0);
-            return control;
         }
 
-        public static T SetPivot<T>(this T control, Vector2 pivot)
+        public static void SetPivot<T>(this T control, Vector2 pivot)
             where T : IControl
         {
             control.transform.pivot = pivot;
-            return control;
         }
 
-        public static T SetPivot<T>(this T control, IValueObservable<Vector2> pivot)
+        public static void SetPivot<T>(this T control, IValueObservable<Vector2> pivot)
             where T : IControl
         {
             control.AddBinding(pivot.Subscribe(x => control.transform.pivot = x.currentValue));
-            return control;
         }
 
-        public static T LocalPosition<T>(this T control, Vector3 localPosition)
+        public static void LocalPosition<T>(this T control, Vector3 localPosition)
             where T : IControl
         {
             control.transform.localPosition = localPosition;
-            return control;
         }
 
-        public static T LocalPosition<T>(this T control, IValueObservable<Vector2> localPosition)
+        public static void LocalPosition<T>(this T control, IValueObservable<Vector2> localPosition)
             where T : IControl
         {
             control.AddBinding(localPosition.Subscribe(x => control.transform.localPosition = x.currentValue));
-            return control;
         }
 
-        public static T Anchor<T>(this T control, Vector2 anchor)
+        public static void Anchor<T>(this T control, Vector2 anchor)
             where T : IControl
         {
             control.AnchorMin(anchor);
             control.AnchorMax(anchor);
-            return control;
         }
 
-        public static T Anchor<T>(this T control, IValueObservable<Vector2> anchor)
+        public static void Anchor<T>(this T control, IValueObservable<Vector2> anchor)
             where T : IControl
         {
             control.AnchorMin(anchor);
             control.AnchorMax(anchor);
-            return control;
         }
 
-        public static T AnchorMin<T>(this T control, Vector2 anchorMin)
+        public static void AnchorMin<T>(this T control, Vector2 anchorMin)
             where T : IControl
         {
             control.transform.anchorMin = anchorMin;
-            return control;
         }
 
-        public static T AnchorMin<T>(this T control, IValueObservable<Vector2> anchorMin)
+        public static void AnchorMin<T>(this T control, IValueObservable<Vector2> anchorMin)
             where T : IControl
         {
             control.AddBinding(anchorMin.Subscribe(x => control.transform.anchorMin = x.currentValue));
-            return control;
         }
 
-        public static T AnchorMax<T>(this T control, Vector2 anchorMax)
+        public static void AnchorMax<T>(this T control, Vector2 anchorMax)
             where T : IControl
         {
             control.transform.anchorMax = anchorMax;
-            return control;
         }
 
-        public static T AnchorMax<T>(this T control, IValueObservable<Vector2> anchorMax)
+        public static void AnchorMax<T>(this T control, IValueObservable<Vector2> anchorMax)
             where T : IControl
         {
             control.AddBinding(anchorMax.Subscribe(x => control.transform.anchorMax = x.currentValue));
-            return control;
         }
 
-        public static T OffsetMin<T>(this T control, Vector2 offsetMin)
+        public static void OffsetMin<T>(this T control, Vector2 offsetMin)
             where T : IControl
         {
             control.transform.offsetMin = offsetMin;
-            return control;
         }
 
-        public static T OffsetMin<T>(this T control, IValueObservable<Vector2> offsetMin)
+        public static void OffsetMin<T>(this T control, IValueObservable<Vector2> offsetMin)
             where T : IControl
         {
             control.AddBinding(offsetMin.Subscribe(x => control.transform.offsetMin = x.currentValue));
-            return control;
         }
 
-        public static T OffsetMax<T>(this T control, Vector2 offsetMax)
+        public static void OffsetMax<T>(this T control, Vector2 offsetMax)
             where T : IControl
         {
             control.transform.offsetMax = offsetMax;
-            return control;
         }
 
-        public static T OffsetMax<T>(this T control, IValueObservable<Vector2> offsetMax)
+        public static void OffsetMax<T>(this T control, IValueObservable<Vector2> offsetMax)
             where T : IControl
         {
             control.AddBinding(offsetMax.Subscribe(x => control.transform.offsetMax = x.currentValue));
-            return control;
         }
 
-        public static T AnchoredPosition<T>(this T control, Vector2 anchoredPosition)
+        public static void AnchoredPosition<T>(this T control, Vector2 anchoredPosition)
             where T : IControl
         {
             control.transform.anchoredPosition = anchoredPosition;
-            return control;
         }
 
-        public static T AnchoredPosition<T>(this T control, IValueObservable<Vector2> anchoredPosition)
+        public static void AnchoredPosition<T>(this T control, IValueObservable<Vector2> anchoredPosition)
             where T : IControl
         {
             control.AddBinding(anchoredPosition.Subscribe(x => control.transform.anchoredPosition = x.currentValue));
-            return control;
         }
 
-        public static T SizeDelta<T>(this T control, Vector2 sizeDelta)
+        public static void SizeDelta<T>(this T control, Vector2 sizeDelta)
             where T : IControl
         {
             control.transform.sizeDelta = sizeDelta;
-            return control;
         }
 
-        public static T SizeDelta<T>(this T control, IValueObservable<Vector2> sizeDelta)
+        public static void SizeDelta<T>(this T control, IValueObservable<Vector2> sizeDelta)
             where T : IControl
         {
             control.AddBinding(sizeDelta.Subscribe(x => control.transform.sizeDelta = x.currentValue));
-            return control;
         }
 
-        public static T IgnoreLayout<T>(this T control, IValueObservable<bool> ignoreLayout)
+        public static void IgnoreLayout<T>(this T control, IValueObservable<bool> ignoreLayout)
             where T : IControl
         {
             control.AddBinding(ignoreLayout.Subscribe(x => control.gameObject.GetOrAddComponent<LayoutElement>().ignoreLayout = x.currentValue));
-            return control;
         }
 
-        public static T IgnoreLayout<T>(this T control, bool ignoreLayout)
+        public static void IgnoreLayout<T>(this T control, bool ignoreLayout)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<LayoutElement>().ignoreLayout = ignoreLayout;
-            return control;
         }
 
-        public static T MinWidth<T>(this T control, IValueObservable<float> minWidth)
+        public static void MinWidth<T>(this T control, IValueObservable<float> minWidth)
             where T : IControl
         {
             control.AddBinding(minWidth.Subscribe(x => control.gameObject.GetOrAddComponent<LayoutElement>().minWidth = x.currentValue));
-            return control;
         }
 
-        public static T MinWidth<T>(this T control, float minWidth)
+        public static void MinWidth<T>(this T control, float minWidth)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<LayoutElement>().minWidth = minWidth;
-            return control;
         }
 
-        public static T MinHeight<T>(this T control, IValueObservable<float> minHeight)
+        public static void MinHeight<T>(this T control, IValueObservable<float> minHeight)
             where T : IControl
         {
             control.AddBinding(minHeight.Subscribe(x => control.gameObject.GetOrAddComponent<LayoutElement>().minHeight = x.currentValue));
-            return control;
         }
 
-        public static T MinHeight<T>(this T control, float minHeight)
+        public static void MinHeight<T>(this T control, float minHeight)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<LayoutElement>().minHeight = minHeight;
-            return control;
         }
 
-        public static T PreferredWidth<T>(this T control, IValueObservable<float> preferredWidth)
+        public static void PreferredWidth<T>(this T control, IValueObservable<float> preferredWidth)
             where T : IControl
         {
             control.AddBinding(preferredWidth.Subscribe(x => control.gameObject.GetOrAddComponent<LayoutElement>().preferredWidth = x.currentValue));
-            return control;
         }
 
-        public static T PreferredWidth<T>(this T control, float preferredWidth)
+        public static void PreferredWidth<T>(this T control, float preferredWidth)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<LayoutElement>().preferredWidth = preferredWidth;
-            return control;
         }
 
-        public static T PreferredHeight<T>(this T control, IValueObservable<float> preferredHeight)
+        public static void PreferredHeight<T>(this T control, IValueObservable<float> preferredHeight)
             where T : IControl
         {
             control.AddBinding(preferredHeight.Subscribe(x => control.gameObject.GetOrAddComponent<LayoutElement>().preferredHeight = x.currentValue));
-            return control;
         }
 
-        public static T PreferredHeight<T>(this T control, float preferredHeight)
+        public static void PreferredHeight<T>(this T control, float preferredHeight)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<LayoutElement>().preferredHeight = preferredHeight;
-            return control;
         }
 
-        public static T FlexibleWidth<T>(this T control, IValueObservable<bool> flexibleWidth)
+        public static void FlexibleWidth<T>(this T control, IValueObservable<bool> flexibleWidth)
             where T : IControl
         {
             control.AddBinding(flexibleWidth.Subscribe(x => control.gameObject.GetOrAddComponent<LayoutElement>().flexibleWidth = x.currentValue ? 1 : -1));
-            return control;
         }
 
-        public static T FlexibleWidth<T>(this T control, bool flexibleWidth)
+        public static void FlexibleWidth<T>(this T control, bool flexibleWidth)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<LayoutElement>().flexibleWidth = flexibleWidth ? 1 : -1;
-            return control;
         }
 
-        public static T FlexibleHeight<T>(this T control, IValueObservable<bool> flexibleHeight)
+        public static void FlexibleHeight<T>(this T control, IValueObservable<bool> flexibleHeight)
             where T : IControl
         {
             control.AddBinding(flexibleHeight.Subscribe(x => control.gameObject.GetOrAddComponent<LayoutElement>().flexibleHeight = x.currentValue ? 1 : -1));
-            return control;
         }
 
-        public static T FlexibleHeight<T>(this T control, bool flexibleHeight)
+        public static void FlexibleHeight<T>(this T control, bool flexibleHeight)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<LayoutElement>().flexibleHeight = flexibleHeight ? 1 : -1;
-            return control;
         }
 
-        public static T LayoutPriority<T>(this T control, IValueObservable<int> layoutPriority)
+        public static void LayoutPriority<T>(this T control, IValueObservable<int> layoutPriority)
             where T : IControl
         {
             control.AddBinding(layoutPriority.Subscribe(x => control.gameObject.GetOrAddComponent<LayoutElement>().layoutPriority = x.currentValue));
-            return control;
         }
 
-        public static T LayoutPriority<T>(this T control, int layoutPriority)
+        public static void LayoutPriority<T>(this T control, int layoutPriority)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<LayoutElement>().layoutPriority = layoutPriority;
-            return control;
         }
 
-        public static T FitContentVertical<T>(this T control, IValueObservable<FitMode> fitContentVertical)
+        public static void FitContentVertical<T>(this T control, IValueObservable<FitMode> fitContentVertical)
             where T : IControl
         {
             control.AddBinding(fitContentVertical.Subscribe(x => control.gameObject.GetOrAddComponent<ContentSizeFitter>().verticalFit = x.currentValue));
-            return control;
         }
 
-        public static T FitContentVertical<T>(this T control, FitMode fitContentVertical)
+        public static void FitContentVertical<T>(this T control, FitMode fitContentVertical)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<ContentSizeFitter>().verticalFit = fitContentVertical;
-            return control;
         }
 
-        public static T FitContentHorizontal<T>(this T control, IValueObservable<FitMode> fitContentHorizontal)
+        public static void FitContentHorizontal<T>(this T control, IValueObservable<FitMode> fitContentHorizontal)
             where T : IControl
         {
             control.AddBinding(fitContentHorizontal.Subscribe(x => control.gameObject.GetOrAddComponent<ContentSizeFitter>().horizontalFit = x.currentValue));
-            return control;
         }
 
-        public static T FitContentHorizontal<T>(this T control, FitMode fitContentHorizontal)
+        public static void FitContentHorizontal<T>(this T control, FitMode fitContentHorizontal)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<ContentSizeFitter>().horizontalFit = fitContentHorizontal;
-            return control;
         }
 
-        public static T SiblingIndex<T>(this T control, int index)
+        public static void SiblingIndex<T>(this T control, int index)
             where T : IControl
         {
             control.SetSiblingIndex(index);
-            return control;
         }
 
-        public static T OnHoverEntered<T>(this T control, Action<PointerEventData> onHoverEntered)
+        public static void OnHoverEntered<T>(this T control, Action<PointerEventData> onHoverEntered)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<PointerEnterHandler>().onReceivedEvent += onHoverEntered;
-            return control;
         }
 
-        public static T OnHoverExited<T>(this T control, Action<PointerEventData> onHoverExited)
+        public static void OnHoverExited<T>(this T control, Action<PointerEventData> onHoverExited)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<PointerExitHandler>().onReceivedEvent += onHoverExited;
-            return control;
         }
 
-        public static T OnPointerDown<T>(this T control, Action<PointerEventData> onPointerDown)
+        public static void OnPointerDown<T>(this T control, Action<PointerEventData> onPointerDown)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<PointerDownHandler>().onReceivedEvent += onPointerDown;
-            return control;
         }
 
-        public static T OnPointerUp<T>(this T control, Action<PointerEventData> onPointerUp)
+        public static void OnPointerUp<T>(this T control, Action<PointerEventData> onPointerUp)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<PointerUpHandler>().onReceivedEvent += onPointerUp;
-            return control;
         }
 
-        public static T OnPointerClick<T>(this T control, Action<PointerEventData> onPointerClick)
+        public static void OnPointerClick<T>(this T control, Action<PointerEventData> onPointerClick)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<PointerClickHandler>().onReceivedEvent += onPointerClick;
-            return control;
         }
 
-        public static T OnDragStarted<T>(this T control, Action<PointerEventData> onDragStarted)
+        public static void OnDragStarted<T>(this T control, Action<PointerEventData> onDragStarted)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<BeginDragHandler>().onReceivedEvent += onDragStarted;
-            return control;
         }
 
-        public static T OnDrag<T>(this T control, Action<PointerEventData> onDrag)
+        public static void OnDrag<T>(this T control, Action<PointerEventData> onDrag)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<DragHandler>().onReceivedEvent += onDrag;
-            return control;
         }
 
-        public static T OnDragEnded<T>(this T control, Action<PointerEventData> onDragEnded)
+        public static void OnDragEnded<T>(this T control, Action<PointerEventData> onDragEnded)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<EndDragHandler>().onReceivedEvent += onDragEnded;
-            return control;
         }
 
-        public static T OnSelect<T>(this T control, Action<BaseEventData> onSelect)
+        public static void OnSelect<T>(this T control, Action<BaseEventData> onSelect)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<SelectHandler>().onReceivedEvent += onSelect;
-            return control;
         }
 
-        public static T OnDeselect<T>(this T control, Action<BaseEventData> onDeselect)
+        public static void OnDeselect<T>(this T control, Action<BaseEventData> onDeselect)
             where T : IControl
         {
             control.gameObject.GetOrAddComponent<DeselectHandler>().onReceivedEvent += onDeselect;
-            return control;
         }
 
-        public static T Columns<T>(this T control, float spacing, params IControl[] controls)
+        public static void Columns<T>(this T control, float spacing, params IControl[] controls)
             where T : IControl
         {
             control.Children(controls);
@@ -537,8 +476,6 @@ namespace Nessle
                 child.transform.offsetMin = new Vector2(Mathf.Lerp(0f, spacing, i * step), 0);
                 child.transform.offsetMax = new Vector2(Mathf.Lerp(-spacing, 0f, (i + 1) * step), 0);
             }
-
-            return control;
         }
     }
 }

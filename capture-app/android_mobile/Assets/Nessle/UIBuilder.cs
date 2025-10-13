@@ -20,12 +20,6 @@ namespace Nessle
         public static Control<T> Control<T>(string identifier, T props, params Type[] components)
             => new Control<T>(identifier, props, components);
 
-        public static Control<T> Style<T>(this Control<T> control, Action<T> style)
-        {
-            style(control.props);
-            return control;
-        }
-
         public class TextProps : IDisposable
         {
             public ValueObservable<string> text { get; } = new ValueObservable<string>();
@@ -36,7 +30,7 @@ namespace Nessle
             }
         }
 
-        public static Control<TextProps> Text(string identifier = "text", TextProps props = default, TextMeshProUGUI prefab = default)
+        public static Control<TextProps> Text(string identifier = "text", TextProps props = default, TextMeshProUGUI prefab = default, Action<Control<TextProps>> setup = default)
         {
             var text = UnityEngine.Object.Instantiate(prefab == null ? UIResources.Text : prefab);
             var control = new Control<TextProps>(identifier, props ?? new TextProps(), text.gameObject);
@@ -44,6 +38,8 @@ namespace Nessle
             control.AddBinding(
                 control.props.text.Subscribe(x => text.text = x.currentValue)
             );
+
+            setup?.Invoke(control);
 
             return control;
         }
@@ -76,7 +72,7 @@ namespace Nessle
         public class ButtonProps : IDisposable
         {
             public ValueObservable<Action> onClick { get; } = new ValueObservable<Action>();
-            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>();
+            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>(true);
 
             public void Dispose()
             {
@@ -85,7 +81,7 @@ namespace Nessle
             }
         }
 
-        public static Control<ButtonProps> Button(string identifier = "button", ButtonProps props = default, Button prefab = default)
+        public static Control<ButtonProps> Button(string identifier = "button", ButtonProps props = default, Button prefab = default, Action<IControl<ButtonProps>> setup = default)
         {
             var button = UnityEngine.Object.Instantiate(prefab == null ? UIResources.Button : prefab);
             var control = new Control<ButtonProps>(identifier, props ?? new ButtonProps(), button.gameObject);
@@ -175,7 +171,7 @@ namespace Nessle
             public ValueObservable<bool> readOnly { get; } = new ValueObservable<bool>();
             public ValueObservable<TMP_LineType> lineType { get; } = new ValueObservable<TMP_LineType>();
             public ValueObservable<int> characterLimit { get; } = new ValueObservable<int>();
-            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>();
+            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>(true);
             public ValueObservable<Action<string>> onEndEdit { get; } = new ValueObservable<Action<string>>();
 
             public void Dispose()
@@ -199,7 +195,7 @@ namespace Nessle
             inputField.enabled = false;
             inputField.enabled = true;
 
-            inputField.onValueChanged.AddListener(x => control.props.inputText.value = x);
+            inputField.onValueChanged.AddListener(x => control.props.inputText.From(x));
             inputField.onEndEdit.AddListener(x => control.props.onEndEdit.value?.Invoke(x));
 
             control.AddBinding(
@@ -224,7 +220,7 @@ namespace Nessle
             public ValueObservable<float> value { get; } = new ValueObservable<float>();
             public ValueObservable<string> placeholderText { get; } = new ValueObservable<string>();
             public ValueObservable<bool> readOnly { get; } = new ValueObservable<bool>();
-            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>();
+            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>(true);
 
             public void Dispose()
             {
@@ -243,7 +239,7 @@ namespace Nessle
             inputField.enabled = false;
             inputField.enabled = true;
 
-            inputField.onEndEdit.AddListener(x => control.props.value.value = float.TryParse(x, out var value) ? value : 0);
+            inputField.onEndEdit.AddListener(x => control.props.value.From(float.TryParse(x, out var value) ? value : 0));
 
             control.AddBinding(
                 control.props.value.Subscribe(x => inputField.text = x.currentValue.ToString()),
@@ -264,7 +260,7 @@ namespace Nessle
             public ValueObservable<int> value { get; } = new ValueObservable<int>();
             public ValueObservable<string> placeholderText { get; } = new ValueObservable<string>();
             public ValueObservable<bool> readOnly { get; } = new ValueObservable<bool>();
-            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>();
+            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>(true);
 
             public void Dispose()
             {
@@ -283,7 +279,7 @@ namespace Nessle
             inputField.enabled = false;
             inputField.enabled = true;
 
-            inputField.onEndEdit.AddListener(x => control.props.value.value = int.TryParse(x, out var value) ? value : 0);
+            inputField.onEndEdit.AddListener(x => control.props.value.From(int.TryParse(x, out var value) ? value : 0));
 
             control.AddBinding(
                 control.props.value.Subscribe(x => inputField.text = x.currentValue.ToString()),
@@ -307,7 +303,7 @@ namespace Nessle
             public ValueObservable<float> value { get; } = new ValueObservable<float>();
             public ValueObservable<ScrollbarDirection> direction { get; } = new ValueObservable<ScrollbarDirection>();
             public ValueObservable<float> size { get; } = new ValueObservable<float>();
-            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>();
+            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>(true);
 
             public void Dispose()
             {
@@ -323,7 +319,7 @@ namespace Nessle
             var scrollbar = UnityEngine.Object.Instantiate(prefab == null ? UIResources.Scrollbar : prefab);
             var control = new Control<ScrollbarProps>(identifier, props ?? new ScrollbarProps(), scrollbar.gameObject);
 
-            scrollbar.onValueChanged.AddListener(x => control.props.value.value = x);
+            scrollbar.onValueChanged.AddListener(x => control.props.value.From(x));
 
             control.AddBinding(
                 control.props.value.Subscribe(x => scrollbar.value = x.currentValue),
@@ -351,12 +347,15 @@ namespace Nessle
             }
         }
 
-        public static Control<ScrollRectProps> ScrollRect(string identifier = "scrollRect", ScrollRectProps props = default, ScrollRect prefab = default)
+        public static IControl<ScrollRectProps> ScrollRect(Action<IControl<ScrollRectProps>> setup)
+            => ScrollRect(props: default, setup: setup);
+
+        public static Control<ScrollRectProps> ScrollRect(string identifier = "scrollRect", ScrollRectProps props = default, ScrollRect prefab = default, Action<IControl<ScrollRectProps>> setup = default)
         {
             var scrollRect = UnityEngine.Object.Instantiate(prefab == null ? UIResources.ScrollRect : prefab);
             var control = new Control<ScrollRectProps>(identifier, props ?? new ScrollRectProps(), scrollRect.gameObject);
 
-            scrollRect.onValueChanged.AddListener(x => control.props.value.value = x);
+            scrollRect.onValueChanged.AddListener(x => control.props.value.From(x));
 
             control.AddBinding(
                 control.props.value.Subscribe(x => scrollRect.normalizedPosition = x.currentValue),
@@ -367,7 +366,8 @@ namespace Nessle
                     x.currentValue.SetParent(control);
                     x.currentValue.transform.SetParent(scrollRect.viewport, false);
                     scrollRect.content = x.currentValue.transform;
-                    x.currentValue.SetPivot(new Vector2(0, 1)).AnchorToTop();
+                    x.currentValue.SetPivot(new Vector2(0, 1));
+                    x.currentValue.AnchorToTop();
                 })
             );
 
@@ -379,7 +379,7 @@ namespace Nessle
             public ValueObservable<int> value { get; } = new ValueObservable<int>();
             public ValueObservable<bool> allowMultiselect { get; } = new ValueObservable<bool>();
             public ListObservable<string> options { get; } = new ListObservable<string>();
-            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>();
+            public ValueObservable<bool> interactable { get; } = new ValueObservable<bool>(true);
 
             public void Dispose()
             {
@@ -420,7 +420,7 @@ namespace Nessle
             var toggle = UnityEngine.Object.Instantiate(prefab == null ? UIResources.Toggle : prefab);
             var control = new Control<ToggleProps>(identifier, props ?? new ToggleProps(), toggle.gameObject);
 
-            toggle.onValueChanged.AddListener(x => control.props.isOn.value = x);
+            toggle.onValueChanged.AddListener(x => control.props.isOn.From(x));
 
             control.AddBinding(control.props.isOn.Subscribe(x => toggle.isOn = x.currentValue));
 
@@ -450,7 +450,7 @@ namespace Nessle
             var slider = UnityEngine.Object.Instantiate(prefab == null ? UIResources.Slider : prefab);
             var control = new Control<SliderProps>(identifier, props ?? new SliderProps(), slider.gameObject);
 
-            slider.onValueChanged.AddListener(x => control.props.value.value = x);
+            slider.onValueChanged.AddListener(x => control.props.value.From(x));
 
             control.AddBinding(
                 control.props.value.Subscribe(x => slider.value = x.currentValue),
