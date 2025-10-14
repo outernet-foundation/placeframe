@@ -8,6 +8,8 @@ using System;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Cysharp.Threading.Tasks;
+using FofX.Stateful;
+using ObserveThing.StatefulExtensions;
 
 namespace PlerionClient.Client
 {
@@ -26,11 +28,42 @@ namespace PlerionClient.Client
         public static Control SafeArea()
             => new Control("safeArea", typeof(SafeArea));
 
-        public static Control<InputFieldProps> EditableLabel(string identifier = "editableLabel", InputFieldProps props = default)
+        public class EditableLabelProps : IDisposable
         {
-            props = props ?? new InputFieldProps();
+            public ValueObservable<string> value { get; } = new ValueObservable<string>();
+            public InputFieldProps inputField { get; } = new InputFieldProps();
+            public TextProps label { get; } = new TextProps();
+            public ValueObservable<bool> inputFieldActive { get; } = new ValueObservable<bool>();
+
+            public void Dispose()
+            {
+                inputField.Dispose();
+                label.Dispose();
+            }
+        }
+
+        public static void BindValue<TProps, TValue>(this IControl<TProps> control, Func<TProps, ValueObservable<TValue>> accessValue, ObservablePrimitive<TValue> bindTo)
+        {
+            var value = accessValue(control.props);
+            control.AddBinding(
+                bindTo.AsObservable().Subscribe(x => value.From(x.currentValue)),
+                value.Subscribe(x => bindTo.ExecuteSetOrDelay(x.currentValue))
+            );
+        }
+
+        public static void BindValue<TProps, TValue, TSource>(this IControl<TProps> control, Func<TProps, ValueObservable<TValue>> accessValue, ObservablePrimitive<TSource> bindTo, Func<TValue, TSource> toSource, Func<TSource, TValue> toValue)
+        {
+            var value = accessValue(control.props);
+            control.AddBinding(
+                bindTo.AsObservable().Subscribe(x => value.From(toValue(x.currentValue))),
+                value.Subscribe(x => bindTo.ExecuteSetOrDelay(toSource(x.currentValue)))
+            );
+        }
+
+        public static Control<EditableLabelProps> EditableLabel(string identifier = "editableLabel", EditableLabelProps props = default)
+        {
+            props = props ?? new EditableLabelProps();
             var control = Control(identifier, props);
-            ValueObservable<bool> inputFieldActive = new ValueObservable<bool>();
 
             control.Setup(editableLabel =>
             {
@@ -43,25 +76,33 @@ namespace PlerionClient.Client
 
                     UniTask.WaitForSeconds(0.5f).ContinueWith(() =>
                     {
-                        if (eventSystem.currentSelectedGameObject == target)
-                            inputFieldActive.From(true);
+                        if (eventSystem.currentSelectedGameObject != target)
+                            return;
+
+                        props.inputFieldActive.From(true);
+                        props.inputField.inputText.From(props.value.value);
+
                     }).Forget();
                 });
 
                 editableLabel.Children(
-                    InputField("inputField", props: control.props).Setup(inputField =>
+                    InputField("inputField", props: control.props.inputField).Setup(inputField =>
                     {
                         inputField.FillParent();
-                        inputField.Active(inputFieldActive);
-                        inputField.Selected(inputFieldActive);
-                        inputField.OnDeselect(_ => inputFieldActive.From(false));
-                        inputField.props.onEndEdit.From(_ => inputFieldActive.From(false));
+                        inputField.Active(control.props.inputFieldActive);
+                        inputField.Selected(control.props.inputFieldActive);
+                        inputField.OnDeselect(_ => control.props.inputFieldActive.From(false));
+                        inputField.props.onEndEdit.From(input =>
+                        {
+                            control.props.value.From(input);
+                            control.props.inputFieldActive.From(false);
+                        });
                     }),
-                    Text("label").Setup(label =>
+                    Text("label", props: control.props.label).Setup(label =>
                     {
-                        label.props.text.From(control.props.inputText);
                         label.FillParent();
-                        label.Active(inputFieldActive.SelectDynamic(x => !x));
+                        label.Active(control.props.inputFieldActive.SelectDynamic(x => !x));
+                        label.props.text.From(control.props.value);
                     })
                 );
             });

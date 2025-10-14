@@ -265,6 +265,7 @@ namespace PlerionClient.Client
                     editableLabel.MinHeight(28);
                     editableLabel.FlexibleWidth(true);
                     editableLabel.BindValue(
+                        props => props.value,
                         capture.name,
                         x => IsDefaultRowLabel(x, capture.id) ? null : x,
                         x => string.IsNullOrEmpty(x) ? DefaultRowLabel(capture.id) : x
