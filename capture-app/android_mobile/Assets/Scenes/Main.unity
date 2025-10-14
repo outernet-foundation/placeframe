@@ -464,6 +464,7 @@ MonoBehaviour:
     type: 3}
   overridePlerionAPIBaseURL: 0
   plerionAPIBaseURL: 
+  uiPrimitives: {fileID: 11400000, guid: 9c11dd85584e91349a2565e81546a8c7, type: 2}
 --- !u!4 &1353736508
 Transform:
   m_ObjectHideFlags: 0

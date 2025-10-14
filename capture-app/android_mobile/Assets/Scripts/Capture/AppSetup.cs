@@ -1,5 +1,6 @@
 using UnityEngine;
 using FofX.Stateful;
+using Nessle;
 
 namespace PlerionClient.Client
 {
@@ -8,10 +9,12 @@ namespace PlerionClient.Client
         public CaptureController captureControllerPrefab;
         public bool overridePlerionAPIBaseURL;
         public string plerionAPIBaseURL;
+        public UIPrimitiveSet uiPrimitives;
 
         private void Awake()
         {
             Application.targetFrameRate = 120;
+            UIBuilder.primitives = uiPrimitives;
 
             gameObject.AddComponent<App>();
             var plerionAPIBaseUrl = overridePlerionAPIBaseURL ?

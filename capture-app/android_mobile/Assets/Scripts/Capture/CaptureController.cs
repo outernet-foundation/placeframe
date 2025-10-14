@@ -15,6 +15,7 @@ using FofX;
 using FofX.Stateful;
 using Nessle;
 using ObserveThing;
+using ObserveThing.StatefulExtensions;
 using static Nessle.UIBuilder;
 using static PlerionClient.Client.UIPresets;
 
@@ -77,8 +78,8 @@ namespace PlerionClient.Client
         {
             var json = new SimpleJSON.JSONObject();
 
-            foreach (var kvp in App.state.captures.Where(x => !x.Value.uploaded.value))
-                json[kvp.Key.ToString()] = kvp.Value.name.value;
+            foreach (var kvp in App.state.captures.Where(x => !x.value.uploaded.value))
+                json[kvp.key.ToString()] = kvp.value.name.value;
 
             File.WriteAllText(localCaptureNamePath, json.ToString());
         }
@@ -211,6 +212,7 @@ namespace PlerionClient.Client
                                     content.FitContentVertical(ContentSizeFitter.FitMode.PreferredSize);
                                     content.Children(
                                         App.state.captures
+                                            .AsObservable()
                                             .CreateDynamic(x => ConstructCaptureRow(x.Value).WithMetadata(x.Value.name))
                                             .OrderByDynamic(x => x.metadata.AsObservable())
                                     );
@@ -219,10 +221,10 @@ namespace PlerionClient.Client
                             Row("bottomBar").Setup(row => row.Children(
                                 Button().Setup(button =>
                                 {
-                                    button.props.interactable.From(App.state.captureStatus.SelectDynamic(x => x == CaptureStatus.Idle || x == CaptureStatus.Capturing));
+                                    button.props.interactable.From(App.state.captureStatus.AsObservable().SelectDynamic(x => x == CaptureStatus.Idle || x == CaptureStatus.Capturing));
 
                                     button.PreferredWidth(110);
-                                    button.Label(App.state.captureStatus.SelectDynamic(x =>
+                                    button.LabelFrom(App.state.captureStatus.AsObservable().SelectDynamic(x =>
                                         x switch
                                         {
                                             CaptureStatus.Idle => "Start Capture",
@@ -245,7 +247,7 @@ namespace PlerionClient.Client
                                 {
                                     dropdown.PreferredWidth(100);
                                     dropdown.props.options.From(Enum.GetNames(typeof(CaptureType)));
-                                    dropdown.props.interactable.From(App.state.captureStatus.SelectDynamic(x => x == CaptureStatus.Idle));
+                                    dropdown.props.interactable.From(App.state.captureStatus.AsObservable().SelectDynamic(x => x == CaptureStatus.Idle));
                                     dropdown.BindValue(App.state.captureMode, x => (CaptureType)x, x => (int)x);
                                 })
                             ))
@@ -278,7 +280,7 @@ namespace PlerionClient.Client
                 {
                     button.props.interactable.From(capture.uploaded.AsObservable().SelectDynamic(x => !x));
 
-                    button.Label(capture.uploaded.SelectDynamic(x => x ? "Uploaded" : "Upload"));
+                    button.LabelFrom(capture.uploaded.AsObservable().SelectDynamic(x => x ? "Uploaded" : "Upload"));
                     button.PreferredWidth(100);
                     button.props.onClick.From(() =>
                         UploadCapture(capture.id, capture.name.value ?? capture.id.ToString(), capture.type.value, default).Forget()
