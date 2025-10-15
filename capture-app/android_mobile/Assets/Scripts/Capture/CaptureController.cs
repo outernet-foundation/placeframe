@@ -13,9 +13,13 @@ using PlerionClient.Api;
 
 using FofX;
 using FofX.Stateful;
+
 using Nessle;
+using Nessle.StatefulExtensions;
+
 using ObserveThing;
 using ObserveThing.StatefulExtensions;
+
 using static Nessle.UIBuilder;
 using static PlerionClient.Client.UIPresets;
 
@@ -263,9 +267,10 @@ namespace PlerionClient.Client
                 EditableLabel().Setup(editableLabel =>
                 {
                     editableLabel.MinHeight(28);
+                    editableLabel.props.label.style.verticalAlignment.From(VerticalAlignmentOptions.Capline);
                     editableLabel.FlexibleWidth(true);
                     editableLabel.BindValue(
-                        props => props.value,
+                        props => props.inputField.inputText.text,
                         capture.name,
                         x => IsDefaultRowLabel(x, capture.id) ? null : x,
                         x => string.IsNullOrEmpty(x) ? DefaultRowLabel(capture.id) : x
@@ -274,6 +279,7 @@ namespace PlerionClient.Client
                 Text().Setup(text =>
                 {
                     text.props.text.From(capture.type.AsObservable());
+                    text.props.style.verticalAlignment.From(VerticalAlignmentOptions.Capline);
                     text.MinHeight(25);
                     text.PreferredWidth(100);
                 }),

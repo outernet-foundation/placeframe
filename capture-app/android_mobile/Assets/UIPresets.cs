@@ -30,7 +30,6 @@ namespace PlerionClient.Client
 
         public class EditableLabelProps : IDisposable
         {
-            public ValueObservable<string> value { get; } = new ValueObservable<string>();
             public InputFieldProps inputField { get; } = new InputFieldProps();
             public TextProps label { get; } = new TextProps();
             public ValueObservable<bool> inputFieldActive { get; } = new ValueObservable<bool>();
@@ -40,24 +39,6 @@ namespace PlerionClient.Client
                 inputField.Dispose();
                 label.Dispose();
             }
-        }
-
-        public static void BindValue<TProps, TValue>(this IControl<TProps> control, Func<TProps, ValueObservable<TValue>> accessValue, ObservablePrimitive<TValue> bindTo)
-        {
-            var value = accessValue(control.props);
-            control.AddBinding(
-                bindTo.AsObservable().Subscribe(x => value.From(x.currentValue)),
-                value.Subscribe(x => bindTo.ExecuteSetOrDelay(x.currentValue))
-            );
-        }
-
-        public static void BindValue<TProps, TValue, TSource>(this IControl<TProps> control, Func<TProps, ValueObservable<TValue>> accessValue, ObservablePrimitive<TSource> bindTo, Func<TValue, TSource> toSource, Func<TSource, TValue> toValue)
-        {
-            var value = accessValue(control.props);
-            control.AddBinding(
-                bindTo.AsObservable().Subscribe(x => value.From(toValue(x.currentValue))),
-                value.Subscribe(x => bindTo.ExecuteSetOrDelay(toSource(x.currentValue)))
-            );
         }
 
         public static Control<EditableLabelProps> EditableLabel(string identifier = "editableLabel", EditableLabelProps props = default)
@@ -80,8 +61,6 @@ namespace PlerionClient.Client
                             return;
 
                         props.inputFieldActive.From(true);
-                        props.inputField.inputText.From(props.value.value);
-
                     }).Forget();
                 });
 
@@ -92,17 +71,13 @@ namespace PlerionClient.Client
                         inputField.Active(control.props.inputFieldActive);
                         inputField.Selected(control.props.inputFieldActive);
                         inputField.OnDeselect(_ => control.props.inputFieldActive.From(false));
-                        inputField.props.onEndEdit.From(input =>
-                        {
-                            control.props.value.From(input);
-                            control.props.inputFieldActive.From(false);
-                        });
+                        inputField.props.onEndEdit.From(input => control.props.inputFieldActive.From(false));
                     }),
                     Text("label", props: control.props.label).Setup(label =>
                     {
                         label.FillParent();
                         label.Active(control.props.inputFieldActive.SelectDynamic(x => !x));
-                        label.props.text.From(control.props.value);
+                        label.props.text.From(control.props.inputField.inputText.text);
                     })
                 );
             });
