@@ -114,9 +114,9 @@ namespace PlerionClient.Client
                 case CaptureType.Local:
                     LocalCaptureController.StopCapture();
                     break;
-                // case CaptureType.Zed:
-                //     await ZedCaptureController.StopCapture(cancellationToken);
-                //     break;
+                case CaptureType.Zed:
+                    await ZedCaptureController.StopCapture(cancellationToken);
+                    break;
                 default:
                     throw new Exception($"Unhandled capture type {captureType}");
             }
@@ -129,9 +129,9 @@ namespace PlerionClient.Client
                 case CaptureType.Local:
                     await LocalCaptureController.StartCapture(cancellationToken, captureIntervalSeconds);
                     break;
-                // case CaptureType.Zed:
-                //     await ZedCaptureController.StartCapture(captureIntervalSeconds, cancellationToken);
-                //     break;
+                case CaptureType.Zed:
+                    await ZedCaptureController.StartCapture(captureIntervalSeconds, cancellationToken);
+                    break;
                 default:
                     throw new Exception($"Unhandled capture type {captureType}");
             }
@@ -196,9 +196,9 @@ namespace PlerionClient.Client
         {
             if (type == CaptureType.Zed)
             {
-                // var response = await capturesApi.CreateCaptureSessionAsync(new CaptureSessionCreate(Model.DeviceType.Zed, name) { Id = id });
-                // var captureData = await ZedCaptureController.GetCapture(id, cancellationToken);
-                // await capturesApi.UploadCaptureSessionTarAsync(response.Id, captureData, cancellationToken);
+                var response = await capturesApi.CreateCaptureSessionAsync(new CaptureSessionCreate(Model.DeviceType.Zed, name) { Id = id });
+                var captureData = await ZedCaptureController.GetCapture(id, cancellationToken);
+                await capturesApi.UploadCaptureSessionTarAsync(response.Id, captureData, cancellationToken);
             }
             else if (type == CaptureType.Local)
             {
@@ -234,7 +234,7 @@ namespace PlerionClient.Client
                                 {
                                     content.FillParentWidth();
                                     content.FitContentVertical(ContentSizeFitter.FitMode.PreferredSize);
-                                    content.Children1(
+                                    content.Children(
                                         App.state.captures
                                             .AsObservable()
                                             .CreateDynamic(x => ConstructCaptureRow(x.Value).WithMetadata(x.Value.name))
