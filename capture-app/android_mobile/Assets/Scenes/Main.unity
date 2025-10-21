@@ -462,8 +462,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   captureControllerPrefab: {fileID: 5391395635588278998, guid: 139cc86c2a14cc74d9f55224f45e567f,
     type: 3}
-  overridePlerionAPIBaseURL: 0
-  plerionAPIBaseURL: 
+  overridePlerionAPIBaseURL: 1
+  overrideDeviceName: desktop-otd3rch
   uiPrimitives: {fileID: 11400000, guid: 9c11dd85584e91349a2565e81546a8c7, type: 2}
 --- !u!4 &1353736508
 Transform:

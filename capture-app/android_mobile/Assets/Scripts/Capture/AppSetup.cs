@@ -8,7 +8,7 @@ namespace PlerionClient.Client
     {
         public CaptureController captureControllerPrefab;
         public bool overridePlerionAPIBaseURL;
-        public string plerionAPIBaseURL;
+        public string overrideDeviceName;
         public UIPrimitiveSet uiPrimitives;
 
         private void Awake()
@@ -18,17 +18,24 @@ namespace PlerionClient.Client
 
             gameObject.AddComponent<App>();
             var plerionAPIBaseUrl = overridePlerionAPIBaseURL ?
-                plerionAPIBaseURL : "https://api.outernetfoundation.org";
+                $"https://{overrideDeviceName}-api.outernetfoundation.org" : "https://api.outernetfoundation.org";
+            var keycloakBaseUrl = overridePlerionAPIBaseURL ?
+                $"https://{overrideDeviceName}-keycloak.outernetfoundation.org" : "https://keycloak.outernetfoundation.org";
 
 #if UNITY_EDITOR
             var editorSettings = EditorSettings.GetOrCreateInstance();
             if (editorSettings.overrideEnvironment)
-                plerionAPIBaseUrl = editorSettings.overrideEnvironmentURL;
+            {
+                plerionAPIBaseUrl = $"https://{editorSettings.overrideDeviceName}-api.outernetfoundation.org";
+                keycloakBaseUrl = $"https://{editorSettings.overrideDeviceName}-keycloak.outernetfoundation.org";
+            }
 #endif
 
             App.state.plerionAPIBaseUrl.ExecuteSet(plerionAPIBaseUrl);
+            App.state.plerionKeycloakUrl.ExecuteSet(keycloakBaseUrl);
 
-            // ZedCaptureController.Initialize();
+            LocalCaptureController.Initialize();
+            ZedCaptureController.Initialize();
             Instantiate(captureControllerPrefab);
 
             Destroy(this);

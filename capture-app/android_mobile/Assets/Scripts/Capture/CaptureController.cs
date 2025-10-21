@@ -24,6 +24,7 @@ using ObserveThing.StatefulExtensions;
 using static Nessle.UIBuilder;
 using static PlerionClient.Client.UIPresets;
 using System.Net.Http;
+using UnityEngine.SocialPlatforms;
 
 namespace PlerionClient.Client
 {
@@ -47,10 +48,12 @@ namespace PlerionClient.Client
         private IControl ui;
         private TaskHandle currentCaptureTask = TaskHandle.Complete;
 
-        private string localCaptureNamePath => $"{Application.persistentDataPath}/LocalCaptureNames.json";
+        private string localCaptureNamePath;
 
         void Awake()
         {
+            localCaptureNamePath = $"{Application.persistentDataPath}/LocalCaptureNames.json";
+
             capturesApi = new DefaultApi(
                 new HttpClient(new KeycloakHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
@@ -151,18 +154,18 @@ namespace PlerionClient.Client
             }
 
             var localCaptures = LocalCaptureController.GetCaptures().ToList();
-            // var remoteCaptureList = await capturesApi.GetCapturesAsync(localCaptures);
+            var remoteCaptureList = await capturesApi.GetCaptureSessionsAsync(localCaptures);
 
-            // var captureData = localCaptures.ToDictionary(x => x, x => remoteCaptureList.FirstOrDefault(y => y.Id == x));
+            var captureData = localCaptures.ToDictionary(x => x, x => remoteCaptureList.FirstOrDefault(y => y.Id == x));
 
-            var captureData = new Dictionary<Guid, CaptureSessionCreate>();
+            // var captureData = new Dictionary<Guid, CaptureSessionCreate>();
 
-            for (int i = 0; i < 20; i++)
-            {
-                var id = Guid.NewGuid();
-                var capture = new CaptureSessionCreate(Model.DeviceType.ARFoundation, i.ToString()) { Id = id };
-                captureData.Add(id, capture);
-            }
+            // for (int i = 0; i < 20; i++)
+            // {
+            //     var id = Guid.NewGuid();
+            //     var capture = new CaptureSessionCreate(Model.DeviceType.ARFoundation, i.ToString()) { Id = id };
+            //     captureData.Add(id, capture);
+            // }
 
             await UniTask.SwitchToMainThread();
 

@@ -9,7 +9,7 @@ namespace PlerionClient.Client
     {
         private static EditorSettings _instance;
         public bool overrideEnvironment = false;
-        public string overrideEnvironmentURL;
+        public string overrideDeviceName;
 
         public static EditorSettings GetOrCreateInstance()
         {

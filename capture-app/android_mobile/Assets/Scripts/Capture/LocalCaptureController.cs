@@ -54,6 +54,8 @@ public static class LocalCaptureController
         CancellationToken cancellationToken,
         float requestedCaptureIntervalSeconds)
     {
+        var root = recordingsRoot;
+        Debug.Log($"Capture root: {root}");
         Directory.CreateDirectory(recordingsRoot); // ensure root exists
 
         cameraManager = UnityEngine.Object.FindObjectOfType<ARCameraManager>();
