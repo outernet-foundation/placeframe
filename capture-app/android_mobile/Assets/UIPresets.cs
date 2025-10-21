@@ -77,7 +77,13 @@ namespace PlerionClient.Client
                     {
                         label.FillParent();
                         label.Active(control.props.inputFieldActive.SelectDynamic(x => !x));
-                        label.props.text.From(control.props.inputField.inputText.text);
+                        label.props.text.From(
+                            Observables.Combine(
+                                control.props.inputField.inputText.text,
+                                control.props.inputField.placeholderText.text,
+                                (input, placeholder) => string.IsNullOrEmpty(input) ? placeholder : input
+                            )
+                        );
                     })
                 );
             });

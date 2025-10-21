@@ -26,13 +26,23 @@ namespace PlerionClient.Client
         public ObservableDictionary<Guid, CaptureState> captures { get; private set; }
     }
 
+    public enum CaptureUploadStatus
+    {
+        NotUploaded,
+        Initializing,
+        Uploading,
+        Reconstructing,
+        Uploaded,
+        Failed
+    }
+
     public class CaptureState : ObservableObject, IKeyedObservableNode<Guid>
     {
         public Guid id { get; private set; }
 
         public ObservablePrimitive<string> name { get; private set; }
         public ObservablePrimitive<CaptureType> type { get; private set; }
-        public ObservablePrimitive<bool> uploaded { get; private set; }
+        public ObservablePrimitive<CaptureUploadStatus> status { get; private set; }
 
         void IKeyedObservableNode<Guid>.AssignKey(Guid key)
             => id = key;

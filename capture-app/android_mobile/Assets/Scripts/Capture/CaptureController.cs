@@ -42,7 +42,7 @@ namespace PlerionClient.Client
     public class CaptureController : MonoBehaviour
     {
         public Canvas canvas;
-        [SerializeField][Range(0, 5)] float captureIntervalSeconds = 0.5f;
+        [SerializeField][Range(0, 5)] float captureIntervalSeconds = 0.2f;
 
         private DefaultApi capturesApi;
         private IControl ui;
@@ -104,7 +104,7 @@ namespace PlerionClient.Client
         {
             var json = new SimpleJSON.JSONObject();
 
-            foreach (var kvp in App.state.captures.Where(x => !x.value.uploaded.value))
+            foreach (var kvp in App.state.captures.Where(x => x.value.status.value == CaptureUploadStatus.NotUploaded))
                 json[kvp.key.ToString()] = kvp.value.name.value;
 
             File.WriteAllText(localCaptureNamePath, json.ToString());
@@ -182,33 +182,66 @@ namespace PlerionClient.Client
                             {
                                 local.name.value = captureNames.TryGetValue(key, out var name) ? name : null;
                                 local.type.value = CaptureType.Local;
-                                local.uploaded.value = false;
+                                local.status.value = CaptureUploadStatus.NotUploaded;
                                 return;
                             }
 
                             local.name.value = remote.Name;
                             local.type.value = CaptureType.Local;
-                            local.uploaded.value = true;
+                            local.status.value = CaptureUploadStatus.Uploaded;
                         }
                     );
                 }
             );
         }
 
-        private async UniTask UploadCapture(Guid id, string name, CaptureType type, CancellationToken cancellationToken)
+        private async UniTask UploadCapture(Guid id, string name, CaptureType type, IProgress<CaptureUploadStatus> progress = default, CancellationToken cancellationToken = default)
         {
+            progress?.Report(CaptureUploadStatus.Initializing);
+
+            CaptureSessionRead captureSession = default;
+            Stream captureData = default;
+
             if (type == CaptureType.Zed)
             {
-                var response = await capturesApi.CreateCaptureSessionAsync(new CaptureSessionCreate(Model.DeviceType.Zed, name) { Id = id });
-                var captureData = await ZedCaptureController.GetCapture(id, cancellationToken);
-                await capturesApi.UploadCaptureSessionTarAsync(response.Id, captureData, cancellationToken);
+                await UniTask.WhenAll(
+                    capturesApi.CreateCaptureSessionAsync(new CaptureSessionCreate(Model.DeviceType.Zed, name) { Id = id }).AsUniTask().ContinueWith(x => captureSession = x),
+                    ZedCaptureController.GetCapture(id, cancellationToken).ContinueWith(x => captureData = x)
+                );
             }
             else if (type == CaptureType.Local)
             {
-                var response = await capturesApi.CreateCaptureSessionAsync(new CaptureSessionCreate(Model.DeviceType.ARFoundation, name) { Id = id });
-                var captureData = await LocalCaptureController.GetCapture(id);
-                await capturesApi.UploadCaptureSessionTarAsync(response.Id, captureData, cancellationToken);
+                await UniTask.WhenAll(
+                    capturesApi.CreateCaptureSessionAsync(new CaptureSessionCreate(Model.DeviceType.ARFoundation, name) { Id = id }).AsUniTask().ContinueWith(x => captureSession = x),
+                    LocalCaptureController.GetCapture(id).ContinueWith(x => captureData = x)
+                );
             }
+
+            progress?.Report(CaptureUploadStatus.Uploading);
+
+            await capturesApi.UploadCaptureSessionTarAsync(captureSession.Id, captureData, cancellationToken);
+
+            progress?.Report(CaptureUploadStatus.Reconstructing);
+
+            var reconstruction = await capturesApi.CreateReconstructionAsync(new ReconstructionCreate(captureSession.Id), cancellationToken);
+
+            while (true)
+            {
+                var status = await capturesApi.GetReconstructionStatusAsync(reconstruction.Id, cancellationToken);
+
+                if (status == "\"succeeded\"")
+                    break;
+
+                if (status == "\"failed\"" || status == "\"exited\"")
+                {
+                    progress?.Report(CaptureUploadStatus.Failed);
+                    throw new Exception("Capture reconstruction failed.");
+                }
+
+                await UniTask.WaitForSeconds(10, cancellationToken: cancellationToken);
+            }
+
+            progress?.Report(CaptureUploadStatus.Uploaded);
 
             await UpdateCaptureList();
         }
@@ -290,14 +323,12 @@ namespace PlerionClient.Client
                 EditableLabel().Setup(editableLabel =>
                 {
                     editableLabel.MinHeight(28);
-                    editableLabel.props.label.style.verticalAlignment.From(VerticalAlignmentOptions.Capline);
                     editableLabel.FlexibleWidth(true);
-                    editableLabel.BindValue(
-                        props => props.inputField.inputText.text,
-                        capture.name,
-                        x => IsDefaultRowLabel(x, capture.id) ? null : x,
-                        x => string.IsNullOrEmpty(x) ? DefaultRowLabel(capture.id) : x
-                    );
+
+                    editableLabel.props.label.style.verticalAlignment.From(VerticalAlignmentOptions.Capline);
+                    editableLabel.props.inputField.placeholderText.text.From(DefaultRowLabel(capture.id));
+                    editableLabel.props.inputField.onEndEdit.From(x => capture.name.ExecuteSetOrDelay(x));
+                    editableLabel.AddBinding(capture.name.AsObservable().Subscribe(x => editableLabel.props.inputField.inputText.text.From(x.currentValue)));
                 }),
                 Text().Setup(text =>
                 {
@@ -308,12 +339,27 @@ namespace PlerionClient.Client
                 }),
                 Button().Setup(button =>
                 {
-                    button.props.interactable.From(capture.uploaded.AsObservable().SelectDynamic(x => !x));
-
-                    button.LabelFrom(capture.uploaded.AsObservable().SelectDynamic(x => x ? "Uploaded" : "Upload"));
-                    button.PreferredWidth(100);
+                    button.props.interactable.From(capture.status.AsObservable().SelectDynamic(x => x == CaptureUploadStatus.NotUploaded));
+                    button.LabelFrom(capture.status.AsObservable().SelectDynamic(x =>
+                        x switch
+                        {
+                            CaptureUploadStatus.NotUploaded => "Upload",
+                            CaptureUploadStatus.Initializing => "Initializing",
+                            CaptureUploadStatus.Uploading => "Uploading",
+                            CaptureUploadStatus.Reconstructing => "Constructing",
+                            CaptureUploadStatus.Uploaded => "Uploaded",
+                            CaptureUploadStatus.Failed => "Failed",
+                            _ => throw new ArgumentOutOfRangeException(nameof(x), x, null)
+                        }
+                    ));
+                    button.PreferredWidth(105);
                     button.props.onClick.From(() =>
-                        UploadCapture(capture.id, capture.name.value ?? capture.id.ToString(), capture.type.value, default).Forget()
+                        UploadCapture(
+                            capture.id,
+                            capture.name.value ?? capture.id.ToString(),
+                            capture.type.value,
+                            Progress.Create<CaptureUploadStatus>(x => capture.status.ScheduleSet(x))
+                        ).Forget()
                     );
                 })
             ));
