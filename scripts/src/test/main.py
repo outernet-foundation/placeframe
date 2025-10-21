@@ -2,7 +2,6 @@
 import json
 from pathlib import Path
 from time import sleep
-from typing import cast
 from uuid import UUID
 
 from common.classes import PinholeIntrinsics, PointCloudPoint, Transform
@@ -59,9 +58,18 @@ def main() -> None:
             if status == "failed" or status == "exited":
                 raise RuntimeError("Reconstruction failed")
 
-    localization_map_id: UUID | None = cast(
-        UUID | None, curl("GET", f"{API_BASE_URL}/reconstructions/{reconstruction_id}/localization_map")
-    )
+    # try:
+    #     print("test")
+    #     localization_map_id: UUID | None = cast(
+    #         UUID | None, curl("GET", f"{API_BASE_URL}/reconstructions/{reconstruction_id}/localization_map")
+    #     )
+    #     print("test2")
+    # # http errors
+    # except Exception:
+    #     localization_map_id = None
+
+    localization_map_id: UUID | None = None
+
     if localization_map_id is not None:
         print(f"Using existing localization map {localization_map_id} for capture {CAPTURE_ID}")
     else:
@@ -72,13 +80,14 @@ def main() -> None:
                 f"{API_BASE_URL}/localization_maps",
                 json_data={
                     "reconstruction_id": reconstruction_id,
-                    "tx_ecef": 0.0,
-                    "ty_ecef": 0.0,
-                    "tz_ecef": 0.0,
-                    "qx_ecef": 0.0,
-                    "qy_ecef": 0.0,
-                    "qz_ecef": 0.0,
-                    "qw_ecef": 1.0,
+                    "position_x": 0.0,
+                    "position_y": 0.0,
+                    "position_z": 0.0,
+                    "rotation_x": 0.0,
+                    "rotation_y": 0.0,
+                    "rotation_z": 0.0,
+                    "rotation_w": 1.0,
+                    "color": 0,
                 },
             )
         )
