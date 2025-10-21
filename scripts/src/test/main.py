@@ -34,9 +34,10 @@ def main() -> None:
     print("Authenticating")
     password_login()  # ensure we can auth before doing anything
 
+    print(f"Checking for reconstruction for capture {CAPTURE_ID}")
     # if there's an existing reconstruction for this capture, use it
     existing_reconstructions: list[UUID] = json.loads(
-        curl("GET", f"{API_BASE_URL}/captures/{CAPTURE_ID}/reconstructions")
+        curl("GET", f"{API_BASE_URL}/capture_sessions/{CAPTURE_ID}/reconstructions")
     )
     reconstruction_id: UUID
     if len(existing_reconstructions) > 0:
