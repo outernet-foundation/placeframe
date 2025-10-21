@@ -3,7 +3,7 @@ from uuid import UUID
 
 from common.boto_clients import create_s3_client
 from common.classes import PointCloudPoint, Transform
-from common.schemas import PlainTextResponse, binary_schema
+from common.schemas import binary_schema
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from models.public_dtos import ReconstructionCreate, ReconstructionRead, reconstruction_from_dto, reconstruction_to_dto
@@ -89,31 +89,25 @@ async def get_reconstruction(id: UUID, session: AsyncSession = Depends(get_sessi
 
 
 @router.get("/{id}/localization_map")
-async def get_reconstruction_localization_map(id: UUID, session: AsyncSession = Depends(get_session)) -> UUID:
+async def get_reconstruction_localization_map(id: UUID, session: AsyncSession = Depends(get_session)) -> UUID | None:
     row = await session.get(Reconstruction, id)
 
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reconstruction with id {id} not found")
 
     result = await session.execute(select(LocalizationMap.id).where(LocalizationMap.reconstruction_id == id))
-    localization_map_id = result.scalar_one_or_none()
 
-    if localization_map_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"No localization map for reconstruction with id {id}"
-        )
-
-    return localization_map_id
+    return result.scalar_one_or_none()
 
 
 @router.get("/{id}/status")
-async def get_reconstruction_status(id: UUID, session: AsyncSession = Depends(get_session)) -> PlainTextResponse:
+async def get_reconstruction_status(id: UUID, session: AsyncSession = Depends(get_session)) -> str:
     row = await session.get(Reconstruction, id)
 
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reconstruction with id {id} not found")
 
-    return PlainTextResponse(row.status)
+    return row.status
 
 
 @router.get("/{id}/points")

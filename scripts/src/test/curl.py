@@ -19,7 +19,7 @@ def curl(
     form_data: dict[str, str] | None = None,
     connect_timeout_s: float | None = None,
     print_command: bool = False,
-) -> str:
+) -> Any:
     cmd = [
         "curl",
         "-s",
@@ -71,11 +71,4 @@ def curl(
         print(f"body: {body}", file=sys.stderr)
         sys.exit(1)
 
-    try:
-        parsed = json.loads(body)
-        if isinstance(parsed, (str, int, float, bool)) or parsed is None:
-            return str(parsed) if parsed is not None else ""
-    except Exception:
-        pass
-
-    return body
+    return json.loads(body)

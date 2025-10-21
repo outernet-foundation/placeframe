@@ -711,8 +711,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid",
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
                   "title": "Response Get Reconstruction Localization Map"
                 }
               }
@@ -755,7 +762,10 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": "string",
+                  "title": "Response Get Reconstruction Status"
+                }
               }
             }
           },
@@ -1675,6 +1685,11 @@
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/Body_localize_image"
+              },
+              "encoding": {
+                "camera": {
+                  "contentType": "application/json"
+                }
               }
             }
           }

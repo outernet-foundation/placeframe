@@ -1,15 +1,14 @@
 import json
-from typing import Annotated, cast
+from typing import Annotated, Callable, TypeVar, cast
 from uuid import UUID, uuid4
 
 import httpx
 from common.classes import CameraIntrinsics, Transform
-from common.make_multipar_json_dep import make_multipart_json_dep
 from common.session_client_docker import DockerSessionClient
-from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Body, Depends, File, Form, HTTPException, UploadFile, status
 from models.public_dtos import LocalizationSessionRead, localization_session_to_dto
 from models.public_tables import LocalizationMap, LocalizationSession
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter, ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -134,11 +133,31 @@ async def get_map_load_status(id: UUID, map_id: UUID, session: AsyncSession = De
     raise HTTPException(status_code=r.status_code, detail=r.text)
 
 
+T = TypeVar("T")
+
+
+def make_multipart_json_dep(name: str, adapter: TypeAdapter[T]) -> Callable[[str], T]:
+    def dep(value: str = Form(..., alias=name)) -> T:
+        try:
+            return adapter.validate_json(value)
+        except ValidationError as e:
+            raise HTTPException(status_code=422, detail=e.errors())
+
+    return dep
+
+
 INTR_ADAPTER: TypeAdapter[CameraIntrinsics] = TypeAdapter(CameraIntrinsics)
 parse_camera = make_multipart_json_dep("camera", INTR_ADAPTER)
 
 
-@router.post("/{id}/localization")
+@router.post(
+    "/{id}/localization",
+    openapi_extra={
+        "requestBody": {
+            "content": {"multipart/form-data": {"encoding": {"camera": {"contentType": "application/json"}}}}
+        }
+    },
+)
 async def localize_image(
     id: UUID,
     camera: Annotated[CameraIntrinsics, Depends(parse_camera)],

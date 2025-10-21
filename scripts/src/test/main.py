@@ -35,17 +35,16 @@ def main() -> None:
 
     print(f"Checking for reconstruction for capture {CAPTURE_ID}")
     # if there's an existing reconstruction for this capture, use it
-    existing_reconstructions: list[UUID] = json.loads(
-        curl("GET", f"{API_BASE_URL}/capture_sessions/{CAPTURE_ID}/reconstructions")
-    )
+    existing_reconstructions: list[UUID] = curl("GET", f"{API_BASE_URL}/capture_sessions/{CAPTURE_ID}/reconstructions")
+
     reconstruction_id: UUID
     if len(existing_reconstructions) > 0:
         reconstruction_id = existing_reconstructions[0]
         print(f"Using existing reconstruction {reconstruction_id} for capture {CAPTURE_ID}")
     else:
         print(f"Creating reconstruction for capture {CAPTURE_ID}")
-        reconstruction_id = json.loads(
-            curl("POST", f"{API_BASE_URL}/reconstructions", json_data={"capture_session_id": CAPTURE_ID})
+        reconstruction_id = curl(
+            "POST", f"{API_BASE_URL}/reconstructions", json_data={"capture_session_id": CAPTURE_ID}
         )["id"]
 
         print(f"Waiting for reconstruction {reconstruction_id} to succeed (this can take a while)")
@@ -58,48 +57,38 @@ def main() -> None:
             if status == "failed" or status == "exited":
                 raise RuntimeError("Reconstruction failed")
 
-    # try:
-    #     print("test")
-    #     localization_map_id: UUID | None = cast(
-    #         UUID | None, curl("GET", f"{API_BASE_URL}/reconstructions/{reconstruction_id}/localization_map")
-    #     )
-    #     print("test2")
-    # # http errors
-    # except Exception:
-    #     localization_map_id = None
-
-    localization_map_id: UUID | None = None
+    localization_map_id: UUID | None = curl(
+        "GET", f"{API_BASE_URL}/reconstructions/{reconstruction_id}/localization_map"
+    )
 
     if localization_map_id is not None:
         print(f"Using existing localization map {localization_map_id} for capture {CAPTURE_ID}")
     else:
         print("Creating localization map with dummy ECEF")
-        loc_map = json.loads(
-            curl(
-                "POST",
-                f"{API_BASE_URL}/localization_maps",
-                json_data={
-                    "reconstruction_id": reconstruction_id,
-                    "position_x": 0.0,
-                    "position_y": 0.0,
-                    "position_z": 0.0,
-                    "rotation_x": 0.0,
-                    "rotation_y": 0.0,
-                    "rotation_z": 0.0,
-                    "rotation_w": 1.0,
-                    "color": 0,
-                },
-            )
+        loc_map = curl(
+            "POST",
+            f"{API_BASE_URL}/localization_maps",
+            json_data={
+                "reconstruction_id": reconstruction_id,
+                "position_x": 0.0,
+                "position_y": 0.0,
+                "position_z": 0.0,
+                "rotation_x": 0.0,
+                "rotation_y": 0.0,
+                "rotation_z": 0.0,
+                "rotation_w": 1.0,
+                "color": 0,
+            },
         )
+
         localization_map_id = loc_map["id"]
 
         print(f"Localization map: {localization_map_id}")
+
     assert localization_map_id is not None
 
     print("Creating localization session")
-    session_id = json.loads(curl("POST", f"{API_BASE_URL}/localization_sessions", json_data={}, connect_timeout_s=120))[
-        "id"
-    ]
+    session_id = curl("POST", f"{API_BASE_URL}/localization_sessions", json_data={}, connect_timeout_s=120)["id"]
 
     print(f"Waiting for session {session_id} to become ready")
     while True:
@@ -131,24 +120,22 @@ def main() -> None:
 
     print("Localizing test image")
     camera_json = json.dumps(intrinsics)
-    localization_result: dict[UUID, Transform] = json.loads(
-        curl(
-            "POST",
-            f"{API_BASE_URL}/localization_sessions/{session_id}/localization",
-            form_data={"image": f"@{TEST_IMAGE_PATH}", "camera": camera_json},
-        )
+    localization_result: dict[UUID, Transform] = curl(
+        "POST",
+        f"{API_BASE_URL}/localization_sessions/{session_id}/localization",
+        form_data={"image": f"@{TEST_IMAGE_PATH}", "camera": camera_json},
     )
 
     print("Localization result:")
     print(json.dumps(localization_result, indent=2))
 
     print("Fetching point cloud")
-    result = curl("GET", f"{API_BASE_URL}/reconstructions/{reconstruction_id}/points")
-    point_cloud: list[PointCloudPoint] = json.loads(result)
+    point_cloud: list[PointCloudPoint] = curl("GET", f"{API_BASE_URL}/reconstructions/{reconstruction_id}/points")
 
     print("Fetch image poses")
-    result = curl("GET", f"{API_BASE_URL}/reconstructions/{reconstruction_id}/image_poses")
-    reconstruction_image_poses: list[Transform] = json.loads(result)
+    reconstruction_image_poses: list[Transform] = curl(
+        "GET", f"{API_BASE_URL}/reconstructions/{reconstruction_id}/image_poses"
+    )
 
     print(f"Generating visualization → {OUTPUT_HTML_PATH}")
     html = generate_visualization(

@@ -132,7 +132,14 @@ async def get_reconstruction_load_status(id: UUID) -> dict[str, str]:
         return {"status": _load_state[id].value}
 
 
-@app.post("/localization")
+@app.post(
+    "/localization",
+    openapi_extra={
+        "requestBody": {
+            "content": {"multipart/form-data": {"encoding": {"camera": {"contentType": "application/json"}}}}
+        }
+    },
+)
 async def localize_image(
     camera: Annotated[CameraIntrinsics, Depends(parse_camera)],
     image: UploadFile = File(..., description="Image to localize"),

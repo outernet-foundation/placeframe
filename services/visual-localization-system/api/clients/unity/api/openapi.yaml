@@ -254,6 +254,7 @@ paths:
               schema:
                 items:
                   format: uuid
+                  nullable: true
                   type: string
                 type: array
           description: Successful Response
@@ -468,7 +469,7 @@ paths:
             application/json:
               schema:
                 format: uuid
-                title: Response Get Reconstruction Localization Map
+                nullable: true
                 type: string
           description: Successful Response
         "422":
@@ -497,7 +498,9 @@ paths:
         "200":
           content:
             application/json:
-              schema: {}
+              schema:
+                title: Response Get Reconstruction Status
+                type: string
           description: Successful Response
         "422":
           content:
@@ -613,6 +616,7 @@ paths:
           description: List of Ids to delete
           items:
             format: uuid
+            nullable: true
             type: string
           type: array
         style: form
@@ -999,6 +1003,7 @@ paths:
               description: IDs of localization maps to load
               items:
                 format: uuid
+                nullable: true
                 type: string
               type: array
         required: true
@@ -1109,6 +1114,10 @@ paths:
       requestBody:
         content:
           multipart/form-data:
+            encoding:
+              camera:
+                contentType: application/json
+                style: form
             schema:
               $ref: "#/components/schemas/Body_localize_image"
         required: true
