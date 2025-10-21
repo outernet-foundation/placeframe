@@ -50,6 +50,9 @@ namespace PlerionClient.Client
 
         private string localCaptureNamePath;
 
+        private IDisposable awaitReconstructionTasksStream;
+        private Dictionary<Guid, TaskHandle> awaitReconstructionTasks = new Dictionary<Guid, TaskHandle>();
+
         void Awake()
         {
             localCaptureNamePath = $"{Application.persistentDataPath}/LocalCaptureNames.json";
@@ -66,12 +69,50 @@ namespace PlerionClient.Client
 
             App.RegisterObserver(HandleCaptureStatusChanged, App.state.captureStatus);
             App.RegisterObserver(HandleCapturesChanged, App.state.captures);
+
+            awaitReconstructionTasksStream = App.state.captures
+                .AsObservable()
+                .WhereDynamic(x => x.Value.status
+                    .AsObservable()
+                    .SelectDynamic(x =>
+                        x == CaptureUploadStatus.Initializing ||
+                        x == CaptureUploadStatus.Uploading ||
+                        x == CaptureUploadStatus.Reconstructing
+                    )
+                )
+                .Subscribe(
+                    observer: x =>
+                    {
+                        if (x.operationType == OpType.Add)
+                        {
+                            var progress = Progress.Create<CaptureUploadStatus>(progress => x.element.Value.status.ScheduleSet(progress));
+
+                            awaitReconstructionTasks.Add(
+                                x.element.Key,
+                                TaskHandle.Execute(token => AwaitReconstructionComplete(x.element.Key, progress, token))
+                            );
+                        }
+                        else if (awaitReconstructionTasks.TryGetValue(x.element.Key, out var taskHandle))
+                        {
+                            taskHandle.Cancel();
+                            awaitReconstructionTasks.Remove(x.element.Key);
+                        }
+                    },
+                    onDispose: () =>
+                    {
+                        foreach (var taskHandle in awaitReconstructionTasks.Values)
+                            taskHandle.Cancel();
+
+                        awaitReconstructionTasks.Clear();
+                    }
+                );
         }
 
         void OnDestroy()
         {
             ui.Dispose();
             currentCaptureTask.Cancel();
+            awaitReconstructionTasksStream.Dispose();
         }
 
         private void HandleCaptureStatusChanged(NodeChangeEventArgs args)
@@ -154,9 +195,26 @@ namespace PlerionClient.Client
             }
 
             var localCaptures = LocalCaptureController.GetCaptures().ToList();
-            var remoteCaptureList = await capturesApi.GetCaptureSessionsAsync(localCaptures);
+            var remoteCaptureList = await capturesApi.GetCaptureSessionsAsync();
+            var remoteCaptureReconstructions = await UniTask.WhenAll(
+                remoteCaptureList.Select(x => x.Id).Select(x => capturesApi
+                    .GetReconstructionsAsync(captureSessionId: x).AsUniTask()
+                    .ContinueWith(x => x.Count > 0 ? x[0] : default)
+                )
+            );
 
-            var captureData = localCaptures.ToDictionary(x => x, x => remoteCaptureList.FirstOrDefault(y => y.Id == x));
+            Debug.Log("EP: " + string.Join("\n", localCaptures));
+            Debug.Log("EP: " + string.Join("\n", remoteCaptureList.Select(x => x.Id)));
+
+            var captureData = remoteCaptureList
+                .Select(x => x.Id)
+                .Concat(localCaptures)
+                .Distinct()
+                .ToDictionary(x => x, x => remoteCaptureList.FirstOrDefault(y => y.Id == x));
+
+            var reconstructionStatuses = remoteCaptureReconstructions
+                .Where(x => x != null)
+                .ToDictionary(x => x.CaptureSessionId, x => x.Status);
 
             // var captureData = new Dictionary<Guid, CaptureSessionCreate>();
 
@@ -170,11 +228,11 @@ namespace PlerionClient.Client
             await UniTask.SwitchToMainThread();
 
             App.state.captures.ExecuteActionOrDelay(
-                captureData,
-                (captures, state) =>
+                (captureData, reconstructionStatuses),
+                (data, state) =>
                 {
                     state.SetFrom(
-                        captures,
+                        data.captureData,
                         refreshOldEntries: true,
                         copy: (key, remote, local) =>
                         {
@@ -188,10 +246,43 @@ namespace PlerionClient.Client
 
                             local.name.value = remote.Name;
                             local.type.value = CaptureType.Local;
-                            local.status.value = CaptureUploadStatus.Uploaded;
+
+                            if (!data.reconstructionStatuses.TryGetValue(key, out var status))
+                            {
+                                //EP TODO: Ask tyler what we do in this case?
+                                local.status.value = CaptureUploadStatus.Initializing;
+                                return;
+                            }
+
+                            switch (status)
+                            {
+                                case ReconstructionStatus.Pending:
+                                case ReconstructionStatus.Queued:
+                                case ReconstructionStatus.Running:
+                                    local.status.value = CaptureUploadStatus.Reconstructing;
+                                    break;
+                                case ReconstructionStatus.Succeeded:
+                                    local.status.value = CaptureUploadStatus.Uploaded;
+                                    break;
+                                case ReconstructionStatus.Cancelled:
+                                case ReconstructionStatus.Failed:
+                                    local.status.value = CaptureUploadStatus.Failed;
+                                    break;
+                            }
                         }
                     );
                 }
+            );
+
+            await UniTask.WhenAll(reconstructionStatuses
+                .Where(
+                    x => x.Value == ReconstructionStatus.Pending ||
+                    x.Value == ReconstructionStatus.Queued ||
+                    x.Value == ReconstructionStatus.Running
+                )
+                .Select(x => AwaitReconstructionComplete(x.Key, Progress.Create<CaptureUploadStatus>(
+                    progress => App.state.captures[x.Key].status.ScheduleSet(progress)
+                )))
             );
         }
 
@@ -225,9 +316,16 @@ namespace PlerionClient.Client
 
             var reconstruction = await capturesApi.CreateReconstructionAsync(new ReconstructionCreate(captureSession.Id), cancellationToken);
 
+            await AwaitReconstructionComplete(reconstruction.Id, progress, cancellationToken);
+        }
+
+        private async UniTask AwaitReconstructionComplete(Guid id, IProgress<CaptureUploadStatus> progress = default, CancellationToken cancellationToken = default)
+        {
+            progress?.Report(CaptureUploadStatus.Reconstructing);
+
             while (true)
             {
-                var status = await capturesApi.GetReconstructionStatusAsync(reconstruction.Id, cancellationToken);
+                var status = await capturesApi.GetReconstructionStatusAsync(id, cancellationToken);
 
                 if (status == "\"succeeded\"")
                     break;
