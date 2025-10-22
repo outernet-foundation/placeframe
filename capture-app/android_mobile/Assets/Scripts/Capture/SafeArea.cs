@@ -11,19 +11,20 @@ public class SafeArea : MonoBehaviour
     {
         _rectTransform = GetComponent<RectTransform>();
         _safeArea = Screen.safeArea;
-        _minAnchor = _safeArea.position;
-        _maxAnchor = _minAnchor + _safeArea.size;
+        _minAnchor = _safeArea.min;
+        _maxAnchor = _safeArea.max;
         _minAnchor.x /= Screen.width;
         _minAnchor.y /= Screen.height;
         _maxAnchor.x /= Screen.width;
         _maxAnchor.y /= Screen.height;
 
-#if UNITY_ANDROID 
-        const float bottomBarHeight = 100f; // Pixels
-        _minAnchor.y += bottomBarHeight / Screen.height;
-#endif
-
         _rectTransform.anchorMax = _maxAnchor;
         _rectTransform.anchorMin = _minAnchor;
+        _rectTransform.offsetMin = Vector2.zero;
+        _rectTransform.offsetMax = Vector2.zero;
+
+#if UNITY_ANDROID 
+        _rectTransform.offsetMin = new Vector2(0, 25);
+#endif
     }
 }

@@ -29,6 +29,7 @@ namespace PlerionClient.Client
     public enum CaptureUploadStatus
     {
         NotUploaded,
+        ReconstructionNotStarted,
         Initializing,
         Uploading,
         Reconstructing,

@@ -203,9 +203,6 @@ namespace PlerionClient.Client
                 )
             );
 
-            Debug.Log("EP: " + string.Join("\n", localCaptures));
-            Debug.Log("EP: " + string.Join("\n", remoteCaptureList.Select(x => x.Id)));
-
             var captureData = remoteCaptureList
                 .Select(x => x.Id)
                 .Concat(localCaptures)
@@ -249,8 +246,7 @@ namespace PlerionClient.Client
 
                             if (!data.reconstructionStatuses.TryGetValue(key, out var status))
                             {
-                                //EP TODO: Ask tyler what we do in this case?
-                                local.status.value = CaptureUploadStatus.Initializing;
+                                local.status.value = CaptureUploadStatus.ReconstructionNotStarted;
                                 return;
                             }
 
@@ -314,18 +310,43 @@ namespace PlerionClient.Client
 
             progress?.Report(CaptureUploadStatus.Reconstructing);
 
-            var reconstruction = await capturesApi.CreateReconstructionAsync(new ReconstructionCreate(captureSession.Id), cancellationToken);
-
-            await AwaitReconstructionComplete(reconstruction.Id, progress, cancellationToken);
+            await capturesApi.CreateReconstructionAsync(new ReconstructionCreate(captureSession.Id), cancellationToken);
         }
 
-        private async UniTask AwaitReconstructionComplete(Guid id, IProgress<CaptureUploadStatus> progress = default, CancellationToken cancellationToken = default)
+        private async UniTask<Guid> AwaitReconstructionID(Guid captureSessionId, CancellationToken cancellationToken = default)
         {
+            while (true)
+            {
+                try
+                {
+                    var reconstructions = await capturesApi.GetCaptureSessionReconstructionsAsync(captureSessionId);
+                    if (reconstructions != null && reconstructions.Count > 0)
+                    {
+                        foreach (var reconstruction in reconstructions)
+                        {
+                            if (reconstruction.HasValue)
+                                return reconstruction.Value;
+                        }
+                    }
+                }
+                catch (Exception exc)
+                {
+                    Log.Error(LogGroup.Default, exc, $"Encountered an error getting reconstruction for capture session {captureSessionId}");
+                }
+
+                await UniTask.WaitForSeconds(10, cancellationToken: cancellationToken);
+            }
+        }
+
+        private async UniTask AwaitReconstructionComplete(Guid captureSessionId, IProgress<CaptureUploadStatus> progress = default, CancellationToken cancellationToken = default)
+        {
+            var reconstructionId = await AwaitReconstructionID(captureSessionId, cancellationToken);
+
             progress?.Report(CaptureUploadStatus.Reconstructing);
 
             while (true)
             {
-                var status = await capturesApi.GetReconstructionStatusAsync(id, cancellationToken);
+                var status = await capturesApi.GetReconstructionStatusAsync(reconstructionId, cancellationToken);
 
                 if (status == "\"succeeded\"")
                     break;
@@ -346,73 +367,69 @@ namespace PlerionClient.Client
 
         private IControl ConstructUI(Canvas canvas)
         {
-            return new Control("root", canvas.gameObject).Setup(root => root.Children(SafeArea().Setup(safeArea =>
-            {
-                safeArea.FillParent();
-                safeArea.Children(
-                    Image("background").Setup(background =>
-                    {
-                        background.FillParent();
-                        background.props.color.From(new UnityEngine.Color(0.2196079f, 0.2196079f, 0.2196079f, 1f));
-                    }),
-                    TightRowsWideColumns("content").Setup(content =>
-                    {
-                        content.props.padding.From(new RectOffset(10, 10, 10, 10));
-                        content.FillParent();
-                        content.Children(
-                            ScrollRect("captureList").Setup(captureList =>
+            return new Control("root", canvas.gameObject).Setup(root => root.Children(
+                Image("background").Setup(background =>
+                {
+                    background.FillParent();
+                    background.props.color.From(new Color(0.2196079f, 0.2196079f, 0.2196079f, 1f));
+                }),
+                SafeArea().Setup(safeArea => safeArea.Children(TightRowsWideColumns("content").Setup(content =>
+                {
+                    content.props.padding.From(new RectOffset(10, 10, 10, 10));
+                    content.FillParent();
+                    content.Children(
+                        ScrollRect("captureList").Setup(captureList =>
+                        {
+                            captureList.FlexibleHeight(true);
+                            captureList.props.horizontal.From(false);
+                            captureList.props.content.From(TightRowsWideColumns("content").Setup(content =>
                             {
-                                captureList.FlexibleHeight(true);
-                                captureList.props.horizontal.From(false);
-                                captureList.props.content.From(TightRowsWideColumns("content").Setup(content =>
-                                {
-                                    content.FillParentWidth();
-                                    content.FitContentVertical(ContentSizeFitter.FitMode.PreferredSize);
-                                    content.Children(
-                                        App.state.captures
-                                            .AsObservable()
-                                            .CreateDynamic(x => ConstructCaptureRow(x.Value).WithMetadata(x.Value.name))
-                                            .OrderByDynamic(x => x.metadata.AsObservable())
-                                    );
-                                }));
-                            }),
-                            Row("bottomBar").Setup(row => row.Children(
-                                Button().Setup(button =>
-                                {
-                                    button.props.interactable.From(App.state.captureStatus.AsObservable().SelectDynamic(x => x == CaptureStatus.Idle || x == CaptureStatus.Capturing));
+                                content.FillParentWidth();
+                                content.FitContentVertical(ContentSizeFitter.FitMode.PreferredSize);
+                                content.Children(
+                                    App.state.captures
+                                        .AsObservable()
+                                        .CreateDynamic(x => ConstructCaptureRow(x.Value).WithMetadata(x.Value.name))
+                                        .OrderByDynamic(x => x.metadata.AsObservable())
+                                );
+                            }));
+                        }),
+                        Row("bottomBar").Setup(row => row.Children(
+                            Button().Setup(button =>
+                            {
+                                button.props.interactable.From(App.state.captureStatus.AsObservable().SelectDynamic(x => x == CaptureStatus.Idle || x == CaptureStatus.Capturing));
 
-                                    button.PreferredWidth(110);
-                                    button.LabelFrom(App.state.captureStatus.AsObservable().SelectDynamic(x =>
-                                        x switch
-                                        {
-                                            CaptureStatus.Idle => "Start Capture",
-                                            CaptureStatus.Starting => "Starting...",
-                                            CaptureStatus.Capturing => "Stop Capture",
-                                            CaptureStatus.Stopping => "Stopping...",
-                                            _ => throw new ArgumentOutOfRangeException(nameof(x), x, null)
-                                        }
-                                    ));
-
-                                    button.props.onClick.From(() =>
+                                button.PreferredWidth(110);
+                                button.LabelFrom(App.state.captureStatus.AsObservable().SelectDynamic(x =>
+                                    x switch
                                     {
-                                        if (App.state.captureStatus.value == CaptureStatus.Idle)
-                                            App.state.ExecuteAction(new SetCaptureStatusAction(CaptureStatus.Starting));
-                                        else if (App.state.captureStatus.value == CaptureStatus.Capturing)
-                                            App.state.ExecuteAction(new SetCaptureStatusAction(CaptureStatus.Stopping));
-                                    });
-                                }),
-                                Dropdown().Setup(dropdown =>
+                                        CaptureStatus.Idle => "Start Capture",
+                                        CaptureStatus.Starting => "Starting...",
+                                        CaptureStatus.Capturing => "Stop Capture",
+                                        CaptureStatus.Stopping => "Stopping...",
+                                        _ => throw new ArgumentOutOfRangeException(nameof(x), x, null)
+                                    }
+                                ));
+
+                                button.props.onClick.From(() =>
                                 {
-                                    dropdown.PreferredWidth(100);
-                                    dropdown.props.options.From(Enum.GetNames(typeof(CaptureType)));
-                                    dropdown.props.interactable.From(App.state.captureStatus.AsObservable().SelectDynamic(x => x == CaptureStatus.Idle));
-                                    dropdown.BindValue(App.state.captureMode, x => (CaptureType)x, x => (int)x);
-                                })
-                            ))
-                        );
-                    })
-                );
-            })));
+                                    if (App.state.captureStatus.value == CaptureStatus.Idle)
+                                        App.state.ExecuteAction(new SetCaptureStatusAction(CaptureStatus.Starting));
+                                    else if (App.state.captureStatus.value == CaptureStatus.Capturing)
+                                        App.state.ExecuteAction(new SetCaptureStatusAction(CaptureStatus.Stopping));
+                                });
+                            }),
+                            Dropdown().Setup(dropdown =>
+                            {
+                                dropdown.PreferredWidth(100);
+                                dropdown.props.options.From(Enum.GetNames(typeof(CaptureType)));
+                                dropdown.props.interactable.From(App.state.captureStatus.AsObservable().SelectDynamic(x => x == CaptureStatus.Idle));
+                                dropdown.BindValue(App.state.captureMode, x => (CaptureType)x, x => (int)x);
+                            })
+                        ))
+                    );
+                })))
+            ));
         }
 
         private IControl<LayoutProps> ConstructCaptureRow(CaptureState capture)
@@ -437,11 +454,16 @@ namespace PlerionClient.Client
                 }),
                 Button().Setup(button =>
                 {
-                    button.props.interactable.From(capture.status.AsObservable().SelectDynamic(x => x == CaptureUploadStatus.NotUploaded));
+                    button.props.interactable.From(capture.status.AsObservable().SelectDynamic(x =>
+                        x == CaptureUploadStatus.NotUploaded ||
+                        x == CaptureUploadStatus.ReconstructionNotStarted)
+                    );
+
                     button.LabelFrom(capture.status.AsObservable().SelectDynamic(x =>
                         x switch
                         {
                             CaptureUploadStatus.NotUploaded => "Upload",
+                            CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
                             CaptureUploadStatus.Initializing => "Initializing",
                             CaptureUploadStatus.Uploading => "Uploading",
                             CaptureUploadStatus.Reconstructing => "Constructing",
@@ -450,15 +472,25 @@ namespace PlerionClient.Client
                             _ => throw new ArgumentOutOfRangeException(nameof(x), x, null)
                         }
                     ));
+
                     button.PreferredWidth(105);
                     button.props.onClick.From(() =>
-                        UploadCapture(
-                            capture.id,
-                            capture.name.value ?? capture.id.ToString(),
-                            capture.type.value,
-                            Progress.Create<CaptureUploadStatus>(x => capture.status.ScheduleSet(x))
-                        ).Forget()
-                    );
+                    {
+                        if (capture.status.value == CaptureUploadStatus.ReconstructionNotStarted)
+                        {
+                            capturesApi.CreateReconstructionAsync(new ReconstructionCreate(capture.id));
+                            capture.status.ExecuteSetOrDelay(CaptureUploadStatus.Reconstructing);
+                        }
+                        else if (capture.status.value == CaptureUploadStatus.NotUploaded)
+                        {
+                            UploadCapture(
+                                capture.id,
+                                capture.name.value ?? capture.id.ToString(),
+                                capture.type.value,
+                                Progress.Create<CaptureUploadStatus>(x => capture.status.ScheduleSet(x))
+                            ).Forget();
+                        }
+                    });
                 })
             ));
         }

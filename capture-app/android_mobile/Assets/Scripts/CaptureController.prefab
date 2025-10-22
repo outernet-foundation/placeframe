@@ -115,4 +115,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   canvas: {fileID: 5027896072108350077}
-  captureIntervalSeconds: 1
+  captureIntervalSeconds: 0.2
