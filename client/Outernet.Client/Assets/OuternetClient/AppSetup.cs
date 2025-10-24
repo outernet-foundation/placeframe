@@ -7,7 +7,7 @@ using SimpleJSON;
 using Outernet.Client.AuthoringTools;
 using Plerion.VPS;
 
-#if AUTHORING_TOOLS_ENABLED
+#if AUTHORING_TOOLS_ENABLED || MAP_REGISTRATION_TOOLS_ENABLED
 using UnityEngine.InputSystem.UI;
 #endif
 
@@ -36,7 +36,7 @@ namespace Outernet.Client
             AddCustomSerializers();
             sceneReferences.Initialize();
 
-#if AUTHORING_TOOLS_ENABLED
+#if AUTHORING_TOOLS_ENABLED || MAP_REGISTRATION_TOOLS_ENABLED
             AuthoringTools.AuthoringToolsPrefabs.Initialize("AuthoringToolsPrefabs");
 
             Destroy(SceneReferences.XrOrigin);
@@ -68,7 +68,7 @@ namespace Outernet.Client
 
             gameObject.AddComponent<GPSManager>();
 
-#if !AUTHORING_TOOLS_ENABLED
+#if !AUTHORING_TOOLS_ENABLED && !MAP_REGISTRATION_TOOLS_ENABLED
             SceneViewManager.Initialize();
             TilesetManager.Initialize();
             Instantiate(mapVisualizer);
@@ -78,7 +78,11 @@ namespace Outernet.Client
             var canvas = Instantiate(AuthoringTools.AuthoringToolsPrefabs.Canvas);
             var systemUI = Instantiate(AuthoringTools.AuthoringToolsPrefabs.SystemMenu, canvas.transform);
             var mainUI =
+#if MAP_REGISTRATION_TOOLS_ENABLED
+            Instantiate(AuthoringTools.AuthoringToolsPrefabs.MapRegistrationUI, canvas.transform);
+#else
             Instantiate(AuthoringTools.AuthoringToolsPrefabs.UI, canvas.transform);
+#endif
 
             systemUI.transform.SetAsLastSibling();
 
@@ -101,10 +105,13 @@ namespace Outernet.Client
             var runtimeHandles = new GameObject("RuntimeHandles", typeof(AuthoringTools.RuntimeHandles));
             runtimeHandles.transform.SetParent(sceneViewRoot.transform);
 #endif
+
+#if !MAP_REGISTRATION_TOOLS_ENABLED
             VisualPositioningSystem.Initialize("user", "password");
             Auth.username = "user";
             Auth.password = "password";
             App.state.loggedIn.ExecuteSet(true);
+#endif
             Destroy(this);
         }
 

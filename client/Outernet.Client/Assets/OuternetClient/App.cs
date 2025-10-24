@@ -76,7 +76,7 @@ namespace Outernet.Client
             CameraLocalization.SetProvider(GetProvider());
             CameraLocalization.Start();
 
-#if !AUTHORING_TOOLS_ENABLED
+#if !AUTHORING_TOOLS_ENABLED && !MAP_REGISTRATION_TOOLS_ENABLED
 
             internetReachable = Application.internetReachability != NetworkReachability.NotReachable;
 

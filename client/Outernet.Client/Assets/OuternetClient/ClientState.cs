@@ -50,7 +50,7 @@ namespace Outernet.Client
                 return true;
             }
 
-#if AUTHORING_TOOLS_ENABLED
+#if AUTHORING_TOOLS_ENABLED && !MAP_REGISTRATION_TOOLS_ENABLED
             if (authoringTools.nodeGroups.TryGetValue(id, out var group))
             {
                 name = group.name;

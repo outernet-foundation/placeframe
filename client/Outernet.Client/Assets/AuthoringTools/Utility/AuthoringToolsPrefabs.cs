@@ -11,6 +11,7 @@ namespace Outernet.Client.AuthoringTools
         public static Canvas Canvas => _instance._canvas;
         public static SystemMenu SystemMenu => _instance._systemMenu;
         public static AuthoringToolsUI UI => _instance._ui;
+        public static AuthoringToolsUI MapRegistrationUI => _instance._mapRegistrationUI;
         public static AuthoringToolsSceneViewManager SceneViewManager => _instance._sceneViewManager;
         public static Scrim Scrim => _instance._scrim;
         public static LoginScreen LoginScreen => _instance._loginScreen;
@@ -60,6 +61,9 @@ namespace Outernet.Client.AuthoringTools
 
         [SerializeField]
         private AuthoringToolsUI _ui;
+
+        [SerializeField]
+        private AuthoringToolsUI _mapRegistrationUI;
 
         [SerializeField]
         private AuthoringToolsSceneViewManager _sceneViewManager;

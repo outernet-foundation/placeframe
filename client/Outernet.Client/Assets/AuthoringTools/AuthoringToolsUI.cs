@@ -70,7 +70,7 @@ namespace Outernet.Client.AuthoringTools
             //     "File/Add Scan",
             //     OpenAddScanDialog
             // );
-
+#if !MAP_REGISTRATION_TOOLS_ENABLED
             SystemMenu.AddMenuItem(
                 "Edit/Duplicate",
                 () =>
@@ -92,7 +92,7 @@ namespace Outernet.Client.AuthoringTools
                     Key.D
                 }
             );
-
+#endif
             SystemMenu.AddMenuItem(
                 "Edit/Delete",
                 () =>
@@ -110,7 +110,7 @@ namespace Outernet.Client.AuthoringTools
                     new Key[] { Key.Backspace }
                 }
             );
-
+#if !MAP_REGISTRATION_TOOLS_ENABLED
             SystemMenu.AddMenuItem(
                 "Create/Node",
                 CreateNewNode,
@@ -130,6 +130,17 @@ namespace Outernet.Client.AuthoringTools
                     Key.G
                 }
             );
+#endif
+
+            SystemMenu.AddMenuItem(
+                "Create/Map",
+                OpenAddScanDialog,
+                commandKeys: new Key[]
+                {
+                    Utility.GetPlatformCommandKey(),
+                    Key.M
+                }
+            );
 
             SystemMenu.AddMenuItem(
                 "Help/About",
@@ -142,8 +153,7 @@ namespace Outernet.Client.AuthoringTools
             );
 
             // Restore when we have scan upload functionality in place
-            // addScanButton.onClick.AddListener(OpenAddScanDialog);
-
+            addScanButton.onClick.AddListener(OpenAddScanDialog);
             addNodeButton.onClick.AddListener(CreateNewNode);
 
             App.state.authoringTools.settings.loaded.OnChange(loaded =>
@@ -459,71 +469,6 @@ namespace Outernet.Client.AuthoringTools
             Utility.DisplayDialog(dialog);
         }
 
-        private void OpenAddScanDialog()
-        {
-            var dialog = Instantiate(addScanDialogPrefab);
-            dialog.Setup();
-            dialog.onCanceled.AddListener(() => Destroy(dialog.gameObject));
-            dialog.onComplete.AddListener((mapName, mapPath) =>
-            {
-                Destroy(dialog.gameObject);
-
-                var loadDialog = Instantiate(loadDialogPrefab);
-                loadDialog.Setup(allowCancel: true);
-
-                loadDialog.onFinishSelected.AddListener(() => Destroy(loadDialog.gameObject));
-                loadDialog.onCancelSelected.AddListener(() => _uploadScan.Cancel());
-
-                var progress = Progress.Create<(string description, float progress)>(
-                    progressUpdate => loadDialog.props.ScheduleAction(
-                        progressUpdate,
-                        (args, props) =>
-                        {
-                            props.description.value = args.description;
-                            props.progress.value = args.progress;
-                            props.isDone.value = args.progress == 1f;
-                        }
-                    )
-                );
-
-                _uploadScan = TaskHandle.Execute(
-                    async _ =>
-                    {
-                        await UploadScan(mapName, mapPath, progress);
-                        await UniTask.SwitchToMainThread();
-                        Destroy(loadDialog.gameObject);
-                    }
-                );
-
-                Utility.DisplayDialog(loadDialog);
-            });
-
-            Utility.DisplayDialog(dialog);
-        }
-
-        private async UniTask UploadScan(string scanName, string scanPath, IProgress<(string description, float progress)> progress, CancellationToken token = default)
-        {
-            progress.Report(new("Converting file", 0.1f));
-
-            // TODO: actually process file here
-            await UniTask.Delay(UnityEngine.Random.Range(100, 500));
-            token.ThrowIfCancellationRequested();
-
-            progress.Report(new("Uploading file", 0.3f));
-
-            // TODO: actually upload here
-            await UniTask.Delay(UnityEngine.Random.Range(500, 1300));
-            token.ThrowIfCancellationRequested();
-
-            progress.Report(new("Processing file", 0.7f));
-
-            // TODO: actually await map here
-            await UniTask.Delay(UnityEngine.Random.Range(800, 1500));
-            token.ThrowIfCancellationRequested();
-
-            progress.Report(new("Done!", 1f));
-        }
-
         private void CreateNewNode()
         {
             UndoRedoManager.RegisterUndo("Create Node");
@@ -726,12 +671,85 @@ namespace Outernet.Client.AuthoringTools
             );
         }
 
+        private class AddScanDialogProps : Dialog.Props
+        {
+            public ObservablePrimitive<string> scanName { get; private set; }
+
+            public AddScanDialogProps(string scanName = default, string title = default, DialogStatus status = default, bool allowCancel = default, float minimumWidth = 500f)
+                : base(title, status, allowCancel, minimumWidth)
+            {
+                this.scanName = new ObservablePrimitive<string>(scanName);
+            }
+        }
+
+        private void OpenAddScanDialog()
+        {
+            Dialogs.Show(
+                props: new AddScanDialogProps(title: "Add Scan", allowCancel: true),
+                constructControls: props => UIBuilder.VerticalLayout(
+                    UIBuilder.AdaptivePropertyLabel("Scan Name", UIBuilder.InputField(props.scanName)),
+                    UIBuilder.HorizontalLayout()
+                        .Alignment(TextAnchor.LowerRight)
+                        .WithChildren(
+                            UIBuilder.Button("Cancel", () => props.status.ExecuteSet(DialogStatus.Canceled)),
+                            UIBuilder.Button("Add Scan", () => props.status.ExecuteSet(DialogStatus.Complete))
+                                .WithBinding(x => Bindings.Observer(
+                                    _ => x.button.interactable = props.scanName.value != null,
+                                    ObservationScope.Self,
+                                    props.scanName
+                                ))
+                        )
+                ),
+                binding: props => Bindings.Compose(
+                    props.status.OnChange(x =>
+                    {
+                        if (x == DialogStatus.Complete)
+                            ImportScan(props.scanName.value).Forget();
+                    })
+                )
+            );
+        }
+
+        public async UniTask ImportScan(string scanName)
+        {
+            try
+            {
+                var newMapTransform = VisualPositioningSystem.UnityWorldToEcef(
+                    Camera.main.transform.position + (Camera.main.transform.forward * 3f),
+                    Camera.main.transform.rotation.Flatten()
+                );
+
+                var map = await App.API.GetReconstructionAsync(Guid.Empty /*scanName*/);
+                var imagePoses = await App.API.GetReconstructionImagePosesAsync(map.Id);
+
+                if (map == null)
+                {
+                    Debug.LogError($"Map {scanName} not found.");
+                    return;
+                }
+
+                App.ExecuteActionOrDelay(new AddOrUpdateMapAction(
+                    map.Id,
+                    scanName,
+                    newMapTransform.position,
+                    newMapTransform.rotation,
+                    Lighting.Day,
+                    imagePoses.Select(x => x.Position.ToUnityVector3()).ToArray()
+                ));
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError(exception);
+            }
+        }
+
         private void OpenUserSettings()
         {
             Dialogs.Show(
                 title: "Settings",
                 constructControls: props => UIBuilder.VerticalLayout(
                     UIBuilder.AdaptivePropertyLabel("Content Radius", UIBuilder.FloatField(App.state.authoringTools.settings.nodeFetchRadius)),
+#if !MAP_REGISTRATION_TOOLS_ENABLED
                     UIBuilder.HorizontalLayout(
                         UIBuilder.Text("Layers"),
                         UIBuilder.FlexibleSpace(flexibleWidth: true),
@@ -776,6 +794,7 @@ namespace Outernet.Client.AuthoringTools
                                     }
                                 ))
                         ),
+#endif
                     UIBuilder.HorizontalLayout()
                         .Alignment(TextAnchor.LowerRight)
                         .WithChildren(
