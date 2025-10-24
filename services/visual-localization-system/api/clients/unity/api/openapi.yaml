@@ -22,8 +22,10 @@ paths:
           items:
             format: uuid
             type: string
-          nullable: true
+            x-schema-name: get_capture_sessions_param_ids_item
+            nullable: false
           type: array
+          nullable: true
         style: form
       responses:
         "200":
@@ -254,8 +256,9 @@ paths:
               schema:
                 items:
                   format: uuid
-                  nullable: true
                   type: string
+                  x-schema-name: get_capture_session_reconstructions_resp_200_application_json_item
+                  nullable: false
                 type: array
           description: Successful Response
         "422":
@@ -349,8 +352,10 @@ paths:
           items:
             format: uuid
             type: string
-          nullable: true
+            x-schema-name: get_reconstructions_param_ids_item
+            nullable: false
           type: array
+          nullable: true
         style: form
       - description: Optional capture session Id to filter by
         explode: true
@@ -359,8 +364,8 @@ paths:
         required: false
         schema:
           format: uuid
-          nullable: true
           type: string
+          nullable: true
         style: form
       - description: Optional capture session name to filter by
         explode: true
@@ -368,8 +373,8 @@ paths:
         name: capture_session_name
         required: false
         schema:
-          nullable: true
           type: string
+          nullable: true
         style: form
       responses:
         "200":
@@ -488,8 +493,8 @@ paths:
             application/json:
               schema:
                 format: uuid
-                nullable: true
                 type: string
+                nullable: true
           description: Successful Response
         "422":
           content:
@@ -635,8 +640,9 @@ paths:
           description: List of Ids to delete
           items:
             format: uuid
-            nullable: true
             type: string
+            x-schema-name: delete_localization_maps_param_ids_item
+            nullable: false
           type: array
         style: form
       responses:
@@ -666,8 +672,10 @@ paths:
           items:
             format: uuid
             type: string
-          nullable: true
+            x-schema-name: get_localization_maps_param_ids_item
+            nullable: false
           type: array
+          nullable: true
         style: form
       responses:
         "200":
@@ -1056,8 +1064,9 @@ paths:
               description: IDs of localization maps to load
               items:
                 format: uuid
-                nullable: true
                 type: string
+                x-schema-name: load_localization_maps_body_application_json_item
+                nullable: false
               type: array
         required: true
       responses:
@@ -1202,6 +1211,8 @@ paths:
           items:
             format: uuid
             type: string
+            x-schema-name: delete_groups_param_ids_item
+            nullable: false
           type: array
         style: form
       responses:
@@ -1231,8 +1242,10 @@ paths:
           items:
             format: uuid
             type: string
-          nullable: true
+            x-schema-name: get_groups_param_ids_item
+            nullable: false
           type: array
+          nullable: true
         style: form
       responses:
         "200":
@@ -1328,6 +1341,8 @@ paths:
           items:
             format: uuid
             type: string
+            x-schema-name: delete_layers_param_ids_item
+            nullable: false
           type: array
         style: form
       responses:
@@ -1357,8 +1372,10 @@ paths:
           items:
             format: uuid
             type: string
-          nullable: true
+            x-schema-name: get_layers_param_ids_item
+            nullable: false
           type: array
+          nullable: true
         style: form
       responses:
         "200":
@@ -1454,6 +1471,8 @@ paths:
           items:
             format: uuid
             type: string
+            x-schema-name: delete_nodes_param_ids_item
+            nullable: false
           type: array
         style: form
       responses:
@@ -1483,8 +1502,10 @@ paths:
           items:
             format: uuid
             type: string
-          nullable: true
+            x-schema-name: get_nodes_param_ids_item
+            nullable: false
           type: array
+          nullable: true
         style: form
       responses:
         "200":
