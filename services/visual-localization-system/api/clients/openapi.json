@@ -61,8 +61,8 @@
               "items": {
                 "type": "string",
                 "format": "uuid",
-                "nullable": false,
-                "x-schema-name": "get_capture_sessions_param_ids_item"
+                "x-schema-name": "get_capture_sessions_param_ids_item",
+                "nullable": false
               },
               "nullable": true
             },
@@ -78,8 +78,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/CaptureSessionRead",
-                    "nullable": false,
-                    "x-schema-name": "get_capture_sessions_resp_200_application_json_item"
+                    "x-schema-name": "get_capture_sessions_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -123,8 +123,8 @@
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/CaptureSessionBatchUpdate",
-                  "nullable": false,
-                  "x-schema-name": "update_capture_sessions_body_application_json_item"
+                  "x-schema-name": "update_capture_sessions_body_application_json_item",
+                  "nullable": false
                 }
               }
             }
@@ -139,8 +139,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/CaptureSessionRead",
-                    "nullable": false,
-                    "x-schema-name": "update_capture_sessions_resp_200_application_json_item"
+                    "x-schema-name": "update_capture_sessions_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -186,8 +186,8 @@
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/CaptureSessionCreate",
-                  "nullable": false,
-                  "x-schema-name": "create_capture_sessions_body_application_json_item"
+                  "x-schema-name": "create_capture_sessions_body_application_json_item",
+                  "nullable": false
                 }
               }
             }
@@ -202,8 +202,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/CaptureSessionRead",
-                    "nullable": false,
-                    "x-schema-name": "create_capture_sessions_resp_200_application_json_item"
+                    "x-schema-name": "create_capture_sessions_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -384,8 +384,8 @@
                   "items": {
                     "type": "string",
                     "format": "uuid",
-                    "nullable": false,
-                    "x-schema-name": "get_capture_session_reconstructions_resp_200_application_json_item"
+                    "x-schema-name": "get_capture_session_reconstructions_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -562,8 +562,8 @@
               "items": {
                 "type": "string",
                 "format": "uuid",
-                "nullable": false,
-                "x-schema-name": "get_reconstructions_param_ids_item"
+                "x-schema-name": "get_reconstructions_param_ids_item",
+                "nullable": false
               },
               "nullable": true
             },
@@ -600,8 +600,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/ReconstructionRead",
-                    "nullable": false,
-                    "x-schema-name": "get_reconstructions_resp_200_application_json_item"
+                    "x-schema-name": "get_reconstructions_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -819,8 +819,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/PointCloudPoint",
-                    "nullable": false,
-                    "x-schema-name": "get_reconstruction_points_resp_200_application_json_item"
+                    "x-schema-name": "get_reconstruction_points_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -911,8 +911,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/Transform",
-                    "nullable": false,
-                    "x-schema-name": "get_reconstruction_image_poses_resp_200_application_json_item"
+                    "x-schema-name": "get_reconstruction_image_poses_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -987,8 +987,8 @@
               "items": {
                 "type": "string",
                 "format": "uuid",
-                "nullable": false,
-                "x-schema-name": "delete_localization_maps_param_ids_item"
+                "x-schema-name": "delete_localization_maps_param_ids_item",
+                "nullable": false
               },
               "description": "List of Ids to delete"
             },
@@ -1032,8 +1032,8 @@
               "items": {
                 "type": "string",
                 "format": "uuid",
-                "nullable": false,
-                "x-schema-name": "get_localization_maps_param_ids_item"
+                "x-schema-name": "get_localization_maps_param_ids_item",
+                "nullable": false
               },
               "nullable": true
             },
@@ -1049,8 +1049,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/LocalizationMapRead",
-                    "nullable": false,
-                    "x-schema-name": "get_localization_maps_resp_200_application_json_item"
+                    "x-schema-name": "get_localization_maps_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -1094,8 +1094,8 @@
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/LocalizationMapBatchUpdate",
-                  "nullable": false,
-                  "x-schema-name": "update_localization_maps_body_application_json_item"
+                  "x-schema-name": "update_localization_maps_body_application_json_item",
+                  "nullable": false
                 }
               }
             }
@@ -1110,8 +1110,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/LocalizationMapRead",
-                    "nullable": false,
-                    "x-schema-name": "update_localization_maps_resp_200_application_json_item"
+                    "x-schema-name": "update_localization_maps_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -1291,8 +1291,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/PointCloudPoint",
-                    "nullable": false,
-                    "x-schema-name": "get_localization_map_points_resp_200_application_json_item"
+                    "x-schema-name": "get_localization_map_points_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -1383,8 +1383,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/Transform",
-                    "nullable": false,
-                    "x-schema-name": "update_localization_map_image_poses_resp_200_application_json_item"
+                    "x-schema-name": "update_localization_map_image_poses_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -1599,8 +1599,8 @@
                 "items": {
                   "type": "string",
                   "format": "uuid",
-                  "nullable": false,
-                  "x-schema-name": "load_localization_maps_body_application_json_item"
+                  "x-schema-name": "load_localization_maps_body_application_json_item",
+                  "nullable": false
                 },
                 "description": "IDs of localization maps to load"
               }
@@ -1772,8 +1772,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/MapLocalization-Output",
-                    "nullable": false,
-                    "x-schema-name": "localize_image_resp_200_application_json_item"
+                    "x-schema-name": "localize_image_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -1848,8 +1848,8 @@
               "items": {
                 "type": "string",
                 "format": "uuid",
-                "nullable": false,
-                "x-schema-name": "delete_groups_param_ids_item"
+                "x-schema-name": "delete_groups_param_ids_item",
+                "nullable": false
               },
               "description": "List of Ids to delete"
             },
@@ -1893,8 +1893,8 @@
               "items": {
                 "type": "string",
                 "format": "uuid",
-                "nullable": false,
-                "x-schema-name": "get_groups_param_ids_item"
+                "x-schema-name": "get_groups_param_ids_item",
+                "nullable": false
               },
               "nullable": true
             },
@@ -1910,8 +1910,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/GroupRead",
-                    "nullable": false,
-                    "x-schema-name": "get_groups_resp_200_application_json_item"
+                    "x-schema-name": "get_groups_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -1955,8 +1955,8 @@
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/GroupBatchUpdate",
-                  "nullable": false,
-                  "x-schema-name": "update_groups_body_application_json_item"
+                  "x-schema-name": "update_groups_body_application_json_item",
+                  "nullable": false
                 }
               }
             }
@@ -1971,8 +1971,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/GroupRead",
-                    "nullable": false,
-                    "x-schema-name": "update_groups_resp_200_application_json_item"
+                    "x-schema-name": "update_groups_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -2047,8 +2047,8 @@
               "items": {
                 "type": "string",
                 "format": "uuid",
-                "nullable": false,
-                "x-schema-name": "delete_layers_param_ids_item"
+                "x-schema-name": "delete_layers_param_ids_item",
+                "nullable": false
               },
               "description": "List of Ids to delete"
             },
@@ -2092,8 +2092,8 @@
               "items": {
                 "type": "string",
                 "format": "uuid",
-                "nullable": false,
-                "x-schema-name": "get_layers_param_ids_item"
+                "x-schema-name": "get_layers_param_ids_item",
+                "nullable": false
               },
               "nullable": true
             },
@@ -2109,8 +2109,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/LayerRead",
-                    "nullable": false,
-                    "x-schema-name": "get_layers_resp_200_application_json_item"
+                    "x-schema-name": "get_layers_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -2154,8 +2154,8 @@
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/LayerBatchUpdate",
-                  "nullable": false,
-                  "x-schema-name": "update_layers_body_application_json_item"
+                  "x-schema-name": "update_layers_body_application_json_item",
+                  "nullable": false
                 }
               }
             }
@@ -2170,8 +2170,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/LayerRead",
-                    "nullable": false,
-                    "x-schema-name": "update_layers_resp_200_application_json_item"
+                    "x-schema-name": "update_layers_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -2246,8 +2246,8 @@
               "items": {
                 "type": "string",
                 "format": "uuid",
-                "nullable": false,
-                "x-schema-name": "delete_nodes_param_ids_item"
+                "x-schema-name": "delete_nodes_param_ids_item",
+                "nullable": false
               },
               "description": "List of Ids to delete"
             },
@@ -2291,8 +2291,8 @@
               "items": {
                 "type": "string",
                 "format": "uuid",
-                "nullable": false,
-                "x-schema-name": "get_nodes_param_ids_item"
+                "x-schema-name": "get_nodes_param_ids_item",
+                "nullable": false
               },
               "nullable": true
             },
@@ -2308,8 +2308,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/NodeRead",
-                    "nullable": false,
-                    "x-schema-name": "get_nodes_resp_200_application_json_item"
+                    "x-schema-name": "get_nodes_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
@@ -2353,8 +2353,8 @@
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/NodeBatchUpdate",
-                  "nullable": false,
-                  "x-schema-name": "update_nodes_body_application_json_item"
+                  "x-schema-name": "update_nodes_body_application_json_item",
+                  "nullable": false
                 }
               }
             }
@@ -2369,8 +2369,8 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/NodeRead",
-                    "nullable": false,
-                    "x-schema-name": "update_nodes_resp_200_application_json_item"
+                    "x-schema-name": "update_nodes_resp_200_application_json_item",
+                    "nullable": false
                   }
                 }
               }
