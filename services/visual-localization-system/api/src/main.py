@@ -3,7 +3,7 @@ from __future__ import annotations
 from os import environ
 
 from common.fastapi import create_fastapi_app
-from common.fix_openapi_schema import fix_inline_schemas
+from common.fix_openapi_schema import fix_inline_schemas, rewrite_nullable_to_union
 from fastapi.applications import get_openapi
 
 from src.settings import get_settings
@@ -61,6 +61,7 @@ def custom_openapi():
     openapi_schema["security"] = [{"oauth2": ["openid"]}, {"bearerAuth": []}]
 
     fix_inline_schemas(openapi_schema)
+    rewrite_nullable_to_union(openapi_schema)
 
     app.openapi_schema = openapi_schema
 

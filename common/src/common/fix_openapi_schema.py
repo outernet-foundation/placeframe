@@ -22,7 +22,7 @@ It runs over parameters, request bodies, and responses, and uses small TypeGuard
 helpers so strict type checkers don’t flag “Unknown” while walking the JSON.
 """
 
-from typing import Any, Dict, List, TypeAlias, TypeGuard, cast
+from typing import Any, Dict, List, MutableMapping, TypeAlias, TypeGuard, cast
 
 JSON: TypeAlias = Dict[str, Any]
 
@@ -158,3 +158,30 @@ def fix_inline_schemas(spec: JSON) -> None:
                     if is_json_dict(media):
                         where = f"resp_{code}_{str(ctype).replace('/', '_')}"
                         _fix_media_schema(op_id, where, media)
+
+
+# Normalize FastAPI’s OpenAPI 3.1 output for nullable UUIDs.
+# FastAPI may emit a 3.1 document that still uses the 3.0.x-style `"nullable": true`
+# on top-level primitive responses (e.g., {"type":"string","format":"uuid","nullable":true}).
+# Some C# generators ignore that flag under 3.1 and generate non-nullable Guid.
+# This helper recursively rewrites only those string+uuid nodes to the 3.1/JSON-Schema form:
+# {"type": ["string", "null"], "format": "uuid"}.
+# Call from custom_openapi() after get_openapi(...). It mutates the schema in place.
+def rewrite_nullable_to_union(node: Any) -> None:
+    if isinstance(node, dict):
+        m: MutableMapping[str, Any] = cast(MutableMapping[str, Any], node)
+        t: Any = m.get("type")
+        fmt: Any = m.get("format")
+        nullable: Any = m.get("nullable")
+
+        if fmt == "uuid" and t == "string" and nullable is True:
+            m.pop("nullable", None)
+            m["type"] = ["string", "null"]
+
+        for v in list(m.values()):
+            rewrite_nullable_to_union(v)
+
+    elif isinstance(node, list):
+        arr: List[Any] = cast(List[Any], node)
+        for v in arr:
+            rewrite_nullable_to_union(v)

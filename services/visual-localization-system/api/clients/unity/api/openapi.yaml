@@ -364,8 +364,8 @@ paths:
         required: false
         schema:
           format: uuid
-          type: string
           nullable: true
+          type: string
         style: form
       - description: Optional capture session name to filter by
         explode: true
@@ -493,8 +493,8 @@ paths:
             application/json:
               schema:
                 format: uuid
-                type: string
                 nullable: true
+                type: string
           description: Successful Response
         "422":
           content:

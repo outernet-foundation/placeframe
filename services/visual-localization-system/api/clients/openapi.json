@@ -574,9 +574,11 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid",
-              "nullable": true
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid"
             },
             "description": "Optional capture session Id to filter by"
           },
@@ -727,9 +729,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "format": "uuid",
-                  "nullable": true
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uuid"
                 }
               }
             }

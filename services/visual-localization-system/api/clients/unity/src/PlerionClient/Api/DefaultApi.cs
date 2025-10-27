@@ -592,8 +592,8 @@ namespace PlerionClient.Api
         /// </summary>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <returns>Guid</returns>
-        Guid GetReconstructionLocalizationMap(Guid id);
+        /// <returns>Guid?</returns>
+        Guid? GetReconstructionLocalizationMap(Guid id);
 
         /// <summary>
         /// Get Reconstruction Localization Map
@@ -603,8 +603,8 @@ namespace PlerionClient.Api
         /// </remarks>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <returns>ApiResponse of Guid</returns>
-        ApiResponse<Guid> GetReconstructionLocalizationMapWithHttpInfo(Guid id);
+        /// <returns>ApiResponse of Guid?</returns>
+        ApiResponse<Guid?> GetReconstructionLocalizationMapWithHttpInfo(Guid id);
         /// <summary>
         /// Get Reconstruction Points
         /// </summary>
@@ -1672,8 +1672,8 @@ namespace PlerionClient.Api
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of Guid</returns>
-        System.Threading.Tasks.Task<Guid> GetReconstructionLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <returns>Task of Guid?</returns>
+        System.Threading.Tasks.Task<Guid?> GetReconstructionLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get Reconstruction Localization Map
@@ -1684,8 +1684,8 @@ namespace PlerionClient.Api
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (Guid)</returns>
-        System.Threading.Tasks.Task<ApiResponse<Guid>> GetReconstructionLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <returns>Task of ApiResponse (Guid?)</returns>
+        System.Threading.Tasks.Task<ApiResponse<Guid?>> GetReconstructionLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// Get Reconstruction Points
         /// </summary>
@@ -5788,10 +5788,10 @@ namespace PlerionClient.Api
         /// </summary>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <returns>Guid</returns>
-        public Guid GetReconstructionLocalizationMap(Guid id)
+        /// <returns>Guid?</returns>
+        public Guid? GetReconstructionLocalizationMap(Guid id)
         {
-            PlerionClient.Client.ApiResponse<Guid> localVarResponse = GetReconstructionLocalizationMapWithHttpInfo(id);
+            PlerionClient.Client.ApiResponse<Guid?> localVarResponse = GetReconstructionLocalizationMapWithHttpInfo(id);
             return localVarResponse.Data;
         }
 
@@ -5800,8 +5800,8 @@ namespace PlerionClient.Api
         /// </summary>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <returns>ApiResponse of Guid</returns>
-        public PlerionClient.Client.ApiResponse<Guid> GetReconstructionLocalizationMapWithHttpInfo(Guid id)
+        /// <returns>ApiResponse of Guid?</returns>
+        public PlerionClient.Client.ApiResponse<Guid?> GetReconstructionLocalizationMapWithHttpInfo(Guid id)
         {
             PlerionClient.Client.RequestOptions localVarRequestOptions = new PlerionClient.Client.RequestOptions();
 
@@ -5823,7 +5823,7 @@ namespace PlerionClient.Api
 
 
             // make the HTTP request
-            var localVarResponse = this.Client.Get<Guid>("/reconstructions/{id}/localization_map", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Get<Guid?>("/reconstructions/{id}/localization_map", localVarRequestOptions, this.Configuration);
 
             if (this.ExceptionFactory != null)
             {
@@ -5840,10 +5840,10 @@ namespace PlerionClient.Api
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of Guid</returns>
-        public async System.Threading.Tasks.Task<Guid> GetReconstructionLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        /// <returns>Task of Guid?</returns>
+        public async System.Threading.Tasks.Task<Guid?> GetReconstructionLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlerionClient.Client.ApiResponse<Guid> localVarResponse = await GetReconstructionLocalizationMapWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            PlerionClient.Client.ApiResponse<Guid?> localVarResponse = await GetReconstructionLocalizationMapWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -5853,8 +5853,8 @@ namespace PlerionClient.Api
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (Guid)</returns>
-        public async System.Threading.Tasks.Task<PlerionClient.Client.ApiResponse<Guid>> GetReconstructionLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        /// <returns>Task of ApiResponse (Guid?)</returns>
+        public async System.Threading.Tasks.Task<PlerionClient.Client.ApiResponse<Guid?>> GetReconstructionLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlerionClient.Client.RequestOptions localVarRequestOptions = new PlerionClient.Client.RequestOptions();
@@ -5879,7 +5879,7 @@ namespace PlerionClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<Guid>("/reconstructions/{id}/localization_map", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<Guid?>("/reconstructions/{id}/localization_map", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {
