@@ -296,11 +296,6 @@ def main():
         min(POSE_NEIGHBOR_COUNT, max(1, len(images) - 1)),
     )
 
-    # exhuastive
-    pairs_by_pose_proximity = [
-        (a.name, b.name) for i, a in enumerate(images.values()) for j, b in enumerate(images.values()) if i < j
-    ]
-
     # Canonicalize and deduplicate pairs
     pairs = {tuple(sorted((a, b))) for a, b in pairs_by_pose_proximity if a != b}
 
