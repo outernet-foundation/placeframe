@@ -50,7 +50,7 @@ RUN --mount=type=cache,id=uvcache,target=/root/.cache/uv \
 import torch
 from hloc.extractors.dir import DIR
 from hloc.extractors.superpoint import SuperPoint
-from SuperGluePretrainedNetwork.models.superglue import SuperGlue
+from lightglue import LightGlue
 
 # PyTorch 2.6 flips torch.load default to weights_only=True, so we temporarily force legacy loading to read DIR’s pickled checkpoint; 
 # see: https://dev-discuss.pytorch.org/t/bc-breaking-change-torch-load-is-being-flipped-to-use-weights-only-true-by-default-in-the-nightlies-after-137602/2573
@@ -65,8 +65,7 @@ torch.load = _orig_load
 
 _ = SuperPoint({'weights': 'indoor'})
 _ = SuperPoint({'weights': 'outdoor'})
-_ = SuperGlue({'weights': 'indoor'})
-_ = SuperGlue({'weights': 'outdoor'})
+_ = LightGlue(features="superpoint")
 PY
 
 # Install remaining dependencies

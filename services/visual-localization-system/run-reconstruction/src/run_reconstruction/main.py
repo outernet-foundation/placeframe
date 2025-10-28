@@ -12,6 +12,7 @@ from cv2 import COLOR_BGR2GRAY, COLOR_BGR2RGB, IMREAD_COLOR, cvtColor, imdecode
 from h5py import File
 from hloc.extractors.dir import DIR
 from hloc.extractors.superpoint import SuperPoint
+from lightglue import LightGlue
 from numpy import array, eye, float32, float64, frombuffer, hstack, int32, ndarray, nonzero, stack, uint8, uint32
 from numpy.typing import NDArray
 from pycolmap import (
@@ -31,7 +32,6 @@ from pycolmap import RigConfig as pycolmapRigConfig
 from pycolmap import RigConfigCamera as pycolmapRigConfigCamera
 from pycolmap._core import incremental_mapping, verify_matches
 from scipy.spatial.transform import Rotation
-from SuperGluePretrainedNetwork.models.superglue import SuperGlue
 from torch import Tensor, cuda, no_grad
 from torch import float32 as torch_float32
 
@@ -126,9 +126,9 @@ class Image:
         )
         self.projection_matrix = intrinsics_matrix @ extrinsic_matrix
 
-        bgr_image = imdecode(frombuffer(png_buffer, uint8), IMREAD_COLOR)
-        rgb_image = cvtColor(bgr_image, COLOR_BGR2RGB)
-        grayscale_image = cvtColor(bgr_image, COLOR_BGR2GRAY)
+        self.bgr_image = imdecode(frombuffer(buffer, uint8), IMREAD_COLOR)
+        rgb_image = cvtColor(self.bgr_image, COLOR_BGR2RGB)
+        grayscale_image = cvtColor(self.bgr_image, COLOR_BGR2GRAY)
 
         self.rgb_tensor = (
             tensor_from_numpy(rgb_image)  # H×W×3, uint8
@@ -146,7 +146,7 @@ class Image:
 
         destination = IMAGES_DIRECTORY / self.name
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(png_buffer)
+        destination.write_bytes(buffer)
 
 
 def _to_f32(t: Tensor) -> ndarray:
@@ -228,7 +228,8 @@ def main():
 
     print(f"Loading feature matching model: {'SuperGlue'}")
 
-    superglue = SuperGlue({"weights": WEIGHTS}).to(DEVICE).eval()
+    # superglue = SuperGlue({"weights": WEIGHTS}).to(DEVICE).eval()
+    matcher = LightGlue(features="superpoint", width_confidence=-1, depth_confidence=-1).eval().to(DEVICE)
 
     print("Extracting features")
 
@@ -248,31 +249,6 @@ def main():
             keypoints[image.name] = superpoint_output["keypoints"][0]
             descriptors[image.name] = superpoint_output["descriptors"][0]
             scores[image.name] = superpoint_output["scores"][0]
-
-    with File(GLOBAL_DESCRIPTORS_FILE, "w") as gfile:
-        for name, gdesc in global_descriptors.items():
-            grp = gfile.require_group(name)  # type: ignore
-            if "global_descriptor" in grp:
-                del grp["global_descriptor"]
-            grp.create_dataset("global_descriptor", data=_to_f32(gdesc), compression="gzip", compression_opts=3)  # type: ignore
-
-    with File(FEATURES_FILE, "w") as ffile:
-        for name in global_descriptors.keys():  # ensures the same set/order as globals
-            grp = ffile.require_group(name)  # type: ignore
-            if "keypoints" in grp:
-                del grp["keypoints"]
-            if "descriptors" in grp:
-                del grp["descriptors"]
-            grp.create_dataset("keypoints", data=_to_f32(keypoints[name]), compression="gzip", compression_opts=3)  # type: ignore
-            grp.create_dataset("descriptors", data=_to_f32(descriptors[name]), compression="gzip", compression_opts=3)  # type: ignore
-            # Optional: store SuperPoint scores (not used by your loader, but handy)
-            if name in scores:
-                if "scores" in grp:
-                    del grp["scores"]
-                grp.create_dataset("scores", data=_to_f32(scores[name]), compression="gzip", compression_opts=3)  # type: ignore
-
-    _put_reconstruction_object(key="global_descriptors.h5", body=GLOBAL_DESCRIPTORS_FILE.read_bytes())
-    _put_reconstruction_object(key="features.h5", body=FEATURES_FILE.read_bytes())
 
     # for image in images.values():
     #     # Upload to S3
@@ -311,15 +287,19 @@ def main():
     for imageA, imageB in pairs:
         print(f"  {imageA}:{imageB}")
 
-        all_matches[(imageA, imageB)] = superglue({
-            "image0": images[imageA].grayscale_tensor.unsqueeze(0),  # (1,1,H,W)
-            "image1": images[imageB].grayscale_tensor.unsqueeze(0),  # (1,1,H,W)
-            "keypoints0": keypoints[imageA].unsqueeze(0),  # (1,N0,2)
-            "keypoints1": keypoints[imageB].unsqueeze(0),  # (1,N1,2)
-            "descriptors0": descriptors[imageA].unsqueeze(0),  # (1,D,N0)
-            "descriptors1": descriptors[imageB].unsqueeze(0),  # (1,D,N1)
-            "scores0": scores[imageA].unsqueeze(0),  # (1,N0)
-            "scores1": scores[imageB].unsqueeze(0),  # (1,N1)
+        image_size = torch.tensor([images[imageA].bgr_image.shape[:2]], device=DEVICE)
+
+        all_matches[(imageA, imageB)] = matcher({
+            "image0": {
+                "keypoints": keypoints[imageA].unsqueeze(0),
+                "descriptors": descriptors[imageA].unsqueeze(0).transpose(-1, -2),
+                "image_size": image_size,
+            },
+            "image1": {
+                "keypoints": keypoints[imageB].unsqueeze(0),
+                "descriptors": descriptors[imageB].unsqueeze(0).transpose(-1, -2),
+                "image_size": image_size,
+            },
         })["matches0"][0]
 
     valid_matches: dict[Tuple[str, str], NDArray[int32]] = {}
@@ -488,6 +468,31 @@ def main():
     if len(reconstructions) == 0:
         run_json["status"] = "failed"
         run_json["error"] = "No model was created"
+
+    with File(GLOBAL_DESCRIPTORS_FILE, "w") as gfile:
+        for name, gdesc in global_descriptors.items():
+            grp = gfile.require_group(name)  # type: ignore
+            if "global_descriptor" in grp:
+                del grp["global_descriptor"]
+            grp.create_dataset("global_descriptor", data=_to_f32(gdesc), compression="gzip", compression_opts=3)  # type: ignore
+
+    with File(FEATURES_FILE, "w") as ffile:
+        for name in global_descriptors.keys():  # ensures the same set/order as globals
+            grp = ffile.require_group(name)  # type: ignore
+            if "keypoints" in grp:
+                del grp["keypoints"]
+            if "descriptors" in grp:
+                del grp["descriptors"]
+            grp.create_dataset("keypoints", data=_to_f32(keypoints[name]), compression="gzip", compression_opts=3)  # type: ignore
+            grp.create_dataset("descriptors", data=_to_f32(descriptors[name]), compression="gzip", compression_opts=3)  # type: ignore
+            # Optional: store SuperPoint scores (not used by your loader, but handy)
+            if name in scores:
+                if "scores" in grp:
+                    del grp["scores"]
+                grp.create_dataset("scores", data=_to_f32(scores[name]), compression="gzip", compression_opts=3)  # type: ignore
+
+    _put_reconstruction_object(key="global_descriptors.h5", body=GLOBAL_DESCRIPTORS_FILE.read_bytes())
+    _put_reconstruction_object(key="features.h5", body=FEATURES_FILE.read_bytes())
 
     # Choose the reconstruction with the most registered images
     best_id = max(range(len(reconstructions)), key=lambda i: reconstructions[i].num_reg_images())
