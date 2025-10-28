@@ -19,6 +19,7 @@ public static class LocalCaptureController
     static float captureIntervalSeconds;
     static Vector3 startingPosition;
     static Quaternion startingRotation;
+    static XRCameraConfiguration? bestConfig = null;
 
     static Guid sessionId;
     static string sessionDirectory;
@@ -72,6 +73,25 @@ public static class LocalCaptureController
             () => ARSession.state == ARSessionState.SessionTracking,
             cancellationToken: cancellationToken);
 
+        foreach (var config in cameraManager.GetConfigurations(Allocator.Temp))
+        {
+            if (bestConfig == null ||
+                (config.width * config.height) > (bestConfig.Value.width * bestConfig.Value.height))
+            {
+                bestConfig = config;
+            }
+        }
+
+        if (bestConfig.HasValue)
+        {
+            cameraManager.currentConfiguration = bestConfig;
+            Debug.Log($"Selected camera configuration: {bestConfig.Value.width}x{bestConfig.Value.height} @ {bestConfig.Value.framerate}fps");
+        }
+        else
+        {
+            Debug.LogWarning("No camera configurations available.");
+        }
+
         sessionId = Guid.NewGuid();
         sessionDirectory = SessionDir(sessionId.ToString());
         Directory.CreateDirectory(Path.Combine(sessionDirectory, "rig0"));
@@ -111,55 +131,59 @@ public static class LocalCaptureController
         // sometimes the camera image itself is flipped, so we might need to un-flip it
         var flipped = true; // TODO figure out how to detect this properly
 
-        // Write config.json once
         if (first_frame)
         {
+            // Wait until we get intrinsics and they match the selected config
+            if (!cameraManager.TryGetIntrinsics(out var intrinsics) ||
+                intrinsics.resolution.x != bestConfig?.width ||
+                intrinsics.resolution.y != bestConfig?.height)
+            {
+                return;
+            }
+
+            // Record the starting pose to rebase subsequent poses against
             startingPosition = cameraManager.transform.position;
             startingRotation = cameraManager.transform.rotation;
 
-            if (cameraManager.TryGetIntrinsics(out var intrinsics))
-            {
-                var json = JsonUtility.ToJson(
-                    new RigConfig()
+            // Write out rig config
+            File.WriteAllText(
+                Path.Combine(sessionDirectory, "config.json"),
+                JsonUtility.ToJson(
+                new RigConfig()
+                {
+                    rigs = new Rig[]
                     {
-                        rigs = new Rig[]
+                        new()
                         {
-                            new()
+                            id = "rig0",
+                            cameras = new RigCamera[]
                             {
-                                id = "rig0",
-                                cameras = new RigCamera[]
+                                new RigCamera()
                                 {
-                                    new RigCamera()
+                                    id = "camera0",
+                                    model = "PINHOLE",
+                                    width = intrinsics.resolution.x,
+                                    height = intrinsics.resolution.y,
+                                    intrinsics = new float[]
                                     {
-                                        id = "camera0",
-                                        model = "PINHOLE",
-                                        width = intrinsics.resolution.x,
-                                        height = intrinsics.resolution.y,
-                                        intrinsics = new float[]
-                                        {
-                                            intrinsics.focalLength.x,
-                                            intrinsics.focalLength.y,
-                                            // Adjust principal point to account for mirroring the image
-                                            flipped ? (intrinsics.resolution.x - 1) - intrinsics.principalPoint.x : intrinsics.principalPoint.x,
-                                            intrinsics.principalPoint.y
-                                        },
-                                        ref_sensor = true,
-                                        rotation = new float[] {0, 0, 0, 1},
-                                        translation = new float[] {0, 0, 0}
-                                    }
+                                        intrinsics.focalLength.x,
+                                        intrinsics.focalLength.y,
+                                        // Adjust principal point to account for mirroring the image
+                                        flipped ? (intrinsics.resolution.x - 1) - intrinsics.principalPoint.x : intrinsics.principalPoint.x,
+                                        intrinsics.principalPoint.y
+                                    },
+                                    ref_sensor = true,
+                                    rotation = new float[] {0, 0, 0, 1},
+                                    translation = new float[] {0, 0, 0}
                                 }
                             }
                         }
                     }
-                );
+                }
+            ));
 
-                File.WriteAllText(
-                    Path.Combine(sessionDirectory, "config.json"),
-                    json
-                );
-
-                first_frame = false;
-            }
+            // Done with first frame setup
+            first_frame = false;
         }
 
         // Throttle capture to the requested interval.

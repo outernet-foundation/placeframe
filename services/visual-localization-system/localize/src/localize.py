@@ -151,15 +151,25 @@ async def localize_image_against_reconstruction(map: Map, camera: Camera, image:
     descriptors0 = descriptors0.transpose(-1, -2)
     descriptors1 = descriptors1.transpose(-1, -2)
 
-    image_size = torch.tensor([bgr_image.shape[:2]] * batch_size, device=DEVICE)
+    sizes0 = torch.tensor(
+        [
+            (
+                map.reconstruction.cameras[map.reconstruction.images[i].camera_id].height,
+                map.reconstruction.cameras[map.reconstruction.images[i].camera_id].width,
+            )
+            for i in matched_image_ids
+        ],
+        device=DEVICE,
+    )
+    sizes1 = torch.tensor([bgr_image.shape[:2]] * batch_size, device=DEVICE)
 
     print("Matching features")
 
     # Run LightGlue matcher
     with torch.inference_mode():
         match_tensors = LIGHTGLUE_MATCHER({
-            "image0": {"keypoints": keypoints0, "descriptors": descriptors0, "image_size": image_size},
-            "image1": {"keypoints": keypoints1, "descriptors": descriptors1, "image_size": image_size},
+            "image0": {"keypoints": keypoints0, "descriptors": descriptors0, "image_size": sizes0},
+            "image1": {"keypoints": keypoints1, "descriptors": descriptors1, "image_size": sizes1},
         })["matches0"]
 
     print("Building 2D-3D correspondences")
