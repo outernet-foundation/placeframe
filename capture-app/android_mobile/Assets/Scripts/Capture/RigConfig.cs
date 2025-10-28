@@ -1,19 +1,46 @@
 using System;
+using UnityEngine;
 
 [Serializable]
 public class RigConfig
 {
     [Serializable]
-    public struct RigCamera
+    public struct PinholeIntrinsics
     {
-        public string id;
+        public PinholeIntrinsics(
+            int width,
+            int height,
+            float fx,
+            float fy,
+            float cx,
+            float cy)
+        {
+            model = "PINHOLE";
+            this.width = width;
+            this.height = height;
+            this.fx = fx;
+            this.fy = fy;
+            this.cx = cx;
+            this.cy = cy;
+        }
+
         public string model;
         public int width;
         public int height;
-        public float[] intrinsics;
+        public float fx;
+        public float fy;
+        public float cx;
+        public float cy;
+    }
+
+    [Serializable]
+    public struct RigCamera
+    {
+        public string id;
         public bool ref_sensor;
-        public float[] rotation; // w.r.t. rig
-        public float[] translation; // w.r.t. rig
+        public Quaternion rotation; // w.r.t. rig
+        public Vector3 translation; // w.r.t. rig
+        public PinholeIntrinsics intrinsics;
     }
 
     [Serializable]

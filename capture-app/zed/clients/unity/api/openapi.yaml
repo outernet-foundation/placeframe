@@ -61,6 +61,33 @@ paths:
       tags:
       - Default
   /captures/{id}:
+    delete:
+      operationId: delete_capture
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Delete Capture
+      tags:
+      - Default
     get:
       operationId: download_capture_tar
       parameters:

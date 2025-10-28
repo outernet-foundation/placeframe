@@ -102,13 +102,13 @@ namespace Example
 
             try
             {
-                // Download Capture Tar
-                FileParameter result = apiInstance.DownloadCaptureTar(id);
+                // Delete Capture
+                Object result = apiInstance.DeleteCapture(id);
                 Debug.WriteLine(result);
             }
             catch (ApiException e)
             {
-                Debug.Print("Exception when calling DefaultApi.DownloadCaptureTar: " + e.Message );
+                Debug.Print("Exception when calling DefaultApi.DeleteCapture: " + e.Message );
                 Debug.Print("Status Code: "+ e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -125,6 +125,7 @@ All URIs are relative to *http://localhost*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
+*DefaultApi* | [**DeleteCapture**](docs/DefaultApi.md#deletecapture) | **DELETE** /captures/{id} | Delete Capture
 *DefaultApi* | [**DownloadCaptureTar**](docs/DefaultApi.md#downloadcapturetar) | **GET** /captures/{id} | Download Capture Tar
 *DefaultApi* | [**GetCaptures**](docs/DefaultApi.md#getcaptures) | **GET** /captures | Get Captures
 *DefaultApi* | [**StartCapture**](docs/DefaultApi.md#startcapture) | **POST** /captures/start | Start Capture

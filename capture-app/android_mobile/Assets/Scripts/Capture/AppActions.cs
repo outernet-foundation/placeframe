@@ -32,4 +32,19 @@ namespace PlerionClient.Client
             target.captureStatus.value = _status;
         }
     }
+
+    public class SetCaptureModeAction : ObservableNodeAction<AppState>
+    {
+        private CaptureType _mode;
+
+        public SetCaptureModeAction(CaptureType mode)
+        {
+            _mode = mode;
+        }
+
+        public override void Execute(AppState target)
+        {
+            target.captureMode.value = _mode;
+        }
+    }
 }

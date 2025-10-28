@@ -53,8 +53,10 @@ services:
 
   postgres:
     image: docker.io/library/postgres:16-alpine
+    expose:
+      - "5432"
     ports:
-      - "5432:5432"
+      - "55432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:

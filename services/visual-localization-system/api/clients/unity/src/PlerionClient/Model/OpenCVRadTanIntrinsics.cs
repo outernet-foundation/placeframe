@@ -91,8 +91,7 @@ namespace PlerionClient.Model
         /// <param name="k2">k2 (required).</param>
         /// <param name="p1">p1 (required).</param>
         /// <param name="p2">p2 (required).</param>
-        /// <param name="k3">k3 (required).</param>
-        public OpenCVRadTanIntrinsics(ModelEnum model, int width, int height, double fx, double fy, double cx, double cy, double k1, double k2, double p1, double p2, double? k3)
+        public OpenCVRadTanIntrinsics(ModelEnum model, int width, int height, double fx, double fy, double cx, double cy, double k1, double k2, double p1, double p2)
         {
             this.Model = model;
             this.Width = width;
@@ -105,12 +104,6 @@ namespace PlerionClient.Model
             this.K2 = k2;
             this.P1 = p1;
             this.P2 = p2;
-            // to ensure "k3" is required (not null)
-            if (k3 == null)
-            {
-                throw new ArgumentNullException("k3 is a required property for OpenCVRadTanIntrinsics and cannot be null");
-            }
-            this.K3 = k3;
         }
 
         /// <summary>
@@ -354,30 +347,6 @@ namespace PlerionClient.Model
             return _flagP2;
         }
         /// <summary>
-        /// Gets or Sets K3
-        /// </summary>
-        [DataMember(Name = "k3", IsRequired = true, EmitDefaultValue = true)]
-        public double? K3
-        {
-            get{ return _K3;}
-            set
-            {
-                _K3 = value;
-                _flagK3 = true;
-            }
-        }
-        private double? _K3;
-        private bool _flagK3;
-
-        /// <summary>
-        /// Returns false as K3 should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeK3()
-        {
-            return _flagK3;
-        }
-        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -396,7 +365,6 @@ namespace PlerionClient.Model
             sb.Append("  K2: ").Append(K2).Append("\n");
             sb.Append("  P1: ").Append(P1).Append("\n");
             sb.Append("  P2: ").Append(P2).Append("\n");
-            sb.Append("  K3: ").Append(K3).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

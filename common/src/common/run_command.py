@@ -10,6 +10,7 @@ def run_command(
     env: dict[str, str] | None = None,
     log: bool = False,
     stream_log: bool = False,
+    stdin_text: str | None = None,
 ) -> str:
     if stream_log:
         print(f"Running (streaming): {command}")
@@ -21,7 +22,11 @@ def run_command(
             text=True,
             bufsize=1,
             env=env,
+            stdin=PIPE if stdin_text is not None else None,
         )
+        if stdin_text is not None and proc.stdin is not None:
+            proc.stdin.write(stdin_text + "\n" if not stdin_text.endswith("\n") else "")
+            proc.stdin.close()
         assert proc.stdout is not None
         try:
             for line in proc.stdout:

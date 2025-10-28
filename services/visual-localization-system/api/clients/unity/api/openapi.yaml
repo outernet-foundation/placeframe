@@ -400,7 +400,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ReconstructionCreate"
+              $ref: "#/components/schemas/ReconstructionCreateWithOptions"
         required: true
       responses:
         "200":
@@ -472,6 +472,35 @@ paths:
                 $ref: "#/components/schemas/HTTPValidationError"
           description: Validation Error
       summary: Get Reconstruction
+      tags:
+      - Default
+  /reconstructions/{id}/manifest:
+    get:
+      operationId: get_reconstruction_manifest
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconstructionManifest"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Reconstruction Manifest
       tags:
       - Default
   /reconstructions/{id}/localization_map:
@@ -2185,10 +2214,10 @@ components:
       example:
         transform:
           rotation:
-            w: 0.8008281904610115
-            x: 6.027456183070403
-            "y": 1.4658129805029452
-            z: 5.962133916683182
+            w: 5.962133916683182
+            x: 0.8008281904610115
+            "y": 6.027456183070403
+            z: 1.4658129805029452
           position:
             x: 0.8008281904610115
             "y": 6.027456183070403
@@ -2196,10 +2225,10 @@ components:
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         map_transform:
           rotation:
-            w: 0.8008281904610115
-            x: 6.027456183070403
-            "y": 1.4658129805029452
-            z: 5.962133916683182
+            w: 5.962133916683182
+            x: 0.8008281904610115
+            "y": 6.027456183070403
+            z: 1.4658129805029452
           position:
             x: 0.8008281904610115
             "y": 6.027456183070403
@@ -2222,10 +2251,10 @@ components:
       example:
         transform:
           rotation:
-            w: 0.8008281904610115
-            x: 6.027456183070403
-            "y": 1.4658129805029452
-            z: 5.962133916683182
+            w: 5.962133916683182
+            x: 0.8008281904610115
+            "y": 6.027456183070403
+            z: 1.4658129805029452
           position:
             x: 0.8008281904610115
             "y": 6.027456183070403
@@ -2233,10 +2262,10 @@ components:
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         map_transform:
           rotation:
-            w: 0.8008281904610115
-            x: 6.027456183070403
-            "y": 1.4658129805029452
-            z: 5.962133916683182
+            w: 5.962133916683182
+            x: 0.8008281904610115
+            "y": 6.027456183070403
+            z: 1.4658129805029452
           position:
             x: 0.8008281904610115
             "y": 6.027456183070403
@@ -2575,9 +2604,6 @@ components:
         p2:
           title: P2
           type: number
-        k3:
-          nullable: true
-          type: number
       required:
       - cx
       - cy
@@ -2586,7 +2612,6 @@ components:
       - height
       - k1
       - k2
-      - k3
       - model
       - p1
       - p2
@@ -2655,14 +2680,11 @@ components:
       title: PointCloudPoint
     Quaternion:
       example:
-        w: 0.8008281904610115
-        x: 6.027456183070403
-        "y": 1.4658129805029452
-        z: 5.962133916683182
+        w: 5.962133916683182
+        x: 0.8008281904610115
+        "y": 6.027456183070403
+        z: 1.4658129805029452
       properties:
-        w:
-          title: W
-          type: number
         x:
           title: X
           type: number
@@ -2671,6 +2693,9 @@ components:
           type: number
         z:
           title: Z
+          type: number
+        w:
+          title: W
           type: number
       required:
       - w
@@ -2694,6 +2719,142 @@ components:
       required:
       - capture_session_id
       title: ReconstructionCreate
+    ReconstructionCreateWithOptions:
+      example:
+        options:
+          use_prior_position: true
+          ba_refine_focal_length: true
+          ba_refine_extra_params: true
+          max_keypoints_per_image: 6
+          ba_refine_principal_point: true
+          neightbors_count: 0
+          ba_refine_sensor_from_rig: true
+        create:
+          capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        create:
+          $ref: "#/components/schemas/ReconstructionCreate"
+        options:
+          $ref: "#/components/schemas/ReconstructionOptions"
+      required:
+      - create
+      title: ReconstructionCreateWithOptions
+    ReconstructionManifest:
+      example:
+        options:
+          use_prior_position: true
+          ba_refine_focal_length: true
+          ba_refine_extra_params: true
+          max_keypoints_per_image: 6
+          ba_refine_principal_point: true
+          neightbors_count: 0
+          ba_refine_sensor_from_rig: true
+        metrics:
+          track_length_50th_percentile: 9.301444243932576
+          total_images: 0
+          reprojection_pixel_error_50th_percentile: 2.3021358869347655
+          average_keypoints_per_image: 5.637376656633329
+          reprojection_pixel_error_90th_percentile: 7.061401241503109
+          num_3d_points: 5
+          registration_rate: 1.4658129805029452
+          registered_images: 6
+          percent_tracks_with_length_greater_than_or_equal_to_3: 3.616076749251911
+        capture_id: capture_id
+        error: error
+        status: status
+      properties:
+        capture_id:
+          title: Capture Id
+          type: string
+        status:
+          title: Status
+          type: string
+        error:
+          nullable: true
+          type: string
+        options:
+          $ref: "#/components/schemas/ReconstructionOptions"
+        metrics:
+          $ref: "#/components/schemas/ReconstructionMetrics"
+      required:
+      - capture_id
+      - metrics
+      - options
+      - status
+      title: ReconstructionManifest
+    ReconstructionMetrics:
+      example:
+        track_length_50th_percentile: 9.301444243932576
+        total_images: 0
+        reprojection_pixel_error_50th_percentile: 2.3021358869347655
+        average_keypoints_per_image: 5.637376656633329
+        reprojection_pixel_error_90th_percentile: 7.061401241503109
+        num_3d_points: 5
+        registration_rate: 1.4658129805029452
+        registered_images: 6
+        percent_tracks_with_length_greater_than_or_equal_to_3: 3.616076749251911
+      properties:
+        total_images:
+          nullable: true
+          type: integer
+        registered_images:
+          nullable: true
+          type: integer
+        registration_rate:
+          nullable: true
+          type: number
+        num_3d_points:
+          nullable: true
+          type: integer
+        average_keypoints_per_image:
+          nullable: true
+          type: number
+        reprojection_pixel_error_50th_percentile:
+          nullable: true
+          type: number
+        reprojection_pixel_error_90th_percentile:
+          nullable: true
+          type: number
+        track_length_50th_percentile:
+          nullable: true
+          type: number
+        percent_tracks_with_length_greater_than_or_equal_to_3:
+          nullable: true
+          type: number
+      title: ReconstructionMetrics
+    ReconstructionOptions:
+      example:
+        use_prior_position: true
+        ba_refine_focal_length: true
+        ba_refine_extra_params: true
+        max_keypoints_per_image: 6
+        ba_refine_principal_point: true
+        neightbors_count: 0
+        ba_refine_sensor_from_rig: true
+      properties:
+        neightbors_count:
+          nullable: true
+          type: integer
+        max_keypoints_per_image:
+          nullable: true
+          type: integer
+        use_prior_position:
+          nullable: true
+          type: boolean
+        ba_refine_sensor_from_rig:
+          nullable: true
+          type: boolean
+        ba_refine_focal_length:
+          nullable: true
+          type: boolean
+        ba_refine_principal_point:
+          nullable: true
+          type: boolean
+        ba_refine_extra_params:
+          nullable: true
+          type: boolean
+      title: ReconstructionOptions
     ReconstructionRead:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -2740,10 +2901,10 @@ components:
     Transform:
       example:
         rotation:
-          w: 0.8008281904610115
-          x: 6.027456183070403
-          "y": 1.4658129805029452
-          z: 5.962133916683182
+          w: 5.962133916683182
+          x: 0.8008281904610115
+          "y": 6.027456183070403
+          z: 1.4658129805029452
         position:
           x: 0.8008281904610115
           "y": 6.027456183070403

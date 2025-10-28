@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import json
 import time
 
 from common.batch_client import create_batch_client
 from common.boto_clients import create_s3_client
+from common.reconstruction_manifest import ReconstructionManifest
 from models.public_tables import Reconstruction
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
@@ -53,15 +53,6 @@ def start_next_reconstruction() -> None:
             f"Starting reconstruction {queued_reconstruction.id} for capture {queued_reconstruction.capture_session_id}"
         )
 
-        s3_client.put_object(
-            Bucket=settings.reconstructions_bucket,
-            Key=f"{queued_reconstruction.id}/run.json",
-            Body=json.dumps({"status": "pending", "capture_id": str(queued_reconstruction.capture_session_id)}).encode(
-                "utf-8"
-            ),
-            ContentType="application/json",
-        )
-
         batch_client.submit_job(
             name=str(queued_reconstruction.id),
             queue_name=settings.batch_job_queue,
@@ -102,19 +93,21 @@ def reconcile(max_rows: int = 50) -> None:
         print(f"Checking reconstruction {reconstruction_id}")
 
         try:
-            obj = s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{reconstruction_id}/run.json")
-            run = json.loads(obj["Body"].read().decode("utf-8"))
+            manifest: ReconstructionManifest = ReconstructionManifest.model_validate_json(
+                s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{reconstruction_id}/manifest.json")[
+                    "Body"
+                ].read()
+            )
         except Exception as e:
-            print(f"No run.json found for reconstruction {reconstruction_id}, skipping: {e}")
+            print(f"No manifest.json found for reconstruction {reconstruction_id}, skipping: {e}")
             continue
 
-        status = run.get("status") or ""
-        print(f"Reconstruction {reconstruction_id} status: {status}")
+        print(f"Reconstruction {reconstruction_id} status: {manifest.status}")
 
         with Session(engine) as session, session.begin():
             row = session.get(Reconstruction, reconstruction_id, with_for_update=False)
             assert row is not None
-            row.status = status
+            row.status = manifest.status
             session.add(row)
             session.flush()
 

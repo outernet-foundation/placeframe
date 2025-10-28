@@ -4,29 +4,49 @@ import json
 from io import BytesIO
 from pathlib import Path
 from tarfile import open as open_tar
-from typing import Dict, List, Tuple, TypedDict, cast
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, cast
 
 import torch
 from common.boto_clients import create_s3_client
+from common.classes import Quaternion, RigCamera, RigConfig, Vector3, get_camera_intrinsics_type
+from common.reconstruction_manifest import ReconstructionManifest
 from cv2 import COLOR_BGR2GRAY, COLOR_BGR2RGB, IMREAD_COLOR, cvtColor, imdecode
 from h5py import File
 from hloc.extractors.dir import DIR
 from hloc.extractors.superpoint import SuperPoint
 from lightglue import LightGlue
-from numpy import array, eye, float32, float64, frombuffer, hstack, int32, ndarray, nonzero, stack, uint8, uint32
+from numpy import (
+    array,
+    asarray,
+    eye,
+    float16,
+    float32,
+    float64,
+    frombuffer,
+    int32,
+    ndarray,
+    nonzero,
+    percentile,
+    stack,
+    uint8,
+    uint32,
+)
+from numpy.linalg import norm
 from numpy.typing import NDArray
 from pycolmap import (
     Camera,
     Database,
-    IncrementalMapperOptions,
+    ImageMap,
     IncrementalPipelineOptions,
+    Point3D,
+    Point3DMap,
     PosePrior,
     RANSACOptions,
     Rigid3d,
     Rotation3d,
-    TwoViewGeometry,
     TwoViewGeometryOptions,
 )
+from pycolmap import Image as PycolmapImage
 from pycolmap import Image as pycolmapImage
 from pycolmap import RigConfig as pycolmapRigConfig
 from pycolmap import RigConfigCamera as pycolmapRigConfigCamera
@@ -45,6 +65,8 @@ settings = get_settings()
 DEVICE = "cuda" if cuda.is_available() else "cpu"
 print(f"Using device: {DEVICE}")
 
+UINT64_MAX = 18446744073709551615  # sentinel used by Point2D.point3D_id default
+
 WORK_DIR = Path("/tmp/reconstruction")
 OUTPUT_DIRECTORY = WORK_DIR / "outputs"
 IMAGES_DIRECTORY = WORK_DIR / "images"
@@ -57,7 +79,7 @@ COLMAP_SFM_DIRECTORY = OUTPUT_DIRECTORY / "sfm_model"
 COLMAP_SFM_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
 WEIGHTS = "indoor"
-POSE_NEIGHBOR_COUNT = 12
+DEFAULT_NEIGHBORS_COUNT = 12
 RETRIEVAL_TOP_K = 20
 # Prior weights (tweak as you like)
 POSE_PRIOR_ROT_SIGMA_DEG = 5.0  # 1-sigma on rotation, in degrees
@@ -76,55 +98,32 @@ def _put_reconstruction_object(key: str, body: bytes):
     s3_client.put_object(Bucket=settings.reconstructions_bucket, Key=f"{settings.reconstruction_id}/{key}", Body=body)
 
 
-class RigCamera(TypedDict):
-    id: str
-    model: str
-    width: int
-    height: int
-    intrinsics: NDArray[float32]
-    ref_sensor: bool | None
-    rotation: NDArray[float32]
-    translation: NDArray[float32]
-
-
-class Rig(TypedDict):
-    id: str
-    cameras: list[RigCamera]
-
-
-class RigConfig(TypedDict):
-    rigs: list[Rig]
-
-
 class Image:
     def __init__(
         self,
         frame_id: str,
         rig_id: str,
         camera: RigCamera,
-        frame_rotation_world_to_camera: Rotation,
-        frame_translation_world_to_camera: ndarray,
-        png_buffer: bytes,
+        rotation_frame_from_world: Rotation,
+        translation_frame_from_world: ndarray,
+        buffer: bytes,
     ):
         self.name = f"{rig_id}/{camera['id']}/{frame_id}.jpg"
         self.rig_id = rig_id
         self.camera_id = camera["id"]
-
-        rig_R = Rotation.from_quat(camera["rotation"])
-        rig_t = array(camera["translation"], dtype=float)
-        self.rotation = Rotation.from_quat(camera["rotation"]) * frame_rotation_world_to_camera
-        self.translation = rig_R.apply(frame_translation_world_to_camera) + rig_t
-
-        extrinsic_matrix = hstack((self.rotation.as_matrix(), self.translation.reshape(3, 1)))
-        intrinsics_matrix = array(
-            [
-                [camera["intrinsics"][0], 0, camera["intrinsics"][2]],
-                [0, camera["intrinsics"][1], camera["intrinsics"][3]],
-                [0, 0, 1],
-            ],
-            dtype=float32,
-        )
-        self.projection_matrix = intrinsics_matrix @ extrinsic_matrix
+        rotation_camera_from_rig = Rotation.from_quat([
+            camera["rotation"]["x"],
+            camera["rotation"]["y"],
+            camera["rotation"]["z"],
+            camera["rotation"]["w"],
+        ])
+        translation_camera_from_rig = camera["translation"]
+        self.rotation_camera_from_world = rotation_camera_from_rig * rotation_frame_from_world
+        self.translation_camera_from_world = rotation_camera_from_rig.apply(translation_frame_from_world) + [
+            translation_camera_from_rig["x"],
+            translation_camera_from_rig["y"],
+            translation_camera_from_rig["z"],
+        ]
 
         self.bgr_image = imdecode(frombuffer(buffer, uint8), IMREAD_COLOR)
         rgb_image = cvtColor(self.bgr_image, COLOR_BGR2RGB)
@@ -153,17 +152,20 @@ def _to_f32(t: Tensor) -> ndarray:
     return t.detach().cpu().numpy().astype(float32, copy=False)
 
 
+def _to_f16(t: Tensor) -> ndarray:
+    return t.detach().cpu().numpy().astype(float16, copy=False)
+
+
 def main():
     print(f"Starting reconstruction {settings.reconstruction_id}")
 
-    # run_json = json.loads(_get_capture_object("run.json").decode("utf-8"))
-    run_json = json.load(
-        s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{settings.reconstruction_id}/run.json")[
+    manifest: ReconstructionManifest = ReconstructionManifest.model_validate_json(
+        s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{settings.reconstruction_id}/manifest.json")[
             "Body"
-        ]
+        ].read()
     )
-    run_json["status"] = "running"
-    _put_reconstruction_object(key="run.json", body=json.dumps(run_json).encode("utf-8"))
+    manifest.status = "running"
+    _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
 
     print("Loading capture data")
 
@@ -185,25 +187,25 @@ def main():
         if len(ref_sensors) != 1:
             raise ValueError(f"Rig {rig['id']} must have exactly one reference sensor")
         ref_sensor = ref_sensors[0]
-        if not all(ref_sensor["rotation"] == array([0, 0, 0, 1], dtype=float32)):
+        if ref_sensor["rotation"] != Quaternion(w=1.0, x=0.0, y=0.0, z=0.0):
             raise ValueError(f"Reference sensor {ref_sensor['id']} in rig {rig['id']} must have identity rotation")
-        if not all(ref_sensor["translation"] == array([0, 0, 0], dtype=float32)):
+        if ref_sensor["translation"] != Vector3(x=0.0, y=0.0, z=0.0):
             raise ValueError(f"Reference sensor {ref_sensor['id']} in rig {rig['id']} must have zero translation")
 
     images: Dict[str, Image] = {}
     for rig in rigs:
         for line in _get_capture_object(f"{rig['id']}/frames.csv").decode("utf-8").splitlines()[1:]:  # Skip header
             frame_id, tx, ty, tz, qx, qy, qz, qw = line.strip().split(",")
-            frame_rotation_world_to_camera = Rotation.from_quat([float(qx), float(qy), float(qz), float(qw)])
-            frame_translation_world_to_camera = array([float(tx), float(ty), float(tz)], dtype=float)
+            frame_rotation_camera_from_world = Rotation.from_quat([float(qx), float(qy), float(qz), float(qw)])
+            frame_translation_camera_from_world = array([float(tx), float(ty), float(tz)], dtype=float)
 
             for camera in rig["cameras"]:
                 image = Image(
                     frame_id,
                     rig["id"],
                     camera,
-                    frame_rotation_world_to_camera,
-                    frame_translation_world_to_camera,
+                    frame_rotation_camera_from_world,
+                    frame_translation_camera_from_world,
                     _get_capture_object(f"{rig['id']}/{camera['id']}/{frame_id}.jpg"),
                 )
                 images[image.name] = image
@@ -224,7 +226,10 @@ def main():
 
     print(f"Loading feature extraction model: {'SuperPoint'}")
 
-    superpoint = SuperPoint({"weights": WEIGHTS}).to(DEVICE).eval()
+    config: dict[str, Any] = {"weights": WEIGHTS}
+    if manifest.options.max_keypoints_per_image is not None:
+        config["max_keypoints"] = manifest.options.max_keypoints_per_image
+    superpoint = SuperPoint(config).to(DEVICE).eval()
 
     print(f"Loading feature matching model: {'SuperGlue'}")
 
@@ -250,37 +255,34 @@ def main():
             descriptors[image.name] = superpoint_output["descriptors"][0]
             scores[image.name] = superpoint_output["scores"][0]
 
-    # for image in images.values():
-    #     # Upload to S3
-    #     _put_reconstruction_object(
-    #         key=f"features/{image.name}.npz",
-    #         body=json.dumps({
-    #             "keypoints": keypoints[image.name].cpu().numpy().astype(float32).tolist(),
-    #             "descriptors": descriptors[image.name].cpu().numpy().astype(float32).tolist(),
-    #             "global_descriptor": global_descriptors[image.name].cpu().numpy().astype(float32).tolist(),
-    #         }).encode("utf-8"),
-    #     )
+    manifest.metrics.average_keypoints_per_image = float(sum(len(kp) for kp in keypoints.values()) / len(keypoints))
+    _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
 
     print("Matching features")
 
     # Find pairs of images to match
-    pairs_by_pose_proximity = pairs_from_poses(
-        [
-            ImageTransform(name, rotation, translation)
-            for name, (rotation, translation) in {
-                img.name: (img.rotation.as_matrix(), img.translation) for img in images.values()
-            }.items()
-        ],
-        min(POSE_NEIGHBOR_COUNT, max(1, len(images) - 1)),
-    )
+    if manifest.options.neightbors_count == -1:
+        # exhaustive matching
+        pairs_by_pose_proximity = [
+            (a.name, b.name) for i, a in enumerate(images.values()) for j, b in enumerate(images.values()) if i < j
+        ]
+    else:
+        pairs_by_pose_proximity = pairs_from_poses(
+            [
+                ImageTransform(name, rotation, translation)
+                for name, (rotation, translation) in {
+                    img.name: (img.rotation_camera_from_world.as_matrix(), img.translation_camera_from_world)
+                    for img in images.values()
+                }.items()
+            ],
+            min(manifest.options.neightbors_count or DEFAULT_NEIGHBORS_COUNT, max(1, len(images) - 1)),
+        )
 
     # Canonicalize and deduplicate pairs
     pairs = {tuple(sorted((a, b))) for a, b in pairs_by_pose_proximity if a != b}
 
     PAIRS_FILE.parent.mkdir(parents=True, exist_ok=True)
     PAIRS_FILE.write_text("\n".join(f"{a} {b}" for a, b in pairs))
-
-    _put_reconstruction_object(key="pairs.txt", body=PAIRS_FILE.read_bytes())
 
     # Match features using SuperGlue and add matches to COLMAP database
     all_matches: dict[Tuple[str, str], Tensor] = {}
@@ -340,21 +342,32 @@ def main():
         rig_camera_configs: List[pycolmapRigConfigCamera] = []
         for camera in rig["cameras"]:
             the_camera = Camera(
-                model=camera["model"],
-                width=camera["width"],
-                height=camera["height"],
-                params=array(camera["intrinsics"], dtype=float64),
+                width=camera["intrinsics"]["width"],
+                height=camera["intrinsics"]["height"],
+                model=camera["intrinsics"]["model"],
+                params=get_camera_intrinsics_type(camera["intrinsics"]),
             )
             the_camera.has_prior_focal_length = True
 
             camera_id_to_colmap_camera_id[(rig["id"], camera["id"])] = database.write_camera(the_camera)
+
+            R_cam_from_rig = Rotation.from_quat([
+                camera["rotation"]["x"],
+                camera["rotation"]["y"],
+                camera["rotation"]["z"],
+                camera["rotation"]["w"],
+            ]).as_matrix()
+
             rig_camera_configs.append(
                 pycolmapRigConfigCamera(
                     image_prefix=f"{rig['id']}/{camera['id']}/",
                     ref_sensor=camera["ref_sensor"] or False,
                     cam_from_rig=Rigid3d(
-                        rotation=Rotation3d(array(camera["rotation"], dtype=float64)),
-                        translation=array(camera["translation"], dtype=float64).reshape(3, 1),
+                        rotation=Rotation3d(R_cam_from_rig),
+                        translation=array(
+                            [camera["translation"]["x"], camera["translation"]["y"], camera["translation"]["z"]],
+                            dtype=float64,
+                        ).reshape(3, 1),
                     ),
                 )
             )
@@ -374,11 +387,12 @@ def main():
         keypoints_array += 0.5  # Convert from (x,y) corner to COLMAP center-of-pixel (x+0.5,y+0.5)
         database.write_keypoints(colmap_image_id, keypoints_array)
 
-        C_world = -(image.rotation.as_matrix().T @ image.translation)
+        camera_center_in_world = -(image.rotation_camera_from_world.as_matrix().T @ image.translation_camera_from_world)
         database.write_pose_prior(
             colmap_image_id,
             PosePrior(
-                position=C_world.reshape(3, 1), position_covariance=(POSE_PRIOR_POS_SIGMA_M**2) * eye(3, dtype=float64)
+                position=camera_center_in_world.reshape(3, 1),
+                position_covariance=(POSE_PRIOR_POS_SIGMA_M**2) * eye(3, dtype=float64),
             ),
         )
 
@@ -405,26 +419,18 @@ def main():
         #     colmap_image_id, PosePrior(cam_from_world=Rigid3d(Rotation3d(R_cw), t_cw), cam_cov_from_world=cov_6x6)
         # )
 
-    # print(f"Total pairs: {len(pairs)}")
-    # for a, b in list(pairs)[:5]:
-    #     print(f"  Sample pair: {a} <-> {b}")
-    #     print(f"    Image IDs: {image_id_to_pycolmap_id[a]} <-> {image_id_to_pycolmap_id[b]}")
-
     # Apply rig configuration to database
     # (This must be done after all cameras and images have been added)
     # apply_rig_config(rig_configs, database)
 
     # Write two-view geometries (matches) to database
     for a, b in pairs:
-        matches = valid_matches[(a, b)].astype(uint32, copy=False)
-        database.write_matches(image_id_to_pycolmap_id[a], image_id_to_pycolmap_id[b], matches)
-        # database.write_two_view_geometry(
-        #     image_id_to_pycolmap_id[a], image_id_to_pycolmap_id[b], TwoViewGeometry(inlier_matches=matches)
-        # )
+        database.write_matches(
+            image_id_to_pycolmap_id[a], image_id_to_pycolmap_id[b], valid_matches[(a, b)].astype(uint32, copy=False)
+        )
 
     database.close()
 
-    # verify_matches(str(COLMAP_DB_PATH), str(PAIRS_FILE), options=dict(ransac=dict(max_num_trials=20000, min_inlier_ratio=0.1)))
     verify_matches(
         str(COLMAP_DB_PATH),
         str(PAIRS_FILE),
@@ -433,41 +439,75 @@ def main():
         ),
     )
 
-    db2 = Database(str(COLMAP_DB_PATH))
-    cameras = db2.read_all_cameras()
-    for cam in cameras:
-        print(f"Camera {cam.camera_id}: {cam.model} {cam.width}x{cam.height} {cam.params}")
-
-    two_view_geometries = db2.read_two_view_geometries()
-    for geometry in two_view_geometries:
-        for thing in geometry:
-            if isinstance(thing, TwoViewGeometry):
-                print(
-                    f"TwoViewGeometry with {len(thing.inlier_matches)} inlier matches and tri_angle {thing.tri_angle} and config {thing.config}"
-                )
-    db2.close()
-
     print("Running reconstruction")
+
+    options = IncrementalPipelineOptions()
+    if manifest.options.use_prior_position is not None:
+        options.use_prior_position = manifest.options.use_prior_position
+    if manifest.options.ba_refine_sensor_from_rig is not None:
+        options.ba_refine_sensor_from_rig = manifest.options.ba_refine_sensor_from_rig
+    if manifest.options.ba_refine_focal_length is not None:
+        options.ba_refine_focal_length = manifest.options.ba_refine_focal_length
+    if manifest.options.ba_refine_principal_point is not None:
+        options.ba_refine_principal_point = manifest.options.ba_refine_principal_point
+    if manifest.options.ba_refine_extra_params is not None:
+        options.ba_refine_extra_params = manifest.options.ba_refine_extra_params
 
     IMAGES_DIRECTORY.mkdir(parents=True, exist_ok=True)
     reconstructions = incremental_mapping(
         database_path=str(COLMAP_DB_PATH),
         image_path=str(IMAGES_DIRECTORY),
         output_path=str(COLMAP_SFM_DIRECTORY),
-        options=IncrementalPipelineOptions(
-            use_prior_position=True,
-            # ba_refine_sensor_from_rig=False,
-            mapper=IncrementalMapperOptions(init_min_num_inliers=15, init_min_tri_angle=0.5),
-            # concerningly none of the three follwing options are having any effect
-            # multiple_models=False,
-            # max_num_models=1,
-            # min_model_size=MIN_MODEL_SIZE,
-        ),
+        options=options,
     )
 
     if len(reconstructions) == 0:
-        run_json["status"] = "failed"
-        run_json["error"] = "No model was created"
+        manifest.status = "failed"
+        manifest.error = "No model was created"
+
+    # Choose the reconstruction with the most registered images
+    best_id = max(range(len(reconstructions)), key=lambda i: reconstructions[i].num_reg_images())
+    best = reconstructions[best_id]
+
+    best_out = COLMAP_SFM_DIRECTORY / "best"
+    best_out.mkdir(parents=True, exist_ok=True)
+    best.write_text(str(best_out))
+    best.export_PLY(str(best_out / "points3D.ply"))
+
+    # Compute metrics
+    points3d: Point3DMap = best.points3D
+    points3d_values: Iterable[Point3D] = cast(Iterable[Point3D], points3d.values())  # type: ignore
+    reconstruction_images: ImageMap = best.images
+    reconstruction_image_values: Iterable[PycolmapImage] = cast(Iterable[PycolmapImage], reconstruction_images.values())  # type: ignore
+    track_lengths = [len(p.track.elements) for p in points3d_values]
+
+    reproject_errors: List[float] = []
+    for image in reconstruction_image_values:
+        for point2d in image.points2D:
+            if point2d.point3D_id == UINT64_MAX or point2d.point3D_id not in points3d:
+                continue
+            projection: Optional[NDArray[float64]] = image.project_point(points3d[point2d.point3D_id].xyz)
+            if projection is None:
+                continue
+            reproject_errors.append(
+                float(
+                    norm(asarray(projection, dtype=float64).reshape(2) - asarray(point2d.xy, dtype=float64).reshape(2))
+                )
+            )
+
+    manifest.metrics.total_images = len(images)
+    manifest.metrics.registered_images = best.num_reg_images()
+    manifest.metrics.registration_rate = float(best.num_reg_images() / len(images) * 100.0)
+    manifest.metrics.num_3d_points = len(points3d)
+    manifest.metrics.track_length_50th_percentile = _percentile([float(L) for L in track_lengths], 50.0)
+    manifest.metrics.percent_tracks_with_length_greater_than_or_equal_to_3 = float(
+        sum(1 for L in track_lengths if L >= 3) / float(len(track_lengths)) * 100.0
+    )
+    manifest.metrics.reprojection_pixel_error_50th_percentile = _percentile(reproject_errors, 50.0)
+    manifest.metrics.reprojection_pixel_error_90th_percentile = _percentile(reproject_errors, 90.0)
+    _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
+
+    print("Uploading reconstruction results")
 
     with File(GLOBAL_DESCRIPTORS_FILE, "w") as gfile:
         for name, gdesc in global_descriptors.items():
@@ -479,38 +519,52 @@ def main():
     with File(FEATURES_FILE, "w") as ffile:
         for name in global_descriptors.keys():  # ensures the same set/order as globals
             grp = ffile.require_group(name)  # type: ignore
+
+            # clean any existing
             if "keypoints" in grp:
                 del grp["keypoints"]
             if "descriptors" in grp:
                 del grp["descriptors"]
-            grp.create_dataset("keypoints", data=_to_f32(keypoints[name]), compression="gzip", compression_opts=3)  # type: ignore
-            grp.create_dataset("descriptors", data=_to_f32(descriptors[name]), compression="gzip", compression_opts=3)  # type: ignore
-            # Optional: store SuperPoint scores (not used by your loader, but handy)
-            if name in scores:
-                if "scores" in grp:
-                    del grp["scores"]
-                grp.create_dataset("scores", data=_to_f32(scores[name]), compression="gzip", compression_opts=3)  # type: ignore
+            if "scores" in grp:  # ensure dropped
+                del grp["scores"]
+
+            # write FP16 + gzip-9 + shuffle + chunks
+            grp.create_dataset(  # type: ignore
+                "keypoints",
+                data=_to_f16(keypoints[name]),
+                compression="gzip",
+                compression_opts=9,
+                shuffle=True,
+                chunks=True,
+            )
+
+            grp.create_dataset(  # type: ignore
+                "descriptors",
+                data=_to_f16(descriptors[name]),
+                compression="gzip",
+                compression_opts=9,
+                shuffle=True,
+                chunks=True,
+            )
 
     _put_reconstruction_object(key="global_descriptors.h5", body=GLOBAL_DESCRIPTORS_FILE.read_bytes())
     _put_reconstruction_object(key="features.h5", body=FEATURES_FILE.read_bytes())
+    _put_reconstruction_object(key="pairs.txt", body=PAIRS_FILE.read_bytes())
 
-    # Choose the reconstruction with the most registered images
-    best_id = max(range(len(reconstructions)), key=lambda i: reconstructions[i].num_reg_images())
-    best = reconstructions[best_id]
-
-    best_out = COLMAP_SFM_DIRECTORY / "best"
-    best_out.mkdir(parents=True, exist_ok=True)
-    best.write_text(str(best_out))
-    best.export_PLY(str(best_out / "points3D.ply"))
-
-    # Upload everything from best_out
     for file_path in best_out.rglob("*"):
         if file_path.is_file():
             _put_reconstruction_object(key=f"sfm_model/{file_path.relative_to(best_out)}", body=file_path.read_bytes())
 
-    run_json["status"] = "succeeded"
+    manifest.status = "succeeded"
 
-    _put_reconstruction_object(key="run.json", body=json.dumps(run_json).encode("utf-8"))
+    _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
+
+
+def _percentile(xs: Sequence[float], q: float):
+    arr = asarray(xs, dtype=float64)
+    if arr.size == 0:
+        raise ValueError("Cannot compute percentile of empty array")
+    return float(percentile(arr, q))
 
 
 if __name__ == "__main__":

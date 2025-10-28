@@ -518,7 +518,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ReconstructionCreate"
+                "$ref": "#/components/schemas/ReconstructionCreateWithOptions"
               }
             }
           }
@@ -687,6 +687,49 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReconstructionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reconstructions/{id}/manifest": {
+      "get": {
+        "tags": [
+          "reconstructions"
+        ],
+        "summary": "Get Reconstruction Manifest",
+        "operationId": "get_reconstruction_manifest",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconstructionManifest"
                 }
               }
             }
@@ -3986,17 +4029,6 @@
           "p2": {
             "type": "number",
             "title": "P2"
-          },
-          "k3": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "K3"
           }
         },
         "type": "object",
@@ -4011,8 +4043,7 @@
           "k1",
           "k2",
           "p1",
-          "p2",
-          "k3"
+          "p2"
         ],
         "title": "OpenCVRadTanIntrinsics"
       },
@@ -4078,10 +4109,6 @@
       },
       "Quaternion": {
         "properties": {
-          "w": {
-            "type": "number",
-            "title": "W"
-          },
           "x": {
             "type": "number",
             "title": "X"
@@ -4093,14 +4120,18 @@
           "z": {
             "type": "number",
             "title": "Z"
+          },
+          "w": {
+            "type": "number",
+            "title": "W"
           }
         },
         "type": "object",
         "required": [
-          "w",
           "x",
           "y",
-          "z"
+          "z",
+          "w"
         ],
         "title": "Quaternion"
       },
@@ -4129,6 +4160,270 @@
           "capture_session_id"
         ],
         "title": "ReconstructionCreate"
+      },
+      "ReconstructionCreateWithOptions": {
+        "properties": {
+          "create": {
+            "$ref": "#/components/schemas/ReconstructionCreate"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReconstructionOptions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional reconstruction options to use during reconstruction."
+          }
+        },
+        "type": "object",
+        "required": [
+          "create"
+        ],
+        "title": "ReconstructionCreateWithOptions"
+      },
+      "ReconstructionManifest": {
+        "properties": {
+          "capture_id": {
+            "type": "string",
+            "title": "Capture Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "options": {
+            "$ref": "#/components/schemas/ReconstructionOptions"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/ReconstructionMetrics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "capture_id",
+          "status",
+          "options",
+          "metrics"
+        ],
+        "title": "ReconstructionManifest"
+      },
+      "ReconstructionMetrics": {
+        "properties": {
+          "total_images": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Images",
+            "description": "Total number of images in the capture."
+          },
+          "registered_images": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registered Images",
+            "description": "Number of images successfully registered in the reconstruction."
+          },
+          "registration_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registration Rate",
+            "description": "Percentage of images registered in the reconstruction."
+          },
+          "num_3d_points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num 3D Points",
+            "description": "Total number of 3D points reconstructed in the reconstruction."
+          },
+          "average_keypoints_per_image": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Keypoints Per Image",
+            "description": "Average number of keypoints detected per image in the reconstruction."
+          },
+          "reprojection_pixel_error_50th_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reprojection Pixel Error 50Th Percentile",
+            "description": "50th percentile of reprojection pixel error across all 3D points."
+          },
+          "reprojection_pixel_error_90th_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reprojection Pixel Error 90Th Percentile",
+            "description": "90th percentile of reprojection pixel error across all 3D points."
+          },
+          "track_length_50th_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track Length 50Th Percentile",
+            "description": "50th percentile of track length."
+          },
+          "percent_tracks_with_length_greater_than_or_equal_to_3": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percent Tracks With Length Greater Than Or Equal To 3",
+            "description": "Percentage of tracks with length greater than or equal to 3."
+          }
+        },
+        "type": "object",
+        "title": "ReconstructionMetrics"
+      },
+      "ReconstructionOptions": {
+        "properties": {
+          "neightbors_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Neightbors Count",
+            "description": "Number of neighboring images to consider during reconstruction. If not set, exhaustive matching is used."
+          },
+          "max_keypoints_per_image": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Keypoints Per Image",
+            "description": "Maximum number of keypoints to detect and use per image during reconstruction."
+          },
+          "use_prior_position": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Use Prior Position",
+            "description": "Whether to use prior position during reconstruction."
+          },
+          "ba_refine_sensor_from_rig": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ba Refine Sensor From Rig",
+            "description": "Whether to refine sensor from rig during bundle adjustment."
+          },
+          "ba_refine_focal_length": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ba Refine Focal Length",
+            "description": "Whether to refine focal length during bundle adjustment."
+          },
+          "ba_refine_principal_point": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ba Refine Principal Point",
+            "description": "Whether to refine principal point during bundle adjustment."
+          },
+          "ba_refine_extra_params": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ba Refine Extra Params",
+            "description": "Whether to refine extra parameters during bundle adjustment."
+          }
+        },
+        "type": "object",
+        "title": "ReconstructionOptions"
       },
       "ReconstructionRead": {
         "properties": {

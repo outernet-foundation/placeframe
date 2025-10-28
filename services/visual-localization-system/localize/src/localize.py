@@ -8,7 +8,7 @@ from common.boto_clients import create_s3_client
 from common.classes import CameraIntrinsics, Quaternion, Transform, Vector3
 from common.make_multipar_json_dep import make_multipart_json_dep
 from cv2 import COLOR_BGR2GRAY, COLOR_BGR2RGB, IMREAD_COLOR, cvtColor, imdecode
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from hloc.extractors.dir import DIR
 from hloc.extractors.superpoint import SuperPoint
 from lightglue import LightGlue
@@ -69,21 +69,10 @@ parse_camera = make_multipart_json_dep("camera", INTR_ADAPTER)
 
 
 async def localize_image_against_reconstruction(map: Map, camera: Camera, image: bytes) -> Transform:
-    # MAP = load_map_data(RECONSTRUCTION, FEATURES_FILE, GLOBAL_DESCRIPTORS_FILE, DEVICE)
-    # map_data = load_map_data(
-    #     reconstruction=reconstructions[id],
-    #     features_path=RECONSTRUCTIONS_DIR / str(id) / "features.h5",
-    #     globals_path=RECONSTRUCTIONS_DIR / str(id) / "globals.h5",
-    #     device=DEVICE,
-    # )
-
     # Load image into numpy buffer
     buffer = frombuffer(image, uint8)
     # Decode buffer into OpenCV BGR image array
     bgr_image = imdecode(buffer, IMREAD_COLOR)
-
-    if bgr_image is None:
-        raise HTTPException(status_code=400, detail="Failed to decode image")
 
     # Create RGB image tensor for NetVLAD
     rgb_image = cvtColor(bgr_image, COLOR_BGR2RGB)

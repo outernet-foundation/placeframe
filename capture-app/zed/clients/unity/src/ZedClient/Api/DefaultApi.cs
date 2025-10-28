@@ -28,6 +28,24 @@ namespace ZedClient.Api
     {
         #region Synchronous Operations
         /// <summary>
+        /// Delete Capture
+        /// </summary>
+        /// <exception cref="ZedClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>Object</returns>
+        Object DeleteCapture(Guid id);
+
+        /// <summary>
+        /// Delete Capture
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="ZedClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of Object</returns>
+        ApiResponse<Object> DeleteCaptureWithHttpInfo(Guid id);
+        /// <summary>
         /// Download Capture Tar
         /// </summary>
         /// <exception cref="ZedClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -104,6 +122,29 @@ namespace ZedClient.Api
     public interface IDefaultApiAsync : IApiAccessor
     {
         #region Asynchronous Operations
+        /// <summary>
+        /// Delete Capture
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="ZedClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of Object</returns>
+        System.Threading.Tasks.Task<Object> DeleteCaptureAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Delete Capture
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="ZedClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (Object)</returns>
+        System.Threading.Tasks.Task<ApiResponse<Object>> DeleteCaptureWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// Download Capture Tar
         /// </summary>
@@ -403,6 +444,113 @@ namespace ZedClient.Api
                 return _exceptionFactory;
             }
             set { _exceptionFactory = value; }
+        }
+
+        /// <summary>
+        /// Delete Capture 
+        /// </summary>
+        /// <exception cref="ZedClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>Object</returns>
+        public Object DeleteCapture(Guid id)
+        {
+            ZedClient.Client.ApiResponse<Object> localVarResponse = DeleteCaptureWithHttpInfo(id);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// Delete Capture 
+        /// </summary>
+        /// <exception cref="ZedClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of Object</returns>
+        public ZedClient.Client.ApiResponse<Object> DeleteCaptureWithHttpInfo(Guid id)
+        {
+            ZedClient.Client.RequestOptions localVarRequestOptions = new ZedClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = ZedClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = ZedClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", ZedClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Delete<Object>("/captures/{id}", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("DeleteCapture", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// Delete Capture 
+        /// </summary>
+        /// <exception cref="ZedClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of Object</returns>
+        public async System.Threading.Tasks.Task<Object> DeleteCaptureAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+            ZedClient.Client.ApiResponse<Object> localVarResponse = await DeleteCaptureWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// Delete Capture 
+        /// </summary>
+        /// <exception cref="ZedClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (Object)</returns>
+        public async System.Threading.Tasks.Task<ZedClient.Client.ApiResponse<Object>> DeleteCaptureWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            ZedClient.Client.RequestOptions localVarRequestOptions = new ZedClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = ZedClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = ZedClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", ZedClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/captures/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("DeleteCapture", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
         }
 
         /// <summary>

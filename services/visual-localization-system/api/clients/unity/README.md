@@ -157,6 +157,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**GetReconstruction**](docs/DefaultApi.md#getreconstruction) | **GET** /reconstructions/{id} | Get Reconstruction
 *DefaultApi* | [**GetReconstructionImagePoses**](docs/DefaultApi.md#getreconstructionimageposes) | **GET** /reconstructions/{id}/image_poses | Get Reconstruction Image Poses
 *DefaultApi* | [**GetReconstructionLocalizationMap**](docs/DefaultApi.md#getreconstructionlocalizationmap) | **GET** /reconstructions/{id}/localization_map | Get Reconstruction Localization Map
+*DefaultApi* | [**GetReconstructionManifest**](docs/DefaultApi.md#getreconstructionmanifest) | **GET** /reconstructions/{id}/manifest | Get Reconstruction Manifest
 *DefaultApi* | [**GetReconstructionPoints**](docs/DefaultApi.md#getreconstructionpoints) | **GET** /reconstructions/{id}/points | Get Reconstruction Points
 *DefaultApi* | [**GetReconstructionPoints3DPly**](docs/DefaultApi.md#getreconstructionpoints3dply) | **GET** /reconstructions/{id}/points.ply | Get Reconstruction Points3D Ply
 *DefaultApi* | [**GetReconstructionStatus**](docs/DefaultApi.md#getreconstructionstatus) | **GET** /reconstructions/{id}/status | Get Reconstruction Status
@@ -209,6 +210,10 @@ Class | Method | HTTP request | Description
  - [Model.PointCloudPoint](docs/PointCloudPoint.md)
  - [Model.Quaternion](docs/Quaternion.md)
  - [Model.ReconstructionCreate](docs/ReconstructionCreate.md)
+ - [Model.ReconstructionCreateWithOptions](docs/ReconstructionCreateWithOptions.md)
+ - [Model.ReconstructionManifest](docs/ReconstructionManifest.md)
+ - [Model.ReconstructionMetrics](docs/ReconstructionMetrics.md)
+ - [Model.ReconstructionOptions](docs/ReconstructionOptions.md)
  - [Model.ReconstructionRead](docs/ReconstructionRead.md)
  - [Model.ReconstructionStatus](docs/ReconstructionStatus.md)
  - [Model.Transform](docs/Transform.md)

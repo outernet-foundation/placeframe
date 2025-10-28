@@ -40,42 +40,18 @@ namespace PlerionClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="Quaternion" /> class.
         /// </summary>
-        /// <param name="w">w (required).</param>
         /// <param name="x">x (required).</param>
         /// <param name="y">y (required).</param>
         /// <param name="z">z (required).</param>
-        public Quaternion(double w, double x, double y, double z)
+        /// <param name="w">w (required).</param>
+        public Quaternion(double x, double y, double z, double w)
         {
-            this.W = w;
             this.X = x;
             this.Y = y;
             this.Z = z;
+            this.W = w;
         }
 
-        /// <summary>
-        /// Gets or Sets W
-        /// </summary>
-        [DataMember(Name = "w", IsRequired = true, EmitDefaultValue = true)]
-        public double W
-        {
-            get{ return _W;}
-            set
-            {
-                _W = value;
-                _flagW = true;
-            }
-        }
-        private double _W;
-        private bool _flagW;
-
-        /// <summary>
-        /// Returns false as W should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeW()
-        {
-            return _flagW;
-        }
         /// <summary>
         /// Gets or Sets X
         /// </summary>
@@ -149,6 +125,30 @@ namespace PlerionClient.Model
             return _flagZ;
         }
         /// <summary>
+        /// Gets or Sets W
+        /// </summary>
+        [DataMember(Name = "w", IsRequired = true, EmitDefaultValue = true)]
+        public double W
+        {
+            get{ return _W;}
+            set
+            {
+                _W = value;
+                _flagW = true;
+            }
+        }
+        private double _W;
+        private bool _flagW;
+
+        /// <summary>
+        /// Returns false as W should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeW()
+        {
+            return _flagW;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -156,10 +156,10 @@ namespace PlerionClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class Quaternion {\n");
-            sb.Append("  W: ").Append(W).Append("\n");
             sb.Append("  X: ").Append(X).Append("\n");
             sb.Append("  Y: ").Append(Y).Append("\n");
             sb.Append("  Z: ").Append(Z).Append("\n");
+            sb.Append("  W: ").Append(W).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

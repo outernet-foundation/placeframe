@@ -40,7 +40,7 @@ def sync_schema(project: Path, database: str, no_cache: bool, log: bool):
     print("Migrating database schema")
 
     migrator_dsn = (
-        f"postgresql://{database}_owner:password@localhost:5432/{database}?options=-c%20check_function_bodies%3Doff"
+        f"postgresql://{database}_owner:password@localhost:55432/{database}?options=-c%20check_function_bodies%3Doff"
     )
     pg_schema_diff_path = _find_pg_schema_diff()
     result = run_command(
@@ -52,7 +52,7 @@ def sync_schema(project: Path, database: str, no_cache: bool, log: bool):
         print("Database schema is up to date, skipping model generation")
         return
 
-    service_dsn = f"postgresql+psycopg://{database}_api_user:password@localhost:5432/{database}"
+    service_dsn = f"postgresql+psycopg://{database}_api_user:password@localhost:55432/{database}"
     _generate_models_for_schema("public", models_path, service_dsn, log)
     _generate_models_for_schema("auth", models_path, service_dsn, log)
 

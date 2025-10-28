@@ -27,6 +27,7 @@ using System.Net.Http;
 using UnityEngine.SocialPlatforms;
 
 using Color = UnityEngine.Color;
+using System.Threading.Tasks;
 
 namespace PlerionClient.Client
 {
@@ -44,7 +45,7 @@ namespace PlerionClient.Client
     public class CaptureController : MonoBehaviour
     {
         public Canvas canvas;
-        [SerializeField][Range(0, 5)] float captureIntervalSeconds = 0.2f;
+        [SerializeField][Range(0, 5)] float captureIntervalSeconds = 0.4f;
 
         private DefaultApi capturesApi;
         private IControl ui;
@@ -55,6 +56,25 @@ namespace PlerionClient.Client
         private IDisposable awaitReconstructionTasksStream;
         private Dictionary<Guid, TaskHandle> awaitReconstructionTasks = new Dictionary<Guid, TaskHandle>();
         private IDisposable localizationMapActiveObserver;
+        async UniTask DeleteAllZedCaptures()
+        {
+            try
+
+            {
+                var zedCaptures = await ZedCaptureController.GetCaptures();
+
+                foreach (var captureId in zedCaptures)
+                {
+                    await ZedCaptureController.DeleteCapture(captureId);
+                }
+
+                await UpdateCaptureList();
+            }
+            catch
+            {
+                // Handle the exception if ZedCaptureController.GetCaptures() fails
+            }
+        }
 
         void Awake()
         {
@@ -240,6 +260,22 @@ namespace PlerionClient.Client
 
                 captureData.Add(localCapture, new(captureNames.TryGetValue(localCapture, out var name) ? name : null, null, null, null));
             }
+            // var arFoundationCaptures = LocalCaptureController.GetCaptures().ToList();
+
+            // List<Guid> zedCaptures = new List<Guid>();
+            // try
+            // {
+            //     using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+            //     zedCaptures = (await ZedCaptureController.GetCaptures(cancellationTokenSource.Token)).ToList();
+            // }
+            // catch
+            // {
+            //     // Handle the exception if ZedCaptureController.GetCaptures() fails
+            // }
+            // var allCaptures = arFoundationCaptures.Concat(zedCaptures).ToList();
+
+            // var remoteCaptureList = await capturesApi.GetCaptureSessionsAsync(allCaptures);
+            // var localCaptureData = allCaptures.ToDictionary(x => x, x => remoteCaptureList.FirstOrDefault(y => y.Id == x));
 
             // var captureData = new Dictionary<Guid, CaptureSessionCreate>();
 
@@ -345,21 +381,17 @@ namespace PlerionClient.Client
 
             progress?.Report(CaptureUploadStatus.Reconstructing);
 
-            await capturesApi.CreateReconstructionAsync(new ReconstructionCreate(captureSession.Id), cancellationToken);
+            await CreateReconstruction(captureSession.Id);
         }
 
         private async UniTask<Guid> AwaitReconstructionID(Guid captureSessionId, CancellationToken cancellationToken = default)
         {
             while (true)
             {
-                try
+                var reconstructions = await capturesApi.GetCaptureSessionReconstructionsAsync(captureSessionId);
+                if (reconstructions.Count > 0)
                 {
-                    var reconstructions = await capturesApi.GetCaptureSessionReconstructionsAsync(captureSessionId);
                     return reconstructions[0];
-                }
-                catch (Exception exc)
-                {
-                    Log.Error(LogGroup.Default, exc, $"Encountered an error getting reconstruction for capture session {captureSessionId}");
                 }
 
                 await UniTask.WaitForSeconds(10, cancellationToken: cancellationToken);
@@ -456,6 +488,14 @@ namespace PlerionClient.Client
                                 dropdown.props.options.From(Enum.GetNames(typeof(CaptureType)));
                                 dropdown.props.interactable.From(App.state.captureStatus.AsObservable().SelectDynamic(x => x == CaptureStatus.Idle));
                                 dropdown.BindValue(App.state.captureMode, x => (CaptureType)x, x => (int)x);
+                            }),
+                            Button().Setup(button =>
+                            {
+                                button.PreferredWidth(110);
+                                button.LabelFrom("Delete All Zed Captures");
+                                button.props.onClick.From(() =>
+                                    DeleteAllZedCaptures().Forget()
+                                );
                             })
                         ))
                     );
@@ -538,7 +578,7 @@ namespace PlerionClient.Client
                         }
                         else if (capture.status.value == CaptureUploadStatus.ReconstructionNotStarted)
                         {
-                            capturesApi.CreateReconstructionAsync(new ReconstructionCreate(capture.id));
+                            CreateReconstruction(capture.id).Forget();
                             capture.status.ExecuteSetOrDelay(CaptureUploadStatus.Reconstructing);
                         }
                         else if (capture.status.value == CaptureUploadStatus.Uploaded)
@@ -559,6 +599,23 @@ namespace PlerionClient.Client
                     activeButton.props.onClick.From(() => capture.active.ExecuteSetOrDelay(!capture.active.value));
                 })
             ));
+        }
+
+        private async UniTask CreateReconstruction(Guid captureId)
+        {
+            await capturesApi.CreateReconstructionAsync(new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId))
+            {
+                Options = new ReconstructionOptions()
+                {
+                    NeightborsCount = 8,
+                    MaxKeypointsPerImage = 2500,
+                    UsePriorPosition = true,
+                    BaRefineFocalLength = false,
+                    BaRefinePrincipalPoint = false,
+                    BaRefineExtraParams = false,
+                    BaRefineSensorFromRig = false
+                }
+            }).AsUniTask();
         }
 
         private async UniTask CreateLocalizationMapAndAssignId(CaptureState capture)

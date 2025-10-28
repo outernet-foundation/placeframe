@@ -53,6 +53,10 @@ src/PlerionClient/Model/PinholeIntrinsics.cs
 src/PlerionClient/Model/PointCloudPoint.cs
 src/PlerionClient/Model/Quaternion.cs
 src/PlerionClient/Model/ReconstructionCreate.cs
+src/PlerionClient/Model/ReconstructionCreateWithOptions.cs
+src/PlerionClient/Model/ReconstructionManifest.cs
+src/PlerionClient/Model/ReconstructionMetrics.cs
+src/PlerionClient/Model/ReconstructionOptions.cs
 src/PlerionClient/Model/ReconstructionRead.cs
 src/PlerionClient/Model/ReconstructionStatus.cs
 src/PlerionClient/Model/Transform.cs

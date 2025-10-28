@@ -41,7 +41,6 @@ class OpenCVRadTanIntrinsics(TypedDict):
     k2: float
     p1: float
     p2: float
-    k3: float | None
 
 
 class GenericParamsIntrinsics(TypedDict):
@@ -56,6 +55,43 @@ CameraIntrinsics = Annotated[
 ]
 
 
+def get_camera_intrinsics_type(intrinsics: CameraIntrinsics) -> list[float]:
+    if intrinsics["model"] == "PINHOLE":
+        return [intrinsics["fx"], intrinsics["fy"], intrinsics["cx"], intrinsics["cy"]]
+    elif intrinsics["model"] == "OPENCV":
+        return [
+            intrinsics["fx"],
+            intrinsics["fy"],
+            intrinsics["cx"],
+            intrinsics["cy"],
+            intrinsics["k1"],
+            intrinsics["k2"],
+            intrinsics["p1"],
+            intrinsics["p2"],
+        ]
+    elif intrinsics["model"] == "GENERIC":
+        return intrinsics["params"]
+    else:
+        raise ValueError(f"Unknown intrinsics model: {intrinsics['model']}")
+
+
+class RigCamera(TypedDict):
+    id: str
+    ref_sensor: bool | None
+    rotation: Quaternion
+    translation: Vector3
+    intrinsics: CameraIntrinsics
+
+
+class Rig(TypedDict):
+    id: str
+    cameras: list[RigCamera]
+
+
+class RigConfig(TypedDict):
+    rigs: list[Rig]
+
+
 class Vector3(TypedDict):
     x: float
     y: float
@@ -63,10 +99,10 @@ class Vector3(TypedDict):
 
 
 class Quaternion(TypedDict):
-    w: float
     x: float
     y: float
     z: float
+    w: float
 
 
 class Transform(TypedDict):

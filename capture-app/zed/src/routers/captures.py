@@ -1,6 +1,7 @@
 import pathlib
-import platform
 import threading
+from os import environ
+from shutil import rmtree
 from typing import List, Optional, cast
 from uuid import UUID, uuid4
 
@@ -10,10 +11,11 @@ from common.stream_tar import stream_tar
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
 
-if platform.system() == "Linux" and platform.machine() in {"aarch64", "arm64"}:
-    from ..zed.zed import CaptureThread
-else:
+if environ.get("CODEGEN"):
     from ..zed.zed_stub import CaptureThread
+else:
+    from ..zed.zed import CaptureThread
+
 
 router = APIRouter(prefix="/captures", tags=["captures"])
 
@@ -21,7 +23,6 @@ router = APIRouter(prefix="/captures", tags=["captures"])
 CAPTURES_DIRECTORY = pathlib.Path.home() / "captures"
 CAPTURES_DIRECTORY.mkdir(parents=True, exist_ok=True)
 DEFAULT_CAPTURE_INTERVAL = 0.5
-CHUNK_SIZE = 64 * 1024
 
 stop_event = threading.Event()
 capture_thread: Optional[CaptureThread] = None
@@ -83,3 +84,11 @@ async def download_capture_tar(id: UUID):
         media_type="application/x-tar",
         headers={"Content-Disposition": f'attachment; filename="{id}.tar"'},
     )
+
+
+@router.delete("/{id}")
+async def delete_capture(id: UUID):
+    capture_directory = CAPTURES_DIRECTORY / str(id)
+    if not capture_directory.exists():
+        raise HTTPException(status_code=404, detail=f"Capture with id {id} not found")
+    rmtree(capture_directory)

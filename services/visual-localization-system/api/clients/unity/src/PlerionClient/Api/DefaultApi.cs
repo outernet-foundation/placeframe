@@ -157,9 +157,9 @@ namespace PlerionClient.Api
         /// Create Reconstruction
         /// </summary>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="reconstructionCreate"></param>
+        /// <param name="reconstructionCreateWithOptions"></param>
         /// <returns>ReconstructionRead</returns>
-        ReconstructionRead CreateReconstruction(ReconstructionCreate reconstructionCreate);
+        ReconstructionRead CreateReconstruction(ReconstructionCreateWithOptions reconstructionCreateWithOptions);
 
         /// <summary>
         /// Create Reconstruction
@@ -168,9 +168,9 @@ namespace PlerionClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="reconstructionCreate"></param>
+        /// <param name="reconstructionCreateWithOptions"></param>
         /// <returns>ApiResponse of ReconstructionRead</returns>
-        ApiResponse<ReconstructionRead> CreateReconstructionWithHttpInfo(ReconstructionCreate reconstructionCreate);
+        ApiResponse<ReconstructionRead> CreateReconstructionWithHttpInfo(ReconstructionCreateWithOptions reconstructionCreateWithOptions);
         /// <summary>
         /// Delete Capture Session
         /// </summary>
@@ -607,6 +607,24 @@ namespace PlerionClient.Api
         /// <param name="id"></param>
         /// <returns>ApiResponse of Guid</returns>
         ApiResponse<Guid> GetReconstructionLocalizationMapWithHttpInfo(Guid id);
+        /// <summary>
+        /// Get Reconstruction Manifest
+        /// </summary>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ReconstructionManifest</returns>
+        ReconstructionManifest GetReconstructionManifest(Guid id);
+
+        /// <summary>
+        /// Get Reconstruction Manifest
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of ReconstructionManifest</returns>
+        ApiResponse<ReconstructionManifest> GetReconstructionManifestWithHttpInfo(Guid id);
         /// <summary>
         /// Get Reconstruction Points
         /// </summary>
@@ -1118,10 +1136,10 @@ namespace PlerionClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="reconstructionCreate"></param>
+        /// <param name="reconstructionCreateWithOptions"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ReconstructionRead</returns>
-        System.Threading.Tasks.Task<ReconstructionRead> CreateReconstructionAsync(ReconstructionCreate reconstructionCreate, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ReconstructionRead> CreateReconstructionAsync(ReconstructionCreateWithOptions reconstructionCreateWithOptions, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Create Reconstruction
@@ -1130,10 +1148,10 @@ namespace PlerionClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="reconstructionCreate"></param>
+        /// <param name="reconstructionCreateWithOptions"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (ReconstructionRead)</returns>
-        System.Threading.Tasks.Task<ApiResponse<ReconstructionRead>> CreateReconstructionWithHttpInfoAsync(ReconstructionCreate reconstructionCreate, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<ReconstructionRead>> CreateReconstructionWithHttpInfoAsync(ReconstructionCreateWithOptions reconstructionCreateWithOptions, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// Delete Capture Session
         /// </summary>
@@ -1690,6 +1708,29 @@ namespace PlerionClient.Api
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Guid)</returns>
         System.Threading.Tasks.Task<ApiResponse<Guid>> GetReconstructionLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Get Reconstruction Manifest
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ReconstructionManifest</returns>
+        System.Threading.Tasks.Task<ReconstructionManifest> GetReconstructionManifestAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Get Reconstruction Manifest
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (ReconstructionManifest)</returns>
+        System.Threading.Tasks.Task<ApiResponse<ReconstructionManifest>> GetReconstructionManifestWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// Get Reconstruction Points
         /// </summary>
@@ -3141,11 +3182,11 @@ namespace PlerionClient.Api
         /// Create Reconstruction 
         /// </summary>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="reconstructionCreate"></param>
+        /// <param name="reconstructionCreateWithOptions"></param>
         /// <returns>ReconstructionRead</returns>
-        public ReconstructionRead CreateReconstruction(ReconstructionCreate reconstructionCreate)
+        public ReconstructionRead CreateReconstruction(ReconstructionCreateWithOptions reconstructionCreateWithOptions)
         {
-            PlerionClient.Client.ApiResponse<ReconstructionRead> localVarResponse = CreateReconstructionWithHttpInfo(reconstructionCreate);
+            PlerionClient.Client.ApiResponse<ReconstructionRead> localVarResponse = CreateReconstructionWithHttpInfo(reconstructionCreateWithOptions);
             return localVarResponse.Data;
         }
 
@@ -3153,13 +3194,13 @@ namespace PlerionClient.Api
         /// Create Reconstruction 
         /// </summary>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="reconstructionCreate"></param>
+        /// <param name="reconstructionCreateWithOptions"></param>
         /// <returns>ApiResponse of ReconstructionRead</returns>
-        public PlerionClient.Client.ApiResponse<ReconstructionRead> CreateReconstructionWithHttpInfo(ReconstructionCreate reconstructionCreate)
+        public PlerionClient.Client.ApiResponse<ReconstructionRead> CreateReconstructionWithHttpInfo(ReconstructionCreateWithOptions reconstructionCreateWithOptions)
         {
-            // verify the required parameter 'reconstructionCreate' is set
-            if (reconstructionCreate == null)
-                throw new PlerionClient.Client.ApiException(400, "Missing required parameter 'reconstructionCreate' when calling DefaultApi->CreateReconstruction");
+            // verify the required parameter 'reconstructionCreateWithOptions' is set
+            if (reconstructionCreateWithOptions == null)
+                throw new PlerionClient.Client.ApiException(400, "Missing required parameter 'reconstructionCreateWithOptions' when calling DefaultApi->CreateReconstruction");
 
             PlerionClient.Client.RequestOptions localVarRequestOptions = new PlerionClient.Client.RequestOptions();
 
@@ -3178,7 +3219,7 @@ namespace PlerionClient.Api
             var localVarAccept = PlerionClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.Data = reconstructionCreate;
+            localVarRequestOptions.Data = reconstructionCreateWithOptions;
 
 
             // make the HTTP request
@@ -3197,12 +3238,12 @@ namespace PlerionClient.Api
         /// Create Reconstruction 
         /// </summary>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="reconstructionCreate"></param>
+        /// <param name="reconstructionCreateWithOptions"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ReconstructionRead</returns>
-        public async System.Threading.Tasks.Task<ReconstructionRead> CreateReconstructionAsync(ReconstructionCreate reconstructionCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<ReconstructionRead> CreateReconstructionAsync(ReconstructionCreateWithOptions reconstructionCreateWithOptions, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlerionClient.Client.ApiResponse<ReconstructionRead> localVarResponse = await CreateReconstructionWithHttpInfoAsync(reconstructionCreate, cancellationToken).ConfigureAwait(false);
+            PlerionClient.Client.ApiResponse<ReconstructionRead> localVarResponse = await CreateReconstructionWithHttpInfoAsync(reconstructionCreateWithOptions, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -3210,14 +3251,14 @@ namespace PlerionClient.Api
         /// Create Reconstruction 
         /// </summary>
         /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="reconstructionCreate"></param>
+        /// <param name="reconstructionCreateWithOptions"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (ReconstructionRead)</returns>
-        public async System.Threading.Tasks.Task<PlerionClient.Client.ApiResponse<ReconstructionRead>> CreateReconstructionWithHttpInfoAsync(ReconstructionCreate reconstructionCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlerionClient.Client.ApiResponse<ReconstructionRead>> CreateReconstructionWithHttpInfoAsync(ReconstructionCreateWithOptions reconstructionCreateWithOptions, System.Threading.CancellationToken cancellationToken = default)
         {
-            // verify the required parameter 'reconstructionCreate' is set
-            if (reconstructionCreate == null)
-                throw new PlerionClient.Client.ApiException(400, "Missing required parameter 'reconstructionCreate' when calling DefaultApi->CreateReconstruction");
+            // verify the required parameter 'reconstructionCreateWithOptions' is set
+            if (reconstructionCreateWithOptions == null)
+                throw new PlerionClient.Client.ApiException(400, "Missing required parameter 'reconstructionCreateWithOptions' when calling DefaultApi->CreateReconstruction");
 
 
             PlerionClient.Client.RequestOptions localVarRequestOptions = new PlerionClient.Client.RequestOptions();
@@ -3238,7 +3279,7 @@ namespace PlerionClient.Api
             var localVarAccept = PlerionClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.Data = reconstructionCreate;
+            localVarRequestOptions.Data = reconstructionCreateWithOptions;
 
 
             // make the HTTP request
@@ -5900,6 +5941,113 @@ namespace PlerionClient.Api
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("GetReconstructionLocalizationMap", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// Get Reconstruction Manifest 
+        /// </summary>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ReconstructionManifest</returns>
+        public ReconstructionManifest GetReconstructionManifest(Guid id)
+        {
+            PlerionClient.Client.ApiResponse<ReconstructionManifest> localVarResponse = GetReconstructionManifestWithHttpInfo(id);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// Get Reconstruction Manifest 
+        /// </summary>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of ReconstructionManifest</returns>
+        public PlerionClient.Client.ApiResponse<ReconstructionManifest> GetReconstructionManifestWithHttpInfo(Guid id)
+        {
+            PlerionClient.Client.RequestOptions localVarRequestOptions = new PlerionClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlerionClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlerionClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlerionClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<ReconstructionManifest>("/reconstructions/{id}/manifest", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetReconstructionManifest", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// Get Reconstruction Manifest 
+        /// </summary>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ReconstructionManifest</returns>
+        public async System.Threading.Tasks.Task<ReconstructionManifest> GetReconstructionManifestAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlerionClient.Client.ApiResponse<ReconstructionManifest> localVarResponse = await GetReconstructionManifestWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// Get Reconstruction Manifest 
+        /// </summary>
+        /// <exception cref="PlerionClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (ReconstructionManifest)</returns>
+        public async System.Threading.Tasks.Task<PlerionClient.Client.ApiResponse<ReconstructionManifest>> GetReconstructionManifestWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlerionClient.Client.RequestOptions localVarRequestOptions = new PlerionClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlerionClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlerionClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlerionClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.GetAsync<ReconstructionManifest>("/reconstructions/{id}/manifest", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetReconstructionManifest", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 

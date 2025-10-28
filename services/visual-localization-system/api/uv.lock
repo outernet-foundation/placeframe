@@ -237,6 +237,7 @@ dependencies = [
     { name = "boto3" },
     { name = "docker" },
     { name = "fastapi" },
+    { name = "numpy" },
     { name = "openapi-generator-cli" },
     { name = "psycopg", extra = ["binary"] },
 ]
@@ -246,6 +247,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.39.5" },
     { name = "docker", specifier = ">=7.1.0" },
     { name = "fastapi", specifier = ">=0.116.1" },
+    { name = "numpy", specifier = ">=2.3.4" },
     { name = "openapi-generator-cli", specifier = ">=7.14.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
 ]

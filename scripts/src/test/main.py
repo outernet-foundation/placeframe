@@ -12,7 +12,7 @@ from .curl import curl
 from .visualize import generate_visualization
 
 API_BASE_URL = "https://desktop-otd3rch-api.outernetfoundation.org"
-CAPTURE_ID = "1462ba30-0f8d-4988-a63c-2bb81e1cc92d"  # TODO: replace
+CAPTURE_ID = "305bf81a-0dea-4ac6-94df-78b294965f1b"  # TODO: replace
 SCRIPT_DIR = Path(__file__).parent
 TEST_IMAGE_PATH = SCRIPT_DIR / "test_image.jpg"
 OUTPUT_HTML_PATH = SCRIPT_DIR / "vls_test_result.html"
@@ -36,15 +36,34 @@ def main() -> None:
     print(f"Checking for reconstruction for capture {CAPTURE_ID}")
     # if there's an existing reconstruction for this capture, use it
     existing_reconstructions: list[UUID] = curl("GET", f"{API_BASE_URL}/capture_sessions/{CAPTURE_ID}/reconstructions")
-
-    reconstruction_id: UUID
+    # existing_reconstructions = []
+    reconstruction_id: UUID | None = None
     if len(existing_reconstructions) > 0:
-        reconstruction_id = existing_reconstructions[0]
+        # pick the first reconstruction with 'succeeded' status
+        for recon in existing_reconstructions:
+            status = curl("GET", f"{API_BASE_URL}/reconstructions/{recon}/status")
+            if status == "succeeded":
+                reconstruction_id = recon
+                break
         print(f"Using existing reconstruction {reconstruction_id} for capture {CAPTURE_ID}")
-    else:
+
+    if reconstruction_id is None:
         print(f"Creating reconstruction for capture {CAPTURE_ID}")
         reconstruction_id = curl(
-            "POST", f"{API_BASE_URL}/reconstructions", json_data={"capture_session_id": CAPTURE_ID}
+            "POST",
+            f"{API_BASE_URL}/reconstructions",
+            json_data={
+                "create": {"capture_session_id": CAPTURE_ID},
+                "options": {
+                    "neightbors_count": 12,
+                    "max_keypoints_per_image": 2500,
+                    "use_prior_position": True,
+                    "ba_refine_sensor_from_rig": False,
+                    "ba_refine_focal_length": False,
+                    "ba_refine_principal_point": False,
+                    "ba_refine_extra_params": False,
+                },
+            },
         )["id"]
 
         print(f"Waiting for reconstruction {reconstruction_id} to succeed (this can take a while)")
@@ -141,6 +160,7 @@ def main() -> None:
         "GET", f"{API_BASE_URL}/reconstructions/{reconstruction_id}/image_poses"
     )
 
+    assert reconstruction_id is not None
     print(f"Generating visualization → {OUTPUT_HTML_PATH}")
     localization_dict: dict[UUID, Transform] = {loc["id"]: loc["transform"] for loc in localization_result}
     html = generate_visualization(

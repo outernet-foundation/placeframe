@@ -1,13 +1,18 @@
+from __future__ import annotations
+
+import json
 from typing import Optional
 from uuid import UUID
 
 from common.boto_clients import create_s3_client
 from common.classes import PointCloudPoint, Transform
+from common.reconstruction_manifest import ReconstructionManifest, ReconstructionMetrics, ReconstructionOptions
 from common.schemas import binary_schema
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from models.public_dtos import ReconstructionCreate, ReconstructionRead, reconstruction_from_dto, reconstruction_to_dto
 from models.public_tables import CaptureSession, LocalizationMap, Reconstruction
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,32 +24,58 @@ BUCKET = "dev-reconstructions"
 
 router = APIRouter(prefix="/reconstructions", tags=["reconstructions"])
 
+s3_client = create_s3_client(
+    s3_endpoint_url=settings.s3_endpoint_url, s3_access_key=settings.s3_access_key, s3_secret_key=settings.s3_secret_key
+)
+
+
+class ReconstructionCreateWithOptions(BaseModel):
+    create: ReconstructionCreate
+    options: Optional[ReconstructionOptions] = Field(
+        default=None, description="Optional reconstruction options to use during reconstruction."
+    )
+
 
 @router.post("")
 async def create_reconstruction(
-    reconstruction: ReconstructionCreate, session: AsyncSession = Depends(get_session)
+    reconstruction: ReconstructionCreateWithOptions, session: AsyncSession = Depends(get_session)
 ) -> ReconstructionRead:
     # If we were provided an ID, ensure it doesn't already exist
-    if reconstruction.id is not None:
-        result = await session.execute(select(Reconstruction).where(Reconstruction.id == reconstruction.id))
+    if reconstruction.create.id is not None:
+        result = await session.execute(select(Reconstruction).where(Reconstruction.id == reconstruction.create.id))
         existing_row = result.scalar_one_or_none()
 
         if existing_row is not None:
-            raise HTTPException(409, f"Reconstruction with id {reconstruction.id} already exists")
+            raise HTTPException(409, f"Reconstruction with id {reconstruction.create.id} already exists")
 
-    capture_session = await session.get(CaptureSession, reconstruction.capture_session_id)
+    capture_session = await session.get(CaptureSession, reconstruction.create.capture_session_id)
     if not capture_session:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Capture session with id {reconstruction.capture_session_id} not found",
+            detail=f"Capture session with id {reconstruction.create.capture_session_id} not found",
         )
 
-    row = reconstruction_from_dto(reconstruction)
+    row = reconstruction_from_dto(reconstruction.create)
 
     session.add(row)
 
     await session.flush()
     await session.refresh(row)
+
+    manifest = ReconstructionManifest(
+        capture_id=str(row.capture_session_id),
+        status="pending",
+        options=reconstruction.options or ReconstructionOptions(),
+        metrics=ReconstructionMetrics(),
+    )
+
+    s3_client.put_object(
+        Bucket=settings.reconstructions_bucket,
+        Key=f"{row.id}/manifest.json",
+        Body=manifest.model_dump_json().encode("utf-8"),
+        ContentType="application/json",
+    )
+
     return reconstruction_to_dto(row)
 
 
@@ -54,6 +85,15 @@ async def delete_reconstruction(id: UUID, session: AsyncSession = Depends(get_se
 
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reconstruction with id {id} not found")
+
+    result = await session.execute(select(LocalizationMap).where(LocalizationMap.reconstruction_id == id))
+    localization_map = result.scalar_one_or_none()
+
+    if localization_map:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Reconstruction with id {id} has an associated localization map and cannot be deleted",
+        )
 
     await session.delete(row)
 
@@ -105,6 +145,28 @@ async def get_reconstruction(id: UUID, session: AsyncSession = Depends(get_sessi
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reconstruction with id {id} not found")
 
     return reconstruction_to_dto(row)
+
+
+@router.get("/{id}/manifest")
+async def get_reconstruction_manifest(id: UUID, session: AsyncSession = Depends(get_session)) -> ReconstructionManifest:
+    row = await session.get(Reconstruction, id)
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reconstruction with id {id} not found")
+
+    try:
+        manifest: ReconstructionManifest = json.loads(
+            s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{id}/manifest.json")["Body"]
+            .read()
+            .decode("utf-8")
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error retrieving manifest for reconstruction with id {id}: {e}",
+        )
+
+    return manifest
 
 
 @router.get("/{id}/localization_map")

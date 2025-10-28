@@ -13,12 +13,11 @@ using System.Collections.Generic;
 using static RigConfig;
 using Unity.Mathematics;
 
+
 public static class LocalCaptureController
 {
     static ARCameraManager cameraManager;
     static float captureIntervalSeconds;
-    static Vector3 startingPosition;
-    static Quaternion startingRotation;
     static XRCameraConfiguration? bestConfig = null;
 
     static Guid sessionId;
@@ -81,7 +80,6 @@ public static class LocalCaptureController
                 bestConfig = config;
             }
         }
-
         if (bestConfig.HasValue)
         {
             cameraManager.currentConfiguration = bestConfig;
@@ -141,10 +139,6 @@ public static class LocalCaptureController
                 return;
             }
 
-            // Record the starting pose to rebase subsequent poses against
-            startingPosition = cameraManager.transform.position;
-            startingRotation = cameraManager.transform.rotation;
-
             // Write out rig config
             File.WriteAllText(
                 Path.Combine(sessionDirectory, "config.json"),
@@ -161,20 +155,17 @@ public static class LocalCaptureController
                                 new RigCamera()
                                 {
                                     id = "camera0",
-                                    model = "PINHOLE",
-                                    width = intrinsics.resolution.x,
-                                    height = intrinsics.resolution.y,
-                                    intrinsics = new float[]
-                                    {
+                                    ref_sensor = true,
+                                    rotation = new Quaternion(0, 0, 0, 1),
+                                    translation = new Vector3(0, 0, 0),
+                                    intrinsics = new PinholeIntrinsics(
+                                        intrinsics.resolution.x,
+                                        intrinsics.resolution.y,
                                         intrinsics.focalLength.x,
                                         intrinsics.focalLength.y,
-                                        // Adjust principal point to account for mirroring the image
                                         flipped ? (intrinsics.resolution.x - 1) - intrinsics.principalPoint.x : intrinsics.principalPoint.x,
                                         intrinsics.principalPoint.y
-                                    },
-                                    ref_sensor = true,
-                                    rotation = new float[] {0, 0, 0, 1},
-                                    translation = new float[] {0, 0, 0}
+                                    )
                                 }
                             }
                         }
