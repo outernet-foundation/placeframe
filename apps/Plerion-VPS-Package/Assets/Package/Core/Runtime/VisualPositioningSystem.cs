@@ -237,22 +237,6 @@ namespace Plerion.VPS
             // OnEcefToUnityWorldTransformUpdated?.Invoke();
         }
 
-        public static (Vector3 position, Quaternion rotation) EcefToUnityWorld(double3 position, quaternion rotation)
-        {
-            var ecefTransform = Double4x4.FromTranslationRotation(position, rotation);
-            // U <- X = (U <- E) * (E <- X)
-            var unityTransform = math.mul(unity_from_ecef_transform_left_handed, ecefTransform);
-            return (unityTransform.Position().ToFloats(), unityTransform.Rotation());
-        }
-
-
-        public static (double3 position, quaternion rotation) UnityWorldToEcef(Vector3 position, Quaternion rotation)
-        {
-            var unityTransform = Double4x4.FromTranslationRotation(position, rotation);
-            // E <- X = (E <- U) * (U <- X)
-            var ecefTransform = math.mul(ecef_from_unity_transform_left_handed, unityTransform);
-            return (ecefTransform.Position(), ecefTransform.Rotation());
-        }
 
         public static async UniTask LocalizeFromCameraImage(byte[] image, Vector3 cameraPosition, Quaternion cameraRotation)
         {
@@ -310,6 +294,24 @@ namespace Plerion.VPS
 
             return (unity_from_ecef_transform_left_handed, ecef_from_unity_transform_left_handed);
         }
+
+        public static (Vector3 position, Quaternion rotation) EcefToUnityWorld(double3 position, quaternion rotation)
+        {
+            var ecefTransform = Double4x4.FromTranslationRotation(position, rotation);
+            // U <- X = (U <- E) * (E <- X)
+            var unityTransform = math.mul(unity_from_ecef_transform_left_handed, ecefTransform);
+            return (unityTransform.Position().ToFloats(), unityTransform.Rotation());
+        }
+
+
+        public static (double3 position, quaternion rotation) UnityWorldToEcef(Vector3 position, Quaternion rotation)
+        {
+            var unityTransform = Double4x4.FromTranslationRotation(position, rotation);
+            // E <- X = (E <- U) * (U <- X)
+            var ecefTransform = math.mul(ecef_from_unity_transform_left_handed, unityTransform);
+            return (ecefTransform.Position(), ecefTransform.Rotation());
+        }
+
 
         public static async UniTask<MapData[]> GetLoadedLocalizationMapsAsync(bool includePoints = false, CancellationToken cancellationToken = default)
         {
