@@ -71,7 +71,7 @@ namespace Outernet.Client
             ConnectionManager.HubConnectionRequested.EnqueueSet(true);
 
             VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated += () =>
-                state.ecefToLocalMatrix.ExecuteSetOrDelay(VisualPositioningSystem.EcefToUnityWorldTransform);
+                state.ecefToLocalMatrix.ExecuteSetOrDelay(VisualPositioningSystem.UnityFromEcefTransformLeftHanded);
 
             CameraLocalization.SetProvider(GetProvider());
             CameraLocalization.Start();

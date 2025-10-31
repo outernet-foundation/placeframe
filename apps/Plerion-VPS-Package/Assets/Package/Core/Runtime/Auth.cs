@@ -23,10 +23,11 @@ namespace Plerion.VPS
             public string error_description;
         }
 
-        public static string url = "https://desktop-otd3rch-keycloak.outernetfoundation.org/realms/plerion-dev/protocol/openid-connect/token"; //TODO EP: Replace this with the proper token url
-        public static readonly string client_id = "plerion-api";
+        public static string url;
         public static string username;
         public static string password;
+
+        public static readonly string client_id = "plerion-api";
 
         // current tokens
         public static TokenResponse tokenResponse;

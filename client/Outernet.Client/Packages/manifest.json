@@ -3,12 +3,16 @@
     {
       "name": "Magic Leap",
       "url": "https://registry.npmjs.org",
-      "scopes": ["com.magicleap"]
+      "scopes": [
+        "com.magicleap"
+      ]
     },
     {
       "name": "Cesium",
       "url": "https://unity.pkg.cesium.com",
-      "scopes": ["com.cesium.unity"]
+      "scopes": [
+        "com.cesium.unity"
+      ]
     }
   ],
   "dependencies": {
@@ -21,9 +25,9 @@
     "com.magicleap.unitysdk": "2.5.0",
     "com.ogment.outernet.shared": "file:../../Outernet.Shared",
     "com.outernet.plerionclient": "file:../../../services/visual-localization-system/api/clients/unity/src/PlerionClient",
-    "com.plerion.vps": "file:C:/Users/Tyler/repos/plerion/apps/Plerion-VPS-Package/Assets/Package/Core",
-    "com.plerion.vps.arfoundation": "file:C:/Users/Tyler/repos/plerion/apps/Plerion-VPS-Package/Assets/Package/ARFoundation",
-    "com.plerion.vps.magicleap": "file:C:/Users/Tyler/repos/plerion/apps/Plerion-VPS-Package/Assets/Package/MagicLeap",
+    "com.plerion.vps": "file:../../../apps/Plerion-VPS-Package/Assets/Package/Core",
+    "com.plerion.vps.arfoundation": "file:../../../apps/Plerion-VPS-Package/Assets/Package/ARFoundation",
+    "com.plerion.vps.magicleap": "file:../../../apps/Plerion-VPS-Package/Assets/Package/MagicLeap",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.cloud.gltfast": "6.7.0",
     "com.unity.collab-proxy": "2.8.2",

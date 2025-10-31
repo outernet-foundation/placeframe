@@ -24,7 +24,7 @@ namespace Outernet.Client
         static public void Initialize()
         {
             VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated += () =>
-                App.ExecuteActionOrDelay(new UpdateNodeLocationsAction(VisualPositioningSystem.EcefToUnityWorldTransform, _nodes.Values.Select(x => x.props).ToArray()));
+                App.ExecuteActionOrDelay(new UpdateNodeLocationsAction(VisualPositioningSystem.UnityFromEcefTransformLeftHanded, _nodes.Values.Select(x => x.props).ToArray()));
 
             subscriptions = Disposable.Combine(
                 App.State_Old.users.ObserveAdd().Subscribe(addEvent =>

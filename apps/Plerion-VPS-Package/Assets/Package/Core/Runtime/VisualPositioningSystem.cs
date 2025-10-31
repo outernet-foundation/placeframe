@@ -112,19 +112,19 @@ namespace Plerion.VPS
             localizationSessionId = session.Id;
         }
 
+        //TODO EP: Replace with proper URLs when deploying
         public static void Initialize(string username, string password)
-            => Initialize("https://desktop-otd3rch-api.outernetfoundation.org", username, password); // TODO EP: Replace with actual url
-
-        public static void Initialize(string baseURL, string username, string password)
         {
+            Auth.url = "https://elliot-laptop-keycloak.outernetfoundation.org/realms/plerion-dev/protocol/openid-connect/token";
             Auth.username = username;
             Auth.password = password;
+
             api = new DefaultApi(
                 new HttpClient(new KeycloakHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
-                    BaseAddress = new Uri(baseURL)
+                    BaseAddress = new Uri("https://elliot-laptop-api.outernetfoundation.org")
                 },
-                baseURL
+                "https://elliot-laptop-api.outernetfoundation.org"
             );
         }
 

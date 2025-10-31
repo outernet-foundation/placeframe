@@ -23,8 +23,8 @@ namespace Outernet.Client.AuthoringTools
         private void Awake()
         {
             VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated += () => App.ExecuteActionOrDelay(
-                new UpdateNodeLocationsAction(VisualPositioningSystem.EcefToUnityWorldTransform, _nodes.Values.Select(x => x.props).ToArray()),
-                new UpdateMapLocationsAction(VisualPositioningSystem.EcefToUnityWorldTransform, _maps.Values.Select(x => x.props).ToArray())
+                new UpdateNodeLocationsAction(VisualPositioningSystem.UnityFromEcefTransformLeftHanded, _nodes.Values.Select(x => x.props).ToArray()),
+                new UpdateMapLocationsAction(VisualPositioningSystem.UnityFromEcefTransformLeftHanded, _maps.Values.Select(x => x.props).ToArray())
             );
 
             if (_instance != null)
