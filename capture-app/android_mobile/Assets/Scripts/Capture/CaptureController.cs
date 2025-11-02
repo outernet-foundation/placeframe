@@ -198,22 +198,27 @@ namespace PlerionClient.Client
 
             var localCaptures = LocalCaptureController.GetCaptures().ToList();
             var remoteCaptureList = await capturesApi.GetCaptureSessionsAsync();
-            var remoteCaptureReconstructions = await UniTask.WhenAll(
-                remoteCaptureList.Select(x => x.Id).Select(x => capturesApi
-                    .GetReconstructionsAsync(captureSessionId: x).AsUniTask()
-                    .ContinueWith(x => x.Count > 0 ? x[0] : default)
-                )
+            var remoteCaptureReconstructions = await GetReconstructionsForCaptures(remoteCaptureList.Select(x => x.Id).ToList());
+            var remoteCaptureLocalizationMaps = await capturesApi.GetLocalizationMapsAsync(reconstructionIds: remoteCaptureReconstructions.Select(x => x.Id).ToList());
+
+            var captureData = remoteCaptureList.ToDictionary(
+                x => x.Id,
+                x =>
+                {
+                    var reconstruction = remoteCaptureReconstructions.FirstOrDefault(y => y.CaptureSessionId == x.Id);
+                    var localizationMap = reconstruction == null ? default : remoteCaptureLocalizationMaps.FirstOrDefault(y => y.ReconstructionId == reconstruction.Id);
+
+                    return (name: x.Name, capture: x, reconstruction, localizationMap);
+                }
             );
 
-            var captureData = remoteCaptureList
-                .Select(x => x.Id)
-                .Concat(localCaptures)
-                .Distinct()
-                .ToDictionary(x => x, x => remoteCaptureList.FirstOrDefault(y => y.Id == x));
+            foreach (var localCapture in localCaptures)
+            {
+                if (captureData.ContainsKey(localCapture))
+                    continue;
 
-            var reconstructionStatuses = remoteCaptureReconstructions
-                .Where(x => x != null)
-                .ToDictionary(x => x.CaptureSessionId, x => x.Status);
+                captureData.Add(localCapture, new(captureNames.TryGetValue(localCapture, out var name) ? name : null, null, null, null));
+            }
 
             // var captureData = new Dictionary<Guid, CaptureSessionCreate>();
 
@@ -227,61 +232,65 @@ namespace PlerionClient.Client
             await UniTask.SwitchToMainThread();
 
             App.state.captures.ExecuteActionOrDelay(
-                (captureData, reconstructionStatuses),
-                (data, state) =>
+                captureData,
+                (captureData, state) =>
                 {
                     state.SetFrom(
-                        data.captureData,
+                        captureData,
                         refreshOldEntries: true,
-                        copy: (key, remote, local) =>
+                        copy: (key, entry, state) =>
                         {
-                            if (remote == null) //capture is local only
+                            state.name.value = entry.name;
+                            state.type.value = CaptureType.Local;
+
+                            if (entry.capture == null) //capture is local only
                             {
-                                local.name.value = captureNames.TryGetValue(key, out var name) ? name : null;
-                                local.type.value = CaptureType.Local;
-                                local.status.value = CaptureUploadStatus.NotUploaded;
+                                state.status.value = CaptureUploadStatus.NotUploaded;
                                 return;
                             }
 
-                            local.name.value = remote.Name;
-                            local.type.value = CaptureType.Local;
-
-                            if (!data.reconstructionStatuses.TryGetValue(key, out var status))
+                            if (entry.reconstruction == null)
                             {
-                                local.status.value = CaptureUploadStatus.ReconstructionNotStarted;
+                                state.status.value = CaptureUploadStatus.ReconstructionNotStarted;
                                 return;
                             }
 
-                            switch (status)
+                            state.reconstructionId.value = entry.reconstruction.Id;
+
+                            switch (entry.reconstruction.Status)
                             {
                                 case ReconstructionStatus.Pending:
                                 case ReconstructionStatus.Queued:
                                 case ReconstructionStatus.Running:
-                                    local.status.value = CaptureUploadStatus.Reconstructing;
+                                    state.status.value = CaptureUploadStatus.Reconstructing;
                                     break;
                                 case ReconstructionStatus.Succeeded:
-                                    local.status.value = CaptureUploadStatus.Uploaded;
+                                    state.status.value = CaptureUploadStatus.Uploaded;
                                     break;
                                 case ReconstructionStatus.Cancelled:
                                 case ReconstructionStatus.Failed:
-                                    local.status.value = CaptureUploadStatus.Failed;
+                                    state.status.value = CaptureUploadStatus.Failed;
                                     break;
                             }
+
+                            if (entry.localizationMap != null)
+                                state.localizationMapId.value = entry.localizationMap.Id;
                         }
                     );
                 }
             );
+        }
 
-            await UniTask.WhenAll(reconstructionStatuses
-                .Where(
-                    x => x.Value == ReconstructionStatus.Pending ||
-                    x.Value == ReconstructionStatus.Queued ||
-                    x.Value == ReconstructionStatus.Running
-                )
-                .Select(x => AwaitReconstructionComplete(x.Key, Progress.Create<CaptureUploadStatus>(
-                    progress => App.state.captures[x.Key].status.ScheduleSet(progress)
-                )))
-            );
+        private async UniTask<List<ReconstructionRead>> GetReconstructionsForCaptures(List<Guid> captures)
+        {
+            var result = new List<ReconstructionRead>();
+
+            await UniTask.WhenAll(captures.Select(x => capturesApi
+                    .GetReconstructionsAsync(captureSessionId: x).AsUniTask()
+                    .ContinueWith(x => result.AddRange(x))
+            ));
+
+            return result;
         }
 
         private async UniTask UploadCapture(Guid id, string name, CaptureType type, IProgress<CaptureUploadStatus> progress = default, CancellationToken cancellationToken = default)
@@ -336,6 +345,9 @@ namespace PlerionClient.Client
         private async UniTask AwaitReconstructionComplete(Guid captureSessionId, IProgress<CaptureUploadStatus> progress = default, CancellationToken cancellationToken = default)
         {
             var reconstructionId = await AwaitReconstructionID(captureSessionId, cancellationToken);
+
+            //HACK: Pushing directly to state for convenience
+            App.state.captures[captureSessionId].reconstructionId.ScheduleSet(reconstructionId);
 
             progress?.Report(CaptureUploadStatus.Reconstructing);
 
@@ -449,34 +461,46 @@ namespace PlerionClient.Client
                 }),
                 Button().Setup(button =>
                 {
-                    button.props.interactable.From(capture.status.AsObservable().SelectDynamic(x =>
-                        x == CaptureUploadStatus.NotUploaded ||
-                        x == CaptureUploadStatus.ReconstructionNotStarted)
-                    );
-
-                    button.LabelFrom(capture.status.AsObservable().SelectDynamic(x =>
-                        x switch
+                    button.props.interactable.From(Observables.Combine(
+                        capture.status.AsObservable(),
+                        capture.localizationMapId.AsObservable(),
+                        (uploadStatus, localizationMapId) =>
                         {
-                            CaptureUploadStatus.NotUploaded => "Upload",
-                            CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
-                            CaptureUploadStatus.Initializing => "Initializing",
-                            CaptureUploadStatus.Uploading => "Uploading",
-                            CaptureUploadStatus.Reconstructing => "Constructing",
-                            CaptureUploadStatus.Uploaded => "Uploaded",
-                            CaptureUploadStatus.Failed => "Failed",
-                            _ => throw new ArgumentOutOfRangeException(nameof(x), x, null)
+                            if (localizationMapId != Guid.Empty)
+                                return false;
+
+                            return uploadStatus == CaptureUploadStatus.NotUploaded ||
+                                uploadStatus == CaptureUploadStatus.ReconstructionNotStarted ||
+                                uploadStatus == CaptureUploadStatus.Uploaded;
                         }
                     ));
 
-                    button.PreferredWidth(105);
+                    button.LabelFrom(Observables.Combine(
+                        capture.status.AsObservable(),
+                        capture.localizationMapId.AsObservable(),
+                        (uploadStatus, localizationMapId) =>
+                        {
+                            if (localizationMapId != Guid.Empty)
+                                return "Map Created";
+
+                            return uploadStatus switch
+                            {
+                                CaptureUploadStatus.NotUploaded => "Upload",
+                                CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
+                                CaptureUploadStatus.Initializing => "Initializing",
+                                CaptureUploadStatus.Uploading => "Uploading",
+                                CaptureUploadStatus.Reconstructing => "Constructing",
+                                CaptureUploadStatus.Uploaded => "Create Map",
+                                CaptureUploadStatus.Failed => "Failed",
+                                _ => throw new ArgumentOutOfRangeException(nameof(uploadStatus), uploadStatus, null)
+                            };
+                        }
+                    ));
+
+                    button.PreferredWidth(106);
                     button.props.onClick.From(() =>
                     {
-                        if (capture.status.value == CaptureUploadStatus.ReconstructionNotStarted)
-                        {
-                            capturesApi.CreateReconstructionAsync(new ReconstructionCreate(capture.id));
-                            capture.status.ExecuteSetOrDelay(CaptureUploadStatus.Reconstructing);
-                        }
-                        else if (capture.status.value == CaptureUploadStatus.NotUploaded)
+                        if (capture.status.value == CaptureUploadStatus.NotUploaded)
                         {
                             UploadCapture(
                                 capture.id,
@@ -485,9 +509,37 @@ namespace PlerionClient.Client
                                 Progress.Create<CaptureUploadStatus>(x => capture.status.ScheduleSet(x))
                             ).Forget();
                         }
+                        else if (capture.status.value == CaptureUploadStatus.ReconstructionNotStarted)
+                        {
+                            capturesApi.CreateReconstructionAsync(new ReconstructionCreate(capture.id));
+                            capture.status.ExecuteSetOrDelay(CaptureUploadStatus.Reconstructing);
+                        }
+                        else if (capture.status.value == CaptureUploadStatus.Uploaded)
+                        {
+                            CreateLocalizationMapAndAssignId(capture).Forget();
+                        }
                     });
                 })
             ));
+        }
+
+        private async UniTask CreateLocalizationMapAndAssignId(CaptureState capture)
+        {
+            var localizationMap = await capturesApi.CreateLocalizationMapAsync(new LocalizationMapCreate(
+                capture.reconstructionId.value,
+                positionX: 0,
+                positionY: 0,
+                positionZ: 0,
+                rotationX: 0,
+                rotationY: 0,
+                rotationZ: 0,
+                rotationW: 1,
+                color: 0
+            ));
+
+            await UniTask.SwitchToMainThread();
+
+            capture.localizationMapId.ExecuteSetOrDelay(localizationMap.Id);
         }
 
         private string DefaultRowLabel(Guid id)

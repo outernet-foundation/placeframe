@@ -28,7 +28,7 @@ namespace Plerion.VPS
                 position = x.position,
                 startLifetime = Mathf.Infinity,
                 startSize = 10000, // Make this huge and cap the particle size in the renderer, so they are always a constant size on screen
-                startColor = Color.green
+                startColor = x.color
             }).ToArray());
             _particleSystem.Play();
         }
