@@ -45,7 +45,7 @@ namespace PlerionClient.Client
     public class CaptureController : MonoBehaviour
     {
         public Canvas canvas;
-        [SerializeField][Range(0, 5)] float captureIntervalSeconds = 0.4f;
+        float captureIntervalSeconds = 0.5f;
 
         private DefaultApi capturesApi;
         private IControl ui;
@@ -607,13 +607,19 @@ namespace PlerionClient.Client
             {
                 Options = new ReconstructionOptions()
                 {
-                    NeightborsCount = 8,
+                    NeightborsCount = 12,
                     MaxKeypointsPerImage = 2500,
+                    RansacMaxError = 2.0,
+                    RansacMinInlierRatio = 0.15,
+                    TriangulationMinimumAngle = 3.0,
+                    TriangulationCompleteMaxReprojectionError = 2.0,
+                    TriangulationMergeMaxReprojectionError = 4.0,
+                    MapperFilterMaxReprojectionError = 2.0,
                     UsePriorPosition = true,
-                    BaRefineFocalLength = false,
-                    BaRefinePrincipalPoint = false,
-                    BaRefineExtraParams = false,
-                    BaRefineSensorFromRig = false
+                    BundleAdjustmentRefineFocalLength = false,
+                    BundleAdjustmentRefinePrincipalPoint = false,
+                    BundleAdjustmentRefineAdditionalParams = false,
+                    BundleAdjustmentRefineSensorFromRig = false
                 }
             }).AsUniTask();
         }

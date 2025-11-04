@@ -119,3 +119,11 @@ class PointCloudPoint(TypedDict):
 class LocalizationRequest:
     camera: Annotated[Json[CameraIntrinsics], Form()]  # This parses JSON automatically!
     image: UploadFile = File(...)
+
+
+class LocalizationMetrics(TypedDict):
+    inlier_ratio: float
+    reprojection_error_median: float
+    image_coverage: float
+    depth_z_90th_percentile: float
+    depth_z_10th_percentile: float

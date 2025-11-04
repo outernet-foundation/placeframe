@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from typing import Any, cast
 from uuid import UUID
 
 import numpy as np
 import torch
 from common.boto_clients import create_s3_client
-from common.classes import CameraIntrinsics, Quaternion, Transform, Vector3
+from common.classes import CameraIntrinsics, LocalizationMetrics, Quaternion, Transform, Vector3
 from common.make_multipar_json_dep import make_multipart_json_dep
 from cv2 import COLOR_BGR2GRAY, COLOR_BGR2RGB, IMREAD_COLOR, cvtColor, imdecode
 from fastapi import FastAPI
@@ -13,8 +14,9 @@ from hloc.extractors.dir import DIR
 from hloc.extractors.superpoint import SuperPoint
 from lightglue import LightGlue
 from numpy import float32, frombuffer, uint8
-from pycolmap import Camera, Reconstruction
-from pycolmap._core import absolute_pose_estimation  # type: ignore
+from numpy.typing import NDArray
+from pycolmap import AbsolutePoseEstimationOptions, Camera, RANSACOptions, Reconstruction
+from pycolmap._core import estimate_and_refine_absolute_pose  # type: ignore
 from pydantic import TypeAdapter
 from torch import cuda, from_numpy, inference_mode, mv, topk  # type: ignore
 from torch import float32 as torch_float32  # type: ignore
@@ -68,7 +70,9 @@ INTR_ADAPTER: TypeAdapter[CameraIntrinsics] = TypeAdapter(CameraIntrinsics)
 parse_camera = make_multipart_json_dep("camera", INTR_ADAPTER)
 
 
-async def localize_image_against_reconstruction(map: Map, camera: Camera, image: bytes) -> Transform:
+async def localize_image_against_reconstruction(
+    map: Map, camera: Camera, image: bytes
+) -> tuple[Transform, LocalizationMetrics]:
     # Load image into numpy buffer
     buffer = frombuffer(image, uint8)
     # Decode buffer into OpenCV BGR image array
@@ -197,41 +201,26 @@ async def localize_image_against_reconstruction(map: Map, camera: Camera, image:
 
     print("Estimating pose")
 
+    ransac_options = RANSACOptions()
+    ransac_options.max_error = RANSAC_THRESHOLD
+
+    estimationOptions = AbsolutePoseEstimationOptions()
+    estimationOptions.ransac = ransac_options
+
     # Estimate the camera pose using the 2D-3D correspondences
-    pnp_result = absolute_pose_estimation(
-        points2d,
-        points3d,
-        camera,
-        estimation_options={"ransac": {"max_error": RANSAC_THRESHOLD}},
-        refinement_options={},
+    pnp_result = cast(
+        dict[str, Any] | None,
+        estimate_and_refine_absolute_pose(points2d, points3d, camera, estimation_options=estimationOptions),
     )
 
     if pnp_result is None:
         raise ValueError("Pose estimation failed")
 
-    # return hstack((
-    #     pnp_result["cam_from_world"].rotation.quat[[3, 0, 1, 2]],  # qw qx qy qz
-    #     pnp_result["cam_from_world"].translation,
-    # ))
+    # print every key in pnp_result for debugging
+    for key in pnp_result.keys():
+        print(f"PnP result key: {key}")
 
-    # world_from_cam = pnp_result["cam_from_world"].inverse()
-
-    # return {
-    #     "position": world_from_cam.translation.tolist(),
-    #     "orientation": world_from_cam.rotation.quat[[3, 0, 1, 2]].tolist(),  # qw qx qy qz
-    # }
-
-    # position = world_from_cam.translation.tolist()
-    # rotation = world_from_cam.rotation.quat[[3, 0, 1, 2]].tolist()  # qw qx qy qz
-
-    # return Transform(
-    #     position=Vector3(x=position[0], y=position[1], z=position[2]),
-    #     rotation=Quaternion(w=rotation[0], x=rotation[1], y=rotation[2], z=rotation[3]),  # qw qx qy qz
-    # )
-
-    print("Pose estimation succeeded, returning cam_from_world")
-
-    return Transform(
+    transform = Transform(
         position=Vector3(
             x=float(pnp_result["cam_from_world"].translation[0]),
             y=float(pnp_result["cam_from_world"].translation[1]),
@@ -243,4 +232,37 @@ async def localize_image_against_reconstruction(map: Map, camera: Camera, image:
             z=float(pnp_result["cam_from_world"].rotation.quat[2]),
             w=float(pnp_result["cam_from_world"].rotation.quat[3]),
         ),
+    )
+
+    # Compute inlier ratio
+    inlier_ratio = float(int(pnp_result["num_inliers"])) / float(int(points2d.shape[0]))
+
+    # Get inliers for this PnP result
+    points3d_inliers = points3d[pnp_result["inlier_mask"]]
+    points2d_inliers = points2d[pnp_result["inlier_mask"]]
+
+    # Transform 3d inliers from world frame into camera frame
+    rotation_camera_from_world = pnp_result["cam_from_world"].rotation.matrix()
+    translation_camera_from_world = np.asarray(pnp_result["cam_from_world"].translation, dtype=np.float64)
+    camera_frame_points = (rotation_camera_from_world @ points3d_inliers.T).T + translation_camera_from_world[None, :]
+
+    # Project 3d inliers into pixel coordinates using the camera model
+    projected_pixel_coordinates = camera.img_from_cam(camera_frame_points)
+
+    # Compute reprojection residuals for inliers
+    residuals: NDArray[np.float64] = np.linalg.norm(projected_pixel_coordinates - points2d_inliers, axis=1).astype(
+        np.float64
+    )
+
+    # Compute median reprojection error among inliers
+    reprojection_error_median = float(np.median(residuals))
+
+    print(f"Localization successful: {transform}")
+
+    return transform, LocalizationMetrics(
+        inlier_ratio=inlier_ratio,
+        reprojection_error_median=reprojection_error_median,
+        image_coverage=0.0,
+        depth_z_90th_percentile=0.0,
+        depth_z_10th_percentile=0.0,
     )

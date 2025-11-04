@@ -71,12 +71,6 @@ public static class LocalCaptureController
             () => Permission.HasUserAuthorizedPermission(Permission.Camera),
             cancellationToken: cancellationToken);
 
-        await UniTask.WaitUntil(
-            () => ARSession.state == ARSessionState.SessionTracking,
-            cancellationToken: cancellationToken);
-
-        captureAnchor = (await anchorManager.TryAddAnchorAsync(new Pose(cameraManager.transform.position, cameraManager.transform.rotation))).value;
-
         foreach (var config in cameraManager.GetConfigurations(Allocator.Temp))
         {
             if (bestConfig == null ||
@@ -94,6 +88,16 @@ public static class LocalCaptureController
         {
             Debug.LogWarning("No camera configurations available.");
         }
+
+        await UniTask.WaitUntil(
+            () => ARSession.state == ARSessionState.SessionTracking,
+            cancellationToken: cancellationToken);
+
+        captureAnchor = (await anchorManager.TryAddAnchorAsync(new Pose(cameraManager.transform.position, cameraManager.transform.rotation))).value;
+
+        await UniTask.WaitUntil(
+            () => captureAnchor.trackingState == TrackingState.Tracking,
+            cancellationToken: cancellationToken);
 
         sessionId = Guid.NewGuid();
         sessionDirectory = SessionDir(sessionId.ToString());

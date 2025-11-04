@@ -17,6 +17,7 @@ using System.Net.Http;
 using CameraModel = PlerionClient.Model.Camera;
 using PinholeIntrinsics = PlerionClient.Model.PinholeIntrinsics;
 using LocalizationSession = PlerionClient.Model.LocalizationSessionRead;
+using LocalizationMetrics = PlerionClient.Model.LocalizationMetrics;
 
 namespace Plerion.VPS
 {
@@ -112,16 +113,16 @@ namespace Plerion.VPS
         //TODO EP: Replace with proper URLs when deploying
         public static void Initialize(string username, string password)
         {
-            Auth.url = "https://elliot-laptop-keycloak.outernetfoundation.org/realms/plerion-dev/protocol/openid-connect/token";
+            Auth.url = "https://desktop-otd3rch-keycloak.outernetfoundation.org/realms/plerion-dev/protocol/openid-connect/token";
             Auth.username = username;
             Auth.password = password;
 
             api = new DefaultApi(
                 new HttpClient(new KeycloakHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
-                    BaseAddress = new Uri("https://elliot-laptop-api.outernetfoundation.org")
+                    BaseAddress = new Uri("https://desktop-otd3rch-api.outernetfoundation.org")
                 },
-                "https://elliot-laptop-api.outernetfoundation.org"
+                "https://desktop-otd3rch-api.outernetfoundation.org"
             );
         }
 
@@ -169,6 +170,8 @@ namespace Plerion.VPS
             }
         }
 
+        public static LocalizationMetrics latestMetrics = null;
+
         public static async UniTask LocalizeFromCameraImage(byte[] image, Vector3 cameraTranslationUnityWorldFromCamera, Quaternion cameraRotationUnityWorldFromCamera)
         {
             if (image == null)
@@ -186,6 +189,8 @@ namespace Plerion.VPS
             }
 
             var localizationResult = localizationResults.FirstOrDefault(); //for now, just use the first one
+
+            latestMetrics = localizationResult.Metrics;
 
             var unityWorldFromColmap = BuildUnityWorldFromColmapWorldTransform(
                 colmapRotationCameraFromWorld: localizationResult.Transform.Rotation.ToMathematicsQuaternion(),

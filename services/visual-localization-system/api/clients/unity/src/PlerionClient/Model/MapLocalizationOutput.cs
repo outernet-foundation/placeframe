@@ -43,7 +43,8 @@ namespace PlerionClient.Model
         /// <param name="id">id (required).</param>
         /// <param name="transform">transform (required).</param>
         /// <param name="mapTransform">mapTransform (required).</param>
-        public MapLocalizationOutput(Guid id, Transform transform, Transform mapTransform)
+        /// <param name="metrics">metrics (required).</param>
+        public MapLocalizationOutput(Guid id, Transform transform, Transform mapTransform, LocalizationMetrics metrics)
         {
             this.Id = id;
             // to ensure "transform" is required (not null)
@@ -58,6 +59,12 @@ namespace PlerionClient.Model
                 throw new ArgumentNullException("mapTransform is a required property for MapLocalizationOutput and cannot be null");
             }
             this.MapTransform = mapTransform;
+            // to ensure "metrics" is required (not null)
+            if (metrics == null)
+            {
+                throw new ArgumentNullException("metrics is a required property for MapLocalizationOutput and cannot be null");
+            }
+            this.Metrics = metrics;
         }
 
         /// <summary>
@@ -133,6 +140,30 @@ namespace PlerionClient.Model
             return _flagMapTransform;
         }
         /// <summary>
+        /// Gets or Sets Metrics
+        /// </summary>
+        [DataMember(Name = "metrics", IsRequired = true, EmitDefaultValue = true)]
+        public LocalizationMetrics Metrics
+        {
+            get{ return _Metrics;}
+            set
+            {
+                _Metrics = value;
+                _flagMetrics = true;
+            }
+        }
+        private LocalizationMetrics _Metrics;
+        private bool _flagMetrics;
+
+        /// <summary>
+        /// Returns false as Metrics should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeMetrics()
+        {
+            return _flagMetrics;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -143,6 +174,7 @@ namespace PlerionClient.Model
             sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  Transform: ").Append(Transform).Append("\n");
             sb.Append("  MapTransform: ").Append(MapTransform).Append("\n");
+            sb.Append("  Metrics: ").Append(Metrics).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

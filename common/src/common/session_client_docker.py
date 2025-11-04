@@ -68,12 +68,16 @@ class DockerSessionClient:
 
         try:
             c.stop(timeout=10)
-        finally:
-            try:
-                c.remove(force=True)
-            except Exception:
-                # best-effort cleanup
-                pass
+        # Don't remove container, we want to keep logs around for debugging
+        # finally:
+        #     try:
+        #         c.remove(force=True)
+        #     except Exception:
+        #         # best-effort cleanup
+        #         pass
+        except Exception:
+            # best-effort cleanup
+            pass
 
     def get_session_status(self, container_id: str) -> str:
         container = self._docker.containers.get(container_id)

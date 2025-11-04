@@ -3351,6 +3351,39 @@
         "type": "object",
         "title": "LocalizationMapUpdate"
       },
+      "LocalizationMetrics": {
+        "properties": {
+          "inlier_ratio": {
+            "type": "number",
+            "title": "Inlier Ratio"
+          },
+          "reprojection_error_median": {
+            "type": "number",
+            "title": "Reprojection Error Median"
+          },
+          "image_coverage": {
+            "type": "number",
+            "title": "Image Coverage"
+          },
+          "depth_z_90th_percentile": {
+            "type": "number",
+            "title": "Depth Z 90Th Percentile"
+          },
+          "depth_z_10th_percentile": {
+            "type": "number",
+            "title": "Depth Z 10Th Percentile"
+          }
+        },
+        "type": "object",
+        "required": [
+          "inlier_ratio",
+          "reprojection_error_median",
+          "image_coverage",
+          "depth_z_90th_percentile",
+          "depth_z_10th_percentile"
+        ],
+        "title": "LocalizationMetrics"
+      },
       "LocalizationSessionRead": {
         "properties": {
           "id": {
@@ -3393,13 +3426,17 @@
           },
           "map_transform": {
             "$ref": "#/components/schemas/Transform"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/LocalizationMetrics"
           }
         },
         "type": "object",
         "required": [
           "id",
           "transform",
-          "map_transform"
+          "map_transform",
+          "metrics"
         ],
         "title": "MapLocalization"
       },
@@ -3415,13 +3452,17 @@
           },
           "map_transform": {
             "$ref": "#/components/schemas/Transform"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/LocalizationMetrics"
           }
         },
         "type": "object",
         "required": [
           "id",
           "transform",
-          "map_transform"
+          "map_transform",
+          "metrics"
         ],
         "title": "MapLocalization"
       },
@@ -4233,7 +4274,7 @@
               }
             ],
             "title": "Total Images",
-            "description": "Total number of images in the capture."
+            "description": "Total number of input images considered for this reconstruction run."
           },
           "registered_images": {
             "anyOf": [
@@ -4245,7 +4286,7 @@
               }
             ],
             "title": "Registered Images",
-            "description": "Number of images successfully registered in the reconstruction."
+            "description": "Number of images successfully registered into the final model."
           },
           "registration_rate": {
             "anyOf": [
@@ -4257,7 +4298,7 @@
               }
             ],
             "title": "Registration Rate",
-            "description": "Percentage of images registered in the reconstruction."
+            "description": "Registration rate in percent: 100 \u00d7 (registered_images / total_images). Computed after selecting the best reconstruction (max registered images)."
           },
           "num_3d_points": {
             "anyOf": [
@@ -4269,7 +4310,7 @@
               }
             ],
             "title": "Num 3D Points",
-            "description": "Total number of 3D points reconstructed in the reconstruction."
+            "description": "Count of 3D points in the selected 'best' reconstruction."
           },
           "average_keypoints_per_image": {
             "anyOf": [
@@ -4281,7 +4322,7 @@
               }
             ],
             "title": "Average Keypoints Per Image",
-            "description": "Average number of keypoints detected per image in the reconstruction."
+            "description": "Average number of detected keypoints per image (after SuperPoint extraction), computed across all images."
           },
           "reprojection_pixel_error_50th_percentile": {
             "anyOf": [
@@ -4293,7 +4334,7 @@
               }
             ],
             "title": "Reprojection Pixel Error 50Th Percentile",
-            "description": "50th percentile of reprojection pixel error across all 3D points."
+            "description": "Median (50th percentile) reprojection error in pixels across all valid 2D observations in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint."
           },
           "reprojection_pixel_error_90th_percentile": {
             "anyOf": [
@@ -4305,7 +4346,7 @@
               }
             ],
             "title": "Reprojection Pixel Error 90Th Percentile",
-            "description": "90th percentile of reprojection pixel error across all 3D points."
+            "description": "90th percentile reprojection error in pixels across all valid 2D observations, computed the same way as the median."
           },
           "track_length_50th_percentile": {
             "anyOf": [
@@ -4317,7 +4358,7 @@
               }
             ],
             "title": "Track Length 50Th Percentile",
-            "description": "50th percentile of track length."
+            "description": "Median (50th percentile) track length across 3D points in the selected model. Track length = number of distinct images observing the point."
           },
           "percent_tracks_with_length_greater_than_or_equal_to_3": {
             "anyOf": [
@@ -4329,7 +4370,7 @@
               }
             ],
             "title": "Percent Tracks With Length Greater Than Or Equal To 3",
-            "description": "Percentage of tracks with length greater than or equal to 3."
+            "description": "Percentage of 3D points whose track length is \u2265 3 (a common robustness threshold). Computed as 100 \u00d7 (#points with length\u22653 / #points)."
           }
         },
         "type": "object",
@@ -4347,7 +4388,7 @@
               }
             ],
             "title": "Neightbors Count",
-            "description": "Number of neighboring images to consider during reconstruction. If not set, exhaustive matching is used."
+            "description": "How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). If None, a sensible default is used (currently 12). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage."
           },
           "max_keypoints_per_image": {
             "anyOf": [
@@ -4359,7 +4400,31 @@
               }
             ],
             "title": "Max Keypoints Per Image",
-            "description": "Maximum number of keypoints to detect and use per image during reconstruction."
+            "description": "Upper bound on detected local features per image (SuperPoint). Reduces descriptor/match volume and downstream 3D points; too small can hurt registration."
+          },
+          "ransac_max_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ransac Max Error",
+            "description": "Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower = stricter inlier test; removes borderline correspondences before SfM."
+          },
+          "ransac_min_inlier_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ransac Min Inlier Ratio",
+            "description": "Two-view RANSAC minimum inlier ratio to accept the model. Higher = reject more weak pairs; typically 0.10\u20130.20 for stricter matching."
           },
           "use_prior_position": {
             "anyOf": [
@@ -4371,9 +4436,57 @@
               }
             ],
             "title": "Use Prior Position",
-            "description": "Whether to use prior position during reconstruction."
+            "description": "If true, use position priors during registration. This leverages PosePrior(position=...) written into the database to guide image registration."
           },
-          "ba_refine_sensor_from_rig": {
+          "triangulation_minimum_angle": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Triangulation Minimum Angle",
+            "description": "Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points."
+          },
+          "triangulation_complete_max_reprojection_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Triangulation Complete Max Reprojection Error",
+            "description": "Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points (triangulation.complete_max_reproj_error). Lower \u2192 fewer borderline new points."
+          },
+          "triangulation_merge_max_reprojection_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Triangulation Merge Max Reprojection Error",
+            "description": "Triangulation-time gate (pixels) for MERGING near-duplicate 3D points (triangulation.merge_max_reproj_error). Lower \u2192 fewer merges; higher \u2192 more aggressive deduplication."
+          },
+          "mapper_filter_max_reprojection_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mapper Filter Max Reprojection Error",
+            "description": "Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). Points exceeding this after local/global BA are culled. This is NOT a triangulation accept threshold."
+          },
+          "bundle_adjustment_refine_sensor_from_rig": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -4382,10 +4495,10 @@
                 "type": "null"
               }
             ],
-            "title": "Ba Refine Sensor From Rig",
-            "description": "Whether to refine sensor from rig during bundle adjustment."
+            "title": "Bundle Adjustment Refine Sensor From Rig",
+            "description": "If true, refine per-camera extrinsics within the rig during BA (ba_refine_sensor_from_rig). Useful when rig calibration is approximate."
           },
-          "ba_refine_focal_length": {
+          "bundle_adjustment_refine_focal_length": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -4394,10 +4507,10 @@
                 "type": "null"
               }
             ],
-            "title": "Ba Refine Focal Length",
-            "description": "Whether to refine focal length during bundle adjustment."
+            "title": "Bundle Adjustment Refine Focal Length",
+            "description": "If true, refine the camera focal length during BA (ba_refine_focal_length)."
           },
-          "ba_refine_principal_point": {
+          "bundle_adjustment_refine_principal_point": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -4406,10 +4519,10 @@
                 "type": "null"
               }
             ],
-            "title": "Ba Refine Principal Point",
-            "description": "Whether to refine principal point during bundle adjustment."
+            "title": "Bundle Adjustment Refine Principal Point",
+            "description": "If true, refine the camera principal point during BA (ba_refine_principal_point)."
           },
-          "ba_refine_extra_params": {
+          "bundle_adjustment_refine_additional_params": {
             "anyOf": [
               {
                 "type": "boolean"
@@ -4418,8 +4531,8 @@
                 "type": "null"
               }
             ],
-            "title": "Ba Refine Extra Params",
-            "description": "Whether to refine extra parameters during bundle adjustment."
+            "title": "Bundle Adjustment Refine Additional Params",
+            "description": "If true, refine model-specific additional parameters during BA (ba_refine_extra_params), e.g., radial/tangential distortion where applicable."
           }
         },
         "type": "object",

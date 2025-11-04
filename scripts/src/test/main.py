@@ -12,7 +12,7 @@ from .curl import curl
 from .visualize import generate_visualization
 
 API_BASE_URL = "https://desktop-otd3rch-api.outernetfoundation.org"
-CAPTURE_ID = "305bf81a-0dea-4ac6-94df-78b294965f1b"  # TODO: replace
+CAPTURE_ID = "f6ad7a2d-1a94-43c9-b5f9-2b8ab9c6c754"  # TODO: replace
 SCRIPT_DIR = Path(__file__).parent
 TEST_IMAGE_PATH = SCRIPT_DIR / "test_image.jpg"
 OUTPUT_HTML_PATH = SCRIPT_DIR / "vls_test_result.html"
@@ -38,14 +38,14 @@ def main() -> None:
     existing_reconstructions: list[UUID] = curl("GET", f"{API_BASE_URL}/capture_sessions/{CAPTURE_ID}/reconstructions")
     # existing_reconstructions = []
     reconstruction_id: UUID | None = None
-    if len(existing_reconstructions) > 0:
-        # pick the first reconstruction with 'succeeded' status
-        for recon in existing_reconstructions:
-            status = curl("GET", f"{API_BASE_URL}/reconstructions/{recon}/status")
-            if status == "succeeded":
-                reconstruction_id = recon
-                break
-        print(f"Using existing reconstruction {reconstruction_id} for capture {CAPTURE_ID}")
+    # if len(existing_reconstructions) > 0:
+    #     # pick the first reconstruction with 'succeeded' status
+    #     for recon in existing_reconstructions:
+    #         status = curl("GET", f"{API_BASE_URL}/reconstructions/{recon}/status")
+    #         if status == "succeeded":
+    #             reconstruction_id = recon
+    #             break
+    #     print(f"Using existing reconstruction {reconstruction_id} for capture {CAPTURE_ID}")
 
     if reconstruction_id is None:
         print(f"Creating reconstruction for capture {CAPTURE_ID}")

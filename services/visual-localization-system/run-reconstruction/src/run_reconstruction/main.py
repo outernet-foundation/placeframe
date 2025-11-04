@@ -430,34 +430,60 @@ def main():
 
     database.close()
 
+    ransac_options = RANSACOptions()
+    if manifest.options.ransac_max_error is not None:
+        ransac_options.max_error = manifest.options.ransac_max_error
+    if manifest.options.ransac_min_inlier_ratio is not None:
+        ransac_options.min_inlier_ratio = manifest.options.ransac_min_inlier_ratio
+
     verify_matches(
         str(COLMAP_DB_PATH),
         str(PAIRS_FILE),
-        options=TwoViewGeometryOptions(
-            ransac=RANSACOptions(max_num_trials=50000, min_inlier_ratio=0.05, max_error=4.0), compute_relative_pose=True
-        ),
+        options=TwoViewGeometryOptions(ransac=ransac_options, compute_relative_pose=True),
     )
 
     print("Running reconstruction")
 
-    options = IncrementalPipelineOptions()
+    incremental_pipeline_options = IncrementalPipelineOptions()
+
     if manifest.options.use_prior_position is not None:
-        options.use_prior_position = manifest.options.use_prior_position
-    if manifest.options.ba_refine_sensor_from_rig is not None:
-        options.ba_refine_sensor_from_rig = manifest.options.ba_refine_sensor_from_rig
-    if manifest.options.ba_refine_focal_length is not None:
-        options.ba_refine_focal_length = manifest.options.ba_refine_focal_length
-    if manifest.options.ba_refine_principal_point is not None:
-        options.ba_refine_principal_point = manifest.options.ba_refine_principal_point
-    if manifest.options.ba_refine_extra_params is not None:
-        options.ba_refine_extra_params = manifest.options.ba_refine_extra_params
+        incremental_pipeline_options.use_prior_position = manifest.options.use_prior_position
+    if manifest.options.bundle_adjustment_refine_sensor_from_rig is not None:
+        incremental_pipeline_options.ba_refine_sensor_from_rig = (
+            manifest.options.bundle_adjustment_refine_sensor_from_rig
+        )
+    if manifest.options.bundle_adjustment_refine_focal_length is not None:
+        incremental_pipeline_options.ba_refine_focal_length = manifest.options.bundle_adjustment_refine_focal_length
+    if manifest.options.bundle_adjustment_refine_principal_point is not None:
+        incremental_pipeline_options.ba_refine_principal_point = (
+            manifest.options.bundle_adjustment_refine_principal_point
+        )
+    if manifest.options.bundle_adjustment_refine_additional_params is not None:
+        incremental_pipeline_options.ba_refine_extra_params = (
+            manifest.options.bundle_adjustment_refine_additional_params
+        )
+    if manifest.options.triangulation_minimum_angle is not None:
+        incremental_pipeline_options.mapper.filter_min_tri_angle = manifest.options.triangulation_minimum_angle
+        incremental_pipeline_options.triangulation.min_angle = manifest.options.triangulation_minimum_angle
+    if manifest.options.mapper_filter_max_reprojection_error is not None:
+        incremental_pipeline_options.mapper.filter_max_reproj_error = (
+            manifest.options.mapper_filter_max_reprojection_error
+        )
+    if manifest.options.triangulation_complete_max_reprojection_error is not None:
+        incremental_pipeline_options.triangulation.complete_max_reproj_error = (
+            manifest.options.triangulation_complete_max_reprojection_error
+        )
+    if manifest.options.triangulation_merge_max_reprojection_error is not None:
+        incremental_pipeline_options.triangulation.merge_max_reproj_error = (
+            manifest.options.triangulation_merge_max_reprojection_error
+        )
 
     IMAGES_DIRECTORY.mkdir(parents=True, exist_ok=True)
     reconstructions = incremental_mapping(
         database_path=str(COLMAP_DB_PATH),
         image_path=str(IMAGES_DIRECTORY),
         output_path=str(COLMAP_SFM_DIRECTORY),
-        options=options,
+        options=incremental_pipeline_options,
     )
 
     if len(reconstructions) == 0:

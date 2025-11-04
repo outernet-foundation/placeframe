@@ -2183,6 +2183,36 @@ components:
           nullable: true
           type: string
       title: LocalizationMapUpdate
+    LocalizationMetrics:
+      example:
+        image_coverage: 1.4658129805029452
+        depth_z_10th_percentile: 5.637376656633329
+        inlier_ratio: 0.8008281904610115
+        reprojection_error_median: 6.027456183070403
+        depth_z_90th_percentile: 5.962133916683182
+      properties:
+        inlier_ratio:
+          title: Inlier Ratio
+          type: number
+        reprojection_error_median:
+          title: Reprojection Error Median
+          type: number
+        image_coverage:
+          title: Image Coverage
+          type: number
+        depth_z_90th_percentile:
+          title: Depth Z 90Th Percentile
+          type: number
+        depth_z_10th_percentile:
+          title: Depth Z 10Th Percentile
+          type: number
+      required:
+      - depth_z_10th_percentile
+      - depth_z_90th_percentile
+      - image_coverage
+      - inlier_ratio
+      - reprojection_error_median
+      title: LocalizationMetrics
     LocalizationSessionRead:
       example:
         container_url: container_url
@@ -2223,6 +2253,12 @@ components:
             "y": 6.027456183070403
             z: 1.4658129805029452
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        metrics:
+          image_coverage: 1.4658129805029452
+          depth_z_10th_percentile: 5.637376656633329
+          inlier_ratio: 0.8008281904610115
+          reprojection_error_median: 6.027456183070403
+          depth_z_90th_percentile: 5.962133916683182
         map_transform:
           rotation:
             w: 5.962133916683182
@@ -2242,9 +2278,12 @@ components:
           $ref: "#/components/schemas/Transform"
         map_transform:
           $ref: "#/components/schemas/Transform"
+        metrics:
+          $ref: "#/components/schemas/LocalizationMetrics"
       required:
       - id
       - map_transform
+      - metrics
       - transform
       title: MapLocalization
     MapLocalization-Output:
@@ -2260,6 +2299,12 @@ components:
             "y": 6.027456183070403
             z: 1.4658129805029452
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        metrics:
+          image_coverage: 1.4658129805029452
+          depth_z_10th_percentile: 5.637376656633329
+          inlier_ratio: 0.8008281904610115
+          reprojection_error_median: 6.027456183070403
+          depth_z_90th_percentile: 5.962133916683182
         map_transform:
           rotation:
             w: 5.962133916683182
@@ -2279,9 +2324,12 @@ components:
           $ref: "#/components/schemas/Transform"
         map_transform:
           $ref: "#/components/schemas/Transform"
+        metrics:
+          $ref: "#/components/schemas/LocalizationMetrics"
       required:
       - id
       - map_transform
+      - metrics
       - transform
       title: MapLocalization
     NodeBatchUpdate:
@@ -2722,13 +2770,19 @@ components:
     ReconstructionCreateWithOptions:
       example:
         options:
-          use_prior_position: true
-          ba_refine_focal_length: true
-          ba_refine_extra_params: true
-          max_keypoints_per_image: 6
-          ba_refine_principal_point: true
+          ransac_max_error: 1.4658129805029452
+          triangulation_merge_max_reprojection_error: 7.061401241503109
+          ransac_min_inlier_ratio: 5.962133916683182
           neightbors_count: 0
-          ba_refine_sensor_from_rig: true
+          bundle_adjustment_refine_sensor_from_rig: true
+          bundle_adjustment_refine_principal_point: true
+          use_prior_position: true
+          max_keypoints_per_image: 6
+          triangulation_complete_max_reprojection_error: 2.3021358869347655
+          mapper_filter_max_reprojection_error: 9.301444243932576
+          triangulation_minimum_angle: 5.637376656633329
+          bundle_adjustment_refine_additional_params: true
+          bundle_adjustment_refine_focal_length: true
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -2743,13 +2797,19 @@ components:
     ReconstructionManifest:
       example:
         options:
-          use_prior_position: true
-          ba_refine_focal_length: true
-          ba_refine_extra_params: true
-          max_keypoints_per_image: 6
-          ba_refine_principal_point: true
+          ransac_max_error: 1.4658129805029452
+          triangulation_merge_max_reprojection_error: 7.061401241503109
+          ransac_min_inlier_ratio: 5.962133916683182
           neightbors_count: 0
-          ba_refine_sensor_from_rig: true
+          bundle_adjustment_refine_sensor_from_rig: true
+          bundle_adjustment_refine_principal_point: true
+          use_prior_position: true
+          max_keypoints_per_image: 6
+          triangulation_complete_max_reprojection_error: 2.3021358869347655
+          mapper_filter_max_reprojection_error: 9.301444243932576
+          triangulation_minimum_angle: 5.637376656633329
+          bundle_adjustment_refine_additional_params: true
+          bundle_adjustment_refine_focal_length: true
         metrics:
           track_length_50th_percentile: 9.301444243932576
           total_images: 0
@@ -2825,13 +2885,19 @@ components:
       title: ReconstructionMetrics
     ReconstructionOptions:
       example:
-        use_prior_position: true
-        ba_refine_focal_length: true
-        ba_refine_extra_params: true
-        max_keypoints_per_image: 6
-        ba_refine_principal_point: true
+        ransac_max_error: 1.4658129805029452
+        triangulation_merge_max_reprojection_error: 7.061401241503109
+        ransac_min_inlier_ratio: 5.962133916683182
         neightbors_count: 0
-        ba_refine_sensor_from_rig: true
+        bundle_adjustment_refine_sensor_from_rig: true
+        bundle_adjustment_refine_principal_point: true
+        use_prior_position: true
+        max_keypoints_per_image: 6
+        triangulation_complete_max_reprojection_error: 2.3021358869347655
+        mapper_filter_max_reprojection_error: 9.301444243932576
+        triangulation_minimum_angle: 5.637376656633329
+        bundle_adjustment_refine_additional_params: true
+        bundle_adjustment_refine_focal_length: true
       properties:
         neightbors_count:
           nullable: true
@@ -2839,19 +2905,37 @@ components:
         max_keypoints_per_image:
           nullable: true
           type: integer
+        ransac_max_error:
+          nullable: true
+          type: number
+        ransac_min_inlier_ratio:
+          nullable: true
+          type: number
         use_prior_position:
           nullable: true
           type: boolean
-        ba_refine_sensor_from_rig:
+        triangulation_minimum_angle:
+          nullable: true
+          type: number
+        triangulation_complete_max_reprojection_error:
+          nullable: true
+          type: number
+        triangulation_merge_max_reprojection_error:
+          nullable: true
+          type: number
+        mapper_filter_max_reprojection_error:
+          nullable: true
+          type: number
+        bundle_adjustment_refine_sensor_from_rig:
           nullable: true
           type: boolean
-        ba_refine_focal_length:
+        bundle_adjustment_refine_focal_length:
           nullable: true
           type: boolean
-        ba_refine_principal_point:
+        bundle_adjustment_refine_principal_point:
           nullable: true
           type: boolean
-        ba_refine_extra_params:
+        bundle_adjustment_refine_additional_params:
           nullable: true
           type: boolean
       title: ReconstructionOptions

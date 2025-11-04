@@ -2,7 +2,7 @@ from typing import cast
 from uuid import UUID, uuid4
 
 import httpx
-from common.classes import CameraIntrinsics, Transform
+from common.classes import CameraIntrinsics, LocalizationMetrics, Transform
 from common.session_client_docker import DockerSessionClient
 from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
 from models.public_dtos import LocalizationSessionRead, localization_session_to_dto
@@ -159,6 +159,7 @@ class MapLocalization(BaseModel):
     id: UUID
     transform: Transform
     map_transform: Transform
+    metrics: LocalizationMetrics
 
 
 @router.post("/{localization_session_id}/localization")
@@ -183,7 +184,7 @@ async def localize_image(
     if not r.is_success:
         raise HTTPException(status_code=r.status_code, detail=r.text)
 
-    localizer_response: dict[UUID, Transform] = r.json()
+    localizer_response: dict[UUID, tuple[Transform, LocalizationMetrics]] = r.json()
     maps = await get_localization_maps(
         reconstruction_ids=[id for id in localizer_response.keys()], ids=None, session=session
     )
@@ -191,7 +192,7 @@ async def localize_image(
     return [
         MapLocalization(
             id=id,
-            transform=localizer_response[id],
+            transform=localizer_response[id][0],
             map_transform={
                 "position": {"x": maps[i].position_x, "y": maps[i].position_y, "z": maps[i].position_z},
                 "rotation": {
@@ -201,6 +202,7 @@ async def localize_image(
                     "z": maps[i].rotation_z,
                 },
             },
+            metrics=localizer_response[id][1],
         )
         for i, id in enumerate(localizer_response)
     ]

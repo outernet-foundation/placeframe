@@ -1,0 +1,1160 @@
+0001/01/01 00:00:00.000 -1 -1 Info  --------- beginning of main
+2025/11/05 17:44:37.011 5091 5091 Info rnet.captureapp Late-enabling -Xcheck:jni
+2025/11/05 17:44:37.033 5091 5091 Info rnet.captureapp Using CollectorTypeCMC GC.
+2025/11/05 17:44:37.041 5091 5091 Debug nativeloader Load libframework-connectivity-tiramisu-jni.so using APEX ns com_android_tethering for caller /apex/com.android.tethering/javalib/framework-connectivity-t.jar: ok
+2025/11/05 17:44:37.050 5091 5091 Debug CompatChangeReporter Compat change id reported: 242716250; UID 10342; state: ENABLED
+2025/11/05 17:44:37.061 5091 5091 Debug nativeloader Configuring clns-7 for other apk /data/app/~~geWpP0zmiXxRc15c48lCvg==/com.outernet.captureapp-BQDza3rxbJPKyfe3P0wwzg==/base.apk. target_sdk_version=34, uses_libraries=, library_path=/data/app/~~geWpP0zmiXxRc15c48lCvg==/com.outernet.captureapp-BQDza3rxbJPKyfe3P0wwzg==/lib/arm64:/data/app/~~geWpP0zmiXxRc15c48lCvg==/com.outernet.captureapp-BQDza3rxbJPKyfe3P0wwzg==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.outernet.captureapp
+2025/11/05 17:44:37.066 5091 5091 Verbose GraphicsEnvironment Currently set values for:
+2025/11/05 17:44:37.066 5091 5091 Verbose GraphicsEnvironment   angle_gl_driver_selection_pkgs=[com.android.angle, com.linecorp.b612.android, com.campmobile.snow, com.google.android.apps.tachyon]
+2025/11/05 17:44:37.066 5091 5091 Verbose GraphicsEnvironment   angle_gl_driver_selection_values=[angle, native, native, native]
+2025/11/05 17:44:37.066 5091 5091 Verbose GraphicsEnvironment com.outernet.captureapp is not listed in per-application setting
+2025/11/05 17:44:37.066 5091 5091 Verbose GraphicsEnvironment Neither updatable production driver nor prerelease driver is supported.
+2025/11/05 17:44:37.088 5091 5091 Debug DesktopModeFlagsUtil Toggle override initialized to: OVERRIDE_UNSET
+2025/11/05 17:44:37.090 5091 5091 Debug nativeloader Load /data/app/~~geWpP0zmiXxRc15c48lCvg==/com.outernet.captureapp-BQDza3rxbJPKyfe3P0wwzg==/lib/arm64/libmain.so using class loader ns clns-7 (caller=/data/app/~~geWpP0zmiXxRc15c48lCvg==/com.outernet.captureapp-BQDza3rxbJPKyfe3P0wwzg==/base.apk): ok
+2025/11/05 17:44:37.115 5091 5091 Info IL2CPP JNI_OnLoad
+2025/11/05 17:44:37.115 5091 5091 Verbose Unity Context Type: ActivityOrService
+2025/11/05 17:44:37.116 5091 5091 Debug Unity CommandLine:  
+2025/11/05 17:44:37.120 5091 5091 Warn WindowOnBackDispatcher OnBackInvokedCallback is not enabled for the application.
+2025/11/05 17:44:37.120 5091 5091 Warn WindowOnBackDispatcher Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+2025/11/05 17:44:37.122 5091 5091 Info ContentCaptureHelper Setting logging level to OFF
+2025/11/05 17:44:37.128 5091 5091 Info Unity onResume
+0001/01/01 00:00:00.000 -1 -1 Info  --------- beginning of system
+2025/11/05 17:44:37.136 5091 5091 Debug InsetsController Setting requestedVisibleTypes to -12 (was -9)
+2025/11/05 17:44:37.208 5091 5091 Info Unity windowFocusChanged: true
+2025/11/05 17:44:37.208 5091 5091 Info Unity resumeUnity
+2025/11/05 17:44:37.210 5091 5091 Debug InsetsController hide(ime(), fromIme=false)
+2025/11/05 17:44:37.210 5091 5091 Info ImeTracker com.outernet.captureapp:98050cd9: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+2025/11/05 17:44:37.214 5091 5120 Info Unity MemoryManager: Using 'Dynamic Heap' Allocator.
+2025/11/05 17:44:37.214 5091 5120 Debug Unity [UnityMemory] Configuration Parameters - Can be set up in boot.config
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-allocator-temp-initial-block-size-main=262144"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-allocator-temp-initial-block-size-worker=262144"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-bucket-allocator-granularity=16"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-bucket-allocator-bucket-count=8"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-bucket-allocator-block-size=4194304"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-bucket-allocator-block-count=1"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-main-allocator-block-size=16777216"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-thread-allocator-block-size=16777216"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-gfx-main-allocator-block-size=16777216"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-gfx-thread-allocator-block-size=16777216"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-cache-allocator-block-size=4194304"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-typetree-allocator-block-size=2097152"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-profiler-bucket-allocator-granularity=16"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-profiler-bucket-allocator-bucket-count=8"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-profiler-bucket-allocator-block-size=4194304"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-profiler-bucket-allocator-block-count=1"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-profiler-allocator-block-size=16777216"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-profiler-editor-allocator-block-size=1048576"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-temp-allocator-size-main=4194304"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-job-temp-allocator-block-size=2097152"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-job-temp-allocator-block-size-background=1048576"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-temp-allocator-size-background-worker=32768"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-temp-allocator-size-job-worker=262144"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-temp-allocator-size-preload-manager=262144"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-temp-allocator-size-audio-worker=65536"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-temp-allocator-size-cloud-worker=32768"
+2025/11/05 17:44:37.214 5091 5120 Debug Unity     "memorysetup-temp-allocator-size-gfx=262144"
+2025/11/05 17:44:37.232 5091 5120 Debug Unity Enabling Unity systrace
+2025/11/05 17:44:37.239 5091 5120 Info Unity SetGameState: isLoading: true, mode: UNKNOWN, label: -2, quality: -1
+2025/11/05 17:44:37.242 5091 5120 Debug Unity [VFS] Mount /data/app/~~geWpP0zmiXxRc15c48lCvg==/com.outernet.captureapp-BQDza3rxbJPKyfe3P0wwzg==/base.apk
+2025/11/05 17:44:37.242 5091 5120 Debug Unity Loading player data from /data/app/~~geWpP0zmiXxRc15c48lCvg==/com.outernet.captureapp-BQDza3rxbJPKyfe3P0wwzg==/base.apk/assets/bin/Data/data.unity3d
+2025/11/05 17:44:37.250 5091 5120 Info Unity SystemInfo CPU = ARM64 FP ASIMD AES, Cores = 8, Memory = 11548mb
+2025/11/05 17:44:37.250 5091 5120 Info Unity SystemInfo ARM big.LITTLE configuration: 4 big (mask: 0xf0), 4 little (mask: 0xf)
+2025/11/05 17:44:37.250 5091 5120 Info Unity ApplicationInfo 'com.outernet.captureapp', Version '0.1.0', Min API Level '24', Target API Level '34'
+2025/11/05 17:44:37.250 5091 5120 Info Unity Built from '6000.0/staging' branch, Version '6000.0.56f1 (9c7b5e468860)', Build type 'Development', Scripting Backend 'il2cpp', CPU 'arm64-v8a', Stripping 'Enabled'
+2025/11/05 17:44:37.250 5091 5120 Info Unity Device Model 'Google Pixel 9', OS 'Android OS 15 (API 35)'
+2025/11/05 17:44:37.252 5091 5120 Debug Unity Determine if il2cpp resources need to extracted:
+2025/11/05 17:44:37.252 5091 5120 Debug Unity     Guid in '/storage/emulated/0/Android/data/com.outernet.captureapp/files/il2cpp/unity.ver' is invalid, expected '02ee2b12-361a-4c52-89d1-9e0de6408b01' was '2da92e85-b8ac-404a-94f4-1d00e9e2e0ef'
+2025/11/05 17:44:37.252 5091 5120 Debug Unity     Extracting il2cpp resources
+2025/11/05 17:44:37.323 5091 5120 Debug Unity Unable to find library path for 'il2cpp.usym'.
+2025/11/05 17:44:37.326 5091 5120 Debug Unity Starting managed debugger on port 56494
+2025/11/05 17:44:37.484 5091 5105 Info rnet.captureapp Compiler allocated 5216KB to compile void android.view.ViewRootImpl.performTraversals()
+2025/11/05 17:44:37.556 5091 5125 Warn InteractionJankMonitor Initializing without READ_DEVICE_CONFIG permission. enabled=false, interval=1, missedFrameThreshold=3, frameTimeThreshold=64, package=com.outernet.captureapp
+2025/11/05 17:44:38.572 5091 5120 Debug Unity [EGL] Attaching window :0xb4000070ff31baf0
+2025/11/05 17:44:38.572 5091 5120 Debug Unity InitializeScriptEngine OK (0x732aa05fc0)
+2025/11/05 17:44:38.573 5091 5120 Debug Unity Found 2 interfaces on host :
+2025/11/05 17:44:38.573 5091 5120 Debug Unity  0) 100.90.159.206
+2025/11/05 17:44:38.573 5091 5120 Debug Unity  1) 192.168.1.3
+2025/11/05 17:44:38.573 5091 5120 Debug Unity 
+2025/11/05 17:44:38.574 5091 5120 Debug Unity Player connection [483046868672]  Target information:
+2025/11/05 17:44:38.574 5091 5120 Debug Unity 
+2025/11/05 17:44:38.574 5091 5120 Debug Unity Player connection [483046868672]  * "[IP] 100.90.159.206 [Port] 55000 [Flags] 2 [Guid] 3503746494 [EditorId] 4232980253 [Version] 1048832 [Id] AndroidPlayer(11,Google_Pixel_9@192.168.1.3) [Debug] 1 [PackageName] AndroidPlayer [ProjectName] Android Data Recorder" 
+2025/11/05 17:44:38.574 5091 5120 Debug Unity 
+2025/11/05 17:44:38.574 5091 5120 Debug Unity Player connection [483046868672]  * "[IP] 192.168.1.3 [Port] 55000 [Flags] 2 [Guid] 3503746494 [EditorId] 4232980253 [Version] 1048832 [Id] AndroidPlayer(11,Google_Pixel_9@192.168.1.3) [Debug] 1 [PackageName] AndroidPlayer [ProjectName] Android Data Recorder" 
+2025/11/05 17:44:38.574 5091 5120 Debug Unity 
+2025/11/05 17:44:38.574 5091 5120 Debug Unity Player connection [483046868672] Started UDP target info broadcast (1) on [225.0.0.222:54997].
+2025/11/05 17:44:38.574 5091 5120 Debug Unity 
+2025/11/05 17:44:38.591 5091 5120 Debug Unity Input System module state changed to: Initialized.
+2025/11/05 17:44:38.594 5091 5120 Debug Unity [Physics::Module] Initialized fallback backend.
+2025/11/05 17:44:38.594 5091 5120 Debug Unity [Physics::Module] Id: 0xdecafbad
+2025/11/05 17:44:38.594 5091 5120 Debug Unity Loading player data from assets/bin/Data/data.unity3d
+2025/11/05 17:44:38.595 5091 5120 Debug Unity PlayerInitEngineNoGraphics OK
+2025/11/05 17:44:38.595 5091 5120 Info Unity Company Name: DefaultCompany
+2025/11/05 17:44:38.595 5091 5120 Info Unity Product Name: Android Data Recorder
+2025/11/05 17:44:38.595 5091 5120 Debug Unity AndroidGraphics::Startup window =  0xb4000070ff31baf0
+2025/11/05 17:44:38.595 5091 5120 Debug Unity [EGL] Attaching window :0xb4000070ff31baf0
+2025/11/05 17:44:38.600 5091 5120 Debug Unity [Subsystems] Discovering subsystems at path /data/app/~~geWpP0zmiXxRc15c48lCvg==/com.outernet.captureapp-BQDza3rxbJPKyfe3P0wwzg==/base.apk/assets/bin/Data/UnitySubsystems
+2025/11/05 17:44:38.600 5091 5120 Debug Unity [Subsystems] No descriptors matched for  examples in /data/app/~~geWpP0zmiXxRc15c48lCvg==/com.outernet.captureapp-BQDza3rxbJPKyfe3P0wwzg==/base.apk/assets/bin/Data/UnitySubsystems/UnityARCore/UnitySubsystemsManifest.json.
+2025/11/05 17:44:38.600 5091 5120 Debug Unity [Subsystems] 1 'inputs' descriptors matched in /data/app/~~geWpP0zmiXxRc15c48lCvg==/com.outernet.captureapp-BQDza3rxbJPKyfe3P0wwzg==/base.apk/assets/bin/Data/UnitySubsystems/UnityARCore/UnitySubsystemsManifest.json
+2025/11/05 17:44:38.600 5091 5120 Debug Unity [Subsystems] No descriptors matched for  displays in /data/app/~~geWpP0zmiXxRc15c48lCvg==/com.outernet.captureapp-BQDza3rxbJPKyfe3P0wwzg==/base.apk/assets/bin/Data/UnitySubsystems/UnityARCore/UnitySubsystemsManifest.json.
+2025/11/05 17:44:38.600 5091 5120 Debug Unity [Subsystems] No descriptors matched for  meshings in /data/app/~~geWpP0zmiXxRc15c48lCvg==/com.outernet.captureapp-BQDza3rxbJPKyfe3P0wwzg==/base.apk/assets/bin/Data/UnitySubsystems/UnityARCore/UnitySubsystemsManifest.json.
+2025/11/05 17:44:38.614 5091 5120 Debug Unity [EGL] Request: ES 3.2 RGB 000 0/0
+2025/11/05 17:44:38.614 5091 5120 Debug Unity [EGL] Checking ES 3.2 support...
+2025/11/05 17:44:38.622 5091 5120 Debug Unity [EGL] ES 3.2 support detected
+2025/11/05 17:44:38.622 5091 5120 Debug Unity [EGL] Found: ID[13] ES 3.2 RGB 565 0/0
+2025/11/05 17:44:38.622 5091 5120 Debug Unity GfxDevice: creating device client; kGfxThreadingModeThreaded
+2025/11/05 17:44:38.623 5091 5120 Debug Unity [EGL] Request: ES 3.2 RGB 000 0/0
+2025/11/05 17:44:38.623 5091 5120 Debug Unity [EGL] Found: ID[13] ES 3.2 RGB 565 0/0
+2025/11/05 17:44:38.623 5091 5120 Debug Unity [EGL] Request: ES 3.0 RGBA 8888 0/0
+2025/11/05 17:44:38.623 5091 5120 Debug Unity [EGL] Found: ID[1] ES 3.0 RGBA 8888 0/0
+2025/11/05 17:44:38.623 5091 5120 Debug Unity ANativeWindow: (1080/2424) RequestedResolution: (0/0) RenderingResolution: (0/0) EGLSurface: (1080/2424)
+2025/11/05 17:44:38.627 5091 5120 Debug Unity Renderer: Mali-G715
+2025/11/05 17:44:38.627 5091 5120 Debug Unity Vendor:   ARM
+2025/11/05 17:44:38.627 5091 5120 Debug Unity Version:  OpenGL ES 3.2 v1.r51p0-00eac0.4f946ec15fb242f57c674e5b8dda1435
+2025/11/05 17:44:38.627 5091 5120 Debug Unity GLES:     3
+2025/11/05 17:44:38.627 5091 5120 Debug Unity  GL_EXT_debug_marker GL_ARM_rgba8 GL_ARM_mali_shader_binary GL_ARM_debug_assert GL_OES_depth24 GL_OES_depth_texture GL_OES_depth_texture_cube_map GL_OES_packed_depth_stencil GL_OES_rgb8_rgba8 GL_EXT_read_format_bgra GL_OES_compressed_paletted_texture GL_OES_compressed_ETC1_RGB8_texture GL_OES_standard_derivatives GL_OES_EGL_image GL_OES_EGL_image_external GL_OES_EGL_image_external_essl3 GL_OES_EGL_sync GL_OES_texture_npot GL_OES_vertex_half_float GL_OES_required_internalformat GL_OES_vertex_array_object GL_OES_mapbuffer GL_EXT_texture_format_BGRA8888 GL_EXT_texture_rg GL_EXT_texture_type_2_10_10_10_REV GL_OES_fbo_render_mipmap GL_OES_element_index_uint GL_EXT_shadow_samplers GL_OES_texture_compression_astc GL_KHR_texture_compression_astc_ldr GL_KHR_texture_compression_astc_hdr GL_KHR_texture_compression_astc_sliced_3d GL_EXT_texture_compression_astc_decode_mode GL_EXT_texture_compression_astc_decode_mode_rgb9e5 GL_KHR_debug GL_EXT_occlusion_query_boolean GL_EXT_disjoint_timer_query GL_EXT_blend_minmax GL_EXT
+2025/11/05 17:44:38.627 5091 5120 Debug Unity _discard_framebuffer GL_OES_get_program_binary GL_OES_texture_3D GL_EXT_texture_storage GL_EXT_multisampled_render_to_texture GL_EXT_multisampled_render_to_texture2 GL_OES_surfaceless_context GL_OES_texture_stencil8 GL_EXT_shader_pixel_local_storage GL_ARM_shader_framebuffer_fetch GL_ARM_shader_framebuffer_fetch_depth_stencil GL_ARM_mali_program_binary GL_EXT_sRGB GL_EXT_sRGB_write_control GL_EXT_texture_sRGB_decode GL_EXT_texture_sRGB_R8 GL_EXT_texture_sRGB_RG8 GL_KHR_blend_equation_advanced GL_KHR_blend_equation_advanced_coherent GL_OES_texture_storage_multisample_2d_array GL_OES_shader_image_atomic GL_EXT_robustness GL_EXT_draw_buffers_indexed GL_OES_draw_buffers_indexed GL_EXT_texture_border_clamp GL_OES_texture_border_clamp GL_EXT_texture_cube_map_array GL_OES_texture_cube_map_array GL_OES_sample_variables GL_OES_sample_shading GL_OES_shader_multisample_interpolation GL_EXT_shader_io_blocks GL_OES_shader_io_blocks GL_EXT_tessellation_shader GL_OES_tessellation_shader GL_EXT_primitive_bounding_box GL_OES
+2025/11/05 17:44:38.627 5091 5120 Debug Unity _primitive_bounding_box GL_EXT_geometry_shader GL_OES_geometry_shader GL_ANDROID_extension_pack_es31a GL_EXT_gpu_shader5 GL_OES_gpu_shader5 GL_EXT_texture_buffer GL_OES_texture_buffer GL_EXT_copy_image GL_OES_copy_image GL_EXT_shader_non_constant_global_initializers GL_EXT_color_buffer_half_float GL_EXT_unpack_subimage GL_EXT_color_buffer_float GL_EXT_float_blend GL_EXT_YUV_target GL_OVR_multiview GL_OVR_multiview2 GL_OVR_multiview_multisampled_render_to_texture GL_KHR_robustness GL_KHR_robust_buffer_access_behavior GL_EXT_draw_elements_base_vertex GL_OES_draw_elements_base_vertex GL_EXT_protected_textures GL_EXT_buffer_storage GL_EXT_external_buffer GL_EXT_EGL_image_array GL_EXT_clear_texture GL_ARM_shader_core_properties GL_EXT_texture_filter_anisotropic GL_OES_texture_float_linear GL_ARM_texture_unnormalized_coordinates GL_EXT_texture_storage_compression GL_EXT_EGL_image_storage_compression GL_EXT_shader_framebuffer_fetch GL_EXT_clip_control GL_EXT_fragment_shading_rate GL_EXT_fragment_shading_rate_primit
+2025/11/05 17:44:38.627 5091 5120 Debug Unity ive GL_EXT_fragment_shading_rate_attachment GL_EXT_polygon_offset_clamp GL_EXT_EGL_image_storage GL_EXT_texture_norm16
+2025/11/05 17:44:38.630 5091 5120 Debug Unity OPENGL LOG: Creating OpenGL ES 3.2 graphics device ; Context level  <OpenGL ES 3.2> ; Context handle 1328771408
+2025/11/05 17:44:38.630 5091 5120 Debug Unity [EGL] Attaching window :0xb4000070ff31baf0
+2025/11/05 17:44:38.632 5091 5120 Debug Unity Requested framebuffer: resolution[1080x2424], rgba[8/8/8/8], depth+stencil[on], samples[1]
+2025/11/05 17:44:38.632 5091 5120 Debug Unity Created framebuffer: resolution[1080x2424], rgba[8/8/8/8], depth+stencil[24/8], samples[0] 
+2025/11/05 17:44:38.632 5091 5120 Debug Unity [EGL] Attaching window :0xb4000070ff31baf0
+2025/11/05 17:44:38.632 5091 5120 Debug Unity Initialize engine version: 6000.0.56f1 (9c7b5e468860)
+2025/11/05 17:44:38.635 5091 5120 Debug Unity [Wait for debugger to attach] Also use Volume Up or Down button to confirm...
+2025/11/05 17:44:38.646 5091 5091 Warn HWUI Image decoding logging dropped!
+2025/11/05 17:44:38.648 5091 5091 Warn HWUI Image decoding logging dropped!
+2025/11/05 17:44:38.649 5091 5091 Warn HWUI Image decoding logging dropped!
+2025/11/05 17:44:38.650 5091 5091 Warn HWUI Image decoding logging dropped!
+2025/11/05 17:44:38.650 5091 5091 Warn HWUI Image decoding logging dropped!
+2025/11/05 17:44:38.651 5091 5091 Warn HWUI Image decoding logging dropped!
+2025/11/05 17:44:38.654 5091 5091 Warn HWUI Image decoding logging dropped!
+2025/11/05 17:44:38.655 5091 5091 Warn HWUI Image decoding logging dropped!
+2025/11/05 17:44:38.656 5091 5091 Warn HWUI Image decoding logging dropped!
+2025/11/05 17:44:38.687 5091 5091 Warn TextView onProvideContentCaptureStructure(): calling assumeLayout()
+2025/11/05 17:44:38.687 5091 5091 Warn TextView onProvideContentCaptureStructure(): calling assumeLayout()
+2025/11/05 17:44:38.709 5091 5091 Info Unity windowFocusChanged: false
+2025/11/05 17:44:55.804 5091 5091 Warn WindowOnBackDispatcher sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda13@c0d314e
+2025/11/05 17:44:55.805 5091 5120 Debug AudioSystem onNewService: media.audio_policy service obtained 0xb40000723f31cc70
+2025/11/05 17:44:55.806 5091 5120 Debug AudioSystem getService: checking for service media.audio_policy: 0xb40000723f31cc70
+2025/11/05 17:44:55.853 5091 5091 Info Unity windowFocusChanged: true
+2025/11/05 17:44:55.859 5091 5091 Debug InsetsController hide(ime(), fromIme=false)
+2025/11/05 17:44:55.859 5091 5091 Info ImeTracker com.outernet.captureapp:f9565606: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+2025/11/05 17:44:55.879 5091 5120 Debug AudioSystem onNewServiceWithAdapter: media.audio_flinger service obtained 0xb4000070df67e8e0
+2025/11/05 17:44:55.880 5091 5120 Debug AudioSystem getService: checking for service media.audio_flinger: 0xb40000723f31d4e0
+2025/11/05 17:44:55.882 5091 5120 Info AAudio AAudioStreamBuilder_openStream() called ----------------------------------------
+2025/11/05 17:44:55.882 5091 5120 Info AudioStreamBuilder rate   =  24000, channels  = 2, channelMask = 0x80000003, format   = 5, sharing = SH, dir = OUTPUT
+2025/11/05 17:44:55.882 5091 5120 Info AudioStreamBuilder devices = AUDIO_PORT_HANDLE_NONE, sessionId = -1, perfMode = 12, callback: ON with frames = 512
+2025/11/05 17:44:55.882 5091 5120 Info AudioStreamBuilder usage  =      0, contentType = 0, inputPreset = 0, allowedCapturePolicy = 0
+2025/11/05 17:44:55.882 5091 5120 Info AudioStreamBuilder privacy sensitive = false, opPackageName = (null), attributionTag = (null)
+2025/11/05 17:44:55.882 5091 5120 Debug AudioStreamBuilder build, global mmap policy is 0
+2025/11/05 17:44:55.883 5091 5120 Debug AudioStreamBuilder build, system mmap policy is 2
+2025/11/05 17:44:55.883 5091 5120 Debug AudioStreamBuilder build, final mmap policy is 2
+2025/11/05 17:44:55.883 5091 5120 Debug AudioStreamBuilder build, system mmap exclusive policy is 2
+2025/11/05 17:44:55.883 5091 5120 Debug AudioStreamBuilder build, final mmap exclusive policy is 2
+2025/11/05 17:44:55.883 5091 5120 Debug rnet.captureapp PlayerBase::PlayerBase()
+2025/11/05 17:44:55.907 5091 5120 Debug AudioStreamInternal_Client configureDataInformation() original HW burst = 96, minMicros = 2000 => SW burst = 96
+2025/11/05 17:44:55.907 5091 5120 Debug IsochronousClockModel setFramesPerBurst() - mFramesPerBurst = 96 - mBurstPeriodNanos = 2000000
+2025/11/05 17:44:55.907 5091 5120 Debug AAudioStream setState(s#1) from 0 to 2
+2025/11/05 17:44:55.907 5091 5120 Debug AAudioFlowGraph configure() source format = 0x00000005, channels = 2, sample rate = 24000, sink format = 0x00000005, channels = 2, sample rate = 48000, useMonoBlend = 0, audioBalance = 0.000000, useVolumeRamps 0
+2025/11/05 17:44:55.907 5091 5120 Info AAudio AAudioStreamBuilder_openStream() returns 0 = AAUDIO_OK for s#1 ----------------
+2025/11/05 17:44:55.910 5091 5120 Debug AAudio AAudioStream_requestStart(s#1) called --------------
+2025/11/05 17:44:55.910 5091 5120 Debug AAudioStream setState(s#1) from 2 to 3
+2025/11/05 17:44:55.929 5091 5120 Debug AAudio AAudioStream_requestStart(s#1) returned 0 ---------
+2025/11/05 17:44:55.931 5091 5206 Debug AudioStreamInternalPlay_Client callbackLoop() entering >>>>>>>>>>>>>>>
+2025/11/05 17:44:55.931 5091 5206 Debug AudioStreamInternal_Client onEventFromServer - got AAUDIO_SERVICE_EVENT_STARTED
+2025/11/05 17:44:55.931 5091 5206 Debug AAudioStream setState(s#1) from 3 to 4
+2025/11/05 17:44:55.979 5091 5120 Debug Unity [Physics::Module] Selected backend.
+2025/11/05 17:44:55.979 5091 5120 Debug Unity [Physics::Module] Name: PhysX
+2025/11/05 17:44:55.979 5091 5120 Debug Unity [Physics::Module] Id: 0xf2b8ea05
+2025/11/05 17:44:55.979 5091 5120 Debug Unity [Physics::Module] SDK Version: 4.1.2
+2025/11/05 17:44:55.979 5091 5120 Debug Unity [Physics::Module] Integration Version: 1.0.0
+2025/11/05 17:44:55.979 5091 5120 Debug Unity [Physics::Module] Threading Mode: Multi-Threaded
+2025/11/05 17:44:56.018 5091 5120 Warn Unity The referenced script (Unknown) on this Behaviour is missing!
+2025/11/05 17:44:56.018 5091 5120 Warn Unity The referenced script on this Behaviour (Game Object '<null>') is missing!
+2025/11/05 17:44:56.056 5091 5120 Info IL2CPP Locale en-US
+2025/11/05 17:44:56.060 5091 5120 Info Unity XRGeneral Settings awakening...
+2025/11/05 17:44:56.060 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:44:56.060 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:44:56.060 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:44:56.060 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:44:56.060 5091 5120 Info Unity UnityEngine.XR.Management.XRGeneralSettings:Awake() (at .\Library\PackageCache\com.unity.xr.management@20be87dea580\Runtime\XRGeneralSettings.cs:91)
+2025/11/05 17:44:56.060 5091 5120 Info Unity 
+2025/11/05 17:44:56.139 5091 5120 Debug nativeloader Load /data/app/~~geWpP0zmiXxRc15c48lCvg==/com.outernet.captureapp-BQDza3rxbJPKyfe3P0wwzg==/lib/arm64/libUnityARCore.so using class loader ns clns-7 (caller=/data/app/~~geWpP0zmiXxRc15c48lCvg==/com.outernet.captureapp-BQDza3rxbJPKyfe3P0wwzg==/base.apk): ok
+2025/11/05 17:44:56.139 5091 5120 Info native I0000 00:00:1762382696.139709    5120 arpresto_api.cc:36] ArPresto::ArPresto_initialize
+2025/11/05 17:44:56.139 5091 5120 Verbose Unity-ARCore Initializing ARCore Pause Handler
+2025/11/05 17:44:56.140 5091 5208 Verbose Unity-ARCore PauseHandler: JNI not attached to thread. Attempting to attach.
+2025/11/05 17:44:56.140 5091 5208 Verbose Unity-ARCore PauseHandler: Attached JNI to thread.
+2025/11/05 17:44:56.140 5091 5120 Debug Unity [Subsystems] UnityARCore successfully registered Provider for ARCore-Input
+2025/11/05 17:44:56.147 5091 5120 Debug Unity [Subsystems] Loading plugin UnityARCore for subsystem ARCore-Input...
+2025/11/05 17:44:56.153 5091 5120 Debug Unity PlayerInitEngineGraphics OK
+2025/11/05 17:44:56.164 5091 5120 Info Unity SetGameState: isLoading: false, mode: UNKNOWN, label: -1, quality: 1
+2025/11/05 17:44:56.169 5091 5120 Debug Unity [EGL] Attaching window :0xb4000070ff31baf0
+2025/11/05 17:44:56.169 5091 5120 Debug Unity ANativeWindow: (1080/2424) RequestedResolution: (0/0) RenderingResolution: (0/0) EGLSurface: (1080/2424)
+2025/11/05 17:44:56.176 5091 5120 Verbose MediaRouter Selecting route: RouteInfo{ name=Phone, description=null, status=null, category=RouteCategory{ name=System types=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO  groupable=false }, supportedTypes=ROUTE_TYPE_LIVE_AUDIO ROUTE_TYPE_LIVE_VIDEO , presentationDisplay=null }
+2025/11/05 17:44:56.176 5091 5120 Info MediaRouter Skip setBluetoothA2dpOn(): types=8388615, isPlaybackActive()=true, BT route=null
+2025/11/05 17:44:56.273 5091 5120 Info Unity SetGameState: isLoading: true, mode: UNKNOWN, label: 0, quality: 1
+2025/11/05 17:44:58.312 5091 5120 Debug Unity UnloadTime: 5.233887 ms
+2025/11/05 17:44:58.402 5091 5120 Info native I0000 00:00:1762382698.402354    5120 arpresto_api.cc:111] ArPresto::ArPresto_checkApkAvailability
+2025/11/05 17:44:58.413 5091 5120 Info Unity <color=#00FFFF>[DEBUG]</color> Executing ActionSet<ObservablePrimitive`1>[target=root/plerionAPIBaseUrl actions=SetPrimitiveValueAction`1[value=https://desktop-otd3rch-api.outernetfoundation.org]]
+2025/11/05 17:44:58.413 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:44:58.413 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:44:58.413 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:44:58.413 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:44:58.413 5091 5120 Info Unity FofX.UnityLogger:Debug(String) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:36)
+2025/11/05 17:44:58.413 5091 5120 Info Unity FofX.UnityLogger:Generic(LogLevel, String, Exception) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:20)
+2025/11/05 17:44:58.413 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteActions(IActionSet, Boolean, Boolean) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNodeContext.cs:153)
+2025/11/05 17:44:58.413 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteAction(ObservablePrimitive`1, LogLevel, Action, ObservableNodeAction`1[]) (at .\L
+2025/11/05 17:44:58.415 5091 5120 Info Unity <color=#00FFFF>[DEBUG]</color> Observed changes:
+2025/11/05 17:44:58.415 5091 5120 Info Unity     [source=root/plerionAPIBaseUrl, type=Set, currentValue=https://desktop-otd3rch-api.outernetfoundation.org]
+2025/11/05 17:44:58.415 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:44:58.415 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:44:58.415 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:44:58.415 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:44:58.415 5091 5120 Info Unity FofX.UnityLogger:Debug(String) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:36)
+2025/11/05 17:44:58.415 5091 5120 Info Unity FofX.UnityLogger:Generic(LogLevel, String, Exception) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:20)
+2025/11/05 17:44:58.415 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:NotifyObserversAndReset(LogLevel) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNodeContext.cs:207)
+2025/11/05 17:44:58.415 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteActions(IActionSet, Boolean, Boolean) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNod
+2025/11/05 17:44:58.416 5091 5120 Info Unity <color=#00FFFF>[DEBUG]</color> Executing ActionSet<ObservablePrimitive`1>[target=root/plerionKeycloakUrl actions=SetPrimitiveValueAction`1[value=https://desktop-otd3rch-keycloak.outernetfoundation.org]]
+2025/11/05 17:44:58.416 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:44:58.416 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:44:58.416 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:44:58.416 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:44:58.416 5091 5120 Info Unity FofX.UnityLogger:Debug(String) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:36)
+2025/11/05 17:44:58.416 5091 5120 Info Unity FofX.UnityLogger:Generic(LogLevel, String, Exception) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:20)
+2025/11/05 17:44:58.416 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteActions(IActionSet, Boolean, Boolean) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNodeContext.cs:153)
+2025/11/05 17:44:58.416 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteAction(ObservablePrimitive`1, LogLevel, Action, ObservableNodeAction`1[]) (
+2025/11/05 17:44:58.416 5091 5120 Info Unity <color=#00FFFF>[DEBUG]</color> Observed changes:
+2025/11/05 17:44:58.416 5091 5120 Info Unity     [source=root/plerionKeycloakUrl, type=Set, currentValue=https://desktop-otd3rch-keycloak.outernetfoundation.org]
+2025/11/05 17:44:58.416 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:44:58.416 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:44:58.416 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:44:58.416 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:44:58.416 5091 5120 Info Unity FofX.UnityLogger:Debug(String) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:36)
+2025/11/05 17:44:58.416 5091 5120 Info Unity FofX.UnityLogger:Generic(LogLevel, String, Exception) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:20)
+2025/11/05 17:44:58.416 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:NotifyObserversAndReset(LogLevel) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNodeContext.cs:207)
+2025/11/05 17:44:58.416 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteActions(IActionSet, Boolean, Boolean) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\Observa
+2025/11/05 17:44:58.477 5091 5120 Info Unity <color=#00FFFF>[DEBUG]</color> Executing ActionSet<ObservablePrimitive`1>[target=root/captureMode actions=SetPrimitiveValueAction`1[value=Local]]
+2025/11/05 17:44:58.477 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:44:58.477 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:44:58.477 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:44:58.477 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:44:58.477 5091 5120 Info Unity FofX.UnityLogger:Debug(String) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:36)
+2025/11/05 17:44:58.477 5091 5120 Info Unity FofX.UnityLogger:Generic(LogLevel, String, Exception) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:20)
+2025/11/05 17:44:58.477 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteActions(IActionSet, Boolean, Boolean) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNodeContext.cs:153)
+2025/11/05 17:44:58.477 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteActionOrDelay(ObservablePrimitive`1, LogLevel, Action, ObservableNodeAction`1[]) (at .\Library\PackageCache\com.fofx.stateful@8215f1
+2025/11/05 17:44:58.490 5091 5120 Info Unity Logging in to https://desktop-otd3rch-keycloak.outernetfoundation.org/realms/plerion-dev/protocol/openid-connect/token as user
+2025/11/05 17:44:58.490 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:44:58.490 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:44:58.490 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:44:58.490 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:44:58.490 5091 5120 Info Unity <Login>d__11:MoveNext() (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Auth.cs:60)
+2025/11/05 17:44:58.490 5091 5120 Info Unity Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder:Start(<Login>d__11&) (at .\Library\PackageCache\com.cysharp.unitask@6a18b5d4ef81\Runtime\CompilerServices\AsyncUniTaskMethodBuilder.cs:111)
+2025/11/05 17:44:58.490 5091 5120 Info Unity Auth:Login()
+2025/11/05 17:44:58.490 5091 5120 Info Unity <GetOrRefreshToken>d__12:MoveNext() (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Auth.cs:119)
+2025/11/05 17:44:58.490 5091 5120 Info Unity Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder`1:Start(<GetOrRefreshToken>d__12&) (at .\Library\PackageCache\com.cysharp.unitask@6a18b5d4ef81\Runtime\CompilerServices\AsyncUniTaskMethodBuilder.cs:242)
+2025/11/05 17:44:58.490 5091 5120 Info Unity SetGameState: isLoading: true, mode: UNKNOWN, label: -4, quality: 1
+2025/11/05 17:44:58.507 5091 5120 Info native I0000 00:00:1762382698.507239    5120 arpresto_api.cc:70] ArPresto::ArPresto_handleActivityResume
+2025/11/05 17:44:58.509 5091 5120 Debug Unity Using Java Choreographer.
+2025/11/05 17:44:58.599 5091 5120 Info native I0000 00:00:1762382698.599471    5120 arpresto_api.cc:193] ArPresto::ArPresto_setCameraTextureNames
+2025/11/05 17:44:58.599 5091 5120 Info native I0000 00:00:1762382698.599647    5120 arpresto_api.cc:212] ArPresto::ArPresto_setEnabled
+2025/11/05 17:44:58.661 5091 5120 Info Unity RenderGraph is now disabled.
+2025/11/05 17:44:58.661 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:44:58.661 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:44:58.661 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:44:58.661 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:44:58.661 5091 5120 Info Unity UnityEngine.Rendering.Universal.UniversalRenderPipeline:.ctor(UniversalRenderPipelineAsset) (at .\Library\PackageCache\com.unity.render-pipelines.universal@ec146228694a\Runtime\UniversalRenderPipeline.cs:259)
+2025/11/05 17:44:58.661 5091 5120 Info Unity UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset:CreatePipeline() (at .\Library\PackageCache\com.unity.render-pipelines.universal@ec146228694a\Runtime\Data\UniversalRenderPipelineAsset.cs:793)
+2025/11/05 17:44:58.661 5091 5120 Info Unity UnityEngine.Rendering.RenderPipelineAsset:InternalCreatePipeline() (at \home\bokken\build\output\unity\unity\Runtime\Export\RenderPipeline\RenderPipelineAsset.cs:15)
+2025/11/05 17:44:58.661 5091 5120 Info Unity UnityEngine.Rendering.RenderPipelineManager:TryPrepareRenderPipeline(RenderPipelineAsset) (at \home\bokken\build\output\unity\unity\Runtime\Export\RenderPipeline\RenderPipelineManager.cs:165)
+2025/11/05 17:44:58.661 5091 5120 Info Unity Un
+2025/11/05 17:44:58.731 5091 5120 Info Unity Configuration Descriptor 0x1 (rank 1): World Facing Camera, Rotation and Orientation, Plane Tracking, Image Tracking, Auto-Focus, Light Estimation (Ambient Intensity), Light Estimation (Ambient Color), Raycast, Environment Depth, Environment Depth Temporal Smoothing, Image Stabilization
+2025/11/05 17:44:58.731 5091 5120 Info Unity Configuration Descriptor 0x2 (rank 0): World Facing Camera, Rotation and Orientation, Plane Tracking, Image Tracking, Environment Probes, Auto-Focus, Light Estimation (Spherical Harmonics), Light Estimation (Main Light Direction), Light Estimation (Main Light Intensity), Raycast, Environment Depth, Environment Depth Temporal Smoothing, Image Stabilization
+2025/11/05 17:44:58.731 5091 5120 Info Unity Configuration Descriptor 0x3 (rank 2): User Facing Camera, Rotation Only, Face Tracking, Auto-Focus, Light Estimation (Ambient Intensity), Light Estimation (Ambient Color), Image Stabilization
+2025/11/05 17:44:58.731 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:44:58.731 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:44:58.731 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Ob
+2025/11/05 17:44:58.732 5091 5120 Info Unity Using session configuration 0x1
+2025/11/05 17:44:58.732 5091 5120 Info Unity 	Requested Features: World Facing Camera, Rotation and Orientation, Auto-Focus
+2025/11/05 17:44:58.732 5091 5120 Info Unity 	Supported Features: World Facing Camera, Rotation and Orientation, Auto-Focus
+2025/11/05 17:44:58.732 5091 5120 Info Unity 	Requested features not satisfied: (None)
+2025/11/05 17:44:58.732 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:44:58.732 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:44:58.732 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:44:58.732 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:44:58.732 5091 5120 Info Unity UnityEngine.XR.ARSubsystems.XRSessionSubsystem:DebugPrintConfigurationChange(Configuration, Feature) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARSubsystems\SessionSubsystem\XRSessionSubsystem.cs:170)
+2025/11/05 17:44:58.732 5091 5120 Info Unity UnityEngine.XR.ARSubsystems.XRSessionSubsystem:Update(XRSessionUpdateParams) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARSubsystems\SessionSubsystem\XRSessionSubsystem.cs:133)
+2025/11/05 17:44:58.732 5091 5120 Info Unity UnityEngine.XR.ARFoundation.ARSession:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundati
+2025/11/05 17:44:58.746 5091 5120 Info third_party/arcore/ar/core/android/sdk/session_create.cc Entering ArSession_createWithFeaturesAndTrace
+2025/11/05 17:44:58.746 5091 5120 Info third_party/arcore/ar/core/android/sdk/session_create.cc ARCore Version: SDK build name: 1.42
+2025/11/05 17:44:58.748 5091 5120 Info third_party/arcore/ar/core/android/sdk/session_create.cc ARCore Version: APK version code: 252580493
+2025/11/05 17:44:58.756 5091 5120 Warn rnet.captureapp Loading /data/app/~~FcuP6E-3Z5xuaYXp4AHKEQ==/com.google.ar.core-brqs6oOvZn0z5VaBFsVgYg==/oat/arm64/base.odex non-executable as it requires an image which we failed to load
+2025/11/05 17:44:58.757 5091 5120 Warn rnet.captureapp Failed to find entry 'classes.dex': Entry not found
+2025/11/05 17:44:58.758 5091 5120 Warn rnet.captureapp Failed to find entry 'classes.dex': Entry not found
+2025/11/05 17:44:58.758 5091 5120 Warn rnet.captureapp Failed to find entry 'classes.dex': Entry not found
+2025/11/05 17:44:58.758 5091 5120 Warn rnet.captureapp Failed to find entry 'classes.dex': Entry not found
+2025/11/05 17:44:58.758 5091 5120 Warn rnet.captureapp Failed to find entry 'classes.dex': Entry not found
+2025/11/05 17:44:58.758 5091 5120 Warn rnet.captureapp Failed to find entry 'classes.dex': Entry not found
+2025/11/05 17:44:58.760 5091 5120 Debug nativeloader Configuring clns-8 for other apk /data/app/~~FcuP6E-3Z5xuaYXp4AHKEQ==/com.google.ar.core-brqs6oOvZn0z5VaBFsVgYg==/base.apk:/data/app/~~FcuP6E-3Z5xuaYXp4AHKEQ==/com.google.ar.core-brqs6oOvZn0z5VaBFsVgYg==/split_augmented_face_improved_lip_eye.apk:/data/app/~~FcuP6E-3Z5xuaYXp4AHKEQ==/com.google.ar.core-brqs6oOvZn0z5VaBFsVgYg==/split_config.en.apk:/data/app/~~FcuP6E-3Z5xuaYXp4AHKEQ==/com.google.ar.core-brqs6oOvZn0z5VaBFsVgYg==/split_config.xxhdpi.apk:/data/app/~~FcuP6E-3Z5xuaYXp4AHKEQ==/com.google.ar.core-brqs6oOvZn0z5VaBFsVgYg==/split_deep_io.apk:/data/app/~~FcuP6E-3Z5xuaYXp4AHKEQ==/com.google.ar.core-brqs6oOvZn0z5VaBFsVgYg==/split_face_mesh_ultralite.apk:/data/app/~~FcuP6E-3Z5xuaYXp4AHKEQ==/com.google.ar.core-brqs6oOvZn0z5VaBFsVgYg==/split_normal_net.apk. target_sdk_version=36, uses_libraries=libedgetpu_util.so:libedgetpu_client.google.so, library_path=/data/app/~~FcuP6E-3Z5xuaYXp4AHKEQ==/com.google.ar.core-brqs6oOvZn0z5VaBFsVgYg==/lib/arm64:/data/app/~~FcuP6E-3Z5xuaYXp4AHKEQ==/com.google.ar.core-brqs6oOvZn0z
+2025/11/05 17:44:58.768 5091 5120 Info third_party/arcore/ar/core/android/sdk/session_create.cc Dynamite load ok.
+2025/11/05 17:44:58.768 5091 5120 Info third_party/arcore/java/com/google/vr/dynamite/client/native/dynamite_client.cc Attempting to load native library arcore_c from package com.google.ar.core
+2025/11/05 17:44:58.850 5091 5120 Debug nativeloader Load /data/app/~~FcuP6E-3Z5xuaYXp4AHKEQ==/com.google.ar.core-brqs6oOvZn0z5VaBFsVgYg==/base.apk!/lib/arm64-v8a/libarcore_c.so using class loader ns clns-8 (caller=/data/app/~~FcuP6E-3Z5xuaYXp4AHKEQ==/com.google.ar.core-brqs6oOvZn0z5VaBFsVgYg==/base.apk): ok
+2025/11/05 17:44:58.853 5091 5120 Info third_party/arcore/java/com/google/vr/dynamite/client/native/dynamite_client.cc Dynamite::LoadNativeRemoteLibrary handle=6028603853245256701
+2025/11/05 17:44:58.853 5091 5120 Info third_party/arcore/ar/core/android/sdk/session_create.cc ARCore SDK: dynamite number_of_symbols_loaded=315
+2025/11/05 17:44:58.854 5091 5120 Info native I0000 00:00:1762382698.853868    5120 session_create_implementation.cc:263] Entering createImplementationWithFeaturesAndSettings. ARCore SDK version: [1.42.240220000].
+2025/11/05 17:44:58.867 5091 5120 Info native I0000 00:00:1762382698.867019    5120 session_create_implementation.cc:224] AugmentedRegion downsample mode from Phenotype: true
+2025/11/05 17:44:58.869 5091 5220 Verbose third_party/redwood/infrastructure/jni_common/jni_helper.cc JniHelper: attached thread (Called from line 368).
+2025/11/05 17:44:58.885 5091 5120 Info native I0000 00:00:1762382698.885354    5120 session_create_implementation_shared.cc:2545] min_apk_version_code is: 240220000, phenotype flag of enable_dual_camera_support is: false, phenotype flag of unified_data_source_status is: 2, is_dual_camera_supported based on device profile is: false
+2025/11/05 17:44:58.885 5091 5120 Info native I0000 00:00:1762382698.885626    5120 session_create_implementation_shared.cc:2556] Settings.camera_stack_option is not specified
+2025/11/05 17:44:58.885 5091 5120 Info native I0000 00:00:1762382698.885634    5120 session_create_implementation_shared.cc:2629] Datasource will be created with camera_stack_option = kUnifiedMono
+2025/11/05 17:44:58.885 5091 5120 Info native I0000 00:00:1762382698.885642    5120 android_camera.cc:176] Camera start operation timeout set to 4000 ms.
+2025/11/05 17:44:58.886 5091 5120 Error ACameraManager getCurrentDeviceId: Failed to call getDeviceIdsForUid to determine device id for uid 10342: No error
+2025/11/05 17:44:58.886 5091 5120 Info native I0000 00:00:1762382698.886606    5120 android_camera.cc:1846] Initializing camera manager.
+2025/11/05 17:44:58.893 5091 5120 Error ACameraManager getCurrentDeviceId: Failed to call getDeviceIdsForUid to determine device id for uid 10342: No error
+2025/11/05 17:44:58.895 5091 5120 Error ACameraManager getCurrentDeviceId: Failed to call getDeviceIdsForUid to determine device id for uid 10342: No error
+2025/11/05 17:44:58.896 5091 5120 Info native I0000 00:00:1762382698.896755    5120 android_camera.cc:1882] Camera manager initialized successfully with 2 cameras.
+2025/11/05 17:44:58.896 5091 5120 Info native I0000 00:00:1762382698.896903    5120 android_camera.cc:779] [Camera=1; State=CLOSED] Reset cleanly got to CLOSED state.
+2025/11/05 17:44:58.897 5091 5120 Info native I0000 00:00:1762382698.897829    5120 android_camera.cc:779] [Camera=0; State=CLOSED] Reset cleanly got to CLOSED state.
+2025/11/05 17:44:58.899 5091 5120 Info native I0000 00:00:1762382698.899253    5120 session_create_implementation_shared.cc:2728] Persistent online recalibration is enabled by Phenotype.
+2025/11/05 17:44:58.908 5091 5120 Info tflite Initialized TensorFlow Lite runtime.
+2025/11/05 17:44:58.909 5091 5120 Warn libc Access denied finding property "ro.mediatek.platform"
+2025/11/05 17:44:58.909 5091 5120 Warn libc Access denied finding property "ro.chipname"
+2025/11/05 17:44:58.909 5091 5120 Warn libc Access denied finding property "ro.hardware.chipname"
+2025/11/05 17:44:58.913 5091 5120 Info tflite Created TensorFlow Lite XNNPACK delegate for CPU.
+2025/11/05 17:44:58.913 5091 5120 Info tflite Replacing 2 out of 2 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 0.
+2025/11/05 17:44:58.918 5091 5120 Info native I0000 00:00:1762382698.918286    5120 online_calibration_manager.cc:109] OnlineCalibrationManager: Read online recalibration file successfully.
+2025/11/05 17:44:58.931 5091 5120 Warn ARCore-ContextUtils The API key for use with the Google AR service could not be obtained!
+2025/11/05 17:44:58.950 5091 5120 Info native I0000 00:00:1762382698.950074    5120 session_create_implementation_shared.cc:1315] semantic_segmentation enabled
+2025/11/05 17:44:58.956 5091 5120 Info CameraManagerGlobal Connecting to camera service
+2025/11/05 17:44:58.975 5091 5120 Debug nativeloader Load /data/app/~~FcuP6E-3Z5xuaYXp4AHKEQ==/com.google.ar.core-brqs6oOvZn0z5VaBFsVgYg==/base.apk!/lib/arm64-v8a/libhardware_buffer_stream_jni.so using class loader ns clns-8 (caller=/data/app/~~FcuP6E-3Z5xuaYXp4AHKEQ==/com.google.ar.core-brqs6oOvZn0z5VaBFsVgYg==/base.apk): ok
+2025/11/05 17:44:58.986 5091 5120 Info native I0000 00:00:1762382698.986008    5120 session_create_implementation_shared.cc:1618] ARCore feature image_prevent_callback_during_stop is: = false
+2025/11/05 17:44:58.986 5091 5120 Info native I0000 00:00:1762382698.986872    5120 android_sensors.cc:129] static sensor with name: Dynamic Sensor Manager, type: 32
+2025/11/05 17:44:58.986 5091 5120 Info native I0000 00:00:1762382698.986938    5120 android_sensors.cc:129] static sensor with name: ICM45631 Accelerometer, type: 1
+2025/11/05 17:44:58.986 5091 5120 Info native I0000 00:00:1762382698.986949    5120 android_sensors.cc:129] static sensor with name: MMC5616 Magnetometer, type: 2
+2025/11/05 17:44:58.986 5091 5120 Info native I0000 00:00:1762382698.986956    5120 android_sensors.cc:129] static sensor with name: Orientation Sensor, type: 3
+2025/11/05 17:44:58.986 5091 5120 Info native I0000 00:00:1762382698.986963    5120 android_sensors.cc:129] static sensor with name: ICM45631 Gyroscope, type: 4
+2025/11/05 17:44:58.986 5091 5120 Info native I0000 00:00:1762382698.986968    5120 android_sensors.cc:129] static sensor with name: TMD3733 Ambient Light, type: 5
+2025/11/05 17:44:58.986 5091 5120 Info native I0000 00:00:1762382698.986974    5120 android_sensors.cc:129] static sensor with name: ICP20100 Pressure Sensor, type: 6
+2025/11/05 17:44:58.986 5091 5120 Info native I0000 00:00:1762382698.986981    5120 android_sensors.cc:129] static sensor with name: TMD3733 Proximity (wake-up), type: 8
+2025/11/05 17:44:58.986 5091 5120 Info native I0000 00:00:1762382698.986986    5120 android_sensors.cc:129] static sensor with name: Gravity Sensor, type: 9
+2025/11/05 17:44:58.986 5091 5120 Info native I0000 00:00:1762382698.986992    5120 android_sensors.cc:129] static sensor with name: Linear Acceleration Sensor, type: 10
+2025/11/05 17:44:58.986 5091 5120 Info native I0000 00:00:1762382698.986997    5120 android_sensors.cc:129] static sensor with name: Rotation Vector Sensor, type: 11
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987001    5120 android_sensors.cc:129] static sensor with name: MMC5616 Magnetometer-Uncalibrated, type: 14
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987006    5120 android_sensors.cc:129] static sensor with name: Game Rotation Vector Sensor, type: 15
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987011    5120 android_sensors.cc:129] static sensor with name: ICM45631 Gyroscope-Uncalibrated, type: 16
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987016    5120 android_sensors.cc:129] static sensor with name: Significant Motion (wake-up), type: 17
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987022    5120 android_sensors.cc:129] static sensor with name: Step Detector, type: 18
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987028    5120 android_sensors.cc:129] static sensor with name: Step Counter, type: 19
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987034    5120 android_sensors.cc:129] static sensor with name: Geomagnetic Rotation Vector Sensor, type: 20
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987040    5120 android_sensors.cc:129] static sensor with name: Tilt Sensor (wake-up), type: 22
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987045    5120 android_sensors.cc:129] static sensor with name: Device Pickup Sensor (wake-up), type: 25
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987053    5120 android_sensors.cc:129] static sensor with name: Device Orientation, type: 27
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987058    5120 android_sensors.cc:129] static sensor with name: ICM45631 Accelerometer-Uncalibrated, type: 35
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987063    5120 android_sensors.cc:129] static sensor with name: ICM45631 Temperature, type: 65538
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987069    5120 android_sensors.cc:129] static sensor with name: ICP20100 Temperature, type: 65539
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987073    5120 android_sensors.cc:129] static sensor with name: Camera V-Sync 0, type: 65541
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987079    5120 android_sensors.cc:129] static sensor with name: Camera V-Sync 1, type: 65541
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987085    5120 android_sensors.cc:129] static sensor with name: Camera V-Sync 2, type: 65541
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987090    5120 android_sensors.cc:129] static sensor with name: VD6282 Rear Light Sensor, type: 65545
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987095    5120 android_sensors.cc:129] static sensor with name: Double Twist (wake-up), type: 131073
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987102    5120 android_sensors.cc:129] static sensor with name: Binned Brightness (wake-up), type: 131077
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987107    5120 android_sensors.cc:129] static sensor with name: Proximity Gated Single Tap Gesture (wake-up), type: 131083
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987113    5120 android_sensors.cc:129] static sensor with name: Proximity Gated Long Press Gesture (wake-up), type: 131085
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987119    5120 android_sensors.cc:129] static sensor with name: Quick Pickup Sensor (wake-up), type: 131087
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987124    5120 android_sensors.cc:129] static sensor with name: Auto Brightness, type: 131088
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987130    5120 android_sensors.cc:129] static sensor with name: Proximity(Voice Calls) Sensor (wake-up), type: 131092
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987280    5120 android_sensors.cc:262] Using uncalibrated accelerometer.
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987315    5120 android_sensors.cc:282] Uncalibrated magnetometer available.
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987323    5120 android_sensors.cc:290] Calibrated magnetometer available.
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987329    5120 android_sensors.cc:305] Using SENSOR_TYPE_LIGHT
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987337    5120 android_sensors.cc:305] Using SENSOR_TYPE_PRESSURE
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987343    5120 android_sensors.cc:305] Using SENSOR_TYPE_PROXIMITY
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987348    5120 android_sensors.cc:305] Using SENSOR_TYPE_GRAVITY
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987352    5120 android_sensors.cc:305] Using SENSOR_TYPE_ROTATION_VECTOR
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987357    5120 android_sensors.cc:305] Using SENSOR_TYPE_GAME_ROTATION_VECTOR
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987361    5120 android_sensors.cc:305] Using SENSOR_TYPE_GEOMAGNETIC_ROTATION_VECTOR
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987366    5120 android_sensors.cc:305] Using SENSOR_TYPE_STEP_DETECTOR
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987371    5120 android_sensors.cc:308] Could not find SENSOR_TYPE_HINGE_ANGLE
+2025/11/05 17:44:58.987 5091 5120 Info native I0000 00:00:1762382698.987382    5120 android_sensors.cc:334] Found IMU temperature sensor.
+2025/11/05 17:44:58.989 5091 5120 Info native I0000 00:00:1762382698.989482    5120 android_platform_checks.cc:206] IsZeroRotationLandscape = false
+2025/11/05 17:44:58.990 5091 5120 Info native I0000 00:00:1762382698.990164    5120 app_version_util.cc:51] Package name: com.google.ar.core App version: 1.51.252580493
+2025/11/05 17:44:58.990 5091 5120 Info native I0000 00:00:1762382698.990303    5120 logger.h:29] DataSourceMetrics: CamerasInit: 1.017us
+2025/11/05 17:44:58.990 5091 5120 Info native I0000 00:00:1762382698.990322    5120 session_create_implementation_shared.cc:1749] CPU Image enable frame delay to compensate delay: false
+2025/11/05 17:44:58.991 5091 5120 Info native I0000 00:00:1762382698.991139    5120 session_create_implementation_shared.cc:867] Pixel 9/10 stationary detection using stronger zero velocity measurement.
+2025/11/05 17:44:58.994 5091 5120 Info native I0000 00:00:1762382698.994805    5120 config_helpers.cc:441] IMU sigma values from data source are used
+2025/11/05 17:44:58.995 5091 5120 Info native I0000 00:00:1762382698.995046    5120 deep_io.cc:106] Load deepIO config: deepio_v5_pb.uncompressed
+2025/11/05 17:44:58.995 5091 5120 Info native I0000 00:00:1762382698.995215    5120 deep_io.cc:117] Load TFLite model: deepio_v5_tflite.uncompressed
+2025/11/05 17:44:59.002 5091 5120 Info tflite Replacing 65 out of 83 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 19 partitions for subgraph 0.
+2025/11/05 17:44:59.007 5091 5120 Info native I0000 00:00:1762382699.007279    5120 session_create_implementation_shared.cc:990] DeepIO release instantiated successfully.
+2025/11/05 17:44:59.009 5091 5120 Info native I0000 00:00:1762382699.009023    5120 inertial_estimator.cc:102] DeepIO model id: 5
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010209    5120 motion_tracking_context_config_helpers.cc:909] [MTCC] MotionTrackingContextConfig Settings:
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010383    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] DeviceMode: ARCore
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010407    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio_estimator_options:
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010414    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-max_num_slam_landmarks: 15
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010418    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-max_num_keyframes: 5
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010422    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-pixel_noise_sigma_for_unmapped_landmarks: 0.8
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010429    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-max_unmapped_landmark_constraints: 51
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010434    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-max_total_visual_constraints: 102
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010438    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-sbr_mahalanobis_distance_threshold_factor: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010442    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-mahalanobis_distance_upper_bound_approximation: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010446    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-sbr_measurement_pixel_sigma_scale_factor: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010450    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-camera_intrinsics_random_walk_variance: 0.001
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010456    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-use_simplified_noise_integration: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010461    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-use_block_monitor_for_online_calibration: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010469    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-initial_velocity_variance: 0.01
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010474    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-initial_roll_variance: 0.000685389
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010478    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-initial_pitch_variance: 0.000685389
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010483    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-gyro_noise_sigma: -1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010487    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-gyro_bias_sigma: -1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010491    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-accel_noise_sigma: -1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010496    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-accel_bias_sigma: -1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010501    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-output_vio_state_covariance: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010508    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-disable_expected_features_hints: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010513    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-max_consecutive_failed_inits_before_discarding_online_calibration: 7
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010518    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-discard_online_calibration_after_vio_fault: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010522    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-max_dropout_duration_for_tracking_initialization: 400ms
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010527    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-initialization_solver_type: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010532    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] vio-use_inverse_depth_prioritizing_policy_for_slam_landmarks: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010539    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] mapping_options:
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010545    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-enable_dsp: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010550    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-active_map_manager_mode: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010558    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-map_publish_keyframe_position_baseline_meter_squared_threshold: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010563    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-map_publish_keyframe_orientation_diff_rad_threshold: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010569    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-multi_map_process_mode: 2
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010573    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-map_optimizer_type: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010578    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-enable_loop_closure: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010582    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-run_pgo_before_bundle_adjustment: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010587    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-pgo_number_of_temporal_edges: 2
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010593    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-pgo_number_of_covisibility_edges: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010597    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-pgo_enable_mst_edges: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010601    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-loop_closure_max_keyframe_matches: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010605    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-loop_closure_query_delta_time_sec: 0.5
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010615    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-loop_closure_query_every_nth_keyframe: -1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010620    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-loop_closure_keyframe_insert_every_nth: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010624    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-loop_closure_query_mode: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010629    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-min_landmark_observations: 5
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010633    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-landmark_associator_reprojection_error_threshold: 10
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010637    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-map_optimizer_triangulation_reprojection_error_threshold: 7.5
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010641    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-map_marginalization_enable: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010645    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-map_marginalization_num_keyframes_to_marginalize: 20
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010649    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-map_marginalization_num_keyframes_to_retain: 5
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010652    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-map_marginalization_solver_type: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010656    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-add_keyframe_delta_time_seconds: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010660    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-add_keyframe_delta_rotation_degrees: 5
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010664    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-add_keyframe_delta_translation_meters: 0.06
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010668    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-add_keyframe_llc_percentage_threshold: 0.5
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010672    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-add_keyframe_min_llc_match_threshold: 30
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010676    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-enable_spatial_keyframing: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010680    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-estimate_camera_intrinsics_mode: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010684    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-estimate_imu_camera_extrinsics_mode: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010687    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-estimate_imu_intrinsics: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010693    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-use_prior_terms_in_calibration: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010697    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-use_motion_constraints: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010702    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-use_keyframe_freezing_strategy: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010708    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-use_visual_constraints_sparsification: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010713    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-visual_constraints_temporal_downsampling_rate: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010717    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-max_consecutive_skipped_online_solves: 5
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010722    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-map_landmark_keypoint_pixel_sigma: 1.5
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010729    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-remove_outlier_landmark_mode: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010733    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-remove_outlier_landmark_with_covariance_mode: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010737    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-landmark_outlier_rejection_threshold: 3
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010741    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-visual_error_pixel_sigma_multiplier: 1.5
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010745    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-visual_error_huber_loss_multiplier: 3
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010750    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-zero_velocity_error_sigma: 0.1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010754    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-zero_velocity_error_huber_loss_multiplier: 3
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010758    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-enable_keypoint_pruning: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010763    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-max_num_of_inactive_maps: 4
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010767    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-keyframe_initialization_strategy: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010771    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-llc_search_type: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010776    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] map-llc_max_sq_distance_between_keyframes_for_covisibility_search: 100
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010779    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] localization_options:
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010788    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] tracking_mode: LiteConcurrentOdometryAndMapping
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010792    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] multicamera_litecom: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010796    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] buffering_policy: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010800    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] time_sync_estimation_mode: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010804    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] camera_intrinsics_recalibration_mode: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010810    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] imu_intrinsics_recalibration_mode: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010814    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] extrinsics_recalibration_mode: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010818    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] inertial_tracking_policy: 2
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010823    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] max_alignment_transforms: 4
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010829    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] reset_world_if_no_vio: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010832    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_stereo_matching: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010837    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] num_matching_threads: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010841    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] use_klt_track_stitching: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010846    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] use_patch_tracking_during_stationary: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010849    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] startup_ignore_selection_duration: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010853    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_dsp_triangulator: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010858    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] max_valid_tracking_velocity: 6
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010862    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] min_velocity_for_feature_filtering_based_verification: 0.5
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010868    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] fault_detector_min_ransac_inlier_ratio: 0.15
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010872    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] fault_detector_min_num_matches: 20
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010879    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] fault_detector_max_accel_value_for_fault: 100
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010884    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] fault_detector_no_valid_translation_from_ransac_duration: inf
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010888    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] fault_detector_max_time_delta_between_feature_sets: 180ms
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010893    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] linear_velocity_measurement_noise_sigma: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010897    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] imu_decimation_frequency_hz: 110
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010900    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] imu_decimation_frequency_hz_for_other_modules: 90
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010904    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_moving_features_robustification: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010908    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] feature_matcher_sampson_pixel_error_threshold: 1.6
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010912    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] stereo_sampson_pixel_error_threshold: 4.242
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010916    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] zero_point_ransac_low_parallax_degree_threshold: 0.9
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010919    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_robust_initialization: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010929    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_use_tof_plane_in_vio: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010933    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_static_poses_constraints: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010939    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] static_poses_uses_imu_only: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010945    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] zero_vel_uses_accel_and_gyro: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010950    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] zero_velocity_noise_sigma: 0.006
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010954    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] pose_confidence_asset_path: pose_confidence_v0.tflite
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010960    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_alphatrack_debug_logging: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010967    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] debug_map_load_paths: 
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010972    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] allow_persistent_map_without_annotations: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010977    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] output_maps_filepath: 
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010982    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] export_summary_maps: 0
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010989    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] sufficient_number_of_landmarks_for_vio_initialization: 200
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010993    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_qualify_translation_in_fault_detector: 1
+2025/11/05 17:44:59.010 5091 5120 Info native I0000 00:00:1762382699.010997    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] ignore_speed_measurement_in_filter: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011003    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] minimum_number_of_frames_for_tracking_initialization: 5
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011009    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] maximum_iterations_for_tracking_ba_initialization: 18
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011013    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] max_allowable_velocity_change_after_ba_initialization: 1.5
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011017    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] max_initialization_velocity: 50
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011022    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] restrict_pose_displacement_in_initialization: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011026    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] restrict_pose_drift_in_initialization: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011030    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] estimator_stationary_state_detector_mode: 1
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011034    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_region_of_interest: 1
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011039    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_high_precision_vio_bad_performance_detection: 1
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011043    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] disable_thresholding_calibration_convergence_detection: 1
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011048    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] share_state_between_sessions: 1
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011052    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] share_state_between_sessions_after_stable: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011056    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] min_successful_tracking_frames_to_share_state: 10
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011061    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] camera_to_camera_delta_theta_sigma: 0.00174533
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011064    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] camera_to_camera_p_sigma: 0.005
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011068    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] multi_cameras_timestamp_sync_tolerance: 1ms
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011072    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] visual_measurements_timestamp_clamp_tolerance: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011075    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] duration_to_drop_camera_from_system: 300ms
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011079    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] no_feature_wait_time_for_reset: 1.2s
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011087    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] fault_detector_max_bad_vio_update_time: 1.5s
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011091    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] max_consecutive_delta_adf_position_vio: 0.2
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011096    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] max_consecutive_delta_adf_rotation_vio: 4
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011100    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] max_map_vs_vio_delta_adf_position_vio: 0.3
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011103    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] max_map_vs_vio_delta_adf_rotation_vio: 5
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011110    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_accel_bias_refinement: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011115    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] max_pose_extrapolation_time: 50ms
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011119    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_visual_feature_track_depth_provider_for_initialization: 1
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011124    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_gravity_vector_estimation_for_initialization: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011128    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_landmark_triangulator_lite: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011132    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] geometric_loop_closure_verification: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011136    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] klt_feature_tracks_provider_update_mode: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011140    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] max_ram_usage_size_in_kb_for_mapping: 1048576
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011144    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] mapping_memory_threshold_mb: -1
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011149    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] critical_path_priority: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011154    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] max_rolling_shutter_readout_duration: 35ms
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011158    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] dsp_acceleration_mode: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011162    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_multi_location_persistence: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011171    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_geometry_based_map_refresh: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011175    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_persistent_map_selection_using_image_embedding: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011180    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_eva_booster_for_descriptor_projection: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011186    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_learning_based_localization: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011192    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_dsp_feature_processing: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011200    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] temporal_feature_matcher_type: 1
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011204    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] pose_prediction_method: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011208    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] init_max_reprojection_error_per_landmark_in_pixels: 14
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011212    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] init_min_features_to_keyframe: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011216    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] init_min_landmarks_per_image: 9
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011220    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] expected_feature_frame_rate: 2
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011225    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] moving_platform_detector_config:
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011228    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] mpd-enable_moving_platform_detector: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011233    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] mpd-mode: VelocityVariance
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011238    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] mpd-reset_vio_on_moving_platform: 1
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011242    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] mpd-filter_alpha: 0.9
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011247    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] mpd-correction_position_delta_threshold: 0.03
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011251    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] mpd-use_velocity_variance: 1
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011255    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] mpd-velocity_variance_threshold: 0.0005
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011259    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] mpd-velocity_variance_filter_alpha: 0.8
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011262    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] mpd-velocity_variance_nth_landmark: 10
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011266    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] mpd-velocity_variance_landmark_distance: 10
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011270    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] mpd-relative_position_error_squared_threshold: 0.003025
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011274    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] mpd-enable_extra_logging: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011282    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] max_sbr_failures_for_localization_reevaluation: 2
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011287    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_new_world_for_recovery_from_inertial_fallback: 1
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011292    5120 motion_tracking_context_config_helpers.cc:913] [MTCC] enable_partially_copy_for_map_publishing: 0
+2025/11/05 17:44:59.011 5091 5120 Info native I0000 00:00:1762382699.011346    5120 motion_tracking_context.cc:937] VPS data synchronizer is successfully initialized.
+2025/11/05 17:44:59.012 5091 5120 Info native I0000 00:00:1762382699.012101    5120 feature_matcher_and_filter.cc:305] Enabled the robustification to large-sized and fast-moving objects on this mono-camera device.
+2025/11/05 17:44:59.015 5091 5120 Info native I0000 00:00:1762382699.015428    5120 fused_pose_provider.cc:127] FusedPoseProvider config.max_alignment_transforms: 4 config.reset_world_if_no_vio: true config.reset_world_for_recovery_from_inertial_fallback: true
+2025/11/05 17:44:59.015 5091 5120 Info tflite Replacing 3 out of 3 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 0.
+2025/11/05 17:44:59.015 5091 5120 Info native I0000 00:00:1762382699.015967    5120 pose_confidence_estimator.cc:230] Pose confidence model loaded successfully
+2025/11/05 17:44:59.017 5091 5120 Info native I0000 00:00:1762382699.017776    5120 bundle_adjustment_initializer.cc:122] [SSBA Initialization] SSBA initialization uses imu preintegration error with shared bias term.
+2025/11/05 17:44:59.017 5091 5120 Info native I0000 00:00:1762382699.017833    5120 bundle_adjustment_initializer.cc:124] [SSBA Initialization] SSBA initialization uses Ceres and uses double as Scalar.
+2025/11/05 17:44:59.044 5091 5120 Info native I0000 00:00:1762382699.044302    5120 visual_inertial_wls.cc:205] [M] Initializing VisualInertialWLS with viwls_config_.enable_loop_closure: true
+2025/11/05 17:44:59.044 5091 5120 Info native I0000 00:00:1762382699.044441    5120 visual_inertial_wls.cc:209] [M] Initializing VisualInertialWLS with viwls_config_.run_pgo_before_bundle_adjustment: false
+2025/11/05 17:44:59.050 5091 5120 Info native I0000 00:00:1762382699.050582    5120 motion_tracking_context.cc:3871] MTC Enable CPU landmark triangulation
+2025/11/05 17:44:59.053 5091 5120 Info native I0000 00:00:1762382699.053576    5120 asset_manager_util.cc:61] Created global reference to asset manager.
+2025/11/05 17:44:59.053 5091 5120 Info native I0000 00:00:1762382699.053627    5120 session_create_implementation_shared.cc:1774] Normal detector created.
+2025/11/05 17:44:59.059 5091 5120 Info native I0000 00:00:1762382699.059624    5120 planar_target_tracking_manager.h:116] Config of PlanarTargetTrackingManager:
+2025/11/05 17:44:59.059 5091 5120 Info native -pose_refinement_with_detection_interval_ns: 0
+2025/11/05 17:44:59.059 5091 5120 Info native -min_interval_between_detections_ns: 500000000
+2025/11/05 17:44:59.059 5091 5120 Info native -filter_parallax: false
+2025/11/05 17:44:59.059 5091 5120 Info native -filter_result: true
+2025/11/05 17:44:59.059 5091 5120 Info native -multiple_targets: true
+2025/11/05 17:44:59.059 5091 5120 Info native -mini_detection: true
+2025/11/05 17:44:59.059 5091 5120 Info native -tracking_mode: 1
+2025/11/05 17:44:59.059 5091 5120 Info native -camera_id: 0
+2025/11/05 17:44:59.062 5091 5120 Info native I0000 00:00:1762382699.062249    5120 session_create_implementation.cc:422] ARCore feature image_prevent_callback_during_stop 2 is: = false
+2025/11/05 17:44:59.064 5091 5120 Info native I0000 00:00:1762382699.063971    5120 session_manager.cc:48] ArPresto::Session created.camera direction:0
+2025/11/05 17:44:59.064 5091 5120 Verbose Unity-ARCore OnBeforeSetConfiguration
+2025/11/05 17:44:59.064 5091 5120 Info native I0000 00:00:1762382699.064102    5120 session.cc:1289] Entering Session::Resume.
+2025/11/05 17:44:59.064 5091 5120 Info native I0000 00:00:1762382699.064393    5120 camera_config_manager.cc:720] UpdateBugFixes on CameraConfigManager is unimplemented!
+2025/11/05 17:44:59.081 5091 5120 Info native I0000 00:00:1762382699.081759    5120 session.cc:3638] Update Frame Delay to 0 frames.
+2025/11/05 17:44:59.085 5091 5120 Debug CompatChangeReporter Compat change id reported: 236825255; UID 10342; state: ENABLED
+2025/11/05 17:44:59.091 5091 5120 Info native I0000 00:00:1762382699.091120    5120 android_sensors.cc:354] Starting thread.
+2025/11/05 17:44:59.093 5091 5268 Info native I0000 00:00:1762382699.093293    5268 android_sensor_event_source.cc:357] Adding sensor SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED requested batch delay (us)0 requested sample period 5ms
+2025/11/05 17:44:59.103 5091 5120 Info native I0000 00:00:1762382699.103291    5120 logger.h:29] DataSourceMetrics: kStartImageSubSystem: 12.00122ms
+2025/11/05 17:44:59.103 5091 5120 Info native I0000 00:00:1762382699.103377    5120 session.cc:1477] Session::ResumeWithAnalytics returning OK.
+2025/11/05 17:44:59.103 5091 5120 Info native I0000 00:00:1762382699.103733    5120 session_manager.cc:223] ArPresto::Moving from ArPrestoStatus 103 to 101
+2025/11/05 17:44:59.104 5091 5120 Error native E0000 00:00:1762382699.103776    5120 session_lite_c_api.cc:153] operator(): width <= 0
+2025/11/05 17:44:59.104 5091 5120 Info native I0000 00:00:1762382699.104308    5120 session.cc:3638] Update Frame Delay to 0 frames.
+2025/11/05 17:44:59.107 5091 5268 Info native I0000 00:00:1762382699.107147    5268 android_sensor_event_source.cc:265] Configuring SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED min delay 5ms requesting 5ms
+2025/11/05 17:44:59.107 5091 5268 Info native I0000 00:00:1762382699.107254    5268 android_sensor_event_source.cc:279] Configuring SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED max batch size 3000 requesting batch delay 0┬╡s
+2025/11/05 17:44:59.114 5091 5268 Info native I0000 00:00:1762382699.114349    5268 android_sensor_event_source.cc:357] Adding sensor SENSOR_TYPE_GYROSCOPE_UNCALIBRATED requested batch delay (us)0 requested sample period 5ms
+2025/11/05 17:44:59.118 5091 5268 Info native I0000 00:00:1762382699.118300    5268 android_sensor_event_source.cc:265] Configuring SENSOR_TYPE_GYROSCOPE_UNCALIBRATED min delay 5ms requesting 5ms
+2025/11/05 17:44:59.118 5091 5268 Info native I0000 00:00:1762382699.118353    5268 android_sensor_event_source.cc:279] Configuring SENSOR_TYPE_GYROSCOPE_UNCALIBRATED max batch size 3000 requesting batch delay 0┬╡s
+2025/11/05 17:44:59.130 5091 5268 Info native I0000 00:00:1762382699.130061    5268 input_synchronizer.cc:104] [InputSynchronizer] Received first IMU sample at timestamp: 86051467194298
+2025/11/05 17:44:59.130 5091 5268 Info native I0000 00:00:1762382699.130136    5268 input_synchronizer.cc:104] [InputSynchronizer] Received first IMU sample at timestamp: 86051467194298
+2025/11/05 17:44:59.187 5091 5120 Verbose Unity-ARCore 	Configuration property LightEstimationMode changed: 1 => 0
+2025/11/05 17:44:59.187 5091 5120 Verbose Unity-ARCore 	Configuration property PlaneFindingMode changed: 3 => 0
+2025/11/05 17:44:59.187 5091 5120 Verbose Unity-ARCore 	Configuration property FocusMode changed: 0 => 1
+2025/11/05 17:44:59.187 5091 5120 Verbose Unity-ARCore Configuration will be updated with these features enabled:
+2025/11/05 17:44:59.187 5091 5120 Verbose Unity-ARCore 	RearCamera
+2025/11/05 17:44:59.187 5091 5120 Verbose Unity-ARCore 	PositionAndRotation
+2025/11/05 17:44:59.187 5091 5120 Verbose Unity-ARCore 	AutoFocus
+2025/11/05 17:44:59.187 5091 5120 Verbose Unity-ARCore OnBeforeSetConfiguration
+2025/11/05 17:44:59.200 5091 5120 Verbose Unity-ARCore 	AugmentedImageDatabase: 0xb4000070ef542d50
+2025/11/05 17:44:59.200 5091 5120 Verbose Unity-ARCore 	LightEstimationMode: 0
+2025/11/05 17:44:59.200 5091 5120 Verbose Unity-ARCore 	PlaneFindingMode: 0
+2025/11/05 17:44:59.200 5091 5120 Verbose Unity-ARCore 	UpdateMode: 0
+2025/11/05 17:44:59.200 5091 5120 Verbose Unity-ARCore 	FocusMode: 1
+2025/11/05 17:44:59.200 5091 5120 Verbose Unity-ARCore 	AugmentedFaceMode: 0
+2025/11/05 17:44:59.200 5091 5120 Verbose Unity-ARCore 	DepthMode: 0
+2025/11/05 17:44:59.200 5091 5120 Verbose Unity-ARCore 	InstantPlacementMode: 0
+2025/11/05 17:44:59.200 5091 5120 Verbose Unity-ARCore 	ImageStabilizationMode: 0
+2025/11/05 17:44:59.200 5091 5120 Info native I0000 00:00:1762382699.200454    5120 session.cc:628] New session config:
+2025/11/05 17:44:59.200 5091 5120 Info native ArConfig
+2025/11/05 17:44:59.200 5091 5120 Info native  augmented_face_mode:           AR_AUGMENTED_FACE_MODE_DISABLED
+2025/11/05 17:44:59.200 5091 5120 Info native  augmented_image_database:      [0 images]
+2025/11/05 17:44:59.200 5091 5120 Info native  cloud_anchor_mode:             AR_CLOUD_ANCHOR_MODE_DISABLED
+2025/11/05 17:44:59.200 5091 5120 Info native  depth_mode:                    AR_DEPTH_MODE_DISABLED
+2025/11/05 17:44:59.200 5091 5120 Info native  semantic_mode:                AR_SEMANTIC_MODE_DISABLED
+2025/11/05 17:44:59.200 5091 5120 Info native  focus_mode:                    AR_FOCUS_MODE_AUTO
+2025/11/05 17:44:59.200 5091 5120 Info native  geospatial_mode:               AR_GEOSPATIAL_MODE_DISABLED
+2025/11/05 17:44:59.200 5091 5120 Info native  instant_placement_mode:        AR_INSTANT_PLACEMENT_MODE_DISABLED
+2025/11/05 17:44:59.200 5091 5120 Info native  light_estimation_mode:         AR_LIGHT_ESTIMATION_MODE_DISABLED
+2025/11/05 17:44:59.200 5091 5120 Info native  plane_finding_mode:            AR_PLANE_FINDING_MODE_DISABLED
+2025/11/05 17:44:59.200 5091 5120 Info native  update_mode:                   AR_UPDATE_MODE_BLOCKING
+2025/11/05 17:44:59.200 5091 5120 Info native I0000 00:00:1762382699.200524    5120 session.cc:621] Session::CheckAndWriteCurrentConfig returning OK.
+2025/11/05 17:44:59.363 5091 5120 Info Unity SetGameState: isLoading: false, mode: UNKNOWN, label: 0, quality: 1
+2025/11/05 17:44:59.380 5091 5267 Info native I0000 00:00:1762382699.380392    5267 logger.h:29] DataSourceMetrics: kFirstGlCallback: 289.102865ms
+2025/11/05 17:44:59.462 5091 5330 Info native I0000 00:00:1762382699.462130    5330 timebase_helpers.cc:184] Timebase offset initialized to 0
+2025/11/05 17:44:59.462 5091 5330 Info native I0000 00:00:1762382699.462178    5330 logger.h:29] DataSourceMetrics: kFirstImageCallback: 370.888713ms
+2025/11/05 17:44:59.487 5091 5330 Error native E0000 00:00:1762382699.487652    5330 static_feature_frame_selector.cc:79] Unknown old image at: 86051732370393 ns
+2025/11/05 17:44:59.487 5091 5330 Warn native W0000 00:00:1762382699.487856    5330 session.cc:1274] INVALID_ARGUMENT: Sensor timestamps must be strictly monotonically increasing, instead received 86051756530615 -> 86051723198583; Failed to add timestamp info to external data synchronizer.
+2025/11/05 17:44:59.487 5091 5330 Warn native === Source Location Trace: === 
+2025/11/05 17:44:59.487 5091 5330 Warn native third_party/arcore/ar/video/external_data_sync.cc:43
+2025/11/05 17:44:59.487 5091 5330 Error native E0000 00:00:1762382699.487887    5330 static_feature_frame_selector.cc:79] Unknown old image at: 86051732370393 ns
+2025/11/05 17:44:59.497 5091 5254 Info native I0000 00:00:1762382699.497270    5254 input_synchronizer.cc:49] [InputSynchronizer] Received first frame sample at timestamp: 86051765702425
+2025/11/05 17:44:59.497 5091 5248 Info native I0000 00:00:1762382699.497820    5248 vio_estimator.cc:1382] [VioEstimator] [PauseResume] HandleInitializationStage with feature tracks at timestamp: 86051765702425 ns.
+2025/11/05 17:44:59.498 5091 5338 Info native I0000 00:00:1762382699.498479    5338 jni_util.cc:43] GetEnv: not attached
+2025/11/05 17:44:59.499 5091 5244 Info native I0000 00:00:1762382699.498445    5244 model_inference_cpu.cc:106] Successfully started the ArDepthCalculator graph.
+2025/11/05 17:44:59.501 5091 5255 Info native I0000 00:00:1762382699.501248    5255 data_manager.cc:87] [M] VisualInertialState is kNotTracking. Wait.
+2025/11/05 17:44:59.501 5091 5091 Warn UnityMain type=1400 audit(0.0:14952): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:44:59.506 5091 5338 Info tflite Replacing 299 out of 299 node(s) with delegate (TfLiteXNNPackDelegate) node, yielding 1 partitions for subgraph 0.
+2025/11/05 17:44:59.525 5091 5091 Warn UnityMain type=1400 audit(0.0:14953): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:44:59.557 5091 5091 Warn UnityMain type=1400 audit(0.0:14954): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:44:59.583 5091 5248 Info native I0000 00:00:1762382699.583883    5248 vio_estimator.cc:1382] [VioEstimator] [PauseResume] HandleInitializationStage with feature tracks at timestamp: 86051864311493 ns.
+2025/11/05 17:44:59.584 5091 5255 Info native I0000 00:00:1762382699.584350    5255 data_manager.cc:87] [M] VisualInertialState is kNotTracking. Wait.
+2025/11/05 17:44:59.597 5091 5091 Warn UnityMain type=1400 audit(0.0:14955): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:44:59.703 5091 5248 Info native I0000 00:00:1762382699.703088    5248 vio_estimator.cc:1382] [VioEstimator] [PauseResume] HandleInitializationStage with feature tracks at timestamp: 86051964307586 ns.
+2025/11/05 17:44:59.703 5091 5255 Info native I0000 00:00:1762382699.703435    5255 data_manager.cc:87] [M] VisualInertialState is kNotTracking. Wait.
+2025/11/05 17:44:59.778 5091 5248 Info native I0000 00:00:1762382699.778739    5248 vio_estimator.cc:1382] [VioEstimator] [PauseResume] HandleInitializationStage with feature tracks at timestamp: 86052064303679 ns.
+2025/11/05 17:44:59.779 5091 5255 Info native I0000 00:00:1762382699.779147    5255 data_manager.cc:87] [M] VisualInertialState is kNotTracking. Wait.
+2025/11/05 17:44:59.892 5091 5248 Info native I0000 00:00:1762382699.892097    5248 vio_estimator.cc:1382] [VioEstimator] [PauseResume] HandleInitializationStage with feature tracks at timestamp: 86052165686841 ns.
+2025/11/05 17:44:59.904 5091 5248 Info native I0000 00:00:1762382699.904575    5248 bundle_adjustment_initializer.cc:757] Intrinsic vector size for camera id:200 is 7
+2025/11/05 17:44:59.957 5091 5248 Info native I0000 00:00:1762382699.957381    5248 bundle_adjustment_initializer.cc:977] [SSBA Solver] Initializer did not converge: Maximum number of iterations reached. Number of iterations: 18.
+2025/11/05 17:44:59.996 5091 5248 Info native I0000 00:00:1762382699.996828    5248 bundle_adjustment_initializer.cc:669] Refinement did not converge: Maximum number of iterations reached. Number of iterations: 18.
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.996999    5248 bundle_adjustment_initializer.cc:988] [SSBA Depth Refinement] Refine successfully!
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.997456    5248 bundle_adjustment_initialization.h:274] Number of measurements used in BA initialization for temporal landmarks: 300
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.997487    5248 bundle_adjustment_initialization.h:276] Number of good measurements (i.e., reprojection errors <= 3 pixels) in BA initialization for temporal landmarks: 298
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.997575    5248 vio_estimator.cc:356] [VioEstimator] Initialization sliding window states 
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.997602    5248 vio_estimator.cc:359] [VioEstimator] state 0 IMU position: [0]; [0]; [0]
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.997621    5248 vio_estimator.cc:359] [VioEstimator] state 1 IMU position: [0.00461199]; [-0.00161346]; [-0.00141411]
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.997631    5248 vio_estimator.cc:359] [VioEstimator] state 2 IMU position: [0.00764779]; [-0.00308472]; [-0.00264647]
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.997638    5248 vio_estimator.cc:359] [VioEstimator] state 3 IMU position: [0.0101503]; [-0.00372936]; [-0.00384321]
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.997645    5248 vio_estimator.cc:359] [VioEstimator] state 4 IMU position: [0.0121983]; [-0.0034985]; [-0.00515977]
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.997650    5248 vio_estimator.cc:365] [VioEstimator] Maintain Yaw transformation: [-0.000407497, -1, -6.737e-17, 0]; [1, -0.000407497, -1.67166e-16, 0]; [1.67139e-16, -6.74381e-17, 1, 0]; [0, 0, 0, 1]
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.997666    5248 vio_estimator.cc:379] [VioEstimator] Initialization sliding window states affine MaintainYaw transformation: 
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.997670    5248 vio_estimator.cc:383] [VioEstimator] state 0 transformed IMU position: [0]; [0]; [0]
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.997676    5248 vio_estimator.cc:383] [VioEstimator] state 1 transformed IMU position: [0.00161158]; [0.00461265]; [-0.00141411]
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.997684    5248 vio_estimator.cc:383] [VioEstimator] state 2 transformed IMU position: [0.00308161]; [0.00764905]; [-0.00264647]
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.997691    5248 vio_estimator.cc:383] [VioEstimator] state 3 transformed IMU position: [0.00372523]; [0.0101518]; [-0.00384321]
+2025/11/05 17:44:59.997 5091 5248 Info native I0000 00:00:1762382699.997697    5248 vio_estimator.cc:383] [VioEstimator] state 4 transformed IMU position: [0.00349353]; [0.0121997]; [-0.00515977]
+2025/11/05 17:45:00.000 5091 5248 Info native I0000 00:00:1762382700.000484    5248 vio_estimator.cc:1483] [VioEstimator] Successful initialization at features timestamp: 86052165686841 ns, took:399.984416ms, processed frames: 5
+2025/11/05 17:45:00.001 5091 5238 Info native I0000 00:00:1762382700.001224    5238 pose_manager.cc:326] [PoseManager] World pose node changing to new VIO pose node created: 11211173351405899051
+2025/11/05 17:45:00.001 5091 5120 Warn native W0000 00:00:1762382700.001286    5120 pose_manager.cc:137] [PoseManager] Failed to query IMU integrated pose: FAILED_PRECONDITION: No data available.
+2025/11/05 17:45:00.001 5091 5120 Warn native === Source Location Trace: === 
+2025/11/05 17:45:00.001 5091 5120 Warn native third_party/redwood/perception/pose_manager/latest_pose_tracker.cc:409
+2025/11/05 17:45:00.001 5091 5120 Warn native W0000 00:00:1762382700.001710    5120 pose_manager.cc:185] [PoseManager] Failed to query IMU integrated pose: FAILED_PRECONDITION: No data available.
+2025/11/05 17:45:00.001 5091 5120 Warn native === Source Location Trace: === 
+2025/11/05 17:45:00.001 5091 5120 Warn native third_party/redwood/perception/pose_manager/latest_pose_tracker.cc:409
+2025/11/05 17:45:00.004 5091 5238 Info native I0000 00:00:1762382700.004721    5238 latency_tracker.cc:152] HeT initialized: Initialization_Time_Ms: 399.984
+2025/11/05 17:45:00.041 5091 5120 Info native I0000 00:00:1762382700.041009    5120 session_manager.cc:223] ArPresto::Moving from ArPrestoStatus 101 to 100
+2025/11/05 17:45:00.201 5091 5091 Warn UnityMain type=1400 audit(0.0:14973): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:45:00.233 5091 5091 Warn UnityMain type=1400 audit(0.0:14974): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:45:00.265 5091 5091 Warn UnityMain type=1400 audit(0.0:14975): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:45:00.301 5091 5091 Warn UnityMain type=1400 audit(0.0:14976): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:45:00.333 5091 5091 Warn UnityMain type=1400 audit(0.0:14977): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:45:01.205 5091 5091 Warn UnityMain type=1400 audit(0.0:15003): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:45:01.237 5091 5091 Warn UnityMain type=1400 audit(0.0:15004): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:45:01.269 5091 5091 Warn UnityMain type=1400 audit(0.0:15005): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:45:01.305 5091 5091 Warn UnityMain type=1400 audit(0.0:15006): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:45:01.337 5091 5091 Warn UnityMain type=1400 audit(0.0:15007): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:45:01.578 5091 5120 Info Unity [TRACE] Executing ActionSet<AppState>[target=root actions=SetCaptureStatusAction[status=Starting]]
+2025/11/05 17:45:01.578 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:01.578 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:01.578 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:01.578 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:45:01.578 5091 5120 Info Unity FofX.UnityLogger:Trace(String) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:51)
+2025/11/05 17:45:01.578 5091 5120 Info Unity FofX.UnityLogger:Generic(LogLevel, String, Exception) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:17)
+2025/11/05 17:45:01.578 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteActions(IActionSet, Boolean, Boolean) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNodeContext.cs:153)
+2025/11/05 17:45:01.578 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteAction(AppState, LogLevel, Action, ObservableNodeAction`1[]) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNodeContext.cs:539)
+2025/11/05 17:45:01.578 5091 5120 Info Unity FofX.State
+2025/11/05 17:45:01.579 5091 5120 Info Unity [TRACE] Observed changes:
+2025/11/05 17:45:01.579 5091 5120 Info Unity     [source=root/captureStatus, type=Set, currentValue=Starting, previousValue=Idle]
+2025/11/05 17:45:01.579 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:01.579 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:01.579 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:01.579 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:45:01.579 5091 5120 Info Unity FofX.UnityLogger:Trace(String) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:51)
+2025/11/05 17:45:01.579 5091 5120 Info Unity FofX.UnityLogger:Generic(LogLevel, String, Exception) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:17)
+2025/11/05 17:45:01.579 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:NotifyObserversAndReset(LogLevel) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNodeContext.cs:207)
+2025/11/05 17:45:01.579 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteActions(IActionSet, Boolean, Boolean) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNodeContext.cs:168)
+2025/11/05 17:45:01.579 5091 5120 Info Unity FofX.Stateful.ObservableNodeCont
+2025/11/05 17:45:01.585 5091 5120 Info Unity [TRACE] Notifying Observers:
+2025/11/05 17:45:01.585 5091 5120 Info Unity     - StatefulPrimitiveObservable`1.HandleSourceChanged
+2025/11/05 17:45:01.585 5091 5120 Info Unity     - StatefulPrimitiveObservable`1.HandleSourceChanged
+2025/11/05 17:45:01.585 5091 5120 Info Unity     - StatefulPrimitiveObservable`1.HandleSourceChanged
+2025/11/05 17:45:01.585 5091 5120 Info Unity     - CaptureController.HandleCaptureStatusChanged
+2025/11/05 17:45:01.585 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:01.585 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:01.585 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:01.585 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:45:01.585 5091 5120 Info Unity FofX.UnityLogger:Trace(String) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:51)
+2025/11/05 17:45:01.585 5091 5120 Info Unity FofX.UnityLogger:Generic(LogLevel, String, Exception) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:17)
+2025/11/05 17:45:01.585 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:NotifyObserversAndReset(LogLevel) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNodeContext.cs:210)
+2025/11/05 17:45:01.585 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteActions(IActionSet, Boolean, Boolean) (at
+2025/11/05 17:45:01.587 5091 5120 Info Unity Capture root: /storage/emulated/0/Android/data/com.outernet.captureapp/files/Captures
+2025/11/05 17:45:01.587 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:01.587 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:01.587 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:01.587 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:45:01.587 5091 5120 Info Unity <StartCapture>d__17:MoveNext() (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:61)
+2025/11/05 17:45:01.587 5091 5120 Info Unity Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder:Start(<StartCapture>d__17&) (at .\Library\PackageCache\com.cysharp.unitask@6a18b5d4ef81\Runtime\CompilerServices\AsyncUniTaskMethodBuilder.cs:111)
+2025/11/05 17:45:01.587 5091 5120 Info Unity LocalCaptureController:StartCapture(CancellationToken, Single)
+2025/11/05 17:45:01.587 5091 5120 Info Unity PlerionClient.Client.<StartCapture>d__15:MoveNext() (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\CaptureController.cs:217)
+2025/11/05 17:45:01.587 5091 5120 Info Unity Cysharp.Threading.Tasks.CompilerServices.AsyncUniTaskMethodBuilder:Start(<StartCapture>d__15&) (at .\Library\PackageCache\com.cysharp.u
+2025/11/05 17:45:01.633 5091 5208 Info native I0000 00:00:1762382701.633412    5208 arpresto_api.cc:212] ArPresto::ArPresto_setEnabled
+2025/11/05 17:45:01.633 5091 5208 Info native I0000 00:00:1762382701.633524    5208 session.cc:1707] Entering Session::Pause.
+2025/11/05 17:45:01.633 5091 5208 Info native I0000 00:00:1762382701.633663    5208 plane_manager.cc:981] PopulatePlaneEstimationStatistics  number_of_normal_segmentations: 0, number_of_plane_normal_segment_matches: 0, vertical_planes_boundary_area: 0, vertical_planes_ml_boundary_growth: 0, number_of_vertical_planes: 0, number_of_vertical_planes_with_ml_boundary_growth: 0, avg_duration_in_seconds: 0, tof_merge_quality_stats_.Empty(): true, tof_merge_quality_stats_.hist_area_overlap_ratio_: [0.750, 0.760): 0.000000, [0.760, 0.770): 0.000000, [0.770, 0.780): 0.000000, [0.780, 0.790): 0.000000, [0.790, 0.800): 0.000000, [0.800, 0.810): 0.000000, [0.810, 0.820): 0.000000, [0.820, 0.830): 0.000000, [0.830, 0.840): 0.000000, [0.840, 0.850): 0.000000, [0.850, 0.860): 0.000000, [0.860, 0.870): 0.000000, [0.870, 0.880): 0.000000, [0.880, 0.890): 0.000000, [0.890, 0.900): 0.000000, [0.900, 0.910): 0.000000, [0.910, 0.920): 0.000000, [0.920, 0.930): 0.000000, [0.930, 0.940): 0.000000, [0.940, 0.950): 0.000000, [0.950, 0.960): 0.000000, [0.960, 0.970): 0.000000, [0.970, 0.980): 0.000000, [0.980, 0.990): 0.000000, [0.990, 1.000): 0.000000, [1.000, inf): 0.000000, , tof_merge_quality_stats_.hist_feature_overlap_ratio_: [0.900, 0.905): 0.000000, [0.905, 0.910): 0.000000, [0.910, 0.915): 0.000000, [0.915, 0.920): 0.000000, [0.920, 0.925): 0.000000, [0.925, 0.930): 0.000000, [0.930, 0.935): 0.000000, [0.935, 0.940): 0.000000, [0.940, 0.945): 0.000000, [0.945, 0.950): 0.000000, [0.950, 0.955): 0.000000, [0.955, 0.960): 0.000000, [0.960, 0.965): 0.000000, [0.965, 0.970): 0.000000, [0.970, 0.975): 0.000000, [0.975, 0.980): 0.000000, [0.980, 0.985): 0.000000, [0.985, 0.990): 0.000000, [0.990, 0.995): 0.000000, [0.995, 1.000): 0.000000, [1.000, inf): 0.000000, , tof_merge_quality_stats_.hist_normal_closeness_: [0.900, 0.905): 0.000000, [0.905, 0.910): 0.000000, [0.910, 0.915): 0.000000, [0.915, 0.920): 0.000000, [0.920, 0.925): 0.000000, [0.925, 0.930): 0.000000, [0.930, 0.935): 0.000000, [0.935, 0.940): 0.000000, [0.940, 0.945): 0.000000, [0.945, 0.950): 0.000000, [0.950, 0.955): 0.000000, [0.955, 0.960): 0.000000, [0.960, 0.965): 0.000000, [0.965, 0.970): 0.000000, [0.970, 0.975): 0.000000, [0.975, 0.980): 0.000000, [0.980, 0.985): 0.000000, [0.985, 0.990): 0.000000, [0.990, 0.995): 0.000000, [0.995, 1.000): 0.000000, [1.000, inf): 0.000000, , tof_merge_quality_stats_.hist_plane_distance_: [0.000, 0.010): 0.000000, [0.010, 0.020): 0.000000, [0.020, 0.030): 0.000000, [0.030, 0.040): 0.000000, [0.040, 0.050): 0.000000, [0.050, 0.060): 0.000000, [0.060, 0.070): 0.000000, [0.070, 0.080): 0.000000, [0.080, 0.090): 0.000000, [0.090, 0.100): 0.000000, [0.100, 0.110): 0.000000, [0.110, 0.120): 0.000000, [0.120, 0.130): 0.000000, [0.130, 0.140): 0.000000, [0.140, 0.150): 0.000000, [0.150, 0.160): 0.000000, [0.160, 0.170): 0.000000, [0.170, 0.180): 0.000000, [0.180, 0.190): 0.000000, [0.190, 0.200): 0.000000, [0.200, 0.210): 0.000000, [0.210, 0.220): 0.000000, [0.220, 0.230): 0.000000, [0.230, 0.240): 0.000000, [0.240, 0.250): 0.000000, [0.250, 0.260): 0.000000, [0.260, 0.270): 0.000000, [0.270, 0.280): 0.000000, [0.280, 0.290): 0.000000, [0.290, 0.300): 0.000000, [0.300, 0.310): 0.000000, [0.310, 0.320): 0.000000, [0.320, 0.330): 0.000000, [0.330, 0.340): 0.000000, [0.340, 0.350): 0.000000, [0.350, 0.360): 0.000000, [0.360, 0.370): 0.000000, [0.370, 0.380): 0.000000, [0.380, 0.390): 0.000000, [0.390, 0.400): 0.000000, [0.400, 0.410): 0.000000, [0.410, 0.420): 0.000000, [0.420, 0.430): 0.000000, [0.430, 0.440): 0.000000, [0.440, 0.450): 0.000000, [0.450, 0.460): 0.000000, [0.460, 0.470): 0.000000, [0.470, 0.480): 0.000000, [0.480, 0.490): 0.000000, [0.490, 0.500): 0.000000, [0.500, inf): 0.000000, , ms_merge_quality_stats_.Empty(): true, ms_merge_quality_stats_.hist_area_overlap_ratio_: [0.750, 0.760): 0.000000, [0.760, 0.770): 0.000000, [0.770, 0.780): 0.000000, [0.780, 0.790): 0.000000, [0.790, 0.800): 0.000000, [0.800, 0.810): 0.000000, [0.810, 0.820): 0.000000, [0.820, 0.830): 0.000000, [0.830, 0.840): 0.000000, [0.840, 0.8
+2025/11/05 17:45:01.633 5091 5208 Info native 
+2025/11/05 17:45:01.633 5091 5208 Info native I0000 00:00:1762382701.633980    5208 online_calibration_manager.cc:167] OnlineCalibrationManager: Discarding the new online recalibration estimates.
+2025/11/05 17:45:01.634 5091 5120 Info Unity Selected camera configuration: 1920x1080 @ 30fps
+2025/11/05 17:45:01.634 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:01.634 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:01.634 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:01.634 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:45:01.634 5091 5120 Info Unity <StartCapture>d__17:MoveNext() (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:91)
+2025/11/05 17:45:01.634 5091 5120 Info Unity Cysharp.Threading.Tasks.CompilerServices.AsyncUniTask`1:Run() (at .\Library\PackageCache\com.cysharp.unitask@6a18b5d4ef81\Runtime\CompilerServices\StateMachineRunner.cs:189)
+2025/11/05 17:45:01.634 5091 5120 Info Unity Cysharp.Threading.Tasks.AwaiterActions:Continuation(Object) (at .\Library\PackageCache\com.cysharp.unitask@6a18b5d4ef81\Runtime\UniTask.cs:25)
+2025/11/05 17:45:01.634 5091 5120 Info Unity Cysharp.Threading.Tasks.UniTaskCompletionSourceCore`1:TrySetResult(Object) (at .\Library\PackageCache\com.cysharp.unitask@6a18b5d4ef81\Runtime\UniTaskCompletionSource.cs:139)
+2025/11/05 17:45:01.634 5091 5120 Info Unity Cysharp.Threading.Tasks.WaitUntilPromise:MoveNext() (at .\Library\PackageCache\com.cysharp.unitask@6a18b5d4ef81\Runtim
+2025/11/05 17:45:01.638 5091 5120 Info Unity [TRACE] Executing ActionSet<AppState>[target=root actions=SetCaptureStatusAction[status=Capturing]]
+2025/11/05 17:45:01.638 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:01.638 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:01.638 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:01.638 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:45:01.638 5091 5120 Info Unity FofX.UnityLogger:Trace(String) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:51)
+2025/11/05 17:45:01.638 5091 5120 Info Unity FofX.UnityLogger:Generic(LogLevel, String, Exception) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:17)
+2025/11/05 17:45:01.638 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteActions(IActionSet, Boolean, Boolean) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNodeContext.cs:153)
+2025/11/05 17:45:01.638 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteActionOrDelay(AppState, LogLevel, Action, ObservableNodeAction`1[]) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNodeContext.cs:542)
+2025/11/05 17:45:01.638 5091 5120 Info Unity Fo
+2025/11/05 17:45:01.639 5091 5120 Info Unity [TRACE] Observed changes:
+2025/11/05 17:45:01.639 5091 5120 Info Unity     [source=root/captureStatus, type=Set, currentValue=Capturing, previousValue=Starting]
+2025/11/05 17:45:01.639 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:01.639 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:01.639 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:01.639 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:45:01.639 5091 5120 Info Unity FofX.UnityLogger:Trace(String) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:51)
+2025/11/05 17:45:01.639 5091 5120 Info Unity FofX.UnityLogger:Generic(LogLevel, String, Exception) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:17)
+2025/11/05 17:45:01.639 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:NotifyObserversAndReset(LogLevel) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNodeContext.cs:207)
+2025/11/05 17:45:01.639 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteActions(IActionSet, Boolean, Boolean) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNodeContext.cs:168)
+2025/11/05 17:45:01.639 5091 5120 Info Unity FofX.Stateful.ObservableNod
+2025/11/05 17:45:01.641 5091 5120 Info Unity [TRACE] Notifying Observers:
+2025/11/05 17:45:01.641 5091 5120 Info Unity     - StatefulPrimitiveObservable`1.HandleSourceChanged
+2025/11/05 17:45:01.641 5091 5120 Info Unity     - StatefulPrimitiveObservable`1.HandleSourceChanged
+2025/11/05 17:45:01.641 5091 5120 Info Unity     - StatefulPrimitiveObservable`1.HandleSourceChanged
+2025/11/05 17:45:01.641 5091 5120 Info Unity     - CaptureController.HandleCaptureStatusChanged
+2025/11/05 17:45:01.641 5091 5120 Info Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:01.641 5091 5120 Info Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:01.641 5091 5120 Info Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:01.641 5091 5120 Info Unity UnityEngine.Debug:Log(Object)
+2025/11/05 17:45:01.641 5091 5120 Info Unity FofX.UnityLogger:Trace(String) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:51)
+2025/11/05 17:45:01.641 5091 5120 Info Unity FofX.UnityLogger:Generic(LogLevel, String, Exception) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\ThirdParty\F of X\UnityLogger.cs:17)
+2025/11/05 17:45:01.641 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:NotifyObserversAndReset(LogLevel) (at .\Library\PackageCache\com.fofx.stateful@8215f155b1c1\Runtime\Observables\ObservableNodeContext.cs:210)
+2025/11/05 17:45:01.641 5091 5120 Info Unity FofX.Stateful.ObservableNodeContext:ExecuteActions(IActionSet, Boolean, Boolean) (at
+2025/11/05 17:45:01.768 5091 5208 Info native I0000 00:00:1762382701.768486    5208 logger.h:29] DataSourceMetrics: kStopImageSubSystem: 120.332153ms
+2025/11/05 17:45:01.777 5091 5208 Error native E0000 00:00:1762382701.777404    5208 scheduler.cc:281] INTERNAL: RET_CHECK failure (third_party/mediapipe/framework/scheduler.cc:281) state_ != STATE_NOT_STARTED (0 vs. 0) 
+2025/11/05 17:45:01.777 5091 5208 Error native Stack trace:
+2025/11/05 17:45:01.777 5091 5208 Error native E0000 00:00:1762382701.777474    5208 normal_detector_cpu.cc:235] Error graph_->WaitUntilIdle():INTERNAL: RET_CHECK failure (third_party/mediapipe/framework/scheduler.cc:281) state_ != STATE_NOT_STARTED (0 vs. 0) 
+2025/11/05 17:45:01.777 5091 5208 Error native === Source Location Trace: === 
+2025/11/05 17:45:01.777 5091 5208 Error native third_party/mediapipe/framework/scheduler.cc:281
+2025/11/05 17:45:01.777 5091 5208 Error native third_party/mediapipe/framework/calculator_graph.cc:955
+2025/11/05 17:45:01.777 5091 5208 Info native I0000 00:00:1762382701.777488    5208 session.cc:1815] Session::PauseWithAnalytics returning OK.
+2025/11/05 17:45:01.785 5091 5208 Info native I0000 00:00:1762382701.785496    5208 session_manager.cc:223] ArPresto::Moving from ArPrestoStatus 100 to 103
+2025/11/05 17:45:01.787 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:01.787 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:01.787 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:01.787 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:01.787 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:01.787 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:01.787 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:01.787 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:01.787 5091 5120 Warn Unity 
+2025/11/05 17:45:01.797 5091 5120 Info native I0000 00:00:1762382701.797337    5120 eis_manager.cc:116] current_eis_metadata_.frame_size 1920 x 1080
+2025/11/05 17:45:01.797 5091 5120 Info native I0000 00:00:1762382701.797441    5120 arpresto_api.cc:212] ArPresto::ArPresto_setEnabled
+2025/11/05 17:45:01.797 5091 5120 Info native I0000 00:00:1762382701.797469    5120 session.cc:1289] Entering Session::Resume.
+2025/11/05 17:45:01.799 5091 5120 Info native I0000 00:00:1762382701.799420    5120 estimator_impl.cc:752] Resetting motion tracking from user request.
+2025/11/05 17:45:01.799 5091 5120 Info native I0000 00:00:1762382701.799496    5120 vio_estimator.cc:891] [VioEstimator] Resetting VIO per user request. Num of requests: 1
+2025/11/05 17:45:01.799 5091 5120 Warn native W0000 00:00:1762382701.799601    5120 multi_map_manager.cc:360] [M] Map 7581ffb3-0ac0-23e3-86bf-0de1b7cb8973 has 2 keyframes, which is less than required 25 keyframes. Refusing ownership.
+2025/11/05 17:45:01.801 5091 5120 Info native I0000 00:00:1762382701.801069    5120 visual_inertial_wls.cc:205] [M] Initializing VisualInertialWLS with viwls_config_.enable_loop_closure: true
+2025/11/05 17:45:01.801 5091 5120 Info native I0000 00:00:1762382701.801122    5120 visual_inertial_wls.cc:209] [M] Initializing VisualInertialWLS with viwls_config_.run_pgo_before_bundle_adjustment: false
+2025/11/05 17:45:01.801 5091 5120 Info native I0000 00:00:1762382701.801787    5120 pose_manager.cc:83] [PoseManager] PoseManager: Stats
+2025/11/05 17:45:01.801 5091 5120 Info native I0000 00:00:1762382701.801817    5120 pose_node_graph.cc:113] [PoseNodeGraph]  Device nodes: 18 Map nodes: 0 VIO nodes: 1 Anchor nodes: 3 Map Nodes: 0 Map ids: 0 Total edges:21
+2025/11/05 17:45:01.801 5091 5120 Info native I0000 00:00:1762382701.801890    5120 anchor_node_tracker.cc:669] [AnchorNodeTracker] 18 Keyframes, 3 Anchors, 1 VIOs, 0 Persistent maps. Removed keyframes: 0
+2025/11/05 17:45:01.802 5091 5120 Info native I0000 00:00:1762382701.802863    5120 session.cc:3638] Update Frame Delay to 0 frames.
+2025/11/05 17:45:01.805 5091 5120 Info native I0000 00:00:1762382701.805896    5120 android_sensors.cc:354] Starting thread.
+2025/11/05 17:45:01.806 5091 5349 Info native I0000 00:00:1762382701.806706    5349 android_sensor_event_source.cc:357] Adding sensor SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED requested batch delay (us)0 requested sample period 5ms
+2025/11/05 17:45:01.809 5091 5120 Info native I0000 00:00:1762382701.809518    5120 logger.h:29] DataSourceMetrics: kStartImageSubSystem: 3.49231ms
+2025/11/05 17:45:01.809 5091 5120 Info native I0000 00:00:1762382701.809578    5120 session.cc:1477] Session::ResumeWithAnalytics returning OK.
+2025/11/05 17:45:01.809 5091 5120 Info native I0000 00:00:1762382701.809800    5120 session_manager.cc:223] ArPresto::Moving from ArPrestoStatus 103 to 101
+2025/11/05 17:45:01.809 5091 5120 Info native I0000 00:00:1762382701.809837    5120 arpresto_api.cc:193] ArPresto::ArPresto_setCameraTextureNames
+2025/11/05 17:45:01.809 5091 5120 Verbose Unity-ARCore OnBeforeSetConfiguration
+2025/11/05 17:45:01.813 5091 5349 Info native I0000 00:00:1762382701.813354    5349 android_sensor_event_source.cc:265] Configuring SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED min delay 5ms requesting 5ms
+2025/11/05 17:45:01.813 5091 5349 Info native I0000 00:00:1762382701.813413    5349 android_sensor_event_source.cc:279] Configuring SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED max batch size 3000 requesting batch delay 0┬╡s
+2025/11/05 17:45:01.823 5091 5120 Verbose Unity-ARCore 	AugmentedImageDatabase: 0xb4000070ef557d50
+2025/11/05 17:45:01.823 5091 5120 Verbose Unity-ARCore 	LightEstimationMode: 0
+2025/11/05 17:45:01.823 5091 5120 Verbose Unity-ARCore 	PlaneFindingMode: 0
+2025/11/05 17:45:01.823 5091 5120 Verbose Unity-ARCore 	UpdateMode: 0
+2025/11/05 17:45:01.823 5091 5120 Verbose Unity-ARCore 	FocusMode: 1
+2025/11/05 17:45:01.823 5091 5120 Verbose Unity-ARCore 	AugmentedFaceMode: 0
+2025/11/05 17:45:01.823 5091 5120 Verbose Unity-ARCore 	DepthMode: 0
+2025/11/05 17:45:01.823 5091 5120 Verbose Unity-ARCore 	InstantPlacementMode: 0
+2025/11/05 17:45:01.823 5091 5120 Verbose Unity-ARCore 	ImageStabilizationMode: 0
+2025/11/05 17:45:01.823 5091 5120 Info native I0000 00:00:1762382701.823949    5120 session.cc:628] New session config:
+2025/11/05 17:45:01.823 5091 5120 Info native ArConfig
+2025/11/05 17:45:01.823 5091 5120 Info native  augmented_face_mode:           AR_AUGMENTED_FACE_MODE_DISABLED
+2025/11/05 17:45:01.823 5091 5120 Info native  augmented_image_database:      [0 images]
+2025/11/05 17:45:01.823 5091 5120 Info native  cloud_anchor_mode:             AR_CLOUD_ANCHOR_MODE_DISABLED
+2025/11/05 17:45:01.823 5091 5120 Info native  depth_mode:                    AR_DEPTH_MODE_DISABLED
+2025/11/05 17:45:01.823 5091 5120 Info native  semantic_mode:                AR_SEMANTIC_MODE_DISABLED
+2025/11/05 17:45:01.823 5091 5120 Info native  focus_mode:                    AR_FOCUS_MODE_AUTO
+2025/11/05 17:45:01.823 5091 5120 Info native  geospatial_mode:               AR_GEOSPATIAL_MODE_DISABLED
+2025/11/05 17:45:01.823 5091 5120 Info native  instant_placement_mode:        AR_INSTANT_PLACEMENT_MODE_DISABLED
+2025/11/05 17:45:01.823 5091 5120 Info native  light_estimation_mode:         AR_LIGHT_ESTIMATION_MODE_DISABLED
+2025/11/05 17:45:01.823 5091 5120 Info native  plane_finding_mode:            AR_PLANE_FINDING_MODE_DISABLED
+2025/11/05 17:45:01.823 5091 5120 Info native  update_mode:                   AR_UPDATE_MODE_BLOCKING
+2025/11/05 17:45:01.824 5091 5120 Info native I0000 00:00:1762382701.824802    5120 session.cc:621] Session::CheckAndWriteCurrentConfig returning OK.
+2025/11/05 17:45:01.825 5091 5120 Info native I0000 00:00:1762382701.825438    5120 session.cc:3638] Update Frame Delay to 0 frames.
+2025/11/05 17:45:01.832 5091 5349 Info native I0000 00:00:1762382701.831575    5349 android_sensor_event_source.cc:357] Adding sensor SENSOR_TYPE_GYROSCOPE_UNCALIBRATED requested batch delay (us)0 requested sample period 5ms
+2025/11/05 17:45:01.847 5091 5349 Info native I0000 00:00:1762382701.845478    5349 android_sensor_event_source.cc:265] Configuring SENSOR_TYPE_GYROSCOPE_UNCALIBRATED min delay 5ms requesting 5ms
+2025/11/05 17:45:01.847 5091 5349 Info native I0000 00:00:1762382701.847367    5349 android_sensor_event_source.cc:279] Configuring SENSOR_TYPE_GYROSCOPE_UNCALIBRATED max batch size 3000 requesting batch delay 0┬╡s
+2025/11/05 17:45:01.861 5091 5349 Info native I0000 00:00:1762382701.861825    5349 input_synchronizer.cc:104] [InputSynchronizer] Received first IMU sample at timestamp: 86054082341833
+2025/11/05 17:45:01.862 5091 5349 Info native I0000 00:00:1762382701.861992    5349 input_synchronizer.cc:104] [InputSynchronizer] Received first IMU sample at timestamp: 86054082341833
+2025/11/05 17:45:02.047 5091 5347 Info native I0000 00:00:1762382702.047164    5347 logger.h:29] DataSourceMetrics: kFirstGlCallback: 241.135824ms
+2025/11/05 17:45:02.192 5091 5330 Info native I0000 00:00:1762382702.192041    5330 logger.h:29] DataSourceMetrics: kFirstImageCallback: 386.015666ms
+2025/11/05 17:45:02.195 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.195 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.195 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.195 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.195 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.195 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.195 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.195 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.195 5091 5120 Warn Unity 
+2025/11/05 17:45:02.218 5091 5330 Error native E0000 00:00:1762382702.218043    5330 static_feature_frame_selector.cc:79] Unknown old image at: 86054456227690 ns
+2025/11/05 17:45:02.218 5091 5330 Error native E0000 00:00:1762382702.218236    5330 static_feature_frame_selector.cc:79] Unknown old image at: 86054456227690 ns
+2025/11/05 17:45:02.219 5091 5330 Warn native W0000 00:00:1762382702.219780    5330 session.cc:1274] INVALID_ARGUMENT: Sensor timestamps must be strictly monotonically increasing, instead received 86054480387911 -> 86054447055880; Failed to add timestamp info to external data synchronizer.
+2025/11/05 17:45:02.219 5091 5330 Warn native === Source Location Trace: === 
+2025/11/05 17:45:02.219 5091 5330 Warn native third_party/arcore/ar/video/external_data_sync.cc:43
+2025/11/05 17:45:02.224 5091 5350 Info native I0000 00:00:1762382702.224838    5350 performance_monitor.cc:116] Event: FeatureExtraction is taking too long, it took 151.986ms
+2025/11/05 17:45:02.221 5091 5091 Warn UnityMain type=1400 audit(0.0:15018): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:45:02.226 5091 5254 Info native I0000 00:00:1762382702.226172    5254 input_synchronizer.cc:49] [InputSynchronizer] Received first frame sample at timestamp: 86054489559721
+2025/11/05 17:45:02.226 5091 5248 Warn native W0000 00:00:1762382702.226644    5248 vio_initializer.cc:626] [VioInitializer] Dropped initialization window due to skip in data. Frame gap:623ms > 400ms
+2025/11/05 17:45:02.226 5091 5248 Info native I0000 00:00:1762382702.226720    5248 vio_estimator.cc:1354] [VioEstimator] [PauseResume] First features after user reset timestamp: 86054489559721 ns. Time elapsed: 427.210653ms
+2025/11/05 17:45:02.226 5091 5248 Info native I0000 00:00:1762382702.226740    5248 vio_estimator.cc:1382] [VioEstimator] [PauseResume] HandleInitializationStage with feature tracks at timestamp: 86054489559721 ns.
+2025/11/05 17:45:02.226 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.226 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.226 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.226 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.226 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.226 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.226 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.226 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.226 5091 5120 Warn Unity 
+2025/11/05 17:45:02.227 5091 5255 Info native I0000 00:00:1762382702.227188    5255 data_manager.cc:87] [M] VisualInertialState is kNotTracking. Wait.
+2025/11/05 17:45:02.253 5091 5091 Warn UnityMain type=1400 audit(0.0:15019): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:45:02.259 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.259 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.259 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.259 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.259 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.259 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.259 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.259 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.259 5091 5120 Warn Unity 
+2025/11/05 17:45:02.289 5091 5091 Warn UnityMain type=1400 audit(0.0:15020): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:45:02.296 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.296 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.296 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.296 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.296 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.296 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.296 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.296 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.296 5091 5120 Warn Unity 
+2025/11/05 17:45:02.317 5091 5248 Info native I0000 00:00:1762382702.317763    5248 vio_estimator.cc:1382] [VioEstimator] [PauseResume] HandleInitializationStage with feature tracks at timestamp: 86054589555815 ns.
+2025/11/05 17:45:02.318 5091 5255 Info native I0000 00:00:1762382702.318266    5255 data_manager.cc:87] [M] VisualInertialState is kNotTracking. Wait.
+2025/11/05 17:45:02.321 5091 5091 Warn UnityMain type=1400 audit(0.0:15021): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:45:02.327 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.327 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.327 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.327 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.327 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.327 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.327 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.327 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.327 5091 5120 Warn Unity 
+2025/11/05 17:45:02.353 5091 5091 Warn UnityMain type=1400 audit(0.0:15022): avc:  denied  { getattr } for  name="/" dev="dmabuf" ino=1 scontext=u:r:untrusted_app:s0:c86,c257,c512,c768 tcontext=u:object_r:unlabeled:s0 tclass=filesystem permissive=0 app=com.outernet.captureapp
+2025/11/05 17:45:02.360 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.360 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.360 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.360 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.360 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.360 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.360 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.360 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.360 5091 5120 Warn Unity 
+2025/11/05 17:45:02.395 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.395 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.395 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.395 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.395 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.395 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.395 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.395 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.395 5091 5120 Warn Unity 
+2025/11/05 17:45:02.426 5091 5248 Info native I0000 00:00:1762382702.426696    5248 vio_estimator.cc:1382] [VioEstimator] [PauseResume] HandleInitializationStage with feature tracks at timestamp: 86054689551909 ns.
+2025/11/05 17:45:02.427 5091 5255 Info native I0000 00:00:1762382702.427782    5255 data_manager.cc:87] [M] VisualInertialState is kNotTracking. Wait.
+2025/11/05 17:45:02.430 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.430 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.430 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.430 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.430 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.430 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.430 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.430 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.430 5091 5120 Warn Unity 
+2025/11/05 17:45:02.461 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.461 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.461 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.461 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.461 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.461 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.461 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.461 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.461 5091 5120 Warn Unity 
+2025/11/05 17:45:02.499 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.499 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.499 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.499 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.499 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.499 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.499 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.499 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.499 5091 5120 Warn Unity 
+2025/11/05 17:45:02.504 5091 5248 Info native I0000 00:00:1762382702.504521    5248 vio_estimator.cc:1382] [VioEstimator] [PauseResume] HandleInitializationStage with feature tracks at timestamp: 86054789548002 ns.
+2025/11/05 17:45:02.504 5091 5255 Info native I0000 00:00:1762382702.504848    5255 data_manager.cc:87] [M] VisualInertialState is kNotTracking. Wait.
+2025/11/05 17:45:02.528 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.528 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.528 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.528 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.528 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.528 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.528 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.528 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.528 5091 5120 Warn Unity 
+2025/11/05 17:45:02.558 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.558 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.558 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.558 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.558 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.558 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.558 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.558 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.558 5091 5120 Warn Unity 
+2025/11/05 17:45:02.600 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.600 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.600 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.600 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.600 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.600 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.600 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.600 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.600 5091 5120 Warn Unity 
+2025/11/05 17:45:02.603 5091 5248 Info native I0000 00:00:1762382702.603878    5248 vio_estimator.cc:1382] [VioEstimator] [PauseResume] HandleInitializationStage with feature tracks at timestamp: 86054889544096 ns.
+2025/11/05 17:45:02.629 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.629 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.629 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.629 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.629 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.629 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.629 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.629 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.629 5091 5120 Warn Unity 
+2025/11/05 17:45:02.647 5091 5248 Info native I0000 00:00:1762382702.647071    5248 bundle_adjustment_initializer.cc:757] Intrinsic vector size for camera id:200 is 7
+2025/11/05 17:45:02.659 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.659 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.659 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.659 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.659 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.659 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.659 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.659 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.659 5091 5120 Warn Unity 
+2025/11/05 17:45:02.693 5091 5248 Info native I0000 00:00:1762382702.693624    5248 bundle_adjustment_initializer.cc:988] [SSBA Depth Refinement] Refine successfully!
+2025/11/05 17:45:02.694 5091 5248 Info native I0000 00:00:1762382702.694200    5248 bundle_adjustment_initialization.h:274] Number of measurements used in BA initialization for temporal landmarks: 300
+2025/11/05 17:45:02.694 5091 5248 Info native I0000 00:00:1762382702.694240    5248 bundle_adjustment_initialization.h:276] Number of good measurements (i.e., reprojection errors <= 3 pixels) in BA initialization for temporal landmarks: 299
+2025/11/05 17:45:02.694 5091 5248 Info native I0000 00:00:1762382702.694331    5248 vio_estimator.cc:356] [VioEstimator] Initialization sliding window states 
+2025/11/05 17:45:02.694 5091 5248 Info native I0000 00:00:1762382702.694350    5248 vio_estimator.cc:359] [VioEstimator] state 0 IMU position: [0]; [0]; [0]
+2025/11/05 17:45:02.694 5091 5248 Info native I0000 00:00:1762382702.694364    5248 vio_estimator.cc:359] [VioEstimator] state 1 IMU position: [0.00264067]; [-0.000241167]; [-0.000341119]
+2025/11/05 17:45:02.694 5091 5248 Info native I0000 00:00:1762382702.694374    5248 vio_estimator.cc:359] [VioEstimator] state 2 IMU position: [0.00380632]; [-0.00211894]; [-0.000826824]
+2025/11/05 17:45:02.694 5091 5248 Info native I0000 00:00:1762382702.694407    5248 vio_estimator.cc:359] [VioEstimator] state 3 IMU position: [0.00408174]; [-0.00529633]; [-0.00157028]
+2025/11/05 17:45:02.694 5091 5248 Info native I0000 00:00:1762382702.694416    5248 vio_estimator.cc:359] [VioEstimator] state 4 IMU position: [0.00400526]; [-0.00887203]; [-0.00271186]
+2025/11/05 17:45:02.694 5091 5248 Info native I0000 00:00:1762382702.694423    5248 vio_estimator.cc:365] [VioEstimator] Maintain Yaw transformation: [-0.0292526, -0.999572, 5.39712e-17, -0.000558633]; [0.999572, -0.0292526, 1.51098e-17, 0.00638284]; [-1.35246e-17, 5.43901e-17, 1, 0.000878881]; [0, 0, 0, 1]
+2025/11/05 17:45:02.694 5091 5248 Info native I0000 00:00:1762382702.694442    5248 vio_estimator.cc:379] [VioEstimator] Initialization sliding window states affine MaintainYaw transformation: 
+2025/11/05 17:45:02.694 5091 5248 Info native I0000 00:00:1762382702.694447    5248 vio_estimator.cc:383] [VioEstimator] state 0 transformed IMU position: [-0.000558633]; [0.00638284]; [0.000878881]
+2025/11/05 17:45:02.694 5091 5248 Info native I0000 00:00:1762382702.694454    5248 vio_estimator.cc:383] [VioEstimator] state 1 transformed IMU position: [-0.000394816]; [0.00902944]; [0.000537762]
+2025/11/05 17:45:02.694 5091 5248 Info native I0000 00:00:1762382702.694461    5248 vio_estimator.cc:383] [VioEstimator] state 2 transformed IMU position: [0.00144806]; [0.0102495]; [5.20568e-05]
+2025/11/05 17:45:02.694 5091 5248 Info native I0000 00:00:1762382702.694468    5248 vio_estimator.cc:383] [VioEstimator] state 3 transformed IMU position: [0.00461603]; [0.0106178]; [-0.000691396]
+2025/11/05 17:45:02.694 5091 5248 Info native I0000 00:00:1762382702.694476    5248 vio_estimator.cc:383] [VioEstimator] state 4 transformed IMU position: [0.00819244]; [0.0106459]; [-0.00183298]
+2025/11/05 17:45:02.698 5091 5248 Info native I0000 00:00:1762382702.698349    5248 vio_estimator.cc:1483] [VioEstimator] Successful initialization at features timestamp: 86054889544096 ns, took:399.984375ms, processed frames: 5
+2025/11/05 17:45:02.698 5091 5248 Info native I0000 00:00:1762382702.698401    5248 vio_estimator.cc:1492] [VioEstimator] [PauseResume] Vio start up successful initialization took:898.888713ms. Frame timestamp: 86054889544096 ns
+2025/11/05 17:45:02.699 5091 5240 Info native I0000 00:00:1762382702.699411    5240 pose_manager.cc:326] [PoseManager] World pose node changing to new VIO pose node created: 14671194848767849829
+2025/11/05 17:45:02.700 5091 5240 Info native I0000 00:00:1762382702.700712    5240 latency_tracker.cc:152] HeT initialized: Initialization_Time_Ms: 299.988
+2025/11/05 17:45:02.702 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.702 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.702 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.702 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.702 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.702 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.702 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.702 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.702 5091 5120 Warn Unity 
+2025/11/05 17:45:02.728 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.728 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.728 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.728 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.728 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.728 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.728 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.728 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.728 5091 5120 Warn Unity 
+2025/11/05 17:45:02.754 5091 5120 Info native I0000 00:00:1762382702.754687    5120 session_manager.cc:223] ArPresto::Moving from ArPrestoStatus 101 to 100
+2025/11/05 17:45:02.759 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.759 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.759 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.759 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.759 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.759 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.759 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.759 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.759 5091 5120 Warn Unity 
+2025/11/05 17:45:02.793 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.793 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.793 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.793 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.793 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.793 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.793 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.793 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.793 5091 5120 Warn Unity 
+2025/11/05 17:45:02.827 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.827 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.827 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.827 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.827 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.827 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.827 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.827 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.827 5091 5120 Warn Unity 
+2025/11/05 17:45:02.861 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.861 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.861 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.861 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.861 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.861 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.861 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.861 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.861 5091 5120 Warn Unity 
+2025/11/05 17:45:02.901 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.901 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.901 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.901 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.901 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.901 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.901 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.901 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.901 5091 5120 Warn Unity 
+2025/11/05 17:45:02.933 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.933 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.933 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.933 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.933 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.933 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.933 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.933 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.933 5091 5120 Warn Unity 
+2025/11/05 17:45:02.964 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:02.964 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:02.964 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:02.964 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:02.964 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:02.964 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:02.964 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:02.964 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:02.964 5091 5120 Warn Unity 
+2025/11/05 17:45:03.001 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:03.001 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:03.001 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:03.001 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:03.001 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:03.001 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:03.001 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:03.001 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)
+2025/11/05 17:45:03.001 5091 5120 Warn Unity 
+2025/11/05 17:45:03.034 5091 5120 Warn Unity Capture anchor lost tracking; skipping frame.
+2025/11/05 17:45:03.034 5091 5120 Warn Unity UnityEngine.DebugLogHandler:Internal_Log(LogType, LogOption, String, Object)
+2025/11/05 17:45:03.034 5091 5120 Warn Unity UnityEngine.DebugLogHandler:LogFormat(LogType, Object, String, Object[])
+2025/11/05 17:45:03.034 5091 5120 Warn Unity UnityEngine.Logger:Log(LogType, Object)
+2025/11/05 17:45:03.034 5091 5120 Warn Unity UnityEngine.Debug:LogWarning(Object)
+2025/11/05 17:45:03.034 5091 5120 Warn Unity LocalCaptureController:OnCameraFrameReceived(ARCameraFrameEventArgs) (at C:\Users\Tyler\repos\plerion\capture-app\android_mobile\Assets\Scripts\Capture\LocalCaptureController.cs:137)
+2025/11/05 17:45:03.034 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:InvokeFrameReceivedEvent(XRCameraFrame) (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:485)
+2025/11/05 17:45:03.034 5091 5120 Warn Unity UnityEngine.XR.ARFoundation.ARCameraManager:Update() (at .\Library\PackageCache\com.unity.xr.arfoundation@632379b1f7b5\Runtime\ARFoundation\ARCameraManager.cs:345)

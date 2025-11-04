@@ -37,11 +37,17 @@ namespace PlerionClient.Model
         /// </summary>
         /// <param name="neightborsCount">neightborsCount.</param>
         /// <param name="maxKeypointsPerImage">maxKeypointsPerImage.</param>
+        /// <param name="ransacMaxError">ransacMaxError.</param>
+        /// <param name="ransacMinInlierRatio">ransacMinInlierRatio.</param>
         /// <param name="usePriorPosition">usePriorPosition.</param>
-        /// <param name="baRefineSensorFromRig">baRefineSensorFromRig.</param>
-        /// <param name="baRefineFocalLength">baRefineFocalLength.</param>
-        /// <param name="baRefinePrincipalPoint">baRefinePrincipalPoint.</param>
-        /// <param name="baRefineExtraParams">baRefineExtraParams.</param>
+        /// <param name="triangulationMinimumAngle">triangulationMinimumAngle.</param>
+        /// <param name="triangulationCompleteMaxReprojectionError">triangulationCompleteMaxReprojectionError.</param>
+        /// <param name="triangulationMergeMaxReprojectionError">triangulationMergeMaxReprojectionError.</param>
+        /// <param name="mapperFilterMaxReprojectionError">mapperFilterMaxReprojectionError.</param>
+        /// <param name="bundleAdjustmentRefineSensorFromRig">bundleAdjustmentRefineSensorFromRig.</param>
+        /// <param name="bundleAdjustmentRefineFocalLength">bundleAdjustmentRefineFocalLength.</param>
+        /// <param name="bundleAdjustmentRefinePrincipalPoint">bundleAdjustmentRefinePrincipalPoint.</param>
+        /// <param name="bundleAdjustmentRefineAdditionalParams">bundleAdjustmentRefineAdditionalParams.</param>
         public ReconstructionOptions()
         {
         }
@@ -95,6 +101,54 @@ namespace PlerionClient.Model
             return _flagMaxKeypointsPerImage;
         }
         /// <summary>
+        /// Gets or Sets RansacMaxError
+        /// </summary>
+        [DataMember(Name = "ransac_max_error", EmitDefaultValue = true)]
+        public double? RansacMaxError
+        {
+            get{ return _RansacMaxError;}
+            set
+            {
+                _RansacMaxError = value;
+                _flagRansacMaxError = true;
+            }
+        }
+        private double? _RansacMaxError;
+        private bool _flagRansacMaxError;
+
+        /// <summary>
+        /// Returns false as RansacMaxError should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeRansacMaxError()
+        {
+            return _flagRansacMaxError;
+        }
+        /// <summary>
+        /// Gets or Sets RansacMinInlierRatio
+        /// </summary>
+        [DataMember(Name = "ransac_min_inlier_ratio", EmitDefaultValue = true)]
+        public double? RansacMinInlierRatio
+        {
+            get{ return _RansacMinInlierRatio;}
+            set
+            {
+                _RansacMinInlierRatio = value;
+                _flagRansacMinInlierRatio = true;
+            }
+        }
+        private double? _RansacMinInlierRatio;
+        private bool _flagRansacMinInlierRatio;
+
+        /// <summary>
+        /// Returns false as RansacMinInlierRatio should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeRansacMinInlierRatio()
+        {
+            return _flagRansacMinInlierRatio;
+        }
+        /// <summary>
         /// Gets or Sets UsePriorPosition
         /// </summary>
         [DataMember(Name = "use_prior_position", EmitDefaultValue = true)]
@@ -119,100 +173,196 @@ namespace PlerionClient.Model
             return _flagUsePriorPosition;
         }
         /// <summary>
-        /// Gets or Sets BaRefineSensorFromRig
+        /// Gets or Sets TriangulationMinimumAngle
         /// </summary>
-        [DataMember(Name = "ba_refine_sensor_from_rig", EmitDefaultValue = true)]
-        public bool? BaRefineSensorFromRig
+        [DataMember(Name = "triangulation_minimum_angle", EmitDefaultValue = true)]
+        public double? TriangulationMinimumAngle
         {
-            get{ return _BaRefineSensorFromRig;}
+            get{ return _TriangulationMinimumAngle;}
             set
             {
-                _BaRefineSensorFromRig = value;
-                _flagBaRefineSensorFromRig = true;
+                _TriangulationMinimumAngle = value;
+                _flagTriangulationMinimumAngle = true;
             }
         }
-        private bool? _BaRefineSensorFromRig;
-        private bool _flagBaRefineSensorFromRig;
+        private double? _TriangulationMinimumAngle;
+        private bool _flagTriangulationMinimumAngle;
 
         /// <summary>
-        /// Returns false as BaRefineSensorFromRig should not be serialized given that it's read-only.
+        /// Returns false as TriangulationMinimumAngle should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeBaRefineSensorFromRig()
+        public bool ShouldSerializeTriangulationMinimumAngle()
         {
-            return _flagBaRefineSensorFromRig;
+            return _flagTriangulationMinimumAngle;
         }
         /// <summary>
-        /// Gets or Sets BaRefineFocalLength
+        /// Gets or Sets TriangulationCompleteMaxReprojectionError
         /// </summary>
-        [DataMember(Name = "ba_refine_focal_length", EmitDefaultValue = true)]
-        public bool? BaRefineFocalLength
+        [DataMember(Name = "triangulation_complete_max_reprojection_error", EmitDefaultValue = true)]
+        public double? TriangulationCompleteMaxReprojectionError
         {
-            get{ return _BaRefineFocalLength;}
+            get{ return _TriangulationCompleteMaxReprojectionError;}
             set
             {
-                _BaRefineFocalLength = value;
-                _flagBaRefineFocalLength = true;
+                _TriangulationCompleteMaxReprojectionError = value;
+                _flagTriangulationCompleteMaxReprojectionError = true;
             }
         }
-        private bool? _BaRefineFocalLength;
-        private bool _flagBaRefineFocalLength;
+        private double? _TriangulationCompleteMaxReprojectionError;
+        private bool _flagTriangulationCompleteMaxReprojectionError;
 
         /// <summary>
-        /// Returns false as BaRefineFocalLength should not be serialized given that it's read-only.
+        /// Returns false as TriangulationCompleteMaxReprojectionError should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeBaRefineFocalLength()
+        public bool ShouldSerializeTriangulationCompleteMaxReprojectionError()
         {
-            return _flagBaRefineFocalLength;
+            return _flagTriangulationCompleteMaxReprojectionError;
         }
         /// <summary>
-        /// Gets or Sets BaRefinePrincipalPoint
+        /// Gets or Sets TriangulationMergeMaxReprojectionError
         /// </summary>
-        [DataMember(Name = "ba_refine_principal_point", EmitDefaultValue = true)]
-        public bool? BaRefinePrincipalPoint
+        [DataMember(Name = "triangulation_merge_max_reprojection_error", EmitDefaultValue = true)]
+        public double? TriangulationMergeMaxReprojectionError
         {
-            get{ return _BaRefinePrincipalPoint;}
+            get{ return _TriangulationMergeMaxReprojectionError;}
             set
             {
-                _BaRefinePrincipalPoint = value;
-                _flagBaRefinePrincipalPoint = true;
+                _TriangulationMergeMaxReprojectionError = value;
+                _flagTriangulationMergeMaxReprojectionError = true;
             }
         }
-        private bool? _BaRefinePrincipalPoint;
-        private bool _flagBaRefinePrincipalPoint;
+        private double? _TriangulationMergeMaxReprojectionError;
+        private bool _flagTriangulationMergeMaxReprojectionError;
 
         /// <summary>
-        /// Returns false as BaRefinePrincipalPoint should not be serialized given that it's read-only.
+        /// Returns false as TriangulationMergeMaxReprojectionError should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeBaRefinePrincipalPoint()
+        public bool ShouldSerializeTriangulationMergeMaxReprojectionError()
         {
-            return _flagBaRefinePrincipalPoint;
+            return _flagTriangulationMergeMaxReprojectionError;
         }
         /// <summary>
-        /// Gets or Sets BaRefineExtraParams
+        /// Gets or Sets MapperFilterMaxReprojectionError
         /// </summary>
-        [DataMember(Name = "ba_refine_extra_params", EmitDefaultValue = true)]
-        public bool? BaRefineExtraParams
+        [DataMember(Name = "mapper_filter_max_reprojection_error", EmitDefaultValue = true)]
+        public double? MapperFilterMaxReprojectionError
         {
-            get{ return _BaRefineExtraParams;}
+            get{ return _MapperFilterMaxReprojectionError;}
             set
             {
-                _BaRefineExtraParams = value;
-                _flagBaRefineExtraParams = true;
+                _MapperFilterMaxReprojectionError = value;
+                _flagMapperFilterMaxReprojectionError = true;
             }
         }
-        private bool? _BaRefineExtraParams;
-        private bool _flagBaRefineExtraParams;
+        private double? _MapperFilterMaxReprojectionError;
+        private bool _flagMapperFilterMaxReprojectionError;
 
         /// <summary>
-        /// Returns false as BaRefineExtraParams should not be serialized given that it's read-only.
+        /// Returns false as MapperFilterMaxReprojectionError should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeBaRefineExtraParams()
+        public bool ShouldSerializeMapperFilterMaxReprojectionError()
         {
-            return _flagBaRefineExtraParams;
+            return _flagMapperFilterMaxReprojectionError;
+        }
+        /// <summary>
+        /// Gets or Sets BundleAdjustmentRefineSensorFromRig
+        /// </summary>
+        [DataMember(Name = "bundle_adjustment_refine_sensor_from_rig", EmitDefaultValue = true)]
+        public bool? BundleAdjustmentRefineSensorFromRig
+        {
+            get{ return _BundleAdjustmentRefineSensorFromRig;}
+            set
+            {
+                _BundleAdjustmentRefineSensorFromRig = value;
+                _flagBundleAdjustmentRefineSensorFromRig = true;
+            }
+        }
+        private bool? _BundleAdjustmentRefineSensorFromRig;
+        private bool _flagBundleAdjustmentRefineSensorFromRig;
+
+        /// <summary>
+        /// Returns false as BundleAdjustmentRefineSensorFromRig should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeBundleAdjustmentRefineSensorFromRig()
+        {
+            return _flagBundleAdjustmentRefineSensorFromRig;
+        }
+        /// <summary>
+        /// Gets or Sets BundleAdjustmentRefineFocalLength
+        /// </summary>
+        [DataMember(Name = "bundle_adjustment_refine_focal_length", EmitDefaultValue = true)]
+        public bool? BundleAdjustmentRefineFocalLength
+        {
+            get{ return _BundleAdjustmentRefineFocalLength;}
+            set
+            {
+                _BundleAdjustmentRefineFocalLength = value;
+                _flagBundleAdjustmentRefineFocalLength = true;
+            }
+        }
+        private bool? _BundleAdjustmentRefineFocalLength;
+        private bool _flagBundleAdjustmentRefineFocalLength;
+
+        /// <summary>
+        /// Returns false as BundleAdjustmentRefineFocalLength should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeBundleAdjustmentRefineFocalLength()
+        {
+            return _flagBundleAdjustmentRefineFocalLength;
+        }
+        /// <summary>
+        /// Gets or Sets BundleAdjustmentRefinePrincipalPoint
+        /// </summary>
+        [DataMember(Name = "bundle_adjustment_refine_principal_point", EmitDefaultValue = true)]
+        public bool? BundleAdjustmentRefinePrincipalPoint
+        {
+            get{ return _BundleAdjustmentRefinePrincipalPoint;}
+            set
+            {
+                _BundleAdjustmentRefinePrincipalPoint = value;
+                _flagBundleAdjustmentRefinePrincipalPoint = true;
+            }
+        }
+        private bool? _BundleAdjustmentRefinePrincipalPoint;
+        private bool _flagBundleAdjustmentRefinePrincipalPoint;
+
+        /// <summary>
+        /// Returns false as BundleAdjustmentRefinePrincipalPoint should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeBundleAdjustmentRefinePrincipalPoint()
+        {
+            return _flagBundleAdjustmentRefinePrincipalPoint;
+        }
+        /// <summary>
+        /// Gets or Sets BundleAdjustmentRefineAdditionalParams
+        /// </summary>
+        [DataMember(Name = "bundle_adjustment_refine_additional_params", EmitDefaultValue = true)]
+        public bool? BundleAdjustmentRefineAdditionalParams
+        {
+            get{ return _BundleAdjustmentRefineAdditionalParams;}
+            set
+            {
+                _BundleAdjustmentRefineAdditionalParams = value;
+                _flagBundleAdjustmentRefineAdditionalParams = true;
+            }
+        }
+        private bool? _BundleAdjustmentRefineAdditionalParams;
+        private bool _flagBundleAdjustmentRefineAdditionalParams;
+
+        /// <summary>
+        /// Returns false as BundleAdjustmentRefineAdditionalParams should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeBundleAdjustmentRefineAdditionalParams()
+        {
+            return _flagBundleAdjustmentRefineAdditionalParams;
         }
         /// <summary>
         /// Returns the string presentation of the object
@@ -224,11 +374,17 @@ namespace PlerionClient.Model
             sb.Append("class ReconstructionOptions {\n");
             sb.Append("  NeightborsCount: ").Append(NeightborsCount).Append("\n");
             sb.Append("  MaxKeypointsPerImage: ").Append(MaxKeypointsPerImage).Append("\n");
+            sb.Append("  RansacMaxError: ").Append(RansacMaxError).Append("\n");
+            sb.Append("  RansacMinInlierRatio: ").Append(RansacMinInlierRatio).Append("\n");
             sb.Append("  UsePriorPosition: ").Append(UsePriorPosition).Append("\n");
-            sb.Append("  BaRefineSensorFromRig: ").Append(BaRefineSensorFromRig).Append("\n");
-            sb.Append("  BaRefineFocalLength: ").Append(BaRefineFocalLength).Append("\n");
-            sb.Append("  BaRefinePrincipalPoint: ").Append(BaRefinePrincipalPoint).Append("\n");
-            sb.Append("  BaRefineExtraParams: ").Append(BaRefineExtraParams).Append("\n");
+            sb.Append("  TriangulationMinimumAngle: ").Append(TriangulationMinimumAngle).Append("\n");
+            sb.Append("  TriangulationCompleteMaxReprojectionError: ").Append(TriangulationCompleteMaxReprojectionError).Append("\n");
+            sb.Append("  TriangulationMergeMaxReprojectionError: ").Append(TriangulationMergeMaxReprojectionError).Append("\n");
+            sb.Append("  MapperFilterMaxReprojectionError: ").Append(MapperFilterMaxReprojectionError).Append("\n");
+            sb.Append("  BundleAdjustmentRefineSensorFromRig: ").Append(BundleAdjustmentRefineSensorFromRig).Append("\n");
+            sb.Append("  BundleAdjustmentRefineFocalLength: ").Append(BundleAdjustmentRefineFocalLength).Append("\n");
+            sb.Append("  BundleAdjustmentRefinePrincipalPoint: ").Append(BundleAdjustmentRefinePrincipalPoint).Append("\n");
+            sb.Append("  BundleAdjustmentRefineAdditionalParams: ").Append(BundleAdjustmentRefineAdditionalParams).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

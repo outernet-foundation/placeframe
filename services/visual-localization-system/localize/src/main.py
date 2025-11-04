@@ -8,7 +8,7 @@ from threading import Lock
 from uuid import UUID
 
 from common.boto_clients import create_s3_client
-from common.classes import CameraIntrinsics, Transform
+from common.classes import CameraIntrinsics, LocalizationMetrics, Transform
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from pycolmap import Camera, CameraModelId, Reconstruction
 from torch import cuda  # type: ignore
@@ -144,7 +144,7 @@ async def set_camera_intrinsics(camera: CameraIntrinsics):
 
 
 @app.post("/localization")
-async def localize_image(image: UploadFile = File(...)) -> dict[UUID, Transform]:
+async def localize_image(image: UploadFile = File(...)) -> dict[UUID, tuple[Transform, LocalizationMetrics]]:
     return {
         id: await localize_image_against_reconstruction(map=maps[id], camera=_camera, image=await image.read())
         for id in maps.keys()

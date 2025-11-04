@@ -199,6 +199,7 @@ Class | Method | HTTP request | Description
  - [Model.LocalizationMapCreate](docs/LocalizationMapCreate.md)
  - [Model.LocalizationMapRead](docs/LocalizationMapRead.md)
  - [Model.LocalizationMapUpdate](docs/LocalizationMapUpdate.md)
+ - [Model.LocalizationMetrics](docs/LocalizationMetrics.md)
  - [Model.LocalizationSessionRead](docs/LocalizationSessionRead.md)
  - [Model.MapLocalizationInput](docs/MapLocalizationInput.md)
  - [Model.MapLocalizationOutput](docs/MapLocalizationOutput.md)
