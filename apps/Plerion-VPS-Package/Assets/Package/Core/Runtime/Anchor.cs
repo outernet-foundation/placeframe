@@ -53,99 +53,96 @@ namespace Plerion.VPS
 
         private void Awake()
         {
-            // if (!Application.isPlaying && _positionInitialized)
-            //     return;
+            if (!Application.isPlaying && _positionInitialized)
+                return;
 
-            // var ecef = VisualPositioningSystem.UnityWorldToEcef(transform.position, transform.rotation);
+            var ecef = VisualPositioningSystem.UnityWorldToEcef(transform.position, transform.rotation);
 
-            // _lastKnownPosition = transform.position;
-            // _lastKnownRotation = transform.rotation;
+            _lastKnownPosition = transform.position;
+            _lastKnownRotation = transform.rotation;
 
-            // _targetPosition = transform.position;
-            // _targetRotation = transform.rotation;
+            _targetPosition = transform.position;
+            _targetRotation = transform.rotation;
 
-            ecefPosition = new double3(1333832.9145346545, -4654217.496323097, 4138126.868056108);
-            ecefRotation = new quaternion(-0.1304137110710144f, 0.9284381866455078f, -0.3444613814353943f, 0.048385001718997955f);
+            ecefPosition = ecef.position;
+            ecefRotation = ecef.rotation;
 
-            // _positionInitialized = true;
+            _positionInitialized = true;
         }
 
         private void OnEnable()
         {
-            // VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated +=
-            //     HandleReferenceFrameChanged;
+            VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated +=
+                HandleReferenceFrameChanged;
 
-            // SetEcefTransform(_ecefPosition, _ecefRotation);
+            SetEcefTransform(_ecefPosition, _ecefRotation);
+            JumpToTarget();
         }
 
         private void OnDisable()
         {
-            // VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated -=
-            //     HandleReferenceFrameChanged;
+            VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated -=
+                HandleReferenceFrameChanged;
         }
 
         private void LateUpdate()
         {
-            var localTransform = VisualPositioningSystem.EcefToUnityWorld(ecefPosition, ecefRotation);
-            transform.position = localTransform.position;
-            transform.rotation = localTransform.rotation;
+            if (transform.position != _lastKnownPosition ||
+                transform.rotation != _lastKnownRotation)
+            {
+                _lastKnownPosition = transform.position;
+                _lastKnownRotation = transform.rotation;
 
-            // if (transform.position != _lastKnownPosition ||
-            //     transform.rotation != _lastKnownRotation)
-            // {
-            //     _lastKnownPosition = transform.position;
-            //     _lastKnownRotation = transform.rotation;
+                _targetPosition = transform.position;
+                _targetRotation = transform.rotation;
 
-            //     _targetPosition = transform.position;
-            //     _targetRotation = transform.rotation;
+                var ecef = VisualPositioningSystem.UnityWorldToEcef(transform.position, transform.rotation);
+                _ecefPosition = ecef.position;
+                _ecefRotation = ecef.rotation;
+            }
 
-            //     var ecef = VisualPositioningSystem.UnityWorldToEcef(transform.position, transform.rotation);
-            //     _ecefPosition = ecef.position;
-            //     _ecefRotation = ecef.rotation;
-            // }
+            if (Application.isPlaying)
+            {
+                transform.position = Vector3.Lerp(transform.position, _targetPosition, Time.deltaTime * 5f);
+                transform.rotation = Quaternion.Lerp(transform.rotation, _targetRotation, Time.deltaTime * 5);
 
-            // if (Application.isPlaying)
-            // {
-            //     transform.position = Vector3.Lerp(transform.position, _targetPosition, Time.deltaTime);
-            //     transform.rotation = Quaternion.Lerp(transform.rotation, _targetRotation, Time.deltaTime * 5);
-
-            //     _lastKnownPosition = transform.position;
-            //     _lastKnownRotation = transform.rotation;
-            // }
-            // else
-            // {
-            //     _lastKnownPosition = _targetPosition;
-            //     _lastKnownRotation = _targetRotation;
-
-            //     transform.position = _targetPosition;
-            //     transform.rotation = _targetRotation;
-            // }
+                _lastKnownPosition = transform.position;
+                _lastKnownRotation = transform.rotation;
+            }
+            else
+            {
+                JumpToTarget();
+            }
         }
 
         private void HandleReferenceFrameChanged()
         {
-            // var local = VisualPositioningSystem.EcefToUnityWorld(ecefPosition, ecefRotation);
-            // transform.position = local.position;
-            // transform.rotation = local.rotation;
+            SetEcefTransform(ecefPosition, ecefRotation);
         }
 
         public void SetEcefTransform(double3 ecefPosition, quaternion ecefRotation)
         {
-            // _ecefPosition = ecefPosition;
-            // _ecefRotation = ecefRotation;
+            _ecefPosition = ecefPosition;
+            _ecefRotation = ecefRotation;
 
-            // Debug.Log($"EP: Set ECEF position to {ecefPosition.x}, {ecefPosition.y}, {ecefPosition.z}");
+            var local = VisualPositioningSystem.EcefToUnityWorld(ecefPosition, ecefRotation);
 
-            // var local = VisualPositioningSystem.EcefToUnityWorld(ecefPosition, ecefRotation);
+            _targetPosition = local.position;
+            _targetRotation = local.rotation;
 
-            // transform.position = local.position;
-            // transform.rotation = local.rotation;
+            if ((_targetPosition - transform.position).magnitude > 10 ||
+                Quaternion.Angle(_targetRotation, transform.rotation) > 90f)
+            {
+                JumpToTarget();
+            }
+        }
 
-            // _lastKnownPosition = local.position;
-            // _lastKnownRotation = local.rotation;
-
-            // _targetPosition = local.position;
-            // _targetRotation = local.rotation;
+        private void JumpToTarget()
+        {
+            _lastKnownPosition = _targetPosition;
+            _lastKnownRotation = _targetRotation;
+            transform.position = _targetPosition;
+            transform.rotation = _targetRotation;
         }
     }
 }

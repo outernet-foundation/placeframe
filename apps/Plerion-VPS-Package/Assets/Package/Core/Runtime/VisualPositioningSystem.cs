@@ -141,8 +141,7 @@ namespace Plerion.VPS
                 height: intrinsics.resolution.y,
                 fx: intrinsics.focalLength.x,
                 fy: intrinsics.focalLength.y,
-                // cx: intrinsics.principlePoint.x,
-                cx: (intrinsics.resolution.x - 1) - intrinsics.principlePoint.x,
+                cx: intrinsics.resolution.x - 1 - intrinsics.principlePoint.x,
                 cy: intrinsics.principlePoint.y
             )), startSessionTokenSource.Token);
 
@@ -165,7 +164,7 @@ namespace Plerion.VPS
 
             if (localizationSessionId != Guid.Empty)
             {
-                api.DeleteLocalizationSessionAsync(localizationSessionId);
+                api.DeleteLocalizationSessionAsync(localizationSessionId).AsUniTask().Forget();
                 localizationSessionId = Guid.Empty;
             }
         }
@@ -189,42 +188,15 @@ namespace Plerion.VPS
             var localizationResult = localizationResults.FirstOrDefault(); //for now, just use the first one
 
             var unityWorldFromColmap = BuildUnityWorldFromColmapWorldTransform(
-                colmapRotationCameraFromWorld: new quaternion(
-                    (float)localizationResult.Transform.Rotation.X,
-                    (float)localizationResult.Transform.Rotation.Y,
-                    (float)localizationResult.Transform.Rotation.Z,
-                    (float)localizationResult.Transform.Rotation.W
-                ),
-                colmapTranslationCameraFromWorld: new float3(
-                    (float)localizationResult.Transform.Position.X,
-                    (float)localizationResult.Transform.Position.Y,
-                    (float)localizationResult.Transform.Position.Z
-                ),
-                unityRotationWorldFromCamera: new quaternion(
-                    cameraRotationUnityWorldFromCamera.x,
-                    cameraRotationUnityWorldFromCamera.y,
-                    cameraRotationUnityWorldFromCamera.z,
-                    cameraRotationUnityWorldFromCamera.w
-                ),
-                unityTranslationWorldFromCamera: new float3(
-                    cameraTranslationUnityWorldFromCamera.x,
-                    cameraTranslationUnityWorldFromCamera.y,
-                    cameraTranslationUnityWorldFromCamera.z
-                )
+                colmapRotationCameraFromWorld: localizationResult.Transform.Rotation.ToMathematicsQuaternion(),
+                colmapTranslationCameraFromWorld: localizationResult.Transform.Position.ToFloat3(),
+                unityRotationWorldFromCamera: cameraRotationUnityWorldFromCamera,
+                unityTranslationWorldFromCamera: cameraTranslationUnityWorldFromCamera.ToFloat3()
             );
 
-            var (mapRotation, mapPosition) = UnityFromEcef(
-                new float3x3(new quaternion(
-                    (float)localizationResult.MapTransform.Rotation.X,
-                    (float)localizationResult.MapTransform.Rotation.Y,
-                    (float)localizationResult.MapTransform.Rotation.Z,
-                    (float)localizationResult.MapTransform.Rotation.W
-                )),
-                new double3(
-                    localizationResult.MapTransform.Position.X,
-                    localizationResult.MapTransform.Position.Y,
-                    localizationResult.MapTransform.Position.Z
-                )
+            var (mapRotation, mapPosition) = ChangeBasisEcefToUnity(
+                new float3x3(localizationResult.MapTransform.Rotation.ToMathematicsQuaternion()),
+                localizationResult.MapTransform.Position.ToFloat3()
             );
 
             var ecefFromColmapWorldMatrix = Double4x4.FromTranslationRotation(mapPosition, new quaternion(new float3x3(mapRotation)));
@@ -251,7 +223,7 @@ namespace Plerion.VPS
             // Change basis from OpenCV to Unity
             var colmapRotationCameraFromWorldMatrix = new float3x3(colmapRotationCameraFromWorld);
             (colmapRotationCameraFromWorldMatrix, colmapTranslationCameraFromWorld) =
-                UnityFromOpenCV(colmapRotationCameraFromWorldMatrix, colmapTranslationCameraFromWorld);
+                ChangeBasisOpenCVToUnity(colmapRotationCameraFromWorldMatrix, colmapTranslationCameraFromWorld);
 
             // Compute similarity transform
             return new float4x4(
@@ -260,18 +232,21 @@ namespace Plerion.VPS
             );
         }
 
-        private static (float3x3, float3) UnityFromOpenCV(float3x3 rotation, float3 translation)
+        private static (float3x3, float3) ChangeBasisOpenCVToUnity(float3x3 rotation, float3 translation)
             => (math.mul(basisChangeUnityFromOpenCV, math.mul(rotation, basisChangeOpenCVFromUnity)), math.mul(basisChangeUnityFromOpenCV, translation));
 
         // private static (float3x3, float3) OpenCVFromUnity(float3x3 rotation, float3 translation)
         //     => (math.mul(basisChangeOpenCVFromUnity, math.mul(rotation, basisChangeUnityFromOpenCV)), math.mul(basisChangeOpenCVFromUnity, translation));
 
-        private static (double3x3, double3) UnityFromEcef(double3x3 rotation, double3 translation)
+        private static (double3x3, double3) ChangeBasisEcefToUnity(double3x3 rotation, double3 translation)
             => (math.mul(basisChangeUnityFromEcef, math.mul(rotation, basisChangeEcefFromUnity)), math.mul(basisChangeUnityFromEcef, translation));
+
+        private static (double3x3, double3) ChangeBasisUnityToEcef(double3x3 rotation, double3 translation)
+            => (math.mul(basisChangeEcefFromUnity, math.mul(rotation, basisChangeUnityFromEcef)), math.mul(basisChangeEcefFromUnity, translation));
 
         public static (Vector3 position, Quaternion rotation) EcefToUnityWorld(double3 ecefPosition, quaternion ecefRotation)
         {
-            var (rot, pos) = UnityFromEcef(new float3x3(ecefRotation), ecefPosition);
+            var (rot, pos) = ChangeBasisEcefToUnity(new float3x3(ecefRotation), ecefPosition);
             var ecefTransform = Double4x4.FromTranslationRotation(pos, new quaternion(new float3x3(rot)));
             var unityTransform = math.mul(ecefToUnityTransform, ecefTransform);
             return (unityTransform.Position().ToFloats(), unityTransform.Rotation());
@@ -281,33 +256,9 @@ namespace Plerion.VPS
         {
             var unityTransform = Double4x4.FromTranslationRotation(position, rotation);
             var ecefTransform = math.mul(unityToEcefTransform, unityTransform);
-            return (ecefTransform.Position(), ecefTransform.Rotation());
+            var (rot, pos) = ChangeBasisUnityToEcef(new float3x3(ecefTransform.Rotation()), ecefTransform.Position());
+            return (pos, new quaternion(new float3x3(rot)));
         }
-
-        // static float4x4 unityWorldFromColmapWorld = float4x4.identity;
-
-        // public static (Vector3 position, Quaternion rotation) UnityWorldFromColmapWorld(float3 position, quaternion rotation)
-        // {
-        //     // Change basis from OpenCV to Unity
-        //     var rotationMatrix = new float3x3(rotation);
-        //     var (rotationMatrix_unityBasis, position_unityBasis) = UnityFromOpenCV(rotationMatrix, position);
-
-        //     // Apply similarity transform to get unity world transform
-        //     float4x4 unityTransform = math.mul(unityWorldFromColmapWorld, new float4x4(rotationMatrix_unityBasis, position_unityBasis));
-
-        //     // Extract the rotation
-        //     var unityRotation = new quaternion(new float3x3(unityTransform.c0.xyz, unityTransform.c1.xyz, unityTransform.c2.xyz));
-
-        //     return (
-        //         new Vector3(unityTransform.c3.x, unityTransform.c3.y, unityTransform.c3.z),
-        //         new Quaternion(unityRotation.value.x, unityRotation.value.y, unityRotation.value.z, unityRotation.value.w)
-        //     );
-        // }
-
-        // public static (float3 position, quaternion rotation) ColmapWorldFromUnityWorld(Vector3 position, Quaternion rotation)
-        // {
-        //     return (float3.zero, new quaternion());
-        // }
 
         public static async UniTask<MapData[]> GetLoadedLocalizationMapsAsync(bool includePoints = false, CancellationToken cancellationToken = default)
         {
@@ -361,11 +312,11 @@ namespace Plerion.VPS
 
             return points.Select(x =>
             {
-                var pcw = new float3((float)x.Position.X, (float)x.Position.Y, (float)x.Position.Z);
+                var pcw = x.Position.ToFloat3();
                 var p_ucam = math.mul(basisChangeUnityFromOpenCV, pcw);
                 return new Point
                 {
-                    position = new Vector3(p_ucam.x, p_ucam.y, p_ucam.z),
+                    position = p_ucam,
                     color = x.Color.ToUnityColor()
                 };
             }).ToArray();
