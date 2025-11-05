@@ -384,7 +384,6 @@ def main():
         image_id_to_pycolmap_id[image.name] = colmap_image_id
 
         keypoints_array = keypoints[image.name].detach().cpu().numpy().astype(float32, copy=False)
-        keypoints_array += 0.5  # Convert from (x,y) corner to COLMAP center-of-pixel (x+0.5,y+0.5)
         database.write_keypoints(colmap_image_id, keypoints_array)
 
         camera_center_in_world = -(image.rotation_camera_from_world.as_matrix().T @ image.translation_camera_from_world)

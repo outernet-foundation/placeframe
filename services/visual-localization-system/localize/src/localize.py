@@ -188,9 +188,8 @@ async def localize_image_against_reconstruction(map: Map, camera: Camera, image:
 
     query_keypoint_indices, point3d_indices = zip(*correspondences.items())
 
-    # Select the matched 2D keypoints, apply a 0.5-pixel shift (to go from integer pixel indices to
-    # COLMAP’s coordinate convention), and convert from torch tensor to NumPy array
-    points2d = (query_image_keypoints[list(query_keypoint_indices)] + 0.5).cpu().numpy()
+    # Select the matched 2D keypoints and convert from torch tensor to NumPy array
+    points2d = (query_image_keypoints[list(query_keypoint_indices)]).cpu().numpy()
 
     # For each matched 2D keypoint, look up its corresponding 3D world point and
     # stack them into an (M, 3) NumPy array to feed into absolute_pose_estimation.
