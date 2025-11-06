@@ -32,6 +32,32 @@ namespace PlerionClient.Model
     [DataContract(Name = "ReconstructionCreate")]
     public partial class ReconstructionCreate
     {
+
+        /// <summary>
+        /// Gets or Sets OrchestrationStatus
+        /// </summary>
+
+        [DataMember(Name = "orchestration_status", EmitDefaultValue = true)]
+        public OrchestrationStatus? OrchestrationStatus
+        {
+            get{ return _OrchestrationStatus;}
+            set
+            {
+                _OrchestrationStatus = value;
+                _flagOrchestrationStatus = true;
+            }
+        }
+        private OrchestrationStatus? _OrchestrationStatus;
+        private bool _flagOrchestrationStatus;
+
+        /// <summary>
+        /// Returns false as OrchestrationStatus should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeOrchestrationStatus()
+        {
+            return _flagOrchestrationStatus;
+        }
         /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionCreate" /> class.
         /// </summary>
@@ -42,6 +68,7 @@ namespace PlerionClient.Model
         /// </summary>
         /// <param name="captureSessionId">captureSessionId (required).</param>
         /// <param name="id">id.</param>
+        /// <param name="orchestrationStatus">orchestrationStatus.</param>
         public ReconstructionCreate(Guid captureSessionId)
         {
             this.CaptureSessionId = captureSessionId;
@@ -105,6 +132,7 @@ namespace PlerionClient.Model
             sb.Append("class ReconstructionCreate {\n");
             sb.Append("  CaptureSessionId: ").Append(CaptureSessionId).Append("\n");
             sb.Append("  Id: ").Append(Id).Append("\n");
+            sb.Append("  OrchestrationStatus: ").Append(OrchestrationStatus).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

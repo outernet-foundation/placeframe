@@ -10,7 +10,7 @@ from uuid import UUID
 from common.boto_clients import create_s3_client
 from common.classes import CameraIntrinsics, LocalizationMetrics, Transform
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from pycolmap import Camera, CameraModelId, Reconstruction
+from pycolmap import Camera, CameraModelId
 from torch import cuda  # type: ignore
 
 from .localize import localize_image_against_reconstruction
@@ -88,12 +88,7 @@ def _load_reconstruction(id: UUID):
             print(f"Downloading s3://{settings.reconstructions_bucket}/{key} to {local_path}")
             s3_client.download_file(settings.reconstructions_bucket, key, str(local_path))
 
-    maps[id] = load_map_data(
-        reconstruction=Reconstruction(str(RECONSTRUCTIONS_DIR / str(id) / "sfm_model")),
-        features_path=RECONSTRUCTIONS_DIR / str(id) / "features.h5",
-        globals_path=RECONSTRUCTIONS_DIR / str(id) / "global_descriptors.h5",
-        device=DEVICE,
-    )
+    maps[id] = load_map_data(reconstruction_path=RECONSTRUCTIONS_DIR / str(id), device=DEVICE)
 
 
 @app.post("/reconstructions/{id}")

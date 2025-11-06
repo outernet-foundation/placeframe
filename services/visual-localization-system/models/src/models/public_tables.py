@@ -156,7 +156,7 @@ class Reconstruction(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text('uuid_generate_v4()'))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text('now()'))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text('now()'))
-    status: Mapped[str] = mapped_column(Enum('queued', 'pending', 'running', 'succeeded', 'cancelled', 'failed', name='reconstruction_status'), nullable=False, server_default=text("'queued'::reconstruction_status"))
+    orchestration_status: Mapped[str] = mapped_column(Enum('queued', 'pending', 'running', 'succeeded', 'cancelled', 'failed', name='orchestration_status'), nullable=False, server_default=text("'queued'::orchestration_status"))
 
     capture_session: Mapped['CaptureSession'] = relationship('CaptureSession', back_populates='reconstructions')
     tenant: Mapped['Tenant'] = relationship('Tenant', back_populates='reconstructions')

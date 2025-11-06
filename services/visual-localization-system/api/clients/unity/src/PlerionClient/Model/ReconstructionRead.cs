@@ -34,29 +34,29 @@ namespace PlerionClient.Model
     {
 
         /// <summary>
-        /// Gets or Sets Status
+        /// Gets or Sets OrchestrationStatus
         /// </summary>
 
-        [DataMember(Name = "status", IsRequired = true, EmitDefaultValue = true)]
-        public ReconstructionStatus Status
+        [DataMember(Name = "orchestration_status", IsRequired = true, EmitDefaultValue = true)]
+        public OrchestrationStatus OrchestrationStatus
         {
-            get{ return _Status;}
+            get{ return _OrchestrationStatus;}
             set
             {
-                _Status = value;
-                _flagStatus = true;
+                _OrchestrationStatus = value;
+                _flagOrchestrationStatus = true;
             }
         }
-        private ReconstructionStatus _Status;
-        private bool _flagStatus;
+        private OrchestrationStatus _OrchestrationStatus;
+        private bool _flagOrchestrationStatus;
 
         /// <summary>
-        /// Returns false as Status should not be serialized given that it's read-only.
+        /// Returns false as OrchestrationStatus should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeStatus()
+        public bool ShouldSerializeOrchestrationStatus()
         {
-            return _flagStatus;
+            return _flagOrchestrationStatus;
         }
         /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionRead" /> class.
@@ -70,14 +70,14 @@ namespace PlerionClient.Model
         /// <param name="id">id (required).</param>
         /// <param name="createdAt">createdAt (required).</param>
         /// <param name="updatedAt">updatedAt (required).</param>
-        /// <param name="status">status (required).</param>
-        public ReconstructionRead(Guid captureSessionId, Guid id, DateTime createdAt, DateTime updatedAt, ReconstructionStatus status)
+        /// <param name="orchestrationStatus">orchestrationStatus (required).</param>
+        public ReconstructionRead(Guid captureSessionId, Guid id, DateTime createdAt, DateTime updatedAt, OrchestrationStatus orchestrationStatus)
         {
             this.CaptureSessionId = captureSessionId;
             this.Id = id;
             this.CreatedAt = createdAt;
             this.UpdatedAt = updatedAt;
-            this.Status = status;
+            this.OrchestrationStatus = orchestrationStatus;
         }
 
         /// <summary>
@@ -188,7 +188,7 @@ namespace PlerionClient.Model
             sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  CreatedAt: ").Append(CreatedAt).Append("\n");
             sb.Append("  UpdatedAt: ").Append(UpdatedAt).Append("\n");
-            sb.Append("  Status: ").Append(Status).Append("\n");
+            sb.Append("  OrchestrationStatus: ").Append(OrchestrationStatus).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

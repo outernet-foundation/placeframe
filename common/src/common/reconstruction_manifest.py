@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -89,6 +89,18 @@ class ReconstructionOptions(BaseModel):
             "e.g., radial/tangential distortion where applicable."
         ),
     )
+    compression_opq_number_of_subvectors: Optional[int] = Field(
+        default=None, description="Number of subvectors for OPQ compression."
+    )
+    compression_opq_number_bits_per_subvector: Optional[int] = Field(
+        default=None, description="Number of bits per subvector for OPQ compression."
+    )
+    compression_opq_number_of_training_iterations: Optional[int] = Field(
+        default=None, description="Number of training iterations for OPQ compression."
+    )
+    numpy_random_seed: Optional[int] = Field(
+        default=None, description="Random seed used for any numpy-based randomness (e.g., OPQ training)."
+    )
 
 
 class ReconstructionMetrics(BaseModel):
@@ -144,9 +156,24 @@ class ReconstructionMetrics(BaseModel):
     )
 
 
+ReconstructionStatus = Literal[
+    "queued",
+    "pending",
+    "downloading",
+    "extracting_features",
+    "matching_features",
+    "reconstructing",
+    "training_opq_matrix",
+    "training_product_quantizer",
+    "uploading",
+    "succeeded",
+    "failed",
+]
+
+
 class ReconstructionManifest(BaseModel):
     capture_id: str
-    status: str
+    status: ReconstructionStatus
     error: Optional[str] = Field(default=None)
     options: ReconstructionOptions
     metrics: ReconstructionMetrics

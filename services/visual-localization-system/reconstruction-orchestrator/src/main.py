@@ -37,7 +37,7 @@ def start_next_reconstruction() -> None:
     with Session(engine) as session, session.begin():
         queued_reconstruction = session.execute(
             select(Reconstruction.id)
-            .where(Reconstruction.status == "queued")
+            .where(Reconstruction.orchestration_status == "queued")
             .order_by(Reconstruction.created_at)
             .with_for_update(skip_locked=True)
             .limit(1)
@@ -70,7 +70,7 @@ def start_next_reconstruction() -> None:
 
         # https://github.com/agronholm/sqlacodegen/issues/408
         # TODO: sqlacodegen currently generates strings for enums, which sucks
-        queued_reconstruction.status = "pending"
+        queued_reconstruction.orchestration_status = "pending"
         session.add(queued_reconstruction)
 
 
@@ -81,7 +81,7 @@ def reconcile(max_rows: int = 50) -> None:
         running = (
             session.execute(
                 select(Reconstruction.id)
-                .where(Reconstruction.status.in_(["pending", "running"]))
+                .where(Reconstruction.orchestration_status.in_(["pending", "running"]))
                 .order_by(Reconstruction.created_at)
                 .limit(max_rows)
             )
@@ -93,7 +93,7 @@ def reconcile(max_rows: int = 50) -> None:
         print(f"Checking reconstruction {reconstruction_id}")
 
         try:
-            manifest: ReconstructionManifest = ReconstructionManifest.model_validate_json(
+            manifest = ReconstructionManifest.model_validate_json(
                 s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{reconstruction_id}/manifest.json")[
                     "Body"
                 ].read()
@@ -107,7 +107,14 @@ def reconcile(max_rows: int = 50) -> None:
         with Session(engine) as session, session.begin():
             row = session.get(Reconstruction, reconstruction_id, with_for_update=False)
             assert row is not None
-            row.status = manifest.status
+
+            if manifest.status == "succeeded":
+                row.orchestration_status = "succeeded"
+            elif manifest.status == "failed":
+                row.orchestration_status = "failed"
+            elif manifest.status != "pending":
+                row.orchestration_status = "running"
+
             session.add(row)
             session.flush()
 

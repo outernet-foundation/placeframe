@@ -15,7 +15,7 @@ from models.public_dtos import (
     localization_map_from_dto,
     localization_map_to_dto,
 )
-from models.public_tables import LocalizationMap, Reconstruction
+from models.public_tables import LocalizationMap
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +23,7 @@ from src.routers.reconstructions import (
     get_reconstruction_image_poses,
     get_reconstruction_points,
     get_reconstruction_points3D_ply,
+    get_reconstruction_status,
 )
 
 from ..database import get_session
@@ -37,13 +38,9 @@ router = APIRouter(prefix="/localization_maps", tags=["localization_maps"])
 async def create_localization_map(
     localization_map: LocalizationMapCreate, session: AsyncSession = Depends(get_session)
 ) -> LocalizationMapRead:
-    reconstruction = await session.get(Reconstruction, localization_map.reconstruction_id)
-    if not reconstruction:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Reconstruction with id {localization_map.reconstruction_id} does not exist",
-        )
-    if reconstruction.status != "succeeded":
+    reconstruction_status = await get_reconstruction_status(localization_map.reconstruction_id, session)
+
+    if reconstruction_status != "succeeded":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Reconstruction with id {localization_map.reconstruction_id} is not in 'succeeded' state",

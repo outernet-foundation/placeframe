@@ -817,6 +817,19 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "enum": [
+                    "queued",
+                    "pending",
+                    "downloading",
+                    "extracting_features",
+                    "matching_features",
+                    "reconstructing",
+                    "training_opq_matrix",
+                    "training_product_quantizer",
+                    "uploading",
+                    "succeeded",
+                    "failed"
+                  ],
                   "type": "string",
                   "title": "Response Get Reconstruction Status"
                 }
@@ -4088,6 +4101,18 @@
         ],
         "title": "OpenCVRadTanIntrinsics"
       },
+      "OrchestrationStatus": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "pending",
+          "running",
+          "succeeded",
+          "cancelled",
+          "failed"
+        ],
+        "title": "OrchestrationStatus"
+      },
       "PinholeIntrinsics": {
         "properties": {
           "model": {
@@ -4194,6 +4219,16 @@
               }
             ],
             "title": "Id"
+          },
+          "orchestration_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrchestrationStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -4233,6 +4268,19 @@
           },
           "status": {
             "type": "string",
+            "enum": [
+              "queued",
+              "pending",
+              "downloading",
+              "extracting_features",
+              "matching_features",
+              "reconstructing",
+              "training_opq_matrix",
+              "training_product_quantizer",
+              "uploading",
+              "succeeded",
+              "failed"
+            ],
             "title": "Status"
           },
           "error": {
@@ -4533,6 +4581,54 @@
             ],
             "title": "Bundle Adjustment Refine Additional Params",
             "description": "If true, refine model-specific additional parameters during BA (ba_refine_extra_params), e.g., radial/tangential distortion where applicable."
+          },
+          "compression_opq_number_of_subvectors": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compression Opq Number Of Subvectors",
+            "description": "Number of subvectors for OPQ compression."
+          },
+          "compression_opq_number_bits_per_subvector": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compression Opq Number Bits Per Subvector",
+            "description": "Number of bits per subvector for OPQ compression."
+          },
+          "compression_opq_number_of_training_iterations": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compression Opq Number Of Training Iterations",
+            "description": "Number of training iterations for OPQ compression."
+          },
+          "numpy_random_seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numpy Random Seed",
+            "description": "Random seed used for any numpy-based randomness (e.g., OPQ training)."
           }
         },
         "type": "object",
@@ -4560,8 +4656,8 @@
             "format": "date-time",
             "title": "Updated At"
           },
-          "status": {
-            "$ref": "#/components/schemas/ReconstructionStatus"
+          "orchestration_status": {
+            "$ref": "#/components/schemas/OrchestrationStatus"
           }
         },
         "type": "object",
@@ -4570,21 +4666,9 @@
           "id",
           "created_at",
           "updated_at",
-          "status"
+          "orchestration_status"
         ],
         "title": "ReconstructionRead"
-      },
-      "ReconstructionStatus": {
-        "type": "string",
-        "enum": [
-          "queued",
-          "pending",
-          "running",
-          "succeeded",
-          "cancelled",
-          "failed"
-        ],
-        "title": "ReconstructionStatus"
       },
       "Transform": {
         "properties": {

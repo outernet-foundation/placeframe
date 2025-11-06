@@ -50,6 +50,7 @@ src/PlerionClient/Model/NodeBatchUpdate.cs
 src/PlerionClient/Model/NodeCreate.cs
 src/PlerionClient/Model/NodeRead.cs
 src/PlerionClient/Model/OpenCVRadTanIntrinsics.cs
+src/PlerionClient/Model/OrchestrationStatus.cs
 src/PlerionClient/Model/PinholeIntrinsics.cs
 src/PlerionClient/Model/PointCloudPoint.cs
 src/PlerionClient/Model/Quaternion.cs
@@ -59,7 +60,6 @@ src/PlerionClient/Model/ReconstructionManifest.cs
 src/PlerionClient/Model/ReconstructionMetrics.cs
 src/PlerionClient/Model/ReconstructionOptions.cs
 src/PlerionClient/Model/ReconstructionRead.cs
-src/PlerionClient/Model/ReconstructionStatus.cs
 src/PlerionClient/Model/Transform.cs
 src/PlerionClient/Model/ValidationError.cs
 src/PlerionClient/Model/ValidationErrorLocInner.cs

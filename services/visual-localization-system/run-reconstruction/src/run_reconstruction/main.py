@@ -11,6 +11,12 @@ from common.boto_clients import create_s3_client
 from common.classes import Quaternion, RigCamera, RigConfig, Vector3, get_camera_intrinsics_type
 from common.reconstruction_manifest import ReconstructionManifest
 from cv2 import COLOR_BGR2GRAY, COLOR_BGR2RGB, IMREAD_COLOR, cvtColor, imdecode
+from faiss import (
+    OPQMatrix,
+    ProductQuantizer,
+    write_ProductQuantizer,  # type: ignore
+    write_VectorTransform,  # type: ignore
+)
 from h5py import File
 from hloc.extractors.dir import DIR
 from hloc.extractors.superpoint import SuperPoint
@@ -18,6 +24,7 @@ from lightglue import LightGlue
 from numpy import (
     array,
     asarray,
+    ascontiguousarray,
     eye,
     float16,
     float32,
@@ -27,9 +34,11 @@ from numpy import (
     ndarray,
     nonzero,
     percentile,
+    random,
     stack,
     uint8,
     uint32,
+    vstack,
 )
 from numpy.linalg import norm
 from numpy.typing import NDArray
@@ -74,6 +83,8 @@ IMAGES_DIRECTORY.mkdir(parents=True, exist_ok=True)
 PAIRS_FILE = WORK_DIR / "pairs.txt"
 GLOBAL_DESCRIPTORS_FILE = WORK_DIR / "global_descriptors.h5"
 FEATURES_FILE = WORK_DIR / "features.h5"
+OPQ_MATRIX_FILE = WORK_DIR / "opq_matrix.tf"
+PQ_QUANTIZER_FILE = WORK_DIR / "pq_quantizer.pq"
 COLMAP_DB_PATH = OUTPUT_DIRECTORY / "database.db"
 COLMAP_SFM_DIRECTORY = OUTPUT_DIRECTORY / "sfm_model"
 COLMAP_SFM_DIRECTORY.mkdir(parents=True, exist_ok=True)
@@ -159,12 +170,12 @@ def _to_f16(t: Tensor) -> ndarray:
 def main():
     print(f"Starting reconstruction {settings.reconstruction_id}")
 
-    manifest: ReconstructionManifest = ReconstructionManifest.model_validate_json(
+    manifest = ReconstructionManifest.model_validate_json(
         s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{settings.reconstruction_id}/manifest.json")[
             "Body"
         ].read()
     )
-    manifest.status = "running"
+    manifest.status = "downloading"
     _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
 
     print("Loading capture data")
@@ -238,6 +249,9 @@ def main():
 
     print("Extracting features")
 
+    manifest.status = "extracting_features"
+    _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
+
     global_descriptors: dict[str, Tensor] = {}
     keypoints: dict[str, Tensor] = {}
     descriptors: dict[str, Tensor] = {}
@@ -256,6 +270,7 @@ def main():
             scores[image.name] = superpoint_output["scores"][0]
 
     manifest.metrics.average_keypoints_per_image = float(sum(len(kp) for kp in keypoints.values()) / len(keypoints))
+    manifest.status = "matching_features"
     _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
 
     print("Matching features")
@@ -478,6 +493,9 @@ def main():
             manifest.options.triangulation_merge_max_reprojection_error
         )
 
+    manifest.status = "reconstructing"
+    _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
+
     IMAGES_DIRECTORY.mkdir(parents=True, exist_ok=True)
     reconstructions = incremental_mapping(
         database_path=str(COLMAP_DB_PATH),
@@ -498,6 +516,44 @@ def main():
     best_out.mkdir(parents=True, exist_ok=True)
     best.write_text(str(best_out))
     best.export_PLY(str(best_out / "points3D.ply"))
+
+    # opq + pq
+    random_seed = 1234
+    number_of_subvectors = 16
+    number_of_bits_per_subvector = 8
+    opq_iterations = 20
+    manifest.options.compression_opq_number_of_subvectors = number_of_subvectors
+    manifest.options.compression_opq_number_bits_per_subvector = number_of_bits_per_subvector
+    manifest.options.compression_opq_number_of_training_iterations = opq_iterations
+    manifest.options.numpy_random_seed = random_seed
+
+    random.seed(random_seed)
+
+    training_descriptors = vstack([_to_f32(descriptors[name]).T for name in images.keys()])
+    dimension = int(training_descriptors.shape[1])
+
+    print("Training OPQ matrix")
+
+    manifest.status = "training_opq_matrix"
+    _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
+
+    opq_matrix = OPQMatrix(dimension, number_of_subvectors)
+    opq_matrix.niter = opq_iterations
+    opq_matrix.verbose = True
+    training_unit = ascontiguousarray(training_descriptors)
+    opq_matrix.train(training_unit)  # type: ignore
+    write_VectorTransform(opq_matrix, str(OPQ_MATRIX_FILE))
+
+    print("Training PQ quantizer")
+
+    manifest.status = "training_product_quantizer"
+    _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
+
+    rotated_training_unit = opq_matrix.apply(training_unit)  # type: ignore
+    faiss_pq = ProductQuantizer(dimension, number_of_subvectors, number_of_bits_per_subvector)
+    faiss_pq.verbose = True
+    faiss_pq.train(rotated_training_unit)  # type: ignore
+    write_ProductQuantizer(faiss_pq, str(PQ_QUANTIZER_FILE))
 
     # Compute metrics
     points3d: Point3DMap = best.points3D
@@ -534,27 +590,32 @@ def main():
 
     print("Uploading reconstruction results")
 
+    manifest.status = "uploading"
+    _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
+
     with File(GLOBAL_DESCRIPTORS_FILE, "w") as gfile:
         for name, gdesc in global_descriptors.items():
-            grp = gfile.require_group(name)  # type: ignore
-            if "global_descriptor" in grp:
-                del grp["global_descriptor"]
-            grp.create_dataset("global_descriptor", data=_to_f32(gdesc), compression="gzip", compression_opts=3)  # type: ignore
+            group = gfile.require_group(name)  # type: ignore
+            if "global_descriptor" in group:
+                del group["global_descriptor"]
+            group.create_dataset("global_descriptor", data=_to_f32(gdesc), compression="gzip", compression_opts=3)  # type: ignore
 
     with File(FEATURES_FILE, "w") as ffile:
         for name in global_descriptors.keys():  # ensures the same set/order as globals
-            grp = ffile.require_group(name)  # type: ignore
+            group = ffile.require_group(name)  # type: ignore
 
-            # clean any existing
-            if "keypoints" in grp:
-                del grp["keypoints"]
-            if "descriptors" in grp:
-                del grp["descriptors"]
-            if "scores" in grp:  # ensure dropped
-                del grp["scores"]
+            # Clean any existing datasets
+            if "keypoints" in group:
+                del group["keypoints"]
+            if "descriptors" in group:  # we no longer store raw float descriptors
+                del group["descriptors"]
+            if "scores" in group:
+                del group["scores"]
+            if "pq_codes" in group:
+                del group["pq_codes"]
 
             # write FP16 + gzip-9 + shuffle + chunks
-            grp.create_dataset(  # type: ignore
+            group.create_dataset(  # type: ignore
                 "keypoints",
                 data=_to_f16(keypoints[name]),
                 compression="gzip",
@@ -563,17 +624,19 @@ def main():
                 chunks=True,
             )
 
-            grp.create_dataset(  # type: ignore
-                "descriptors",
-                data=_to_f16(descriptors[name]),
-                compression="gzip",
-                compression_opts=9,
-                shuffle=True,
-                chunks=True,
+            # Descriptors -> OPQ rotate (via apply) -> PQ encode
+            descriptors_contiguous = ascontiguousarray(_to_f32(descriptors[name]).T)
+            descriptors_rotated = cast(NDArray[float32], opq_matrix.apply(descriptors_contiguous))  # type: ignore
+            codes = cast(NDArray[uint8], faiss_pq.compute_codes(descriptors_rotated))  # type: ignore
+
+            group.create_dataset(  # type: ignore
+                "pq_codes", data=codes, compression="gzip", compression_opts=9, shuffle=True, chunks=True
             )
 
     _put_reconstruction_object(key="global_descriptors.h5", body=GLOBAL_DESCRIPTORS_FILE.read_bytes())
     _put_reconstruction_object(key="features.h5", body=FEATURES_FILE.read_bytes())
+    _put_reconstruction_object(key="opq_matrix.tf", body=OPQ_MATRIX_FILE.read_bytes())
+    _put_reconstruction_object(key="pq_quantizer.pq", body=PQ_QUANTIZER_FILE.read_bytes())
     _put_reconstruction_object(key="pairs.txt", body=PAIRS_FILE.read_bytes())
 
     for file_path in best_out.rglob("*"):
@@ -581,7 +644,6 @@ def main():
             _put_reconstruction_object(key=f"sfm_model/{file_path.relative_to(best_out)}", body=file_path.read_bytes())
 
     manifest.status = "succeeded"
-
     _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
 
 

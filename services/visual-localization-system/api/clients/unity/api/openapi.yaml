@@ -552,6 +552,18 @@ paths:
           content:
             application/json:
               schema:
+                enum:
+                - queued
+                - pending
+                - downloading
+                - extracting_features
+                - matching_features
+                - reconstructing
+                - training_opq_matrix
+                - training_product_quantizer
+                - uploading
+                - succeeded
+                - failed
                 title: Response Get Reconstruction Status
                 type: string
           description: Successful Response
@@ -2665,6 +2677,16 @@ components:
       - p2
       - width
       title: OpenCVRadTanIntrinsics
+    OrchestrationStatus:
+      enum:
+      - queued
+      - pending
+      - running
+      - succeeded
+      - cancelled
+      - failed
+      title: OrchestrationStatus
+      type: string
     PinholeIntrinsics:
       example:
         fx: 1.4658129805029452
@@ -2754,6 +2776,7 @@ components:
     ReconstructionCreate:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        orchestration_status: queued
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         capture_session_id:
@@ -2764,6 +2787,8 @@ components:
           format: uuid
           nullable: true
           type: string
+        orchestration_status:
+          $ref: "#/components/schemas/OrchestrationStatus"
       required:
       - capture_session_id
       title: ReconstructionCreate
@@ -2774,17 +2799,22 @@ components:
           triangulation_merge_max_reprojection_error: 7.061401241503109
           ransac_min_inlier_ratio: 5.962133916683182
           neightbors_count: 0
+          compression_opq_number_bits_per_subvector: 2
           bundle_adjustment_refine_sensor_from_rig: true
           bundle_adjustment_refine_principal_point: true
+          compression_opq_number_of_subvectors: 3
           use_prior_position: true
           max_keypoints_per_image: 6
+          compression_opq_number_of_training_iterations: 4
           triangulation_complete_max_reprojection_error: 2.3021358869347655
           mapper_filter_max_reprojection_error: 9.301444243932576
           triangulation_minimum_angle: 5.637376656633329
           bundle_adjustment_refine_additional_params: true
           bundle_adjustment_refine_focal_length: true
+          numpy_random_seed: 7
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          orchestration_status: queued
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         create:
@@ -2801,15 +2831,19 @@ components:
           triangulation_merge_max_reprojection_error: 7.061401241503109
           ransac_min_inlier_ratio: 5.962133916683182
           neightbors_count: 0
+          compression_opq_number_bits_per_subvector: 2
           bundle_adjustment_refine_sensor_from_rig: true
           bundle_adjustment_refine_principal_point: true
+          compression_opq_number_of_subvectors: 3
           use_prior_position: true
           max_keypoints_per_image: 6
+          compression_opq_number_of_training_iterations: 4
           triangulation_complete_max_reprojection_error: 2.3021358869347655
           mapper_filter_max_reprojection_error: 9.301444243932576
           triangulation_minimum_angle: 5.637376656633329
           bundle_adjustment_refine_additional_params: true
           bundle_adjustment_refine_focal_length: true
+          numpy_random_seed: 7
         metrics:
           track_length_50th_percentile: 9.301444243932576
           total_images: 0
@@ -2822,12 +2856,24 @@ components:
           percent_tracks_with_length_greater_than_or_equal_to_3: 3.616076749251911
         capture_id: capture_id
         error: error
-        status: status
+        status: queued
       properties:
         capture_id:
           title: Capture Id
           type: string
         status:
+          enum:
+          - queued
+          - pending
+          - downloading
+          - extracting_features
+          - matching_features
+          - reconstructing
+          - training_opq_matrix
+          - training_product_quantizer
+          - uploading
+          - succeeded
+          - failed
           title: Status
           type: string
         error:
@@ -2889,15 +2935,19 @@ components:
         triangulation_merge_max_reprojection_error: 7.061401241503109
         ransac_min_inlier_ratio: 5.962133916683182
         neightbors_count: 0
+        compression_opq_number_bits_per_subvector: 2
         bundle_adjustment_refine_sensor_from_rig: true
         bundle_adjustment_refine_principal_point: true
+        compression_opq_number_of_subvectors: 3
         use_prior_position: true
         max_keypoints_per_image: 6
+        compression_opq_number_of_training_iterations: 4
         triangulation_complete_max_reprojection_error: 2.3021358869347655
         mapper_filter_max_reprojection_error: 9.301444243932576
         triangulation_minimum_angle: 5.637376656633329
         bundle_adjustment_refine_additional_params: true
         bundle_adjustment_refine_focal_length: true
+        numpy_random_seed: 7
       properties:
         neightbors_count:
           nullable: true
@@ -2938,14 +2988,26 @@ components:
         bundle_adjustment_refine_additional_params:
           nullable: true
           type: boolean
+        compression_opq_number_of_subvectors:
+          nullable: true
+          type: integer
+        compression_opq_number_bits_per_subvector:
+          nullable: true
+          type: integer
+        compression_opq_number_of_training_iterations:
+          nullable: true
+          type: integer
+        numpy_random_seed:
+          nullable: true
+          type: integer
       title: ReconstructionOptions
     ReconstructionRead:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         updated_at: 2000-01-23T04:56:07.000+00:00
+        orchestration_status: queued
         created_at: 2000-01-23T04:56:07.000+00:00
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        status: queued
       properties:
         capture_session_id:
           format: uuid
@@ -2963,25 +3025,15 @@ components:
           format: date-time
           title: Updated At
           type: string
-        status:
-          $ref: "#/components/schemas/ReconstructionStatus"
+        orchestration_status:
+          $ref: "#/components/schemas/OrchestrationStatus"
       required:
       - capture_session_id
       - created_at
       - id
-      - status
+      - orchestration_status
       - updated_at
       title: ReconstructionRead
-    ReconstructionStatus:
-      enum:
-      - queued
-      - pending
-      - running
-      - succeeded
-      - cancelled
-      - failed
-      title: ReconstructionStatus
-      type: string
     Transform:
       example:
         rotation:

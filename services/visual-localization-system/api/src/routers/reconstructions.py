@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-import json
 from typing import Optional
 from uuid import UUID
 
 from common.boto_clients import create_s3_client
 from common.classes import PointCloudPoint, Transform
-from common.reconstruction_manifest import ReconstructionManifest, ReconstructionMetrics, ReconstructionOptions
+from common.reconstruction_manifest import (
+    ReconstructionManifest,
+    ReconstructionMetrics,
+    ReconstructionOptions,
+    ReconstructionStatus,
+)
 from common.schemas import binary_schema
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -155,10 +159,8 @@ async def get_reconstruction_manifest(id: UUID, session: AsyncSession = Depends(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reconstruction with id {id} not found")
 
     try:
-        manifest: ReconstructionManifest = json.loads(
-            s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{id}/manifest.json")["Body"]
-            .read()
-            .decode("utf-8")
+        manifest = ReconstructionManifest.model_validate_json(
+            s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{id}/manifest.json")["Body"].read()
         )
     except Exception as e:
         raise HTTPException(
@@ -189,13 +191,10 @@ async def get_reconstruction_localization_map(id: UUID, session: AsyncSession = 
 
 
 @router.get("/{id}/status")
-async def get_reconstruction_status(id: UUID, session: AsyncSession = Depends(get_session)) -> str:
-    row = await session.get(Reconstruction, id)
+async def get_reconstruction_status(id: UUID, session: AsyncSession = Depends(get_session)) -> ReconstructionStatus:
+    manifest = await get_reconstruction_manifest(id, session)
 
-    if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reconstruction with id {id} not found")
-
-    return row.status
+    return manifest.status
 
 
 @router.get("/{id}/points")

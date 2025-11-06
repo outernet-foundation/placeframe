@@ -1,4 +1,4 @@
-CREATE TYPE reconstruction_status AS ENUM (
+CREATE TYPE orchestration_status AS ENUM (
   'queued',
   'pending',
   'running',
@@ -23,7 +23,7 @@ CREATE TABLE reconstructions(
     NOT NULL 
     REFERENCES capture_sessions(id) 
     ON DELETE RESTRICT,
-  status reconstruction_status
+  orchestration_status orchestration_status
     NOT NULL 
     DEFAULT 'queued',
 

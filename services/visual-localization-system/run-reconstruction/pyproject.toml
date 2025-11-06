@@ -12,6 +12,7 @@ dependencies = [
     "scipy>=1.7",
     "pycolmap>=3.12.6",
     "pybind11-stubgen",
+    "faiss-cpu>=1.12.0",
 ]
 
 [dependency-groups]

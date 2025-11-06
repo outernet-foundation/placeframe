@@ -234,20 +234,6 @@ class NodeRead(BaseModel):
     label: Optional[str] = Field(None, title='Label')
 
 
-class ReconstructionCreate(BaseModel):
-    capture_session_id: UUID = Field(..., title='Capture Session Id')
-    id: Optional[UUID] = Field(None, title='Id')
-
-
-class ReconstructionUpdate(BaseModel):
-    capture_session_id: Optional[UUID] = Field(None, title='Capture Session Id')
-
-
-class ReconstructionBatchUpdate(BaseModel):
-    capture_session_id: Optional[UUID] = Field(None, title='Capture Session Id')
-    id: UUID = Field(..., title='Id')
-
-
 class TenantCreate(BaseModel):
     id: Optional[UUID] = Field(None, title='Id')
 
@@ -270,7 +256,7 @@ class DeviceType(Enum):
     Zed = 'Zed'
 
 
-class ReconstructionStatus(Enum):
+class OrchestrationStatus(Enum):
     queued = 'queued'
     pending = 'pending'
     running = 'running'
@@ -304,12 +290,29 @@ class CaptureSessionRead(BaseModel):
     name: str = Field(..., title='Name')
 
 
+class ReconstructionCreate(BaseModel):
+    capture_session_id: UUID = Field(..., title='Capture Session Id')
+    id: Optional[UUID] = Field(None, title='Id')
+    orchestration_status: Optional[OrchestrationStatus] = None
+
+
+class ReconstructionUpdate(BaseModel):
+    capture_session_id: Optional[UUID] = Field(None, title='Capture Session Id')
+    orchestration_status: Optional[OrchestrationStatus] = None
+
+
+class ReconstructionBatchUpdate(BaseModel):
+    capture_session_id: Optional[UUID] = Field(None, title='Capture Session Id')
+    id: UUID = Field(..., title='Id')
+    orchestration_status: Optional[OrchestrationStatus] = None
+
+
 class ReconstructionRead(BaseModel):
     capture_session_id: UUID = Field(..., title='Capture Session Id')
     id: UUID = Field(..., title='Id')
     created_at: AwareDatetime = Field(..., title='Created At')
     updated_at: AwareDatetime = Field(..., title='Updated At')
-    status: ReconstructionStatus
+    orchestration_status: OrchestrationStatus
 
 def capture_session_from_dto(create: CaptureSessionCreate) -> CaptureSession:
     data = create.model_dump(exclude_unset=True, mode="json")

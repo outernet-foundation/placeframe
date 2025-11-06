@@ -33,6 +33,106 @@ namespace PlerionClient.Model
     public partial class ReconstructionManifest
     {
         /// <summary>
+        /// Defines Status
+        /// </summary>
+        [JsonConverter(typeof(StringEnumConverter))]
+        public enum StatusEnum
+        {
+            /// <summary>
+            /// Enum Queued for value: queued
+            /// </summary>
+            [EnumMember(Value = "queued")]
+            Queued = 1,
+
+            /// <summary>
+            /// Enum Pending for value: pending
+            /// </summary>
+            [EnumMember(Value = "pending")]
+            Pending = 2,
+
+            /// <summary>
+            /// Enum Downloading for value: downloading
+            /// </summary>
+            [EnumMember(Value = "downloading")]
+            Downloading = 3,
+
+            /// <summary>
+            /// Enum ExtractingFeatures for value: extracting_features
+            /// </summary>
+            [EnumMember(Value = "extracting_features")]
+            ExtractingFeatures = 4,
+
+            /// <summary>
+            /// Enum MatchingFeatures for value: matching_features
+            /// </summary>
+            [EnumMember(Value = "matching_features")]
+            MatchingFeatures = 5,
+
+            /// <summary>
+            /// Enum Reconstructing for value: reconstructing
+            /// </summary>
+            [EnumMember(Value = "reconstructing")]
+            Reconstructing = 6,
+
+            /// <summary>
+            /// Enum TrainingOpqMatrix for value: training_opq_matrix
+            /// </summary>
+            [EnumMember(Value = "training_opq_matrix")]
+            TrainingOpqMatrix = 7,
+
+            /// <summary>
+            /// Enum TrainingProductQuantizer for value: training_product_quantizer
+            /// </summary>
+            [EnumMember(Value = "training_product_quantizer")]
+            TrainingProductQuantizer = 8,
+
+            /// <summary>
+            /// Enum Uploading for value: uploading
+            /// </summary>
+            [EnumMember(Value = "uploading")]
+            Uploading = 9,
+
+            /// <summary>
+            /// Enum Succeeded for value: succeeded
+            /// </summary>
+            [EnumMember(Value = "succeeded")]
+            Succeeded = 10,
+
+            /// <summary>
+            /// Enum Failed for value: failed
+            /// </summary>
+            [EnumMember(Value = "failed")]
+            Failed = 11
+        }
+
+
+
+        /// <summary>
+        /// Gets or Sets Status
+        /// </summary>
+
+        [DataMember(Name = "status", IsRequired = true, EmitDefaultValue = true)]
+        public StatusEnum Status
+        {
+            get{ return _Status;}
+            set
+            {
+                _Status = value;
+                _flagStatus = true;
+            }
+        }
+        private StatusEnum _Status;
+        private bool _flagStatus;
+
+        /// <summary>
+        /// Returns false as Status should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeStatus()
+        {
+            return _flagStatus;
+        }
+        /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionManifest" /> class.
         /// </summary>
         [JsonConstructorAttribute]
@@ -45,7 +145,7 @@ namespace PlerionClient.Model
         /// <param name="error">error.</param>
         /// <param name="options">options (required).</param>
         /// <param name="metrics">metrics (required).</param>
-        public ReconstructionManifest(string captureId, string status, ReconstructionOptions options, ReconstructionMetrics metrics)
+        public ReconstructionManifest(string captureId, StatusEnum status, ReconstructionOptions options, ReconstructionMetrics metrics)
         {
             // to ensure "captureId" is required (not null)
             if (captureId == null)
@@ -53,11 +153,6 @@ namespace PlerionClient.Model
                 throw new ArgumentNullException("captureId is a required property for ReconstructionManifest and cannot be null");
             }
             this.CaptureId = captureId;
-            // to ensure "status" is required (not null)
-            if (status == null)
-            {
-                throw new ArgumentNullException("status is a required property for ReconstructionManifest and cannot be null");
-            }
             this.Status = status;
             // to ensure "options" is required (not null)
             if (options == null)
@@ -96,30 +191,6 @@ namespace PlerionClient.Model
         public bool ShouldSerializeCaptureId()
         {
             return _flagCaptureId;
-        }
-        /// <summary>
-        /// Gets or Sets Status
-        /// </summary>
-        [DataMember(Name = "status", IsRequired = true, EmitDefaultValue = true)]
-        public string Status
-        {
-            get{ return _Status;}
-            set
-            {
-                _Status = value;
-                _flagStatus = true;
-            }
-        }
-        private string _Status;
-        private bool _flagStatus;
-
-        /// <summary>
-        /// Returns false as Status should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeStatus()
-        {
-            return _flagStatus;
         }
         /// <summary>
         /// Gets or Sets Options

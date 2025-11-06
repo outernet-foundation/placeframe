@@ -314,18 +314,18 @@ namespace PlerionClient.Client
 
                             state.reconstructionId.value = entry.reconstruction.Id;
 
-                            switch (entry.reconstruction.Status)
+                            switch (entry.reconstruction.OrchestrationStatus)
                             {
-                                case ReconstructionStatus.Pending:
-                                case ReconstructionStatus.Queued:
-                                case ReconstructionStatus.Running:
+                                case OrchestrationStatus.Pending:
+                                case OrchestrationStatus.Queued:
+                                case OrchestrationStatus.Running:
                                     state.status.value = CaptureUploadStatus.Reconstructing;
                                     break;
-                                case ReconstructionStatus.Succeeded:
+                                case OrchestrationStatus.Succeeded:
                                     state.status.value = CaptureUploadStatus.Uploaded;
                                     break;
-                                case ReconstructionStatus.Cancelled:
-                                case ReconstructionStatus.Failed:
+                                case OrchestrationStatus.Cancelled:
+                                case OrchestrationStatus.Failed:
                                     state.status.value = CaptureUploadStatus.Failed;
                                     break;
                             }

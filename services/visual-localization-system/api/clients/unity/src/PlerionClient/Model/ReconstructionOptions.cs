@@ -48,6 +48,10 @@ namespace PlerionClient.Model
         /// <param name="bundleAdjustmentRefineFocalLength">bundleAdjustmentRefineFocalLength.</param>
         /// <param name="bundleAdjustmentRefinePrincipalPoint">bundleAdjustmentRefinePrincipalPoint.</param>
         /// <param name="bundleAdjustmentRefineAdditionalParams">bundleAdjustmentRefineAdditionalParams.</param>
+        /// <param name="compressionOpqNumberOfSubvectors">compressionOpqNumberOfSubvectors.</param>
+        /// <param name="compressionOpqNumberBitsPerSubvector">compressionOpqNumberBitsPerSubvector.</param>
+        /// <param name="compressionOpqNumberOfTrainingIterations">compressionOpqNumberOfTrainingIterations.</param>
+        /// <param name="numpyRandomSeed">numpyRandomSeed.</param>
         public ReconstructionOptions()
         {
         }
@@ -365,6 +369,102 @@ namespace PlerionClient.Model
             return _flagBundleAdjustmentRefineAdditionalParams;
         }
         /// <summary>
+        /// Gets or Sets CompressionOpqNumberOfSubvectors
+        /// </summary>
+        [DataMember(Name = "compression_opq_number_of_subvectors", EmitDefaultValue = true)]
+        public int? CompressionOpqNumberOfSubvectors
+        {
+            get{ return _CompressionOpqNumberOfSubvectors;}
+            set
+            {
+                _CompressionOpqNumberOfSubvectors = value;
+                _flagCompressionOpqNumberOfSubvectors = true;
+            }
+        }
+        private int? _CompressionOpqNumberOfSubvectors;
+        private bool _flagCompressionOpqNumberOfSubvectors;
+
+        /// <summary>
+        /// Returns false as CompressionOpqNumberOfSubvectors should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeCompressionOpqNumberOfSubvectors()
+        {
+            return _flagCompressionOpqNumberOfSubvectors;
+        }
+        /// <summary>
+        /// Gets or Sets CompressionOpqNumberBitsPerSubvector
+        /// </summary>
+        [DataMember(Name = "compression_opq_number_bits_per_subvector", EmitDefaultValue = true)]
+        public int? CompressionOpqNumberBitsPerSubvector
+        {
+            get{ return _CompressionOpqNumberBitsPerSubvector;}
+            set
+            {
+                _CompressionOpqNumberBitsPerSubvector = value;
+                _flagCompressionOpqNumberBitsPerSubvector = true;
+            }
+        }
+        private int? _CompressionOpqNumberBitsPerSubvector;
+        private bool _flagCompressionOpqNumberBitsPerSubvector;
+
+        /// <summary>
+        /// Returns false as CompressionOpqNumberBitsPerSubvector should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeCompressionOpqNumberBitsPerSubvector()
+        {
+            return _flagCompressionOpqNumberBitsPerSubvector;
+        }
+        /// <summary>
+        /// Gets or Sets CompressionOpqNumberOfTrainingIterations
+        /// </summary>
+        [DataMember(Name = "compression_opq_number_of_training_iterations", EmitDefaultValue = true)]
+        public int? CompressionOpqNumberOfTrainingIterations
+        {
+            get{ return _CompressionOpqNumberOfTrainingIterations;}
+            set
+            {
+                _CompressionOpqNumberOfTrainingIterations = value;
+                _flagCompressionOpqNumberOfTrainingIterations = true;
+            }
+        }
+        private int? _CompressionOpqNumberOfTrainingIterations;
+        private bool _flagCompressionOpqNumberOfTrainingIterations;
+
+        /// <summary>
+        /// Returns false as CompressionOpqNumberOfTrainingIterations should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeCompressionOpqNumberOfTrainingIterations()
+        {
+            return _flagCompressionOpqNumberOfTrainingIterations;
+        }
+        /// <summary>
+        /// Gets or Sets NumpyRandomSeed
+        /// </summary>
+        [DataMember(Name = "numpy_random_seed", EmitDefaultValue = true)]
+        public int? NumpyRandomSeed
+        {
+            get{ return _NumpyRandomSeed;}
+            set
+            {
+                _NumpyRandomSeed = value;
+                _flagNumpyRandomSeed = true;
+            }
+        }
+        private int? _NumpyRandomSeed;
+        private bool _flagNumpyRandomSeed;
+
+        /// <summary>
+        /// Returns false as NumpyRandomSeed should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeNumpyRandomSeed()
+        {
+            return _flagNumpyRandomSeed;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -385,6 +485,10 @@ namespace PlerionClient.Model
             sb.Append("  BundleAdjustmentRefineFocalLength: ").Append(BundleAdjustmentRefineFocalLength).Append("\n");
             sb.Append("  BundleAdjustmentRefinePrincipalPoint: ").Append(BundleAdjustmentRefinePrincipalPoint).Append("\n");
             sb.Append("  BundleAdjustmentRefineAdditionalParams: ").Append(BundleAdjustmentRefineAdditionalParams).Append("\n");
+            sb.Append("  CompressionOpqNumberOfSubvectors: ").Append(CompressionOpqNumberOfSubvectors).Append("\n");
+            sb.Append("  CompressionOpqNumberBitsPerSubvector: ").Append(CompressionOpqNumberBitsPerSubvector).Append("\n");
+            sb.Append("  CompressionOpqNumberOfTrainingIterations: ").Append(CompressionOpqNumberOfTrainingIterations).Append("\n");
+            sb.Append("  NumpyRandomSeed: ").Append(NumpyRandomSeed).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

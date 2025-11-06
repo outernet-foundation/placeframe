@@ -26,10 +26,10 @@ using OpenAPIDateConverter = PlerionClient.Client.OpenAPIDateConverter;
 namespace PlerionClient.Model
 {
     /// <summary>
-    /// Defines ReconstructionStatus
+    /// Defines OrchestrationStatus
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum ReconstructionStatus
+    public enum OrchestrationStatus
     {
         /// <summary>
         /// Enum Queued for value: queued
