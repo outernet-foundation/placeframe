@@ -3,10 +3,15 @@
     "services/visual-localization-system": "plerion"
   },
   "openapi_projects": {
+    "services/visual-localization-system/localize": [
+      "services/visual-localization-system/common",
+      "services/visual-localization-system/models",
+      "services/visual-localization-system/core"
+    ],
     "services/visual-localization-system/api": [
       "services/visual-localization-system/models",
-      "common"
+      "services/visual-localization-system/common"
     ],
-    "capture-app/zed": ["common"]
+    "capture-app/zed": ["services/visual-localization-system/common"]
   }
 }

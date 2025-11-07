@@ -8,9 +8,14 @@ from threading import Lock
 from uuid import UUID
 
 from common.boto_clients import create_s3_client
-from common.classes import CameraIntrinsics, LocalizationMetrics, Transform
-from fastapi import FastAPI, File, HTTPException, UploadFile
-from pycolmap import Camera, CameraModelId
+from common.fastapi import create_fastapi_app
+from core.classes import LocalizationMetrics
+from core.rig import Camera, PinholeCamera
+from core.transform import Transform
+from fastapi import File, HTTPException, UploadFile
+
+# from pycolmap import Camera as PycolmapCamera
+from pydantic import BaseModel
 from torch import cuda  # type: ignore
 
 from .localize import localize_image_against_reconstruction
@@ -18,10 +23,8 @@ from .map import Map, load_map_data
 from .settings import get_settings
 
 DEVICE = "cuda" if cuda.is_available() else "cpu"
-print(f"Using device: {DEVICE}")
 
 RECONSTRUCTIONS_DIR = Path("/tmp/reconstructions")
-
 
 maps: dict[UUID, Map] = {}
 settings = get_settings()
@@ -29,8 +32,7 @@ s3_client = create_s3_client(
     s3_endpoint_url=settings.s3_endpoint_url, s3_access_key=settings.s3_access_key, s3_secret_key=settings.s3_secret_key
 )
 
-
-app = FastAPI(title="FastAPI App")
+app = create_fastapi_app(title="Localize")
 
 
 class LoadState(str, Enum):
@@ -45,7 +47,7 @@ _load_lock = Lock()
 _load_state: dict[UUID, LoadState] = {}
 _load_error: dict[UUID, str] = {}
 
-_camera = Camera()
+_camera: PinholeCamera | None = None
 
 
 @app.get("/health")
@@ -112,35 +114,53 @@ async def unload_reconstruction(id: UUID):
     return {"ok": True}
 
 
+class LoadStateResponse(BaseModel):
+    status: LoadState
+    error: str | None = None
+
+
 @app.get("/reconstructions/{id}/status")
-async def get_reconstruction_load_status(id: UUID) -> dict[str, str]:
+async def get_reconstruction_load_status(id: UUID) -> LoadStateResponse:
     with _load_lock:
         if id not in _load_state:
-            return {"status": LoadState.PENDING.value}
+            return LoadStateResponse(status=LoadState.PENDING)
 
         if _load_state[id] == LoadState.FAILED:
-            return {"status": _load_state[id].value, "error": _load_error[id]}
+            return LoadStateResponse(status=_load_state[id], error=_load_error[id])
 
-        return {"status": _load_state[id].value}
+        return LoadStateResponse(status=_load_state[id])
 
 
 @app.put("/camera")
-async def set_camera_intrinsics(camera: CameraIntrinsics):
+async def set_camera_intrinsics(camera: Camera):
     # only pinhole supported for now
-    if camera["model"] != "PINHOLE":
+    if camera.model != "PINHOLE":
         raise HTTPException(status_code=422, detail="Only PINHOLE camera model is supported")
 
-    _camera.model = CameraModelId.PINHOLE
-    _camera.params = [camera["fx"], camera["fy"], camera["cx"], camera["cy"]]
-    _camera.width = camera["width"]
-    _camera.height = camera["height"]
+    global _camera
+    _camera = camera
 
     return {"ok": True}
 
 
+class Localization(BaseModel):
+    id: UUID
+    transform: Transform
+    metrics: LocalizationMetrics
+
+
 @app.post("/localization")
-async def localize_image(image: UploadFile = File(...)) -> dict[UUID, tuple[Transform, LocalizationMetrics]]:
-    return {
-        id: await localize_image_against_reconstruction(map=maps[id], camera=_camera, image=await image.read())
-        for id in maps.keys()
-    }
+async def localize_image(image: UploadFile = File(...)) -> list[Localization]:
+    if _camera is None:
+        raise HTTPException(status_code=400, detail="Camera intrinsics not set")
+
+    return [
+        Localization(id=id, transform=result[0], metrics=result[1])
+        for id, result in zip(
+            maps.keys(),
+            [
+                await localize_image_against_reconstruction(map=maps[id], camera=_camera, image=await image.read())
+                for id in maps.keys()
+            ],
+        )
+    ]

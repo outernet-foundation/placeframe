@@ -4,7 +4,6 @@ from typing import Optional
 from uuid import UUID
 
 from common.boto_clients import create_s3_client
-from common.classes import PointCloudPoint, Transform
 from common.reconstruction_manifest import (
     ReconstructionManifest,
     ReconstructionMetrics,
@@ -12,6 +11,8 @@ from common.reconstruction_manifest import (
     ReconstructionStatus,
 )
 from common.schemas import binary_schema
+from core.classes import Color, PointCloudPoint
+from core.transform import Quaternion, Transform, Vector3
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from models.public_dtos import ReconstructionCreate, ReconstructionRead, reconstruction_from_dto, reconstruction_to_dto
@@ -206,8 +207,8 @@ async def get_reconstruction_points(id: UUID, session: AsyncSession = Depends(ge
 
     return [
         PointCloudPoint(
-            position={"x": float(parts[1]), "y": float(parts[2]), "z": float(parts[3])},
-            color={"r": int(parts[4]), "g": int(parts[5]), "b": int(parts[6])},
+            position=Vector3(x=float(parts[1]), y=float(parts[2]), z=float(parts[3])),
+            color=Color(r=int(parts[4]), g=int(parts[5]), b=int(parts[6])),
         )
         for parts in [
             line.split()
@@ -262,24 +263,6 @@ async def get_reconstruction_image_poses(id: UUID, session: AsyncSession = Depen
         qw, qx, qy, qz = map(float, parts[1:5])
         tx, ty, tz = map(float, parts[5:8])
 
-        # # Convert from COLMAP world-from-camera to camera-from-world
-        # camera_from_world = -Rotation.from_quat([qx, qy, qz, qw]).as_matrix().T @ array([tx, ty, tz], dtype=float)
-
-        # poses.append(
-        #     Transform(
-        #         position={
-        #             "x": float(camera_from_world[0]),
-        #             "y": float(camera_from_world[1]),
-        #             "z": float(camera_from_world[2]),
-        #         },
-        #         rotation={"w": qw, "x": -qx, "y": -qy, "z": -qz},
-        #     )
-        # )
-
-        poses.append(
-            Transform(
-                position={"x": float(tx), "y": float(ty), "z": float(tz)}, rotation={"w": qw, "x": qx, "y": qy, "z": qz}
-            )
-        )
+        poses.append(Transform(position=Vector3(x=tx, y=ty, z=tz), rotation=Quaternion(x=qx, y=qy, z=qz, w=qw)))
 
     return poses

@@ -44,13 +44,6 @@
     "dockerfile": "tasks/run-reconstruction/Dockerfile",
     "hash_paths": ["tasks/run-reconstruction", "common"]
   },
-  "extract-match-features": {
-    "stack": "dev",
-    "first_party": true,
-    "context": ".",
-    "dockerfile": "tasks/extract-match-features/Dockerfile",
-    "hash_paths": ["tasks/extract-match-features", "common"]
-  },
   "database-manager": {
     "stack": "core",
     "first_party": true,

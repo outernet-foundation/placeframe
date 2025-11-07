@@ -66,8 +66,8 @@
       "dependencies": {},
       "hash": "f789083c31250c83082da9b29be0c976152d699b"
     },
-    "com.outernet.plerionclient": {
-      "version": "file:../../../services/visual-localization-system/api/clients/unity/src/PlerionClient",
+    "com.outernet.plerion": {
+      "version": "file:../../../services/visual-localization-system/api/clients/unity/src/Plerion",
       "depth": 0,
       "source": "local",
       "dependencies": {}

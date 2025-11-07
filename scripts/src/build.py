@@ -8,9 +8,10 @@ from pathlib import Path
 from subprocess import CalledProcessError
 from typing import Literal, NotRequired, Optional, TypedDict, cast
 
-from common.run_command import run_command
 from pydantic import TypeAdapter
 from typer import Option, Typer
+
+from .run_command import run_command
 
 workspace_directory = Path("..").resolve()
 images_path = workspace_directory / "images.json"

@@ -3,11 +3,12 @@ from __future__ import annotations
 import json
 from typing import Any, Optional
 
-from common.boto_clients import create_lambda_client
 from pulumi import Input, ResourceOptions
 from pulumi.dynamic import CreateResult, DiffResult, Resource, ResourceProvider, UpdateResult
 
 from components.secret import Secret
+
+from .boto_clients import create_lambda_client
 
 
 class _DatabaseProvider(ResourceProvider):

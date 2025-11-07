@@ -6,7 +6,7 @@ from pathlib import Path
 from re import Pattern
 from shutil import rmtree
 
-from common.run_command import run_command
+from ..run_command import run_command
 
 templates_path = Path(__file__).parent / "templates"
 
@@ -61,11 +61,12 @@ def sync_client(project_path: Path, no_cache: bool, log: bool):
 
         run_command(
             f"uv run openapi-generator-cli generate "
-            f"-g csharp "
+            f"-g {config['generatorName']} "
             f"-i {stripped_spec_path.resolve().as_posix()} "
             f"-o {client_path.resolve().as_posix()} "
             f"-c {str(config_path.resolve())} "
-            f"-t {str(templates_path.resolve())}",
+            f"-t {str(templates_path.resolve())} "
+            f"--ignore-file-override {Path(__file__).parent / '.openapi-generator-ignore'}",
             cwd=project_path,
             log=True,
         )

@@ -16,8 +16,8 @@ services:
     environment:
       MINIO_ROOT_USER: "${S3_ACCESS_KEY}"
       MINIO_ROOT_PASSWORD: "${S3_SECRET_KEY}"
-      MINIO_BROWSER_REDIRECT_URL: "https://${DEVICE_NAME}-minioconsole.${DOMAIN}"
-      MINIO_SERVER_URL: "https://${DEVICE_NAME}-minio.${DOMAIN}"
+      # MINIO_BROWSER_REDIRECT_URL: "https://${DEVICE_NAME}-minioconsole.${DOMAIN}"
+      # MINIO_SERVER_URL: "https://${DEVICE_NAME}-minio.${DOMAIN}"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
       interval: 1s
@@ -46,6 +46,21 @@ services:
         mc alias set local http://minio:9000 ${S3_ACCESS_KEY} ${S3_SECRET_KEY} && \
         mc mb --ignore-existing local/dev-captures && \
         mc mb --ignore-existing local/dev-reconstructions
+      "
+    environment:
+      S3_ACCESS_KEY: "${S3_ACCESS_KEY}"
+      S3_SECRET_KEY: "${S3_SECRET_KEY}"
+
+  minio-logger:
+    image: docker.io/minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        set -e
+        mc alias set local http://minio:9000 ${S3_ACCESS_KEY} ${S3_SECRET_KEY}
+        mc admin trace --verbose --all local
       "
     environment:
       S3_ACCESS_KEY: "${S3_ACCESS_KEY}"
@@ -249,7 +264,8 @@ services:
       DATABASE_NAME: ${DATABASE_NAME}
       DATABASE_USER: ${DATABASE_NAME}_orchestration_user
       DATABASE_USER_PASSWORD: ${DATABASE_ORCHESTRATION_USER_PASSWORD}
-      S3_ENDPOINT_URL: "https://${DEVICE_NAME}-minio.${DOMAIN}"
+      # S3_ENDPOINT_URL: "https://${DEVICE_NAME}-minio.${DOMAIN}"
+      S3_ENDPOINT_URL: "http://minio:9000"
       S3_ACCESS_KEY: ${S3_ACCESS_KEY}
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       CAPTURES_BUCKET: dev-captures
@@ -284,8 +300,3 @@ services:
         - type=local,dest=${HOME}/.buildx-cache/localize,mode=max
     volumes:
       - uv_cache:/root/.cache/uv
-
-  extract-match-features:
-    profiles: ["tasks"]
-    build:
-      dockerfile: tasks/extract-match-features/Dockerfile

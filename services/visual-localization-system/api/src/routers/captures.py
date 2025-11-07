@@ -1,7 +1,8 @@
 from typing import Optional
 from uuid import UUID
 
-from common.schemas import tar_schema
+from common.schemas import PlainTextResponse, tar_schema
+from core.rig import RigConfig
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from fastapi.responses import RedirectResponse
 from models.public_dtos import (
@@ -149,23 +150,21 @@ async def update_capture_sessions(
     return [capture_session_to_dto(r) for r in rows]
 
 
-@router.put(
-    "/{id}/tar",
-    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
-    openapi_extra={"requestBody": {"required": True, "content": tar_schema}},
-)
-async def upload_capture_session_tar(id: UUID, session: AsyncSession = Depends(get_session)) -> RedirectResponse:
+@router.put("/{id}/tar", response_class=PlainTextResponse)
+async def get_upload_capture_session_tar_presigned_url(
+    id: UUID, session: AsyncSession = Depends(get_session)
+) -> PlainTextResponse:
     row = await session.get(CaptureSession, id)
 
     if row is None:
         raise HTTPException(404, f"Capture session {id} not found")
 
     try:
-        url = get_storage().presign_put(BUCKET, f"{id}.tar", "application/x-tar")
+        url = get_storage().presign_put(BUCKET, f"{id}.tar", "application/x-tar", expires=60 * 60)
     except Exception as exc:
         raise HTTPException(502, f"Presign failed: {exc}") from exc
 
-    return RedirectResponse(url)
+    return PlainTextResponse(content=url)
 
 
 @router.get("/{id}/tar", status_code=status.HTTP_307_TEMPORARY_REDIRECT, responses={200: {"content": tar_schema}})
@@ -181,6 +180,14 @@ async def download_capture_session_tar(id: UUID, session: AsyncSession = Depends
         raise HTTPException(502, f"Presign failed: {exc}") from exc
 
     return RedirectResponse(url)
+
+
+# dummy method, just to get RigConfig into the OpenAPI schema
+@router.get("/{id}/rig_config")
+async def get_capture_session_rig_config(id: UUID, session: AsyncSession = Depends(get_session)) -> RigConfig:
+    rig_config = RigConfig(rigs=[])
+
+    return rig_config
 
 
 async def _create_capture(capture: CaptureSessionCreate, overwrite: bool, session: AsyncSession) -> CaptureSession:

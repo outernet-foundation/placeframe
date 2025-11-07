@@ -5,7 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "common",
     "boto3>=1.39.10",
     "pulumi>=3.183.0",
     "pulumi-aws>=7.3.1",
@@ -18,10 +17,10 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["boto3-stubs[ce]>=1.39.7", "botocore-stubs>=1.38.46"]
-
-[tool.uv.sources]
-common = { path = "../common", editable = true }
+dev = [
+    "botocore-stubs>=1.38.46",
+    "boto3-stubs[batch,ecs,secretsmanager,s3,lambda]>=1.40.29",
+]
 
 [tool.ruff]
 extend = "../ruff.toml"

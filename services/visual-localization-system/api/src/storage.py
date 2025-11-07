@@ -39,11 +39,13 @@ class Storage:
 def _build_storage() -> Storage:
     settings = get_settings()
 
-    return Storage(s3=create_s3_client(
-        s3_endpoint_url=settings.s3_endpoint_url,
-        s3_access_key=settings.s3_access_key,
-        s3_secret_key=settings.s3_secret_key,
-    ))
+    return Storage(
+        s3=create_s3_client(
+            s3_endpoint_url=settings.s3_endpoint_url,
+            s3_access_key=settings.s3_access_key,
+            s3_secret_key=settings.s3_secret_key,
+        )
+    )
 
 
 def get_storage() -> Storage:

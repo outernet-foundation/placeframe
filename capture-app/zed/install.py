@@ -7,10 +7,12 @@ from common.run_command import run_command
 from typer import Option, run
 
 root = Path(__file__).parent
-common_root = root.parent.parent / "common"
+common_root = root.parent.parent / "services/visual-localization-system/common"
+core_root = root.parent.parent / "services/visual-localization-system/core"
 
 excluded_paths = [root / ".venv", root / "__pycache__", root / "clients", root / "typings"]
 common_exclude_paths = [common_root / "__pycache__", common_root / ".venv"]
+core_exclude_paths = [core_root / "__pycache__", core_root / ".venv"]
 remote_tarball_path = "/tmp/zed-capture.tar.gz"
 install_script_path = root / "install.sh"
 
@@ -26,7 +28,10 @@ def cli(host: str = Option(..., help="The host address for the Zed application."
                 tar.add(item, arcname=Path("capture-app") / "zed" / item.name)
         for item in common_root.iterdir():
             if item not in common_exclude_paths:
-                tar.add(item, arcname=Path("common") / item.name)
+                tar.add(item, arcname=Path("services/visual-localization-system/common") / item.name)
+        for item in core_root.iterdir():
+            if item not in core_exclude_paths:
+                tar.add(item, arcname=Path("services/visual-localization-system/core") / item.name)
 
     print("Uploading")
     run_command(f"scp {tarball_path} {host}:{remote_tarball_path}")

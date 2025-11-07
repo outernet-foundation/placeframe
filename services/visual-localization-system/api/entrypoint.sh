@@ -9,7 +9,7 @@ echo "Starting API"
 
 if [[ "${RELOAD:-}" == "true" ]]; then
   echo "Reload mode enabled"
-  UVICORN_ARGS+=( "--reload" "--reload-dir" "/app/services/visual-localization-system/api/src" "--reload-dir" "/app/services/visual-localization-system/models/src" "--reload-dir" "/app/common/src" "--reload-dir" "/app/services/visual-localization-system/localize/src" )
+  UVICORN_ARGS+=( "--reload" "--reload-dir" "/app/services/visual-localization-system/api/src" "--reload-dir" "/app/services/visual-localization-system/models/src" "--reload-dir" "/app/services/visual-localization-system/common/src" "--reload-dir" "/app/services/visual-localization-system/localize/src" )
 fi
 
 if [[ "${DEBUG:-}" == "true" ]]; then

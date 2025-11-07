@@ -1,8 +1,9 @@
 from typing import Optional
 from uuid import UUID
 
-from common.classes import PointCloudPoint, Transform
 from common.schemas import binary_schema
+from core.classes import PointCloudPoint
+from core.transform import Transform
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from models.public_dtos import (

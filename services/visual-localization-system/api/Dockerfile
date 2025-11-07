@@ -17,8 +17,10 @@ WORKDIR /app/services/visual-localization-system/api
 
 # Install dependencies
 COPY services/visual-localization-system/api/pyproject.toml services/visual-localization-system/api/uv.lock ./
-COPY common/ /app/common
+COPY services/visual-localization-system/common/ /app/services/visual-localization-system/common
+COPY services/visual-localization-system/core/ /app/services/visual-localization-system/core
 COPY services/visual-localization-system/models/ /app/services/visual-localization-system/models/
+COPY services/visual-localization-system/localize/clients/python/ /app/services/visual-localization-system/localize/clients/python/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project --no-editable
 

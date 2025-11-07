@@ -1,3 +1,6 @@
-[submodule "services/visual-localization-system/third-party/Hierarchical-Localization"]
-	path = services/visual-localization-system/third-party/Hierarchical-Localization
-	url = https://github.com/cvg/Hierarchical-Localization.git
+[submodule "services/visual-localization-system/nn/third-party/deep-image-retrieval"]
+	path = services/visual-localization-system/nn/third-party/deep-image-retrieval
+	url = https://github.com/naver/deep-image-retrieval.git
+[submodule "services/visual-localization-system/nn/third-party/SuperGluePretrainedNetwork"]
+	path = services/visual-localization-system/nn/third-party/SuperGluePretrainedNetwork
+	url = https://github.com/magicleap/SuperGluePretrainedNetwork.git

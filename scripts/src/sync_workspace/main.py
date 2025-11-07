@@ -5,16 +5,15 @@ import json
 import re
 import threading
 import time
-import tomllib
 from pathlib import Path
 from socket import gethostname
 from typing import Any, List, Optional, cast
 
-from common.run_command import run_command
 from typer import Option, run
 from watchdog.events import FileSystemEvent, RegexMatchingEventHandler
 from watchdog.observers import Observer
 
+from ..run_command import run_command
 from .sync_client import sync_client
 from .sync_schema import sync_schema
 
@@ -44,12 +43,17 @@ def cli(
         print("WARNING: .env file does not exist, creating from .env.sample")
         env = (repo_root / ".env.sample").read_text()
         env = env.replace("<YOUR_DEVICE_NAME>", gethostname().lower())
+        env = env.replace("<YOUR_HOME_DIRECTORY>", str(Path.home()).replace("\\", "/"))
         env_path.write_text(env)
 
     print("Syncing python projects")
 
     pyproject_paths = list(repo_root.rglob("pyproject.toml"))
     for path in pyproject_paths:
+        # if path has "third_party" or "third-party" in any parent directory, skip it
+        if any(part.lower() in {"third_party", "third-party"} for part in path.parts):
+            continue
+
         if _ignored(path):
             continue
         _sync_uv(path.parent, log=log)
@@ -106,19 +110,7 @@ def cli(
 
 def _sync_uv(path: Path, log: bool):
     print(f"Syncing uv project: {path}")
-    run_command("uv sync --all-groups", cwd=path, log=log)
-
-    # For each dependency group (except dev) in pyproject.toml, export pylock.toml
-    for group in cast(
-        dict[str, Any],
-        tomllib.loads((path / "pyproject.toml").read_text(encoding="utf-8")).get("dependency-groups") or {},
-    ).keys():
-        if group == "dev":
-            continue
-        print(f"  Exporting dependency group: {group}")
-        run_command(
-            f"uv export --format=pylock.toml --locked --only-group {group} -o pylock.{group}.toml", cwd=path, log=log
-        )
+    run_command("uv sync --all-groups --all-extras", cwd=path, log=log)
 
 
 def _ignored(path: Path):

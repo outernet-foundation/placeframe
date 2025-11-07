@@ -24,8 +24,8 @@ class Repository(ComponentResource):
             self._repo = ecr.Repository(
                 resource_name,
                 name=name,
-                # opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True, import_=name)),
-                opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True)),
+                opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True, import_=name)),
+                # opts=ResourceOptions.merge(self._child_opts, ResourceOptions(retain_on_delete=True)),
             )
         else:
             self._repo = get_repository_output(name=name)

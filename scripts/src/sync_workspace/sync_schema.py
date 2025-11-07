@@ -12,13 +12,14 @@ from pathlib import Path
 from textwrap import dedent
 from typing import Any, cast
 
-from common.run_command import run_command
 from humps import pascalize
 from pydantic import create_model
 from pydantic.alias_generators import to_snake
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql.sqltypes import Enum as SAEnum
+
+from ..run_command import run_command
 
 allow_hazards = [
     "DELETES_DATA",

@@ -409,8 +409,8 @@
         "tags": [
           "capture_sessions"
         ],
-        "summary": "Upload Capture Session Tar",
-        "operationId": "upload_capture_session_tar",
+        "summary": "Get Upload Capture Session Tar Presigned Url",
+        "operationId": "get_upload_capture_session_tar_presigned_url",
         "parameters": [
           {
             "name": "id",
@@ -424,11 +424,13 @@
           }
         ],
         "responses": {
-          "307": {
+          "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": {}
+              "text/plain; charset=utf-8": {
+                "schema": {
+                  "type": "string"
+                }
               }
             }
           },
@@ -439,17 +441,6 @@
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
-              }
-            }
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/x-tar": {
-              "schema": {
-                "type": "string",
-                "format": "binary"
               }
             }
           }
@@ -492,6 +483,49 @@
               }
             },
             "description": "OK"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capture_sessions/{id}/rig_config": {
+      "get": {
+        "tags": [
+          "capture_sessions"
+        ],
+        "summary": "Get Capture Session Rig Config",
+        "operationId": "get_capture_session_rig_config",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RigConfig"
+                }
+              }
+            }
           },
           "422": {
             "description": "Validation Error",
@@ -1565,10 +1599,13 @@
               "schema": {
                 "anyOf": [
                   {
-                    "$ref": "#/components/schemas/PinholeIntrinsics"
+                    "$ref": "#/components/schemas/PinholeCamera"
                   },
                   {
-                    "$ref": "#/components/schemas/OpenCVRadTanIntrinsics"
+                    "$ref": "#/components/schemas/OpenCVCamera"
+                  },
+                  {
+                    "$ref": "#/components/schemas/FullOpenCVCamera"
                   },
                   {
                     "$ref": "#/components/schemas/GenericParamsIntrinsics"
@@ -1789,8 +1826,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "title": "Response Get Map Load Status"
+                  "$ref": "#/components/schemas/LoadStateResponse"
                 }
               }
             }
@@ -2637,13 +2673,8 @@
         ],
         "title": "DeviceType"
       },
-      "GenericParamsIntrinsics": {
+      "FullOpenCVCamera": {
         "properties": {
-          "model": {
-            "type": "string",
-            "const": "GENERIC",
-            "title": "Model"
-          },
           "width": {
             "type": "integer",
             "title": "Width"
@@ -2651,6 +2682,135 @@
           "height": {
             "type": "integer",
             "title": "Height"
+          },
+          "mirroring": {
+            "type": "string",
+            "enum": [
+              "None",
+              "X",
+              "Y"
+            ],
+            "title": "Mirroring"
+          },
+          "rotation": {
+            "type": "string",
+            "enum": [
+              "None",
+              "90_CW",
+              "180",
+              "90_CCW"
+            ],
+            "title": "Rotation"
+          },
+          "model": {
+            "type": "string",
+            "const": "FULL_OPENCV",
+            "title": "Model"
+          },
+          "fx": {
+            "type": "number",
+            "title": "Fx"
+          },
+          "fy": {
+            "type": "number",
+            "title": "Fy"
+          },
+          "cx": {
+            "type": "number",
+            "title": "Cx"
+          },
+          "cy": {
+            "type": "number",
+            "title": "Cy"
+          },
+          "k1": {
+            "type": "number",
+            "title": "K1"
+          },
+          "k2": {
+            "type": "number",
+            "title": "K2"
+          },
+          "p1": {
+            "type": "number",
+            "title": "P1"
+          },
+          "p2": {
+            "type": "number",
+            "title": "P2"
+          },
+          "k3": {
+            "type": "number",
+            "title": "K3"
+          },
+          "k4": {
+            "type": "number",
+            "title": "K4"
+          },
+          "k5": {
+            "type": "number",
+            "title": "K5"
+          },
+          "k6": {
+            "type": "number",
+            "title": "K6"
+          }
+        },
+        "type": "object",
+        "required": [
+          "width",
+          "height",
+          "mirroring",
+          "rotation",
+          "model",
+          "fx",
+          "fy",
+          "cx",
+          "cy",
+          "k1",
+          "k2",
+          "p1",
+          "p2",
+          "k3",
+          "k4",
+          "k5",
+          "k6"
+        ],
+        "title": "FullOpenCVCamera"
+      },
+      "GenericParamsIntrinsics": {
+        "properties": {
+          "width": {
+            "type": "integer",
+            "title": "Width"
+          },
+          "height": {
+            "type": "integer",
+            "title": "Height"
+          },
+          "mirroring": {
+            "type": "string",
+            "enum": [
+              "None",
+              "X",
+              "Y"
+            ],
+            "title": "Mirroring"
+          },
+          "rotation": {
+            "type": "string",
+            "enum": [
+              "None",
+              "90_CW",
+              "180",
+              "90_CCW"
+            ],
+            "title": "Rotation"
+          },
+          "model": {
+            "type": "string",
+            "const": "GENERIC",
+            "title": "Model"
           },
           "params": {
             "items": {
@@ -2662,9 +2822,11 @@
         },
         "type": "object",
         "required": [
-          "model",
           "width",
           "height",
+          "mirroring",
+          "rotation",
+          "model",
           "params"
         ],
         "title": "GenericParamsIntrinsics"
@@ -2879,6 +3041,47 @@
           "name"
         ],
         "title": "LayerRead"
+      },
+      "LoadState": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "loading",
+          "ready",
+          "failed"
+        ],
+        "title": "LoadState",
+        "description": "LoadState"
+      },
+      "LoadStateResponse": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/LoadState"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "additional_properties": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Additional Properties",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "LoadStateResponse",
+        "description": "LoadStateResponse"
       },
       "LocalizationMapBatchUpdate": {
         "properties": {
@@ -4037,13 +4240,8 @@
         ],
         "title": "NodeRead"
       },
-      "OpenCVRadTanIntrinsics": {
+      "OpenCVCamera": {
         "properties": {
-          "model": {
-            "type": "string",
-            "const": "OPENCV",
-            "title": "Model"
-          },
           "width": {
             "type": "integer",
             "title": "Width"
@@ -4051,6 +4249,30 @@
           "height": {
             "type": "integer",
             "title": "Height"
+          },
+          "mirroring": {
+            "type": "string",
+            "enum": [
+              "None",
+              "X",
+              "Y"
+            ],
+            "title": "Mirroring"
+          },
+          "rotation": {
+            "type": "string",
+            "enum": [
+              "None",
+              "90_CW",
+              "180",
+              "90_CCW"
+            ],
+            "title": "Rotation"
+          },
+          "model": {
+            "type": "string",
+            "const": "OPENCV",
+            "title": "Model"
           },
           "fx": {
             "type": "number",
@@ -4083,13 +4305,19 @@
           "p2": {
             "type": "number",
             "title": "P2"
+          },
+          "k3": {
+            "type": "number",
+            "title": "K3"
           }
         },
         "type": "object",
         "required": [
-          "model",
           "width",
           "height",
+          "mirroring",
+          "rotation",
+          "model",
           "fx",
           "fy",
           "cx",
@@ -4097,9 +4325,10 @@
           "k1",
           "k2",
           "p1",
-          "p2"
+          "p2",
+          "k3"
         ],
-        "title": "OpenCVRadTanIntrinsics"
+        "title": "OpenCVCamera"
       },
       "OrchestrationStatus": {
         "type": "string",
@@ -4113,13 +4342,8 @@
         ],
         "title": "OrchestrationStatus"
       },
-      "PinholeIntrinsics": {
+      "PinholeCamera": {
         "properties": {
-          "model": {
-            "type": "string",
-            "const": "PINHOLE",
-            "title": "Model"
-          },
           "width": {
             "type": "integer",
             "title": "Width"
@@ -4127,6 +4351,30 @@
           "height": {
             "type": "integer",
             "title": "Height"
+          },
+          "mirroring": {
+            "type": "string",
+            "enum": [
+              "None",
+              "X",
+              "Y"
+            ],
+            "title": "Mirroring"
+          },
+          "rotation": {
+            "type": "string",
+            "enum": [
+              "None",
+              "90_CW",
+              "180",
+              "90_CCW"
+            ],
+            "title": "Rotation"
+          },
+          "model": {
+            "type": "string",
+            "const": "PINHOLE",
+            "title": "Model"
           },
           "fx": {
             "type": "number",
@@ -4147,15 +4395,17 @@
         },
         "type": "object",
         "required": [
-          "model",
           "width",
           "height",
+          "mirroring",
+          "rotation",
+          "model",
           "fx",
           "fy",
           "cx",
           "cy"
         ],
-        "title": "PinholeIntrinsics"
+        "title": "PinholeCamera"
       },
       "PointCloudPoint": {
         "properties": {
@@ -4426,7 +4676,7 @@
       },
       "ReconstructionOptions": {
         "properties": {
-          "neightbors_count": {
+          "random_seed": {
             "anyOf": [
               {
                 "type": "integer"
@@ -4435,7 +4685,31 @@
                 "type": "null"
               }
             ],
-            "title": "Neightbors Count",
+            "title": "Random Seed",
+            "description": "Random seed to use (for deterministic behavior)."
+          },
+          "single_threaded": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Single Threaded",
+            "description": "If true, run reconstruction in single-threaded mode (for deterministic behavior)."
+          },
+          "neighbors_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Neighbors Count",
             "description": "How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). If None, a sensible default is used (currently 12). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage."
           },
           "max_keypoints_per_image": {
@@ -4485,6 +4759,18 @@
             ],
             "title": "Use Prior Position",
             "description": "If true, use position priors during registration. This leverages PosePrior(position=...) written into the database to guide image registration."
+          },
+          "rig_verification": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rig Verification",
+            "description": "If true, perform rig-based verification during feature matching and two-view geometry verification. Requires images to be tagged with rig/camera IDs."
           },
           "triangulation_minimum_angle": {
             "anyOf": [
@@ -4617,18 +4903,6 @@
             ],
             "title": "Compression Opq Number Of Training Iterations",
             "description": "Number of training iterations for OPQ compression."
-          },
-          "numpy_random_seed": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Numpy Random Seed",
-            "description": "Random seed used for any numpy-based randomness (e.g., OPQ training)."
           }
         },
         "type": "object",
@@ -4669,6 +4943,124 @@
           "orchestration_status"
         ],
         "title": "ReconstructionRead"
+      },
+      "Rig-Input": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "cameras": {
+            "items": {
+              "$ref": "#/components/schemas/RigCamera"
+            },
+            "type": "array",
+            "title": "Cameras"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "cameras"
+        ],
+        "title": "Rig"
+      },
+      "Rig-Output": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "cameras": {
+            "items": {
+              "$ref": "#/components/schemas/RigCamera"
+            },
+            "type": "array",
+            "title": "Cameras"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "cameras"
+        ],
+        "title": "Rig"
+      },
+      "RigCamera": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "ref_sensor": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref Sensor"
+          },
+          "rotation": {
+            "$ref": "#/components/schemas/Quaternion"
+          },
+          "translation": {
+            "$ref": "#/components/schemas/Vector3"
+          },
+          "intrinsics": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PinholeCamera"
+              },
+              {
+                "$ref": "#/components/schemas/OpenCVCamera"
+              },
+              {
+                "$ref": "#/components/schemas/FullOpenCVCamera"
+              },
+              {
+                "$ref": "#/components/schemas/GenericParamsIntrinsics"
+              }
+            ],
+            "title": "Intrinsics",
+            "discriminator": {
+              "propertyName": "model",
+              "mapping": {
+                "FULL_OPENCV": "#/components/schemas/FullOpenCVCamera",
+                "GENERIC": "#/components/schemas/GenericParamsIntrinsics",
+                "OPENCV": "#/components/schemas/OpenCVCamera",
+                "PINHOLE": "#/components/schemas/PinholeCamera"
+              }
+            }
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "ref_sensor",
+          "rotation",
+          "translation",
+          "intrinsics"
+        ],
+        "title": "RigCamera"
+      },
+      "RigConfig": {
+        "properties": {
+          "rigs": {
+            "items": {
+              "$ref": "#/components/schemas/Rig-Output"
+            },
+            "type": "array",
+            "title": "Rigs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rigs"
+        ],
+        "title": "RigConfig"
       },
       "Transform": {
         "properties": {

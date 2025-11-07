@@ -1,4 +1,5 @@
 from functools import lru_cache
+from os import environ
 
 from pydantic import AnyHttpUrl, Field, model_validator
 from pydantic_settings import BaseSettings
@@ -24,4 +25,7 @@ class Settings(BaseSettings):
 
 @lru_cache()
 def get_settings() -> Settings:
+    if environ.get("CODEGEN"):
+        return Settings.model_construct()
+
     return Settings.model_validate({})

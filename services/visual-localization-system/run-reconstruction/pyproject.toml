@@ -5,20 +5,23 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "common",
     "numpy>=2.0",
     "boto3>=1.40.18",
-    "pydantic-settings>=2.10.1",
     "scipy>=1.7",
-    "pycolmap>=3.12.6",
-    "pybind11-stubgen",
+    "pycolmap>=3.13.0",
+    "opencv-python>=4.10.0",
+    "h5py>=3.15.1",
     "faiss-cpu>=1.12.0",
 ]
 
 [dependency-groups]
-dev = ["boto3-stubs[batch]>=1.40.18", "debugpy>=1.8.16", "scipy-stubs>=1.15.3"]
-hloc = [
-    "hloc",
+dev = [
+    "boto3-stubs[batch]>=1.40.18",
+    "debugpy>=1.8.16",
+    "scipy-stubs>=1.15.3",
+    "pybind11-stubgen",
+]
+torch = [
     "torch==2.6.0+cu126",
     "torchvision==0.21.0+cu126",
     "scikit-learn>=1.7.2",
@@ -38,19 +41,16 @@ hloc = [
     "nvidia-nvjitlink-cu12==12.6.85; platform_system == 'Linux'",
     "nvidia-nccl-cu12==2.21.5; platform_system == 'Linux'",
 ]
+nn = ["nn"]
+core = ["core[colmap]"]
 
-
-[tool.uv]
-override-dependencies = [
-    "opencv-python>=4.10.0", # override opencv version hloc would otherwise pull in, to a version built with numpy>=2.0
-]
 
 [tool.uv.sources]
-common = { path = "../../../common", editable = true }
-hloc = { path = "../third-party/Hierarchical-Localization" }
+core = { path = "../core", editable = true }
+nn = { path = "../nn", editable = true }
+pybind11-stubgen = { git = "https://github.com/sarlinpe/pybind11-stubgen", rev = "sarlinpe/fix-2024-08" }
 torch = { index = "pytorch-cu126" }
 torchvision = { index = "pytorch-cu126" }
-pybind11-stubgen = { git = "https://github.com/sarlinpe/pybind11-stubgen", rev = "sarlinpe/fix-2024-08" }
 
 [[tool.uv.index]]
 name = "pytorch-cu126"

@@ -7,6 +7,7 @@ using System.IO;
 using System.Threading;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using System.Net.Http;
 
 public static class ZedCaptureController
 {
@@ -27,10 +28,18 @@ public static class ZedCaptureController
 #if !UNITY_EDITOR && UNITY_ANDROID
         AndroidMobileEthernetNetworkBinder.Initialize();
 #endif
-        capturesApi = new DefaultApi(new Configuration
-        {
-            BasePath = $"{host}:{port}"
-        });
+        capturesApi = new DefaultApi(
+            new HttpClient(new HttpClientHandler())
+            {
+                BaseAddress = new Uri($"{host}:{port}"),
+                Timeout = TimeSpan.FromSeconds(600)
+            },
+            new Configuration
+            {
+                BasePath = $"{host}:{port}",
+                Timeout = TimeSpan.FromSeconds(600)
+            }
+        );
     }
 
     public static async UniTask<T> WithEthernetIfAndroidMobile<T>(Func<UniTask<T>> action, CancellationToken cancellationToken = default)

@@ -25,13 +25,15 @@ from pycolmap._core import DatabaseTransaction
 from pycolmap._core import DelaunayMeshingOptions
 from pycolmap._core import Device
 from pycolmap._core import EstimateTriangulationOptions
-from pycolmap._core import ExhaustiveMatchingOptions
 from pycolmap._core import ExhaustivePairGenerator
+from pycolmap._core import ExhaustivePairingOptions
 from pycolmap._core import ExperimentalPoseParam
+from pycolmap._core import FeatureExtractionOptions
 from pycolmap._core import FeatureKeypoint
 from pycolmap._core import FeatureKeypoints
 from pycolmap._core import FeatureMatch
 from pycolmap._core import FeatureMatches
+from pycolmap._core import FeatureMatchingOptions
 from pycolmap._core import Frame
 from pycolmap._core import FrameMap
 from pycolmap._core import GPSTransform
@@ -40,11 +42,11 @@ from pycolmap._core import Image
 from pycolmap._core import ImageAlignmentError
 from pycolmap._core import ImageMap
 from pycolmap._core import ImagePairStat
-from pycolmap._core import ImagePairsMatchingOptions
 from pycolmap._core import ImageReaderOptions
 from pycolmap._core import ImageScore
 from pycolmap._core import ImageSelectionMethod
 from pycolmap._core import ImportedPairGenerator
+from pycolmap._core import ImportedPairingOptions
 from pycolmap._core import IncrementalMapper
 from pycolmap._core import IncrementalMapperCallback
 from pycolmap._core import IncrementalMapperOptions
@@ -80,17 +82,19 @@ from pycolmap._core import RigMap
 from pycolmap._core import Rigid3d
 from pycolmap._core import Rotation3d
 from pycolmap._core import SensorType
-from pycolmap._core import SequentialMatchingOptions
 from pycolmap._core import SequentialPairGenerator
+from pycolmap._core import SequentialPairingOptions
 from pycolmap._core import Sift
 from pycolmap._core import SiftExtractionOptions
 from pycolmap._core import SiftMatchingOptions
 from pycolmap._core import Sim3d
-from pycolmap._core import SpatialMatchingOptions
 from pycolmap._core import SpatialPairGenerator
+from pycolmap._core import SpatialPairingOptions
 from pycolmap._core import StereoFusionOptions
 from pycolmap._core import SyntheticDatasetMatchConfig
 from pycolmap._core import SyntheticDatasetOptions
+from pycolmap._core import SyntheticImageOptions
+from pycolmap._core import SyntheticNoiseOptions
 from pycolmap._core import Timer
 from pycolmap._core import Track
 from pycolmap._core import TrackElement
@@ -101,8 +105,8 @@ from pycolmap._core import TwoViewGeometryOptions
 from pycolmap._core import UndistortCameraOptions
 from pycolmap._core import ValuesView
 from pycolmap._core import VisualIndex
-from pycolmap._core import VocabTreeMatchingOptions
 from pycolmap._core import VocabTreePairGenerator
+from pycolmap._core import VocabTreePairingOptions
 from pycolmap._core import data_t
 from pycolmap._core import logging
 from pycolmap._core import ostream
@@ -152,6 +156,7 @@ from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import g
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import get_covariance_for_relative_rigid3d
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import homography_decomposition
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import homography_matrix_estimation
+from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import image_pair_to_pair_id
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import import_images
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import incremental_mapping
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import infer_camera_from_image
@@ -160,6 +165,7 @@ from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import m
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import match_sequential
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import match_spatial
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import match_vocabtree
+from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import pair_id_to_image_pair
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import patch_match_stereo
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import poisson_meshing
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import pose_from_homography_matrix
@@ -171,7 +177,10 @@ from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import r
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import set_random_seed
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import squared_sampson_error
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import stereo_fusion
+from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import swap_image_pair
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import synthesize_dataset
+from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import synthesize_images
+from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import synthesize_noise
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import triangulate_mid_point
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import triangulate_point
 from pycolmap._core.pybind11_detail_function_record_v1_msvc_md_mscver19 import triangulate_points
@@ -185,14 +194,14 @@ from pycolmap.utils import import_module_symbols
 import textwrap as textwrap
 from . import _core
 from . import utils
-__all__: list = ['has_cuda', 'COLMAP_version', 'COLMAP_build', 'Device', 'SensorType', 'sensor_t', 'data_t', 'logging', 'Timer', 'Rotation3d', 'AlignedBox3d', 'Rigid3d', 'get_covariance_for_inverse', 'get_covariance_for_composed_rigid3d', 'get_covariance_for_relative_rigid3d', 'average_quaternions', 'interpolate_camera_poses', 'Sim3d', 'PosePriorCoordinateSystem', 'PosePrior', 'GPSTransfromEllipsoid', 'GPSTransform', 'pose_from_homography_matrix', 'homography_decomposition', 'essential_matrix_from_pose', 'triangulate_point', 'calculate_triangulation_angle', 'TriangulatePoint', 'CalculateTriangulationAngle', 'triangulate_mid_point', 'RANSACOptions', 'Bitmap', 'Rig', 'RigMap', 'KeysView', 'ValuesView', 'ItemsView', 'INVALID_CAMERA_ID', 'INVALID_IMAGE_ID', 'INVALID_IMAGE_PAIR_ID', 'INVALID_POINT2D_IDX', 'INVALID_POINT3D_ID', 'Point2D', 'Point2DList', 'CameraModelId', 'Camera', 'CameraMap', 'Frame', 'FrameMap', 'Image', 'ImageMap', 'TrackElement', 'Track', 'Point3D', 'Point3DMap', 'Correspondence', 'CorrespondenceGraph', 'TwoViewGeometryConfiguration', 'TwoViewGeometry', 'Database', 'DatabaseTransaction', 'DatabaseCache', 'Reconstruction', 'ReconstructionManager', 'RigConfigCamera', 'RigConfig', 'read_rig_config', 'apply_rig_config', 'SyntheticDatasetMatchConfig', 'SyntheticDatasetOptions', 'synthesize_dataset', 'UndistortCameraOptions', 'undistort_camera', 'undistort_image', 'pyceres', 'AbsolutePoseEstimationOptions', 'AbsolutePoseRefinementOptions', 'estimate_absolute_pose', 'refine_absolute_pose', 'estimate_and_refine_absolute_pose', 'absolute_pose_estimation', 'estimate_relative_pose', 'refine_relative_pose', 'estimate_affine2d', 'estimate_affine2d_robust', 'ImageAlignmentError', 'align_reconstructions_via_reprojections', 'align_reconstructions_via_proj_centers', 'align_reconstructions_via_points', 'align_reconstruction_to_locations', 'compare_reconstructions', 'align_reconstruction_to_orig_rig_scales', 'BundleAdjustmentGauge', 'BundleAdjustmentConfig', 'LossFunctionType', 'BundleAdjustmentOptions', 'PosePriorBundleAdjustmentOptions', 'BundleAdjuster', 'create_default_bundle_adjuster', 'create_pose_prior_bundle_adjuster', 'BACovarianceOptionsParams', 'ExperimentalPoseParam', 'BACovarianceOptions', 'BACovariance', 'estimate_ba_covariance_from_problem', 'estimate_ba_covariance', 'estimate_essential_matrix', 'essential_matrix_estimation', 'estimate_fundamental_matrix', 'fundamental_matrix_estimation', 'estimate_generalized_absolute_pose', 'refine_generalized_absolute_pose', 'estimate_and_refine_generalized_absolute_pose', 'rig_absolute_pose_estimation', 'estimate_generalized_relative_pose', 'estimate_homography_matrix', 'homography_matrix_estimation', 'estimate_rigid3d', 'estimate_rigid3d_robust', 'estimate_sim3d', 'estimate_sim3d_robust', 'TriangulationResidualType', 'EstimateTriangulationOptions', 'estimate_triangulation', 'TwoViewGeometryOptions', 'estimate_calibrated_two_view_geometry', 'estimate_two_view_geometry', 'estimate_two_view_geometry_pose', 'compute_squared_sampson_error', 'squared_sampson_error', 'FeatureKeypoint', 'FeatureKeypoints', 'FeatureMatch', 'FeatureMatches', 'Normalization', 'SiftExtractionOptions', 'Sift', 'SiftMatchingOptions', 'ImageScore', 'VisualIndex', 'ImagePairStat', 'ObservationManager', 'IncrementalTriangulatorOptions', 'IncrementalTriangulator', 'ImageSelectionMethod', 'IncrementalMapperOptions', 'LocalBundleAdjustmentReport', 'IncrementalMapper', 'IncrementalPipelineOptions', 'IncrementalMapperCallback', 'IncrementalMapperStatus', 'IncrementalPipeline', 'MVSModel', 'CameraMode', 'ImageReaderOptions', 'CopyType', 'import_images', 'infer_camera_from_image', 'undistort_images', 'extract_features', 'ExhaustiveMatchingOptions', 'SpatialMatchingOptions', 'VocabTreeMatchingOptions', 'SequentialMatchingOptions', 'ImagePairsMatchingOptions', 'match_exhaustive', 'match_spatial', 'match_vocabtree', 'match_sequential', 'verify_matches', 'PairGenerator', 'ExhaustivePairGenerator', 'VocabTreePairGenerator', 'SequentialPairGenerator', 'SpatialPairGenerator', 'ImportedPairGenerator', 'triangulate_points', 'incremental_mapping', 'bundle_adjustment', 'PatchMatchOptions', 'patch_match_stereo', 'StereoFusionOptions', 'stereo_fusion', 'PoissonMeshingOptions', 'DelaunayMeshingOptions', 'poisson_meshing', 'set_random_seed', 'ostream', '__version__', '__ceres_version__']
-COLMAP_build: str = 'Commit 4d5b60e on 2025-09-17 without CUDA'
-COLMAP_version: str = 'COLMAP 3.12.6'
+__all__: list = ['has_cuda', 'COLMAP_version', 'COLMAP_build', 'Device', 'SensorType', 'sensor_t', 'data_t', 'image_pair_to_pair_id', 'pair_id_to_image_pair', 'swap_image_pair', 'logging', 'Timer', 'Rotation3d', 'AlignedBox3d', 'Rigid3d', 'get_covariance_for_inverse', 'get_covariance_for_composed_rigid3d', 'get_covariance_for_relative_rigid3d', 'average_quaternions', 'interpolate_camera_poses', 'Sim3d', 'PosePriorCoordinateSystem', 'PosePrior', 'GPSTransfromEllipsoid', 'GPSTransform', 'pose_from_homography_matrix', 'homography_decomposition', 'essential_matrix_from_pose', 'triangulate_point', 'calculate_triangulation_angle', 'TriangulatePoint', 'CalculateTriangulationAngle', 'triangulate_mid_point', 'RANSACOptions', 'Bitmap', 'Rig', 'RigMap', 'KeysView', 'ValuesView', 'ItemsView', 'INVALID_CAMERA_ID', 'INVALID_IMAGE_ID', 'INVALID_IMAGE_PAIR_ID', 'INVALID_POINT2D_IDX', 'INVALID_POINT3D_ID', 'Point2D', 'Point2DList', 'CameraModelId', 'Camera', 'CameraMap', 'Frame', 'FrameMap', 'Image', 'ImageMap', 'TrackElement', 'Track', 'Point3D', 'Point3DMap', 'Correspondence', 'CorrespondenceGraph', 'TwoViewGeometryConfiguration', 'TwoViewGeometry', 'Database', 'DatabaseTransaction', 'DatabaseCache', 'Reconstruction', 'ReconstructionManager', 'RigConfigCamera', 'RigConfig', 'read_rig_config', 'apply_rig_config', 'SyntheticDatasetMatchConfig', 'SyntheticDatasetOptions', 'synthesize_dataset', 'SyntheticNoiseOptions', 'synthesize_noise', 'SyntheticImageOptions', 'synthesize_images', 'UndistortCameraOptions', 'undistort_camera', 'undistort_image', 'pyceres', 'AbsolutePoseEstimationOptions', 'AbsolutePoseRefinementOptions', 'estimate_absolute_pose', 'refine_absolute_pose', 'estimate_and_refine_absolute_pose', 'absolute_pose_estimation', 'estimate_relative_pose', 'refine_relative_pose', 'estimate_affine2d', 'estimate_affine2d_robust', 'ImageAlignmentError', 'align_reconstructions_via_reprojections', 'align_reconstructions_via_proj_centers', 'align_reconstructions_via_points', 'align_reconstruction_to_locations', 'compare_reconstructions', 'align_reconstruction_to_orig_rig_scales', 'BundleAdjustmentGauge', 'BundleAdjustmentConfig', 'LossFunctionType', 'BundleAdjustmentOptions', 'PosePriorBundleAdjustmentOptions', 'BundleAdjuster', 'create_default_bundle_adjuster', 'create_pose_prior_bundle_adjuster', 'BACovarianceOptionsParams', 'ExperimentalPoseParam', 'BACovarianceOptions', 'BACovariance', 'estimate_ba_covariance_from_problem', 'estimate_ba_covariance', 'estimate_essential_matrix', 'essential_matrix_estimation', 'estimate_fundamental_matrix', 'fundamental_matrix_estimation', 'estimate_generalized_absolute_pose', 'refine_generalized_absolute_pose', 'estimate_and_refine_generalized_absolute_pose', 'rig_absolute_pose_estimation', 'estimate_generalized_relative_pose', 'estimate_homography_matrix', 'homography_matrix_estimation', 'estimate_rigid3d', 'estimate_rigid3d_robust', 'estimate_sim3d', 'estimate_sim3d_robust', 'TriangulationResidualType', 'EstimateTriangulationOptions', 'estimate_triangulation', 'TwoViewGeometryOptions', 'estimate_calibrated_two_view_geometry', 'estimate_two_view_geometry', 'estimate_two_view_geometry_pose', 'compute_squared_sampson_error', 'squared_sampson_error', 'FeatureKeypoint', 'FeatureKeypoints', 'FeatureMatch', 'FeatureMatches', 'Normalization', 'SiftExtractionOptions', 'FeatureExtractionOptions', 'Sift', 'SiftMatchingOptions', 'FeatureMatchingOptions', 'ImageScore', 'VisualIndex', 'ImagePairStat', 'ObservationManager', 'IncrementalTriangulatorOptions', 'IncrementalTriangulator', 'ImageSelectionMethod', 'IncrementalMapperOptions', 'LocalBundleAdjustmentReport', 'IncrementalMapper', 'IncrementalPipelineOptions', 'IncrementalMapperCallback', 'IncrementalMapperStatus', 'IncrementalPipeline', 'MVSModel', 'CameraMode', 'ImageReaderOptions', 'CopyType', 'import_images', 'infer_camera_from_image', 'undistort_images', 'extract_features', 'ExhaustivePairingOptions', 'SpatialPairingOptions', 'VocabTreePairingOptions', 'SequentialPairingOptions', 'ImportedPairingOptions', 'match_exhaustive', 'match_spatial', 'match_vocabtree', 'match_sequential', 'verify_matches', 'PairGenerator', 'ExhaustivePairGenerator', 'VocabTreePairGenerator', 'SequentialPairGenerator', 'SpatialPairGenerator', 'ImportedPairGenerator', 'triangulate_points', 'incremental_mapping', 'bundle_adjustment', 'PatchMatchOptions', 'patch_match_stereo', 'StereoFusionOptions', 'stereo_fusion', 'PoissonMeshingOptions', 'DelaunayMeshingOptions', 'poisson_meshing', 'set_random_seed', 'ostream', '__version__', '__ceres_version__']
+COLMAP_build: str = 'Commit 0b31f98 on 2025-11-07 without CUDA'
+COLMAP_version: str = 'COLMAP 3.13.0'
 INVALID_CAMERA_ID: int = 4294967295
 INVALID_IMAGE_ID: int = 4294967295
 INVALID_IMAGE_PAIR_ID: int = 18446744073709551615
 INVALID_POINT2D_IDX: int = 4294967295
 INVALID_POINT3D_ID: int = 18446744073709551615
 __ceres_version__: str = '2.2.0'
-__version__: str = '3.12.6'
+__version__: str = '3.13.0'
 has_cuda: bool = False

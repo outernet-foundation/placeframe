@@ -1,35 +1,31 @@
 from __future__ import annotations
 
+from os import environ
 from typing import Any, cast
 from uuid import UUID
 
 import numpy as np
 import torch
 from common.boto_clients import create_s3_client
-from common.classes import CameraIntrinsics, LocalizationMetrics, Quaternion, Transform, Vector3
-from common.make_multipar_json_dep import make_multipart_json_dep
-from cv2 import COLOR_BGR2GRAY, COLOR_BGR2RGB, IMREAD_COLOR, cvtColor, imdecode
-from fastapi import FastAPI
-from hloc.extractors.dir import DIR
-from hloc.extractors.superpoint import SuperPoint
-from lightglue import LightGlue
-from numpy import float32, frombuffer, uint8
+from core.classes import LocalizationMetrics
+from core.rig import PinholeCamera
+from core.transform import Quaternion, Transform, Vector3
+from core.ugh import create_colmap_camera
+from nn.dir import load_DIR
+from nn.image import create_image_tensors
+from nn.lightglue import load_lightglue
+from nn.superpoint import load_superpoint
 from numpy.typing import NDArray
-from pycolmap import AbsolutePoseEstimationOptions, Camera, RANSACOptions, Reconstruction
+from pycolmap import AbsolutePoseEstimationOptions, RANSACOptions, Reconstruction
 from pycolmap._core import estimate_and_refine_absolute_pose  # type: ignore
-from pydantic import TypeAdapter
-from torch import cuda, from_numpy, inference_mode, mv, topk  # type: ignore
-from torch import float32 as torch_float32  # type: ignore
+from torch import cuda, inference_mode, mv, topk  # type: ignore
 
 from .map import Map
 from .settings import get_settings
 
-DEVICE = "cuda" if cuda.is_available() else "cpu"
-print(f"Using device: {DEVICE}")
-
-
 WEIGHTS = "indoor"
-RETRIEVAL_TOP_K = 5  # how many similar database images to keep
+MAX_KEYPOINTS = 2500
+RETRIEVAL_TOP_K = 12  # how many similar database images to keep
 RANSAC_THRESHOLD = 12.0  # reprojection error in pixels
 
 settings = get_settings()
@@ -37,65 +33,32 @@ s3_client = create_s3_client(
     s3_endpoint_url=settings.s3_endpoint_url, s3_access_key=settings.s3_access_key, s3_secret_key=settings.s3_secret_key
 )
 
-print(f"Loading retrieval model: {'deep-image-retrieval'}")
+if environ.get("CODEGEN"):
+    dir: Any = None
+    superpoint: Any = None
+    lightglue: Any = None
+else:
+    DEVICE = "cuda" if cuda.is_available() else "cpu"
+    print(f"Using device: {DEVICE}")
 
-# PyTorch 2.6 flips torch.load default to weights_only=True, so we temporarily force legacy loading to read DIR’s pickled checkpoint;
-# see: https://dev-discuss.pytorch.org/t/bc-breaking-change-torch-load-is-being-flipped-to-use-weights-only-true-by-default-in-the-nightlies-after-137602/2573
-_orig_load = torch.load  # type: ignore
+    print("Loading deep-image-retrieval model")
+    dir = load_DIR(DEVICE)
 
+    print("Loading superpoint model")
+    superpoint = load_superpoint(WEIGHTS, MAX_KEYPOINTS, DEVICE)
 
-def _load_legacy(*args, **kwargs):  # type: ignore
-    kwargs.setdefault("weights_only", False)  # type: ignore
-    return _orig_load(*args, **kwargs)  # type: ignore
+    print("Loading lightglue model")
+    lightglue = load_lightglue(DEVICE)
 
-
-torch.load = _load_legacy
-dir: DIR = DIR({}).to(DEVICE).eval()
-torch.load = _orig_load
-
-print(f"Loading feature extraction model: {'SuperPoint'}")
-
-superpoint = SuperPoint({"weights": WEIGHTS}).to(DEVICE).eval()
-
-print(f"Loading feature matching model: {'LightGlue'}")
-
-LIGHTGLUE_MATCHER = LightGlue(features="superpoint", width_confidence=-1, depth_confidence=-1).eval().to(DEVICE)
-
-app = FastAPI(title="FastAPI App")
 
 reconstructions: dict[UUID, Reconstruction] = {}
 
 
-INTR_ADAPTER: TypeAdapter[CameraIntrinsics] = TypeAdapter(CameraIntrinsics)
-parse_camera = make_multipart_json_dep("camera", INTR_ADAPTER)
-
-
 async def localize_image_against_reconstruction(
-    map: Map, camera: Camera, image: bytes
+    map: Map, camera: PinholeCamera, image: bytes
 ) -> tuple[Transform, LocalizationMetrics]:
-    # Load image into numpy buffer
-    buffer = frombuffer(image, uint8)
-    # Decode buffer into OpenCV BGR image array
-    bgr_image = imdecode(buffer, IMREAD_COLOR)
-
-    # Create RGB image tensor for NetVLAD
-    rgb_image = cvtColor(bgr_image, COLOR_BGR2RGB)
-    rgb_image_tensor = (
-        from_numpy(rgb_image)  # H×W×3, uint8
-        .permute(2, 0, 1)  # 3×H×W
-        .unsqueeze(0)  # 1×3×H×W
-        .to(device=DEVICE, dtype=torch_float32)
-        / 255.0
-    )  # Normalize
-
-    # Create grayscale image tensor for SuperPoint
-    grayscale_image = cvtColor(bgr_image, COLOR_BGR2GRAY)
-    grayscale_image_tensor = (
-        from_numpy(grayscale_image.astype(float32) / 255.0)
-        .unsqueeze(0)  # 1×H×W
-        .unsqueeze(0)  # 1×1×H×W
-        .to(device=DEVICE, dtype=torch_float32)
-    )
+    pycolmap_camera = create_colmap_camera(camera)
+    rgb_image_tensor, grayscale_image_tensor, image_size = create_image_tensors(camera.rotation, image, DEVICE)
 
     print("Extracting features")
 
@@ -120,6 +83,7 @@ async def localize_image_against_reconstruction(
 
     # Start padding logic
     batch_size = len(matched_image_ids)
+    print(batch_size)
     descriptor_dimension = map.descriptors[matched_image_ids[0]].shape[0]
     max_keypoints = max(map.keypoints[i].shape[0] for i in matched_image_ids)
 
@@ -154,13 +118,13 @@ async def localize_image_against_reconstruction(
         ],
         device=DEVICE,
     )
-    sizes1 = torch.tensor([bgr_image.shape[:2]] * batch_size, device=DEVICE)
+    sizes1 = torch.tensor([image_size] * batch_size, device=DEVICE)
 
     print("Matching features")
 
     # Run LightGlue matcher
     with torch.inference_mode():
-        match_tensors = LIGHTGLUE_MATCHER({
+        match_tensors = lightglue({
             "image0": {"keypoints": keypoints0, "descriptors": descriptors0, "image_size": sizes0},
             "image1": {"keypoints": keypoints1, "descriptors": descriptors1, "image_size": sizes1},
         })["matches0"]
@@ -210,7 +174,7 @@ async def localize_image_against_reconstruction(
     # Estimate the camera pose using the 2D-3D correspondences
     pnp_result = cast(
         dict[str, Any] | None,
-        estimate_and_refine_absolute_pose(points2d, points3d, camera, estimation_options=estimationOptions),
+        estimate_and_refine_absolute_pose(points2d, points3d, pycolmap_camera, estimation_options=estimationOptions),
     )
 
     if pnp_result is None:
@@ -247,7 +211,7 @@ async def localize_image_against_reconstruction(
     camera_frame_points = (rotation_camera_from_world @ points3d_inliers.T).T + translation_camera_from_world[None, :]
 
     # Project 3d inliers into pixel coordinates using the camera model
-    projected_pixel_coordinates = camera.img_from_cam(camera_frame_points)
+    projected_pixel_coordinates = pycolmap_camera.img_from_cam(camera_frame_points)
 
     # Compute reprojection residuals for inliers
     residuals: NDArray[np.float64] = np.linalg.norm(projected_pixel_coordinates - points2d_inliers, axis=1).astype(

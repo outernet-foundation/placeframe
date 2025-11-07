@@ -6,13 +6,14 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "boto3>=1.40.29",
- "common",
- "pydantic-settings>=2.10.1",
- "typer>=0.17.4",
+    "pydantic-settings>=2.10.1",
+    "typer>=0.17.4",
+    "psycopg[binary]>=3.2.10",
+    "docker>=7.1.0",
 ]
 
-[tool.uv.sources]
-common = { path = "../../common", editable = true }
+[dependency-groups]
+dev = ["boto3-stubs[batch,ecs,secretsmanager,s3,lambda]>=1.40.29"]
 
 [build-system]
 requires = ["hatchling"]

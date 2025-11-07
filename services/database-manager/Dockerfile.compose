@@ -17,7 +17,6 @@ WORKDIR /app/services/database-manager
 
 # Install dependencies
 COPY services/database-manager/pyproject.toml services/database-manager/uv.lock ./
-COPY common/ /app/common
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project --no-editable
 

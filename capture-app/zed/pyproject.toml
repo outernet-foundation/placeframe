@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "common",
+    "core",
     "pyzed==5.1 ; ((sys_platform == 'linux' and platform_machine == 'aarch64') or (sys_platform == 'win32' and platform_machine == 'AMD64')) and platform_python_implementation == 'CPython' and python_version >= '3.13' and python_version < '3.14'",
     "fastapi>=0.116.1",
     "scipy>=1.16.1",
@@ -19,7 +20,8 @@ dependencies = [
 dev = ["scipy-stubs"]
 
 [tool.uv.sources]
-common = { path = "../../common", editable = true }
+core = { path = "../../services/visual-localization-system/core", editable = true }
+common = { path = "../../services/visual-localization-system/common", editable = true }
 pyzed = { index = "pyzed" }
 
 [[tool.uv.index]]

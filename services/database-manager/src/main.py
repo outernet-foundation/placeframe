@@ -11,12 +11,12 @@ from importlib.resources import files as pkg_files
 from pathlib import Path
 from typing import Any, LiteralString, cast
 
-from common.boto_clients import create_ecs_client, create_secretsmanager_client
-from common.database_utils import postgres_cursor
 from psycopg import Cursor
 from psycopg.sql import SQL, Identifier, Literal
 from typer import Exit, Option, run
 
+from .boto_clients import create_ecs_client, create_secretsmanager_client
+from .database_utils import postgres_cursor
 from .settings import Settings, get_settings
 
 
@@ -300,15 +300,15 @@ def _update_cloudbeaver(settings: Settings, database_name: str, user: str | None
     if settings.backend == "docker":
         import docker  # local import
 
-        client = docker.from_env()
-        container = client.containers.get(settings.cloudbeaver_service_id)
+        client = docker.from_env()  # type: ignore[call-arg]
+        container = client.containers.get(settings.cloudbeaver_service_id)  # type: ignore[call-arg]
         container.restart()  # type: ignore[union-attr]
 
         print("Waiting for CloudBeaver service to restart")
         deadline = time.time() + 120
         while time.time() < deadline:
-            container.reload()
-            if getattr(container, "status", "") == "running":
+            container.reload()  # type: ignore[union-attr]
+            if getattr(container, "status", "") == "running":  # type: ignore[union-attr]
                 return
             time.sleep(2)
         raise RuntimeError("Timeout waiting for CloudBeaver service to restart")

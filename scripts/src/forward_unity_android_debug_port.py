@@ -4,7 +4,7 @@ from __future__ import annotations
 import os
 from typing import List, Set
 
-from common.run_command import run_command
+from .run_command import run_command
 
 PORT_MIN: int = 56000
 PORT_MAX: int = 57000  # exclusive

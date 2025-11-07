@@ -4,20 +4,14 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "common",
-    "models",
-    "pydantic-settings>=2.11.0",
-]
+dependencies = ["common", "models", "pydantic-settings>=2.11.0"]
 
 [tool.uv.sources]
-common = { path = "../../../common", editable = true }
+common = { path = "../common", editable = true }
 models = { path = "../models", editable = true }
 
 [tool.ruff]
 extend = "../../../ruff.toml"
 
 [dependency-groups]
-dev = [
-    "debugpy>=1.8.17",
-]
+dev = ["debugpy>=1.8.17"]

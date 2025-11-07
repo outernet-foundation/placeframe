@@ -1,12 +1,17 @@
-from typing import cast
 from uuid import UUID, uuid4
 
-import httpx
-from common.classes import CameraIntrinsics, LocalizationMetrics, Transform
 from common.session_client_docker import DockerSessionClient
+from core.classes import LocalizationMetrics
+from core.rig import Camera
+from core.transform import Quaternion, Transform, Vector3
 from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
 from models.public_dtos import LocalizationSessionRead, localization_session_to_dto
 from models.public_tables import LocalizationMap, LocalizationSession
+from plerion_localize import ApiClient, Configuration
+from plerion_localize.api.default_api import DefaultApi
+from plerion_localize.models.camera import Camera as LocalizeCamera
+from plerion_localize.models.camera import PinholeCamera as LocalizePinholeCamera
+from plerion_localize.models.load_state_response import LoadStateResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -66,17 +71,18 @@ async def delete_localization_session(localization_session_id: UUID, session: As
 
 @router.put("/{localization_session_id}/camera")
 async def set_localization_session_camera_intrinsics(
-    localization_session_id: UUID, camera: CameraIntrinsics = Body(...), session: AsyncSession = Depends(get_session)
+    localization_session_id: UUID, camera: Camera = Body(...), session: AsyncSession = Depends(get_session)
 ):
-    if camera["model"] != "PINHOLE":
+    if camera.model != "PINHOLE":
         raise HTTPException(status_code=422, detail="Only PINHOLE camera model is supported")
 
-    async with httpx.AsyncClient() as client:
+    url = await _session_base_url(session, localization_session_id)
+    async with ApiClient(Configuration(host=url)) as api_client:
         try:
-            await client.put(
-                f"{await _session_base_url(session, localization_session_id)}/camera", json=cast(object, camera)
+            await DefaultApi(api_client).set_camera_intrinsics(
+                LocalizeCamera(actual_instance=LocalizePinholeCamera.model_validate(camera.model_dump()))
             )
-        except httpx.RequestError as e:
+        except Exception as e:
             raise HTTPException(502, f"session backend unreachable: {e}") from e
 
 
@@ -103,18 +109,14 @@ async def load_localization_maps(
             raise HTTPException(status_code=404, detail="Localization map not found")
         reconstruction_ids.add(map_row.reconstruction_id)
 
-    base = await _session_base_url(session, localization_session_id)
-    async with httpx.AsyncClient() as client:
+    url = await _session_base_url(session, localization_session_id)
+    async with ApiClient(Configuration(host=url)) as api_client:
         for reconstruction_id in reconstruction_ids:
             try:
-                response = await client.post(f"{base}/reconstructions/{reconstruction_id}")
-            except httpx.RequestError as e:
+                await DefaultApi(api_client).load_reconstruction(id=reconstruction_id)
+            except Exception as e:
                 raise HTTPException(502, f"session backend unreachable: {e}") from e
-            if not response.is_success:
-                try:
-                    raise HTTPException(status_code=response.status_code, detail=response.json())
-                except Exception:
-                    raise HTTPException(status_code=response.status_code, detail=response.text)
+
     return {"ok": True}
 
 
@@ -124,35 +126,30 @@ async def unload_map(localization_session_id: UUID, map_id: UUID, session: Async
     if not map_row:
         raise HTTPException(status_code=404, detail="Localization map not found")
 
-    base = await _session_base_url(session, localization_session_id)
-    async with httpx.AsyncClient() as client:
+    url = await _session_base_url(session, localization_session_id)
+    async with ApiClient(Configuration(host=url)) as api_client:
         try:
-            r = await client.delete(f"{base}/reconstructions/{map_row.reconstruction_id}")
-        except httpx.RequestError as e:
+            await DefaultApi(api_client).unload_reconstruction(id=map_row.reconstruction_id)
+        except Exception as e:
             raise HTTPException(502, f"session backend unreachable: {e}") from e
-    if r.is_success:
-        return {"ok": True}
-    raise HTTPException(status_code=r.status_code, detail=r.text)
+
+    return {"ok": True}
 
 
 @router.get("/{localization_session_id}/maps/{map_id}/status")
 async def get_map_load_status(
     localization_session_id: UUID, map_id: UUID, session: AsyncSession = Depends(get_session)
-) -> str:
+) -> LoadStateResponse:
     map_row = await session.get(LocalizationMap, map_id)
     if not map_row:
         raise HTTPException(status_code=404, detail="Localization map not found")
 
-    base = await _session_base_url(session, localization_session_id)
-    async with httpx.AsyncClient() as client:
+    url = await _session_base_url(session, localization_session_id)
+    async with ApiClient(Configuration(host=url)) as api_client:
         try:
-            r = await client.get(f"{base}/reconstructions/{map_row.reconstruction_id}/status")
-        except httpx.RequestError as e:
+            return await DefaultApi(api_client).get_reconstruction_load_status(id=map_row.reconstruction_id)
+        except Exception as e:
             raise HTTPException(502, f"session backend unreachable: {e}") from e
-    if r.is_success:
-        status_json = r.json()
-        return status_json.get("status", "unknown")
-    raise HTTPException(status_code=r.status_code, detail=r.text)
 
 
 class MapLocalization(BaseModel):
@@ -166,46 +163,41 @@ class MapLocalization(BaseModel):
 async def localize_image(
     localization_session_id: UUID, image: UploadFile = File(...), session: AsyncSession = Depends(get_session)
 ) -> list[MapLocalization]:
-    async with httpx.AsyncClient() as client:
+    url = await _session_base_url(session, localization_session_id)
+    async with ApiClient(Configuration(host=url)) as api_client:
         try:
-            r = await client.post(
-                f"{await _session_base_url(session, localization_session_id)}/localization",
-                files={
-                    "image": (
-                        image.filename or "image.jpg",
-                        await image.read(),
-                        image.content_type or "application/octet-stream",
-                    )
-                },
-            )
-        except httpx.RequestError as e:
+            localizations = await DefaultApi(api_client).localize_image(await image.read())
+            reconstruction_id_to_map = {
+                map.reconstruction_id: map
+                for map in await get_localization_maps(
+                    reconstruction_ids=[response.id for response in localizations], ids=None, session=session
+                )
+            }
+
+            return [
+                MapLocalization(
+                    id=reconstruction_id_to_map[localization.id].id,
+                    transform=Transform.model_validate(localization.transform.model_dump()),
+                    map_transform=Transform(
+                        position=Vector3(
+                            x=reconstruction_id_to_map[localization.id].position_x,
+                            y=reconstruction_id_to_map[localization.id].position_y,
+                            z=reconstruction_id_to_map[localization.id].position_z,
+                        ),
+                        rotation=Quaternion(
+                            x=reconstruction_id_to_map[localization.id].rotation_x,
+                            y=reconstruction_id_to_map[localization.id].rotation_y,
+                            z=reconstruction_id_to_map[localization.id].rotation_z,
+                            w=reconstruction_id_to_map[localization.id].rotation_w,
+                        ),
+                    ),
+                    metrics=LocalizationMetrics.model_validate(localization.metrics.model_dump()),
+                )
+                for localization in localizations
+            ]
+
+        except Exception as e:
             raise HTTPException(502, f"session backend unreachable: {e}") from e
-
-    if not r.is_success:
-        raise HTTPException(status_code=r.status_code, detail=r.text)
-
-    localizer_response: dict[UUID, tuple[Transform, LocalizationMetrics]] = r.json()
-    maps = await get_localization_maps(
-        reconstruction_ids=[id for id in localizer_response.keys()], ids=None, session=session
-    )
-
-    return [
-        MapLocalization(
-            id=id,
-            transform=localizer_response[id][0],
-            map_transform={
-                "position": {"x": maps[i].position_x, "y": maps[i].position_y, "z": maps[i].position_z},
-                "rotation": {
-                    "w": maps[i].rotation_w,
-                    "x": maps[i].rotation_x,
-                    "y": maps[i].rotation_y,
-                    "z": maps[i].rotation_z,
-                },
-            },
-            metrics=localizer_response[id][1],
-        )
-        for i, id in enumerate(localizer_response)
-    ]
 
 
 async def _session_base_url(db: AsyncSession, session_id: UUID) -> str:

@@ -8,7 +8,7 @@
   },
   "additionalProperties": {
     "library": "httpclient",
-    "packageName": "PlerionClient",
+    "packageName": "Plerion",
     "packageVersion": "0.1.0",
     "targetFramework": "netstandard2.1",
     "validatable": false,

@@ -10,8 +10,8 @@ using UnityEngine.Android;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 using System.Collections.Generic;
-using static RigConfig;
 using Unity.Mathematics;
+using Plerion.Model;
 
 
 public static class LocalCaptureController
@@ -162,36 +162,37 @@ public static class LocalCaptureController
             // Write out rig config
             File.WriteAllText(
                 Path.Combine(sessionDirectory, "config.json"),
-                JsonUtility.ToJson(
-                new RigConfig()
-                {
-                    rigs = new Rig[]
-                    {
-                        new()
+
+                    new RigConfig(
+                        new List<RigOutput>
                         {
-                            id = "rig0",
-                            cameras = new RigCamera[]
-                            {
-                                new RigCamera()
+                            new RigOutput(
+                                "rig0",
+                                new List<RigCamera>
                                 {
-                                    id = "camera0",
-                                    ref_sensor = true,
-                                    rotation = new Quaternion(0, 0, 0, 1),
-                                    translation = new Vector3(0, 0, 0),
-                                    intrinsics = new PinholeIntrinsics(
-                                        intrinsics.resolution.x,
-                                        intrinsics.resolution.y,
-                                        intrinsics.focalLength.x,
-                                        intrinsics.focalLength.y,
-                                        flipped ? (intrinsics.resolution.x - 1) - intrinsics.principalPoint.x : intrinsics.principalPoint.x,
-                                        intrinsics.principalPoint.y
+                                    new RigCamera(
+                                        "camera0",
+                                        true,
+                                        new Plerion.Model.Quaternion(0, 0, 0, 1),
+                                        new Plerion.Model.Vector3(0, 0, 0),
+                                        new Intrinsics(new PinholeCamera(
+                                            intrinsics.resolution.x,
+                                            intrinsics.resolution.y,
+                                            PinholeCamera.MirroringEnum.None,
+                                            PinholeCamera.RotationEnum._90CCW,
+                                            PinholeCamera.ModelEnum.PINHOLE,
+                                            intrinsics.focalLength.x,
+                                            intrinsics.focalLength.y,
+                                            flipped ? (intrinsics.resolution.x - 1) - intrinsics.principalPoint.x : intrinsics.principalPoint.x,
+                                            intrinsics.principalPoint.y
+                                        ))
                                     )
                                 }
-                            }
+                            )
                         }
-                    }
-                }
-            ));
+                    ).ToJson()
+
+            );
 
             // Done with first frame setup
             first_frame = false;
@@ -204,25 +205,21 @@ public static class LocalCaptureController
 
         // Compute camera pose relative to the capture anchor
         var framePosition = captureAnchor.transform.InverseTransformPoint(cameraManager.transform.position);
-        var frameRotation = Quaternion.Inverse(captureAnchor.transform.rotation) * cameraManager.transform.rotation;
-
-        // Convert from world-from-camera to camera-from-world (COLMAP expects the latter for pose priors)
-        float3x3 rotationCameraFromWorld_unity = math.transpose(new float3x3(frameRotation));
-        float3 translationCameraFromWorld_unity = -math.mul(rotationCameraFromWorld_unity, new float3(framePosition));
+        var frameRotation = UnityEngine.Quaternion.Inverse(captureAnchor.transform.rotation) * cameraManager.transform.rotation;
 
         // Change basis from Unity to OpenCV
-        var (rotationCameraFromWorld_openCV, translationCameraFromWorld_openCV) =
-            OpenCVFromUnity(rotationCameraFromWorld_unity, translationCameraFromWorld_unity);
+        var (rotationWorldFromCamera_openCV, cameraCenterInWorld_openCV) =
+                OpenCVFromUnity(new float3x3(frameRotation), new float3(framePosition));
 
-        // Write pose prior
-        var quaternionCameraFromWorld_openCV = new quaternion(rotationCameraFromWorld_openCV);
+        // Write world_from_camera rotation (as quaternion) and camera_center_in_world
+        var quaternionWorldFromCamera_openCV = new quaternion(rotationWorldFromCamera_openCV);
         poseWriter.WriteLine(string.Format(
             CultureInfo.InvariantCulture,
-            "{0},{1},{2},{3},{4},{5},{6},{7}",
+                "{0},{1},{2},{3},{4},{5},{6},{7}",
             timestampMilliseconds,
-            translationCameraFromWorld_openCV.x, translationCameraFromWorld_openCV.y, translationCameraFromWorld_openCV.z,
-            quaternionCameraFromWorld_openCV.value.x, quaternionCameraFromWorld_openCV.value.y,
-            quaternionCameraFromWorld_openCV.value.z, quaternionCameraFromWorld_openCV.value.w));
+            cameraCenterInWorld_openCV.x, cameraCenterInWorld_openCV.y, cameraCenterInWorld_openCV.z,
+            quaternionWorldFromCamera_openCV.value.x, quaternionWorldFromCamera_openCV.value.y,
+            quaternionWorldFromCamera_openCV.value.z, quaternionWorldFromCamera_openCV.value.w));
 
         // Save jpeg
         SaveImageAsync(cpuImage, flipped, Path.Combine(sessionDirectory, "rig0", "camera0", $"{timestampMilliseconds}.jpg")).Forget();

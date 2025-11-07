@@ -5,7 +5,7 @@ namespace PlerionClient.Client
 {
     public enum CaptureType
     {
-        Local,
+        ARFoundation,
         Zed
     }
 
@@ -44,6 +44,7 @@ namespace PlerionClient.Client
         public ObservablePrimitive<string> name { get; private set; }
         public ObservablePrimitive<CaptureType> type { get; private set; }
         public ObservablePrimitive<CaptureUploadStatus> status { get; private set; }
+        public ObservablePrimitive<float> statusPercentage { get; private set; }
         public ObservablePrimitive<Guid> reconstructionId { get; private set; }
         public ObservablePrimitive<Guid> localizationMapId { get; private set; }
         public ObservablePrimitive<bool> active { get; private set; } = new ObservablePrimitive<bool>(true);

@@ -17,7 +17,7 @@ WORKDIR /app/services/visual-localization-system/reconstruction-orchestrator
 
 # Install dependencies
 COPY services/visual-localization-system/reconstruction-orchestrator/pyproject.toml services/visual-localization-system/reconstruction-orchestrator/uv.lock ./
-COPY common/ /app/common
+COPY services/visual-localization-system/common/ /app/services/visual-localization-system/common
 COPY services/visual-localization-system/models/ /app/services/visual-localization-system/models/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project --no-editable
