@@ -15,10 +15,11 @@ a shared reference frame, such that a piece of AR content appearing in a certain
 appears there for every user.
 
 Notable features:
-- Unity localization package
-- Android mobile reference app
-- Zed capture app for large environments (wip)
-- Tooling for registering maps against Cesium tilesets (wip)
+- Unity localization package and reference app
+  - Server-side localization only right now
+  - Android mobile (data capture and localization) and Magic Leap 2 (localization, wip) 
+- Zed data capture app for creating maps of large environments (wip)
+- Tooling for georeferencing maps against Cesium tilesets (wip)
 - Rig-aware geometric verification using colmap 3.13
 - Superpoint/Lightglue for feature point descriptor extraction and matching
 - deep-image-retrieval for image retrieval descriptor extraction
