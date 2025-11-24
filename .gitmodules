@@ -1,6 +1,6 @@
-[submodule "services/visual-localization-system/nn/third-party/deep-image-retrieval"]
-	path = services/visual-localization-system/nn/third-party/deep-image-retrieval
+[submodule "deep-image-retrieval"]
+	path = packages/neural-networks/third-party/deep-image-retrieval
 	url = https://github.com/naver/deep-image-retrieval.git
-[submodule "services/visual-localization-system/nn/third-party/SuperGluePretrainedNetwork"]
-	path = services/visual-localization-system/nn/third-party/SuperGluePretrainedNetwork
+[submodule "SuperGluePretrainedNetwork"]
+	path = packages/neural-networks/third-party/SuperGluePretrainedNetwork
 	url = https://github.com/magicleap/SuperGluePretrainedNetwork.git

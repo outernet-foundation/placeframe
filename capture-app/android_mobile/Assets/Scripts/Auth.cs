@@ -25,7 +25,7 @@ public static class Auth
     {
         get
         {
-            return $"{App.state.plerionKeycloakUrl.value}/realms/plerion-dev/protocol/openid-connect/token";
+            return $"{App.state.plerionAPIBaseUrl.value}/auth/realms/plerion-dev/protocol/openid-connect/token";
         }
     }
 

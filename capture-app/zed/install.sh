@@ -15,6 +15,10 @@ tar -xzf "$TARBALL" -C "$INSTALL_DIR"
 
 chmod +x "$INSTALL_DIR/capture-app/zed/start.sh"
 
+echo "Syncing zed environment (from workspace root)"
+cd "$INSTALL_DIR"
+uv sync --package zed --frozen
+
 echo "Setting up systemd service"
 sudo cp "$INSTALL_DIR/capture-app/zed/$SERVICE" /etc/systemd/system/
 sudo systemctl daemon-reload

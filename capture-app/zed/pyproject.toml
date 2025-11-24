@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "common",
     "core",
-    "pyzed==5.1 ; ((sys_platform == 'linux' and platform_machine == 'aarch64') or (sys_platform == 'win32' and platform_machine == 'AMD64')) and platform_python_implementation == 'CPython' and python_version >= '3.13' and python_version < '3.14'",
+    "pyzed",
     "fastapi>=0.116.1",
     "scipy>=1.16.1",
     "uvicorn>=0.35.0",
@@ -20,15 +20,13 @@ dependencies = [
 dev = ["scipy-stubs"]
 
 [tool.uv.sources]
-core = { path = "../../services/visual-localization-system/core", editable = true }
-common = { path = "../../services/visual-localization-system/common", editable = true }
-pyzed = { index = "pyzed" }
+core = { workspace = true }
+common = { workspace = true }
 
-[[tool.uv.index]]
-name = "pyzed"
-url = "third-party/pyzed"
-format = "flat"
-explicit = true
+[[tool.uv.sources.pyzed]]
+path = "./third-party/pyzed/pyzed-5.1-cp313-cp313-win_amd64.whl"
+marker = "sys_platform == 'win32' and platform_machine == 'AMD64'"
 
-[tool.ruff]
-extend = "../../ruff.toml"
+[[tool.uv.sources.pyzed]]
+path = "./third-party/pyzed/pyzed-5.1-cp313-cp313-linux_aarch64.whl"
+marker = "sys_platform == 'linux' and platform_machine == 'aarch64'"

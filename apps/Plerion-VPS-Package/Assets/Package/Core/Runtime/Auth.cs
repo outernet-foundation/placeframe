@@ -2,7 +2,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
-using Plerion.Client;
+using PlerionApiClient.Client;
 using UnityEngine;
 using UnityEngine.Networking;
 

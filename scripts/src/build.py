@@ -1,17 +1,14 @@
-from __future__ import annotations
-
 import json
-import os
-import shlex
-import tempfile
+from os import environ
 from pathlib import Path
+from shlex import quote
 from subprocess import CalledProcessError
+from tempfile import TemporaryDirectory
 from typing import Literal, NotRequired, Optional, TypedDict, cast
 
+from common.run_command import run_command
 from pydantic import TypeAdapter
 from typer import Option, Typer
-
-from .run_command import run_command
 
 workspace_directory = Path("..").resolve()
 images_path = workspace_directory / "images.json"
@@ -47,6 +44,63 @@ class ThirdPartyPlan(TypedDict):
     image_repo_url: str
 
 
+ImageOption = Option(None, "--image", "-i", help="Image name; can be repeated.")
+StackOption = Option(None, "--stack", "-s", help="Pulumi stack name, or all")
+PlanOption = Option(None, "--plan", "-p", help="Path to a plan JSON file (dict keyed by image name).")
+CacheTypeOption = Option("registry", "--cache-type", "-c", help="Type of cache to use when building images.")
+PlanOutputPathOption = Option(..., "--output", "-o", help="Path to write the plan JSON file.")
+LockOutputPathOption = Option(None, "--output", "-o", help="Path to write the images-lock.json file.")
+
+app = Typer()
+
+
+@app.command()
+def plan(
+    images: Optional[list[str]] = ImageOption, stack: Optional[str] = StackOption, plan_path: str = PlanOutputPathOption
+):
+    if images is None and not stack:
+        raise ValueError("Either '--images' or '--stack' must be provided")
+    if stack and images is not None:
+        raise ValueError("Cannot provide both '--images' and '--stack'")
+
+    if not images_path.is_file():
+        raise FileNotFoundError(f"{images_path} not found")
+
+    _, plan = create_plan(images, stack)
+
+    with open(plan_path, "w") as plan_file:
+        json.dump(plan, plan_file, indent=2)
+
+
+@app.command()
+def lock(
+    images: Optional[list[str]] = ImageOption,
+    stack: Optional[str] = StackOption,
+    plan_path: Optional[str] = PlanOption,
+    cache_type: str = CacheTypeOption,
+    output_path: Optional[Path] = LockOutputPathOption,
+):
+    if images is None and not stack and plan_path is None:
+        raise ValueError("Either '--images', '--stack', or '--plan' must be provided")
+    if sum([bool(stack), images is not None, plan_path is not None]) > 1:
+        raise ValueError("Only one of '--stack', '--images', or '--plan' may be provided")
+
+    if plan_path:
+        if not Path(plan_path).is_file():
+            raise FileNotFoundError(f"{plan_path} not found")
+
+        with open(plan_path) as plan_file, open(images_lock_path) as images_lock_file:
+            plan = TypeAdapter(dict[str, FirstPartyPlan | ThirdPartyPlan]).validate_python(json.load(plan_file))
+            images_lock = TypeAdapter(dict[str, ImageLock]).validate_python(json.load(images_lock_file))
+    else:
+        if not images_path.is_file():
+            raise FileNotFoundError(f"{images_path} not found")
+
+        images_lock, plan = create_plan(images, stack)
+
+    lock_images(images_lock, plan, cache_type, output_path)
+
+
 def create_plan(images: Optional[list[str]] = None, stack: Optional[str] = None):
     # Load images.json and images.lock
     all_images = TypeAdapter(dict[str, Image]).validate_python(json.load(images_path.open("r", encoding="utf-8")))
@@ -70,7 +124,7 @@ def create_plan(images: Optional[list[str]] = None, stack: Optional[str] = None)
     for stack in {img["stack"] for img in selected_images.values()}:
         print(f"Getting Pulumi stack outputs for stack: {stack}")
         stacks[stack] = json.loads(
-            run_command(f"pulumi stack output --stack {shlex.quote(stack)} --json", cwd=infrastructure_directory)
+            run_command(f"pulumi stack output --stack {quote(stack)} --json", cwd=infrastructure_directory)
         )
 
     # Create plan
@@ -105,13 +159,13 @@ def create_image_plan(
     context = image["context"]
 
     # Compute tree SHA by creating a temporary git index and object directory
-    with tempfile.TemporaryDirectory() as temporary_directory:
-        environment = os.environ.copy()
+    with TemporaryDirectory() as temporary_directory:
+        environment = environ.copy()
         environment["GIT_INDEX_FILE"] = str(Path(temporary_directory) / "index")
         environment["GIT_OBJECT_DIRECTORY"] = str(Path(temporary_directory) / "objects")
         Path(environment["GIT_OBJECT_DIRECTORY"]).mkdir(parents=True, exist_ok=True)
         quoted_paths_string = " ".join(
-            shlex.quote(path) for path in (image["hash_paths"] if "hash_paths" in image else [context])
+            quote(path) for path in (image["hash_paths"] if "hash_paths" in image else [context])
         )
         run_command(f"git add -A -- {quoted_paths_string}", env=environment, cwd=workspace_directory)
         tree_sha = run_command("git write-tree", env=environment, cwd=workspace_directory).strip()
@@ -233,62 +287,9 @@ def get_digest(ref: str):
         return None
 
 
-ImageOption = Option(None, "--image", "-i", help="Image name; can be repeated.")
-StackOption = Option(None, "--stack", "-s", help="Pulumi stack name, or all")
-PlanOption = Option(None, "--plan", "-p", help="Path to a plan JSON file (dict keyed by image name).")
-CacheTypeOption = Option("registry", "--cache-type", "-c", help="Type of cache to use when building images.")
-PlanOutputPathOption = Option(..., "--output", "-o", help="Path to write the plan JSON file.")
-LockOutputPathOption = Option(None, "--output", "-o", help="Path to write the images-lock.json file.")
-
-app = Typer()
-
-
-@app.command()
-def plan(
-    images: Optional[list[str]] = ImageOption, stack: Optional[str] = StackOption, plan_path: str = PlanOutputPathOption
-):
-    if images is None and not stack:
-        raise ValueError("Either '--images' or '--stack' must be provided")
-    if stack and images is not None:
-        raise ValueError("Cannot provide both '--images' and '--stack'")
-
-    if not images_path.is_file():
-        raise FileNotFoundError(f"{images_path} not found")
-
-    _, plan = create_plan(images, stack)
-
-    with open(plan_path, "w") as plan_file:
-        json.dump(plan, plan_file, indent=2)
-
-
-@app.command()
-def lock(
-    images: Optional[list[str]] = ImageOption,
-    stack: Optional[str] = StackOption,
-    plan_path: Optional[str] = PlanOption,
-    cache_type: str = CacheTypeOption,
-    output_path: Optional[Path] = LockOutputPathOption,
-):
-    if images is None and not stack and plan_path is None:
-        raise ValueError("Either '--images', '--stack', or '--plan' must be provided")
-    if sum([bool(stack), images is not None, plan_path is not None]) > 1:
-        raise ValueError("Only one of '--stack', '--images', or '--plan' may be provided")
-
-    if plan_path:
-        if not Path(plan_path).is_file():
-            raise FileNotFoundError(f"{plan_path} not found")
-
-        with open(plan_path) as plan_file, open(images_lock_path) as images_lock_file:
-            plan = TypeAdapter(dict[str, FirstPartyPlan | ThirdPartyPlan]).validate_python(json.load(plan_file))
-            images_lock = TypeAdapter(dict[str, ImageLock]).validate_python(json.load(images_lock_file))
-    else:
-        if not images_path.is_file():
-            raise FileNotFoundError(f"{images_path} not found")
-
-        images_lock, plan = create_plan(images, stack)
-
-    lock_images(images_lock, plan, cache_type, output_path)
+def main():
+    app()
 
 
 if __name__ == "__main__":
-    app()
+    main()

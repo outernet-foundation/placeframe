@@ -1,0 +1,3494 @@
+openapi: 3.1.0
+info:
+  title: Plerion
+  version: 0.1.0
+servers:
+- url: /
+security:
+- oauth2:
+  - openid
+- bearerAuth: []
+paths:
+  /capture_sessions:
+    get:
+      operationId: get_capture_sessions
+      parameters:
+      - description: Optional list of Ids to filter by
+        explode: true
+        in: query
+        name: ids
+        required: false
+        schema:
+          items:
+            format: uuid
+            type: string
+            x-schema-name: get_capture_sessions_param_ids_item
+            nullable: false
+          type: array
+          nullable: true
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/CaptureSessionRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Capture Sessions
+      tags:
+      - Default
+    patch:
+      operationId: update_capture_sessions
+      parameters:
+      - explode: true
+        in: query
+        name: allow_missing
+        required: false
+        schema:
+          default: false
+          title: Allow Missing
+          type: boolean
+        style: form
+      requestBody:
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: "#/components/schemas/CaptureSessionBatchUpdate"
+              type: array
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/CaptureSessionRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Update Capture Sessions
+      tags:
+      - Default
+    post:
+      operationId: create_capture_session
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CaptureSessionCreate"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptureSessionRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Create Capture Session
+      tags:
+      - Default
+  /capture_sessions/bulk:
+    post:
+      operationId: create_capture_sessions
+      parameters:
+      - explode: true
+        in: query
+        name: overwrite
+        required: false
+        schema:
+          default: false
+          title: Overwrite
+          type: boolean
+        style: form
+      requestBody:
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: "#/components/schemas/CaptureSessionCreate"
+              type: array
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/CaptureSessionRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Create Capture Sessions
+      tags:
+      - Default
+  /capture_sessions/{id}:
+    delete:
+      operationId: delete_capture_session
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Delete Capture Session
+      tags:
+      - Default
+    get:
+      operationId: get_capture_session
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptureSessionRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Capture Session
+      tags:
+      - Default
+    patch:
+      operationId: update_capture_session
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CaptureSessionUpdate"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptureSessionRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Update Capture Session
+      tags:
+      - Default
+  /capture_sessions/{id}/reconstructions:
+    get:
+      operationId: get_capture_session_reconstructions
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  format: uuid
+                  type: string
+                  x-schema-name: get_capture_session_reconstructions_resp_200_application_json_item
+                  nullable: false
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Capture Session Reconstructions
+      tags:
+      - Default
+  /capture_sessions/{id}/tar:
+    get:
+      operationId: download_capture_session_tar
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+            application/x-tar:
+              schema:
+                format: binary
+                type: string
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Download Capture Session Tar
+      tags:
+      - Default
+    put:
+      operationId: upload_capture_session_tar
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/Body_upload_capture_session_tar"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Upload Capture Session Tar
+      tags:
+      - Default
+  /capture_sessions/{id}/rig_config:
+    get:
+      operationId: get_capture_session_rig_config
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RigConfig"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Capture Session Rig Config
+      tags:
+      - Default
+  /reconstructions:
+    get:
+      operationId: get_reconstructions
+      parameters:
+      - description: Optional list of Ids to filter by
+        explode: true
+        in: query
+        name: ids
+        required: false
+        schema:
+          items:
+            format: uuid
+            type: string
+            x-schema-name: get_reconstructions_param_ids_item
+            nullable: false
+          type: array
+          nullable: true
+        style: form
+      - description: Optional capture session Id to filter by
+        explode: true
+        in: query
+        name: capture_session_id
+        required: false
+        schema:
+          format: uuid
+          nullable: true
+          type: string
+        style: form
+      - description: Optional capture session name to filter by
+        explode: true
+        in: query
+        name: capture_session_name
+        required: false
+        schema:
+          type: string
+          nullable: true
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/ReconstructionRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Reconstructions
+      tags:
+      - Default
+    post:
+      operationId: create_reconstruction
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReconstructionCreateWithOptions"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconstructionRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Create Reconstruction
+      tags:
+      - Default
+  /reconstructions/{id}:
+    delete:
+      operationId: delete_reconstruction
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Delete Reconstruction
+      tags:
+      - Default
+    get:
+      operationId: get_reconstruction
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconstructionRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Reconstruction
+      tags:
+      - Default
+  /reconstructions/{id}/manifest:
+    get:
+      operationId: get_reconstruction_manifest
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconstructionManifest"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Reconstruction Manifest
+      tags:
+      - Default
+  /reconstructions/{id}/localization_map:
+    get:
+      operationId: get_reconstruction_localization_map
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                format: uuid
+                title: Response Get Reconstruction Localization Map
+                type: string
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Reconstruction Localization Map
+      tags:
+      - Default
+  /reconstructions/{id}/status:
+    get:
+      operationId: get_reconstruction_status
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                enum:
+                - queued
+                - pending
+                - downloading
+                - extracting_features
+                - matching_features
+                - reconstructing
+                - training_opq_matrix
+                - training_product_quantizer
+                - uploading
+                - succeeded
+                - failed
+                title: Response Get Reconstruction Status
+                type: string
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Reconstruction Status
+      tags:
+      - Default
+  /reconstructions/{id}/points:
+    get:
+      operationId: get_reconstruction_points
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/PointCloudPoint"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Reconstruction Points
+      tags:
+      - Default
+  /reconstructions/{id}/points.ply:
+    get:
+      operationId: get_reconstruction_points3D_ply
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/octet-stream:
+              schema:
+                format: binary
+                type: string
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Reconstruction Points3D Ply
+      tags:
+      - Default
+  /reconstructions/{id}/image_poses:
+    get:
+      operationId: get_reconstruction_image_poses
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/Transform"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Reconstruction Image Poses
+      tags:
+      - Default
+  /localization_maps:
+    delete:
+      operationId: delete_localization_maps
+      parameters:
+      - description: List of Ids to delete
+        explode: true
+        in: query
+        name: ids
+        required: true
+        schema:
+          description: List of Ids to delete
+          items:
+            format: uuid
+            type: string
+            x-schema-name: delete_localization_maps_param_ids_item
+            nullable: false
+          type: array
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Delete Localization Maps
+      tags:
+      - Default
+    get:
+      operationId: get_localization_maps
+      parameters:
+      - description: Optional list of Ids to filter by
+        explode: true
+        in: query
+        name: ids
+        required: false
+        schema:
+          items:
+            format: uuid
+            type: string
+            x-schema-name: get_localization_maps_param_ids_item
+            nullable: false
+          type: array
+          nullable: true
+        style: form
+      - description: Optional list of Reconstruction Ids to filter by
+        explode: true
+        in: query
+        name: reconstruction_ids
+        required: false
+        schema:
+          items:
+            format: uuid
+            type: string
+            x-schema-name: get_localization_maps_param_reconstruction_ids_item
+            nullable: false
+          type: array
+          nullable: true
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/LocalizationMapRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Localization Maps
+      tags:
+      - Default
+    patch:
+      operationId: update_localization_maps
+      parameters:
+      - explode: true
+        in: query
+        name: allow_missing
+        required: false
+        schema:
+          default: false
+          title: Allow Missing
+          type: boolean
+        style: form
+      requestBody:
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: "#/components/schemas/LocalizationMapBatchUpdate"
+              type: array
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/LocalizationMapRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Update Localization Maps
+      tags:
+      - Default
+    post:
+      operationId: create_localization_map
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocalizationMapCreate"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocalizationMapRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Create Localization Map
+      tags:
+      - Default
+  /localization_maps/{id}:
+    delete:
+      operationId: delete_localization_map
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Delete Localization Map
+      tags:
+      - Default
+    get:
+      operationId: get_localization_map
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocalizationMapRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Localization Map
+      tags:
+      - Default
+    patch:
+      operationId: update_localization_map
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocalizationMapUpdate"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocalizationMapRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Update Localization Map
+      tags:
+      - Default
+  /localization_maps/{id}/points:
+    get:
+      operationId: get_localization_map_points
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/PointCloudPoint"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Localization Map Points
+      tags:
+      - Default
+  /localization_maps/{id}/points.ply:
+    get:
+      operationId: get_localization_map_points_ply
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/octet-stream:
+              schema:
+                format: binary
+                type: string
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Localization Map Points Ply
+      tags:
+      - Default
+  /localization_maps/{id}/image_poses:
+    patch:
+      operationId: update_localization_map_image_poses
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          title: Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/Transform"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Update Localization Map Image Poses
+      tags:
+      - Default
+  /localization_sessions:
+    post:
+      operationId: create_localization_session
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocalizationSessionRead"
+          description: Successful Response
+      summary: Create Localization Session
+      tags:
+      - Default
+  /localization_sessions/{localization_session_id}:
+    delete:
+      operationId: delete_localization_session
+      parameters:
+      - explode: false
+        in: path
+        name: localization_session_id
+        required: true
+        schema:
+          format: uuid
+          title: Localization Session Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Delete Localization Session
+      tags:
+      - Default
+  /localization_sessions/{localization_session_id}/camera:
+    put:
+      operationId: set_localization_session_camera_intrinsics
+      parameters:
+      - explode: false
+        in: path
+        name: localization_session_id
+        required: true
+        schema:
+          format: uuid
+          title: Localization Session Id
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Camera"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Set Localization Session Camera Intrinsics
+      tags:
+      - Default
+  /localization_sessions/{localization_session_id}/status:
+    get:
+      operationId: get_localization_session_status
+      parameters:
+      - explode: false
+        in: path
+        name: localization_session_id
+        required: true
+        schema:
+          format: uuid
+          title: Localization Session Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                title: Response Get Localization Session Status
+                type: string
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Localization Session Status
+      tags:
+      - Default
+  /localization_sessions/{localization_session_id}/maps:
+    post:
+      operationId: load_localization_maps
+      parameters:
+      - explode: false
+        in: path
+        name: localization_session_id
+        required: true
+        schema:
+          format: uuid
+          title: Localization Session Id
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              description: IDs of localization maps to load
+              items:
+                format: uuid
+                type: string
+                x-schema-name: load_localization_maps_body_application_json_item
+                nullable: false
+              type: array
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Load Localization Maps
+      tags:
+      - Default
+  /localization_sessions/{localization_session_id}/maps/{map_id}:
+    delete:
+      operationId: unload_map
+      parameters:
+      - explode: false
+        in: path
+        name: localization_session_id
+        required: true
+        schema:
+          format: uuid
+          title: Localization Session Id
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: map_id
+        required: true
+        schema:
+          format: uuid
+          title: Map Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Unload Map
+      tags:
+      - Default
+  /localization_sessions/{localization_session_id}/maps/{map_id}/status:
+    get:
+      operationId: get_map_load_status
+      parameters:
+      - explode: false
+        in: path
+        name: localization_session_id
+        required: true
+        schema:
+          format: uuid
+          title: Localization Session Id
+          type: string
+        style: simple
+      - explode: false
+        in: path
+        name: map_id
+        required: true
+        schema:
+          format: uuid
+          title: Map Id
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoadStateResponse"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Map Load Status
+      tags:
+      - Default
+  /localization_sessions/{localization_session_id}/localization:
+    post:
+      operationId: localize_image
+      parameters:
+      - explode: false
+        in: path
+        name: localization_session_id
+        required: true
+        schema:
+          format: uuid
+          title: Localization Session Id
+          type: string
+        style: simple
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/Body_localize_image"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/MapLocalization"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Localize Image
+      tags:
+      - Default
+  /groups:
+    delete:
+      operationId: delete_groups
+      parameters:
+      - description: List of Ids to delete
+        explode: true
+        in: query
+        name: ids
+        required: true
+        schema:
+          description: List of Ids to delete
+          items:
+            format: uuid
+            type: string
+            x-schema-name: delete_groups_param_ids_item
+            nullable: false
+          type: array
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Delete Groups
+      tags:
+      - Default
+    get:
+      operationId: get_groups
+      parameters:
+      - description: Optional list of Ids to filter by
+        explode: true
+        in: query
+        name: ids
+        required: false
+        schema:
+          items:
+            format: uuid
+            type: string
+            x-schema-name: get_groups_param_ids_item
+            nullable: false
+          type: array
+          nullable: true
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/GroupRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Groups
+      tags:
+      - Default
+    patch:
+      operationId: update_groups
+      parameters:
+      - explode: true
+        in: query
+        name: allow_missing
+        required: false
+        schema:
+          default: false
+          title: Allow Missing
+          type: boolean
+        style: form
+      requestBody:
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: "#/components/schemas/GroupBatchUpdate"
+              type: array
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/GroupRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Update Groups
+      tags:
+      - Default
+    post:
+      operationId: create_group
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupCreate"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Create Group
+      tags:
+      - Default
+  /layers:
+    delete:
+      operationId: delete_layers
+      parameters:
+      - description: List of Ids to delete
+        explode: true
+        in: query
+        name: ids
+        required: true
+        schema:
+          description: List of Ids to delete
+          items:
+            format: uuid
+            type: string
+            x-schema-name: delete_layers_param_ids_item
+            nullable: false
+          type: array
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Delete Layers
+      tags:
+      - Default
+    get:
+      operationId: get_layers
+      parameters:
+      - description: Optional list of Ids to filter by
+        explode: true
+        in: query
+        name: ids
+        required: false
+        schema:
+          items:
+            format: uuid
+            type: string
+            x-schema-name: get_layers_param_ids_item
+            nullable: false
+          type: array
+          nullable: true
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/LayerRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Layers
+      tags:
+      - Default
+    patch:
+      operationId: update_layers
+      parameters:
+      - explode: true
+        in: query
+        name: allow_missing
+        required: false
+        schema:
+          default: false
+          title: Allow Missing
+          type: boolean
+        style: form
+      requestBody:
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: "#/components/schemas/LayerBatchUpdate"
+              type: array
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/LayerRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Update Layers
+      tags:
+      - Default
+    post:
+      operationId: create_layer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LayerCreate"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayerRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Create Layer
+      tags:
+      - Default
+  /nodes:
+    delete:
+      operationId: delete_nodes
+      parameters:
+      - description: List of Ids to delete
+        explode: true
+        in: query
+        name: ids
+        required: true
+        schema:
+          description: List of Ids to delete
+          items:
+            format: uuid
+            type: string
+            x-schema-name: delete_nodes_param_ids_item
+            nullable: false
+          type: array
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: {}
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Delete Nodes
+      tags:
+      - Default
+    get:
+      operationId: get_nodes
+      parameters:
+      - description: Optional list of Ids to filter by
+        explode: true
+        in: query
+        name: ids
+        required: false
+        schema:
+          items:
+            format: uuid
+            type: string
+            x-schema-name: get_nodes_param_ids_item
+            nullable: false
+          type: array
+          nullable: true
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/NodeRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Get Nodes
+      tags:
+      - Default
+    patch:
+      operationId: update_nodes
+      parameters:
+      - explode: true
+        in: query
+        name: allow_missing
+        required: false
+        schema:
+          default: false
+          title: Allow Missing
+          type: boolean
+        style: form
+      requestBody:
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: "#/components/schemas/NodeBatchUpdate"
+              type: array
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/NodeRead"
+                type: array
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Update Nodes
+      tags:
+      - Default
+    post:
+      operationId: create_node
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NodeCreate"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NodeRead"
+          description: Successful Response
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+          description: Validation Error
+      summary: Create Node
+      tags:
+      - Default
+components:
+  schemas:
+    Body_localize_image:
+      properties:
+        image:
+          format: binary
+          title: Image
+          type: string
+      required:
+      - image
+      title: Body_localize_image
+    Body_upload_capture_session_tar:
+      properties:
+        tar:
+          format: binary
+          title: Tar
+          type: string
+      required:
+      - tar
+      title: Body_upload_capture_session_tar
+    CaptureSessionBatchUpdate:
+      example:
+        name: name
+        device_type: ARFoundation
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
+        name:
+          nullable: true
+          type: string
+      required:
+      - id
+      title: CaptureSessionBatchUpdate
+    CaptureSessionCreate:
+      example:
+        name: name
+        device_type: ARFoundation
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          nullable: true
+          type: string
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
+        name:
+          title: Name
+          type: string
+      required:
+      - device_type
+      - name
+      title: CaptureSessionCreate
+    CaptureSessionRead:
+      example:
+        updated_at: 2000-01-23T04:56:07.000+00:00
+        name: name
+        created_at: 2000-01-23T04:56:07.000+00:00
+        device_type: ARFoundation
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
+        name:
+          title: Name
+          type: string
+      required:
+      - created_at
+      - device_type
+      - id
+      - name
+      - updated_at
+      title: CaptureSessionRead
+    CaptureSessionUpdate:
+      example:
+        name: name
+        device_type: ARFoundation
+      properties:
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
+        name:
+          nullable: true
+          type: string
+      title: CaptureSessionUpdate
+    Color:
+      example:
+        r: 0
+        b: 1
+        g: 6
+      properties:
+        r:
+          title: R
+          type: integer
+        g:
+          title: G
+          type: integer
+        b:
+          title: B
+          type: integer
+      required:
+      - b
+      - g
+      - r
+      title: Color
+    DeviceType:
+      enum:
+      - ARFoundation
+      - Zed
+      title: DeviceType
+      type: string
+    FullOpenCVCamera:
+      properties:
+        width:
+          title: Width
+          type: integer
+        height:
+          title: Height
+          type: integer
+        mirroring:
+          enum:
+          - None
+          - X
+          - "Y"
+          title: Mirroring
+          type: string
+        rotation:
+          enum:
+          - None
+          - 90_CW
+          - "180"
+          - 90_CCW
+          title: Rotation
+          type: string
+        model:
+          enum:
+          - FULL_OPENCV
+          title: Model
+          type: string
+        fx:
+          title: Fx
+          type: number
+        fy:
+          title: Fy
+          type: number
+        cx:
+          title: Cx
+          type: number
+        cy:
+          title: Cy
+          type: number
+        k1:
+          title: K1
+          type: number
+        k2:
+          title: K2
+          type: number
+        p1:
+          title: P1
+          type: number
+        p2:
+          title: P2
+          type: number
+        k3:
+          title: K3
+          type: number
+        k4:
+          title: K4
+          type: number
+        k5:
+          title: K5
+          type: number
+        k6:
+          title: K6
+          type: number
+      required:
+      - cx
+      - cy
+      - fx
+      - fy
+      - height
+      - k1
+      - k2
+      - k3
+      - k4
+      - k5
+      - k6
+      - mirroring
+      - model
+      - p1
+      - p2
+      - rotation
+      - width
+      title: FullOpenCVCamera
+    GenericParamsIntrinsics:
+      properties:
+        width:
+          title: Width
+          type: integer
+        height:
+          title: Height
+          type: integer
+        mirroring:
+          enum:
+          - None
+          - X
+          - "Y"
+          title: Mirroring
+          type: string
+        rotation:
+          enum:
+          - None
+          - 90_CW
+          - "180"
+          - 90_CCW
+          title: Rotation
+          type: string
+        model:
+          enum:
+          - GENERIC
+          title: Model
+          type: string
+        params:
+          items:
+            type: number
+          type: array
+      required:
+      - height
+      - mirroring
+      - model
+      - params
+      - rotation
+      - width
+      title: GenericParamsIntrinsics
+    GroupBatchUpdate:
+      example:
+        parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        name: name
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        name:
+          nullable: true
+          type: string
+        parent_id:
+          format: uuid
+          nullable: true
+          type: string
+      required:
+      - id
+      title: GroupBatchUpdate
+    GroupCreate:
+      example:
+        parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        name: name
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          nullable: true
+          type: string
+        name:
+          title: Name
+          type: string
+        parent_id:
+          format: uuid
+          nullable: true
+          type: string
+      required:
+      - name
+      title: GroupCreate
+    GroupRead:
+      example:
+        updated_at: 2000-01-23T04:56:07.000+00:00
+        parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        name: name
+        created_at: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+        name:
+          title: Name
+          type: string
+        parent_id:
+          format: uuid
+          nullable: true
+          type: string
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+      title: GroupRead
+    HTTPValidationError:
+      example:
+        detail:
+        - msg: msg
+          loc:
+          - ValidationError_loc_inner
+          - ValidationError_loc_inner
+          type: type
+        - msg: msg
+          loc:
+          - ValidationError_loc_inner
+          - ValidationError_loc_inner
+          type: type
+      properties:
+        detail:
+          items:
+            $ref: "#/components/schemas/ValidationError"
+          type: array
+      title: HTTPValidationError
+    LayerBatchUpdate:
+      example:
+        name: name
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        name:
+          nullable: true
+          type: string
+      required:
+      - id
+      title: LayerBatchUpdate
+    LayerCreate:
+      example:
+        name: name
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          nullable: true
+          type: string
+        name:
+          title: Name
+          type: string
+      required:
+      - name
+      title: LayerCreate
+    LayerRead:
+      example:
+        updated_at: 2000-01-23T04:56:07.000+00:00
+        name: name
+        created_at: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+        name:
+          title: Name
+          type: string
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+      title: LayerRead
+    LoadState:
+      description: LoadState
+      enum:
+      - pending
+      - loading
+      - ready
+      - failed
+      title: LoadState
+      type: string
+    LoadStateResponse:
+      description: LoadStateResponse
+      example:
+        additional_properties:
+          key: ""
+        error: error
+        status: pending
+      properties:
+        status:
+          $ref: "#/components/schemas/LoadState"
+        error:
+          nullable: true
+          type: string
+        additional_properties:
+          additionalProperties: {}
+          default: {}
+          title: Additional Properties
+      required:
+      - status
+      title: LoadStateResponse
+    LocalizationMapBatchUpdate:
+      example:
+        rotation_x: 5.637376656633329
+        color: 9
+        rotation_w: 7.061401241503109
+        active: true
+        rotation_z: 2.3021358869347655
+        rotation_y: 0.8008281904610115
+        lighting: 3
+        position_x: 6.027456183070403
+        position_y: 1.4658129805029452
+        position_z: 5.962133916683182
+        name: name
+        reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        reconstruction_id:
+          format: uuid
+          nullable: true
+          type: string
+        id:
+          format: uuid
+          title: Id
+          type: string
+        rotation_y:
+          nullable: true
+          type: number
+        position_x:
+          nullable: true
+          type: number
+        position_y:
+          nullable: true
+          type: number
+        position_z:
+          nullable: true
+          type: number
+        rotation_x:
+          nullable: true
+          type: number
+        rotation_z:
+          nullable: true
+          type: number
+        rotation_w:
+          nullable: true
+          type: number
+        color:
+          nullable: true
+          type: integer
+        active:
+          nullable: true
+          type: boolean
+        lighting:
+          nullable: true
+          type: integer
+        name:
+          nullable: true
+          type: string
+      required:
+      - id
+      title: LocalizationMapBatchUpdate
+    LocalizationMapCreate:
+      example:
+        rotation_x: 5.637376656633329
+        color: 9
+        rotation_w: 7.061401241503109
+        active: true
+        rotation_z: 2.3021358869347655
+        rotation_y: 0.8008281904610115
+        lighting: 3
+        position_x: 6.027456183070403
+        position_y: 1.4658129805029452
+        position_z: 5.962133916683182
+        name: name
+        reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        reconstruction_id:
+          format: uuid
+          title: Reconstruction Id
+          type: string
+        id:
+          format: uuid
+          nullable: true
+          type: string
+        rotation_y:
+          title: Rotation Y
+          type: number
+        position_x:
+          title: Position X
+          type: number
+        position_y:
+          title: Position Y
+          type: number
+        position_z:
+          title: Position Z
+          type: number
+        rotation_x:
+          title: Rotation X
+          type: number
+        rotation_z:
+          title: Rotation Z
+          type: number
+        rotation_w:
+          title: Rotation W
+          type: number
+        color:
+          title: Color
+          type: integer
+        active:
+          nullable: true
+          type: boolean
+        lighting:
+          nullable: true
+          type: integer
+        name:
+          nullable: true
+          type: string
+      required:
+      - color
+      - position_x
+      - position_y
+      - position_z
+      - reconstruction_id
+      - rotation_w
+      - rotation_x
+      - rotation_y
+      - rotation_z
+      title: LocalizationMapCreate
+    LocalizationMapRead:
+      example:
+        rotation_x: 5.637376656633329
+        color: 9
+        rotation_w: 7.061401241503109
+        created_at: 2000-01-23T04:56:07.000+00:00
+        active: true
+        rotation_z: 2.3021358869347655
+        rotation_y: 0.8008281904610115
+        lighting: 3
+        position_x: 6.027456183070403
+        position_y: 1.4658129805029452
+        position_z: 5.962133916683182
+        updated_at: 2000-01-23T04:56:07.000+00:00
+        name: name
+        reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        reconstruction_id:
+          format: uuid
+          title: Reconstruction Id
+          type: string
+        id:
+          format: uuid
+          title: Id
+          type: string
+        rotation_y:
+          title: Rotation Y
+          type: number
+        position_x:
+          title: Position X
+          type: number
+        position_y:
+          title: Position Y
+          type: number
+        position_z:
+          title: Position Z
+          type: number
+        rotation_x:
+          title: Rotation X
+          type: number
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+        rotation_z:
+          title: Rotation Z
+          type: number
+        rotation_w:
+          title: Rotation W
+          type: number
+        color:
+          title: Color
+          type: integer
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        active:
+          title: Active
+          type: boolean
+        lighting:
+          nullable: true
+          type: integer
+        name:
+          nullable: true
+          type: string
+      required:
+      - active
+      - color
+      - created_at
+      - id
+      - position_x
+      - position_y
+      - position_z
+      - reconstruction_id
+      - rotation_w
+      - rotation_x
+      - rotation_y
+      - rotation_z
+      - updated_at
+      title: LocalizationMapRead
+    LocalizationMapUpdate:
+      example:
+        position_x: 6.027456183070403
+        position_y: 1.4658129805029452
+        position_z: 5.962133916683182
+        rotation_x: 5.637376656633329
+        color: 9
+        rotation_w: 7.061401241503109
+        name: name
+        reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        active: true
+        rotation_z: 2.3021358869347655
+        rotation_y: 0.8008281904610115
+        lighting: 3
+      properties:
+        reconstruction_id:
+          format: uuid
+          nullable: true
+          type: string
+        rotation_y:
+          nullable: true
+          type: number
+        position_x:
+          nullable: true
+          type: number
+        position_y:
+          nullable: true
+          type: number
+        position_z:
+          nullable: true
+          type: number
+        rotation_x:
+          nullable: true
+          type: number
+        rotation_z:
+          nullable: true
+          type: number
+        rotation_w:
+          nullable: true
+          type: number
+        color:
+          nullable: true
+          type: integer
+        active:
+          nullable: true
+          type: boolean
+        lighting:
+          nullable: true
+          type: integer
+        name:
+          nullable: true
+          type: string
+      title: LocalizationMapUpdate
+    LocalizationMetrics:
+      example:
+        image_coverage: 1.4658129805029452
+        depth_z_10th_percentile: 5.637376656633329
+        inlier_ratio: 0.8008281904610115
+        reprojection_error_median: 6.027456183070403
+        depth_z_90th_percentile: 5.962133916683182
+      properties:
+        inlier_ratio:
+          title: Inlier Ratio
+          type: number
+        reprojection_error_median:
+          title: Reprojection Error Median
+          type: number
+        image_coverage:
+          title: Image Coverage
+          type: number
+        depth_z_90th_percentile:
+          title: Depth Z 90Th Percentile
+          type: number
+        depth_z_10th_percentile:
+          title: Depth Z 10Th Percentile
+          type: number
+      required:
+      - depth_z_10th_percentile
+      - depth_z_90th_percentile
+      - image_coverage
+      - inlier_ratio
+      - reprojection_error_median
+      title: LocalizationMetrics
+    LocalizationSessionRead:
+      example:
+        container_url: container_url
+        created_at: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        container_id: container_id
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        container_id:
+          title: Container Id
+          type: string
+        container_url:
+          title: Container Url
+          type: string
+      required:
+      - container_id
+      - container_url
+      - created_at
+      - id
+      title: LocalizationSessionRead
+    MapLocalization:
+      example:
+        transform:
+          rotation:
+            w: 5.962133916683182
+            x: 0.8008281904610115
+            "y": 6.027456183070403
+            z: 1.4658129805029452
+          position:
+            x: 5.637376656633329
+            "y": 2.3021358869347655
+            z: 7.061401241503109
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        metrics:
+          image_coverage: 1.4658129805029452
+          depth_z_10th_percentile: 5.637376656633329
+          inlier_ratio: 0.8008281904610115
+          reprojection_error_median: 6.027456183070403
+          depth_z_90th_percentile: 5.962133916683182
+        map_transform:
+          rotation:
+            w: 5.962133916683182
+            x: 0.8008281904610115
+            "y": 6.027456183070403
+            z: 1.4658129805029452
+          position:
+            x: 5.637376656633329
+            "y": 2.3021358869347655
+            z: 7.061401241503109
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        transform:
+          $ref: "#/components/schemas/Transform"
+        map_transform:
+          $ref: "#/components/schemas/Transform"
+        metrics:
+          $ref: "#/components/schemas/LocalizationMetrics"
+      required:
+      - id
+      - map_transform
+      - metrics
+      - transform
+      title: MapLocalization
+    NodeBatchUpdate:
+      example:
+        rotation_x: 5.962133916683182
+        rotation_w: 2.3021358869347655
+        label_scale: 2.027123023002322
+        link: link
+        active: true
+        rotation_z: 0.8008281904610115
+        label_type: 7
+        rotation_y: 5.637376656633329
+        label: label
+        label_height: 3.616076749251911
+        label_width: 9.301444243932576
+        link_type: 4
+        position_x: 7.061401241503109
+        position_y: 6.027456183070403
+        layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        position_z: 1.4658129805029452
+        parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        name: name
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        rotation_z:
+          nullable: true
+          type: number
+        position_y:
+          nullable: true
+          type: number
+        position_z:
+          nullable: true
+          type: number
+        rotation_x:
+          nullable: true
+          type: number
+        rotation_y:
+          nullable: true
+          type: number
+        rotation_w:
+          nullable: true
+          type: number
+        position_x:
+          nullable: true
+          type: number
+        active:
+          nullable: true
+          type: boolean
+        name:
+          nullable: true
+          type: string
+        layer_id:
+          format: uuid
+          nullable: true
+          type: string
+        parent_id:
+          format: uuid
+          nullable: true
+          type: string
+        label_width:
+          nullable: true
+          type: number
+        label_height:
+          nullable: true
+          type: number
+        label_scale:
+          nullable: true
+          type: number
+        link_type:
+          nullable: true
+          type: integer
+        label_type:
+          nullable: true
+          type: integer
+        link:
+          nullable: true
+          type: string
+        label:
+          nullable: true
+          type: string
+      required:
+      - id
+      title: NodeBatchUpdate
+    NodeCreate:
+      example:
+        rotation_x: 5.962133916683182
+        rotation_w: 2.3021358869347655
+        label_scale: 2.027123023002322
+        link: link
+        active: true
+        rotation_z: 0.8008281904610115
+        label_type: 7
+        rotation_y: 5.637376656633329
+        label: label
+        label_height: 3.616076749251911
+        label_width: 9.301444243932576
+        link_type: 4
+        position_x: 7.061401241503109
+        position_y: 6.027456183070403
+        layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        position_z: 1.4658129805029452
+        parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        name: name
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          nullable: true
+          type: string
+        rotation_z:
+          title: Rotation Z
+          type: number
+        position_y:
+          title: Position Y
+          type: number
+        position_z:
+          title: Position Z
+          type: number
+        rotation_x:
+          title: Rotation X
+          type: number
+        rotation_y:
+          title: Rotation Y
+          type: number
+        rotation_w:
+          title: Rotation W
+          type: number
+        position_x:
+          title: Position X
+          type: number
+        active:
+          nullable: true
+          type: boolean
+        name:
+          title: Name
+          type: string
+        layer_id:
+          format: uuid
+          nullable: true
+          type: string
+        parent_id:
+          format: uuid
+          nullable: true
+          type: string
+        label_width:
+          nullable: true
+          type: number
+        label_height:
+          nullable: true
+          type: number
+        label_scale:
+          nullable: true
+          type: number
+        link_type:
+          nullable: true
+          type: integer
+        label_type:
+          nullable: true
+          type: integer
+        link:
+          nullable: true
+          type: string
+        label:
+          nullable: true
+          type: string
+      required:
+      - name
+      - position_x
+      - position_y
+      - position_z
+      - rotation_w
+      - rotation_x
+      - rotation_y
+      - rotation_z
+      title: NodeCreate
+    NodeRead:
+      example:
+        rotation_x: 5.962133916683182
+        rotation_w: 2.3021358869347655
+        label_scale: 2.027123023002322
+        link: link
+        created_at: 2000-01-23T04:56:07.000+00:00
+        active: true
+        rotation_z: 0.8008281904610115
+        label_type: 7
+        rotation_y: 5.637376656633329
+        label: label
+        label_height: 3.616076749251911
+        label_width: 9.301444243932576
+        link_type: 4
+        position_x: 7.061401241503109
+        position_y: 6.027456183070403
+        layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        position_z: 1.4658129805029452
+        updated_at: 2000-01-23T04:56:07.000+00:00
+        parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        name: name
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        rotation_z:
+          title: Rotation Z
+          type: number
+        position_y:
+          title: Position Y
+          type: number
+        position_z:
+          title: Position Z
+          type: number
+        rotation_x:
+          title: Rotation X
+          type: number
+        rotation_y:
+          title: Rotation Y
+          type: number
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        rotation_w:
+          title: Rotation W
+          type: number
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+        position_x:
+          title: Position X
+          type: number
+        active:
+          title: Active
+          type: boolean
+        name:
+          title: Name
+          type: string
+        layer_id:
+          format: uuid
+          nullable: true
+          type: string
+        parent_id:
+          format: uuid
+          nullable: true
+          type: string
+        label_width:
+          nullable: true
+          type: number
+        label_height:
+          nullable: true
+          type: number
+        label_scale:
+          nullable: true
+          type: number
+        link_type:
+          nullable: true
+          type: integer
+        label_type:
+          nullable: true
+          type: integer
+        link:
+          nullable: true
+          type: string
+        label:
+          nullable: true
+          type: string
+      required:
+      - active
+      - created_at
+      - id
+      - name
+      - position_x
+      - position_y
+      - position_z
+      - rotation_w
+      - rotation_x
+      - rotation_y
+      - rotation_z
+      - updated_at
+      title: NodeRead
+    OpenCVCamera:
+      properties:
+        width:
+          title: Width
+          type: integer
+        height:
+          title: Height
+          type: integer
+        mirroring:
+          enum:
+          - None
+          - X
+          - "Y"
+          title: Mirroring
+          type: string
+        rotation:
+          enum:
+          - None
+          - 90_CW
+          - "180"
+          - 90_CCW
+          title: Rotation
+          type: string
+        model:
+          enum:
+          - OPENCV
+          title: Model
+          type: string
+        fx:
+          title: Fx
+          type: number
+        fy:
+          title: Fy
+          type: number
+        cx:
+          title: Cx
+          type: number
+        cy:
+          title: Cy
+          type: number
+        k1:
+          title: K1
+          type: number
+        k2:
+          title: K2
+          type: number
+        p1:
+          title: P1
+          type: number
+        p2:
+          title: P2
+          type: number
+        k3:
+          title: K3
+          type: number
+      required:
+      - cx
+      - cy
+      - fx
+      - fy
+      - height
+      - k1
+      - k2
+      - k3
+      - mirroring
+      - model
+      - p1
+      - p2
+      - rotation
+      - width
+      title: OpenCVCamera
+    OrchestrationStatus:
+      enum:
+      - queued
+      - pending
+      - running
+      - succeeded
+      - cancelled
+      - failed
+      title: OrchestrationStatus
+      type: string
+    PinholeCamera:
+      example:
+        fx: 2.027123023002322
+        fy: 4.145608029883936
+        cx: 7.386281948385884
+        cy: 1.2315135367772556
+        rotation: None
+        width: 9
+        model: PINHOLE
+        mirroring: None
+        height: 3
+      properties:
+        width:
+          title: Width
+          type: integer
+        height:
+          title: Height
+          type: integer
+        mirroring:
+          enum:
+          - None
+          - X
+          - "Y"
+          title: Mirroring
+          type: string
+        rotation:
+          enum:
+          - None
+          - 90_CW
+          - "180"
+          - 90_CCW
+          title: Rotation
+          type: string
+        model:
+          enum:
+          - PINHOLE
+          title: Model
+          type: string
+        fx:
+          title: Fx
+          type: number
+        fy:
+          title: Fy
+          type: number
+        cx:
+          title: Cx
+          type: number
+        cy:
+          title: Cy
+          type: number
+      required:
+      - cx
+      - cy
+      - fx
+      - fy
+      - height
+      - mirroring
+      - model
+      - rotation
+      - width
+      title: PinholeCamera
+    PointCloudPoint:
+      example:
+        color:
+          r: 0
+          b: 1
+          g: 6
+        position:
+          x: 5.637376656633329
+          "y": 2.3021358869347655
+          z: 7.061401241503109
+      properties:
+        position:
+          $ref: "#/components/schemas/Vector3"
+        color:
+          $ref: "#/components/schemas/Color"
+      required:
+      - color
+      - position
+      title: PointCloudPoint
+    Quaternion:
+      example:
+        w: 5.962133916683182
+        x: 0.8008281904610115
+        "y": 6.027456183070403
+        z: 1.4658129805029452
+      properties:
+        x:
+          title: X
+          type: number
+        "y":
+          title: "Y"
+          type: number
+        z:
+          title: Z
+          type: number
+        w:
+          title: W
+          type: number
+      required:
+      - w
+      - x
+      - "y"
+      - z
+      title: Quaternion
+    ReconstructionCreate:
+      example:
+        capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        orchestration_status: queued
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        capture_session_id:
+          format: uuid
+          title: Capture Session Id
+          type: string
+        id:
+          format: uuid
+          nullable: true
+          type: string
+        orchestration_status:
+          $ref: "#/components/schemas/OrchestrationStatus"
+      required:
+      - capture_session_id
+      title: ReconstructionCreate
+    ReconstructionCreateWithOptions:
+      example:
+        options:
+          random_seed: 0
+          ransac_max_error: 5.962133916683182
+          triangulation_merge_max_reprojection_error: 9.301444243932576
+          ransac_min_inlier_ratio: 5.637376656633329
+          compression_opq_number_bits_per_subvector: 4
+          bundle_adjustment_refine_sensor_from_rig: true
+          bundle_adjustment_refine_principal_point: true
+          compression_opq_number_of_subvectors: 2
+          use_prior_position: true
+          max_keypoints_per_image: 1
+          compression_opq_number_of_training_iterations: 7
+          neighbors_count: 6
+          triangulation_complete_max_reprojection_error: 7.061401241503109
+          mapper_filter_max_reprojection_error: 3.616076749251911
+          triangulation_minimum_angle: 2.3021358869347655
+          bundle_adjustment_refine_additional_params: true
+          bundle_adjustment_refine_focal_length: true
+          single_threaded: true
+          rig_verification: true
+        create:
+          capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          orchestration_status: queued
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        create:
+          $ref: "#/components/schemas/ReconstructionCreate"
+        options:
+          $ref: "#/components/schemas/ReconstructionOptions"
+      required:
+      - create
+      title: ReconstructionCreateWithOptions
+    ReconstructionManifest:
+      example:
+        options:
+          random_seed: 0
+          ransac_max_error: 5.962133916683182
+          triangulation_merge_max_reprojection_error: 9.301444243932576
+          ransac_min_inlier_ratio: 5.637376656633329
+          compression_opq_number_bits_per_subvector: 4
+          bundle_adjustment_refine_sensor_from_rig: true
+          bundle_adjustment_refine_principal_point: true
+          compression_opq_number_of_subvectors: 2
+          use_prior_position: true
+          max_keypoints_per_image: 1
+          compression_opq_number_of_training_iterations: 7
+          neighbors_count: 6
+          triangulation_complete_max_reprojection_error: 7.061401241503109
+          mapper_filter_max_reprojection_error: 3.616076749251911
+          triangulation_minimum_angle: 2.3021358869347655
+          bundle_adjustment_refine_additional_params: true
+          bundle_adjustment_refine_focal_length: true
+          single_threaded: true
+          rig_verification: true
+        metrics:
+          track_length_50th_percentile: 9.301444243932576
+          total_images: 0
+          reprojection_pixel_error_50th_percentile: 2.3021358869347655
+          average_keypoints_per_image: 5.637376656633329
+          reprojection_pixel_error_90th_percentile: 7.061401241503109
+          num_3d_points: 5
+          registration_rate: 1.4658129805029452
+          registered_images: 6
+          percent_tracks_with_length_greater_than_or_equal_to_3: 3.616076749251911
+        capture_id: capture_id
+        error: error
+        status: queued
+      properties:
+        capture_id:
+          title: Capture Id
+          type: string
+        status:
+          enum:
+          - queued
+          - pending
+          - downloading
+          - extracting_features
+          - matching_features
+          - reconstructing
+          - training_opq_matrix
+          - training_product_quantizer
+          - uploading
+          - succeeded
+          - failed
+          title: Status
+          type: string
+        error:
+          nullable: true
+          type: string
+        options:
+          $ref: "#/components/schemas/ReconstructionOptions"
+        metrics:
+          $ref: "#/components/schemas/ReconstructionMetrics"
+      required:
+      - capture_id
+      - metrics
+      - options
+      - status
+      title: ReconstructionManifest
+    ReconstructionMetrics:
+      example:
+        track_length_50th_percentile: 9.301444243932576
+        total_images: 0
+        reprojection_pixel_error_50th_percentile: 2.3021358869347655
+        average_keypoints_per_image: 5.637376656633329
+        reprojection_pixel_error_90th_percentile: 7.061401241503109
+        num_3d_points: 5
+        registration_rate: 1.4658129805029452
+        registered_images: 6
+        percent_tracks_with_length_greater_than_or_equal_to_3: 3.616076749251911
+      properties:
+        total_images:
+          nullable: true
+          type: integer
+        registered_images:
+          nullable: true
+          type: integer
+        registration_rate:
+          nullable: true
+          type: number
+        num_3d_points:
+          nullable: true
+          type: integer
+        average_keypoints_per_image:
+          nullable: true
+          type: number
+        reprojection_pixel_error_50th_percentile:
+          nullable: true
+          type: number
+        reprojection_pixel_error_90th_percentile:
+          nullable: true
+          type: number
+        track_length_50th_percentile:
+          nullable: true
+          type: number
+        percent_tracks_with_length_greater_than_or_equal_to_3:
+          nullable: true
+          type: number
+      title: ReconstructionMetrics
+    ReconstructionOptions:
+      example:
+        random_seed: 0
+        ransac_max_error: 5.962133916683182
+        triangulation_merge_max_reprojection_error: 9.301444243932576
+        ransac_min_inlier_ratio: 5.637376656633329
+        compression_opq_number_bits_per_subvector: 4
+        bundle_adjustment_refine_sensor_from_rig: true
+        bundle_adjustment_refine_principal_point: true
+        compression_opq_number_of_subvectors: 2
+        use_prior_position: true
+        max_keypoints_per_image: 1
+        compression_opq_number_of_training_iterations: 7
+        neighbors_count: 6
+        triangulation_complete_max_reprojection_error: 7.061401241503109
+        mapper_filter_max_reprojection_error: 3.616076749251911
+        triangulation_minimum_angle: 2.3021358869347655
+        bundle_adjustment_refine_additional_params: true
+        bundle_adjustment_refine_focal_length: true
+        single_threaded: true
+        rig_verification: true
+      properties:
+        random_seed:
+          nullable: true
+          type: integer
+        single_threaded:
+          nullable: true
+          type: boolean
+        neighbors_count:
+          nullable: true
+          type: integer
+        max_keypoints_per_image:
+          nullable: true
+          type: integer
+        ransac_max_error:
+          nullable: true
+          type: number
+        ransac_min_inlier_ratio:
+          nullable: true
+          type: number
+        use_prior_position:
+          nullable: true
+          type: boolean
+        rig_verification:
+          nullable: true
+          type: boolean
+        triangulation_minimum_angle:
+          nullable: true
+          type: number
+        triangulation_complete_max_reprojection_error:
+          nullable: true
+          type: number
+        triangulation_merge_max_reprojection_error:
+          nullable: true
+          type: number
+        mapper_filter_max_reprojection_error:
+          nullable: true
+          type: number
+        bundle_adjustment_refine_sensor_from_rig:
+          nullable: true
+          type: boolean
+        bundle_adjustment_refine_focal_length:
+          nullable: true
+          type: boolean
+        bundle_adjustment_refine_principal_point:
+          nullable: true
+          type: boolean
+        bundle_adjustment_refine_additional_params:
+          nullable: true
+          type: boolean
+        compression_opq_number_of_subvectors:
+          nullable: true
+          type: integer
+        compression_opq_number_bits_per_subvector:
+          nullable: true
+          type: integer
+        compression_opq_number_of_training_iterations:
+          nullable: true
+          type: integer
+      title: ReconstructionOptions
+    ReconstructionRead:
+      example:
+        capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        updated_at: 2000-01-23T04:56:07.000+00:00
+        orchestration_status: queued
+        created_at: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        capture_session_id:
+          format: uuid
+          title: Capture Session Id
+          type: string
+        id:
+          format: uuid
+          title: Id
+          type: string
+        created_at:
+          format: date-time
+          title: Created At
+          type: string
+        updated_at:
+          format: date-time
+          title: Updated At
+          type: string
+        orchestration_status:
+          $ref: "#/components/schemas/OrchestrationStatus"
+      required:
+      - capture_session_id
+      - created_at
+      - id
+      - orchestration_status
+      - updated_at
+      title: ReconstructionRead
+    Rig:
+      example:
+        cameras:
+        - rotation:
+            w: 5.962133916683182
+            x: 0.8008281904610115
+            "y": 6.027456183070403
+            z: 1.4658129805029452
+          translation:
+            x: 5.637376656633329
+            "y": 2.3021358869347655
+            z: 7.061401241503109
+          intrinsics:
+            fx: 2.027123023002322
+            fy: 4.145608029883936
+            cx: 7.386281948385884
+            cy: 1.2315135367772556
+            rotation: None
+            width: 9
+            model: PINHOLE
+            mirroring: None
+            height: 3
+          ref_sensor: true
+          id: id
+        - rotation:
+            w: 5.962133916683182
+            x: 0.8008281904610115
+            "y": 6.027456183070403
+            z: 1.4658129805029452
+          translation:
+            x: 5.637376656633329
+            "y": 2.3021358869347655
+            z: 7.061401241503109
+          intrinsics:
+            fx: 2.027123023002322
+            fy: 4.145608029883936
+            cx: 7.386281948385884
+            cy: 1.2315135367772556
+            rotation: None
+            width: 9
+            model: PINHOLE
+            mirroring: None
+            height: 3
+          ref_sensor: true
+          id: id
+        id: id
+      properties:
+        id:
+          title: Id
+          type: string
+        cameras:
+          items:
+            $ref: "#/components/schemas/RigCamera"
+          type: array
+      required:
+      - cameras
+      - id
+      title: Rig
+    RigCamera:
+      example:
+        rotation:
+          w: 5.962133916683182
+          x: 0.8008281904610115
+          "y": 6.027456183070403
+          z: 1.4658129805029452
+        translation:
+          x: 5.637376656633329
+          "y": 2.3021358869347655
+          z: 7.061401241503109
+        intrinsics:
+          fx: 2.027123023002322
+          fy: 4.145608029883936
+          cx: 7.386281948385884
+          cy: 1.2315135367772556
+          rotation: None
+          width: 9
+          model: PINHOLE
+          mirroring: None
+          height: 3
+        ref_sensor: true
+        id: id
+      properties:
+        id:
+          title: Id
+          type: string
+        ref_sensor:
+          nullable: true
+          type: boolean
+        rotation:
+          $ref: "#/components/schemas/Quaternion"
+        translation:
+          $ref: "#/components/schemas/Vector3"
+        intrinsics:
+          $ref: "#/components/schemas/Intrinsics"
+      required:
+      - id
+      - intrinsics
+      - ref_sensor
+      - rotation
+      - translation
+      title: RigCamera
+    RigConfig:
+      example:
+        rigs:
+        - cameras:
+          - rotation:
+              w: 5.962133916683182
+              x: 0.8008281904610115
+              "y": 6.027456183070403
+              z: 1.4658129805029452
+            translation:
+              x: 5.637376656633329
+              "y": 2.3021358869347655
+              z: 7.061401241503109
+            intrinsics:
+              fx: 2.027123023002322
+              fy: 4.145608029883936
+              cx: 7.386281948385884
+              cy: 1.2315135367772556
+              rotation: None
+              width: 9
+              model: PINHOLE
+              mirroring: None
+              height: 3
+            ref_sensor: true
+            id: id
+          - rotation:
+              w: 5.962133916683182
+              x: 0.8008281904610115
+              "y": 6.027456183070403
+              z: 1.4658129805029452
+            translation:
+              x: 5.637376656633329
+              "y": 2.3021358869347655
+              z: 7.061401241503109
+            intrinsics:
+              fx: 2.027123023002322
+              fy: 4.145608029883936
+              cx: 7.386281948385884
+              cy: 1.2315135367772556
+              rotation: None
+              width: 9
+              model: PINHOLE
+              mirroring: None
+              height: 3
+            ref_sensor: true
+            id: id
+          id: id
+        - cameras:
+          - rotation:
+              w: 5.962133916683182
+              x: 0.8008281904610115
+              "y": 6.027456183070403
+              z: 1.4658129805029452
+            translation:
+              x: 5.637376656633329
+              "y": 2.3021358869347655
+              z: 7.061401241503109
+            intrinsics:
+              fx: 2.027123023002322
+              fy: 4.145608029883936
+              cx: 7.386281948385884
+              cy: 1.2315135367772556
+              rotation: None
+              width: 9
+              model: PINHOLE
+              mirroring: None
+              height: 3
+            ref_sensor: true
+            id: id
+          - rotation:
+              w: 5.962133916683182
+              x: 0.8008281904610115
+              "y": 6.027456183070403
+              z: 1.4658129805029452
+            translation:
+              x: 5.637376656633329
+              "y": 2.3021358869347655
+              z: 7.061401241503109
+            intrinsics:
+              fx: 2.027123023002322
+              fy: 4.145608029883936
+              cx: 7.386281948385884
+              cy: 1.2315135367772556
+              rotation: None
+              width: 9
+              model: PINHOLE
+              mirroring: None
+              height: 3
+            ref_sensor: true
+            id: id
+          id: id
+      properties:
+        rigs:
+          items:
+            $ref: "#/components/schemas/Rig"
+          type: array
+      required:
+      - rigs
+      title: RigConfig
+    Transform:
+      example:
+        rotation:
+          w: 5.962133916683182
+          x: 0.8008281904610115
+          "y": 6.027456183070403
+          z: 1.4658129805029452
+        position:
+          x: 5.637376656633329
+          "y": 2.3021358869347655
+          z: 7.061401241503109
+      properties:
+        position:
+          $ref: "#/components/schemas/Vector3"
+        rotation:
+          $ref: "#/components/schemas/Quaternion"
+      required:
+      - position
+      - rotation
+      title: Transform
+    ValidationError:
+      example:
+        msg: msg
+        loc:
+        - ValidationError_loc_inner
+        - ValidationError_loc_inner
+        type: type
+      properties:
+        loc:
+          items:
+            $ref: "#/components/schemas/ValidationError_loc_inner"
+          type: array
+        msg:
+          title: Message
+          type: string
+        type:
+          title: Error Type
+          type: string
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    Vector3:
+      example:
+        x: 5.637376656633329
+        "y": 2.3021358869347655
+        z: 7.061401241503109
+      properties:
+        x:
+          title: X
+          type: number
+        "y":
+          title: "Y"
+          type: number
+        z:
+          title: Z
+          type: number
+      required:
+      - x
+      - "y"
+      - z
+      title: Vector3
+    Camera:
+      anyOf:
+      - $ref: "#/components/schemas/PinholeCamera"
+      - $ref: "#/components/schemas/OpenCVCamera"
+      - $ref: "#/components/schemas/FullOpenCVCamera"
+      - $ref: "#/components/schemas/GenericParamsIntrinsics"
+      title: Camera
+    Intrinsics:
+      discriminator:
+        mapping:
+          FULL_OPENCV: "#/components/schemas/FullOpenCVCamera"
+          GENERIC: "#/components/schemas/GenericParamsIntrinsics"
+          OPENCV: "#/components/schemas/OpenCVCamera"
+          PINHOLE: "#/components/schemas/PinholeCamera"
+        propertyName: model
+      oneOf:
+      - $ref: "#/components/schemas/PinholeCamera"
+      - $ref: "#/components/schemas/OpenCVCamera"
+      - $ref: "#/components/schemas/FullOpenCVCamera"
+      - $ref: "#/components/schemas/GenericParamsIntrinsics"
+      title: Intrinsics
+    ValidationError_loc_inner:
+      anyOf:
+      - type: string
+      - type: integer
+  securitySchemes: {}
+

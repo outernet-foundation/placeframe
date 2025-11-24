@@ -1,0 +1,22 @@
+{
+  "generatorName": "csharp",
+  "globalProperties": {
+    "apiTests": false,
+    "modelTests": false,
+    "modelDocs": false,
+    "apiDocs": false
+  },
+  "additionalProperties": {
+    "library": "httpclient",
+    "packageVersion": "0.1.0",
+    "targetFramework": "netstandard2.1",
+    "validatable": false,
+    "conditionalSerialization": true,
+    "nullableReferenceTypes": true,
+    "sortModelPropertiesByRequiredFlag": true,
+    "sortParamsByRequiredFlag": true
+  },
+  "typeMappings": {
+    "number": "double"
+  }
+}

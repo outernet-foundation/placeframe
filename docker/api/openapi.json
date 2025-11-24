@@ -1,0 +1,5120 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Plerion",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/capture_sessions": {
+      "post": {
+        "tags": [
+          "capture_sessions"
+        ],
+        "summary": "Create Capture Session",
+        "operationId": "create_capture_session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptureSessionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptureSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "capture_sessions"
+        ],
+        "summary": "Get Capture Sessions",
+        "operationId": "get_capture_sessions",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid",
+                "x-schema-name": "get_capture_sessions_param_ids_item",
+                "nullable": false
+              },
+              "nullable": true
+            },
+            "description": "Optional list of Ids to filter by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CaptureSessionRead",
+                    "x-schema-name": "get_capture_sessions_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "capture_sessions"
+        ],
+        "summary": "Update Capture Sessions",
+        "operationId": "update_capture_sessions",
+        "parameters": [
+          {
+            "name": "allow_missing",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Allow Missing"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CaptureSessionBatchUpdate",
+                  "x-schema-name": "update_capture_sessions_body_application_json_item",
+                  "nullable": false
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CaptureSessionRead",
+                    "x-schema-name": "update_capture_sessions_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capture_sessions/bulk": {
+      "post": {
+        "tags": [
+          "capture_sessions"
+        ],
+        "summary": "Create Capture Sessions",
+        "operationId": "create_capture_sessions",
+        "parameters": [
+          {
+            "name": "overwrite",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Overwrite"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CaptureSessionCreate",
+                  "x-schema-name": "create_capture_sessions_body_application_json_item",
+                  "nullable": false
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CaptureSessionRead",
+                    "x-schema-name": "create_capture_sessions_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capture_sessions/{id}": {
+      "get": {
+        "tags": [
+          "capture_sessions"
+        ],
+        "summary": "Get Capture Session",
+        "operationId": "get_capture_session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptureSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "capture_sessions"
+        ],
+        "summary": "Delete Capture Session",
+        "operationId": "delete_capture_session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "capture_sessions"
+        ],
+        "summary": "Update Capture Session",
+        "operationId": "update_capture_session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CaptureSessionUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptureSessionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capture_sessions/{id}/reconstructions": {
+      "get": {
+        "tags": [
+          "capture_sessions"
+        ],
+        "summary": "Get Capture Session Reconstructions",
+        "operationId": "get_capture_session_reconstructions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uuid",
+                    "x-schema-name": "get_capture_session_reconstructions_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capture_sessions/{id}/tar": {
+      "put": {
+        "tags": [
+          "capture_sessions"
+        ],
+        "summary": "Upload Capture Session Tar",
+        "operationId": "upload_capture_session_tar",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_capture_session_tar"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "capture_sessions"
+        ],
+        "summary": "Download Capture Session Tar",
+        "operationId": "download_capture_session_tar",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              },
+              "application/x-tar": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/capture_sessions/{id}/rig_config": {
+      "get": {
+        "tags": [
+          "capture_sessions"
+        ],
+        "summary": "Get Capture Session Rig Config",
+        "operationId": "get_capture_session_rig_config",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RigConfig"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reconstructions": {
+      "post": {
+        "tags": [
+          "reconstructions"
+        ],
+        "summary": "Create Reconstruction",
+        "operationId": "create_reconstruction",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconstructionCreateWithOptions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconstructionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "reconstructions"
+        ],
+        "summary": "Get Reconstructions",
+        "operationId": "get_reconstructions",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid",
+                "x-schema-name": "get_reconstructions_param_ids_item",
+                "nullable": false
+              },
+              "nullable": true
+            },
+            "description": "Optional list of Ids to filter by"
+          },
+          {
+            "name": "capture_session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid"
+            },
+            "description": "Optional capture session Id to filter by"
+          },
+          {
+            "name": "capture_session_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "description": "Optional capture session name to filter by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ReconstructionRead",
+                    "x-schema-name": "get_reconstructions_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reconstructions/{id}": {
+      "delete": {
+        "tags": [
+          "reconstructions"
+        ],
+        "summary": "Delete Reconstruction",
+        "operationId": "delete_reconstruction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "reconstructions"
+        ],
+        "summary": "Get Reconstruction",
+        "operationId": "get_reconstruction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconstructionRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reconstructions/{id}/manifest": {
+      "get": {
+        "tags": [
+          "reconstructions"
+        ],
+        "summary": "Get Reconstruction Manifest",
+        "operationId": "get_reconstruction_manifest",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconstructionManifest"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reconstructions/{id}/localization_map": {
+      "get": {
+        "tags": [
+          "reconstructions"
+        ],
+        "summary": "Get Reconstruction Localization Map",
+        "operationId": "get_reconstruction_localization_map",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid",
+                  "title": "Response Get Reconstruction Localization Map"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reconstructions/{id}/status": {
+      "get": {
+        "tags": [
+          "reconstructions"
+        ],
+        "summary": "Get Reconstruction Status",
+        "operationId": "get_reconstruction_status",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "enum": [
+                    "queued",
+                    "pending",
+                    "downloading",
+                    "extracting_features",
+                    "matching_features",
+                    "reconstructing",
+                    "training_opq_matrix",
+                    "training_product_quantizer",
+                    "uploading",
+                    "succeeded",
+                    "failed"
+                  ],
+                  "type": "string",
+                  "title": "Response Get Reconstruction Status"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reconstructions/{id}/points": {
+      "get": {
+        "tags": [
+          "reconstructions"
+        ],
+        "summary": "Get Reconstruction Points",
+        "operationId": "get_reconstruction_points",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PointCloudPoint",
+                    "x-schema-name": "get_reconstruction_points_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reconstructions/{id}/points.ply": {
+      "get": {
+        "tags": [
+          "reconstructions"
+        ],
+        "summary": "Get Reconstruction Points3D Ply",
+        "operationId": "get_reconstruction_points3D_ply",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reconstructions/{id}/image_poses": {
+      "get": {
+        "tags": [
+          "reconstructions"
+        ],
+        "summary": "Get Reconstruction Image Poses",
+        "operationId": "get_reconstruction_image_poses",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Transform",
+                    "x-schema-name": "get_reconstruction_image_poses_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/localization_maps": {
+      "post": {
+        "tags": [
+          "localization_maps"
+        ],
+        "summary": "Create Localization Map",
+        "operationId": "create_localization_map",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocalizationMapCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalizationMapRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "localization_maps"
+        ],
+        "summary": "Delete Localization Maps",
+        "operationId": "delete_localization_maps",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid",
+                "x-schema-name": "delete_localization_maps_param_ids_item",
+                "nullable": false
+              },
+              "description": "List of Ids to delete"
+            },
+            "description": "List of Ids to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "localization_maps"
+        ],
+        "summary": "Get Localization Maps",
+        "operationId": "get_localization_maps",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid",
+                "x-schema-name": "get_localization_maps_param_ids_item",
+                "nullable": false
+              },
+              "nullable": true
+            },
+            "description": "Optional list of Ids to filter by"
+          },
+          {
+            "name": "reconstruction_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid",
+                "x-schema-name": "get_localization_maps_param_reconstruction_ids_item",
+                "nullable": false
+              },
+              "nullable": true
+            },
+            "description": "Optional list of Reconstruction Ids to filter by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LocalizationMapRead",
+                    "x-schema-name": "get_localization_maps_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "localization_maps"
+        ],
+        "summary": "Update Localization Maps",
+        "operationId": "update_localization_maps",
+        "parameters": [
+          {
+            "name": "allow_missing",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Allow Missing"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/LocalizationMapBatchUpdate",
+                  "x-schema-name": "update_localization_maps_body_application_json_item",
+                  "nullable": false
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LocalizationMapRead",
+                    "x-schema-name": "update_localization_maps_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/localization_maps/{id}": {
+      "delete": {
+        "tags": [
+          "localization_maps"
+        ],
+        "summary": "Delete Localization Map",
+        "operationId": "delete_localization_map",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "localization_maps"
+        ],
+        "summary": "Get Localization Map",
+        "operationId": "get_localization_map",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalizationMapRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "localization_maps"
+        ],
+        "summary": "Update Localization Map",
+        "operationId": "update_localization_map",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocalizationMapUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalizationMapRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/localization_maps/{id}/points": {
+      "get": {
+        "tags": [
+          "localization_maps"
+        ],
+        "summary": "Get Localization Map Points",
+        "operationId": "get_localization_map_points",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PointCloudPoint",
+                    "x-schema-name": "get_localization_map_points_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/localization_maps/{id}/points.ply": {
+      "get": {
+        "tags": [
+          "localization_maps"
+        ],
+        "summary": "Get Localization Map Points Ply",
+        "operationId": "get_localization_map_points_ply",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/localization_maps/{id}/image_poses": {
+      "patch": {
+        "tags": [
+          "localization_maps"
+        ],
+        "summary": "Update Localization Map Image Poses",
+        "operationId": "update_localization_map_image_poses",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Transform",
+                    "x-schema-name": "update_localization_map_image_poses_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/localization_sessions": {
+      "post": {
+        "tags": [
+          "localization_sessions"
+        ],
+        "summary": "Create Localization Session",
+        "operationId": "create_localization_session",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalizationSessionRead"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/localization_sessions/{localization_session_id}": {
+      "delete": {
+        "tags": [
+          "localization_sessions"
+        ],
+        "summary": "Delete Localization Session",
+        "operationId": "delete_localization_session",
+        "parameters": [
+          {
+            "name": "localization_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Localization Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/localization_sessions/{localization_session_id}/camera": {
+      "put": {
+        "tags": [
+          "localization_sessions"
+        ],
+        "summary": "Set Localization Session Camera Intrinsics",
+        "operationId": "set_localization_session_camera_intrinsics",
+        "parameters": [
+          {
+            "name": "localization_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Localization Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/PinholeCamera"
+                  },
+                  {
+                    "$ref": "#/components/schemas/OpenCVCamera"
+                  },
+                  {
+                    "$ref": "#/components/schemas/FullOpenCVCamera"
+                  },
+                  {
+                    "$ref": "#/components/schemas/GenericParamsIntrinsics"
+                  }
+                ],
+                "title": "Camera"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/localization_sessions/{localization_session_id}/status": {
+      "get": {
+        "tags": [
+          "localization_sessions"
+        ],
+        "summary": "Get Localization Session Status",
+        "operationId": "get_localization_session_status",
+        "parameters": [
+          {
+            "name": "localization_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Localization Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "title": "Response Get Localization Session Status"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/localization_sessions/{localization_session_id}/maps": {
+      "post": {
+        "tags": [
+          "localization_sessions"
+        ],
+        "summary": "Load Localization Maps",
+        "operationId": "load_localization_maps",
+        "parameters": [
+          {
+            "name": "localization_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Localization Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "uuid",
+                  "x-schema-name": "load_localization_maps_body_application_json_item",
+                  "nullable": false
+                },
+                "description": "IDs of localization maps to load"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/localization_sessions/{localization_session_id}/maps/{map_id}": {
+      "delete": {
+        "tags": [
+          "localization_sessions"
+        ],
+        "summary": "Unload Map",
+        "operationId": "unload_map",
+        "parameters": [
+          {
+            "name": "localization_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Localization Session Id"
+            }
+          },
+          {
+            "name": "map_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Map Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/localization_sessions/{localization_session_id}/maps/{map_id}/status": {
+      "get": {
+        "tags": [
+          "localization_sessions"
+        ],
+        "summary": "Get Map Load Status",
+        "operationId": "get_map_load_status",
+        "parameters": [
+          {
+            "name": "localization_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Localization Session Id"
+            }
+          },
+          {
+            "name": "map_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Map Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoadStateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/localization_sessions/{localization_session_id}/localization": {
+      "post": {
+        "tags": [
+          "localization_sessions"
+        ],
+        "summary": "Localize Image",
+        "operationId": "localize_image",
+        "parameters": [
+          {
+            "name": "localization_session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Localization Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_localize_image"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MapLocalization",
+                    "x-schema-name": "localize_image_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/groups": {
+      "post": {
+        "tags": [
+          "groups"
+        ],
+        "summary": "Create Group",
+        "operationId": "create_group",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "groups"
+        ],
+        "summary": "Delete Groups",
+        "operationId": "delete_groups",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid",
+                "x-schema-name": "delete_groups_param_ids_item",
+                "nullable": false
+              },
+              "description": "List of Ids to delete"
+            },
+            "description": "List of Ids to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "groups"
+        ],
+        "summary": "Get Groups",
+        "operationId": "get_groups",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid",
+                "x-schema-name": "get_groups_param_ids_item",
+                "nullable": false
+              },
+              "nullable": true
+            },
+            "description": "Optional list of Ids to filter by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupRead",
+                    "x-schema-name": "get_groups_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "groups"
+        ],
+        "summary": "Update Groups",
+        "operationId": "update_groups",
+        "parameters": [
+          {
+            "name": "allow_missing",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Allow Missing"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/GroupBatchUpdate",
+                  "x-schema-name": "update_groups_body_application_json_item",
+                  "nullable": false
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupRead",
+                    "x-schema-name": "update_groups_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/layers": {
+      "post": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Create Layer",
+        "operationId": "create_layer",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LayerCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LayerRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Delete Layers",
+        "operationId": "delete_layers",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid",
+                "x-schema-name": "delete_layers_param_ids_item",
+                "nullable": false
+              },
+              "description": "List of Ids to delete"
+            },
+            "description": "List of Ids to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Get Layers",
+        "operationId": "get_layers",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid",
+                "x-schema-name": "get_layers_param_ids_item",
+                "nullable": false
+              },
+              "nullable": true
+            },
+            "description": "Optional list of Ids to filter by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LayerRead",
+                    "x-schema-name": "get_layers_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "layers"
+        ],
+        "summary": "Update Layers",
+        "operationId": "update_layers",
+        "parameters": [
+          {
+            "name": "allow_missing",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Allow Missing"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/LayerBatchUpdate",
+                  "x-schema-name": "update_layers_body_application_json_item",
+                  "nullable": false
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LayerRead",
+                    "x-schema-name": "update_layers_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/nodes": {
+      "post": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "Create Node",
+        "operationId": "create_node",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NodeCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "Delete Nodes",
+        "operationId": "delete_nodes",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid",
+                "x-schema-name": "delete_nodes_param_ids_item",
+                "nullable": false
+              },
+              "description": "List of Ids to delete"
+            },
+            "description": "List of Ids to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "Get Nodes",
+        "operationId": "get_nodes",
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid",
+                "x-schema-name": "get_nodes_param_ids_item",
+                "nullable": false
+              },
+              "nullable": true
+            },
+            "description": "Optional list of Ids to filter by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NodeRead",
+                    "x-schema-name": "get_nodes_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "nodes"
+        ],
+        "summary": "Update Nodes",
+        "operationId": "update_nodes",
+        "parameters": [
+          {
+            "name": "allow_missing",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Allow Missing"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/NodeBatchUpdate",
+                  "x-schema-name": "update_nodes_body_application_json_item",
+                  "nullable": false
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NodeRead",
+                    "x-schema-name": "update_nodes_resp_200_application_json_item",
+                    "nullable": false
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_localize_image": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "format": "binary",
+            "title": "Image"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image"
+        ],
+        "title": "Body_localize_image"
+      },
+      "Body_upload_capture_session_tar": {
+        "properties": {
+          "tar": {
+            "type": "string",
+            "format": "binary",
+            "title": "Tar"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tar"
+        ],
+        "title": "Body_upload_capture_session_tar"
+      },
+      "CaptureSessionBatchUpdate": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "device_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeviceType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "CaptureSessionBatchUpdate"
+      },
+      "CaptureSessionCreate": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "device_type": {
+            "$ref": "#/components/schemas/DeviceType"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "device_type",
+          "name"
+        ],
+        "title": "CaptureSessionCreate"
+      },
+      "CaptureSessionRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "device_type": {
+            "$ref": "#/components/schemas/DeviceType"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "updated_at",
+          "device_type",
+          "name"
+        ],
+        "title": "CaptureSessionRead"
+      },
+      "CaptureSessionUpdate": {
+        "properties": {
+          "device_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeviceType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "title": "CaptureSessionUpdate"
+      },
+      "Color": {
+        "properties": {
+          "r": {
+            "type": "integer",
+            "title": "R"
+          },
+          "g": {
+            "type": "integer",
+            "title": "G"
+          },
+          "b": {
+            "type": "integer",
+            "title": "B"
+          }
+        },
+        "type": "object",
+        "required": [
+          "r",
+          "g",
+          "b"
+        ],
+        "title": "Color"
+      },
+      "DeviceType": {
+        "type": "string",
+        "enum": [
+          "ARFoundation",
+          "Zed"
+        ],
+        "title": "DeviceType"
+      },
+      "FullOpenCVCamera": {
+        "properties": {
+          "width": {
+            "type": "integer",
+            "title": "Width"
+          },
+          "height": {
+            "type": "integer",
+            "title": "Height"
+          },
+          "mirroring": {
+            "type": "string",
+            "enum": [
+              "None",
+              "X",
+              "Y"
+            ],
+            "title": "Mirroring"
+          },
+          "rotation": {
+            "type": "string",
+            "enum": [
+              "None",
+              "90_CW",
+              "180",
+              "90_CCW"
+            ],
+            "title": "Rotation"
+          },
+          "model": {
+            "type": "string",
+            "const": "FULL_OPENCV",
+            "title": "Model"
+          },
+          "fx": {
+            "type": "number",
+            "title": "Fx"
+          },
+          "fy": {
+            "type": "number",
+            "title": "Fy"
+          },
+          "cx": {
+            "type": "number",
+            "title": "Cx"
+          },
+          "cy": {
+            "type": "number",
+            "title": "Cy"
+          },
+          "k1": {
+            "type": "number",
+            "title": "K1"
+          },
+          "k2": {
+            "type": "number",
+            "title": "K2"
+          },
+          "p1": {
+            "type": "number",
+            "title": "P1"
+          },
+          "p2": {
+            "type": "number",
+            "title": "P2"
+          },
+          "k3": {
+            "type": "number",
+            "title": "K3"
+          },
+          "k4": {
+            "type": "number",
+            "title": "K4"
+          },
+          "k5": {
+            "type": "number",
+            "title": "K5"
+          },
+          "k6": {
+            "type": "number",
+            "title": "K6"
+          }
+        },
+        "type": "object",
+        "required": [
+          "width",
+          "height",
+          "mirroring",
+          "rotation",
+          "model",
+          "fx",
+          "fy",
+          "cx",
+          "cy",
+          "k1",
+          "k2",
+          "p1",
+          "p2",
+          "k3",
+          "k4",
+          "k5",
+          "k6"
+        ],
+        "title": "FullOpenCVCamera"
+      },
+      "GenericParamsIntrinsics": {
+        "properties": {
+          "width": {
+            "type": "integer",
+            "title": "Width"
+          },
+          "height": {
+            "type": "integer",
+            "title": "Height"
+          },
+          "mirroring": {
+            "type": "string",
+            "enum": [
+              "None",
+              "X",
+              "Y"
+            ],
+            "title": "Mirroring"
+          },
+          "rotation": {
+            "type": "string",
+            "enum": [
+              "None",
+              "90_CW",
+              "180",
+              "90_CCW"
+            ],
+            "title": "Rotation"
+          },
+          "model": {
+            "type": "string",
+            "const": "GENERIC",
+            "title": "Model"
+          },
+          "params": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Params"
+          }
+        },
+        "type": "object",
+        "required": [
+          "width",
+          "height",
+          "mirroring",
+          "rotation",
+          "model",
+          "params"
+        ],
+        "title": "GenericParamsIntrinsics"
+      },
+      "GroupBatchUpdate": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "GroupBatchUpdate"
+      },
+      "GroupCreate": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "GroupCreate"
+      },
+      "GroupRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "updated_at",
+          "name"
+        ],
+        "title": "GroupRead"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LayerBatchUpdate": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "LayerBatchUpdate"
+      },
+      "LayerCreate": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "LayerCreate"
+      },
+      "LayerRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "updated_at",
+          "name"
+        ],
+        "title": "LayerRead"
+      },
+      "LoadState": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "loading",
+          "ready",
+          "failed"
+        ],
+        "title": "LoadState",
+        "description": "LoadState"
+      },
+      "LoadStateResponse": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/LoadState"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "additional_properties": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Additional Properties",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "LoadStateResponse",
+        "description": "LoadStateResponse"
+      },
+      "LocalizationMapBatchUpdate": {
+        "properties": {
+          "reconstruction_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reconstruction Id"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "rotation_y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation Y"
+          },
+          "position_x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position X"
+          },
+          "position_y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position Y"
+          },
+          "position_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position Z"
+          },
+          "rotation_x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation X"
+          },
+          "rotation_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation Z"
+          },
+          "rotation_w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation W"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "lighting": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lighting"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "LocalizationMapBatchUpdate"
+      },
+      "LocalizationMapCreate": {
+        "properties": {
+          "reconstruction_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Reconstruction Id"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "rotation_y": {
+            "type": "number",
+            "title": "Rotation Y"
+          },
+          "position_x": {
+            "type": "number",
+            "title": "Position X"
+          },
+          "position_y": {
+            "type": "number",
+            "title": "Position Y"
+          },
+          "position_z": {
+            "type": "number",
+            "title": "Position Z"
+          },
+          "rotation_x": {
+            "type": "number",
+            "title": "Rotation X"
+          },
+          "rotation_z": {
+            "type": "number",
+            "title": "Rotation Z"
+          },
+          "rotation_w": {
+            "type": "number",
+            "title": "Rotation W"
+          },
+          "color": {
+            "type": "integer",
+            "title": "Color"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "lighting": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lighting"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reconstruction_id",
+          "rotation_y",
+          "position_x",
+          "position_y",
+          "position_z",
+          "rotation_x",
+          "rotation_z",
+          "rotation_w",
+          "color"
+        ],
+        "title": "LocalizationMapCreate"
+      },
+      "LocalizationMapRead": {
+        "properties": {
+          "reconstruction_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Reconstruction Id"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "rotation_y": {
+            "type": "number",
+            "title": "Rotation Y"
+          },
+          "position_x": {
+            "type": "number",
+            "title": "Position X"
+          },
+          "position_y": {
+            "type": "number",
+            "title": "Position Y"
+          },
+          "position_z": {
+            "type": "number",
+            "title": "Position Z"
+          },
+          "rotation_x": {
+            "type": "number",
+            "title": "Rotation X"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "rotation_z": {
+            "type": "number",
+            "title": "Rotation Z"
+          },
+          "rotation_w": {
+            "type": "number",
+            "title": "Rotation W"
+          },
+          "color": {
+            "type": "integer",
+            "title": "Color"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "lighting": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lighting"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reconstruction_id",
+          "id",
+          "rotation_y",
+          "position_x",
+          "position_y",
+          "position_z",
+          "rotation_x",
+          "updated_at",
+          "rotation_z",
+          "rotation_w",
+          "color",
+          "created_at",
+          "active"
+        ],
+        "title": "LocalizationMapRead"
+      },
+      "LocalizationMapUpdate": {
+        "properties": {
+          "reconstruction_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reconstruction Id"
+          },
+          "rotation_y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation Y"
+          },
+          "position_x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position X"
+          },
+          "position_y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position Y"
+          },
+          "position_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position Z"
+          },
+          "rotation_x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation X"
+          },
+          "rotation_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation Z"
+          },
+          "rotation_w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation W"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "lighting": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lighting"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "title": "LocalizationMapUpdate"
+      },
+      "LocalizationMetrics": {
+        "properties": {
+          "inlier_ratio": {
+            "type": "number",
+            "title": "Inlier Ratio"
+          },
+          "reprojection_error_median": {
+            "type": "number",
+            "title": "Reprojection Error Median"
+          },
+          "image_coverage": {
+            "type": "number",
+            "title": "Image Coverage"
+          },
+          "depth_z_90th_percentile": {
+            "type": "number",
+            "title": "Depth Z 90Th Percentile"
+          },
+          "depth_z_10th_percentile": {
+            "type": "number",
+            "title": "Depth Z 10Th Percentile"
+          }
+        },
+        "type": "object",
+        "required": [
+          "inlier_ratio",
+          "reprojection_error_median",
+          "image_coverage",
+          "depth_z_90th_percentile",
+          "depth_z_10th_percentile"
+        ],
+        "title": "LocalizationMetrics"
+      },
+      "LocalizationSessionRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "container_id": {
+            "type": "string",
+            "title": "Container Id"
+          },
+          "container_url": {
+            "type": "string",
+            "title": "Container Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "container_id",
+          "container_url"
+        ],
+        "title": "LocalizationSessionRead"
+      },
+      "MapLocalization": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "transform": {
+            "$ref": "#/components/schemas/Transform"
+          },
+          "map_transform": {
+            "$ref": "#/components/schemas/Transform"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/LocalizationMetrics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "transform",
+          "map_transform",
+          "metrics"
+        ],
+        "title": "MapLocalization"
+      },
+      "NodeBatchUpdate": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "rotation_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation Z"
+          },
+          "position_y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position Y"
+          },
+          "position_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position Z"
+          },
+          "rotation_x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation X"
+          },
+          "rotation_y": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation Y"
+          },
+          "rotation_w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation W"
+          },
+          "position_x": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Position X"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "layer_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Layer Id"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "label_width": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label Width"
+          },
+          "label_height": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label Height"
+          },
+          "label_scale": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label Scale"
+          },
+          "link_type": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link Type"
+          },
+          "label_type": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label Type"
+          },
+          "link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "NodeBatchUpdate"
+      },
+      "NodeCreate": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "rotation_z": {
+            "type": "number",
+            "title": "Rotation Z"
+          },
+          "position_y": {
+            "type": "number",
+            "title": "Position Y"
+          },
+          "position_z": {
+            "type": "number",
+            "title": "Position Z"
+          },
+          "rotation_x": {
+            "type": "number",
+            "title": "Rotation X"
+          },
+          "rotation_y": {
+            "type": "number",
+            "title": "Rotation Y"
+          },
+          "rotation_w": {
+            "type": "number",
+            "title": "Rotation W"
+          },
+          "position_x": {
+            "type": "number",
+            "title": "Position X"
+          },
+          "active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "layer_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Layer Id"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "label_width": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label Width"
+          },
+          "label_height": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label Height"
+          },
+          "label_scale": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label Scale"
+          },
+          "link_type": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link Type"
+          },
+          "label_type": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label Type"
+          },
+          "link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rotation_z",
+          "position_y",
+          "position_z",
+          "rotation_x",
+          "rotation_y",
+          "rotation_w",
+          "position_x",
+          "name"
+        ],
+        "title": "NodeCreate"
+      },
+      "NodeRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "rotation_z": {
+            "type": "number",
+            "title": "Rotation Z"
+          },
+          "position_y": {
+            "type": "number",
+            "title": "Position Y"
+          },
+          "position_z": {
+            "type": "number",
+            "title": "Position Z"
+          },
+          "rotation_x": {
+            "type": "number",
+            "title": "Rotation X"
+          },
+          "rotation_y": {
+            "type": "number",
+            "title": "Rotation Y"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "rotation_w": {
+            "type": "number",
+            "title": "Rotation W"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "position_x": {
+            "type": "number",
+            "title": "Position X"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "layer_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Layer Id"
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Id"
+          },
+          "label_width": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label Width"
+          },
+          "label_height": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label Height"
+          },
+          "label_scale": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label Scale"
+          },
+          "link_type": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link Type"
+          },
+          "label_type": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label Type"
+          },
+          "link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "rotation_z",
+          "position_y",
+          "position_z",
+          "rotation_x",
+          "rotation_y",
+          "created_at",
+          "rotation_w",
+          "updated_at",
+          "position_x",
+          "active",
+          "name"
+        ],
+        "title": "NodeRead"
+      },
+      "OpenCVCamera": {
+        "properties": {
+          "width": {
+            "type": "integer",
+            "title": "Width"
+          },
+          "height": {
+            "type": "integer",
+            "title": "Height"
+          },
+          "mirroring": {
+            "type": "string",
+            "enum": [
+              "None",
+              "X",
+              "Y"
+            ],
+            "title": "Mirroring"
+          },
+          "rotation": {
+            "type": "string",
+            "enum": [
+              "None",
+              "90_CW",
+              "180",
+              "90_CCW"
+            ],
+            "title": "Rotation"
+          },
+          "model": {
+            "type": "string",
+            "const": "OPENCV",
+            "title": "Model"
+          },
+          "fx": {
+            "type": "number",
+            "title": "Fx"
+          },
+          "fy": {
+            "type": "number",
+            "title": "Fy"
+          },
+          "cx": {
+            "type": "number",
+            "title": "Cx"
+          },
+          "cy": {
+            "type": "number",
+            "title": "Cy"
+          },
+          "k1": {
+            "type": "number",
+            "title": "K1"
+          },
+          "k2": {
+            "type": "number",
+            "title": "K2"
+          },
+          "p1": {
+            "type": "number",
+            "title": "P1"
+          },
+          "p2": {
+            "type": "number",
+            "title": "P2"
+          },
+          "k3": {
+            "type": "number",
+            "title": "K3"
+          }
+        },
+        "type": "object",
+        "required": [
+          "width",
+          "height",
+          "mirroring",
+          "rotation",
+          "model",
+          "fx",
+          "fy",
+          "cx",
+          "cy",
+          "k1",
+          "k2",
+          "p1",
+          "p2",
+          "k3"
+        ],
+        "title": "OpenCVCamera"
+      },
+      "OrchestrationStatus": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "pending",
+          "running",
+          "succeeded",
+          "cancelled",
+          "failed"
+        ],
+        "title": "OrchestrationStatus"
+      },
+      "PinholeCamera": {
+        "properties": {
+          "width": {
+            "type": "integer",
+            "title": "Width"
+          },
+          "height": {
+            "type": "integer",
+            "title": "Height"
+          },
+          "mirroring": {
+            "type": "string",
+            "enum": [
+              "None",
+              "X",
+              "Y"
+            ],
+            "title": "Mirroring"
+          },
+          "rotation": {
+            "type": "string",
+            "enum": [
+              "None",
+              "90_CW",
+              "180",
+              "90_CCW"
+            ],
+            "title": "Rotation"
+          },
+          "model": {
+            "type": "string",
+            "const": "PINHOLE",
+            "title": "Model"
+          },
+          "fx": {
+            "type": "number",
+            "title": "Fx"
+          },
+          "fy": {
+            "type": "number",
+            "title": "Fy"
+          },
+          "cx": {
+            "type": "number",
+            "title": "Cx"
+          },
+          "cy": {
+            "type": "number",
+            "title": "Cy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "width",
+          "height",
+          "mirroring",
+          "rotation",
+          "model",
+          "fx",
+          "fy",
+          "cx",
+          "cy"
+        ],
+        "title": "PinholeCamera"
+      },
+      "PointCloudPoint": {
+        "properties": {
+          "position": {
+            "$ref": "#/components/schemas/Vector3"
+          },
+          "color": {
+            "$ref": "#/components/schemas/Color"
+          }
+        },
+        "type": "object",
+        "required": [
+          "position",
+          "color"
+        ],
+        "title": "PointCloudPoint"
+      },
+      "Quaternion": {
+        "properties": {
+          "x": {
+            "type": "number",
+            "title": "X"
+          },
+          "y": {
+            "type": "number",
+            "title": "Y"
+          },
+          "z": {
+            "type": "number",
+            "title": "Z"
+          },
+          "w": {
+            "type": "number",
+            "title": "W"
+          }
+        },
+        "type": "object",
+        "required": [
+          "x",
+          "y",
+          "z",
+          "w"
+        ],
+        "title": "Quaternion"
+      },
+      "ReconstructionCreate": {
+        "properties": {
+          "capture_session_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Capture Session Id"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "orchestration_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrchestrationStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "capture_session_id"
+        ],
+        "title": "ReconstructionCreate"
+      },
+      "ReconstructionCreateWithOptions": {
+        "properties": {
+          "create": {
+            "$ref": "#/components/schemas/ReconstructionCreate"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReconstructionOptions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional reconstruction options to use during reconstruction."
+          }
+        },
+        "type": "object",
+        "required": [
+          "create"
+        ],
+        "title": "ReconstructionCreateWithOptions"
+      },
+      "ReconstructionManifest": {
+        "properties": {
+          "capture_id": {
+            "type": "string",
+            "title": "Capture Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "pending",
+              "downloading",
+              "extracting_features",
+              "matching_features",
+              "reconstructing",
+              "training_opq_matrix",
+              "training_product_quantizer",
+              "uploading",
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "options": {
+            "$ref": "#/components/schemas/ReconstructionOptions"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/ReconstructionMetrics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "capture_id",
+          "status",
+          "options",
+          "metrics"
+        ],
+        "title": "ReconstructionManifest"
+      },
+      "ReconstructionMetrics": {
+        "properties": {
+          "total_images": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Images",
+            "description": "Total number of input images considered for this reconstruction run."
+          },
+          "registered_images": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registered Images",
+            "description": "Number of images successfully registered into the final model."
+          },
+          "registration_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registration Rate",
+            "description": "Registration rate in percent: 100 \u00d7 (registered_images / total_images). Computed after selecting the best reconstruction (max registered images)."
+          },
+          "num_3d_points": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num 3D Points",
+            "description": "Count of 3D points in the selected 'best' reconstruction."
+          },
+          "average_keypoints_per_image": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Keypoints Per Image",
+            "description": "Average number of detected keypoints per image (after SuperPoint extraction), computed across all images."
+          },
+          "reprojection_pixel_error_50th_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reprojection Pixel Error 50Th Percentile",
+            "description": "Median (50th percentile) reprojection error in pixels across all valid 2D observations in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint."
+          },
+          "reprojection_pixel_error_90th_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reprojection Pixel Error 90Th Percentile",
+            "description": "90th percentile reprojection error in pixels across all valid 2D observations, computed the same way as the median."
+          },
+          "track_length_50th_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track Length 50Th Percentile",
+            "description": "Median (50th percentile) track length across 3D points in the selected model. Track length = number of distinct images observing the point."
+          },
+          "percent_tracks_with_length_greater_than_or_equal_to_3": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percent Tracks With Length Greater Than Or Equal To 3",
+            "description": "Percentage of 3D points whose track length is \u2265 3 (a common robustness threshold). Computed as 100 \u00d7 (#points with length\u22653 / #points)."
+          }
+        },
+        "type": "object",
+        "title": "ReconstructionMetrics"
+      },
+      "ReconstructionOptions": {
+        "properties": {
+          "random_seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Random Seed",
+            "description": "Random seed to use (for deterministic behavior)."
+          },
+          "single_threaded": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Single Threaded",
+            "description": "If true, run reconstruction in single-threaded mode (for deterministic behavior)."
+          },
+          "neighbors_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Neighbors Count",
+            "description": "How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). If None, a sensible default is used (currently 12). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage."
+          },
+          "max_keypoints_per_image": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Keypoints Per Image",
+            "description": "Upper bound on detected local features per image (SuperPoint). Reduces descriptor/match volume and downstream 3D points; too small can hurt registration."
+          },
+          "ransac_max_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ransac Max Error",
+            "description": "Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower = stricter inlier test; removes borderline correspondences before SfM."
+          },
+          "ransac_min_inlier_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ransac Min Inlier Ratio",
+            "description": "Two-view RANSAC minimum inlier ratio to accept the model. Higher = reject more weak pairs; typically 0.10\u20130.20 for stricter matching."
+          },
+          "use_prior_position": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Use Prior Position",
+            "description": "If true, use position priors during registration. This leverages PosePrior(position=...) written into the database to guide image registration."
+          },
+          "rig_verification": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rig Verification",
+            "description": "If true, perform rig-based verification during feature matching and two-view geometry verification. Requires images to be tagged with rig/camera IDs."
+          },
+          "triangulation_minimum_angle": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Triangulation Minimum Angle",
+            "description": "Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points."
+          },
+          "triangulation_complete_max_reprojection_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Triangulation Complete Max Reprojection Error",
+            "description": "Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points (triangulation.complete_max_reproj_error). Lower \u2192 fewer borderline new points."
+          },
+          "triangulation_merge_max_reprojection_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Triangulation Merge Max Reprojection Error",
+            "description": "Triangulation-time gate (pixels) for MERGING near-duplicate 3D points (triangulation.merge_max_reproj_error). Lower \u2192 fewer merges; higher \u2192 more aggressive deduplication."
+          },
+          "mapper_filter_max_reprojection_error": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mapper Filter Max Reprojection Error",
+            "description": "Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). Points exceeding this after local/global BA are culled. This is NOT a triangulation accept threshold."
+          },
+          "bundle_adjustment_refine_sensor_from_rig": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bundle Adjustment Refine Sensor From Rig",
+            "description": "If true, refine per-camera extrinsics within the rig during BA (ba_refine_sensor_from_rig). Useful when rig calibration is approximate."
+          },
+          "bundle_adjustment_refine_focal_length": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bundle Adjustment Refine Focal Length",
+            "description": "If true, refine the camera focal length during BA (ba_refine_focal_length)."
+          },
+          "bundle_adjustment_refine_principal_point": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bundle Adjustment Refine Principal Point",
+            "description": "If true, refine the camera principal point during BA (ba_refine_principal_point)."
+          },
+          "bundle_adjustment_refine_additional_params": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bundle Adjustment Refine Additional Params",
+            "description": "If true, refine model-specific additional parameters during BA (ba_refine_extra_params), e.g., radial/tangential distortion where applicable."
+          },
+          "compression_opq_number_of_subvectors": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compression Opq Number Of Subvectors",
+            "description": "Number of subvectors for OPQ compression."
+          },
+          "compression_opq_number_bits_per_subvector": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compression Opq Number Bits Per Subvector",
+            "description": "Number of bits per subvector for OPQ compression."
+          },
+          "compression_opq_number_of_training_iterations": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compression Opq Number Of Training Iterations",
+            "description": "Number of training iterations for OPQ compression."
+          }
+        },
+        "type": "object",
+        "title": "ReconstructionOptions"
+      },
+      "ReconstructionRead": {
+        "properties": {
+          "capture_session_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Capture Session Id"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "orchestration_status": {
+            "$ref": "#/components/schemas/OrchestrationStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "capture_session_id",
+          "id",
+          "created_at",
+          "updated_at",
+          "orchestration_status"
+        ],
+        "title": "ReconstructionRead"
+      },
+      "Rig": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "cameras": {
+            "items": {
+              "$ref": "#/components/schemas/RigCamera"
+            },
+            "type": "array",
+            "title": "Cameras"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "cameras"
+        ],
+        "title": "Rig"
+      },
+      "RigCamera": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "ref_sensor": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ref Sensor"
+          },
+          "rotation": {
+            "$ref": "#/components/schemas/Quaternion"
+          },
+          "translation": {
+            "$ref": "#/components/schemas/Vector3"
+          },
+          "intrinsics": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PinholeCamera"
+              },
+              {
+                "$ref": "#/components/schemas/OpenCVCamera"
+              },
+              {
+                "$ref": "#/components/schemas/FullOpenCVCamera"
+              },
+              {
+                "$ref": "#/components/schemas/GenericParamsIntrinsics"
+              }
+            ],
+            "title": "Intrinsics",
+            "discriminator": {
+              "propertyName": "model",
+              "mapping": {
+                "FULL_OPENCV": "#/components/schemas/FullOpenCVCamera",
+                "GENERIC": "#/components/schemas/GenericParamsIntrinsics",
+                "OPENCV": "#/components/schemas/OpenCVCamera",
+                "PINHOLE": "#/components/schemas/PinholeCamera"
+              }
+            }
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "ref_sensor",
+          "rotation",
+          "translation",
+          "intrinsics"
+        ],
+        "title": "RigCamera"
+      },
+      "RigConfig": {
+        "properties": {
+          "rigs": {
+            "items": {
+              "$ref": "#/components/schemas/Rig"
+            },
+            "type": "array",
+            "title": "Rigs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rigs"
+        ],
+        "title": "RigConfig"
+      },
+      "Transform": {
+        "properties": {
+          "position": {
+            "$ref": "#/components/schemas/Vector3"
+          },
+          "rotation": {
+            "$ref": "#/components/schemas/Quaternion"
+          }
+        },
+        "type": "object",
+        "required": [
+          "position",
+          "rotation"
+        ],
+        "title": "Transform"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "Vector3": {
+        "properties": {
+          "x": {
+            "type": "number",
+            "title": "X"
+          },
+          "y": {
+            "type": "number",
+            "title": "Y"
+          },
+          "z": {
+            "type": "number",
+            "title": "Z"
+          }
+        },
+        "type": "object",
+        "required": [
+          "x",
+          "y",
+          "z"
+        ],
+        "title": "Vector3"
+      }
+    },
+    "securitySchemes": {}
+  },
+  "security": [
+    {
+      "oauth2": [
+        "openid"
+      ]
+    },
+    {
+      "bearerAuth": []
+    }
+  ]
+}

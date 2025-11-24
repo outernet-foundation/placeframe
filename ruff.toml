@@ -1,9 +1,0 @@
-target-version = "py313"
-line-length = 120
-preview = true
-
-[lint]
-extend-select = ["I"]
-
-[format]
-skip-magic-trailing-comma = true

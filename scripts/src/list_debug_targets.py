@@ -1,19 +1,7 @@
-#!/usr/bin/env python3
-from __future__ import annotations
-
 import json
 import subprocess
 import sys
 from typing import List, Mapping, Optional, TypedDict, cast
-
-
-def run(*args: str):
-    return subprocess.check_output(args, text=True)
-
-
-def all_container_ids():
-    out = run("docker", "ps", "--format", "{{json .ID}}")
-    return [cast(str, json.loads(line)) for line in out.splitlines() if line.strip()]
 
 
 class PortBinding(TypedDict, total=False):
@@ -38,29 +26,7 @@ class ContainerInfo(TypedDict, total=False):
     Name: Optional[str]
 
 
-def inspect_one(container_id: str):
-    raw = json.loads(run("docker", "inspect", container_id))
-    if not isinstance(raw, list) or not raw or not isinstance(raw[0], dict):
-        raise RuntimeError(f"Unexpected docker inspect payload for {container_id!r}")
-    return cast(ContainerInfo, raw[0])
-
-
-def host_port_5678(info: ContainerInfo):
-    net = info.get("NetworkSettings")
-    if not net:
-        return None
-    ports = net.get("Ports")
-    if not ports:
-        return None
-    candidates = ports.get("5678/tcp")
-    if not candidates:
-        return None
-    first = candidates[0]
-    host_port = first.get("HostPort")
-    return host_port if host_port else None
-
-
-if __name__ == "__main__":
+def main():
     found = 0
     for container_id in all_container_ids():
         info = inspect_one(container_id)
@@ -90,3 +56,38 @@ if __name__ == "__main__":
             "Ensure containers have a 'service' label and publish 5678/tcp.",
             file=sys.stderr,
         )
+
+
+def run(*args: str):
+    return subprocess.check_output(args, text=True)
+
+
+def all_container_ids():
+    out = run("docker", "ps", "--format", "{{json .ID}}")
+    return [cast(str, json.loads(line)) for line in out.splitlines() if line.strip()]
+
+
+def inspect_one(container_id: str):
+    raw = json.loads(run("docker", "inspect", container_id))
+    if not isinstance(raw, list) or not raw or not isinstance(raw[0], dict):
+        raise RuntimeError(f"Unexpected docker inspect payload for {container_id!r}")
+    return cast(ContainerInfo, raw[0])
+
+
+def host_port_5678(info: ContainerInfo):
+    net = info.get("NetworkSettings")
+    if not net:
+        return None
+    ports = net.get("Ports")
+    if not ports:
+        return None
+    candidates = ports.get("5678/tcp")
+    if not candidates:
+        return None
+    first = candidates[0]
+    host_port = first.get("HostPort")
+    return host_port if host_port else None
+
+
+if __name__ == "__main__":
+    main()

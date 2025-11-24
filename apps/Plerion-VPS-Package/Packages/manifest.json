@@ -3,7 +3,7 @@
     "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
     "com.magicleap.unitysdk": "2.6.0",
-    "com.outernet.plerion": "file:../../../services/visual-localization-system/api/clients/unity/src/Plerion",
+    "com.plerion.api-client": "file:../../../packages/generated/api-client-csharp/src/PlerionApiClient",
     "com.unity.ai.navigation": "2.0.8",
     "com.unity.collab-proxy": "2.9.3",
     "com.unity.ide.rider": "3.0.36",

@@ -8,16 +8,16 @@ using Unity.Mathematics;
 using UnityEngine;
 
 using Cysharp.Threading.Tasks;
-using Plerion.Client;
+using PlerionApiClient.Client;
 using System.IO;
-using Plerion.Api;
+using PlerionApiClient.Api;
 using System.Threading.Tasks;
 using System.Net.Http;
 
-using CameraModel = Plerion.Model.Camera;
-using PinholeCamera = Plerion.Model.PinholeCamera;
-using LocalizationSession = Plerion.Model.LocalizationSessionRead;
-using LocalizationMetrics = Plerion.Model.LocalizationMetrics;
+using CameraModel = PlerionApiClient.Model.Camera;
+using PinholeCamera = PlerionApiClient.Model.PinholeCamera;
+using LocalizationSession = PlerionApiClient.Model.LocalizationSessionRead;
+using LocalizationMetrics = PlerionApiClient.Model.LocalizationMetrics;
 
 namespace Plerion.VPS
 {
@@ -113,16 +113,16 @@ namespace Plerion.VPS
         //TODO EP: Replace with proper URLs when deploying
         public static void Initialize(string username, string password)
         {
-            Auth.url = "https://desktop-otd3rch-keycloak.outernetfoundation.org/realms/plerion-dev/protocol/openid-connect/token";
+            Auth.url = "https://skilled-finally-primate.ngrok-free.app/auth/realms/plerion-dev/protocol/openid-connect/token";
             Auth.username = username;
             Auth.password = password;
 
             api = new DefaultApi(
                 new HttpClient(new KeycloakHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
-                    BaseAddress = new Uri("https://desktop-otd3rch-api.outernetfoundation.org")
+                    BaseAddress = new Uri("https://skilled-finally-primate.ngrok-free.app")
                 },
-                "https://desktop-otd3rch-api.outernetfoundation.org"
+                "https://skilled-finally-primate.ngrok-free.app"
             );
         }
 
@@ -274,14 +274,14 @@ namespace Plerion.VPS
             if (maps == null || maps.Count == 0)
                 return new MapData[0];
 
-            var loadedMaps = new List<Plerion.Model.LocalizationMapRead>();
+            var loadedMaps = new List<PlerionApiClient.Model.LocalizationMapRead>();
 
             await UniTask.WhenAll(maps.Select(map => api
                 .GetMapLoadStatusAsync(localizationSessionId, map.Id, cancellationToken)
                 .AsUniTask()
                 .ContinueWith(x =>
                 {
-                    if (x.Status == Plerion.Model.LoadState.Ready)
+                    if (x.Status == PlerionApiClient.Model.LoadState.Ready)
                         loadedMaps.Add(map);
                 })
             ));
@@ -329,7 +329,7 @@ namespace Plerion.VPS
             }).ToArray();
         }
 
-        private static MapData ToMapData(Plerion.Model.LocalizationMapRead map)
+        private static MapData ToMapData(PlerionApiClient.Model.LocalizationMapRead map)
         {
             return new MapData()
             {

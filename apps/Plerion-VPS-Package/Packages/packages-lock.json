@@ -30,8 +30,8 @@
       },
       "url": "https://registry.npmjs.org"
     },
-    "com.outernet.plerion": {
-      "version": "file:../../../services/visual-localization-system/api/clients/unity/src/Plerion",
+    "com.plerion.api-client": {
+      "version": "file:../../../packages/generated/api-client-csharp/src/PlerionApiClient",
       "depth": 0,
       "source": "local",
       "dependencies": {}

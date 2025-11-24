@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using ZedClient.Client;
-using ZedClient.Api;
+using PlerionZedClient.Client;
+using PlerionZedClient.Api;
 using System.IO;
 using System.Threading;
 using System.Net.Sockets;

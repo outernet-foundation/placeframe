@@ -1,0 +1,189 @@
+from typing import Optional
+from uuid import UUID
+
+from common.schemas import binary_schema
+from core.classes import PointCloudPoint
+from core.transform import Transform
+from datamodels.public_dtos import (
+    LocalizationMapBatchUpdate,
+    LocalizationMapCreate,
+    LocalizationMapRead,
+    LocalizationMapUpdate,
+    localization_map_apply_batch_update_dto,
+    localization_map_apply_dto,
+    localization_map_from_dto,
+    localization_map_to_dto,
+)
+from datamodels.public_tables import LocalizationMap
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..database import get_session
+from ..settings import get_settings
+from .reconstructions import (
+    get_reconstruction_image_poses,
+    get_reconstruction_points,
+    get_reconstruction_points3D_ply,
+    get_reconstruction_status,
+)
+
+settings = get_settings()
+
+router = APIRouter(prefix="/localization_maps", tags=["localization_maps"])
+
+
+@router.post("")
+async def create_localization_map(
+    localization_map: LocalizationMapCreate, session: AsyncSession = Depends(get_session)
+) -> LocalizationMapRead:
+    reconstruction_status = await get_reconstruction_status(localization_map.reconstruction_id, session)
+
+    if reconstruction_status != "succeeded":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Reconstruction with id {localization_map.reconstruction_id} is not in 'succeeded' state",
+        )
+
+    row = localization_map_from_dto(localization_map)
+
+    session.add(row)
+
+    await session.flush()
+    await session.refresh(row)
+    return localization_map_to_dto(row)
+
+
+@router.delete("/{id}")
+async def delete_localization_map(id: UUID, session: AsyncSession = Depends(get_session)) -> None:
+    row = await session.get(LocalizationMap, id)
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"LocalizationMap with id {id} not found")
+
+    await session.delete(row)
+
+    await session.flush()
+    return None
+
+
+@router.delete("")
+async def delete_localization_maps(
+    ids: list[UUID] = Query(..., description="List of Ids to delete"), session: AsyncSession = Depends(get_session)
+) -> None:
+    for id in ids:
+        row = await session.get(LocalizationMap, id)
+
+        if not row:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"LocalizationMap with id {id} not found")
+
+        await session.delete(row)
+
+    await session.flush()
+    return None
+
+
+@router.get("")
+async def get_localization_maps(
+    ids: Optional[list[UUID]] = Query(None, description="Optional list of Ids to filter by"),
+    reconstruction_ids: Optional[list[UUID]] = Query(
+        None, description="Optional list of Reconstruction Ids to filter by"
+    ),
+    session: AsyncSession = Depends(get_session),
+) -> list[LocalizationMapRead]:
+    if ids and reconstruction_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot filter by both ids and reconstruction_ids"
+        )
+
+    query = select(LocalizationMap)
+
+    if ids:
+        query = query.where(LocalizationMap.id.in_(ids))
+
+    if reconstruction_ids:
+        query = query.where(LocalizationMap.reconstruction_id.in_(reconstruction_ids))
+
+    result = await session.execute(query)
+
+    return [localization_map_to_dto(row) for row in result.scalars().all()]
+
+
+@router.get("/{id}")
+async def get_localization_map(id: UUID, session: AsyncSession = Depends(get_session)) -> LocalizationMapRead:
+    row = await session.get(LocalizationMap, id)
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"LocalizationMap with id {id} not found")
+
+    return localization_map_to_dto(row)
+
+
+@router.get("/{id}/points")
+async def get_localization_map_points(id: UUID, session: AsyncSession = Depends(get_session)) -> list[PointCloudPoint]:
+    row = await session.get(LocalizationMap, id)
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"LocalizationMap with id {id} not found")
+
+    return await get_reconstruction_points(row.reconstruction_id, session)
+
+
+@router.get("/{id}/points.ply", response_class=StreamingResponse, responses={200: {"content": binary_schema}})
+async def get_localization_map_points_ply(id: UUID, session: AsyncSession = Depends(get_session)) -> StreamingResponse:
+    row = await session.get(LocalizationMap, id)
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"LocalizationMap with id {id} not found")
+    return await get_reconstruction_points3D_ply(row.reconstruction_id, session)
+
+
+@router.patch("/{id}/image_poses")
+async def update_localization_map_image_poses(
+    id: UUID, session: AsyncSession = Depends(get_session)
+) -> list[Transform]:
+    row = await session.get(LocalizationMap, id)
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"LocalizationMap with id {id} not found")
+    return await get_reconstruction_image_poses(row.reconstruction_id, session)
+
+
+@router.patch("/{id}")
+async def update_localization_map(
+    id: UUID, localization_map: LocalizationMapUpdate, session: AsyncSession = Depends(get_session)
+) -> LocalizationMapRead:
+    row = await session.get(LocalizationMap, id)
+
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"LocalizationMap with id {id} not found")
+
+    localization_map_apply_dto(row, localization_map)
+
+    await session.flush()
+    await session.refresh(row)
+    return localization_map_to_dto(row)
+
+
+@router.patch("")
+async def update_localization_maps(
+    localization_maps: list[LocalizationMapBatchUpdate],
+    allow_missing: bool = False,
+    session: AsyncSession = Depends(get_session),
+) -> list[LocalizationMapRead]:
+    rows: list[LocalizationMap] = []
+    for localization_map in localization_maps:
+        row = await session.get(LocalizationMap, localization_map.id)
+        if not row:
+            if not allow_missing:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"LocalizationMap with id {localization_map.id} not found",
+                )
+            continue
+
+        localization_map_apply_batch_update_dto(row, localization_map)
+        rows.append(row)
+
+    await session.flush()
+    for row in rows:
+        await session.refresh(row)
+    return [localization_map_to_dto(r) for r in rows]

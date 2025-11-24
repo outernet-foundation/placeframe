@@ -66,14 +66,14 @@
       "dependencies": {},
       "hash": "f789083c31250c83082da9b29be0c976152d699b"
     },
-    "com.outernet.plerion": {
-      "version": "file:../../../services/visual-localization-system/api/clients/unity/src/Plerion",
+    "com.plerion.api-client": {
+      "version": "file:../../../packages/generated/api-client-csharp/src/PlerionApiClient",
       "depth": 0,
       "source": "local",
       "dependencies": {}
     },
-    "com.outernet.zedclient": {
-      "version": "file:../../zed/clients/unity/src/ZedClient",
+    "com.plerion.zed-client": {
+      "version": "file:../../../packages/generated/zed-client-csharp/src/PlerionZedClient",
       "depth": 0,
       "source": "local",
       "dependencies": {}

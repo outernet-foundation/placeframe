@@ -1,0 +1,41 @@
+[project]
+name = "plerion-api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "common",
+    "datamodels",
+    "core",
+    "plerion-localizer-client",
+    "boto3>=1.39.5",
+    "fastapi>=0.116.1",
+    "piccolo[postgres]>=1.27.1",
+    "uvicorn[standard]>=0.35.0",
+    "debugpy>=1.8.16",
+    "sqlalchemy[asyncio]>=2.0.43",
+    "psycopg[binary]>=3.2.10",
+    "pyjwt>=2.10.1",
+    "cryptography>=46.0.1",
+    "python-multipart>=0.0.20",
+    "httpx>=0.28.1",
+    "numpy>=2.3.4",
+    "scipy>=1.16.2",
+    "pydantic-settings>=2.12.0",
+]
+
+[dependency-groups]
+dev = [
+    "boto3-stubs[s3]>=1.39.7",
+    "botocore-stubs>=1.38.46",
+    "openapi-generator-cli>=7.17.0",
+    "scipy-stubs>=1.16.2.4",
+    "watchdog>=6.0.0",
+]
+
+[tool.uv.sources]
+core = { workspace = true }
+common = { workspace = true }
+datamodels = { workspace = true }
+plerion-localizer-client = { workspace = true }

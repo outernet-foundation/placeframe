@@ -28,16 +28,16 @@ namespace Plerion.VPS
 
     public static class ExtensionMethods
     {
-        public static quaternion ToMathematicsQuaternion(this Plerion.Model.Quaternion quaternion)
+        public static quaternion ToMathematicsQuaternion(this PlerionApiClient.Model.Quaternion quaternion)
             => new quaternion((float)quaternion.X, (float)quaternion.Y, (float)quaternion.Z, (float)quaternion.W);
 
         public static float3 ToFloat3(this Vector3 vector3)
             => new float3(vector3.x, vector3.y, vector3.z);
 
-        public static float3 ToFloat3(this Plerion.Model.Vector3 vector3)
+        public static float3 ToFloat3(this PlerionApiClient.Model.Vector3 vector3)
             => new float3((float)vector3.X, (float)vector3.Y, (float)vector3.Z);
 
-        public static Color ToUnityColor(this Plerion.Model.Color color)
+        public static Color ToUnityColor(this PlerionApiClient.Model.Color color)
             => new Color(color.R / 255f, color.G / 255f, color.B / 255f);
     }
 

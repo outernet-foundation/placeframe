@@ -1,0 +1,56 @@
+[project]
+name = "plerion_workspace"
+version = "0.0.1"
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.uv.workspace]
+members = [
+    "capture-app/zed",
+    "docker/database-manager",
+    "docker/api",
+    "docker/localizer",
+    "docker/orchestrator",
+    "docker/reconstructor",
+    "infrastructure",
+    "packages/core",
+    "packages/common",
+    "packages/datamodels",
+    "packages/neural-networks",
+    "packages/generated/api-client-python",
+    "packages/generated/localizer-client-python",
+    "scripts",
+    "test",
+]
+
+[tool.uv]
+config-settings-package.plerion-api-client = { editable_mode = "compat" }
+config-settings-package.plerion-localizer-client = { editable_mode = "compat" }
+
+[tool.basedpyright]
+typeCheckingMode = "strict"
+include = [
+    "capture-app/**/src/**/*.py",
+    "capture-app/**/src/**/*.pyi",
+    "docker/**/src/**/*.py",
+    "docker/**/src/**/*.pyi",
+    "infrastructure/**/src/**/*.py",
+    "infrastructure/**/src/**/*.pyi",
+    "packages/**/src/**/*.py",
+    "packages/**/src/**/*.pyi",
+    "scripts/**/src/**/*.py",
+    "scripts/**/src/**/*.pyi",
+    "test/**/src/**/*.py",
+    "test/**/src/**/*.pyi",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 120
+preview = true
+
+[tool.ruff.lint]
+extend-select = ["I"]
+
+[tool.ruff.format]
+skip-magic-trailing-comma = true

@@ -11,7 +11,7 @@ using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 using System.Collections.Generic;
 using Unity.Mathematics;
-using Plerion.Model;
+using PlerionApiClient.Model;
 
 
 public static class LocalCaptureController
@@ -164,17 +164,17 @@ public static class LocalCaptureController
                 Path.Combine(sessionDirectory, "config.json"),
 
                     new RigConfig(
-                        new List<RigOutput>
+                        new List<Rig>
                         {
-                            new RigOutput(
+                            new Rig(
                                 "rig0",
                                 new List<RigCamera>
                                 {
                                     new RigCamera(
                                         "camera0",
                                         true,
-                                        new Plerion.Model.Quaternion(0, 0, 0, 1),
-                                        new Plerion.Model.Vector3(0, 0, 0),
+                                        new PlerionApiClient.Model.Quaternion(0, 0, 0, 1),
+                                        new PlerionApiClient.Model.Vector3(0, 0, 0),
                                         new Intrinsics(new PinholeCamera(
                                             intrinsics.resolution.x,
                                             intrinsics.resolution.y,

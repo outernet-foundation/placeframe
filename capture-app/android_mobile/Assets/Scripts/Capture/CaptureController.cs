@@ -9,8 +9,8 @@ using UnityEngine.UI;
 
 using Cysharp.Threading.Tasks;
 using TMPro;
-using Plerion.Api;
-using Plerion.Model;
+using PlerionApiClient.Api;
+using PlerionApiClient.Model;
 
 using FofX;
 using FofX.Stateful;
@@ -29,7 +29,7 @@ using UnityEngine.SocialPlatforms;
 using Color = UnityEngine.Color;
 using System.Threading.Tasks;
 using System.Net;
-using Plerion.Client;
+using PlerionApiClient.Client;
 
 namespace PlerionClient.Client
 {
@@ -303,7 +303,7 @@ namespace PlerionClient.Client
                             }
                             else
                             {
-                                state.type.value = entry.capture.DeviceType == Plerion.Model.DeviceType.Zed ? CaptureType.Zed : CaptureType.ARFoundation;
+                                state.type.value = entry.capture.DeviceType == PlerionApiClient.Model.DeviceType.Zed ? CaptureType.Zed : CaptureType.ARFoundation;
                             }
 
                             if (entry.reconstruction == null)
@@ -364,7 +364,7 @@ namespace PlerionClient.Client
             if (type == CaptureType.Zed)
             {
                 captureData = await ZedCaptureController.GetCapture(id, cancellationToken);
-                captureSession = await capturesApi.CreateCaptureSessionAsync(new CaptureSessionCreate(Plerion.Model.DeviceType.Zed, name) { Id = id }).AsUniTask();
+                captureSession = await capturesApi.CreateCaptureSessionAsync(new CaptureSessionCreate(PlerionApiClient.Model.DeviceType.Zed, name) { Id = id }).AsUniTask();
             }
             else if (type == CaptureType.ARFoundation)
             {
@@ -382,7 +382,7 @@ namespace PlerionClient.Client
                 try
                 {
                     await UniTask.SwitchToMainThread();
-                    captureSession = await capturesApi.CreateCaptureSessionAsync(new CaptureSessionCreate(Plerion.Model.DeviceType.ARFoundation, name) { Id = id }).AsUniTask();
+                    captureSession = await capturesApi.CreateCaptureSessionAsync(new CaptureSessionCreate(PlerionApiClient.Model.DeviceType.ARFoundation, name) { Id = id }).AsUniTask();
                 }
                 catch (Exception e)
                 {
@@ -395,21 +395,22 @@ namespace PlerionClient.Client
 
             try
             {
-                var presignedUrl = await capturesApi.GetUploadCaptureSessionTarPresignedUrlAsync(captureSession.Id, cancellationToken);
-                var progress2 = Progress.Create<float>(p => progress?.Report((CaptureUploadStatus.Uploading, p)));
-                using (captureData)
-                {
-                    var httpClient = new HttpClient(new ProgressReportingHttpClientHandler(progress2))
-                    {
-                        Timeout = TimeSpan.FromMinutes(30)
-                    };
+                await capturesApi.UploadCaptureSessionTarAsync(captureSession.Id, captureData, cancellationToken: cancellationToken).AsUniTask();
+                // var presignedUrl = await capturesApi.GetUploadCaptureSessionTarPresignedUrlAsync(captureSession.Id, cancellationToken);
+                // var progress2 = Progress.Create<float>(p => progress?.Report((CaptureUploadStatus.Uploading, p)));
+                // using (captureData)
+                // {
+                //     var httpClient = new HttpClient(new ProgressReportingHttpClientHandler(progress2))
+                //     {
+                //         Timeout = TimeSpan.FromMinutes(30)
+                //     };
 
-                    var content = new StreamContent(captureData);
-                    content.Headers.Add("Content-Type", "application/x-tar");
+                //     var content = new StreamContent(captureData);
+                //     content.Headers.Add("Content-Type", "application/x-tar");
 
-                    var response = await httpClient.PutAsync(presignedUrl, content, cancellationToken);
-                    response.EnsureSuccessStatusCode();
-                }
+                //     var response = await httpClient.PutAsync(presignedUrl, content, cancellationToken);
+                //     response.EnsureSuccessStatusCode();
+                // }
             }
             catch (Exception exception)
             {

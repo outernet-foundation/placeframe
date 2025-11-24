@@ -5,30 +5,32 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+  "common",
   "datamodel-code-generator>=0.33.0",
   "debugpy>=1.8.16",
   "psycopg[binary]>=3.2.10",
   "pydantic>=2.11.7",
   "pyhumps>=3.8.0",
   "scipy>=1.16.2",
-  "sqlacodegen>=3.1.1",
   "typer>=0.17.4",
   "watchdog>=6.0.0",
+  "scipy-stubs>=1.16.2.4",
 ]
+
+[tool.uv.sources]
+common = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[dependency-groups]
-dev = ["scipy-stubs>=1.16.2.4"]
-hloc = []
-
 [tool.hatch.build.targets.wheel]
 packages = ["src/sync_workspace"]
 
 [project.scripts]
-sync-workspace = "sync_workspace.main:main"
-
-[tool.ruff]
-extend = "../ruff.toml"
+build = "src.build:main"
+export-dependency-group-lock-files = "export_dependency_group_lock_files:main"
+forward-unity-android-debug-port = "forward_unity_android_debug_port:main"
+generate-clients = "generate_clients:main"
+generate-datamodels = "generate_datamodels:main"
+list-debug-targets = "list_debug_targets:main"

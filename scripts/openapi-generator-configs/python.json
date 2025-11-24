@@ -1,0 +1,21 @@
+{
+  "generatorName": "python",
+  "globalProperties": {
+    "apiTests": false,
+    "modelTests": false,
+    "modelDocs": false,
+    "apiDocs": false
+  },
+  "additionalProperties": {
+    "library": "httpx",
+    "packageVersion": "0.1.0",
+    "generateSourceCodeOnly": false,
+    "hideGenerationTimestamp": true,
+    "disallowAdditionalPropertiesIfNotPresent": false,
+    "mapNumberTo": "Union[StrictFloat, StrictInt]",
+    "useOneOfDiscriminatorLookup": false
+  },
+  "typeMappings": {
+    "number": "float"
+  }
+}

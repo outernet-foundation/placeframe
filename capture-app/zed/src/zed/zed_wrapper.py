@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from numpy import asarray, float64, uint8
 from numpy.typing import NDArray
-from pyzed import sl
+from pyzed import sl  # type: ignore
 
 
 def reboot_camera(cam: sl.Camera):

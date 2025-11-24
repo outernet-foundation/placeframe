@@ -1,0 +1,17 @@
+{
+  "name": "PlerionZedClient",
+  "references": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [
+    "Newtonsoft.Json.dll",
+    "Polly.dll",
+    "JsonSubTypes.dll"
+  ],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

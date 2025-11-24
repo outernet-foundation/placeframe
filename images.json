@@ -37,12 +37,12 @@
     "dockerfile": "services/api/Dockerfile",
     "hash_paths": ["services/api", "common"]
   },
-  "run-reconstruction": {
+  "reconstructor": {
     "stack": "dev",
     "first_party": true,
     "context": ".",
-    "dockerfile": "tasks/run-reconstruction/Dockerfile",
-    "hash_paths": ["tasks/run-reconstruction", "common"]
+    "dockerfile": "tasks/reconstructor/Dockerfile",
+    "hash_paths": ["tasks/reconstructor", "common"]
   },
   "database-manager": {
     "stack": "core",

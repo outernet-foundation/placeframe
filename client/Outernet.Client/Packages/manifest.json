@@ -3,16 +3,12 @@
     {
       "name": "Magic Leap",
       "url": "https://registry.npmjs.org",
-      "scopes": [
-        "com.magicleap"
-      ]
+      "scopes": ["com.magicleap"]
     },
     {
       "name": "Cesium",
       "url": "https://unity.pkg.cesium.com",
-      "scopes": [
-        "com.cesium.unity"
-      ]
+      "scopes": ["com.cesium.unity"]
     }
   ],
   "dependencies": {
@@ -24,7 +20,7 @@
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
     "com.magicleap.unitysdk": "2.5.0",
     "com.ogment.outernet.shared": "file:../../Outernet.Shared",
-    "com.outernet.plerionclient": "file:../../../services/visual-localization-system/api/clients/unity/src/PlerionClient",
+    "com.outernet.plerionclient": "file:../../../docker/api/clients/unity/src/PlerionClient",
     "com.plerion.vps": "file:../../../apps/Plerion-VPS-Package/Assets/Package/Core",
     "com.plerion.vps.arfoundation": "file:../../../apps/Plerion-VPS-Package/Assets/Package/ARFoundation",
     "com.plerion.vps.magicleap": "file:../../../apps/Plerion-VPS-Package/Assets/Package/MagicLeap",
