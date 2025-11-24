@@ -16,7 +16,7 @@ appears there for every user.
 
 Notable features:
 - Unity localization package and reference app
-  - Server-side localization only right now
+  - Server-side localization only, for the time being
   - Android mobile (data capture, map management, localization)
   - Magic Leap 2 (localization, wip) 
 - Zed data capture app for creating maps of large environments (wip)
