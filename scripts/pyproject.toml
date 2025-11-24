@@ -34,3 +34,4 @@ forward-unity-android-debug-port = "scripts.forward_unity_android_debug_port:mai
 generate-clients = "scripts.generate_clients:main"
 generate-datamodels = "scripts.generate_datamodels:main"
 list-debug-targets = "scripts.list_debug_targets:main"
+migrate-database = "scripts.migrate_database:main"
