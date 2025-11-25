@@ -1,0 +1,11 @@
+# Upstream information
+
+- Project: dirtorch
+- Upstream repo: https://github.com/naver/deep-image-retrieval
+- Upstream commit: 610247f721452393738690fc56d0f66f5823d581
+- Imported on: 2025-11-25
+- Imported by: Tyler Hatch
+
+## Local modifications
+
+- Added `__init__.py` at `dirtorch/__init__.py`
