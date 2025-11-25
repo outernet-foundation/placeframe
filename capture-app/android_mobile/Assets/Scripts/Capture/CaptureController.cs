@@ -40,7 +40,7 @@ namespace PlerionClient.Client
     public class CaptureController : MonoBehaviour
     {
         public Canvas canvas;
-        float captureIntervalSeconds = 0.5f;
+        float captureIntervalSeconds = 0.2f;
 
         private DefaultApi capturesApi;
         private IControl ui;

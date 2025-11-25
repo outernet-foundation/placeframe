@@ -66,8 +66,6 @@ public static class LocalCaptureController
         anchorManager = UnityEngine.Object.FindObjectOfType<ARAnchorManager>();
         captureIntervalSeconds = requestedCaptureIntervalSeconds;
 
-        Application.targetFrameRate = 30;
-
         await UniTask.WaitUntil(
             () => Permission.HasUserAuthorizedPermission(Permission.Camera),
             cancellationToken: cancellationToken);
