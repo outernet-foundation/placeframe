@@ -31,7 +31,7 @@ namespace FofX
 
         protected abstract void InitializeState(T state);
 
-        private void Update()
+        protected virtual void Update()
         {
             state.context.ExecuteScheduledActions();
         }

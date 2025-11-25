@@ -110,20 +110,21 @@ namespace Plerion.VPS
             localizationSessionId = session.Id;
         }
 
-        //TODO EP: Replace with proper URLs when deploying
-        public static void Initialize(string username, string password)
+        public static async UniTask Initialize(string apiUrl, string authUrl, string username, string password)
         {
-            Auth.url = "https://skilled-finally-primate.ngrok-free.app/auth/realms/plerion-dev/protocol/openid-connect/token";
+            Auth.url = authUrl;
             Auth.username = username;
             Auth.password = password;
 
             api = new DefaultApi(
                 new HttpClient(new KeycloakHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
-                    BaseAddress = new Uri("https://skilled-finally-primate.ngrok-free.app")
+                    BaseAddress = new Uri(apiUrl)
                 },
-                "https://skilled-finally-primate.ngrok-free.app"
+                apiUrl
             );
+
+            await Auth.Login();
         }
 
         public static UniTask StartLocalizationSession(CameraIntrinsics intrinsics)
@@ -151,12 +152,20 @@ namespace Plerion.VPS
             return startSessionTask.AsUniTask();
         }
 
+        public static UniTask LoadLocalizationMaps(IEnumerable<Guid> maps)
+            => LoadLocalizationMaps(maps.ToList());
+
         public static UniTask LoadLocalizationMaps(params Guid[] maps)
             => LoadLocalizationMaps(maps.ToList());
 
         public static async UniTask LoadLocalizationMaps(List<Guid> maps)
         {
             await api.LoadLocalizationMapsAsync(localizationSessionId, maps);
+        }
+
+        public static async UniTask UnloadLocalizationMap(Guid map)
+        {
+            await api.UnloadMapAsync(localizationSessionId, map);
         }
 
         public static void StopLocalizationSession()

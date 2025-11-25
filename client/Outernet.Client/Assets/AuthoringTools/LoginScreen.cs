@@ -2,6 +2,8 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Plerion.VPS;
+using Cysharp.Threading.Tasks;
+using System;
 
 namespace Outernet.Client.AuthoringTools
 {
@@ -9,17 +11,12 @@ namespace Outernet.Client.AuthoringTools
     {
         public TMP_InputField username;
         public TMP_InputField password;
+        public TextMeshProUGUI errorText;
         public Button loginButton;
 
         private void Awake()
         {
-            loginButton.onClick.AddListener(() =>
-            {
-                VisualPositioningSystem.Initialize(username.text, password.text);
-                Auth.username = username.text;
-                Auth.password = password.text;
-                App.state.loggedIn.ExecuteSet(true);
-            });
+            loginButton.onClick.AddListener(() => Login(username.text, password.text).Forget());
 
             App.state.loggedIn.OnChange(x =>
             {
@@ -33,6 +30,28 @@ namespace Outernet.Client.AuthoringTools
                 username.text = null;
                 password.text = null;
             });
+        }
+
+        private async UniTask Login(string username, string password)
+        {
+            Auth.username = username;
+            Auth.password = password;
+
+            try
+            {
+                await Auth.Login();
+            }
+            catch (Exception exc)
+            {
+                await UniTask.SwitchToMainThread();
+                errorText.text = exc.Message;
+                errorText.gameObject.SetActive(true);
+                return;
+            }
+
+            await UniTask.SwitchToMainThread();
+            VisualPositioningSystem.Initialize(username, password);
+            App.state.loggedIn.ExecuteSet(true);
         }
     }
 }

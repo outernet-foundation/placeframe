@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 916833e8406903642811bd578b2eef75, type: 3}
+  m_Name: UIElementSet
+  m_EditorClassIdentifier: 
+  _foregroundColor: {r: 0.34509805, g: 0.34509805, b: 0.34509805, a: 1}
+  _midgroundColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
+  _backgroundColor: {r: 0.16078432, g: 0.16078432, b: 0.16078432, a: 1}
+  _deepBackgroundColor: {r: 0.078431375, g: 0.078431375, b: 0.078431375, a: 1}
+  _highlightColor: {r: 0, g: 1, b: 1, a: 1}
+  _roundedRect: {fileID: 21300000, guid: 279705d78db976546957b09b60ba25fd, type: 3}
+  _recordButton: {fileID: 8009883041236555062, guid: e8afd0db0bab2834ea948d5f82f08cd1,
+    type: 3}
+  _playButton: {fileID: 840525966171652147, guid: e7e33a97e16716d42970aeb9b3f3aebd,
+    type: 3}

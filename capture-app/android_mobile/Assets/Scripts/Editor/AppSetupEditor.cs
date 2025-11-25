@@ -11,12 +11,12 @@ namespace PlerionClient.Client
         {
             DrawDefaultInspector();
 
-            foldoutOpen = EditorGUILayout.Foldout(foldoutOpen, "Editor Settings", true);
+            foldoutOpen = EditorGUILayout.Foldout(foldoutOpen, "Environment", true);
 
             if (foldoutOpen)
             {
                 EditorGUI.indentLevel++;
-                var editorSettings = EditorSettings.GetOrCreateInstance();
+                var editorSettings = UnityEnv.GetOrCreateInstance();
                 bool wasEnabled = GUI.enabled;
                 GUI.enabled = false;
                 EditorGUILayout.ObjectField("Instance", editorSettings, typeof(EditorSettings), allowSceneObjects: false);

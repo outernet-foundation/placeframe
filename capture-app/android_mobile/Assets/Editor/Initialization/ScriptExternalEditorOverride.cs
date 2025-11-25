@@ -11,7 +11,6 @@ public class SolutionGenerator : AssetPostprocessor
     [OnOpenAsset(0)]
     private static bool OnOpenAsset(int instanceID, int line)
     {
-        UnityEngine.Debug.Log($"OnOpenAsset: {instanceID}, line: {line}");
         var projectDirectory = Application.dataPath.Substring(0, Application.dataPath.Length - "Assets".Length);
 
         string assetPath = AssetDatabase.GetAssetPath(instanceID);
@@ -40,7 +39,6 @@ public class SolutionGenerator : AssetPostprocessor
                 workspaceFolder = parent.FullName;
             }
             var folderUri = new System.Uri(workspaceFolder).AbsoluteUri;
-            UnityEngine.Debug.Log($"Opening {assetPath} in VS Code from workspace folder {workspaceFolder}");
             string arguments = line < 0
                 ? $"-g \"{assetPath}\" --folder-uri \"{folderUri}\""
                 : $"-g \"{assetPath}:{line}\" --folder-uri \"{folderUri}\"";

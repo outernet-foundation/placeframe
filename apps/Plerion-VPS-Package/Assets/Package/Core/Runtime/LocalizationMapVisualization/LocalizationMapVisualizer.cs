@@ -5,14 +5,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
-using Unity.Mathematics;
 
 namespace Plerion.VPS
 {
     public class LocalizationMapVisualizer : MonoBehaviour
     {
-        public static LocalizationMapRenderer theMap;
-
         public LocalizationMapRenderer mapRendererPrefab;
 
         private Dictionary<Guid, LocalizationMapRenderer> _mapsByID =
@@ -34,6 +31,11 @@ namespace Plerion.VPS
             _pollCancellationTokenSource?.Cancel();
             _pollCancellationTokenSource?.Dispose();
             _pollCancellationTokenSource = null;
+
+            foreach (var map in _mapsByID.Values)
+                Destroy(map.gameObject);
+
+            _mapsByID.Clear();
         }
 
         private async UniTask PollMaps(CancellationToken cancellationToken = default)
@@ -52,6 +54,8 @@ namespace Plerion.VPS
                     {
                         foreach (var map in _mapsByID.Values)
                             Destroy(map.gameObject);
+
+                        _mapsByID.Clear();
                     }
                     else
                     {
@@ -67,7 +71,6 @@ namespace Plerion.VPS
                         {
                             var local = VisualPositioningSystem.EcefToUnityWorld(addedMap.ecefPosition, addedMap.ecefRotation);
                             var mapView = Instantiate(mapRendererPrefab, local.position, local.rotation);
-                            theMap = mapView;
                             mapView.gameObject.name = addedMap.name;
                             mapView.Load(addedMap.id);
                             _mapsByID.Add(addedMap.id, mapView);

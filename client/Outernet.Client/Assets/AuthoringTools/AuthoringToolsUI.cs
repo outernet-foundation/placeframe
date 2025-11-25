@@ -689,6 +689,11 @@ namespace Outernet.Client.AuthoringTools
                 props: new AddScanDialogProps(title: "Add Scan", allowCancel: true),
                 constructControls: props => UIBuilder.VerticalLayout(
                     UIBuilder.AdaptivePropertyLabel("Scan Name", UIBuilder.InputField(props.scanName)),
+                    UIBuilder.Text(props.error).Color(Color.red).WithBinding(x => Bindings.Observer(
+                        _ => x.gameObject.SetActive(!string.IsNullOrEmpty(props.error.value)),
+                        ObservationScope.Self,
+                        props.error
+                    )),
                     UIBuilder.HorizontalLayout()
                         .Alignment(TextAnchor.LowerRight)
                         .WithChildren(
@@ -710,65 +715,46 @@ namespace Outernet.Client.AuthoringTools
                                 ObservationScope.Self,
                                 props.scanName
                             ))
-                        ),
-                    UIBuilder.Text(props.error).Color(Color.red).WithBinding(x => Bindings.Observer(
-                        _ => x.gameObject.SetActive(!string.IsNullOrEmpty(props.error.value)),
-                        ObservationScope.Self,
-                        props.error
-                    ))
-                ),
-                binding: props => Bindings.Compose(
-                    props.status.OnChange(x =>
-                    {
-                        if (x == DialogStatus.Complete)
-                            ImportScan(props.scanName.value).Forget();
-                    })
+                        )
                 )
             );
         }
 
         public async UniTask ImportScan(string scanName)
         {
+            var newMapTransform = VisualPositioningSystem.UnityWorldToEcef(
+                Camera.main.transform.position + (Camera.main.transform.forward * 3f),
+                Camera.main.transform.rotation.Flatten()
+            );
+
+            var reconstructions = await App.API.GetReconstructionsAsync(captureSessionName: scanName);
+
+            if (reconstructions.Count == 0)
+            {
+                Debug.LogError($"{scanName} not found.");
+                return;
+            }
+
+            var reconstruction = reconstructions[0];
+            Guid exsistingMap = Guid.Empty;
+
             try
             {
-                var newMapTransform = VisualPositioningSystem.UnityWorldToEcef(
-                    Camera.main.transform.position + (Camera.main.transform.forward * 3f),
-                    Camera.main.transform.rotation.Flatten()
-                );
-
-                var reconstructions = await App.API.GetReconstructionsAsync(captureSessionName: scanName);
-
-                if (reconstructions.Count == 0)
-                {
-                    Debug.LogError($"{scanName} not found.");
-                    return;
-                }
-
-                var reconstruction = reconstructions[0];
-                Guid exsistingMap = Guid.Empty;
-
-                try
-                {
-                    exsistingMap = await App.API.GetReconstructionLocalizationMapAsync(reconstruction.Id);
-                }
-                catch (System.Exception) { }
-
-                if (exsistingMap != Guid.Empty || App.state.authoringTools.maps.Any(x => x.value.reconstructionID.value == reconstruction.Id))
-                    throw new Exception("Localization map already registered.");
-
-                App.ExecuteActionOrDelay(new AddOrUpdateMapAction(
-                    Guid.NewGuid(),
-                    scanName,
-                    newMapTransform.position,
-                    newMapTransform.rotation,
-                    Lighting.Day,
-                    reconstruction.Id
-                ));
+                exsistingMap = await App.API.GetReconstructionLocalizationMapAsync(reconstruction.Id);
             }
-            catch (Exception exception)
-            {
-                Log.Error(LogGroup.Default, exception, "Encountered an error importing scan.");
-            }
+            catch (System.Exception) { }
+
+            if (exsistingMap != Guid.Empty || App.state.authoringTools.maps.Any(x => x.value.reconstructionID.value == reconstruction.Id))
+                throw new Exception("Localization map already registered.");
+
+            App.ExecuteActionOrDelay(new AddOrUpdateMapAction(
+                Guid.NewGuid(),
+                scanName,
+                newMapTransform.position,
+                newMapTransform.rotation,
+                Lighting.Day,
+                reconstruction.Id
+            ));
         }
 
         private void OpenUserSettings()

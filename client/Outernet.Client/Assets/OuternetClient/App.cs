@@ -287,8 +287,10 @@ namespace Outernet.Client
             );
         }
 
-        private void Update()
+        protected override void Update()
         {
+            base.Update();
+
             ConnectionManager.Update();
             PlaneDetector.Update();
             SceneViewManager.Update();

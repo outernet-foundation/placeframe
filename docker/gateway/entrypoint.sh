@@ -14,7 +14,7 @@ cat > /etc/caddy/Caddyfile <<EOF
     }
 
     handle {
-        reverse_proxy visual-localization-system-api:8000
+        reverse_proxy api:8000
     }
 }
 EOF

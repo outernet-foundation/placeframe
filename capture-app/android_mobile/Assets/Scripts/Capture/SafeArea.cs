@@ -3,29 +3,25 @@ using UnityEngine;
 [RequireComponent(typeof(RectTransform))]
 public class SafeArea : MonoBehaviour
 {
+    private Rect _safeArea = new Rect(0, 0, 1080, 1920);
     private RectTransform _rectTransform;
-    private Rect _safeArea;
-    private Vector2 _minAnchor;
-    private Vector2 _maxAnchor;
+
+    private void Awake()
+    {
+        _rectTransform = GetComponent<RectTransform>();
+        _rectTransform.anchorMin = Vector2.one * 0.5f;
+        _rectTransform.anchorMax = Vector2.one * 0.5f;
+        _rectTransform.offsetMin = Vector2.zero;
+        _rectTransform.offsetMax = Vector2.zero;
+    }
 
     private void Update()
     {
-        _rectTransform = GetComponent<RectTransform>();
         _safeArea = Screen.safeArea;
-        _minAnchor = _safeArea.min;
-        _maxAnchor = _safeArea.max;
-        _minAnchor.x /= Screen.width;
-        _minAnchor.y /= Screen.height;
-        _maxAnchor.x /= Screen.width;
-        _maxAnchor.y /= Screen.height;
 
-        _rectTransform.anchorMax = _maxAnchor;
-        _rectTransform.anchorMin = _minAnchor;
-        _rectTransform.offsetMin = Vector2.zero;
-        _rectTransform.offsetMax = Vector2.zero;
+        var scale = new Vector2(1f / transform.lossyScale.x, 1f / transform.lossyScale.y);
+        var delta = _safeArea.max - _safeArea.min;
 
-#if UNITY_ANDROID && !UNITY_EDITOR
-        _rectTransform.offsetMin = new Vector2(0, 25);
-#endif
+        _rectTransform.sizeDelta = Vector2.Scale(scale, delta);
     }
 }

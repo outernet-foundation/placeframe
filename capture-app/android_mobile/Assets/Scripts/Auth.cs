@@ -21,7 +21,9 @@ public static class Auth
         public string error_description;
     }
 
-    public static string TokenUrl
+    public static string username;
+    public static string password;
+    public static string url
     {
         get
         {
@@ -30,8 +32,6 @@ public static class Auth
     }
 
     public static readonly string client_id = "plerion-api";
-    public static readonly string username = "user";
-    public static readonly string password = "password";
 
     // current tokens
     public static TokenResponse tokenResponse;
@@ -56,7 +56,7 @@ public static class Auth
         form.AddField("username", username);
         form.AddField("password", password);
 
-        var url = TokenUrl;
+        var url = Auth.url;
         Debug.Log($"Logging in to {url} as {username}");
         using var req = UnityWebRequest.Post(url, form);
         var op = req.SendWebRequest();
@@ -92,7 +92,7 @@ public static class Auth
             form.AddField("client_id", client_id);
             form.AddField("refresh_token", tokenResponse.refresh_token);
 
-            using var req = UnityWebRequest.Post(TokenUrl, form);
+            using var req = UnityWebRequest.Post(url, form);
             var op = req.SendWebRequest();
             while (!op.isDone) await Task.Yield();
 

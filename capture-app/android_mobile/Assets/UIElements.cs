@@ -1,6 +1,5 @@
 using UnityEngine;
 using Nessle;
-using TMPro;
 
 using static Nessle.UIBuilder;
 using ObserveThing;
@@ -8,13 +7,14 @@ using System;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Cysharp.Threading.Tasks;
-using FofX.Stateful;
-using ObserveThing.StatefulExtensions;
+using TMPro;
 
 namespace PlerionClient.Client
 {
-    public static class UIPresets
+    public static partial class UIElements
     {
+        public static UIElementSet elements;
+
         public static IControl<LayoutProps> Row(string identifier = "row", LayoutProps props = default, HorizontalLayoutGroup prefab = default, Action<IControl<LayoutProps>> setup = default)
         {
             var control = HorizontalLayout(identifier, props, prefab);
@@ -25,8 +25,8 @@ namespace PlerionClient.Client
             return control;
         }
 
-        public static Control SafeArea()
-            => new Control("safeArea", typeof(SafeArea));
+        public static Control SafeArea(string identifier = "safeArea")
+            => new Control(identifier, typeof(SafeArea));
 
         public class EditableLabelProps : IDisposable
         {
@@ -112,14 +112,24 @@ namespace PlerionClient.Client
             });
         }
 
-        public static IControl<LayoutProps> TightRowsWideColumns(string identifier = "verticalLayout.layout", LayoutProps props = default, VerticalLayoutGroup prefab = default, Action<IControl<LayoutProps>> setup = default)
+        public static IControl<TextProps> Title(string identifier = "title", TextProps props = default, TextMeshProUGUI prefab = default)
+        {
+            return Text(identifier, props, prefab).Setup(text =>
+            {
+                text.props.style.horizontalAlignment.From(HorizontalAlignmentOptions.Center);
+                text.props.style.verticalAlignment.From(VerticalAlignmentOptions.Capline);
+                text.props.style.fontSize.From(48);
+            });
+        }
+
+        public static IControl<LayoutProps> TightRowsWideColumns(string identifier = "verticalLayout.layout", LayoutProps props = default, VerticalLayoutGroup prefab = default)
         {
             return VerticalLayout(identifier, props, prefab).Setup(layout =>
             {
                 layout.props.childControlWidth.From(true);
                 layout.props.childControlHeight.From(true);
                 layout.props.childForceExpandWidth.From(true);
-                layout.props.spacing.From(10);
+                layout.props.spacing.From(30);
             });
         }
 
@@ -174,58 +184,120 @@ namespace PlerionClient.Client
             });
         }
 
-        // public class TabProps
-        // {
-        //     public ValueObservable<string> name { get; } = new ValueObservable<string>();
-        //     public ImageProps icon { get; } = DefaultImageProps();
-        //     public ImageProps selectedIcon { get; } = DefaultImageProps();
-        //     public ValueObservable<IControl> content { get; } = new ValueObservable<IControl>();
-        // }
+        public static IControl LabeledControl(IValueObservable<string> label, float labelWidth, IControl control)
+        {
+            return HorizontalLayout().Setup(layout =>
+            {
+                layout.props.childAlignment.From(TextAnchor.MiddleLeft);
+                layout.props.childControlWidth.From(true);
+                layout.props.childControlHeight.From(true);
+                layout.Children(
+                    Text().Setup(labelObj =>
+                    {
+                        labelObj.props.text.From(label);
+                        labelObj.PreferredWidth(labelWidth);
+                        labelObj.MinWidth(labelWidth);
+                    }),
+                    control.Setup(control => control.FlexibleWidth(true))
+                );
+            });
+        }
 
-        // public class TabbedMenuProps
-        // {
-        //     public ValueObservable<int> selectedTab { get; } = new ValueObservable<int>();
-        //     public ListObservable<TabProps> tabs { get; } = new ListObservable<TabProps>();
-        //     public TextStyleProps defaultLabelStyle { get; } = new TextStyleProps();
-        //     public TextStyleProps selectedLabelStyle { get; } = new TextStyleProps();
-        //     public ImageStyleProps background { get; } = new ImageStyleProps();
-        //     public ImageStyleProps selectedBackground { get; } = new ImageStyleProps();
-        // }
+        public static IControl LabeledControl(string label, float labelWidth, IControl control)
+        {
+            return HorizontalLayout("labeledControl").Setup(layout =>
+            {
+                layout.props.childAlignment.From(TextAnchor.MiddleLeft);
+                layout.props.childControlWidth.From(true);
+                layout.props.childControlHeight.From(true);
+                layout.Children(
+                    Text().Setup(labelObj =>
+                    {
+                        labelObj.props.style.verticalAlignment.From(TMPro.VerticalAlignmentOptions.Capline);
+                        labelObj.props.text.From(label);
+                        labelObj.PreferredWidth(labelWidth);
+                        labelObj.MinWidth(labelWidth);
+                    }),
+                    control.Setup(control => control.FlexibleWidth(true))
+                );
+            });
+        }
 
-        // public static Control<TabbedMenuProps> TabbedMenu(TabbedMenuProps props = default)
-        // {
-        //     props = props ?? new TabbedMenuProps();
-        //     var control = Control("Tabbed Menu", props, typeof(VerticalLayoutGroup));
-        //     var layout = control.gameObject.GetComponent<VerticalLayoutGroup>();
-        //     layout.childControlHeight = true;
-        //     layout.childControlWidth = true;
+        public static IControl<LayoutProps> AdaptiveLabel(IControl label, IControl content)
+        {
+            return VerticalLayout().Setup(root =>
+            {
+                root.props.childControlWidth.From(true);
+                root.props.childControlHeight.From(true);
+                IControl narrowContentRegion = HorizontalLayout("narrowContent").Setup(narrowContentRegion =>
+                {
+                    narrowContentRegion.props.childControlWidth.From(true);
+                    narrowContentRegion.props.childControlHeight.From(true);
+                    narrowContentRegion.FlexibleWidth(true);
+                    narrowContentRegion.FlexibleHeight(true);
+                });
 
-        //     control.Children(
-        //         HorizontalLayout().Style(x =>
-        //         {
-        //             x.childControlHeight.value = true;
-        //             x.childControlWidth.value = true;
-        //             x.childForceExpandWidth.value = true;
-        //         }).Children(props.tabs.CreateDynamic(tabProps =>
-        //         {
-        //             var index = props.tabs.IndexOfDynamic(tabProps);
+                IControl wideContentRegion = VerticalLayout("wideContent").Setup(wideContentRegion =>
+                {
+                    wideContentRegion.FlexibleWidth(true);
+                    wideContentRegion.props.childControlWidth.From(true);
+                    wideContentRegion.props.childControlHeight.From(true);
+                });
 
-        //             var selected = Observables.Combine(
-        //                 index,
-        //                 props.selectedTab,
-        //                 (index, selected) => index == selected
-        //             );
+                var contentIsWide = Observables.Combine(
+                    content.rect, narrowContentRegion.rect,
+                    (_, region) =>
+                    {
+                        var tooWide = LayoutUtility.GetPreferredWidth(content.transform) > region.width;
+                        var tooTall = LayoutUtility.GetPreferredHeight(content.transform) > region.height;
+                        return tooWide || tooTall;
+                    }
+                );
 
-        //             return Button()
-        //                 .Background(selected.SelectDynamic(x => x ? props.background : props.selectedBackground))
-        //                 .WithMetadata(index)
-        //                 .Children(
-        //                     Image().Style(selected.SelectDynamic(x => x ? tabProps.icon : tabProps.selectedIcon)),
-        //                     Text().Style(selected.SelectDynamic(x => x ? props.defaultLabelStyle : props.selectedLabelStyle)).Value(tabProps.name)
-        //                 );
+                wideContentRegion.Active(contentIsWide);
+                narrowContentRegion.Active(contentIsWide.SelectDynamic(x => !x));
+                content.parent.From(contentIsWide.SelectDynamic(x => x ? wideContentRegion : narrowContentRegion));
 
-        //         }).OrderByDynamic(x => x.metadata))
-        //     );
-        // }
+                root.Children(
+                    Row().Setup(topRow => topRow.Children(label, narrowContentRegion)),
+                    wideContentRegion
+                );
+
+                content.FillParent();
+            });
+        }
+
+        public class ColumnsProps : IDisposable
+        {
+            public ValueObservable<float> spacing { get; } = new ValueObservable<float>();
+
+            public void Dispose()
+            {
+                spacing.Dispose();
+            }
+        }
+
+        public static IControl<ColumnsProps> Columns()
+        {
+            return Control("columns", new ColumnsProps()).Setup(columns =>
+            {
+                columns.AddBinding(
+                    Observables.Any(columns.children, columns.props.spacing).Subscribe(_ =>
+                    {
+                        float step = 1f / columns.children.count;
+
+                        for (int i = 0; i < columns.children.count; i++)
+                        {
+                            var child = columns.children[i];
+                            child.transform.anchorMin = new Vector2(step * i, 0);
+                            child.transform.anchorMax = new Vector2(step * (i + 1), 1);
+
+                            child.transform.offsetMin = new Vector2(Mathf.Lerp(0f, columns.props.spacing.value, i * step), 0);
+                            child.transform.offsetMax = new Vector2(Mathf.Lerp(-columns.props.spacing.value, 0f, (i + 1) * step), 0);
+                        }
+                    })
+                );
+            });
+        }
     }
 }

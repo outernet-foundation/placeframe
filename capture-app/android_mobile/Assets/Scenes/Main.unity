@@ -119,6 +119,51 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &131364962
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 131364964}
+  - component: {fileID: 131364963}
+  m_Layer: 0
+  m_Name: SceneReferences
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &131364963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 131364962}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a043e5e97b40e1d4abc7797804d51f0a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _arCameraManager: {fileID: 2062099215}
+--- !u!4 &131364964
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 131364962}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -477,11 +522,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11c28bcd1c6aca549a12454723592a21, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  sceneReferences: {fileID: 131364963}
   captureControllerPrefab: {fileID: 5391395635588278998, guid: 139cc86c2a14cc74d9f55224f45e567f,
     type: 3}
-  overridePlerionBaseURL: 1
-  plerionBaseURL: https://skilled-finally-primate.ngrok-free.app
+  localizationManager: {fileID: 1888326200937376642, guid: b9fbd5e6c270c5b41a0c3684ca806ae8,
+    type: 3}
   uiPrimitives: {fileID: 11400000, guid: 9c11dd85584e91349a2565e81546a8c7, type: 2}
+  uiElements: {fileID: 11400000, guid: 49b66e4a8cb7e86408ca2f2efb6ab9f7, type: 2}
 --- !u!4 &1353736508
 Transform:
   m_ObjectHideFlags: 0
@@ -871,3 +918,4 @@ SceneRoots:
   - {fileID: 600290474}
   - {fileID: 1864419016}
   - {fileID: 1353736508}
+  - {fileID: 131364964}
