@@ -20,15 +20,7 @@ namespace PlerionClient.Client
         private void Start()
         {
             CameraLocalization.SetProvider(GetCameraProvider());
-
-            App.RegisterObserver(HandleLoginRequestedChanged, App.state.loginRequested);
             App.RegisterObserver(HandleAppModeChanged, App.state.mode, App.state.loggedIn);
-        }
-
-        private void HandleLoginRequestedChanged(NodeChangeEventArgs args)
-        {
-            VisualPositioningSystem.Initialize(App.state.username.value, App.state.password.value);
-            App.state.vpsAuthComplete.ExecuteSetOrDelay(true);
         }
 
         private void HandleAppModeChanged(NodeChangeEventArgs args)

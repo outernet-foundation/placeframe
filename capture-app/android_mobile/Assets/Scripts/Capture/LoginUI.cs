@@ -1,25 +1,21 @@
 using UnityEngine;
 using Nessle;
+using Nessle.StatefulExtensions;
 using TMPro;
 
 using static Nessle.UIBuilder;
 using ObserveThing;
 using UnityEngine.UI;
+using FofX.Stateful;
+using ObserveThing.StatefulExtensions;
 
 namespace PlerionClient.Client
 {
     public static partial class UIElements
     {
-        public class LoginScreenProps
+        public static IControl LoginUI()
         {
-            public ValueObservable<string> username { get; } = new ValueObservable<string>();
-            public ValueObservable<string> password { get; } = new ValueObservable<string>();
-            public ValueObservable<string> error { get; } = new ValueObservable<string>();
-        }
-
-        public static IControl<LoginScreenProps> LoginUI()
-        {
-            return Control("loginUI", new LoginScreenProps()).Setup(loginUI =>
+            return Control("loginUI").Setup(loginUI =>
             {
                 loginUI.Children(
                     Image().Setup(background =>
@@ -35,11 +31,11 @@ namespace PlerionClient.Client
                                 content.SizeDelta(new Vector2(900, 0));
                                 content.FitContentVertical(ContentSizeFitter.FitMode.PreferredSize);
                                 content.Children(
-                                    LabeledControl("Username", 225, InputField().Setup(username => username.BindValue(x => x.inputText.text, loginUI.props.username))),
+                                    LabeledControl("Username", 225, InputField().Setup(username => username.BindValue(x => x.inputText.text, App.state.username))),
                                     LabeledControl("Password", 225, InputField().Setup(password =>
                                     {
                                         password.props.contentType.From(TMP_InputField.ContentType.Password);
-                                        password.BindValue(x => x.inputText.text, loginUI.props.password);
+                                        password.BindValue(x => x.inputText.text, App.state.password);
                                     })),
                                     HorizontalLayout().Setup(loginBar =>
                                     {
@@ -50,18 +46,16 @@ namespace PlerionClient.Client
                                             Button().Setup(loginButton =>
                                             {
                                                 loginButton.LabelFrom("Log In");
-                                                loginButton.props.onClick.From(() =>
-                                                    App.ExecuteAction(new LogInAction(loginUI.props.username.value, loginUI.props.password.value))
-                                                );
+                                                loginButton.props.onClick.From(() => App.state.loginRequested.ExecuteSetOrDelay(true));
                                             })
                                         );
                                     }),
                                     Text().Setup(errorText =>
                                     {
                                         errorText.props.style.color.From(Color.red);
-                                        errorText.props.text.From(loginUI.props.error);
+                                        errorText.Active(App.state.authError.AsObservable().SelectDynamic(x => !string.IsNullOrEmpty(x)));
+                                        errorText.props.text.From(App.state.authError.AsObservable());
                                         errorText.props.style.horizontalAlignment.From(HorizontalAlignmentOptions.Center);
-                                        errorText.Active(loginUI.props.error.SelectDynamic(x => x != null));
                                     })
                                 );
                             })

@@ -12,8 +12,6 @@ using ObserveThing;
 using ObserveThing.StatefulExtensions;
 
 using static Nessle.UIBuilder;
-using SmartFormat.Utilities;
-using System.Collections.Generic;
 
 namespace PlerionClient.Client
 {

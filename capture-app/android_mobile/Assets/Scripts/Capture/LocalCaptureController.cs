@@ -12,6 +12,7 @@ using UnityEngine.XR.ARSubsystems;
 using System.Collections.Generic;
 using Unity.Mathematics;
 using PlerionApiClient.Model;
+using UnityEngine.Experimental.Rendering;
 
 
 public static class LocalCaptureController
@@ -259,23 +260,38 @@ public static class LocalCaptureController
             cpuImage,
             TextureFormat.RGBA32,
             // Mirror the image on the X axis to match the display orientation
-            flipped ? XRCpuImage.Transformation.MirrorX : XRCpuImage.Transformation.None);
+            flipped ? XRCpuImage.Transformation.MirrorX : XRCpuImage.Transformation.None
+        );
 
         int byteCount = cpuImage.GetConvertedDataSize(conversion);
-        using var pixelBuffer = new NativeArray<byte>(byteCount, Allocator.TempJob);
-        cpuImage.Convert(conversion, pixelBuffer);
+        byte[] pixelBuffer = default;
+        XRCpuImage.AsyncConversionStatus conversionStatus = XRCpuImage.AsyncConversionStatus.Pending;
+
+        cpuImage.ConvertAsync(conversion, (status, _, result) =>
+        {
+            conversionStatus = status;
+            pixelBuffer = result.ToArray();
+        });
+
+        await UniTask.WaitUntil(() =>
+            conversionStatus == XRCpuImage.AsyncConversionStatus.Ready ||
+            conversionStatus == XRCpuImage.AsyncConversionStatus.Failed ||
+            conversionStatus == XRCpuImage.AsyncConversionStatus.Disposed
+        );
+
+        if (conversionStatus == XRCpuImage.AsyncConversionStatus.Disposed)
+            throw new Exception("Conversion disposed unexpectedly");
+
+        if (conversionStatus == XRCpuImage.AsyncConversionStatus.Failed)
+            throw new Exception("XRCpuImage conversion failed");
+
+        uint width = (uint)cpuImage.width;
+        uint height = (uint)cpuImage.height;
         cpuImage.Dispose();
 
-        var texture = new Texture2D(
-            conversion.outputDimensions.x,
-            conversion.outputDimensions.y,
-            TextureFormat.RGBA32,
-            false);
-
-        texture.LoadRawTextureData(pixelBuffer);
-        texture.Apply(false, false);
-        byte[] jpgBytes = texture.EncodeToJPG();
-        UnityEngine.Object.Destroy(texture);
+        var jpgBytes = await UniTask.RunOnThreadPool(
+            () => ImageConversion.EncodeArrayToJPG(pixelBuffer, GraphicsFormat.R8G8B8A8_SRGB, width, height)
+        );
 
         Directory.CreateDirectory(Path.GetDirectoryName(absoluteImagePath)!);
         await File.WriteAllBytesAsync(absoluteImagePath, jpgBytes);

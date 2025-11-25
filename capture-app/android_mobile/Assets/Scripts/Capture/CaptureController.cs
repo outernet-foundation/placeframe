@@ -8,12 +8,8 @@ using System.Net.Http;
 using UnityEngine;
 
 using Cysharp.Threading.Tasks;
-using TMPro;
 using PlerionApiClient.Api;
 using PlerionApiClient.Model;
-
-// using PlerionClient.Api;
-// using PlerionClient.Model;
 
 using FofX;
 using FofX.Stateful;
@@ -24,16 +20,9 @@ using Nessle.StatefulExtensions;
 using ObserveThing;
 using ObserveThing.StatefulExtensions;
 
-using static Nessle.UIBuilder;
-// using static PlerionClient.Client.UIPresets;
-using System.Net.Http;
-using UnityEngine.SocialPlatforms;
-
-using Color = UnityEngine.Color;
-using System.Threading.Tasks;
-using System.Net;
 using PlerionApiClient.Client;
 using static PlerionClient.Client.UIElements;
+using DeviceType = PlerionApiClient.Model.DeviceType;
 
 namespace PlerionClient.Client
 {
@@ -56,31 +45,10 @@ namespace PlerionClient.Client
         private DefaultApi capturesApi;
         private IControl ui;
         private TaskHandle currentCaptureTask = TaskHandle.Complete;
-        private TaskHandle loginTask = TaskHandle.Complete;
 
         private string localCaptureNamePath;
 
         private Dictionary<Guid, TaskHandle> awaitReconstructionTasks = new Dictionary<Guid, TaskHandle>();
-        private IDisposable localizationMapActiveObserver;
-        async UniTask DeleteAllZedCaptures()
-        {
-            try
-
-            {
-                var zedCaptures = await ZedCaptureController.GetCaptures();
-
-                foreach (var captureId in zedCaptures)
-                {
-                    await ZedCaptureController.DeleteCapture(captureId);
-                }
-
-                await UpdateCaptureList();
-            }
-            catch
-            {
-                // Handle the exception if ZedCaptureController.GetCaptures() fails
-            }
-        }
         private IDisposable captureStatusStream;
 
         void Awake()
@@ -103,7 +71,6 @@ namespace PlerionClient.Client
 
             ui = ConstructUI(canvas);
 
-            App.RegisterObserver(HandleLoginRequestedChanged, App.state.loginRequested);
             App.RegisterObserver(HandleCaptureStatusChanged, App.state.loggedIn, App.state.captureStatus);
             App.RegisterObserver(HandleCapturesChanged, App.state.captures);
 
@@ -169,26 +136,6 @@ namespace PlerionClient.Client
             captureStatusStream?.Dispose();
         }
 
-        private void HandleLoginRequestedChanged(NodeChangeEventArgs args)
-        {
-            loginTask.Cancel();
-
-            if (!App.state.loginRequested.value)
-                return;
-
-            string username = App.state.username.value;
-            string password = App.state.password.value;
-
-            loginTask = TaskHandle.Execute(async x =>
-            {
-                Auth.username = username;
-                Auth.password = password;
-                await Auth.Login();
-                await UniTask.SwitchToMainThread(cancellationToken: x);
-                App.state.apiAuthComplete.ExecuteSetOrDelay(true);
-            });
-        }
-
         private void HandleCaptureStatusChanged(NodeChangeEventArgs args)
         {
             if (!App.state.loggedIn.value)
@@ -228,33 +175,33 @@ namespace PlerionClient.Client
             File.WriteAllText(localCaptureNamePath, json.ToString());
         }
 
-        private async UniTask StopCapture(CaptureType captureType, CancellationToken cancellationToken = default)
+        private async UniTask StopCapture(DeviceType deviceType, CancellationToken cancellationToken = default)
         {
-            switch (captureType)
+            switch (deviceType)
             {
-                case CaptureType.ARFoundation:
+                case DeviceType.ARFoundation:
                     LocalCaptureController.StopCapture();
                     break;
-                case CaptureType.Zed:
+                case DeviceType.Zed:
                     await ZedCaptureController.StopCapture(cancellationToken);
                     break;
                 default:
-                    throw new Exception($"Unhandled capture type {captureType}");
+                    throw new Exception($"Unhandled capture type {deviceType}");
             }
         }
 
-        private async UniTask StartCapture(CaptureType captureType, CancellationToken cancellationToken = default)
+        private async UniTask StartCapture(DeviceType deviceType, CancellationToken cancellationToken = default)
         {
-            switch (captureType)
+            switch (deviceType)
             {
-                case CaptureType.ARFoundation:
+                case DeviceType.ARFoundation:
                     await LocalCaptureController.StartCapture(cancellationToken, captureIntervalSeconds);
                     break;
-                case CaptureType.Zed:
+                case DeviceType.Zed:
                     await ZedCaptureController.StartCapture(captureIntervalSeconds, cancellationToken);
                     break;
                 default:
-                    throw new Exception($"Unhandled capture type {captureType}");
+                    throw new Exception($"Unhandled capture type {deviceType}");
             }
         }
 
@@ -275,42 +222,67 @@ namespace PlerionClient.Client
             var remoteCaptureReconstructions = await GetReconstructionsForCaptures(remoteCaptureList.Select(x => x.Id).ToList());
             var remoteCaptureLocalizationMaps = await capturesApi.GetLocalizationMapsAsync(reconstructionIds: remoteCaptureReconstructions.Select(x => x.Id).ToList());
 
-            var captureData = remoteCaptureList.ToDictionary(
-                x => x.Id,
-                x =>
-                {
-                    var reconstruction = remoteCaptureReconstructions.FirstOrDefault(y => y.CaptureSessionId == x.Id);
-                    var localizationMap = reconstruction == null ? default : remoteCaptureLocalizationMaps.FirstOrDefault(y => y.ReconstructionId == reconstruction.Id);
-
-                    return (name: x.Name, capture: x, reconstruction, localizationMap, hasLocalFiles: LocalCaptureController.CaptureExists(x.Id));
-                }
-            );
-
-            var arFoundationCaptures = LocalCaptureController.GetCaptures().ToList();
-
             List<Guid> zedCaptures = new List<Guid>();
+
             try
             {
                 using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-                zedCaptures = (await ZedCaptureController.GetCaptures(cancellationTokenSource.Token)).ToList();
+                var captures = await ZedCaptureController.GetCaptures(cancellationTokenSource.Token);
+                zedCaptures.AddRange(captures);
             }
             catch
             {
                 // Handle the exception if ZedCaptureController.GetCaptures() fails
             }
-            var localCaptures = arFoundationCaptures.Concat(zedCaptures).ToList();
 
-            foreach (var localCapture in localCaptures)
+            List<Guid> arFoundationCaptures = LocalCaptureController.GetCaptures().ToList();
+
+            var captureData = remoteCaptureList.ToDictionary(
+                x => x.Id,
+                x =>
+                {
+                    var reconstruction = remoteCaptureReconstructions.FirstOrDefault(y => y.CaptureSessionId == x.Id);
+                    var localizationMap = reconstruction == null ?
+                        default : remoteCaptureLocalizationMaps.FirstOrDefault(y => y.ReconstructionId == reconstruction.Id);
+
+                    return (
+                        name: x.Name,
+                        capture: x,
+                        deviceType: x.DeviceType,
+                        reconstruction,
+                        localizationMap,
+                        hasLocalFiles: zedCaptures.Contains(x.Id) || arFoundationCaptures.Contains(x.Id)
+                    );
+                }
+            );
+
+            foreach (var zedCapture in zedCaptures)
             {
-                if (captureData.ContainsKey(localCapture))
+                if (captureData.ContainsKey(zedCapture))
                     continue;
 
-                captureData.Add(localCapture, (
-                    name: captureNames.TryGetValue(localCapture, out var name) ? name : null,
+                captureData.Add(zedCapture, (
+                    name: captureNames.TryGetValue(zedCapture, out var name) ? name : null,
                     capture: null,
+                    deviceType: DeviceType.Zed,
                     reconstruction: null,
                     localizationMap: null,
-                    hasLocalFiles: LocalCaptureController.CaptureExists(localCapture)
+                    hasLocalFiles: true
+                ));
+            }
+
+            foreach (var arFoundationCapture in arFoundationCaptures)
+            {
+                if (captureData.ContainsKey(arFoundationCapture))
+                    continue;
+
+                captureData.Add(arFoundationCapture, (
+                    name: captureNames.TryGetValue(arFoundationCapture, out var name) ? name : null,
+                    capture: null,
+                    deviceType: DeviceType.ARFoundation,
+                    reconstruction: null,
+                    localizationMap: null,
+                    hasLocalFiles: true
                 ));
             }
 
@@ -326,18 +298,17 @@ namespace PlerionClient.Client
                         copy: (key, entry, state) =>
                         {
                             state.name.value = entry.name;
-                            state.type.value = CaptureType.ARFoundation;
                             state.hasLocalFiles.value = entry.hasLocalFiles;
 
                             if (entry.capture == null) //capture is local only
                             {
-                                state.type.value = zedCaptures.Contains(key) ? CaptureType.Zed : CaptureType.ARFoundation;
+                                state.type.value = entry.deviceType;
                                 state.status.value = CaptureUploadStatus.NotUploaded;
                                 return;
                             }
                             else
                             {
-                                state.type.value = entry.capture.DeviceType == PlerionApiClient.Model.DeviceType.Zed ? CaptureType.Zed : CaptureType.ARFoundation;
+                                state.type.value = entry.deviceType;
                             }
 
                             if (entry.reconstruction == null)
@@ -388,19 +359,19 @@ namespace PlerionClient.Client
         }
 
 
-        private async UniTask UploadCapture(Guid id, string name, CaptureType type, IProgress<(CaptureUploadStatus, float?)> progress = default, CancellationToken cancellationToken = default)
+        private async UniTask UploadCapture(Guid id, string name, DeviceType type, IProgress<(CaptureUploadStatus, float?)> progress = default, CancellationToken cancellationToken = default)
         {
             progress?.Report((CaptureUploadStatus.Initializing, null));
 
             CaptureSessionRead captureSession = default;
             Stream captureData = default;
 
-            if (type == CaptureType.Zed)
+            if (type == DeviceType.Zed)
             {
                 captureData = await ZedCaptureController.GetCapture(id, cancellationToken);
-                captureSession = await capturesApi.CreateCaptureSessionAsync(new CaptureSessionCreate(PlerionApiClient.Model.DeviceType.Zed, name) { Id = id }).AsUniTask();
+                captureSession = await capturesApi.CreateCaptureSessionAsync(new CaptureSessionCreate(DeviceType.Zed, name) { Id = id }).AsUniTask();
             }
-            else if (type == CaptureType.ARFoundation)
+            else if (type == DeviceType.ARFoundation)
             {
                 try
 
@@ -416,7 +387,7 @@ namespace PlerionClient.Client
                 try
                 {
                     await UniTask.SwitchToMainThread();
-                    captureSession = await capturesApi.CreateCaptureSessionAsync(new CaptureSessionCreate(PlerionApiClient.Model.DeviceType.ARFoundation, name) { Id = id }).AsUniTask();
+                    captureSession = await capturesApi.CreateCaptureSessionAsync(new CaptureSessionCreate(DeviceType.ARFoundation, name) { Id = id }).AsUniTask();
                 }
                 catch (Exception e)
                 {

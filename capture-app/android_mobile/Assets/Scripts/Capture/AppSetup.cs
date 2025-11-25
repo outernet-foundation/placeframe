@@ -37,6 +37,8 @@ namespace PlerionClient.Client
             Instantiate(captureControllerPrefab);
             Instantiate(localizationManager);
 
+            gameObject.AddComponent<AuthManager>();
+
             Destroy(this);
         }
     }

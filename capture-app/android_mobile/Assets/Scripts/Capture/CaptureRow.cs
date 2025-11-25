@@ -59,7 +59,7 @@ namespace PlerionClient.Client
                         240,
                         Text().Setup(text =>
                         {
-                            text.props.text.From(capture.type.AsObservable().SelectDynamic(x => x == CaptureType.ARFoundation ? "Mobile" : "Zed"));
+                            text.props.text.From(capture.type.AsObservable().SelectDynamic(x => x == PlerionApiClient.Model.DeviceType.ARFoundation ? "Mobile" : "Zed"));
                             text.props.style.verticalAlignment.From(VerticalAlignmentOptions.Capline);
                             text.props.style.horizontalAlignment.From(HorizontalAlignmentOptions.Right);
                         })
@@ -95,8 +95,23 @@ namespace PlerionClient.Client
 
                                 removeLocalFilesButton.props.onClick.From(() =>
                                 {
-                                    LocalCaptureController.DeleteCapture(capture.id);
-                                    capture.hasLocalFiles.ExecuteSetOrDelay(false);
+                                    if (capture.type.value == PlerionApiClient.Model.DeviceType.ARFoundation)
+                                    {
+                                        LocalCaptureController.DeleteCapture(capture.id);
+                                    }
+                                    else
+                                    {
+                                        ZedCaptureController.DeleteCapture(capture.id).Forget();
+                                    }
+
+                                    if (capture.status.value == CaptureUploadStatus.NotUploaded)
+                                    {
+                                        App.state.captures.ExecuteRemoveOrDelay(capture.id);
+                                    }
+                                    else
+                                    {
+                                        capture.hasLocalFiles.ExecuteSetOrDelay(false);
+                                    }
                                 });
                             }),
                             Button().Setup(uploadButton =>
