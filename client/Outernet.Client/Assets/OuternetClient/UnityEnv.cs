@@ -24,7 +24,7 @@ namespace Outernet.Client
         public LogGroup enabledLogGroups = ~LogGroup.None; // Enable all log groups
         public LogLevel logLevel = LogLevel.Info;
         public LogLevel stackTraceLevel = LogLevel.Warn;
-        public string serverPrefix;
+        public string plerionAPIBaseUrl;
 
         public static UnityEnv GetOrCreateInstance()
         {

@@ -13,9 +13,9 @@ using FofX.Stateful;
 
 using Outernet.Client.Location;
 using CesiumForUnity;
-using PlerionClient.Model;
-using PlerionClient.Api;
-using PlerionClient.Client;
+using PlerionApiClient.Model;
+using PlerionApiClient.Api;
+using PlerionApiClient.Client;
 using Plerion.VPS;
 using System.Threading.Tasks;
 

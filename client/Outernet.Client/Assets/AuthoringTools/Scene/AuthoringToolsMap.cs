@@ -11,6 +11,8 @@ using Plerion.VPS;
 using FofX;
 using System.Collections.Generic;
 
+using Unity.Mathematics;
+
 namespace Outernet.Client.AuthoringTools
 {
     public class AuthoringToolsMap : Control<AuthoringToolsMap.Props>, IPointerClickHandler
@@ -34,6 +36,17 @@ namespace Outernet.Client.AuthoringTools
                 this.reconstructionID = new ObservablePrimitive<Guid>(reconstructionID);
             }
         }
+
+        private static readonly float3x3 basisUnity = float3x3.identity;
+
+        private static readonly float3x3 basisOpenCV = new float3x3(
+            1f, 0f, 0f,
+            0f, -1f, 0f,
+            0f, 0f, 1f
+        );
+
+        private static readonly float3x3 basisChangeUnityFromOpenCV = math.mul(math.transpose(basisUnity), basisOpenCV);
+        private static readonly float3x3 basisChangeOpenCVFromUnity = math.transpose(basisChangeUnityFromOpenCV);
 
         public LocalizationMapRenderer mapRenderer;
         private TaskHandle _loadPointsTask = TaskHandle.Complete;
@@ -78,8 +91,8 @@ namespace Outernet.Client.AuthoringTools
 
                     _loadPointsTask = TaskHandle.Execute(async token =>
                     {
-                        List<PlerionClient.Model.PointCloudPoint> points = default;
-                        List<PlerionClient.Model.Transform> localInputPositions = default;
+                        List<PlerionApiClient.Model.PointCloudPoint> points = default;
+                        List<PlerionApiClient.Model.Transform> localInputPositions = default;
 
                         await UniTask.WhenAll(
                             App.API.GetReconstructionPointsAsync(x, token).AsUniTask().ContinueWith(x => points = x),
@@ -88,17 +101,28 @@ namespace Outernet.Client.AuthoringTools
 
                         await UniTask.SwitchToMainThread(cancellationToken: token);
 
-                        _localInputPositions.AddRange(localInputPositions.Select(x => new Vector3((float)x.Position.X, -(float)x.Position.Y, (float)x.Position.Z)));
-
-                        mapRenderer.Load(points.Select(x => new Point()
+                        _localInputPositions.AddRange(localInputPositions.Select(x =>
                         {
-                            position = new Vector3((float)x.Position.X, -(float)x.Position.Y, (float)x.Position.Z),
-                            color = x.Color.ToUnityColor()
+                            var unityBasis = ChangeBasisOpenCVToUnity(new float3x3(quaternion.identity), x.Position.ToFloat3());
+                            return unityBasis.Item2.ToVector3();
+                        }));
+
+                        mapRenderer.Load(points.Select(x =>
+                        {
+                            var unityBasis = ChangeBasisOpenCVToUnity(new float3x3(quaternion.identity), x.Position.ToFloat3());
+                            return new Point()
+                            {
+                                position = unityBasis.Item2.ToVector3(),
+                                color = x.Color.ToUnityColor()
+                            };
                         }).ToArray());
                     });
                 })
             );
         }
+
+        private static (float3x3, float3) ChangeBasisOpenCVToUnity(float3x3 rotation, float3 translation)
+            => (math.mul(basisChangeUnityFromOpenCV, math.mul(rotation, basisChangeOpenCVFromUnity)), math.mul(basisChangeUnityFromOpenCV, translation));
 
         public void OnPointerClick(PointerEventData eventData)
         {

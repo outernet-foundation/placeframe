@@ -8,7 +8,7 @@ using Unity.Mathematics;
 using System.Collections.Generic;
 
 using Plerion.VPS;
-using PlerionClient.Model;
+using PlerionApiClient.Model;
 
 using Vector3 = UnityEngine.Vector3;
 using Quaternion = UnityEngine.Quaternion;
@@ -131,7 +131,7 @@ namespace Outernet.Client
                     name: toUpdate.Name,
                     position: new double3() { x = toUpdate.PositionX, y = toUpdate.PositionY, z = toUpdate.PositionZ },
                     rotation: new Quaternion((float)toUpdate.RotationX, (float)toUpdate.RotationY, (float)toUpdate.RotationZ, (float)toUpdate.RotationW),
-                    lighting: (Lighting)toUpdate.Lighting,
+                    lighting: (Lighting)(toUpdate.Lighting ?? 0),
                     reconstructionID: toUpdate.ReconstructionId
                 ).Execute(target);
             }
@@ -450,9 +450,9 @@ namespace Outernet.Client
 
     public class SetLayersAction : ObservableNodeAction<ClientState>
     {
-        private PlerionClient.Model.LayerRead[] _layers;
+        private PlerionApiClient.Model.LayerRead[] _layers;
 
-        public SetLayersAction(PlerionClient.Model.LayerRead[] layers)
+        public SetLayersAction(PlerionApiClient.Model.LayerRead[] layers)
         {
             _layers = layers;
         }

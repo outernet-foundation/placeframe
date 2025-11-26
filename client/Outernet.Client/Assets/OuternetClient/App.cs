@@ -14,10 +14,10 @@ using ObservableCollections;
 
 using Cysharp.Threading.Tasks;
 
-using PlerionClient.Api;
+using PlerionApiClient.Api;
 using Plerion.VPS;
 using Plerion.VPS.ARFoundation;
-using PlerionClient.Model;
+using PlerionApiClient.Model;
 #if UNITY_LUMIN
 using Plerion.VPS.MagicLeap;
 #endif
@@ -43,7 +43,7 @@ namespace Outernet.Client
         public static RoomRecord State_Old => ConnectionManager.State;
         public static Guid? ClientID => ConnectionManager.ClientID;
         public static string environmentURL;
-        public static string environmentSchema;
+        public static string plerionAPIBaseUrl;
         public static string serverPrefix;
 
         private static bool internetReachable = false;
@@ -56,9 +56,6 @@ namespace Outernet.Client
 
         private void Start()
         {
-            var plerionAPIBaseUrl = string.IsNullOrEmpty(serverPrefix) ?
-                "https://api.outernetfoundation.org" : $"https://{serverPrefix}-api.outernetfoundation.org";
-
             API = new DefaultApi(
                 new HttpClient(new KeycloakHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
@@ -71,7 +68,7 @@ namespace Outernet.Client
             ConnectionManager.HubConnectionRequested.EnqueueSet(true);
 
             VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated += () =>
-                state.ecefToLocalMatrix.ExecuteSetOrDelay(VisualPositioningSystem.UnityFromEcefTransformLeftHanded);
+                state.ecefToLocalMatrix.ExecuteSetOrDelay(VisualPositioningSystem.EcefToUnityWorldTransform);
 
             CameraLocalization.SetProvider(GetProvider());
             CameraLocalization.Start();

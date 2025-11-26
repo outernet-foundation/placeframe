@@ -47,14 +47,8 @@ namespace Outernet.Client
 #endif
 
             UnityEnv env = UnityEnv.GetOrCreateInstance();
-
-            Auth.tokenUrl = string.IsNullOrEmpty(env.serverPrefix) ?
-                "https://keycloak.outernetfoundation.org/realms/plerion-dev/protocol/openid-connect/token" :
-                $"https://{env.serverPrefix}-keycloak.outernetfoundation.org/realms/plerion-dev/protocol/openid-connect/token";
-
             App.environmentURL = env.environmentURL;
-            App.environmentSchema = env.environmentSchema;
-            App.serverPrefix = env.serverPrefix;
+            App.plerionAPIBaseUrl = env.plerionAPIBaseUrl;
 
             Instantiate(prefabSystem, transform);
 
@@ -107,11 +101,9 @@ namespace Outernet.Client
 #endif
 
 #if !MAP_REGISTRATION_TOOLS_ENABLED
-            VisualPositioningSystem.Initialize("user", "password");
-            Auth.username = "user";
-            Auth.password = "password";
-            App.state.loggedIn.ExecuteSet(true);
+            Tasks.Login(App.plerionAPIBaseUrl, "user", "password").Forget();
 #endif
+
             Destroy(this);
         }
 

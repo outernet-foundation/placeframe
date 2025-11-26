@@ -13,7 +13,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using PlerionClient.Model;
+using PlerionApiClient.Model;
 using Plerion.VPS;
 
 using Vector3 = UnityEngine.Vector3;

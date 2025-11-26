@@ -1,7 +1,6 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using Plerion.VPS;
 using Cysharp.Threading.Tasks;
 using System;
 
@@ -16,7 +15,7 @@ namespace Outernet.Client.AuthoringTools
 
         private void Awake()
         {
-            loginButton.onClick.AddListener(() => Login(username.text, password.text).Forget());
+            loginButton.onClick.AddListener(() => Login(App.plerionAPIBaseUrl, username.text, password.text).Forget());
 
             App.state.loggedIn.OnChange(x =>
             {
@@ -32,14 +31,11 @@ namespace Outernet.Client.AuthoringTools
             });
         }
 
-        private async UniTask Login(string username, string password)
+        private async UniTask Login(string apiUrl, string username, string password)
         {
-            Auth.username = username;
-            Auth.password = password;
-
             try
             {
-                await Auth.Login();
+                await Tasks.Login(apiUrl, username, password);
             }
             catch (Exception exc)
             {
@@ -48,10 +44,6 @@ namespace Outernet.Client.AuthoringTools
                 errorText.gameObject.SetActive(true);
                 return;
             }
-
-            await UniTask.SwitchToMainThread();
-            VisualPositioningSystem.Initialize(username, password);
-            App.state.loggedIn.ExecuteSet(true);
         }
     }
 }

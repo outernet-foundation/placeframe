@@ -23,7 +23,7 @@ from plerion_api_client.models.transform import Transform
 from .auth import password_login
 from .visualize import generate_visualization
 
-API_BASE_URL = "https://desktop-otd3rch-api.outernetfoundation.org"
+API_BASE_URL = "https://unshared-shawana-hypereutectic.ngrok-free.dev"
 SCRIPT_DIR = Path(__file__).parent
 OUTPUT_HTML_PATH = SCRIPT_DIR / "vls_test_result.html"
 
@@ -192,7 +192,7 @@ async def main_async():
 
 def main():
     # asyncio.run(main_async())
-    asyncio.run(visual_reconstruction_pointcloud(UUID("ed60ad43-d81e-44f8-8e1e-73d5588ca6b0")))
+    asyncio.run(visual_reconstruction_pointcloud(UUID("741fdd9b-f7f5-403b-ba54-542278cdead9")))
 
 
 if __name__ == "__main__":

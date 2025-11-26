@@ -9,7 +9,7 @@ import requests  # used only for the token endpoint
 
 KEYCLOAK_REALM = "plerion-dev"
 OIDC_TOKEN_URL = (
-    "https://skilled-finally-primate.ngrok-free.app//auth//realms/plerion-dev/protocol/openid-connect/token"
+    "https://unshared-shawana-hypereutectic.ngrok-free.dev//auth//realms/plerion-dev/protocol/openid-connect/token"
 )
 OIDC_CLIENT_ID = "plerion-api"
 OIDC_USERNAME = "user"

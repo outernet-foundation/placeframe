@@ -9,7 +9,7 @@ using FofX.Stateful;
 
 using Cysharp.Threading.Tasks;
 using UnityEditor;
-using PlerionClient.Model;
+using PlerionApiClient.Model;
 
 namespace Outernet.Client.AuthoringTools
 {

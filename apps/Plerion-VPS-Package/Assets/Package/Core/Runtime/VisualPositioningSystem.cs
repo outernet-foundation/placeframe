@@ -44,6 +44,9 @@ namespace Plerion.VPS
         public static float? FloorHeight => EstimatedFloorHeight ?? DetectedFloorHeight;
         public static bool LocalizationSessionActive => localizationSessionId != Guid.Empty;
 
+        public static double4x4 EcefToUnityWorldTransform => ecefToUnityTransform;
+        public static double4x4 UnityWorldToEcefTransform => unityToEcefTransform;
+
         public static event Action OnEcefToUnityWorldTransformUpdated;
 
         private static DefaultApi api;
@@ -181,8 +184,6 @@ namespace Plerion.VPS
             }
         }
 
-        public static LocalizationMetrics latestMetrics = null;
-
         public static async UniTask LocalizeFromCameraImage(byte[] image, Vector3 cameraTranslationUnityWorldFromCamera, Quaternion cameraRotationUnityWorldFromCamera)
         {
             if (image == null)
@@ -200,8 +201,6 @@ namespace Plerion.VPS
             }
 
             var localizationResult = localizationResults.FirstOrDefault(); //for now, just use the first one
-
-            latestMetrics = localizationResult.Metrics;
 
             var unityWorldFromColmap = BuildUnityWorldFromColmapWorldTransform(
                 colmapRotationCameraFromWorld: localizationResult.Transform.Rotation.ToMathematicsQuaternion(),
@@ -225,7 +224,23 @@ namespace Plerion.VPS
             OnEcefToUnityWorldTransformUpdated?.Invoke();
         }
 
-        public static float4x4 BuildUnityWorldFromColmapWorldTransform(
+        public static void SetUnityWorldToEcefTransform(double4x4 transform)
+        {
+            unityToEcefTransform = transform;
+            ecefToUnityTransform = math.inverse(transform);
+
+            OnEcefToUnityWorldTransformUpdated?.Invoke();
+        }
+
+        public static void SetEcefToUnityWorldTransform(double4x4 transform)
+        {
+            ecefToUnityTransform = transform;
+            unityToEcefTransform = math.inverse(transform);
+
+            OnEcefToUnityWorldTransformUpdated?.Invoke();
+        }
+
+        private static float4x4 BuildUnityWorldFromColmapWorldTransform(
             quaternion colmapRotationCameraFromWorld,
             float3 colmapTranslationCameraFromWorld,
             quaternion unityRotationWorldFromCamera,
@@ -329,7 +344,7 @@ namespace Plerion.VPS
             return points.Select(x =>
             {
                 var pcw = x.Position.ToFloat3();
-                var p_ucam = math.mul(basisChangeUnityFromOpenCV, pcw);
+                var p_ucam = ChangeBasisOpenCVToUnity(new float3x3(quaternion.identity), pcw).Item2;
                 return new Point
                 {
                     position = p_ucam,

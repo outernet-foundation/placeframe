@@ -20,7 +20,7 @@
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
     "com.magicleap.unitysdk": "2.5.0",
     "com.ogment.outernet.shared": "file:../../Outernet.Shared",
-    "com.outernet.plerionclient": "file:../../../docker/api/clients/unity/src/PlerionClient",
+    "com.plerion.api-client": "file:../../../packages/generated/api-client-csharp/src/PlerionApiClient",
     "com.plerion.vps": "file:../../../apps/Plerion-VPS-Package/Assets/Package/Core",
     "com.plerion.vps.arfoundation": "file:../../../apps/Plerion-VPS-Package/Assets/Package/ARFoundation",
     "com.plerion.vps.magicleap": "file:../../../apps/Plerion-VPS-Package/Assets/Package/MagicLeap",

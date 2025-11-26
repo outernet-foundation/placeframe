@@ -71,8 +71,8 @@
       "source": "local",
       "dependencies": {}
     },
-    "com.outernet.plerionclient": {
-      "version": "file:../../../services/visual-localization-system/api/clients/unity/src/PlerionClient",
+    "com.plerion.api-client": {
+      "version": "file:../../../packages/generated/api-client-csharp/src/PlerionApiClient",
       "depth": 0,
       "source": "local",
       "dependencies": {}

@@ -37,6 +37,12 @@ namespace Plerion.VPS
         public static float3 ToFloat3(this PlerionApiClient.Model.Vector3 vector3)
             => new float3((float)vector3.X, (float)vector3.Y, (float)vector3.Z);
 
+        public static Vector3 ToVector3(this PlerionApiClient.Model.Vector3 vector3)
+            => new Vector3((float)vector3.X, (float)vector3.Y, (float)vector3.Z);
+
+        public static Vector3 ToVector3(this float3 floats)
+            => new Vector3(floats.x, floats.y, floats.z);
+
         public static Color ToUnityColor(this PlerionApiClient.Model.Color color)
             => new Color(color.R / 255f, color.G / 255f, color.B / 255f);
     }

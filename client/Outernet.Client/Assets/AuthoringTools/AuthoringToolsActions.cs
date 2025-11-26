@@ -6,7 +6,7 @@ using FofX.Stateful;
 using Unity.Mathematics;
 
 using SimpleJSON;
-using PlerionClient.Model;
+using PlerionApiClient.Model;
 
 namespace Outernet.Client.AuthoringTools
 {
