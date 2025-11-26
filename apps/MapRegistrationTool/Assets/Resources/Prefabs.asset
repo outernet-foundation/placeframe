@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6d34ffb3793edf9488d3ccd54d9fb9c6, type: 3}
+  m_Name: Prefabs
+  m_EditorClassIdentifier: 
+  _canvas: {fileID: 415244489107187452, guid: 4f079a5c656c8ed41b5f2f7b3d7420dd, type: 3}
+  _systemMenu: {fileID: 7222767730608557186, guid: d409674e8c59464489a17fc8f0521bdb, type: 3}
+  _mapRegistrationUI: {fileID: 5737610027479913616, guid: 955ff0b058908784d8f84db8ae820d0e, type: 3}
+  _sceneViewManager: {fileID: 5813793525677497126, guid: 2b43858576669f4468a608713034af3f, type: 3}
+  _scrim: {fileID: 8284586992511580218, guid: 11001e4b29faaca46bc9719896aab1bb, type: 3}
+  _loginScreen: {fileID: 7628317855842440033, guid: a31d486629bb166438883e022861b71e, type: 3}
+  _map: {fileID: 5102312161174278584, guid: c292ece4b32a1ab4cbf393a31ac3c3f3, type: 3}
+  _text: {fileID: 8510764395725574002, guid: 06edba329c7570e48ad017a0b3618e01, type: 3}
+  _editableLabel: {fileID: 3171228340661968906, guid: dc2f776ba6535c1448f03ca20923241b, type: 3}
+  _inputField: {fileID: 7072475772103620048, guid: 70d5bf26e8a994d4fa266d5891510f41, type: 3}
+  _inputRegion: {fileID: 4989474728209781913, guid: a192953f52caeb742983614553235fa1, type: 3}
+  _horizontalLayout: {fileID: -1262525441471082176, guid: 1eb462e88c59b6c45b887e5207c92931, type: 3}
+  _verticalLayout: {fileID: 789717495755103374, guid: fb87d3520e5dd1b4c842a43db588e96d, type: 3}
+  _tightPropertyLabel: {fileID: 212943300495723684, guid: 7f79d4fadc0b6e242b3042ea3085f8d6, type: 3}
+  _propertyLabel: {fileID: 0}
+  _adaptivePropertyLabel: {fileID: 1049536186529930072, guid: 8d71fc14cd9148b44b4c45ba039b8168, type: 3}
+  _foldout: {fileID: 8790410849158676018, guid: 5d403da73f6247446bb6872497545a06, type: 3}
+  _header: {fileID: 4220028511700684455, guid: b0d233a8bb0d8413282383c5285087cb, type: 3}
+  _toggle: {fileID: 7028622818352920565, guid: c4854e373cd8c0946b1047c9c46f3080, type: 3}
+  _dropdown: {fileID: 8525047336924097246, guid: 87e612076c89e36438cc60ca6295afe7, type: 3}
+  _button: {fileID: 8735582482114826603, guid: 91347f88e6d16884684677abbf2408f6, type: 3}
+  _listElement: {fileID: 7108153646608728482, guid: de7a87dc32af82a4aadeab7b3123b50d, type: 3}
+  _window: {fileID: 2947104208611053006, guid: 5fa8d6ec3e3d3f3478c5864428689f43, type: 3}
+  _dialog: {fileID: 7170845304726306627, guid: a0c516d5feb81564b8fd57881cd413db, type: 3}
+  _scrollRect: {fileID: 9222760428719570034, guid: 2c382aed28322b24e8197f276beac69a, type: 3}
+  _selectedColor: {r: 0, g: 0.68235296, b: 0.93725497, a: 1}
+  _torusMesh: {fileID: -3148778660546188215, guid: 9cec9d8171296cc41ac8666f0ec70f89, type: 3}
+  _halfTorusMesh: {fileID: -3148778660546188215, guid: 9aed1d7d47966ee4fa118188aa674d20, type: 3}
+  _cylinderMesh: {fileID: 546404529894870380, guid: f680ff422124a26459bc36caac9ed01a, type: 3}
+  _coneMesh: {fileID: 3827336034836365074, guid: e2a8602973ab1e84b87f9eb4e2dc265a, type: 3}
+  _quadMesh: {fileID: -6649735134400365339, guid: 540f51c8298dff24ca04847289aaf389, type: 3}
+  _gizmoMaterial: {fileID: 2100000, guid: ddf1f18ef8e4e6c47bc58aae88ffcbb5, type: 2}
+  _gizmoMaterialNoZTest: {fileID: 2100000, guid: c628d0ac02cc5704381dc2d0b1d28337, type: 2}
+  _sliderHandle: {fileID: 1851771598040890099, guid: 1ebcb1d0875471b42a04024a6786502b, type: 3}
+  _rotateHandle: {fileID: 5599974700390869309, guid: 9dfb450f08992c741842c21d1746ed34, type: 3}
+  _planeHandle: {fileID: 3454905496131526950, guid: 893034c3154772d448b550cc94a4c66f, type: 3}

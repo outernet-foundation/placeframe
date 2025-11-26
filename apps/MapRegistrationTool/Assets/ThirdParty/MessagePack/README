@@ -1,0 +1,11 @@
+https://github.com/MessagePack-CSharp/MessagePack-CSharp/issues/1860
+
+I solved this by:
+
+1. Installing MessagePack itself using NugetForUnity,
+2. Importing the MessagePack .unityPackage from this release:
+   https://github.com/MessagePack-CSharp/MessagePack-CSharp/releases/tag/v2.5.140
+3. Moving the Assets/Scripts/MessagePack/Unity folder from the imported package to this folder (and renaming it to MessagePack)
+4. Deleting everything else imported by step 2
+5. Add "#nullable enable" to the top of Formatters.cs and UnityResolver.cs (to eliminate some warnings):
+   https://github.com/dotnet/project-system/issues/5551

@@ -1,0 +1,3 @@
+Because this folder defines an assembly, code marked with [InitializeOnLoad] or
+[InitializeOnLoadMethod] inside of this folder will run on Unity startup even if the are compiler
+errors in other assemblies, where otherwise it would not

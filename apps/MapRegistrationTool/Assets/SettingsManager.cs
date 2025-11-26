@@ -1,0 +1,76 @@
+using System.IO;
+using FofX.Stateful;
+using UnityEngine;
+using SimpleJSON;
+
+namespace Outernet.MapRegistrationTool
+{
+    public class SettingsManager : MonoBehaviour
+    {
+        private static readonly string USER_SETTINGS = "settings.json";
+        private static string USER_SETTINGS_PATH => $"{Application.persistentDataPath}/{USER_SETTINGS}";
+
+        private void Awake()
+        {
+            App.RegisterObserver(HandleLoggedInChanged, App.state.loggedIn);
+            App.RegisterObserver(HandleSettingsLoadedChanged, App.state.settings.loaded);
+            App.RegisterObserver(HandleSettingsChanged, App.state.settings);
+            App.RegisterObserver(HandleLocationChanged, App.state.location);
+        }
+
+        private void HandleLoggedInChanged(NodeChangeEventArgs args)
+        {
+            if (!App.state.loggedIn.value)
+                return;
+
+            if (File.Exists(USER_SETTINGS_PATH))
+            {
+                var settingsJSON = JSONNode.Parse(File.ReadAllText(USER_SETTINGS_PATH));
+                settingsJSON = SettingsUpgrader.UpgradeIfNecessary(settingsJSON);
+
+                App.ExecuteActionOrDelay(new LoadSettingsAction(settingsJSON["data"]));
+            }
+            else
+            {
+                App.ExecuteActionOrDelay(
+                    new SetupDefaultSettingsAction()
+                );
+            }
+        }
+
+        private void HandleLocationChanged(NodeChangeEventArgs args)
+        {
+            if (!App.state.settings.loaded.value ||
+                !App.state.location.value.HasValue)
+            {
+                return;
+            }
+
+            App.ExecuteActionOrDelay(
+                new SetLastLocationAction(App.state.location.value)
+            );
+        }
+
+        private void HandleSettingsLoadedChanged(NodeChangeEventArgs args)
+        {
+            if (App.state.settings.loaded.value &&
+                App.state.settings.restoreLocationAutomatically.value)
+            {
+                App.ExecuteActionOrDelay(new SetLocationAction(App.state.settings.lastLocation.value));
+            }
+        }
+
+        private void HandleSettingsChanged(NodeChangeEventArgs args)
+        {
+            if (!App.state.settings.loaded.value)
+                return;
+
+            File.WriteAllText(
+                USER_SETTINGS_PATH,
+                SettingsUpgrader.FormatSettings(
+                    App.state.settings
+                ).ToString()
+            );
+        }
+    }
+}
