@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from typing import Sequence, cast
+from typing import Any, Sequence, cast
 
 from plerion_api_client.models.pinhole_camera import PinholeCamera
 from plerion_api_client.models.point_cloud_point import PointCloudPoint
@@ -41,12 +41,10 @@ def _world_to_camera_extrinsics_to_camera_world_pose(pose_world_from_camera: Tra
 
 def generate_visualization(
     point_cloud: Sequence[PointCloudPoint],
-    reconstruction_image_poses: Sequence[Transform],
-    localization: Transform,
-    intrinsics: PinholeCamera,
+    reconstruction_image_poses: Sequence[Transform] | None = None,
+    localization: Transform | None = None,
+    intrinsics: PinholeCamera | None = None,
 ) -> str:
-    intr = intrinsics  # already PinholeCamera
-
     axes = dict(
         visible=True,
         showbackground=False,
@@ -60,46 +58,155 @@ def generate_visualization(
         color="#aab2bf",
     )
 
-    localization_cam_world = _world_to_camera_extrinsics_to_camera_world_pose(localization)
-    localization_x, localization_y, localization_z = _frustum_coords(localization_cam_world, intr, size=0.6)
+    traces: list[Any] = []
 
-    recon_rx: list[float | None] = []
-    recon_ry: list[float | None] = []
-    recon_rz: list[float | None] = []
-    recon_gx: list[float | None] = []
-    recon_gy: list[float | None] = []
-    recon_gz: list[float | None] = []
-    recon_bx: list[float | None] = []
-    recon_by: list[float | None] = []
-    recon_bz: list[float | None] = []
+    traces.append({
+        "type": "scatter3d",
+        "mode": "markers",
+        "x": [float(p.position.x) for p in point_cloud],
+        "y": [float(p.position.y) for p in point_cloud],
+        "z": [float(p.position.z) for p in point_cloud],
+        "marker": {
+            "size": 1.8,
+            "color": [f"rgb({int(p.color.r)},{int(p.color.g)},{int(p.color.b)})" for p in point_cloud],
+            "opacity": 0.95,
+        },
+        "name": "Point Cloud",
+        "showlegend": True,
+    })
 
-    image_poses_x_all: list[float | None] = []
-    image_poses_y_all: list[float | None] = []
-    image_poses_z_all: list[float | None] = []
-
-    # Convert all reconstruction poses to camera->world for viz
-    recon_cam_world = [_world_to_camera_extrinsics_to_camera_world_pose(p) for p in reconstruction_image_poses]
-
-    for pose in recon_cam_world:
-        x_coords, y_coords, z_coords = _frustum_coords(pose, intr, size=0.45)
-        image_poses_x_all += x_coords
-        image_poses_y_all += y_coords
-        image_poses_z_all += z_coords
-
-        (rx, ry, rz), (gx, gy, gz), (bx, by, bz) = _axes_gizmo_coords(pose, length=0.22)
-        recon_rx += rx
-        recon_ry += ry
-        recon_rz += rz
-        recon_gx += gx
-        recon_gy += gy
-        recon_gz += gz
-        recon_bx += bx
-        recon_by += by
-        recon_bz += bz
-
-    (loc_rx, loc_ry, loc_rz), (loc_gx, loc_gy, loc_gz), (loc_bx, loc_by, loc_bz) = _axes_gizmo_coords(
-        localization_cam_world, length=0.30
+    localization_cam_world = Transform(
+        position=Vector3(x=0.0, y=0.0, z=0.0), rotation=Quaternion(w=1.0, x=0.0, y=0.0, z=0.0)
     )
+
+    num_images = 0
+
+    if localization is not None and intrinsics is not None:
+        localization_cam_world = _world_to_camera_extrinsics_to_camera_world_pose(localization)
+        localization_x, localization_y, localization_z = _frustum_coords(localization_cam_world, intrinsics, size=0.6)
+
+        (loc_rx, loc_ry, loc_rz), (loc_gx, loc_gy, loc_gz), (loc_bx, loc_by, loc_bz) = _axes_gizmo_coords(
+            localization_cam_world, length=0.30
+        )
+
+        traces.extend([
+            _trace(
+                x_coords=localization_x,
+                y_coords=localization_y,
+                z_coords=localization_z,
+                color="rgb(50,220,70)",
+                width=3,
+                name="Localized Camera",
+            ),
+            _trace(
+                loc_rx,
+                loc_ry,
+                loc_rz,
+                color="rgb(255,0,0)",
+                width=4,
+                name="X axis (localized)",
+                showlegend=False,
+                hoverinfo="skip",
+            ),
+            _trace(
+                loc_gx,
+                loc_gy,
+                loc_gz,
+                color="rgb(0,255,0)",
+                width=4,
+                name="Y axis (localized)",
+                showlegend=False,
+                hoverinfo="skip",
+            ),
+            _trace(
+                loc_bx,
+                loc_by,
+                loc_bz,
+                color="rgb(0,0,255)",
+                width=4,
+                name="Z axis (localized)",
+                showlegend=False,
+                hoverinfo="skip",
+            ),
+        ])
+
+    if reconstruction_image_poses and intrinsics is not None:
+        recon_rx: list[float | None] = []
+        recon_ry: list[float | None] = []
+        recon_rz: list[float | None] = []
+        recon_gx: list[float | None] = []
+        recon_gy: list[float | None] = []
+        recon_gz: list[float | None] = []
+        recon_bx: list[float | None] = []
+        recon_by: list[float | None] = []
+        recon_bz: list[float | None] = []
+
+        image_poses_x_all: list[float | None] = []
+        image_poses_y_all: list[float | None] = []
+        image_poses_z_all: list[float | None] = []
+
+        # Convert all reconstruction poses to camera->world for viz
+        recon_cam_world = [_world_to_camera_extrinsics_to_camera_world_pose(p) for p in reconstruction_image_poses]
+
+        for pose in recon_cam_world:
+            x_coords, y_coords, z_coords = _frustum_coords(pose, intrinsics, size=0.45)
+            image_poses_x_all += x_coords
+            image_poses_y_all += y_coords
+            image_poses_z_all += z_coords
+
+            (rx, ry, rz), (gx, gy, gz), (bx, by, bz) = _axes_gizmo_coords(pose, length=0.22)
+            recon_rx += rx
+            recon_ry += ry
+            recon_rz += rz
+            recon_gx += gx
+            recon_gy += gy
+            recon_gz += gz
+            recon_bx += bx
+            recon_by += by
+            recon_bz += bz
+
+        num_images = len(reconstruction_image_poses)
+
+        traces.extend([
+            _trace(
+                x_coords=image_poses_x_all,
+                y_coords=image_poses_y_all,
+                z_coords=image_poses_z_all,
+                color="rgb(150,150,255)",
+                width=1,
+                name="Reconstruction Cameras",
+            ),
+            _trace(
+                recon_rx,
+                recon_ry,
+                recon_rz,
+                color="rgb(255,80,80)",
+                width=2,
+                name="X axis (recon)",
+                showlegend=False,
+                hoverinfo="skip",
+            ),
+            _trace(
+                recon_gx,
+                recon_gy,
+                recon_gz,
+                color="rgb(80,255,80)",
+                width=2,
+                name="Y axis (recon)",
+                showlegend=False,
+                hoverinfo="skip",
+            ),
+            _trace(
+                recon_bx,
+                recon_by,
+                recon_bz,
+                color="rgb(80,80,255)",
+                width=2,
+                name="Z axis (recon)",
+                showlegend=False,
+                hoverinfo="skip",
+            ),
+        ])
 
     return f"""<!DOCTYPE html>
 <html>
@@ -156,104 +263,11 @@ def generate_visualization(
     <p><strong>Quaternion:</strong> [{localization_cam_world.rotation.w:.4f}, {localization_cam_world.rotation.x:.4f}, {
         localization_cam_world.rotation.y:.4f}, {localization_cam_world.rotation.z:.4f}]</p>
     <p><strong>Points:</strong> {len(point_cloud)}</p>
-    <p><strong>Reconstruction Cameras:</strong> {len(recon_cam_world)}</p>
+    <p><strong>Reconstruction Cameras:</strong> {num_images}</p>
   </div>
   <div id="plot"></div>
   <script>
-    var data = {
-        json.dumps([
-            {
-                "type": "scatter3d",
-                "mode": "markers",
-                "x": [float(p.position.x) for p in point_cloud],
-                "y": [float(p.position.y) for p in point_cloud],
-                "z": [float(p.position.z) for p in point_cloud],
-                "marker": {
-                    "size": 1.8,
-                    "color": [f"rgb({int(p.color.r)},{int(p.color.g)},{int(p.color.b)})" for p in point_cloud],
-                    "opacity": 0.95,
-                },
-                "name": "Point Cloud",
-                "showlegend": True,
-            },
-            _trace(
-                x_coords=image_poses_x_all,
-                y_coords=image_poses_y_all,
-                z_coords=image_poses_z_all,
-                color="rgb(150,150,255)",
-                width=1,
-                name="Reconstruction Cameras",
-            ),
-            _trace(
-                x_coords=localization_x,
-                y_coords=localization_y,
-                z_coords=localization_z,
-                color="rgb(50,220,70)",
-                width=3,
-                name="Localized Camera",
-            ),
-            _trace(
-                recon_rx,
-                recon_ry,
-                recon_rz,
-                color="rgb(255,80,80)",
-                width=2,
-                name="X axis (recon)",
-                showlegend=False,
-                hoverinfo="skip",
-            ),
-            _trace(
-                recon_gx,
-                recon_gy,
-                recon_gz,
-                color="rgb(80,255,80)",
-                width=2,
-                name="Y axis (recon)",
-                showlegend=False,
-                hoverinfo="skip",
-            ),
-            _trace(
-                recon_bx,
-                recon_by,
-                recon_bz,
-                color="rgb(80,80,255)",
-                width=2,
-                name="Z axis (recon)",
-                showlegend=False,
-                hoverinfo="skip",
-            ),
-            _trace(
-                loc_rx,
-                loc_ry,
-                loc_rz,
-                color="rgb(255,0,0)",
-                width=4,
-                name="X axis (localized)",
-                showlegend=False,
-                hoverinfo="skip",
-            ),
-            _trace(
-                loc_gx,
-                loc_gy,
-                loc_gz,
-                color="rgb(0,255,0)",
-                width=4,
-                name="Y axis (localized)",
-                showlegend=False,
-                hoverinfo="skip",
-            ),
-            _trace(
-                loc_bx,
-                loc_by,
-                loc_bz,
-                color="rgb(0,0,255)",
-                width=4,
-                name="Z axis (localized)",
-                showlegend=False,
-                hoverinfo="skip",
-            ),
-        ])
-    };
+    var data = {json.dumps(traces)};
 
     var layout = {
         json.dumps({

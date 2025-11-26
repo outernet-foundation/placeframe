@@ -44,7 +44,29 @@ intrinsics = PinholeCamera(
 )
 
 
-async def main_async() -> None:
+async def visual_reconstruction_pointcloud(reconstruction_id: UUID):
+    print("Authenticating")
+    token = password_login()
+
+    async with ApiClient(Configuration(host=API_BASE_URL)) as api_client:
+        # Wire auth manually since your stripped spec has no auth scheme.
+        headers = cast(MutableMapping[str, str], api_client.default_headers)
+        headers["Authorization"] = f"Bearer {token}"
+        api = DefaultApi(api_client)
+
+        print(f"Fetching point cloud for reconstruction {reconstruction_id}")
+        points = await api.get_reconstruction_points(reconstruction_id)
+        print(f"Fetching image poses for reconstruction {reconstruction_id}")
+        poses = await api.get_reconstruction_image_poses(reconstruction_id)
+
+        print(f"Generating visualization → {OUTPUT_HTML_PATH}")
+        html = generate_visualization(points, poses, None, intrinsics)
+
+        OUTPUT_HTML_PATH.parent.mkdir(parents=True, exist_ok=True)
+        OUTPUT_HTML_PATH.write_text(html, encoding="utf-8")
+
+
+async def main_async():
     print("Authenticating")
     token = password_login()
     # NOTE: if password_login() doesn't return a token today,
@@ -168,5 +190,10 @@ async def main_async() -> None:
         OUTPUT_HTML_PATH.write_text(html, encoding="utf-8")
 
 
+def main():
+    # asyncio.run(main_async())
+    asyncio.run(visual_reconstruction_pointcloud(UUID("ed60ad43-d81e-44f8-8e1e-73d5588ca6b0")))
+
+
 if __name__ == "__main__":
-    asyncio.run(main_async())
+    main()
