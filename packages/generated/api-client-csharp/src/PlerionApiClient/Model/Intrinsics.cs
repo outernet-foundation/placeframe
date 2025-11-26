@@ -36,10 +36,10 @@ namespace PlerionApiClient.Model
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Intrinsics" /> class
-        /// with the <see cref="PinholeCamera" /> class
+        /// with the <see cref="PinholeCameraConfig" /> class
         /// </summary>
-        /// <param name="actualInstance">An instance of PinholeCamera.</param>
-        public Intrinsics(PinholeCamera actualInstance)
+        /// <param name="actualInstance">An instance of PinholeCameraConfig.</param>
+        public Intrinsics(PinholeCameraConfig actualInstance)
         {
             this.IsNullable = false;
             this.SchemaType= "oneOf";
@@ -48,10 +48,10 @@ namespace PlerionApiClient.Model
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Intrinsics" /> class
-        /// with the <see cref="OpenCVCamera" /> class
+        /// with the <see cref="OpenCVCameraConfig" /> class
         /// </summary>
-        /// <param name="actualInstance">An instance of OpenCVCamera.</param>
-        public Intrinsics(OpenCVCamera actualInstance)
+        /// <param name="actualInstance">An instance of OpenCVCameraConfig.</param>
+        public Intrinsics(OpenCVCameraConfig actualInstance)
         {
             this.IsNullable = false;
             this.SchemaType= "oneOf";
@@ -60,22 +60,10 @@ namespace PlerionApiClient.Model
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Intrinsics" /> class
-        /// with the <see cref="FullOpenCVCamera" /> class
+        /// with the <see cref="FullOpenCVCameraConfig" /> class
         /// </summary>
-        /// <param name="actualInstance">An instance of FullOpenCVCamera.</param>
-        public Intrinsics(FullOpenCVCamera actualInstance)
-        {
-            this.IsNullable = false;
-            this.SchemaType= "oneOf";
-            this.ActualInstance = actualInstance ?? throw new ArgumentException("Invalid instance found. Must not be null.");
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Intrinsics" /> class
-        /// with the <see cref="GenericParamsIntrinsics" /> class
-        /// </summary>
-        /// <param name="actualInstance">An instance of GenericParamsIntrinsics.</param>
-        public Intrinsics(GenericParamsIntrinsics actualInstance)
+        /// <param name="actualInstance">An instance of FullOpenCVCameraConfig.</param>
+        public Intrinsics(FullOpenCVCameraConfig actualInstance)
         {
             this.IsNullable = false;
             this.SchemaType= "oneOf";
@@ -96,67 +84,53 @@ namespace PlerionApiClient.Model
             }
             set
             {
-                if (value.GetType() == typeof(FullOpenCVCamera) || value is FullOpenCVCamera)
+                if (value.GetType() == typeof(FullOpenCVCameraConfig) || value is FullOpenCVCameraConfig)
                 {
                     this._actualInstance = value;
                 }
-                else if (value.GetType() == typeof(GenericParamsIntrinsics) || value is GenericParamsIntrinsics)
+                else if (value.GetType() == typeof(OpenCVCameraConfig) || value is OpenCVCameraConfig)
                 {
                     this._actualInstance = value;
                 }
-                else if (value.GetType() == typeof(OpenCVCamera) || value is OpenCVCamera)
-                {
-                    this._actualInstance = value;
-                }
-                else if (value.GetType() == typeof(PinholeCamera) || value is PinholeCamera)
+                else if (value.GetType() == typeof(PinholeCameraConfig) || value is PinholeCameraConfig)
                 {
                     this._actualInstance = value;
                 }
                 else
                 {
-                    throw new ArgumentException("Invalid instance found. Must be the following types: FullOpenCVCamera, GenericParamsIntrinsics, OpenCVCamera, PinholeCamera");
+                    throw new ArgumentException("Invalid instance found. Must be the following types: FullOpenCVCameraConfig, OpenCVCameraConfig, PinholeCameraConfig");
                 }
             }
         }
 
         /// <summary>
-        /// Get the actual instance of `PinholeCamera`. If the actual instance is not `PinholeCamera`,
+        /// Get the actual instance of `PinholeCameraConfig`. If the actual instance is not `PinholeCameraConfig`,
         /// the InvalidClassException will be thrown
         /// </summary>
-        /// <returns>An instance of PinholeCamera</returns>
-        public PinholeCamera GetPinholeCamera()
+        /// <returns>An instance of PinholeCameraConfig</returns>
+        public PinholeCameraConfig GetPinholeCameraConfig()
         {
-            return (PinholeCamera)this.ActualInstance;
+            return (PinholeCameraConfig)this.ActualInstance;
         }
 
         /// <summary>
-        /// Get the actual instance of `OpenCVCamera`. If the actual instance is not `OpenCVCamera`,
+        /// Get the actual instance of `OpenCVCameraConfig`. If the actual instance is not `OpenCVCameraConfig`,
         /// the InvalidClassException will be thrown
         /// </summary>
-        /// <returns>An instance of OpenCVCamera</returns>
-        public OpenCVCamera GetOpenCVCamera()
+        /// <returns>An instance of OpenCVCameraConfig</returns>
+        public OpenCVCameraConfig GetOpenCVCameraConfig()
         {
-            return (OpenCVCamera)this.ActualInstance;
+            return (OpenCVCameraConfig)this.ActualInstance;
         }
 
         /// <summary>
-        /// Get the actual instance of `FullOpenCVCamera`. If the actual instance is not `FullOpenCVCamera`,
+        /// Get the actual instance of `FullOpenCVCameraConfig`. If the actual instance is not `FullOpenCVCameraConfig`,
         /// the InvalidClassException will be thrown
         /// </summary>
-        /// <returns>An instance of FullOpenCVCamera</returns>
-        public FullOpenCVCamera GetFullOpenCVCamera()
+        /// <returns>An instance of FullOpenCVCameraConfig</returns>
+        public FullOpenCVCameraConfig GetFullOpenCVCameraConfig()
         {
-            return (FullOpenCVCamera)this.ActualInstance;
-        }
-
-        /// <summary>
-        /// Get the actual instance of `GenericParamsIntrinsics`. If the actual instance is not `GenericParamsIntrinsics`,
-        /// the InvalidClassException will be thrown
-        /// </summary>
-        /// <returns>An instance of GenericParamsIntrinsics</returns>
-        public GenericParamsIntrinsics GetGenericParamsIntrinsics()
-        {
-            return (GenericParamsIntrinsics)this.ActualInstance;
+            return (FullOpenCVCameraConfig)this.ActualInstance;
         }
 
         /// <summary>
@@ -200,81 +174,61 @@ namespace PlerionApiClient.Model
             try
             {
                 // if it does not contains "AdditionalProperties", use SerializerSettings to deserialize
-                if (typeof(FullOpenCVCamera).GetProperty("AdditionalProperties") == null)
+                if (typeof(FullOpenCVCameraConfig).GetProperty("AdditionalProperties") == null)
                 {
-                    newIntrinsics = new Intrinsics(JsonConvert.DeserializeObject<FullOpenCVCamera>(jsonString, Intrinsics.SerializerSettings));
+                    newIntrinsics = new Intrinsics(JsonConvert.DeserializeObject<FullOpenCVCameraConfig>(jsonString, Intrinsics.SerializerSettings));
                 }
                 else
                 {
-                    newIntrinsics = new Intrinsics(JsonConvert.DeserializeObject<FullOpenCVCamera>(jsonString, Intrinsics.AdditionalPropertiesSerializerSettings));
+                    newIntrinsics = new Intrinsics(JsonConvert.DeserializeObject<FullOpenCVCameraConfig>(jsonString, Intrinsics.AdditionalPropertiesSerializerSettings));
                 }
-                matchedTypes.Add("FullOpenCVCamera");
+                matchedTypes.Add("FullOpenCVCameraConfig");
                 match++;
             }
             catch (Exception exception)
             {
                 // deserialization failed, try the next one
-                System.Diagnostics.Debug.WriteLine(string.Format("Failed to deserialize `{0}` into FullOpenCVCamera: {1}", jsonString, exception.ToString()));
+                System.Diagnostics.Debug.WriteLine(string.Format("Failed to deserialize `{0}` into FullOpenCVCameraConfig: {1}", jsonString, exception.ToString()));
             }
 
             try
             {
                 // if it does not contains "AdditionalProperties", use SerializerSettings to deserialize
-                if (typeof(GenericParamsIntrinsics).GetProperty("AdditionalProperties") == null)
+                if (typeof(OpenCVCameraConfig).GetProperty("AdditionalProperties") == null)
                 {
-                    newIntrinsics = new Intrinsics(JsonConvert.DeserializeObject<GenericParamsIntrinsics>(jsonString, Intrinsics.SerializerSettings));
+                    newIntrinsics = new Intrinsics(JsonConvert.DeserializeObject<OpenCVCameraConfig>(jsonString, Intrinsics.SerializerSettings));
                 }
                 else
                 {
-                    newIntrinsics = new Intrinsics(JsonConvert.DeserializeObject<GenericParamsIntrinsics>(jsonString, Intrinsics.AdditionalPropertiesSerializerSettings));
+                    newIntrinsics = new Intrinsics(JsonConvert.DeserializeObject<OpenCVCameraConfig>(jsonString, Intrinsics.AdditionalPropertiesSerializerSettings));
                 }
-                matchedTypes.Add("GenericParamsIntrinsics");
+                matchedTypes.Add("OpenCVCameraConfig");
                 match++;
             }
             catch (Exception exception)
             {
                 // deserialization failed, try the next one
-                System.Diagnostics.Debug.WriteLine(string.Format("Failed to deserialize `{0}` into GenericParamsIntrinsics: {1}", jsonString, exception.ToString()));
+                System.Diagnostics.Debug.WriteLine(string.Format("Failed to deserialize `{0}` into OpenCVCameraConfig: {1}", jsonString, exception.ToString()));
             }
 
             try
             {
                 // if it does not contains "AdditionalProperties", use SerializerSettings to deserialize
-                if (typeof(OpenCVCamera).GetProperty("AdditionalProperties") == null)
+                if (typeof(PinholeCameraConfig).GetProperty("AdditionalProperties") == null)
                 {
-                    newIntrinsics = new Intrinsics(JsonConvert.DeserializeObject<OpenCVCamera>(jsonString, Intrinsics.SerializerSettings));
+                    newIntrinsics = new Intrinsics(JsonConvert.DeserializeObject<PinholeCameraConfig>(jsonString, Intrinsics.SerializerSettings));
                 }
                 else
                 {
-                    newIntrinsics = new Intrinsics(JsonConvert.DeserializeObject<OpenCVCamera>(jsonString, Intrinsics.AdditionalPropertiesSerializerSettings));
+                    newIntrinsics = new Intrinsics(JsonConvert.DeserializeObject<PinholeCameraConfig>(jsonString, Intrinsics.AdditionalPropertiesSerializerSettings));
                 }
-                matchedTypes.Add("OpenCVCamera");
+                matchedTypes.Add("PinholeCameraConfig");
                 match++;
             }
             catch (Exception exception)
             {
                 // deserialization failed, try the next one
-                System.Diagnostics.Debug.WriteLine(string.Format("Failed to deserialize `{0}` into OpenCVCamera: {1}", jsonString, exception.ToString()));
-            }
-
-            try
-            {
-                // if it does not contains "AdditionalProperties", use SerializerSettings to deserialize
-                if (typeof(PinholeCamera).GetProperty("AdditionalProperties") == null)
-                {
-                    newIntrinsics = new Intrinsics(JsonConvert.DeserializeObject<PinholeCamera>(jsonString, Intrinsics.SerializerSettings));
-                }
-                else
-                {
-                    newIntrinsics = new Intrinsics(JsonConvert.DeserializeObject<PinholeCamera>(jsonString, Intrinsics.AdditionalPropertiesSerializerSettings));
-                }
-                matchedTypes.Add("PinholeCamera");
-                match++;
-            }
-            catch (Exception exception)
-            {
-                // deserialization failed, try the next one
-                System.Diagnostics.Debug.WriteLine(string.Format("Failed to deserialize `{0}` into PinholeCamera: {1}", jsonString, exception.ToString()));
+                System.Diagnostics.Debug.WriteLine(string.Format("Failed to deserialize `{0}` into PinholeCameraConfig: {1}", jsonString, exception.ToString()));
             }
 
             if (match == 0)

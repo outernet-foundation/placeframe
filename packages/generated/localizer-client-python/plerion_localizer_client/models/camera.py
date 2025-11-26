@@ -17,30 +17,27 @@ import json
 import pprint
 from pydantic import BaseModel, ConfigDict, Field, StrictStr, ValidationError, field_validator
 from typing import Any, List, Optional
-from plerion_localizer_client.models.full_open_cv_camera import FullOpenCVCamera
-from plerion_localizer_client.models.generic_params_intrinsics import GenericParamsIntrinsics
-from plerion_localizer_client.models.open_cv_camera import OpenCVCamera
-from plerion_localizer_client.models.pinhole_camera import PinholeCamera
+from plerion_localizer_client.models.full_open_cv_camera_config import FullOpenCVCameraConfig
+from plerion_localizer_client.models.open_cv_camera_config import OpenCVCameraConfig
+from plerion_localizer_client.models.pinhole_camera_config import PinholeCameraConfig
 from pydantic import StrictStr, Field
 from typing import Union, List, Set, Optional, Dict
 from typing_extensions import Literal, Self
 
-CAMERA_ONE_OF_SCHEMAS = ["FullOpenCVCamera", "GenericParamsIntrinsics", "OpenCVCamera", "PinholeCamera"]
+CAMERA_ONE_OF_SCHEMAS = ["FullOpenCVCameraConfig", "OpenCVCameraConfig", "PinholeCameraConfig"]
 
 class Camera(BaseModel):
     """
     Camera
     """
-    # data type: PinholeCamera
-    oneof_schema_1_validator: Optional[PinholeCamera] = None
-    # data type: OpenCVCamera
-    oneof_schema_2_validator: Optional[OpenCVCamera] = None
-    # data type: FullOpenCVCamera
-    oneof_schema_3_validator: Optional[FullOpenCVCamera] = None
-    # data type: GenericParamsIntrinsics
-    oneof_schema_4_validator: Optional[GenericParamsIntrinsics] = None
-    actual_instance: Optional[Union[FullOpenCVCamera, GenericParamsIntrinsics, OpenCVCamera, PinholeCamera]] = None
-    one_of_schemas: Set[str] = { "FullOpenCVCamera", "GenericParamsIntrinsics", "OpenCVCamera", "PinholeCamera" }
+    # data type: PinholeCameraConfig
+    oneof_schema_1_validator: Optional[PinholeCameraConfig] = None
+    # data type: OpenCVCameraConfig
+    oneof_schema_2_validator: Optional[OpenCVCameraConfig] = None
+    # data type: FullOpenCVCameraConfig
+    oneof_schema_3_validator: Optional[FullOpenCVCameraConfig] = None
+    actual_instance: Optional[Union[FullOpenCVCameraConfig, OpenCVCameraConfig, PinholeCameraConfig]] = None
+    one_of_schemas: Set[str] = { "FullOpenCVCameraConfig", "OpenCVCameraConfig", "PinholeCameraConfig" }
 
     model_config = ConfigDict(
         validate_assignment=True,
@@ -66,32 +63,27 @@ class Camera(BaseModel):
         instance = Camera.model_construct()
         error_messages = []
         match = 0
-        # validate data type: PinholeCamera
-        if not isinstance(v, PinholeCamera):
-            error_messages.append(f"Error! Input type `{type(v)}` is not `PinholeCamera`")
+        # validate data type: PinholeCameraConfig
+        if not isinstance(v, PinholeCameraConfig):
+            error_messages.append(f"Error! Input type `{type(v)}` is not `PinholeCameraConfig`")
         else:
             match += 1
-        # validate data type: OpenCVCamera
-        if not isinstance(v, OpenCVCamera):
-            error_messages.append(f"Error! Input type `{type(v)}` is not `OpenCVCamera`")
+        # validate data type: OpenCVCameraConfig
+        if not isinstance(v, OpenCVCameraConfig):
+            error_messages.append(f"Error! Input type `{type(v)}` is not `OpenCVCameraConfig`")
         else:
             match += 1
-        # validate data type: FullOpenCVCamera
-        if not isinstance(v, FullOpenCVCamera):
-            error_messages.append(f"Error! Input type `{type(v)}` is not `FullOpenCVCamera`")
-        else:
-            match += 1
-        # validate data type: GenericParamsIntrinsics
-        if not isinstance(v, GenericParamsIntrinsics):
-            error_messages.append(f"Error! Input type `{type(v)}` is not `GenericParamsIntrinsics`")
+        # validate data type: FullOpenCVCameraConfig
+        if not isinstance(v, FullOpenCVCameraConfig):
+            error_messages.append(f"Error! Input type `{type(v)}` is not `FullOpenCVCameraConfig`")
         else:
             match += 1
         if match > 1:
             # more than 1 match
-            raise ValueError("Multiple matches found when setting `actual_instance` in Camera with oneOf schemas: FullOpenCVCamera, GenericParamsIntrinsics, OpenCVCamera, PinholeCamera. Details: " + ", ".join(error_messages))
+            raise ValueError("Multiple matches found when setting `actual_instance` in Camera with oneOf schemas: FullOpenCVCameraConfig, OpenCVCameraConfig, PinholeCameraConfig. Details: " + ", ".join(error_messages))
         elif match == 0:
             # no match
-            raise ValueError("No match found when setting `actual_instance` in Camera with oneOf schemas: FullOpenCVCamera, GenericParamsIntrinsics, OpenCVCamera, PinholeCamera. Details: " + ", ".join(error_messages))
+            raise ValueError("No match found when setting `actual_instance` in Camera with oneOf schemas: FullOpenCVCameraConfig, OpenCVCameraConfig, PinholeCameraConfig. Details: " + ", ".join(error_messages))
         else:
             return v
 
@@ -106,37 +98,31 @@ class Camera(BaseModel):
         error_messages = []
         match = 0
 
-        # deserialize data into PinholeCamera
+        # deserialize data into PinholeCameraConfig
         try:
-            instance.actual_instance = PinholeCamera.from_json(json_str)
+            instance.actual_instance = PinholeCameraConfig.from_json(json_str)
             match += 1
         except (ValidationError, ValueError) as e:
             error_messages.append(str(e))
-        # deserialize data into OpenCVCamera
+        # deserialize data into OpenCVCameraConfig
         try:
-            instance.actual_instance = OpenCVCamera.from_json(json_str)
+            instance.actual_instance = OpenCVCameraConfig.from_json(json_str)
             match += 1
         except (ValidationError, ValueError) as e:
             error_messages.append(str(e))
-        # deserialize data into FullOpenCVCamera
+        # deserialize data into FullOpenCVCameraConfig
         try:
-            instance.actual_instance = FullOpenCVCamera.from_json(json_str)
-            match += 1
-        except (ValidationError, ValueError) as e:
-            error_messages.append(str(e))
-        # deserialize data into GenericParamsIntrinsics
-        try:
-            instance.actual_instance = GenericParamsIntrinsics.from_json(json_str)
+            instance.actual_instance = FullOpenCVCameraConfig.from_json(json_str)
             match += 1
         except (ValidationError, ValueError) as e:
             error_messages.append(str(e))
 
         if match > 1:
             # more than 1 match
-            raise ValueError("Multiple matches found when deserializing the JSON string into Camera with oneOf schemas: FullOpenCVCamera, GenericParamsIntrinsics, OpenCVCamera, PinholeCamera. Details: " + ", ".join(error_messages))
+            raise ValueError("Multiple matches found when deserializing the JSON string into Camera with oneOf schemas: FullOpenCVCameraConfig, OpenCVCameraConfig, PinholeCameraConfig. Details: " + ", ".join(error_messages))
         elif match == 0:
             # no match
-            raise ValueError("No match found when deserializing the JSON string into Camera with oneOf schemas: FullOpenCVCamera, GenericParamsIntrinsics, OpenCVCamera, PinholeCamera. Details: " + ", ".join(error_messages))
+            raise ValueError("No match found when deserializing the JSON string into Camera with oneOf schemas: FullOpenCVCameraConfig, OpenCVCameraConfig, PinholeCameraConfig. Details: " + ", ".join(error_messages))
         else:
             return instance
 
@@ -150,7 +136,7 @@ class Camera(BaseModel):
         else:
             return json.dumps(self.actual_instance)
 
-    def to_dict(self) -> Optional[Union[Dict[str, Any], FullOpenCVCamera, GenericParamsIntrinsics, OpenCVCamera, PinholeCamera]]:
+    def to_dict(self) -> Optional[Union[Dict[str, Any], FullOpenCVCameraConfig, OpenCVCameraConfig, PinholeCameraConfig]]:
         """Returns the dict representation of the actual instance"""
         if self.actual_instance is None:
             return None

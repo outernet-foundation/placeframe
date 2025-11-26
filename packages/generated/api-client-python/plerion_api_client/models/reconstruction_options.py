@@ -29,6 +29,7 @@ class ReconstructionOptions(BaseModel):
     random_seed: Optional[StrictInt] = None
     single_threaded: Optional[StrictBool] = None
     neighbors_count: Optional[StrictInt] = None
+    rotation_threshold: Optional[Union[StrictFloat, StrictInt]] = None
     max_keypoints_per_image: Optional[StrictInt] = None
     ransac_max_error: Optional[Union[StrictFloat, StrictInt]] = None
     ransac_min_inlier_ratio: Optional[Union[StrictFloat, StrictInt]] = None
@@ -43,10 +44,11 @@ class ReconstructionOptions(BaseModel):
     bundle_adjustment_refine_principal_point: Optional[StrictBool] = None
     bundle_adjustment_refine_additional_params: Optional[StrictBool] = None
     compression_opq_number_of_subvectors: Optional[StrictInt] = None
-    compression_opq_number_bits_per_subvector: Optional[StrictInt] = None
+    compression_opq_number_of_bits_per_subvector: Optional[StrictInt] = None
     compression_opq_number_of_training_iterations: Optional[StrictInt] = None
+    pose_prior_position_sigma_m: Optional[Union[StrictFloat, StrictInt]] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["random_seed", "single_threaded", "neighbors_count", "max_keypoints_per_image", "ransac_max_error", "ransac_min_inlier_ratio", "use_prior_position", "rig_verification", "triangulation_minimum_angle", "triangulation_complete_max_reprojection_error", "triangulation_merge_max_reprojection_error", "mapper_filter_max_reprojection_error", "bundle_adjustment_refine_sensor_from_rig", "bundle_adjustment_refine_focal_length", "bundle_adjustment_refine_principal_point", "bundle_adjustment_refine_additional_params", "compression_opq_number_of_subvectors", "compression_opq_number_bits_per_subvector", "compression_opq_number_of_training_iterations"]
+    __properties: ClassVar[List[str]] = ["random_seed", "single_threaded", "neighbors_count", "rotation_threshold", "max_keypoints_per_image", "ransac_max_error", "ransac_min_inlier_ratio", "use_prior_position", "rig_verification", "triangulation_minimum_angle", "triangulation_complete_max_reprojection_error", "triangulation_merge_max_reprojection_error", "mapper_filter_max_reprojection_error", "bundle_adjustment_refine_sensor_from_rig", "bundle_adjustment_refine_focal_length", "bundle_adjustment_refine_principal_point", "bundle_adjustment_refine_additional_params", "compression_opq_number_of_subvectors", "compression_opq_number_of_bits_per_subvector", "compression_opq_number_of_training_iterations", "pose_prior_position_sigma_m"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -108,6 +110,11 @@ class ReconstructionOptions(BaseModel):
         # and model_fields_set contains the field
         if self.neighbors_count is None and "neighbors_count" in self.model_fields_set:
             _dict['neighbors_count'] = None
+
+        # set to None if rotation_threshold (nullable) is None
+        # and model_fields_set contains the field
+        if self.rotation_threshold is None and "rotation_threshold" in self.model_fields_set:
+            _dict['rotation_threshold'] = None
 
         # set to None if max_keypoints_per_image (nullable) is None
         # and model_fields_set contains the field
@@ -179,15 +186,20 @@ class ReconstructionOptions(BaseModel):
         if self.compression_opq_number_of_subvectors is None and "compression_opq_number_of_subvectors" in self.model_fields_set:
             _dict['compression_opq_number_of_subvectors'] = None
 
-        # set to None if compression_opq_number_bits_per_subvector (nullable) is None
+        # set to None if compression_opq_number_of_bits_per_subvector (nullable) is None
         # and model_fields_set contains the field
-        if self.compression_opq_number_bits_per_subvector is None and "compression_opq_number_bits_per_subvector" in self.model_fields_set:
-            _dict['compression_opq_number_bits_per_subvector'] = None
+        if self.compression_opq_number_of_bits_per_subvector is None and "compression_opq_number_of_bits_per_subvector" in self.model_fields_set:
+            _dict['compression_opq_number_of_bits_per_subvector'] = None
 
         # set to None if compression_opq_number_of_training_iterations (nullable) is None
         # and model_fields_set contains the field
         if self.compression_opq_number_of_training_iterations is None and "compression_opq_number_of_training_iterations" in self.model_fields_set:
             _dict['compression_opq_number_of_training_iterations'] = None
+
+        # set to None if pose_prior_position_sigma_m (nullable) is None
+        # and model_fields_set contains the field
+        if self.pose_prior_position_sigma_m is None and "pose_prior_position_sigma_m" in self.model_fields_set:
+            _dict['pose_prior_position_sigma_m'] = None
 
         return _dict
 
@@ -204,6 +216,7 @@ class ReconstructionOptions(BaseModel):
             "random_seed": obj.get("random_seed"),
             "single_threaded": obj.get("single_threaded"),
             "neighbors_count": obj.get("neighbors_count"),
+            "rotation_threshold": obj.get("rotation_threshold"),
             "max_keypoints_per_image": obj.get("max_keypoints_per_image"),
             "ransac_max_error": obj.get("ransac_max_error"),
             "ransac_min_inlier_ratio": obj.get("ransac_min_inlier_ratio"),
@@ -218,8 +231,9 @@ class ReconstructionOptions(BaseModel):
             "bundle_adjustment_refine_principal_point": obj.get("bundle_adjustment_refine_principal_point"),
             "bundle_adjustment_refine_additional_params": obj.get("bundle_adjustment_refine_additional_params"),
             "compression_opq_number_of_subvectors": obj.get("compression_opq_number_of_subvectors"),
-            "compression_opq_number_bits_per_subvector": obj.get("compression_opq_number_bits_per_subvector"),
-            "compression_opq_number_of_training_iterations": obj.get("compression_opq_number_of_training_iterations")
+            "compression_opq_number_of_bits_per_subvector": obj.get("compression_opq_number_of_bits_per_subvector"),
+            "compression_opq_number_of_training_iterations": obj.get("compression_opq_number_of_training_iterations"),
+            "pose_prior_position_sigma_m": obj.get("pose_prior_position_sigma_m")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

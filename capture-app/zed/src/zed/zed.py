@@ -12,8 +12,8 @@ from traceback import format_exception
 from typing import Union, cast
 from uuid import UUID, uuid4
 
-from core.rig import PinholeCamera, Rig, RigCamera, RigConfig
-from core.transform import Quaternion, Vector3
+from core.classes import Quaternion, Vector3
+from core.rig import Config, PinholeCameraConfig, RigCameraConfig, RigConfig
 from numpy import asarray, float64
 from PIL import Image
 from pyzed.sl import (
@@ -223,17 +223,17 @@ class Zed(Thread):
 
         with open(self._output_directory() / "config.json", "w") as config_file:
             config_file.write(
-                RigConfig(
+                Config(
                     rigs=[
-                        Rig(
+                        RigConfig(
                             id="rig0",
                             cameras=[
-                                RigCamera(
+                                RigCameraConfig(
                                     id="camera0",
                                     ref_sensor=True,
                                     rotation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0),
                                     translation=Vector3(x=0.0, y=0.0, z=0.0),
-                                    intrinsics=PinholeCamera(
+                                    camera_config=PinholeCameraConfig(
                                         model="PINHOLE",
                                         width=left_camera.image_size.width,
                                         height=left_camera.image_size.height,
@@ -245,7 +245,7 @@ class Zed(Thread):
                                         cy=left_camera.cy,
                                     ),
                                 ),
-                                RigCamera(
+                                RigCameraConfig(
                                     id="camera1",
                                     ref_sensor=False,
                                     rotation=Quaternion(
@@ -260,7 +260,7 @@ class Zed(Thread):
                                         y=stereo_transform_translation[1],
                                         z=stereo_transform_translation[2],
                                     ),
-                                    intrinsics=PinholeCamera(
+                                    camera_config=PinholeCameraConfig(
                                         model="PINHOLE",
                                         width=right_camera.image_size.width,
                                         height=right_camera.image_size.height,

@@ -42,16 +42,10 @@ namespace PlerionApiClient.Model
         /// </summary>
         /// <param name="inlierRatio">inlierRatio (required).</param>
         /// <param name="reprojectionErrorMedian">reprojectionErrorMedian (required).</param>
-        /// <param name="imageCoverage">imageCoverage (required).</param>
-        /// <param name="depthZ90thPercentile">depthZ90thPercentile (required).</param>
-        /// <param name="depthZ10thPercentile">depthZ10thPercentile (required).</param>
-        public LocalizationMetrics(double inlierRatio, double reprojectionErrorMedian, double imageCoverage, double depthZ90thPercentile, double depthZ10thPercentile)
+        public LocalizationMetrics(double inlierRatio, double reprojectionErrorMedian)
         {
             this.InlierRatio = inlierRatio;
             this.ReprojectionErrorMedian = reprojectionErrorMedian;
-            this.ImageCoverage = imageCoverage;
-            this.DepthZ90thPercentile = depthZ90thPercentile;
-            this.DepthZ10thPercentile = depthZ10thPercentile;
         }
 
         /// <summary>
@@ -103,78 +97,6 @@ namespace PlerionApiClient.Model
             return _flagReprojectionErrorMedian;
         }
         /// <summary>
-        /// Gets or Sets ImageCoverage
-        /// </summary>
-        [DataMember(Name = "image_coverage", IsRequired = true, EmitDefaultValue = true)]
-        public double ImageCoverage
-        {
-            get{ return _ImageCoverage;}
-            set
-            {
-                _ImageCoverage = value;
-                _flagImageCoverage = true;
-            }
-        }
-        private double _ImageCoverage;
-        private bool _flagImageCoverage;
-
-        /// <summary>
-        /// Returns false as ImageCoverage should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeImageCoverage()
-        {
-            return _flagImageCoverage;
-        }
-        /// <summary>
-        /// Gets or Sets DepthZ90thPercentile
-        /// </summary>
-        [DataMember(Name = "depth_z_90th_percentile", IsRequired = true, EmitDefaultValue = true)]
-        public double DepthZ90thPercentile
-        {
-            get{ return _DepthZ90thPercentile;}
-            set
-            {
-                _DepthZ90thPercentile = value;
-                _flagDepthZ90thPercentile = true;
-            }
-        }
-        private double _DepthZ90thPercentile;
-        private bool _flagDepthZ90thPercentile;
-
-        /// <summary>
-        /// Returns false as DepthZ90thPercentile should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeDepthZ90thPercentile()
-        {
-            return _flagDepthZ90thPercentile;
-        }
-        /// <summary>
-        /// Gets or Sets DepthZ10thPercentile
-        /// </summary>
-        [DataMember(Name = "depth_z_10th_percentile", IsRequired = true, EmitDefaultValue = true)]
-        public double DepthZ10thPercentile
-        {
-            get{ return _DepthZ10thPercentile;}
-            set
-            {
-                _DepthZ10thPercentile = value;
-                _flagDepthZ10thPercentile = true;
-            }
-        }
-        private double _DepthZ10thPercentile;
-        private bool _flagDepthZ10thPercentile;
-
-        /// <summary>
-        /// Returns false as DepthZ10thPercentile should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeDepthZ10thPercentile()
-        {
-            return _flagDepthZ10thPercentile;
-        }
-        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -184,9 +106,6 @@ namespace PlerionApiClient.Model
             sb.Append("class LocalizationMetrics {\n");
             sb.Append("  InlierRatio: ").Append(InlierRatio).Append("\n");
             sb.Append("  ReprojectionErrorMedian: ").Append(ReprojectionErrorMedian).Append("\n");
-            sb.Append("  ImageCoverage: ").Append(ImageCoverage).Append("\n");
-            sb.Append("  DepthZ90thPercentile: ").Append(DepthZ90thPercentile).Append("\n");
-            sb.Append("  DepthZ10thPercentile: ").Append(DepthZ10thPercentile).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

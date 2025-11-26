@@ -96,15 +96,14 @@ Class | Method | HTTP request | Description
 ## Documentation For Models
 
  - [Camera](docs/Camera.md)
- - [FullOpenCVCamera](docs/FullOpenCVCamera.md)
- - [GenericParamsIntrinsics](docs/GenericParamsIntrinsics.md)
+ - [FullOpenCVCameraConfig](docs/FullOpenCVCameraConfig.md)
  - [HTTPValidationError](docs/HTTPValidationError.md)
  - [LoadState](docs/LoadState.md)
  - [LoadStateResponse](docs/LoadStateResponse.md)
  - [Localization](docs/Localization.md)
  - [LocalizationMetrics](docs/LocalizationMetrics.md)
- - [OpenCVCamera](docs/OpenCVCamera.md)
- - [PinholeCamera](docs/PinholeCamera.md)
+ - [OpenCVCameraConfig](docs/OpenCVCameraConfig.md)
+ - [PinholeCameraConfig](docs/PinholeCameraConfig.md)
  - [Quaternion](docs/Quaternion.md)
  - [Transform](docs/Transform.md)
  - [ValidationError](docs/ValidationError.md)

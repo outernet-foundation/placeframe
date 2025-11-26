@@ -115,7 +115,7 @@ This is a monorepo using a uv workspace, but the dockerfiles that are used to bu
 If you change any dependencies for any projects, use this command to re-export all lock files.
 
 ```
-uv run --project scripts --no_workspace export-dependency-group-lock-files
+uv run --project scripts --no_workspace export-lock-files
 ```
 
 ### Migrate the database

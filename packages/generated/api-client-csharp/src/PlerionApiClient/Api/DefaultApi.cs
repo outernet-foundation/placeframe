@@ -374,8 +374,8 @@ namespace PlerionApiClient.Api
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <returns>RigConfig</returns>
-        RigConfig GetCaptureSessionRigConfig(Guid id);
+        /// <returns>Config</returns>
+        Config GetCaptureSessionRigConfig(Guid id);
 
         /// <summary>
         /// Get Capture Session Rig Config
@@ -385,8 +385,8 @@ namespace PlerionApiClient.Api
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <returns>ApiResponse of RigConfig</returns>
-        ApiResponse<RigConfig> GetCaptureSessionRigConfigWithHttpInfo(Guid id);
+        /// <returns>ApiResponse of Config</returns>
+        ApiResponse<Config> GetCaptureSessionRigConfigWithHttpInfo(Guid id);
         /// <summary>
         /// Get Capture Sessions
         /// </summary>
@@ -1432,8 +1432,8 @@ namespace PlerionApiClient.Api
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of RigConfig</returns>
-        System.Threading.Tasks.Task<RigConfig> GetCaptureSessionRigConfigAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <returns>Task of Config</returns>
+        System.Threading.Tasks.Task<Config> GetCaptureSessionRigConfigAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get Capture Session Rig Config
@@ -1444,8 +1444,8 @@ namespace PlerionApiClient.Api
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (RigConfig)</returns>
-        System.Threading.Tasks.Task<ApiResponse<RigConfig>> GetCaptureSessionRigConfigWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <returns>Task of ApiResponse (Config)</returns>
+        System.Threading.Tasks.Task<ApiResponse<Config>> GetCaptureSessionRigConfigWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// Get Capture Sessions
         /// </summary>
@@ -4552,10 +4552,10 @@ namespace PlerionApiClient.Api
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <returns>RigConfig</returns>
-        public RigConfig GetCaptureSessionRigConfig(Guid id)
+        /// <returns>Config</returns>
+        public Config GetCaptureSessionRigConfig(Guid id)
         {
-            PlerionApiClient.Client.ApiResponse<RigConfig> localVarResponse = GetCaptureSessionRigConfigWithHttpInfo(id);
+            PlerionApiClient.Client.ApiResponse<Config> localVarResponse = GetCaptureSessionRigConfigWithHttpInfo(id);
             return localVarResponse.Data;
         }
 
@@ -4564,8 +4564,8 @@ namespace PlerionApiClient.Api
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <returns>ApiResponse of RigConfig</returns>
-        public PlerionApiClient.Client.ApiResponse<RigConfig> GetCaptureSessionRigConfigWithHttpInfo(Guid id)
+        /// <returns>ApiResponse of Config</returns>
+        public PlerionApiClient.Client.ApiResponse<Config> GetCaptureSessionRigConfigWithHttpInfo(Guid id)
         {
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
 
@@ -4587,7 +4587,7 @@ namespace PlerionApiClient.Api
 
 
             // make the HTTP request
-            var localVarResponse = this.Client.Get<RigConfig>("/capture_sessions/{id}/rig_config", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Get<Config>("/capture_sessions/{id}/rig_config", localVarRequestOptions, this.Configuration);
 
             if (this.ExceptionFactory != null)
             {
@@ -4604,10 +4604,10 @@ namespace PlerionApiClient.Api
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of RigConfig</returns>
-        public async System.Threading.Tasks.Task<RigConfig> GetCaptureSessionRigConfigAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        /// <returns>Task of Config</returns>
+        public async System.Threading.Tasks.Task<Config> GetCaptureSessionRigConfigAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlerionApiClient.Client.ApiResponse<RigConfig> localVarResponse = await GetCaptureSessionRigConfigWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            PlerionApiClient.Client.ApiResponse<Config> localVarResponse = await GetCaptureSessionRigConfigWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -4617,8 +4617,8 @@ namespace PlerionApiClient.Api
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (RigConfig)</returns>
-        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<RigConfig>> GetCaptureSessionRigConfigWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        /// <returns>Task of ApiResponse (Config)</returns>
+        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<Config>> GetCaptureSessionRigConfigWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
@@ -4643,7 +4643,7 @@ namespace PlerionApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<RigConfig>("/capture_sessions/{id}/rig_config", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<Config>("/capture_sessions/{id}/rig_config", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {

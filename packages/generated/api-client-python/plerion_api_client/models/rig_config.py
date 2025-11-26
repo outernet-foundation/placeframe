@@ -17,9 +17,9 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, StrictStr
 from typing import Any, ClassVar, Dict, List
-from plerion_api_client.models.rig import Rig
+from plerion_api_client.models.rig_camera_config import RigCameraConfig
 from typing import Optional, Set
 from typing_extensions import Self
 
@@ -27,9 +27,10 @@ class RigConfig(BaseModel):
     """
     RigConfig
     """ # noqa: E501
-    rigs: List[Rig]
+    id: StrictStr
+    cameras: List[RigCameraConfig]
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["rigs"]
+    __properties: ClassVar[List[str]] = ["id", "cameras"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -72,13 +73,13 @@ class RigConfig(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of each item in rigs (list)
+        # override the default output from pydantic by calling `to_dict()` of each item in cameras (list)
         _items = []
-        if self.rigs:
-            for _item_rigs in self.rigs:
-                if _item_rigs:
-                    _items.append(_item_rigs.to_dict())
-            _dict['rigs'] = _items
+        if self.cameras:
+            for _item_cameras in self.cameras:
+                if _item_cameras:
+                    _items.append(_item_cameras.to_dict())
+            _dict['cameras'] = _items
         # puts key-value pairs in additional_properties in the top level
         if self.additional_properties is not None:
             for _key, _value in self.additional_properties.items():
@@ -96,7 +97,8 @@ class RigConfig(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "rigs": [Rig.from_dict(_item) for _item in obj["rigs"]] if obj.get("rigs") is not None else None
+            "id": obj.get("id"),
+            "cameras": [RigCameraConfig.from_dict(_item) for _item in obj["cameras"]] if obj.get("cameras") is not None else None
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

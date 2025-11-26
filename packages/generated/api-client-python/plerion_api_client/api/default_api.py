@@ -25,6 +25,7 @@ from plerion_api_client.models.capture_session_batch_update import CaptureSessio
 from plerion_api_client.models.capture_session_create import CaptureSessionCreate
 from plerion_api_client.models.capture_session_read import CaptureSessionRead
 from plerion_api_client.models.capture_session_update import CaptureSessionUpdate
+from plerion_api_client.models.config import Config
 from plerion_api_client.models.group_batch_update import GroupBatchUpdate
 from plerion_api_client.models.group_create import GroupCreate
 from plerion_api_client.models.group_read import GroupRead
@@ -45,7 +46,6 @@ from plerion_api_client.models.point_cloud_point import PointCloudPoint
 from plerion_api_client.models.reconstruction_create_with_options import ReconstructionCreateWithOptions
 from plerion_api_client.models.reconstruction_manifest import ReconstructionManifest
 from plerion_api_client.models.reconstruction_read import ReconstructionRead
-from plerion_api_client.models.rig_config import RigConfig
 from plerion_api_client.models.transform import Transform
 
 from plerion_api_client.api_client import ApiClient, RequestSerialized
@@ -5126,7 +5126,7 @@ class DefaultApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> RigConfig:
+    ) -> Config:
         """Get Capture Session Rig Config
 
 
@@ -5163,7 +5163,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "RigConfig",
+            '200': "Config",
             '422': "HTTPValidationError",
         }
         response_data = await self.api_client.call_api(
@@ -5193,7 +5193,7 @@ class DefaultApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ApiResponse[RigConfig]:
+    ) -> ApiResponse[Config]:
         """Get Capture Session Rig Config
 
 
@@ -5230,7 +5230,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "RigConfig",
+            '200': "Config",
             '422': "HTTPValidationError",
         }
         response_data = await self.api_client.call_api(
@@ -5297,7 +5297,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "RigConfig",
+            '200': "Config",
             '422': "HTTPValidationError",
         }
         response_data = await self.api_client.call_api(

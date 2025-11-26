@@ -525,7 +525,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RigConfig"
+                  "$ref": "#/components/schemas/Config"
                 }
               }
             }
@@ -1602,16 +1602,13 @@
               "schema": {
                 "anyOf": [
                   {
-                    "$ref": "#/components/schemas/PinholeCamera"
+                    "$ref": "#/components/schemas/PinholeCameraConfig"
                   },
                   {
-                    "$ref": "#/components/schemas/OpenCVCamera"
+                    "$ref": "#/components/schemas/OpenCVCameraConfig"
                   },
                   {
-                    "$ref": "#/components/schemas/FullOpenCVCamera"
-                  },
-                  {
-                    "$ref": "#/components/schemas/GenericParamsIntrinsics"
+                    "$ref": "#/components/schemas/FullOpenCVCameraConfig"
                   }
                 ],
                 "title": "Camera"
@@ -2682,6 +2679,22 @@
         ],
         "title": "Color"
       },
+      "Config": {
+        "properties": {
+          "rigs": {
+            "items": {
+              "$ref": "#/components/schemas/RigConfig"
+            },
+            "type": "array",
+            "title": "Rigs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rigs"
+        ],
+        "title": "Config"
+      },
       "DeviceType": {
         "type": "string",
         "enum": [
@@ -2690,7 +2703,7 @@
         ],
         "title": "DeviceType"
       },
-      "FullOpenCVCamera": {
+      "FullOpenCVCameraConfig": {
         "properties": {
           "width": {
             "type": "integer",
@@ -2793,60 +2806,7 @@
           "k5",
           "k6"
         ],
-        "title": "FullOpenCVCamera"
-      },
-      "GenericParamsIntrinsics": {
-        "properties": {
-          "width": {
-            "type": "integer",
-            "title": "Width"
-          },
-          "height": {
-            "type": "integer",
-            "title": "Height"
-          },
-          "mirroring": {
-            "type": "string",
-            "enum": [
-              "None",
-              "X",
-              "Y"
-            ],
-            "title": "Mirroring"
-          },
-          "rotation": {
-            "type": "string",
-            "enum": [
-              "None",
-              "90_CW",
-              "180",
-              "90_CCW"
-            ],
-            "title": "Rotation"
-          },
-          "model": {
-            "type": "string",
-            "const": "GENERIC",
-            "title": "Model"
-          },
-          "params": {
-            "items": {
-              "type": "number"
-            },
-            "type": "array",
-            "title": "Params"
-          }
-        },
-        "type": "object",
-        "required": [
-          "width",
-          "height",
-          "mirroring",
-          "rotation",
-          "model",
-          "params"
-        ],
-        "title": "GenericParamsIntrinsics"
+        "title": "FullOpenCVCameraConfig"
       },
       "GroupBatchUpdate": {
         "properties": {
@@ -3593,27 +3553,12 @@
           "reprojection_error_median": {
             "type": "number",
             "title": "Reprojection Error Median"
-          },
-          "image_coverage": {
-            "type": "number",
-            "title": "Image Coverage"
-          },
-          "depth_z_90th_percentile": {
-            "type": "number",
-            "title": "Depth Z 90Th Percentile"
-          },
-          "depth_z_10th_percentile": {
-            "type": "number",
-            "title": "Depth Z 10Th Percentile"
           }
         },
         "type": "object",
         "required": [
           "inlier_ratio",
-          "reprojection_error_median",
-          "image_coverage",
-          "depth_z_90th_percentile",
-          "depth_z_10th_percentile"
+          "reprojection_error_median"
         ],
         "title": "LocalizationMetrics"
       },
@@ -4231,7 +4176,7 @@
         ],
         "title": "NodeRead"
       },
-      "OpenCVCamera": {
+      "OpenCVCameraConfig": {
         "properties": {
           "width": {
             "type": "integer",
@@ -4319,7 +4264,7 @@
           "p2",
           "k3"
         ],
-        "title": "OpenCVCamera"
+        "title": "OpenCVCameraConfig"
       },
       "OrchestrationStatus": {
         "type": "string",
@@ -4333,7 +4278,7 @@
         ],
         "title": "OrchestrationStatus"
       },
-      "PinholeCamera": {
+      "PinholeCameraConfig": {
         "properties": {
           "width": {
             "type": "integer",
@@ -4396,7 +4341,7 @@
           "cx",
           "cy"
         ],
-        "title": "PinholeCamera"
+        "title": "PinholeCameraConfig"
       },
       "PointCloudPoint": {
         "properties": {
@@ -4660,6 +4605,198 @@
             ],
             "title": "Percent Tracks With Length Greater Than Or Equal To 3",
             "description": "Percentage of 3D points whose track length is \u2265 3 (a common robustness threshold). Computed as 100 \u00d7 (#points with length\u22653 / #points)."
+          },
+          "all_verified_matches": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "All Verified Matches",
+            "description": "Total number of verified matches across all image pairs."
+          },
+          "all_verified_match_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "All Verified Match Rate",
+            "description": "Percentage of verified matches across all image pairs."
+          },
+          "all_verified_match_inliers_mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "All Verified Match Inliers Mean",
+            "description": "Mean number of inliers for all verified matches."
+          },
+          "all_verified_match_inliers_median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "All Verified Match Inliers Median",
+            "description": "Median number of inliers for all verified matches."
+          },
+          "stereo_verified_matches": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stereo Verified Matches",
+            "description": "Number of verified matches for stereo pairs (same frame, different sensors)."
+          },
+          "stereo_verified_match_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stereo Verified Match Rate",
+            "description": "Percentage of verified matches for stereo pairs."
+          },
+          "stereo_verified_match_inliers_mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stereo Verified Match Inliers Mean",
+            "description": "Mean number of inliers for verified matches for stereo pairs."
+          },
+          "stereo_verified_match_inliers_median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stereo Verified Match Inliers Median",
+            "description": "Median number of inliers for verified matches for stereo pairs."
+          },
+          "same_sensor_verified_matches": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Same Sensor Verified Matches",
+            "description": "Number of verified matches for same-sensor pairs (across frames)."
+          },
+          "same_sensor_verified_match_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Same Sensor Verified Match Rate",
+            "description": "Percentage of verified matches for same-sensor pairs."
+          },
+          "same_sensor_verified_match_inliers_mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Same Sensor Verified Match Inliers Mean",
+            "description": "Mean number of inliers for verified matches for same-sensor pairs."
+          },
+          "same_sensor_verified_match_inliers_median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Same Sensor Verified Match Inliers Median",
+            "description": "Median number of inliers for verified matches for same-sensor pairs."
+          },
+          "cross_sensor_verified_matches": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cross Sensor Verified Matches",
+            "description": "Number of verified matches for cross-sensor pairs (across frames)."
+          },
+          "cross_sensor_verified_match_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cross Sensor Verified Match Rate",
+            "description": "Percentage of verified matches for cross-sensor pairs."
+          },
+          "cross_sensor_verified_match_inliers_mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cross Sensor Verified Match Inliers Mean",
+            "description": "Mean number of inliers for verified matches for cross-sensor pairs."
+          },
+          "cross_sensor_verified_match_inliers_median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cross Sensor Verified Match Inliers Median",
+            "description": "Median number of inliers for verified matches for cross-sensor pairs."
           }
         },
         "type": "object",
@@ -4702,6 +4839,18 @@
             ],
             "title": "Neighbors Count",
             "description": "How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). If None, a sensible default is used (currently 12). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage."
+          },
+          "rotation_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation Threshold",
+            "description": "Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. Smaller values reduce weak overlaps and speed up matching at the cost of some coverage."
           },
           "max_keypoints_per_image": {
             "anyOf": [
@@ -4871,7 +5020,7 @@
             "title": "Compression Opq Number Of Subvectors",
             "description": "Number of subvectors for OPQ compression."
           },
-          "compression_opq_number_bits_per_subvector": {
+          "compression_opq_number_of_bits_per_subvector": {
             "anyOf": [
               {
                 "type": "integer"
@@ -4880,7 +5029,7 @@
                 "type": "null"
               }
             ],
-            "title": "Compression Opq Number Bits Per Subvector",
+            "title": "Compression Opq Number Of Bits Per Subvector",
             "description": "Number of bits per subvector for OPQ compression."
           },
           "compression_opq_number_of_training_iterations": {
@@ -4894,6 +5043,18 @@
             ],
             "title": "Compression Opq Number Of Training Iterations",
             "description": "Number of training iterations for OPQ compression."
+          },
+          "pose_prior_position_sigma_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pose Prior Position Sigma M",
+            "description": "Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values = stronger priors."
           }
         },
         "type": "object",
@@ -4935,28 +5096,7 @@
         ],
         "title": "ReconstructionRead"
       },
-      "Rig": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "cameras": {
-            "items": {
-              "$ref": "#/components/schemas/RigCamera"
-            },
-            "type": "array",
-            "title": "Cameras"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "cameras"
-        ],
-        "title": "Rig"
-      },
-      "RigCamera": {
+      "RigCameraConfig": {
         "properties": {
           "id": {
             "type": "string",
@@ -4979,29 +5119,25 @@
           "translation": {
             "$ref": "#/components/schemas/Vector3"
           },
-          "intrinsics": {
+          "camera_config": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/PinholeCamera"
+                "$ref": "#/components/schemas/PinholeCameraConfig"
               },
               {
-                "$ref": "#/components/schemas/OpenCVCamera"
+                "$ref": "#/components/schemas/OpenCVCameraConfig"
               },
               {
-                "$ref": "#/components/schemas/FullOpenCVCamera"
-              },
-              {
-                "$ref": "#/components/schemas/GenericParamsIntrinsics"
+                "$ref": "#/components/schemas/FullOpenCVCameraConfig"
               }
             ],
-            "title": "Intrinsics",
+            "title": "Camera Config",
             "discriminator": {
               "propertyName": "model",
               "mapping": {
-                "FULL_OPENCV": "#/components/schemas/FullOpenCVCamera",
-                "GENERIC": "#/components/schemas/GenericParamsIntrinsics",
-                "OPENCV": "#/components/schemas/OpenCVCamera",
-                "PINHOLE": "#/components/schemas/PinholeCamera"
+                "FULL_OPENCV": "#/components/schemas/FullOpenCVCameraConfig",
+                "OPENCV": "#/components/schemas/OpenCVCameraConfig",
+                "PINHOLE": "#/components/schemas/PinholeCameraConfig"
               }
             }
           }
@@ -5012,23 +5148,28 @@
           "ref_sensor",
           "rotation",
           "translation",
-          "intrinsics"
+          "camera_config"
         ],
-        "title": "RigCamera"
+        "title": "RigCameraConfig"
       },
       "RigConfig": {
         "properties": {
-          "rigs": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "cameras": {
             "items": {
-              "$ref": "#/components/schemas/Rig"
+              "$ref": "#/components/schemas/RigCameraConfig"
             },
             "type": "array",
-            "title": "Rigs"
+            "title": "Cameras"
           }
         },
         "type": "object",
         "required": [
-          "rigs"
+          "id",
+          "cameras"
         ],
         "title": "RigConfig"
       },

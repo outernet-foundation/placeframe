@@ -1,5 +1,4 @@
-from .dir import load_DIR
-from .lightglue import load_lightglue, load_superpoint
+from .models import load_DIR, load_lightglue, load_superpoint
 
 _ = load_DIR()
 _ = load_superpoint()

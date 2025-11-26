@@ -353,7 +353,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/RigConfig"
+                $ref: "#/components/schemas/Config"
           description: Successful Response
         "422":
           content:
@@ -1786,13 +1786,112 @@ components:
       - g
       - r
       title: Color
+    Config:
+      example:
+        rigs:
+        - cameras:
+          - camera_config:
+              fx: 2.027123023002322
+              fy: 4.145608029883936
+              cx: 7.386281948385884
+              cy: 1.2315135367772556
+              rotation: None
+              width: 9
+              model: PINHOLE
+              mirroring: None
+              height: 3
+            rotation:
+              w: 5.962133916683182
+              x: 0.8008281904610115
+              "y": 6.027456183070403
+              z: 1.4658129805029452
+            translation:
+              x: 5.637376656633329
+              "y": 2.3021358869347655
+              z: 7.061401241503109
+            ref_sensor: true
+            id: id
+          - camera_config:
+              fx: 2.027123023002322
+              fy: 4.145608029883936
+              cx: 7.386281948385884
+              cy: 1.2315135367772556
+              rotation: None
+              width: 9
+              model: PINHOLE
+              mirroring: None
+              height: 3
+            rotation:
+              w: 5.962133916683182
+              x: 0.8008281904610115
+              "y": 6.027456183070403
+              z: 1.4658129805029452
+            translation:
+              x: 5.637376656633329
+              "y": 2.3021358869347655
+              z: 7.061401241503109
+            ref_sensor: true
+            id: id
+          id: id
+        - cameras:
+          - camera_config:
+              fx: 2.027123023002322
+              fy: 4.145608029883936
+              cx: 7.386281948385884
+              cy: 1.2315135367772556
+              rotation: None
+              width: 9
+              model: PINHOLE
+              mirroring: None
+              height: 3
+            rotation:
+              w: 5.962133916683182
+              x: 0.8008281904610115
+              "y": 6.027456183070403
+              z: 1.4658129805029452
+            translation:
+              x: 5.637376656633329
+              "y": 2.3021358869347655
+              z: 7.061401241503109
+            ref_sensor: true
+            id: id
+          - camera_config:
+              fx: 2.027123023002322
+              fy: 4.145608029883936
+              cx: 7.386281948385884
+              cy: 1.2315135367772556
+              rotation: None
+              width: 9
+              model: PINHOLE
+              mirroring: None
+              height: 3
+            rotation:
+              w: 5.962133916683182
+              x: 0.8008281904610115
+              "y": 6.027456183070403
+              z: 1.4658129805029452
+            translation:
+              x: 5.637376656633329
+              "y": 2.3021358869347655
+              z: 7.061401241503109
+            ref_sensor: true
+            id: id
+          id: id
+      properties:
+        rigs:
+          items:
+            $ref: "#/components/schemas/RigConfig"
+          type: array
+      required:
+      - rigs
+      title: Config
     DeviceType:
       enum:
       - ARFoundation
       - Zed
       title: DeviceType
       type: string
-    FullOpenCVCamera:
+    FullOpenCVCameraConfig:
       properties:
         width:
           title: Width
@@ -1874,47 +1973,7 @@ components:
       - p2
       - rotation
       - width
-      title: FullOpenCVCamera
-    GenericParamsIntrinsics:
-      properties:
-        width:
-          title: Width
-          type: integer
-        height:
-          title: Height
-          type: integer
-        mirroring:
-          enum:
-          - None
-          - X
-          - "Y"
-          title: Mirroring
-          type: string
-        rotation:
-          enum:
-          - None
-          - 90_CW
-          - "180"
-          - 90_CCW
-          title: Rotation
-          type: string
-        model:
-          enum:
-          - GENERIC
-          title: Model
-          type: string
-        params:
-          items:
-            type: number
-          type: array
-      required:
-      - height
-      - mirroring
-      - model
-      - params
-      - rotation
-      - width
-      title: GenericParamsIntrinsics
+      title: FullOpenCVCameraConfig
     GroupBatchUpdate:
       example:
         parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -2359,11 +2418,8 @@ components:
       title: LocalizationMapUpdate
     LocalizationMetrics:
       example:
-        image_coverage: 1.4658129805029452
-        depth_z_10th_percentile: 5.637376656633329
         inlier_ratio: 0.8008281904610115
         reprojection_error_median: 6.027456183070403
-        depth_z_90th_percentile: 5.962133916683182
       properties:
         inlier_ratio:
           title: Inlier Ratio
@@ -2371,19 +2427,7 @@ components:
         reprojection_error_median:
           title: Reprojection Error Median
           type: number
-        image_coverage:
-          title: Image Coverage
-          type: number
-        depth_z_90th_percentile:
-          title: Depth Z 90Th Percentile
-          type: number
-        depth_z_10th_percentile:
-          title: Depth Z 10Th Percentile
-          type: number
       required:
-      - depth_z_10th_percentile
-      - depth_z_90th_percentile
-      - image_coverage
       - inlier_ratio
       - reprojection_error_median
       title: LocalizationMetrics
@@ -2428,11 +2472,8 @@ components:
             z: 7.061401241503109
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         metrics:
-          image_coverage: 1.4658129805029452
-          depth_z_10th_percentile: 5.637376656633329
           inlier_ratio: 0.8008281904610115
           reprojection_error_median: 6.027456183070403
-          depth_z_90th_percentile: 5.962133916683182
         map_transform:
           rotation:
             w: 5.962133916683182
@@ -2743,7 +2784,7 @@ components:
       - rotation_z
       - updated_at
       title: NodeRead
-    OpenCVCamera:
+    OpenCVCameraConfig:
       properties:
         width:
           title: Width
@@ -2813,7 +2854,7 @@ components:
       - p2
       - rotation
       - width
-      title: OpenCVCamera
+      title: OpenCVCameraConfig
     OrchestrationStatus:
       enum:
       - queued
@@ -2824,7 +2865,7 @@ components:
       - failed
       title: OrchestrationStatus
       type: string
-    PinholeCamera:
+    PinholeCameraConfig:
       example:
         fx: 2.027123023002322
         fy: 4.145608029883936
@@ -2884,7 +2925,7 @@ components:
       - model
       - rotation
       - width
-      title: PinholeCamera
+      title: PinholeCameraConfig
     PointCloudPoint:
       example:
         color:
@@ -2952,20 +2993,22 @@ components:
       example:
         options:
           random_seed: 0
-          ransac_max_error: 5.962133916683182
-          triangulation_merge_max_reprojection_error: 9.301444243932576
-          ransac_min_inlier_ratio: 5.637376656633329
-          compression_opq_number_bits_per_subvector: 4
+          ransac_max_error: 5.637376656633329
+          triangulation_merge_max_reprojection_error: 3.616076749251911
+          ransac_min_inlier_ratio: 2.3021358869347655
           bundle_adjustment_refine_sensor_from_rig: true
           bundle_adjustment_refine_principal_point: true
-          compression_opq_number_of_subvectors: 2
+          compression_opq_number_of_subvectors: 4
+          rotation_threshold: 1.4658129805029452
+          compression_opq_number_of_bits_per_subvector: 7
           use_prior_position: true
-          max_keypoints_per_image: 1
-          compression_opq_number_of_training_iterations: 7
+          pose_prior_position_sigma_m: 1.0246457001441578
+          max_keypoints_per_image: 5
+          compression_opq_number_of_training_iterations: 1
           neighbors_count: 6
-          triangulation_complete_max_reprojection_error: 7.061401241503109
-          mapper_filter_max_reprojection_error: 3.616076749251911
-          triangulation_minimum_angle: 2.3021358869347655
+          triangulation_complete_max_reprojection_error: 9.301444243932576
+          mapper_filter_max_reprojection_error: 2.027123023002322
+          triangulation_minimum_angle: 7.061401241503109
           bundle_adjustment_refine_additional_params: true
           bundle_adjustment_refine_focal_length: true
           single_threaded: true
@@ -2986,34 +3029,52 @@ components:
       example:
         options:
           random_seed: 0
-          ransac_max_error: 5.962133916683182
-          triangulation_merge_max_reprojection_error: 9.301444243932576
-          ransac_min_inlier_ratio: 5.637376656633329
-          compression_opq_number_bits_per_subvector: 4
+          ransac_max_error: 5.637376656633329
+          triangulation_merge_max_reprojection_error: 3.616076749251911
+          ransac_min_inlier_ratio: 2.3021358869347655
           bundle_adjustment_refine_sensor_from_rig: true
           bundle_adjustment_refine_principal_point: true
-          compression_opq_number_of_subvectors: 2
+          compression_opq_number_of_subvectors: 4
+          rotation_threshold: 1.4658129805029452
+          compression_opq_number_of_bits_per_subvector: 7
           use_prior_position: true
-          max_keypoints_per_image: 1
-          compression_opq_number_of_training_iterations: 7
+          pose_prior_position_sigma_m: 1.0246457001441578
+          max_keypoints_per_image: 5
+          compression_opq_number_of_training_iterations: 1
           neighbors_count: 6
-          triangulation_complete_max_reprojection_error: 7.061401241503109
-          mapper_filter_max_reprojection_error: 3.616076749251911
-          triangulation_minimum_angle: 2.3021358869347655
+          triangulation_complete_max_reprojection_error: 9.301444243932576
+          mapper_filter_max_reprojection_error: 2.027123023002322
+          triangulation_minimum_angle: 7.061401241503109
           bundle_adjustment_refine_additional_params: true
           bundle_adjustment_refine_focal_length: true
           single_threaded: true
           rig_verification: true
         metrics:
-          track_length_50th_percentile: 9.301444243932576
-          total_images: 0
+          all_verified_match_inliers_median: 1.2315135367772556
+          cross_sensor_verified_matches: 9
           reprojection_pixel_error_50th_percentile: 2.3021358869347655
-          average_keypoints_per_image: 5.637376656633329
-          reprojection_pixel_error_90th_percentile: 7.061401241503109
+          stereo_verified_match_rate: 1.4894159098541704
+          same_sensor_verified_match_inliers_median: 9.965781217890562
           num_3d_points: 5
+          same_sensor_verified_match_rate: 4.965218492984954
+          all_verified_match_inliers_mean: 7.386281948385884
+          cross_sensor_verified_match_inliers_mean: 8.762042012749001
+          stereo_verified_match_inliers_median: 7.457744773683766
+          all_verified_matches: 2
+          average_keypoints_per_image: 5.637376656633329
+          cross_sensor_verified_match_rate: 6.683562403749608
           registration_rate: 1.4658129805029452
+          same_sensor_verified_match_inliers_mean: 5.025004791520295
           registered_images: 6
           percent_tracks_with_length_greater_than_or_equal_to_3: 3.616076749251911
+          same_sensor_verified_matches: 1
+          track_length_50th_percentile: 9.301444243932576
+          cross_sensor_verified_match_inliers_median: 9.018348186070783
+          all_verified_match_rate: 4.145608029883936
+          total_images: 0
+          reprojection_pixel_error_90th_percentile: 7.061401241503109
+          stereo_verified_matches: 1
+          stereo_verified_match_inliers_mean: 6.84685269835264
         capture_id: capture_id
         error: error
         status: queued
@@ -3051,15 +3112,31 @@ components:
       title: ReconstructionManifest
     ReconstructionMetrics:
       example:
-        track_length_50th_percentile: 9.301444243932576
-        total_images: 0
+        all_verified_match_inliers_median: 1.2315135367772556
+        cross_sensor_verified_matches: 9
         reprojection_pixel_error_50th_percentile: 2.3021358869347655
-        average_keypoints_per_image: 5.637376656633329
-        reprojection_pixel_error_90th_percentile: 7.061401241503109
+        stereo_verified_match_rate: 1.4894159098541704
+        same_sensor_verified_match_inliers_median: 9.965781217890562
         num_3d_points: 5
+        same_sensor_verified_match_rate: 4.965218492984954
+        all_verified_match_inliers_mean: 7.386281948385884
+        cross_sensor_verified_match_inliers_mean: 8.762042012749001
+        stereo_verified_match_inliers_median: 7.457744773683766
+        all_verified_matches: 2
+        average_keypoints_per_image: 5.637376656633329
+        cross_sensor_verified_match_rate: 6.683562403749608
         registration_rate: 1.4658129805029452
+        same_sensor_verified_match_inliers_mean: 5.025004791520295
         registered_images: 6
         percent_tracks_with_length_greater_than_or_equal_to_3: 3.616076749251911
+        same_sensor_verified_matches: 1
+        track_length_50th_percentile: 9.301444243932576
+        cross_sensor_verified_match_inliers_median: 9.018348186070783
+        all_verified_match_rate: 4.145608029883936
+        total_images: 0
+        reprojection_pixel_error_90th_percentile: 7.061401241503109
+        stereo_verified_matches: 1
+        stereo_verified_match_inliers_mean: 6.84685269835264
       properties:
         total_images:
           nullable: true
@@ -3088,24 +3165,74 @@ components:
         percent_tracks_with_length_greater_than_or_equal_to_3:
           nullable: true
           type: number
+        all_verified_matches:
+          nullable: true
+          type: integer
+        all_verified_match_rate:
+          nullable: true
+          type: number
+        all_verified_match_inliers_mean:
+          nullable: true
+          type: number
+        all_verified_match_inliers_median:
+          nullable: true
+          type: number
+        stereo_verified_matches:
+          nullable: true
+          type: integer
+        stereo_verified_match_rate:
+          nullable: true
+          type: number
+        stereo_verified_match_inliers_mean:
+          nullable: true
+          type: number
+        stereo_verified_match_inliers_median:
+          nullable: true
+          type: number
+        same_sensor_verified_matches:
+          nullable: true
+          type: integer
+        same_sensor_verified_match_rate:
+          nullable: true
+          type: number
+        same_sensor_verified_match_inliers_mean:
+          nullable: true
+          type: number
+        same_sensor_verified_match_inliers_median:
+          nullable: true
+          type: number
+        cross_sensor_verified_matches:
+          nullable: true
+          type: integer
+        cross_sensor_verified_match_rate:
+          nullable: true
+          type: number
+        cross_sensor_verified_match_inliers_mean:
+          nullable: true
+          type: number
+        cross_sensor_verified_match_inliers_median:
+          nullable: true
+          type: number
       title: ReconstructionMetrics
     ReconstructionOptions:
       example:
         random_seed: 0
-        ransac_max_error: 5.962133916683182
-        triangulation_merge_max_reprojection_error: 9.301444243932576
-        ransac_min_inlier_ratio: 5.637376656633329
-        compression_opq_number_bits_per_subvector: 4
+        ransac_max_error: 5.637376656633329
+        triangulation_merge_max_reprojection_error: 3.616076749251911
+        ransac_min_inlier_ratio: 2.3021358869347655
         bundle_adjustment_refine_sensor_from_rig: true
         bundle_adjustment_refine_principal_point: true
-        compression_opq_number_of_subvectors: 2
+        compression_opq_number_of_subvectors: 4
+        rotation_threshold: 1.4658129805029452
+        compression_opq_number_of_bits_per_subvector: 7
         use_prior_position: true
-        max_keypoints_per_image: 1
-        compression_opq_number_of_training_iterations: 7
+        pose_prior_position_sigma_m: 1.0246457001441578
+        max_keypoints_per_image: 5
+        compression_opq_number_of_training_iterations: 1
         neighbors_count: 6
-        triangulation_complete_max_reprojection_error: 7.061401241503109
-        mapper_filter_max_reprojection_error: 3.616076749251911
-        triangulation_minimum_angle: 2.3021358869347655
+        triangulation_complete_max_reprojection_error: 9.301444243932576
+        mapper_filter_max_reprojection_error: 2.027123023002322
+        triangulation_minimum_angle: 7.061401241503109
         bundle_adjustment_refine_additional_params: true
         bundle_adjustment_refine_focal_length: true
         single_threaded: true
@@ -3120,6 +3247,9 @@ components:
         neighbors_count:
           nullable: true
           type: integer
+        rotation_threshold:
+          nullable: true
+          type: number
         max_keypoints_per_image:
           nullable: true
           type: integer
@@ -3162,12 +3292,15 @@ components:
         compression_opq_number_of_subvectors:
           nullable: true
           type: integer
-        compression_opq_number_bits_per_subvector:
+        compression_opq_number_of_bits_per_subvector:
           nullable: true
           type: integer
         compression_opq_number_of_training_iterations:
           nullable: true
           type: integer
+        pose_prior_position_sigma_m:
+          nullable: true
+          type: number
       title: ReconstructionOptions
     ReconstructionRead:
       example:
@@ -3202,76 +3335,9 @@ components:
       - orchestration_status
       - updated_at
       title: ReconstructionRead
-    Rig:
+    RigCameraConfig:
       example:
-        cameras:
-        - rotation:
-            w: 5.962133916683182
-            x: 0.8008281904610115
-            "y": 6.027456183070403
-            z: 1.4658129805029452
-          translation:
-            x: 5.637376656633329
-            "y": 2.3021358869347655
-            z: 7.061401241503109
-          intrinsics:
-            fx: 2.027123023002322
-            fy: 4.145608029883936
-            cx: 7.386281948385884
-            cy: 1.2315135367772556
-            rotation: None
-            width: 9
-            model: PINHOLE
-            mirroring: None
-            height: 3
-          ref_sensor: true
-          id: id
-        - rotation:
-            w: 5.962133916683182
-            x: 0.8008281904610115
-            "y": 6.027456183070403
-            z: 1.4658129805029452
-          translation:
-            x: 5.637376656633329
-            "y": 2.3021358869347655
-            z: 7.061401241503109
-          intrinsics:
-            fx: 2.027123023002322
-            fy: 4.145608029883936
-            cx: 7.386281948385884
-            cy: 1.2315135367772556
-            rotation: None
-            width: 9
-            model: PINHOLE
-            mirroring: None
-            height: 3
-          ref_sensor: true
-          id: id
-        id: id
-      properties:
-        id:
-          title: Id
-          type: string
-        cameras:
-          items:
-            $ref: "#/components/schemas/RigCamera"
-          type: array
-      required:
-      - cameras
-      - id
-      title: Rig
-    RigCamera:
-      example:
-        rotation:
-          w: 5.962133916683182
-          x: 0.8008281904610115
-          "y": 6.027456183070403
-          z: 1.4658129805029452
-        translation:
-          x: 5.637376656633329
-          "y": 2.3021358869347655
-          z: 7.061401241503109
-        intrinsics:
+        camera_config:
           fx: 2.027123023002322
           fy: 4.145608029883936
           cx: 7.386281948385884
@@ -3281,6 +3347,15 @@ components:
           model: PINHOLE
           mirroring: None
           height: 3
+        rotation:
+          w: 5.962133916683182
+          x: 0.8008281904610115
+          "y": 6.027456183070403
+          z: 1.4658129805029452
+        translation:
+          x: 5.637376656633329
+          "y": 2.3021358869347655
+          z: 7.061401241503109
         ref_sensor: true
         id: id
       properties:
@@ -3294,113 +3369,72 @@ components:
           $ref: "#/components/schemas/Quaternion"
         translation:
           $ref: "#/components/schemas/Vector3"
-        intrinsics:
-          $ref: "#/components/schemas/Intrinsics"
+        camera_config:
+          $ref: "#/components/schemas/Camera_Config"
       required:
+      - camera_config
       - id
-      - intrinsics
       - ref_sensor
       - rotation
       - translation
-      title: RigCamera
+      title: RigCameraConfig
     RigConfig:
       example:
-        rigs:
-        - cameras:
-          - rotation:
-              w: 5.962133916683182
-              x: 0.8008281904610115
-              "y": 6.027456183070403
-              z: 1.4658129805029452
-            translation:
-              x: 5.637376656633329
-              "y": 2.3021358869347655
-              z: 7.061401241503109
-            intrinsics:
-              fx: 2.027123023002322
-              fy: 4.145608029883936
-              cx: 7.386281948385884
-              cy: 1.2315135367772556
-              rotation: None
-              width: 9
-              model: PINHOLE
-              mirroring: None
-              height: 3
-            ref_sensor: true
-            id: id
-          - rotation:
-              w: 5.962133916683182
-              x: 0.8008281904610115
-              "y": 6.027456183070403
-              z: 1.4658129805029452
-            translation:
-              x: 5.637376656633329
-              "y": 2.3021358869347655
-              z: 7.061401241503109
-            intrinsics:
-              fx: 2.027123023002322
-              fy: 4.145608029883936
-              cx: 7.386281948385884
-              cy: 1.2315135367772556
-              rotation: None
-              width: 9
-              model: PINHOLE
-              mirroring: None
-              height: 3
-            ref_sensor: true
-            id: id
+        cameras:
+        - camera_config:
+            fx: 2.027123023002322
+            fy: 4.145608029883936
+            cx: 7.386281948385884
+            cy: 1.2315135367772556
+            rotation: None
+            width: 9
+            model: PINHOLE
+            mirroring: None
+            height: 3
+          rotation:
+            w: 5.962133916683182
+            x: 0.8008281904610115
+            "y": 6.027456183070403
+            z: 1.4658129805029452
+          translation:
+            x: 5.637376656633329
+            "y": 2.3021358869347655
+            z: 7.061401241503109
+          ref_sensor: true
           id: id
-        - cameras:
-          - rotation:
-              w: 5.962133916683182
-              x: 0.8008281904610115
-              "y": 6.027456183070403
-              z: 1.4658129805029452
-            translation:
-              x: 5.637376656633329
-              "y": 2.3021358869347655
-              z: 7.061401241503109
-            intrinsics:
-              fx: 2.027123023002322
-              fy: 4.145608029883936
-              cx: 7.386281948385884
-              cy: 1.2315135367772556
-              rotation: None
-              width: 9
-              model: PINHOLE
-              mirroring: None
-              height: 3
-            ref_sensor: true
-            id: id
-          - rotation:
-              w: 5.962133916683182
-              x: 0.8008281904610115
-              "y": 6.027456183070403
-              z: 1.4658129805029452
-            translation:
-              x: 5.637376656633329
-              "y": 2.3021358869347655
-              z: 7.061401241503109
-            intrinsics:
-              fx: 2.027123023002322
-              fy: 4.145608029883936
-              cx: 7.386281948385884
-              cy: 1.2315135367772556
-              rotation: None
-              width: 9
-              model: PINHOLE
-              mirroring: None
-              height: 3
-            ref_sensor: true
-            id: id
+        - camera_config:
+            fx: 2.027123023002322
+            fy: 4.145608029883936
+            cx: 7.386281948385884
+            cy: 1.2315135367772556
+            rotation: None
+            width: 9
+            model: PINHOLE
+            mirroring: None
+            height: 3
+          rotation:
+            w: 5.962133916683182
+            x: 0.8008281904610115
+            "y": 6.027456183070403
+            z: 1.4658129805029452
+          translation:
+            x: 5.637376656633329
+            "y": 2.3021358869347655
+            z: 7.061401241503109
+          ref_sensor: true
           id: id
+        id: id
       properties:
-        rigs:
+        id:
+          title: Id
+          type: string
+        cameras:
           items:
-            $ref: "#/components/schemas/Rig"
+            $ref: "#/components/schemas/RigCameraConfig"
           type: array
       required:
-      - rigs
+      - cameras
+      - id
       title: RigConfig
     Transform:
       example:
@@ -3467,25 +3501,22 @@ components:
       title: Vector3
     Camera:
       anyOf:
-      - $ref: "#/components/schemas/PinholeCamera"
-      - $ref: "#/components/schemas/OpenCVCamera"
-      - $ref: "#/components/schemas/FullOpenCVCamera"
-      - $ref: "#/components/schemas/GenericParamsIntrinsics"
+      - $ref: "#/components/schemas/PinholeCameraConfig"
+      - $ref: "#/components/schemas/OpenCVCameraConfig"
+      - $ref: "#/components/schemas/FullOpenCVCameraConfig"
       title: Camera
-    Intrinsics:
+    Camera_Config:
       discriminator:
         mapping:
-          FULL_OPENCV: "#/components/schemas/FullOpenCVCamera"
-          GENERIC: "#/components/schemas/GenericParamsIntrinsics"
-          OPENCV: "#/components/schemas/OpenCVCamera"
-          PINHOLE: "#/components/schemas/PinholeCamera"
+          FULL_OPENCV: "#/components/schemas/FullOpenCVCameraConfig"
+          OPENCV: "#/components/schemas/OpenCVCameraConfig"
+          PINHOLE: "#/components/schemas/PinholeCameraConfig"
         propertyName: model
       oneOf:
-      - $ref: "#/components/schemas/PinholeCamera"
-      - $ref: "#/components/schemas/OpenCVCamera"
-      - $ref: "#/components/schemas/FullOpenCVCamera"
-      - $ref: "#/components/schemas/GenericParamsIntrinsics"
-      title: Intrinsics
+      - $ref: "#/components/schemas/PinholeCameraConfig"
+      - $ref: "#/components/schemas/OpenCVCameraConfig"
+      - $ref: "#/components/schemas/FullOpenCVCameraConfig"
+      title: Camera Config
     ValidationError_loc_inner:
       anyOf:
       - type: string

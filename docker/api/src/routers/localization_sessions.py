@@ -1,9 +1,9 @@
 from uuid import UUID, uuid4
 
 from common.session_client_docker import DockerSessionClient
-from core.classes import LocalizationMetrics
-from core.rig import Camera
-from core.transform import Quaternion, Transform, Vector3
+from core.classes import Quaternion, Transform, Vector3
+from core.localization_metrics import LocalizationMetrics
+from core.rig import CameraConfig
 from datamodels.public_dtos import LocalizationSessionRead, localization_session_to_dto
 from datamodels.public_tables import LocalizationMap, LocalizationSession
 from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
@@ -11,7 +11,7 @@ from plerion_localizer_client import ApiClient, Configuration
 from plerion_localizer_client.api.default_api import DefaultApi
 from plerion_localizer_client.models.camera import Camera as LocalizeCamera
 from plerion_localizer_client.models.load_state_response import LoadStateResponse
-from plerion_localizer_client.models.pinhole_camera import PinholeCamera as LocalizePinholeCamera
+from plerion_localizer_client.models.pinhole_camera_config import PinholeCameraConfig
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -70,7 +70,7 @@ async def delete_localization_session(localization_session_id: UUID, session: As
 
 @router.put("/{localization_session_id}/camera")
 async def set_localization_session_camera_intrinsics(
-    localization_session_id: UUID, camera: Camera = Body(...), session: AsyncSession = Depends(get_session)
+    localization_session_id: UUID, camera: CameraConfig = Body(...), session: AsyncSession = Depends(get_session)
 ):
     if camera.model != "PINHOLE":
         raise HTTPException(status_code=422, detail="Only PINHOLE camera model is supported")
@@ -79,7 +79,7 @@ async def set_localization_session_camera_intrinsics(
     async with ApiClient(Configuration(host=url)) as api_client:
         try:
             await DefaultApi(api_client).set_camera_intrinsics(
-                LocalizeCamera(actual_instance=LocalizePinholeCamera.model_validate(camera.model_dump()))
+                LocalizeCamera(actual_instance=PinholeCameraConfig.model_validate(camera.model_dump()))
             )
         except Exception as e:
             raise HTTPException(502, f"session backend unreachable: {e}") from e

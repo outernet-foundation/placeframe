@@ -38,6 +38,7 @@ namespace PlerionApiClient.Model
         /// <param name="randomSeed">randomSeed.</param>
         /// <param name="singleThreaded">singleThreaded.</param>
         /// <param name="neighborsCount">neighborsCount.</param>
+        /// <param name="rotationThreshold">rotationThreshold.</param>
         /// <param name="maxKeypointsPerImage">maxKeypointsPerImage.</param>
         /// <param name="ransacMaxError">ransacMaxError.</param>
         /// <param name="ransacMinInlierRatio">ransacMinInlierRatio.</param>
@@ -52,8 +53,9 @@ namespace PlerionApiClient.Model
         /// <param name="bundleAdjustmentRefinePrincipalPoint">bundleAdjustmentRefinePrincipalPoint.</param>
         /// <param name="bundleAdjustmentRefineAdditionalParams">bundleAdjustmentRefineAdditionalParams.</param>
         /// <param name="compressionOpqNumberOfSubvectors">compressionOpqNumberOfSubvectors.</param>
-        /// <param name="compressionOpqNumberBitsPerSubvector">compressionOpqNumberBitsPerSubvector.</param>
+        /// <param name="compressionOpqNumberOfBitsPerSubvector">compressionOpqNumberOfBitsPerSubvector.</param>
         /// <param name="compressionOpqNumberOfTrainingIterations">compressionOpqNumberOfTrainingIterations.</param>
+        /// <param name="posePriorPositionSigmaM">posePriorPositionSigmaM.</param>
         public ReconstructionOptions()
         {
         }
@@ -129,6 +131,30 @@ namespace PlerionApiClient.Model
         public bool ShouldSerializeNeighborsCount()
         {
             return _flagNeighborsCount;
+        }
+        /// <summary>
+        /// Gets or Sets RotationThreshold
+        /// </summary>
+        [DataMember(Name = "rotation_threshold", EmitDefaultValue = true)]
+        public double? RotationThreshold
+        {
+            get{ return _RotationThreshold;}
+            set
+            {
+                _RotationThreshold = value;
+                _flagRotationThreshold = true;
+            }
+        }
+        private double? _RotationThreshold;
+        private bool _flagRotationThreshold;
+
+        /// <summary>
+        /// Returns false as RotationThreshold should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeRotationThreshold()
+        {
+            return _flagRotationThreshold;
         }
         /// <summary>
         /// Gets or Sets MaxKeypointsPerImage
@@ -467,28 +493,28 @@ namespace PlerionApiClient.Model
             return _flagCompressionOpqNumberOfSubvectors;
         }
         /// <summary>
-        /// Gets or Sets CompressionOpqNumberBitsPerSubvector
+        /// Gets or Sets CompressionOpqNumberOfBitsPerSubvector
         /// </summary>
-        [DataMember(Name = "compression_opq_number_bits_per_subvector", EmitDefaultValue = true)]
-        public int? CompressionOpqNumberBitsPerSubvector
+        [DataMember(Name = "compression_opq_number_of_bits_per_subvector", EmitDefaultValue = true)]
+        public int? CompressionOpqNumberOfBitsPerSubvector
         {
-            get{ return _CompressionOpqNumberBitsPerSubvector;}
+            get{ return _CompressionOpqNumberOfBitsPerSubvector;}
             set
             {
-                _CompressionOpqNumberBitsPerSubvector = value;
-                _flagCompressionOpqNumberBitsPerSubvector = true;
+                _CompressionOpqNumberOfBitsPerSubvector = value;
+                _flagCompressionOpqNumberOfBitsPerSubvector = true;
             }
         }
-        private int? _CompressionOpqNumberBitsPerSubvector;
-        private bool _flagCompressionOpqNumberBitsPerSubvector;
+        private int? _CompressionOpqNumberOfBitsPerSubvector;
+        private bool _flagCompressionOpqNumberOfBitsPerSubvector;
 
         /// <summary>
-        /// Returns false as CompressionOpqNumberBitsPerSubvector should not be serialized given that it's read-only.
+        /// Returns false as CompressionOpqNumberOfBitsPerSubvector should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeCompressionOpqNumberBitsPerSubvector()
+        public bool ShouldSerializeCompressionOpqNumberOfBitsPerSubvector()
         {
-            return _flagCompressionOpqNumberBitsPerSubvector;
+            return _flagCompressionOpqNumberOfBitsPerSubvector;
         }
         /// <summary>
         /// Gets or Sets CompressionOpqNumberOfTrainingIterations
@@ -515,6 +541,30 @@ namespace PlerionApiClient.Model
             return _flagCompressionOpqNumberOfTrainingIterations;
         }
         /// <summary>
+        /// Gets or Sets PosePriorPositionSigmaM
+        /// </summary>
+        [DataMember(Name = "pose_prior_position_sigma_m", EmitDefaultValue = true)]
+        public double? PosePriorPositionSigmaM
+        {
+            get{ return _PosePriorPositionSigmaM;}
+            set
+            {
+                _PosePriorPositionSigmaM = value;
+                _flagPosePriorPositionSigmaM = true;
+            }
+        }
+        private double? _PosePriorPositionSigmaM;
+        private bool _flagPosePriorPositionSigmaM;
+
+        /// <summary>
+        /// Returns false as PosePriorPositionSigmaM should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePosePriorPositionSigmaM()
+        {
+            return _flagPosePriorPositionSigmaM;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -525,6 +575,7 @@ namespace PlerionApiClient.Model
             sb.Append("  RandomSeed: ").Append(RandomSeed).Append("\n");
             sb.Append("  SingleThreaded: ").Append(SingleThreaded).Append("\n");
             sb.Append("  NeighborsCount: ").Append(NeighborsCount).Append("\n");
+            sb.Append("  RotationThreshold: ").Append(RotationThreshold).Append("\n");
             sb.Append("  MaxKeypointsPerImage: ").Append(MaxKeypointsPerImage).Append("\n");
             sb.Append("  RansacMaxError: ").Append(RansacMaxError).Append("\n");
             sb.Append("  RansacMinInlierRatio: ").Append(RansacMinInlierRatio).Append("\n");
@@ -539,8 +590,9 @@ namespace PlerionApiClient.Model
             sb.Append("  BundleAdjustmentRefinePrincipalPoint: ").Append(BundleAdjustmentRefinePrincipalPoint).Append("\n");
             sb.Append("  BundleAdjustmentRefineAdditionalParams: ").Append(BundleAdjustmentRefineAdditionalParams).Append("\n");
             sb.Append("  CompressionOpqNumberOfSubvectors: ").Append(CompressionOpqNumberOfSubvectors).Append("\n");
-            sb.Append("  CompressionOpqNumberBitsPerSubvector: ").Append(CompressionOpqNumberBitsPerSubvector).Append("\n");
+            sb.Append("  CompressionOpqNumberOfBitsPerSubvector: ").Append(CompressionOpqNumberOfBitsPerSubvector).Append("\n");
             sb.Append("  CompressionOpqNumberOfTrainingIterations: ").Append(CompressionOpqNumberOfTrainingIterations).Append("\n");
+            sb.Append("  PosePriorPositionSigmaM: ").Append(PosePriorPositionSigmaM).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

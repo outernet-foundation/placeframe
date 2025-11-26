@@ -29,7 +29,7 @@ packages = ["src/scripts"]
 
 [project.scripts]
 build = "scripts.build:main"
-export-dependency-group-lock-files = "scripts.export_dependency_group_lock_files:main"
+export-lock-files = "scripts.export_lock_files:main"
 forward-unity-android-debug-port = "scripts.forward_unity_android_debug_port:main"
 generate-clients = "scripts.generate_clients:main"
 generate-datamodels = "scripts.generate_datamodels:main"

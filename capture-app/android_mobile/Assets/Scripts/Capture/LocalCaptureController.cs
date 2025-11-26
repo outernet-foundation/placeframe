@@ -174,24 +174,24 @@ public static class LocalCaptureController
             File.WriteAllText(
                 Path.Combine(sessionDirectory, "config.json"),
 
-                    new RigConfig(
-                        new List<Rig>
+                    new Config(
+                        new List<RigConfig>
                         {
-                            new Rig(
+                            new RigConfig(
                                 "rig0",
-                                new List<RigCamera>
+                                new List<RigCameraConfig>
                                 {
-                                    new RigCamera(
+                                    new RigCameraConfig(
                                         "camera0",
                                         true,
                                         new PlerionApiClient.Model.Quaternion(0, 0, 0, 1),
                                         new PlerionApiClient.Model.Vector3(0, 0, 0),
-                                        new Intrinsics(new PinholeCamera(
+                                        new CameraConfig(new PinholeCameraConfig(
                                             intrinsics.resolution.x,
                                             intrinsics.resolution.y,
-                                            PinholeCamera.MirroringEnum.None,
-                                            PinholeCamera.RotationEnum._90CCW,
-                                            PinholeCamera.ModelEnum.PINHOLE,
+                                            PinholeCameraConfig.MirroringEnum.None,
+                                            PinholeCameraConfig.RotationEnum._90CCW,
+                                            PinholeCameraConfig.ModelEnum.PINHOLE,
                                             intrinsics.focalLength.x,
                                             intrinsics.focalLength.y,
                                             flipped ? (intrinsics.resolution.x - 1) - intrinsics.principalPoint.x : intrinsics.principalPoint.x,

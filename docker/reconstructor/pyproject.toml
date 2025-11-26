@@ -5,14 +5,13 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "core",
     "numpy>=2.0",
     "boto3>=1.40.18",
     "scipy>=1.7",
-    "pycolmap>=3.13.0",
     "opencv-python>=4.10.0",
     "h5py>=3.15.1",
     "faiss-cpu>=1.12.0",
-    "core[colmap]",
 ]
 
 [dependency-groups]
@@ -23,27 +22,11 @@ dev = [
     "pybind11-stubgen",
 ]
 torch = [
-    "torch==2.6.0+cu126",
-    "torchvision==0.21.0+cu126",
+    "torch==2.9.0+cu126",
+    "torchvision==0.24.0+cu126",
     "scikit-learn>=1.7.2",
-    # https://github.com/astral-sh/uv/issues/14237
-    # https://discuss.pytorch.org/t/when-i-install-torch-2-6-0-with-whl-cu126-none-of-cuda-dependencies-get-installed-i-have-cu126-in-the-environment-already-is-this-expected/218014/3
-    "nvidia-cuda-nvrtc-cu12==12.6.77; platform_system == 'Linux'",
-    "nvidia-cuda-runtime-cu12==12.6.77; platform_system == 'Linux'",
-    "nvidia-cuda-cupti-cu12==12.6.80; platform_system == 'Linux'",
-    "nvidia-cudnn-cu12==9.5.1.17; platform_system == 'Linux'",
-    "nvidia-cublas-cu12==12.6.4.1; platform_system == 'Linux'",
-    "nvidia-cufft-cu12==11.3.0.4; platform_system == 'Linux'",
-    "nvidia-curand-cu12==10.3.7.77; platform_system == 'Linux'",
-    "nvidia-cusolver-cu12==11.7.1.2; platform_system == 'Linux'",
-    "nvidia-cusparse-cu12==12.5.4.2; platform_system == 'Linux'",
-    "nvidia-cusparselt-cu12==0.6.3; platform_system == 'Linux'",
-    "nvidia-nvtx-cu12==12.6.77; platform_system == 'Linux'",
-    "nvidia-nvjitlink-cu12==12.6.85; platform_system == 'Linux'",
-    "nvidia-nccl-cu12==2.21.5; platform_system == 'Linux'",
 ]
 neural-networks = ["neural-networks"]
-
 
 [tool.uv.sources]
 core = { workspace = true }

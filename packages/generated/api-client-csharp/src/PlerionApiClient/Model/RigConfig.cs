@@ -40,40 +40,71 @@ namespace PlerionApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="RigConfig" /> class.
         /// </summary>
-        /// <param name="rigs">rigs (required).</param>
-        public RigConfig(List<Rig> rigs)
+        /// <param name="id">id (required).</param>
+        /// <param name="cameras">cameras (required).</param>
+        public RigConfig(string id, List<RigCameraConfig> cameras)
         {
-            // to ensure "rigs" is required (not null)
-            if (rigs == null)
+            // to ensure "id" is required (not null)
+            if (id == null)
             {
-                throw new ArgumentNullException("rigs is a required property for RigConfig and cannot be null");
+                throw new ArgumentNullException("id is a required property for RigConfig and cannot be null");
             }
-            this.Rigs = rigs;
+            this.Id = id;
+            // to ensure "cameras" is required (not null)
+            if (cameras == null)
+            {
+                throw new ArgumentNullException("cameras is a required property for RigConfig and cannot be null");
+            }
+            this.Cameras = cameras;
         }
 
         /// <summary>
-        /// Gets or Sets Rigs
+        /// Gets or Sets Id
         /// </summary>
-        [DataMember(Name = "rigs", IsRequired = true, EmitDefaultValue = true)]
-        public List<Rig> Rigs
+        [DataMember(Name = "id", IsRequired = true, EmitDefaultValue = true)]
+        public string Id
         {
-            get{ return _Rigs;}
+            get{ return _Id;}
             set
             {
-                _Rigs = value;
-                _flagRigs = true;
+                _Id = value;
+                _flagId = true;
             }
         }
-        private List<Rig> _Rigs;
-        private bool _flagRigs;
+        private string _Id;
+        private bool _flagId;
 
         /// <summary>
-        /// Returns false as Rigs should not be serialized given that it's read-only.
+        /// Returns false as Id should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRigs()
+        public bool ShouldSerializeId()
         {
-            return _flagRigs;
+            return _flagId;
+        }
+        /// <summary>
+        /// Gets or Sets Cameras
+        /// </summary>
+        [DataMember(Name = "cameras", IsRequired = true, EmitDefaultValue = true)]
+        public List<RigCameraConfig> Cameras
+        {
+            get{ return _Cameras;}
+            set
+            {
+                _Cameras = value;
+                _flagCameras = true;
+            }
+        }
+        private List<RigCameraConfig> _Cameras;
+        private bool _flagCameras;
+
+        /// <summary>
+        /// Returns false as Cameras should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeCameras()
+        {
+            return _flagCameras;
         }
         /// <summary>
         /// Returns the string presentation of the object
@@ -83,7 +114,8 @@ namespace PlerionApiClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class RigConfig {\n");
-            sb.Append("  Rigs: ").Append(Rigs).Append("\n");
+            sb.Append("  Id: ").Append(Id).Append("\n");
+            sb.Append("  Cameras: ").Append(Cameras).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 using System.Net.Http;
 
 using CameraModel = PlerionApiClient.Model.Camera;
-using PinholeCamera = PlerionApiClient.Model.PinholeCamera;
+using PinholeCameraConfig = PlerionApiClient.Model.PinholeCameraConfig;
 using LocalizationSession = PlerionApiClient.Model.LocalizationSessionRead;
 using LocalizationMetrics = PlerionApiClient.Model.LocalizationMetrics;
 
@@ -140,12 +140,12 @@ namespace Plerion.VPS
 
             startSessionTokenSource?.Dispose();
             startSessionTokenSource = new CancellationTokenSource();
-            startSessionTask = StartSessionInternal(new CameraModel(new PinholeCamera(
-                model: PinholeCamera.ModelEnum.PINHOLE,
+            startSessionTask = StartSessionInternal(new CameraModel(new PinholeCameraConfig(
+                model: PinholeCameraConfig.ModelEnum.PINHOLE,
                 width: intrinsics.resolution.x,
                 height: intrinsics.resolution.y,
-                mirroring: PinholeCamera.MirroringEnum.None,
-                rotation: PinholeCamera.RotationEnum._90CCW,
+                mirroring: PinholeCameraConfig.MirroringEnum.None,
+                rotation: PinholeCameraConfig.RotationEnum._90CCW,
                 fx: intrinsics.focalLength.x,
                 fy: intrinsics.focalLength.y,
                 cx: intrinsics.resolution.x - 1 - intrinsics.principlePoint.x,

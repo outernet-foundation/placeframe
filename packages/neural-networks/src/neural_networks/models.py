@@ -6,6 +6,7 @@ from zipfile import ZipFile
 
 import torch
 from gdown import download  # type: ignore
+from lightglue import LightGlue, SuperPoint  # type: ignore
 from numpy import float32
 from numpy.typing import NDArray
 from sklearn.decomposition import _pca  # type: ignore
@@ -67,14 +68,14 @@ class DIR(Module):
                 cast(
                     NDArray[float32],
                     whiten_features(
-                        self.net(image).unsqueeze(0).cpu().numpy(),
+                        self.net(image).unsqueeze(0).detach().cpu().numpy(),
                         self.net.pca[WHITEN_NAME],
                         whitenp=WHITENP,
                         whitenv=WHITENV,
                         whitenm=WHITENM,
                     ),
                 )
-            )
+            ).to(image.device)
         }
 
 
@@ -92,3 +93,28 @@ def load_DIR(device: str = "cpu"):
     torch.load = _orig_load
 
     return dir
+
+
+def load_superpoint(
+    nms_radius: float | None = None,
+    keypoint_threshold: float | None = None,
+    max_num_keypoints: int | None = None,
+    remove_borders: int | None = None,
+    device: str = "cpu",
+):
+    conf: dict[str, Any] = {}
+    if nms_radius is not None:
+        conf["nms_radius"] = nms_radius
+    if keypoint_threshold is not None:
+        conf["keypoint_threshold"] = keypoint_threshold
+    if max_num_keypoints is not None:
+        conf["max_num_keypoints"] = max_num_keypoints
+    if remove_borders is not None:
+        conf["remove_borders"] = remove_borders
+
+    return SuperPoint(**conf).eval().to(device)
+
+
+def load_lightglue(device: str = "cpu"):
+    # TODO: add comment about why width_confidence and depth_confidence are set to -1
+    return LightGlue(features="superpoint", width_confidence=-1, depth_confidence=-1).eval().to(device)

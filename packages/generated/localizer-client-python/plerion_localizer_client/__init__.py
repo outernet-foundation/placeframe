@@ -29,15 +29,14 @@ __all__ = [
     "ApiAttributeError",
     "ApiException",
     "Camera",
-    "FullOpenCVCamera",
-    "GenericParamsIntrinsics",
+    "FullOpenCVCameraConfig",
     "HTTPValidationError",
     "LoadState",
     "LoadStateResponse",
     "Localization",
     "LocalizationMetrics",
-    "OpenCVCamera",
-    "PinholeCamera",
+    "OpenCVCameraConfig",
+    "PinholeCameraConfig",
     "Quaternion",
     "Transform",
     "ValidationError",
@@ -61,15 +60,14 @@ from plerion_localizer_client.exceptions import ApiException as ApiException
 
 # import models into sdk package
 from plerion_localizer_client.models.camera import Camera as Camera
-from plerion_localizer_client.models.full_open_cv_camera import FullOpenCVCamera as FullOpenCVCamera
-from plerion_localizer_client.models.generic_params_intrinsics import GenericParamsIntrinsics as GenericParamsIntrinsics
+from plerion_localizer_client.models.full_open_cv_camera_config import FullOpenCVCameraConfig as FullOpenCVCameraConfig
 from plerion_localizer_client.models.http_validation_error import HTTPValidationError as HTTPValidationError
 from plerion_localizer_client.models.load_state import LoadState as LoadState
 from plerion_localizer_client.models.load_state_response import LoadStateResponse as LoadStateResponse
 from plerion_localizer_client.models.localization import Localization as Localization
 from plerion_localizer_client.models.localization_metrics import LocalizationMetrics as LocalizationMetrics
-from plerion_localizer_client.models.open_cv_camera import OpenCVCamera as OpenCVCamera
-from plerion_localizer_client.models.pinhole_camera import PinholeCamera as PinholeCamera
+from plerion_localizer_client.models.open_cv_camera_config import OpenCVCameraConfig as OpenCVCameraConfig
+from plerion_localizer_client.models.pinhole_camera_config import PinholeCameraConfig as PinholeCameraConfig
 from plerion_localizer_client.models.quaternion import Quaternion as Quaternion
 from plerion_localizer_client.models.transform import Transform as Transform
 from plerion_localizer_client.models.validation_error import ValidationError as ValidationError

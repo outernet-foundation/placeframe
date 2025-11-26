@@ -65,6 +65,9 @@ RUN uv pip install --no-deps --no-sources \
     /app/packages/core \
     /app/docker/reconstructor
 
+# Verify that all declared dependencies were installed
+RUN uv pip check
+
 # Copy the entrypoint and make it executable
 COPY --chmod=0755 docker/reconstructor/entrypoint.sh /usr/local/bin/entrypoint.sh
 

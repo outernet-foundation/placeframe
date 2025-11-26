@@ -31,6 +31,10 @@ RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
 COPY docker/database-manager/ .
 RUN uv pip install --no-deps --no-sources /app/docker/database-manager
 
+# Verify that all declared dependencies were installed
+RUN uv pip check
+
 # Copy the entrypoint and make it executable
 COPY --chmod=0755 docker/database-manager/entrypoint.sh /usr/local/bin/entrypoint.sh
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

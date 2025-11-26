@@ -1,4 +1,6 @@
-from typing import Literal, Optional
+from __future__ import annotations
+
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -13,6 +15,13 @@ class ReconstructionOptions(BaseModel):
         description=(
             "How many pose-nearest neighbors to consider when generating image pairs. "
             "Use -1 for exhaustive matching (all pairs). If None, a sensible default is used (currently 12). "
+            "Smaller values reduce weak overlaps and speed up matching at the cost of some coverage."
+        ),
+    )
+    rotation_threshold: Optional[float] = Field(
+        default=None,
+        description=(
+            "Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. "
             "Smaller values reduce weak overlaps and speed up matching at the cost of some coverage."
         ),
     )
@@ -103,85 +112,16 @@ class ReconstructionOptions(BaseModel):
     compression_opq_number_of_subvectors: Optional[int] = Field(
         default=None, description="Number of subvectors for OPQ compression."
     )
-    compression_opq_number_bits_per_subvector: Optional[int] = Field(
+    compression_opq_number_of_bits_per_subvector: Optional[int] = Field(
         default=None, description="Number of bits per subvector for OPQ compression."
     )
     compression_opq_number_of_training_iterations: Optional[int] = Field(
         default=None, description="Number of training iterations for OPQ compression."
     )
-
-
-class ReconstructionMetrics(BaseModel):
-    total_images: Optional[int] = Field(
-        default=None, description="Total number of input images considered for this reconstruction run."
-    )
-    registered_images: Optional[int] = Field(
-        default=None, description="Number of images successfully registered into the final model."
-    )
-    registration_rate: Optional[float] = Field(
+    pose_prior_position_sigma_m: Optional[float] = Field(
         default=None,
         description=(
-            "Registration rate in percent: 100 × (registered_images / total_images). "
-            "Computed after selecting the best reconstruction (max registered images)."
+            "Standard deviation (meters) for position priors when writing PosePrior to the database. "
+            "Smaller values = stronger priors."
         ),
     )
-    num_3d_points: Optional[int] = Field(
-        default=None, description="Count of 3D points in the selected 'best' reconstruction."
-    )
-    average_keypoints_per_image: Optional[float] = Field(
-        default=None,
-        description=(
-            "Average number of detected keypoints per image (after SuperPoint extraction), computed across all images."
-        ),
-    )
-    reprojection_pixel_error_50th_percentile: Optional[float] = Field(
-        default=None,
-        description=(
-            "Median (50th percentile) reprojection error in pixels across all valid 2D observations "
-            "in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint."
-        ),
-    )
-    reprojection_pixel_error_90th_percentile: Optional[float] = Field(
-        default=None,
-        description=(
-            "90th percentile reprojection error in pixels across all valid 2D observations, "
-            "computed the same way as the median."
-        ),
-    )
-    track_length_50th_percentile: Optional[float] = Field(
-        default=None,
-        description=(
-            "Median (50th percentile) track length across 3D points in the selected model. "
-            "Track length = number of distinct images observing the point."
-        ),
-    )
-    percent_tracks_with_length_greater_than_or_equal_to_3: Optional[float] = Field(
-        default=None,
-        description=(
-            "Percentage of 3D points whose track length is ≥ 3 (a common robustness threshold). "
-            "Computed as 100 × (#points with length≥3 / #points)."
-        ),
-    )
-
-
-ReconstructionStatus = Literal[
-    "queued",
-    "pending",
-    "downloading",
-    "extracting_features",
-    "matching_features",
-    "reconstructing",
-    "training_opq_matrix",
-    "training_product_quantizer",
-    "uploading",
-    "succeeded",
-    "failed",
-]
-
-
-class ReconstructionManifest(BaseModel):
-    capture_id: str
-    status: ReconstructionStatus
-    error: Optional[str] = Field(default=None)
-    options: ReconstructionOptions
-    metrics: ReconstructionMetrics

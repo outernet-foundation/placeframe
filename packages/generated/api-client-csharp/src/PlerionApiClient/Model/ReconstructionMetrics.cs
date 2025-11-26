@@ -44,6 +44,22 @@ namespace PlerionApiClient.Model
         /// <param name="reprojectionPixelError90thPercentile">reprojectionPixelError90thPercentile.</param>
         /// <param name="trackLength50thPercentile">trackLength50thPercentile.</param>
         /// <param name="percentTracksWithLengthGreaterThanOrEqualTo3">percentTracksWithLengthGreaterThanOrEqualTo3.</param>
+        /// <param name="allVerifiedMatches">allVerifiedMatches.</param>
+        /// <param name="allVerifiedMatchRate">allVerifiedMatchRate.</param>
+        /// <param name="allVerifiedMatchInliersMean">allVerifiedMatchInliersMean.</param>
+        /// <param name="allVerifiedMatchInliersMedian">allVerifiedMatchInliersMedian.</param>
+        /// <param name="stereoVerifiedMatches">stereoVerifiedMatches.</param>
+        /// <param name="stereoVerifiedMatchRate">stereoVerifiedMatchRate.</param>
+        /// <param name="stereoVerifiedMatchInliersMean">stereoVerifiedMatchInliersMean.</param>
+        /// <param name="stereoVerifiedMatchInliersMedian">stereoVerifiedMatchInliersMedian.</param>
+        /// <param name="sameSensorVerifiedMatches">sameSensorVerifiedMatches.</param>
+        /// <param name="sameSensorVerifiedMatchRate">sameSensorVerifiedMatchRate.</param>
+        /// <param name="sameSensorVerifiedMatchInliersMean">sameSensorVerifiedMatchInliersMean.</param>
+        /// <param name="sameSensorVerifiedMatchInliersMedian">sameSensorVerifiedMatchInliersMedian.</param>
+        /// <param name="crossSensorVerifiedMatches">crossSensorVerifiedMatches.</param>
+        /// <param name="crossSensorVerifiedMatchRate">crossSensorVerifiedMatchRate.</param>
+        /// <param name="crossSensorVerifiedMatchInliersMean">crossSensorVerifiedMatchInliersMean.</param>
+        /// <param name="crossSensorVerifiedMatchInliersMedian">crossSensorVerifiedMatchInliersMedian.</param>
         public ReconstructionMetrics()
         {
         }
@@ -265,6 +281,390 @@ namespace PlerionApiClient.Model
             return _flagPercentTracksWithLengthGreaterThanOrEqualTo3;
         }
         /// <summary>
+        /// Gets or Sets AllVerifiedMatches
+        /// </summary>
+        [DataMember(Name = "all_verified_matches", EmitDefaultValue = true)]
+        public int? AllVerifiedMatches
+        {
+            get{ return _AllVerifiedMatches;}
+            set
+            {
+                _AllVerifiedMatches = value;
+                _flagAllVerifiedMatches = true;
+            }
+        }
+        private int? _AllVerifiedMatches;
+        private bool _flagAllVerifiedMatches;
+
+        /// <summary>
+        /// Returns false as AllVerifiedMatches should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeAllVerifiedMatches()
+        {
+            return _flagAllVerifiedMatches;
+        }
+        /// <summary>
+        /// Gets or Sets AllVerifiedMatchRate
+        /// </summary>
+        [DataMember(Name = "all_verified_match_rate", EmitDefaultValue = true)]
+        public double? AllVerifiedMatchRate
+        {
+            get{ return _AllVerifiedMatchRate;}
+            set
+            {
+                _AllVerifiedMatchRate = value;
+                _flagAllVerifiedMatchRate = true;
+            }
+        }
+        private double? _AllVerifiedMatchRate;
+        private bool _flagAllVerifiedMatchRate;
+
+        /// <summary>
+        /// Returns false as AllVerifiedMatchRate should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeAllVerifiedMatchRate()
+        {
+            return _flagAllVerifiedMatchRate;
+        }
+        /// <summary>
+        /// Gets or Sets AllVerifiedMatchInliersMean
+        /// </summary>
+        [DataMember(Name = "all_verified_match_inliers_mean", EmitDefaultValue = true)]
+        public double? AllVerifiedMatchInliersMean
+        {
+            get{ return _AllVerifiedMatchInliersMean;}
+            set
+            {
+                _AllVerifiedMatchInliersMean = value;
+                _flagAllVerifiedMatchInliersMean = true;
+            }
+        }
+        private double? _AllVerifiedMatchInliersMean;
+        private bool _flagAllVerifiedMatchInliersMean;
+
+        /// <summary>
+        /// Returns false as AllVerifiedMatchInliersMean should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeAllVerifiedMatchInliersMean()
+        {
+            return _flagAllVerifiedMatchInliersMean;
+        }
+        /// <summary>
+        /// Gets or Sets AllVerifiedMatchInliersMedian
+        /// </summary>
+        [DataMember(Name = "all_verified_match_inliers_median", EmitDefaultValue = true)]
+        public double? AllVerifiedMatchInliersMedian
+        {
+            get{ return _AllVerifiedMatchInliersMedian;}
+            set
+            {
+                _AllVerifiedMatchInliersMedian = value;
+                _flagAllVerifiedMatchInliersMedian = true;
+            }
+        }
+        private double? _AllVerifiedMatchInliersMedian;
+        private bool _flagAllVerifiedMatchInliersMedian;
+
+        /// <summary>
+        /// Returns false as AllVerifiedMatchInliersMedian should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeAllVerifiedMatchInliersMedian()
+        {
+            return _flagAllVerifiedMatchInliersMedian;
+        }
+        /// <summary>
+        /// Gets or Sets StereoVerifiedMatches
+        /// </summary>
+        [DataMember(Name = "stereo_verified_matches", EmitDefaultValue = true)]
+        public int? StereoVerifiedMatches
+        {
+            get{ return _StereoVerifiedMatches;}
+            set
+            {
+                _StereoVerifiedMatches = value;
+                _flagStereoVerifiedMatches = true;
+            }
+        }
+        private int? _StereoVerifiedMatches;
+        private bool _flagStereoVerifiedMatches;
+
+        /// <summary>
+        /// Returns false as StereoVerifiedMatches should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeStereoVerifiedMatches()
+        {
+            return _flagStereoVerifiedMatches;
+        }
+        /// <summary>
+        /// Gets or Sets StereoVerifiedMatchRate
+        /// </summary>
+        [DataMember(Name = "stereo_verified_match_rate", EmitDefaultValue = true)]
+        public double? StereoVerifiedMatchRate
+        {
+            get{ return _StereoVerifiedMatchRate;}
+            set
+            {
+                _StereoVerifiedMatchRate = value;
+                _flagStereoVerifiedMatchRate = true;
+            }
+        }
+        private double? _StereoVerifiedMatchRate;
+        private bool _flagStereoVerifiedMatchRate;
+
+        /// <summary>
+        /// Returns false as StereoVerifiedMatchRate should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeStereoVerifiedMatchRate()
+        {
+            return _flagStereoVerifiedMatchRate;
+        }
+        /// <summary>
+        /// Gets or Sets StereoVerifiedMatchInliersMean
+        /// </summary>
+        [DataMember(Name = "stereo_verified_match_inliers_mean", EmitDefaultValue = true)]
+        public double? StereoVerifiedMatchInliersMean
+        {
+            get{ return _StereoVerifiedMatchInliersMean;}
+            set
+            {
+                _StereoVerifiedMatchInliersMean = value;
+                _flagStereoVerifiedMatchInliersMean = true;
+            }
+        }
+        private double? _StereoVerifiedMatchInliersMean;
+        private bool _flagStereoVerifiedMatchInliersMean;
+
+        /// <summary>
+        /// Returns false as StereoVerifiedMatchInliersMean should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeStereoVerifiedMatchInliersMean()
+        {
+            return _flagStereoVerifiedMatchInliersMean;
+        }
+        /// <summary>
+        /// Gets or Sets StereoVerifiedMatchInliersMedian
+        /// </summary>
+        [DataMember(Name = "stereo_verified_match_inliers_median", EmitDefaultValue = true)]
+        public double? StereoVerifiedMatchInliersMedian
+        {
+            get{ return _StereoVerifiedMatchInliersMedian;}
+            set
+            {
+                _StereoVerifiedMatchInliersMedian = value;
+                _flagStereoVerifiedMatchInliersMedian = true;
+            }
+        }
+        private double? _StereoVerifiedMatchInliersMedian;
+        private bool _flagStereoVerifiedMatchInliersMedian;
+
+        /// <summary>
+        /// Returns false as StereoVerifiedMatchInliersMedian should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeStereoVerifiedMatchInliersMedian()
+        {
+            return _flagStereoVerifiedMatchInliersMedian;
+        }
+        /// <summary>
+        /// Gets or Sets SameSensorVerifiedMatches
+        /// </summary>
+        [DataMember(Name = "same_sensor_verified_matches", EmitDefaultValue = true)]
+        public int? SameSensorVerifiedMatches
+        {
+            get{ return _SameSensorVerifiedMatches;}
+            set
+            {
+                _SameSensorVerifiedMatches = value;
+                _flagSameSensorVerifiedMatches = true;
+            }
+        }
+        private int? _SameSensorVerifiedMatches;
+        private bool _flagSameSensorVerifiedMatches;
+
+        /// <summary>
+        /// Returns false as SameSensorVerifiedMatches should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeSameSensorVerifiedMatches()
+        {
+            return _flagSameSensorVerifiedMatches;
+        }
+        /// <summary>
+        /// Gets or Sets SameSensorVerifiedMatchRate
+        /// </summary>
+        [DataMember(Name = "same_sensor_verified_match_rate", EmitDefaultValue = true)]
+        public double? SameSensorVerifiedMatchRate
+        {
+            get{ return _SameSensorVerifiedMatchRate;}
+            set
+            {
+                _SameSensorVerifiedMatchRate = value;
+                _flagSameSensorVerifiedMatchRate = true;
+            }
+        }
+        private double? _SameSensorVerifiedMatchRate;
+        private bool _flagSameSensorVerifiedMatchRate;
+
+        /// <summary>
+        /// Returns false as SameSensorVerifiedMatchRate should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeSameSensorVerifiedMatchRate()
+        {
+            return _flagSameSensorVerifiedMatchRate;
+        }
+        /// <summary>
+        /// Gets or Sets SameSensorVerifiedMatchInliersMean
+        /// </summary>
+        [DataMember(Name = "same_sensor_verified_match_inliers_mean", EmitDefaultValue = true)]
+        public double? SameSensorVerifiedMatchInliersMean
+        {
+            get{ return _SameSensorVerifiedMatchInliersMean;}
+            set
+            {
+                _SameSensorVerifiedMatchInliersMean = value;
+                _flagSameSensorVerifiedMatchInliersMean = true;
+            }
+        }
+        private double? _SameSensorVerifiedMatchInliersMean;
+        private bool _flagSameSensorVerifiedMatchInliersMean;
+
+        /// <summary>
+        /// Returns false as SameSensorVerifiedMatchInliersMean should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeSameSensorVerifiedMatchInliersMean()
+        {
+            return _flagSameSensorVerifiedMatchInliersMean;
+        }
+        /// <summary>
+        /// Gets or Sets SameSensorVerifiedMatchInliersMedian
+        /// </summary>
+        [DataMember(Name = "same_sensor_verified_match_inliers_median", EmitDefaultValue = true)]
+        public double? SameSensorVerifiedMatchInliersMedian
+        {
+            get{ return _SameSensorVerifiedMatchInliersMedian;}
+            set
+            {
+                _SameSensorVerifiedMatchInliersMedian = value;
+                _flagSameSensorVerifiedMatchInliersMedian = true;
+            }
+        }
+        private double? _SameSensorVerifiedMatchInliersMedian;
+        private bool _flagSameSensorVerifiedMatchInliersMedian;
+
+        /// <summary>
+        /// Returns false as SameSensorVerifiedMatchInliersMedian should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeSameSensorVerifiedMatchInliersMedian()
+        {
+            return _flagSameSensorVerifiedMatchInliersMedian;
+        }
+        /// <summary>
+        /// Gets or Sets CrossSensorVerifiedMatches
+        /// </summary>
+        [DataMember(Name = "cross_sensor_verified_matches", EmitDefaultValue = true)]
+        public int? CrossSensorVerifiedMatches
+        {
+            get{ return _CrossSensorVerifiedMatches;}
+            set
+            {
+                _CrossSensorVerifiedMatches = value;
+                _flagCrossSensorVerifiedMatches = true;
+            }
+        }
+        private int? _CrossSensorVerifiedMatches;
+        private bool _flagCrossSensorVerifiedMatches;
+
+        /// <summary>
+        /// Returns false as CrossSensorVerifiedMatches should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeCrossSensorVerifiedMatches()
+        {
+            return _flagCrossSensorVerifiedMatches;
+        }
+        /// <summary>
+        /// Gets or Sets CrossSensorVerifiedMatchRate
+        /// </summary>
+        [DataMember(Name = "cross_sensor_verified_match_rate", EmitDefaultValue = true)]
+        public double? CrossSensorVerifiedMatchRate
+        {
+            get{ return _CrossSensorVerifiedMatchRate;}
+            set
+            {
+                _CrossSensorVerifiedMatchRate = value;
+                _flagCrossSensorVerifiedMatchRate = true;
+            }
+        }
+        private double? _CrossSensorVerifiedMatchRate;
+        private bool _flagCrossSensorVerifiedMatchRate;
+
+        /// <summary>
+        /// Returns false as CrossSensorVerifiedMatchRate should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeCrossSensorVerifiedMatchRate()
+        {
+            return _flagCrossSensorVerifiedMatchRate;
+        }
+        /// <summary>
+        /// Gets or Sets CrossSensorVerifiedMatchInliersMean
+        /// </summary>
+        [DataMember(Name = "cross_sensor_verified_match_inliers_mean", EmitDefaultValue = true)]
+        public double? CrossSensorVerifiedMatchInliersMean
+        {
+            get{ return _CrossSensorVerifiedMatchInliersMean;}
+            set
+            {
+                _CrossSensorVerifiedMatchInliersMean = value;
+                _flagCrossSensorVerifiedMatchInliersMean = true;
+            }
+        }
+        private double? _CrossSensorVerifiedMatchInliersMean;
+        private bool _flagCrossSensorVerifiedMatchInliersMean;
+
+        /// <summary>
+        /// Returns false as CrossSensorVerifiedMatchInliersMean should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeCrossSensorVerifiedMatchInliersMean()
+        {
+            return _flagCrossSensorVerifiedMatchInliersMean;
+        }
+        /// <summary>
+        /// Gets or Sets CrossSensorVerifiedMatchInliersMedian
+        /// </summary>
+        [DataMember(Name = "cross_sensor_verified_match_inliers_median", EmitDefaultValue = true)]
+        public double? CrossSensorVerifiedMatchInliersMedian
+        {
+            get{ return _CrossSensorVerifiedMatchInliersMedian;}
+            set
+            {
+                _CrossSensorVerifiedMatchInliersMedian = value;
+                _flagCrossSensorVerifiedMatchInliersMedian = true;
+            }
+        }
+        private double? _CrossSensorVerifiedMatchInliersMedian;
+        private bool _flagCrossSensorVerifiedMatchInliersMedian;
+
+        /// <summary>
+        /// Returns false as CrossSensorVerifiedMatchInliersMedian should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeCrossSensorVerifiedMatchInliersMedian()
+        {
+            return _flagCrossSensorVerifiedMatchInliersMedian;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -281,6 +681,22 @@ namespace PlerionApiClient.Model
             sb.Append("  ReprojectionPixelError90thPercentile: ").Append(ReprojectionPixelError90thPercentile).Append("\n");
             sb.Append("  TrackLength50thPercentile: ").Append(TrackLength50thPercentile).Append("\n");
             sb.Append("  PercentTracksWithLengthGreaterThanOrEqualTo3: ").Append(PercentTracksWithLengthGreaterThanOrEqualTo3).Append("\n");
+            sb.Append("  AllVerifiedMatches: ").Append(AllVerifiedMatches).Append("\n");
+            sb.Append("  AllVerifiedMatchRate: ").Append(AllVerifiedMatchRate).Append("\n");
+            sb.Append("  AllVerifiedMatchInliersMean: ").Append(AllVerifiedMatchInliersMean).Append("\n");
+            sb.Append("  AllVerifiedMatchInliersMedian: ").Append(AllVerifiedMatchInliersMedian).Append("\n");
+            sb.Append("  StereoVerifiedMatches: ").Append(StereoVerifiedMatches).Append("\n");
+            sb.Append("  StereoVerifiedMatchRate: ").Append(StereoVerifiedMatchRate).Append("\n");
+            sb.Append("  StereoVerifiedMatchInliersMean: ").Append(StereoVerifiedMatchInliersMean).Append("\n");
+            sb.Append("  StereoVerifiedMatchInliersMedian: ").Append(StereoVerifiedMatchInliersMedian).Append("\n");
+            sb.Append("  SameSensorVerifiedMatches: ").Append(SameSensorVerifiedMatches).Append("\n");
+            sb.Append("  SameSensorVerifiedMatchRate: ").Append(SameSensorVerifiedMatchRate).Append("\n");
+            sb.Append("  SameSensorVerifiedMatchInliersMean: ").Append(SameSensorVerifiedMatchInliersMean).Append("\n");
+            sb.Append("  SameSensorVerifiedMatchInliersMedian: ").Append(SameSensorVerifiedMatchInliersMedian).Append("\n");
+            sb.Append("  CrossSensorVerifiedMatches: ").Append(CrossSensorVerifiedMatches).Append("\n");
+            sb.Append("  CrossSensorVerifiedMatchRate: ").Append(CrossSensorVerifiedMatchRate).Append("\n");
+            sb.Append("  CrossSensorVerifiedMatchInliersMean: ").Append(CrossSensorVerifiedMatchInliersMean).Append("\n");
+            sb.Append("  CrossSensorVerifiedMatchInliersMedian: ").Append(CrossSensorVerifiedMatchInliersMedian).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

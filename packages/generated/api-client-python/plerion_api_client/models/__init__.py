@@ -14,19 +14,19 @@
 
 # import models into model package
 from plerion_api_client.models.camera import Camera
+from plerion_api_client.models.camera_config import CameraConfig
 from plerion_api_client.models.capture_session_batch_update import CaptureSessionBatchUpdate
 from plerion_api_client.models.capture_session_create import CaptureSessionCreate
 from plerion_api_client.models.capture_session_read import CaptureSessionRead
 from plerion_api_client.models.capture_session_update import CaptureSessionUpdate
 from plerion_api_client.models.color import Color
+from plerion_api_client.models.config import Config
 from plerion_api_client.models.device_type import DeviceType
-from plerion_api_client.models.full_open_cv_camera import FullOpenCVCamera
-from plerion_api_client.models.generic_params_intrinsics import GenericParamsIntrinsics
+from plerion_api_client.models.full_open_cv_camera_config import FullOpenCVCameraConfig
 from plerion_api_client.models.group_batch_update import GroupBatchUpdate
 from plerion_api_client.models.group_create import GroupCreate
 from plerion_api_client.models.group_read import GroupRead
 from plerion_api_client.models.http_validation_error import HTTPValidationError
-from plerion_api_client.models.intrinsics import Intrinsics
 from plerion_api_client.models.layer_batch_update import LayerBatchUpdate
 from plerion_api_client.models.layer_create import LayerCreate
 from plerion_api_client.models.layer_read import LayerRead
@@ -42,9 +42,9 @@ from plerion_api_client.models.map_localization import MapLocalization
 from plerion_api_client.models.node_batch_update import NodeBatchUpdate
 from plerion_api_client.models.node_create import NodeCreate
 from plerion_api_client.models.node_read import NodeRead
-from plerion_api_client.models.open_cv_camera import OpenCVCamera
+from plerion_api_client.models.open_cv_camera_config import OpenCVCameraConfig
 from plerion_api_client.models.orchestration_status import OrchestrationStatus
-from plerion_api_client.models.pinhole_camera import PinholeCamera
+from plerion_api_client.models.pinhole_camera_config import PinholeCameraConfig
 from plerion_api_client.models.point_cloud_point import PointCloudPoint
 from plerion_api_client.models.quaternion import Quaternion
 from plerion_api_client.models.reconstruction_create import ReconstructionCreate
@@ -53,8 +53,7 @@ from plerion_api_client.models.reconstruction_manifest import ReconstructionMani
 from plerion_api_client.models.reconstruction_metrics import ReconstructionMetrics
 from plerion_api_client.models.reconstruction_options import ReconstructionOptions
 from plerion_api_client.models.reconstruction_read import ReconstructionRead
-from plerion_api_client.models.rig import Rig
-from plerion_api_client.models.rig_camera import RigCamera
+from plerion_api_client.models.rig_camera_config import RigCameraConfig
 from plerion_api_client.models.rig_config import RigConfig
 from plerion_api_client.models.transform import Transform
 from plerion_api_client.models.validation_error import ValidationError

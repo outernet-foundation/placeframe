@@ -4,7 +4,7 @@ import time
 
 from common.batch_client import create_batch_client
 from common.boto_clients import create_s3_client
-from common.reconstruction_manifest import ReconstructionManifest
+from core.reconstruction_manifest import ReconstructionManifest
 from datamodels.public_tables import Reconstruction
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session

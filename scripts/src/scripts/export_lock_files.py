@@ -22,28 +22,38 @@ def main():
 
         groups = cast(dict[str, Any], package_toml.get("dependency-groups", {})).keys()
 
+        pylock = member_dir / "pylock.toml"
         run_command(
             f"uv export "
             f"--package {package_name} "
-            f"--output-file {member_dir / 'pylock.toml'} "
+            f"--output-file {pylock} "
             f"--no-default-groups "
             f"--no-emit-workspace "
             f"--frozen"
         )
+        _normalize_line_endings(pylock)
 
         for group in groups:
             if group == "dev":
                 continue
 
+            dependency_group_lock = member_dir / f"pylock.{group}.toml"
             run_command(
                 f"uv export "
                 f"--package {package_name} "
-                f"--output-file {member_dir / f'pylock.{group}.toml'} "
+                f"--output-file {dependency_group_lock} "
                 f"--only-group {group} "
                 f"--no-default-groups "
                 f"--no-emit-workspace "
                 f"--frozen"
             )
+            _normalize_line_endings(dependency_group_lock)
+
+
+def _normalize_line_endings(path: Path) -> None:
+    text = path.read_text(encoding="utf-8")
+    with path.open("w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
 
 
 if __name__ == "__main__":

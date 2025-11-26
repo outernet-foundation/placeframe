@@ -35,8 +35,24 @@ class ReconstructionMetrics(BaseModel):
     reprojection_pixel_error_90th_percentile: Optional[Union[StrictFloat, StrictInt]] = None
     track_length_50th_percentile: Optional[Union[StrictFloat, StrictInt]] = None
     percent_tracks_with_length_greater_than_or_equal_to_3: Optional[Union[StrictFloat, StrictInt]] = None
+    all_verified_matches: Optional[StrictInt] = None
+    all_verified_match_rate: Optional[Union[StrictFloat, StrictInt]] = None
+    all_verified_match_inliers_mean: Optional[Union[StrictFloat, StrictInt]] = None
+    all_verified_match_inliers_median: Optional[Union[StrictFloat, StrictInt]] = None
+    stereo_verified_matches: Optional[StrictInt] = None
+    stereo_verified_match_rate: Optional[Union[StrictFloat, StrictInt]] = None
+    stereo_verified_match_inliers_mean: Optional[Union[StrictFloat, StrictInt]] = None
+    stereo_verified_match_inliers_median: Optional[Union[StrictFloat, StrictInt]] = None
+    same_sensor_verified_matches: Optional[StrictInt] = None
+    same_sensor_verified_match_rate: Optional[Union[StrictFloat, StrictInt]] = None
+    same_sensor_verified_match_inliers_mean: Optional[Union[StrictFloat, StrictInt]] = None
+    same_sensor_verified_match_inliers_median: Optional[Union[StrictFloat, StrictInt]] = None
+    cross_sensor_verified_matches: Optional[StrictInt] = None
+    cross_sensor_verified_match_rate: Optional[Union[StrictFloat, StrictInt]] = None
+    cross_sensor_verified_match_inliers_mean: Optional[Union[StrictFloat, StrictInt]] = None
+    cross_sensor_verified_match_inliers_median: Optional[Union[StrictFloat, StrictInt]] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["total_images", "registered_images", "registration_rate", "num_3d_points", "average_keypoints_per_image", "reprojection_pixel_error_50th_percentile", "reprojection_pixel_error_90th_percentile", "track_length_50th_percentile", "percent_tracks_with_length_greater_than_or_equal_to_3"]
+    __properties: ClassVar[List[str]] = ["total_images", "registered_images", "registration_rate", "num_3d_points", "average_keypoints_per_image", "reprojection_pixel_error_50th_percentile", "reprojection_pixel_error_90th_percentile", "track_length_50th_percentile", "percent_tracks_with_length_greater_than_or_equal_to_3", "all_verified_matches", "all_verified_match_rate", "all_verified_match_inliers_mean", "all_verified_match_inliers_median", "stereo_verified_matches", "stereo_verified_match_rate", "stereo_verified_match_inliers_mean", "stereo_verified_match_inliers_median", "same_sensor_verified_matches", "same_sensor_verified_match_rate", "same_sensor_verified_match_inliers_mean", "same_sensor_verified_match_inliers_median", "cross_sensor_verified_matches", "cross_sensor_verified_match_rate", "cross_sensor_verified_match_inliers_mean", "cross_sensor_verified_match_inliers_median"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -129,6 +145,86 @@ class ReconstructionMetrics(BaseModel):
         if self.percent_tracks_with_length_greater_than_or_equal_to_3 is None and "percent_tracks_with_length_greater_than_or_equal_to_3" in self.model_fields_set:
             _dict['percent_tracks_with_length_greater_than_or_equal_to_3'] = None
 
+        # set to None if all_verified_matches (nullable) is None
+        # and model_fields_set contains the field
+        if self.all_verified_matches is None and "all_verified_matches" in self.model_fields_set:
+            _dict['all_verified_matches'] = None
+
+        # set to None if all_verified_match_rate (nullable) is None
+        # and model_fields_set contains the field
+        if self.all_verified_match_rate is None and "all_verified_match_rate" in self.model_fields_set:
+            _dict['all_verified_match_rate'] = None
+
+        # set to None if all_verified_match_inliers_mean (nullable) is None
+        # and model_fields_set contains the field
+        if self.all_verified_match_inliers_mean is None and "all_verified_match_inliers_mean" in self.model_fields_set:
+            _dict['all_verified_match_inliers_mean'] = None
+
+        # set to None if all_verified_match_inliers_median (nullable) is None
+        # and model_fields_set contains the field
+        if self.all_verified_match_inliers_median is None and "all_verified_match_inliers_median" in self.model_fields_set:
+            _dict['all_verified_match_inliers_median'] = None
+
+        # set to None if stereo_verified_matches (nullable) is None
+        # and model_fields_set contains the field
+        if self.stereo_verified_matches is None and "stereo_verified_matches" in self.model_fields_set:
+            _dict['stereo_verified_matches'] = None
+
+        # set to None if stereo_verified_match_rate (nullable) is None
+        # and model_fields_set contains the field
+        if self.stereo_verified_match_rate is None and "stereo_verified_match_rate" in self.model_fields_set:
+            _dict['stereo_verified_match_rate'] = None
+
+        # set to None if stereo_verified_match_inliers_mean (nullable) is None
+        # and model_fields_set contains the field
+        if self.stereo_verified_match_inliers_mean is None and "stereo_verified_match_inliers_mean" in self.model_fields_set:
+            _dict['stereo_verified_match_inliers_mean'] = None
+
+        # set to None if stereo_verified_match_inliers_median (nullable) is None
+        # and model_fields_set contains the field
+        if self.stereo_verified_match_inliers_median is None and "stereo_verified_match_inliers_median" in self.model_fields_set:
+            _dict['stereo_verified_match_inliers_median'] = None
+
+        # set to None if same_sensor_verified_matches (nullable) is None
+        # and model_fields_set contains the field
+        if self.same_sensor_verified_matches is None and "same_sensor_verified_matches" in self.model_fields_set:
+            _dict['same_sensor_verified_matches'] = None
+
+        # set to None if same_sensor_verified_match_rate (nullable) is None
+        # and model_fields_set contains the field
+        if self.same_sensor_verified_match_rate is None and "same_sensor_verified_match_rate" in self.model_fields_set:
+            _dict['same_sensor_verified_match_rate'] = None
+
+        # set to None if same_sensor_verified_match_inliers_mean (nullable) is None
+        # and model_fields_set contains the field
+        if self.same_sensor_verified_match_inliers_mean is None and "same_sensor_verified_match_inliers_mean" in self.model_fields_set:
+            _dict['same_sensor_verified_match_inliers_mean'] = None
+
+        # set to None if same_sensor_verified_match_inliers_median (nullable) is None
+        # and model_fields_set contains the field
+        if self.same_sensor_verified_match_inliers_median is None and "same_sensor_verified_match_inliers_median" in self.model_fields_set:
+            _dict['same_sensor_verified_match_inliers_median'] = None
+
+        # set to None if cross_sensor_verified_matches (nullable) is None
+        # and model_fields_set contains the field
+        if self.cross_sensor_verified_matches is None and "cross_sensor_verified_matches" in self.model_fields_set:
+            _dict['cross_sensor_verified_matches'] = None
+
+        # set to None if cross_sensor_verified_match_rate (nullable) is None
+        # and model_fields_set contains the field
+        if self.cross_sensor_verified_match_rate is None and "cross_sensor_verified_match_rate" in self.model_fields_set:
+            _dict['cross_sensor_verified_match_rate'] = None
+
+        # set to None if cross_sensor_verified_match_inliers_mean (nullable) is None
+        # and model_fields_set contains the field
+        if self.cross_sensor_verified_match_inliers_mean is None and "cross_sensor_verified_match_inliers_mean" in self.model_fields_set:
+            _dict['cross_sensor_verified_match_inliers_mean'] = None
+
+        # set to None if cross_sensor_verified_match_inliers_median (nullable) is None
+        # and model_fields_set contains the field
+        if self.cross_sensor_verified_match_inliers_median is None and "cross_sensor_verified_match_inliers_median" in self.model_fields_set:
+            _dict['cross_sensor_verified_match_inliers_median'] = None
+
         return _dict
 
     @classmethod
@@ -149,7 +245,23 @@ class ReconstructionMetrics(BaseModel):
             "reprojection_pixel_error_50th_percentile": obj.get("reprojection_pixel_error_50th_percentile"),
             "reprojection_pixel_error_90th_percentile": obj.get("reprojection_pixel_error_90th_percentile"),
             "track_length_50th_percentile": obj.get("track_length_50th_percentile"),
-            "percent_tracks_with_length_greater_than_or_equal_to_3": obj.get("percent_tracks_with_length_greater_than_or_equal_to_3")
+            "percent_tracks_with_length_greater_than_or_equal_to_3": obj.get("percent_tracks_with_length_greater_than_or_equal_to_3"),
+            "all_verified_matches": obj.get("all_verified_matches"),
+            "all_verified_match_rate": obj.get("all_verified_match_rate"),
+            "all_verified_match_inliers_mean": obj.get("all_verified_match_inliers_mean"),
+            "all_verified_match_inliers_median": obj.get("all_verified_match_inliers_median"),
+            "stereo_verified_matches": obj.get("stereo_verified_matches"),
+            "stereo_verified_match_rate": obj.get("stereo_verified_match_rate"),
+            "stereo_verified_match_inliers_mean": obj.get("stereo_verified_match_inliers_mean"),
+            "stereo_verified_match_inliers_median": obj.get("stereo_verified_match_inliers_median"),
+            "same_sensor_verified_matches": obj.get("same_sensor_verified_matches"),
+            "same_sensor_verified_match_rate": obj.get("same_sensor_verified_match_rate"),
+            "same_sensor_verified_match_inliers_mean": obj.get("same_sensor_verified_match_inliers_mean"),
+            "same_sensor_verified_match_inliers_median": obj.get("same_sensor_verified_match_inliers_median"),
+            "cross_sensor_verified_matches": obj.get("cross_sensor_verified_matches"),
+            "cross_sensor_verified_match_rate": obj.get("cross_sensor_verified_match_rate"),
+            "cross_sensor_verified_match_inliers_mean": obj.get("cross_sensor_verified_match_inliers_mean"),
+            "cross_sensor_verified_match_inliers_median": obj.get("cross_sensor_verified_match_inliers_median")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

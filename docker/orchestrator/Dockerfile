@@ -29,12 +29,17 @@ RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
 
 # Install project
 COPY packages/common/ /app/packages/common
+COPY packages/core/ /app/packages/core
 COPY packages/datamodels/ /app/packages/datamodels
 COPY docker/orchestrator /app/docker/orchestrator/
 RUN uv pip install --no-deps --no-sources \
     /app/packages/common \
+    /app/packages/core \
     /app/packages/datamodels \
     /app/docker/orchestrator
+
+# Verify that all declared dependencies were installed
+RUN uv pip check
 
 # Copy the entrypoint and make it executable
 COPY --chmod=0755 docker/orchestrator/entrypoint.sh /usr/local/bin/entrypoint.sh

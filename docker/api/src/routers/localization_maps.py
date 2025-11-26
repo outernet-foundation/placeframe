@@ -2,8 +2,7 @@ from typing import Optional
 from uuid import UUID
 
 from common.schemas import binary_schema
-from core.classes import PointCloudPoint
-from core.transform import Transform
+from core.classes import PointCloudPoint, Transform
 from datamodels.public_dtos import (
     LocalizationMapBatchUpdate,
     LocalizationMapCreate,
