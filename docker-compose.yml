@@ -1,10 +1,10 @@
 name: plerion
 
 volumes:
+  uv_cache:
   minio_data:
   postgres_data:
   cloudbeaver_data:
-  uv_cache:
   keycloak_data:
 
 services:
@@ -193,13 +193,6 @@ services:
         condition: service_completed_successfully
       migrate-database:
         condition: service_completed_successfully
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: ["gpu"]
     ports:
       - "8000:8000"
       - "5679:5678"
@@ -208,7 +201,6 @@ services:
       - ./docker/api:/app/docker/api
       - ./docker/models:/app/docker/models
       - ./common:/app/common
-      - uv_cache:/root/.cache/uv
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       DOCKER_HOST: unix:///var/run/docker.sock
@@ -242,7 +234,6 @@ services:
       - ./docker/orchestrator:/app/docker/orchestrator
       - ./docker/models:/app/docker/models
       - ./common:/app/common
-      - uv_cache:/root/.cache/uv
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       BACKEND: docker
@@ -271,8 +262,6 @@ services:
         - type=local,src=${HOME}/.buildx-cache/reconstructor
       cache_to:
         - type=local,dest=${HOME}/.buildx-cache/reconstructor,mode=max
-    volumes:
-      - uv_cache:/root/.cache/uv
 
   localizer:
     profiles: ["ephemeral"]
@@ -282,5 +271,3 @@ services:
         - type=local,src=${HOME}/.buildx-cache/localizer
       cache_to:
         - type=local,dest=${HOME}/.buildx-cache/localizer,mode=max
-    volumes:
-      - uv_cache:/root/.cache/uv
