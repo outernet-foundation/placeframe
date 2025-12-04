@@ -1,18 +1,19 @@
 {
-    "name": "Plerion.VPS",
-    "rootNamespace": "",
-    "references": [
-        "GUID:f51ebe6a0ceec4240a699833d6309b23",
-        "GUID:d8b63aba1907145bea998dd612889d6b",
-        "GUID:172ff1c5642eef94d9340aecdd6d15ae"
-    ],
-    "includePlatforms": [],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": false
+  "name": "Plerion.VPS",
+  "rootNamespace": "",
+  "references": [
+    "Unity.Mathematics",
+    "UniTask",
+    "PlerionApiClient",
+    "PlerionClientCore"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }

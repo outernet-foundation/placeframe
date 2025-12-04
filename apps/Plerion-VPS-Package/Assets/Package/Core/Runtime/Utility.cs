@@ -34,8 +34,8 @@ namespace Plerion.VPS
         public static float3 ToFloat3(this Vector3 vector3)
             => new float3(vector3.x, vector3.y, vector3.z);
 
-        public static float3 ToFloat3(this PlerionApiClient.Model.Vector3 vector3)
-            => new float3((float)vector3.X, (float)vector3.Y, (float)vector3.Z);
+        public static double3 ToDouble3(this PlerionApiClient.Model.Vector3 vector3)
+            => new double3(vector3.X, vector3.Y, vector3.Z);
 
         public static Vector3 ToVector3(this PlerionApiClient.Model.Vector3 vector3)
             => new Vector3((float)vector3.X, (float)vector3.Y, (float)vector3.Z);
@@ -45,44 +45,5 @@ namespace Plerion.VPS
 
         public static Color ToUnityColor(this PlerionApiClient.Model.Color color)
             => new Color(color.R / 255f, color.G / 255f, color.B / 255f);
-    }
-
-    public static class Double4x4
-    {
-        public static Vector3 ToFloats(this double3 vector) => new Vector3((float)vector.x, (float)vector.y, (float)vector.z);
-
-        public static double4x4 FromTranslationRotation(Vector3 translation, Quaternion rotation)
-        {
-            return FromTranslationRotation(
-                new double3(translation.x, translation.y, translation.z),
-                new quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
-            );
-        }
-
-        public static double4x4 FromTranslationRotation(double3 translation, quaternion rotation)
-        {
-            return FromTranslationRotationScale(translation, rotation, new double3(1.0, 1.0, 1.0));
-        }
-
-        public static double4x4 FromTranslationRotationScale(double3 translation, quaternion rotation, double3 scale)
-        {
-            double3x3 scaleMatrix = new double3x3(
-                new double3(scale.x, 0.0, 0.0),
-                new double3(0.0, scale.y, 0.0),
-                new double3(0.0, 0.0, scale.z));
-            double3x3 rotationMatrix = new float3x3(rotation);
-            double3x3 scaleAndRotate = math.mul(rotationMatrix, scaleMatrix);
-
-            return new double4x4(
-                new double4(scaleAndRotate.c0, 0.0),
-                new double4(scaleAndRotate.c1, 0.0),
-                new double4(scaleAndRotate.c2, 0.0),
-                new double4(translation, 1.0));
-        }
-
-        public static double3 Position(this double4x4 matrix) => matrix.c3.xyz;
-
-        public static quaternion Rotation(this double4x4 matrix)
-            => new quaternion(new float3x3(math.normalize(matrix.c0.xyz).ToFloats(), math.normalize(matrix.c1.xyz).ToFloats(), math.normalize(matrix.c2.xyz).ToFloats()));
     }
 }

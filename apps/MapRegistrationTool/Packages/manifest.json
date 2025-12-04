@@ -17,6 +17,7 @@
     "com.cysharp.yetanotherhttphandler": "https://github.com/Cysharp/YetAnotherHttpHandler.git?path=src/YetAnotherHttpHandler#1.5.3",
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
     "com.plerion.api-client": "file:../../../packages/generated/csharp/api-client/src/PlerionApiClient",
+    "com.plerion.client-core": "file:../../../packages/csharp/Core",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.cloud.gltfast": "6.7.0",
     "com.unity.collab-proxy": "2.8.2",

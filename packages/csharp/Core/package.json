@@ -1,0 +1,13 @@
+{
+  "name": "com.plerion.client-core",
+  "version": "0.1.0",
+  "displayName": "Plerion Client Core",
+  "unity": "6000.0",
+  "author": {
+    "name": "Plerion"
+  },
+  "dependencies": {
+    "com.plerion.api-client": "0.1.0",
+    "com.cysharp.unitask": "2.5.10"
+  }
+}

@@ -43,19 +43,13 @@ namespace PlerionClient.Client
         {
             App.ExecuteActionOrDelay(new SetAuthStatusAction(AuthStatus.LoggingIn));
 
-            Auth.username = username;
-            Auth.password = password;
-
             try
             {
-                await UniTask.WhenAll(
-                    Auth.Login(),
-                    VisualPositioningSystem.Initialize(
-                        apiUrl,
-                        $"{apiUrl}/auth/realms/plerion-dev/protocol/openid-connect/token",
-                        username,
-                        password
-                    )
+                await VisualPositioningSystem.Initialize(
+                    apiUrl,
+                    $"{apiUrl}/auth/realms/plerion-dev/protocol/openid-connect/token",
+                    username,
+                    password
                 );
             }
             catch (Exception exc)

@@ -36,6 +36,15 @@
       "source": "local",
       "dependencies": {}
     },
+    "com.plerion.client-core": {
+      "version": "file:../../../packages/csharp/Core",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.plerion.api-client": "0.1.0",
+        "com.cysharp.unitask": "2.5.10"
+      }
+    },
     "com.unity.ai.navigation": {
       "version": "2.0.8",
       "depth": 0,

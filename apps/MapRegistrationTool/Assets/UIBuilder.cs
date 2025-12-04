@@ -605,11 +605,62 @@ namespace Outernet.MapRegistrationTool
             return control;
         }
 
-        public static ValueControl<double3> Double3Control(string label = null, LabelType labelType = LabelType.None, bool interactable = true, params Attribute[] attributes)
+        public static ValueControl<double3> Double3Control(
+            string label = null,
+            LabelType labelType = LabelType.None,
+            bool interactable = true,
+            params Attribute[] attributes)
         {
             var xControl = DoubleControl("x", LabelType.Tight, interactable: interactable);
             var yControl = DoubleControl("y", LabelType.Tight, interactable: interactable);
             var zControl = DoubleControl("z", LabelType.Tight, interactable: interactable);
+
+            var control = HandleLabel(
+                label,
+                labelType,
+                LabelType.Adaptive,
+                VerticalLayout(xControl, yControl, zControl)
+            ).gameObject.AddComponent<Double3ValueControl>();
+
+            bool pushingChanges = false;
+
+            Action handleChildChanged = () =>
+            {
+                if (pushingChanges)
+                    return;
+
+                control.value = new double3(
+                    xControl.value,
+                    yControl.value,
+                    zControl.value
+                );
+            };
+
+            xControl.onValueChanged += handleChildChanged;
+            yControl.onValueChanged += handleChildChanged;
+            zControl.onValueChanged += handleChildChanged;
+
+            control.onValueChanged += () =>
+            {
+                pushingChanges = true;
+                xControl.value = control.value.x;
+                yControl.value = control.value.y;
+                zControl.value = control.value.z;
+                pushingChanges = false;
+            };
+
+            return control;
+        }
+
+        public static ValueControl<double3> LongLatHeightControl(
+            string label = null,
+            LabelType labelType = LabelType.None,
+            bool interactable = true,
+            params Attribute[] attributes)
+        {
+            var xControl = DoubleControl("longitude", LabelType.Tight, interactable: interactable);
+            var yControl = DoubleControl("latitude", LabelType.Tight, interactable: interactable);
+            var zControl = DoubleControl("height", LabelType.Tight, interactable: interactable);
 
             var control = HandleLabel(
                 label,

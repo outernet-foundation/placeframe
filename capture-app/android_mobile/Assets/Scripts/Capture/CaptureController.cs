@@ -23,6 +23,7 @@ using ObserveThing.StatefulExtensions;
 using PlerionApiClient.Client;
 using static PlerionClient.Client.UIElements;
 using DeviceType = PlerionApiClient.Model.DeviceType;
+using Plerion.Core;
 
 namespace PlerionClient.Client
 {

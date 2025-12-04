@@ -10,6 +10,7 @@ using FofX.Stateful;
 using PlerionApiClient.Api;
 
 using Cysharp.Threading.Tasks;
+using Plerion.Core;
 
 namespace Outernet.MapRegistrationTool
 {

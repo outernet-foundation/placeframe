@@ -13,6 +13,7 @@ using FofX.Stateful;
 
 using CesiumForUnity;
 using PlerionApiClient.Model;
+using Plerion.Core;
 
 namespace Outernet.MapRegistrationTool
 {
@@ -154,10 +155,19 @@ namespace Outernet.MapRegistrationTool
             var height = heights[0];
             var ecefCoordinates = CesiumWgs84Ellipsoid.LongitudeLatitudeHeightToEarthCenteredEarthFixed(new double3(longitude, latitude, height));
 
+            var translationEcefFromMap = ecefCoordinates;
+            var rotationEcefFromMap = (quaternion)Utility.GetEUNRotationFromECEFPosition(ecefCoordinates);
+
+            double3x3 rotationEcefFromMapMatrix;
+            (translationEcefFromMap, rotationEcefFromMapMatrix) = Plerion.Core.LocationUtilities.ChangeBasisEcefToUnity(
+                translationEcefFromMap,
+                rotationEcefFromMap.ToDouble3x3()
+            );
+
             App.state.ecefToUnityWorldMatrix.ExecuteSetOrDelay(
                 math.inverse(Double4x4.FromTranslationRotation(
-                    ecefCoordinates,
-                    MapRegistrationTool.Utility.GetEUNRotationFromECEFPosition(ecefCoordinates)
+                    translationEcefFromMap,
+                    rotationEcefFromMapMatrix
                 ))
             );
 

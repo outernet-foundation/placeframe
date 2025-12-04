@@ -17,6 +17,7 @@ using PlerionApiClient.Model;
 using Vector3 = UnityEngine.Vector3;
 using Quaternion = UnityEngine.Quaternion;
 using Color = UnityEngine.Color;
+using Plerion.Core;
 
 namespace Outernet.MapRegistrationTool
 {

@@ -18,6 +18,7 @@ using CameraModel = PlerionApiClient.Model.Camera;
 using PinholeCameraConfig = PlerionApiClient.Model.PinholeCameraConfig;
 using LocalizationSession = PlerionApiClient.Model.LocalizationSessionRead;
 using LocalizationMetrics = PlerionApiClient.Model.LocalizationMetrics;
+using Plerion.Core;
 
 namespace Plerion.VPS
 {
@@ -44,8 +45,8 @@ namespace Plerion.VPS
         public static float? FloorHeight => EstimatedFloorHeight ?? DetectedFloorHeight;
         public static bool LocalizationSessionActive => localizationSessionId != Guid.Empty;
 
-        public static double4x4 EcefToUnityWorldTransform => ecefToUnityTransform;
-        public static double4x4 UnityWorldToEcefTransform => unityToEcefTransform;
+        public static double4x4 EcefToUnityWorldTransform => unityFromEcefTransform;
+        public static double4x4 UnityWorldToEcefTransform => ecefFromUnityTransform;
 
         public static event Action OnEcefToUnityWorldTransformUpdated;
 
@@ -54,28 +55,8 @@ namespace Plerion.VPS
         private static Task startSessionTask;
         public static Guid localizationSessionId = Guid.Empty;
 
-        private static double4x4 ecefToUnityTransform = new float4x4(quaternion.identity, new float3());
-        private static double4x4 unityToEcefTransform = math.inverse(ecefToUnityTransform);
-
-        private static readonly float3x3 basisUnity = float3x3.identity;
-
-        private static readonly float3x3 basisOpenCV = new float3x3(
-            1f, 0f, 0f,
-            0f, -1f, 0f,
-            0f, 0f, 1f
-        );
-
-        private static readonly float3x3 basisEcef = new float3x3(
-            1f, 0f, 0f,
-            0f, -1f, 0f,
-            0f, 0f, 1f
-        );
-
-        private static readonly float3x3 basisChangeUnityFromOpenCV = math.mul(math.transpose(basisUnity), basisOpenCV);
-        private static readonly float3x3 basisChangeOpenCVFromUnity = math.transpose(basisChangeUnityFromOpenCV);
-
-        private static readonly double3x3 basisChangeUnityFromEcef = math.mul(math.transpose(basisUnity), basisEcef);
-        private static readonly double3x3 basisChangeEcefFromUnity = math.transpose(basisChangeUnityFromEcef);
+        private static double4x4 unityFromEcefTransform = double4x4.identity;
+        private static double4x4 ecefFromUnityTransform = math.inverse(unityFromEcefTransform);
 
         private static async Task StartSessionInternal(CameraModel cameraIntrinsics, CancellationToken cancellationToken = default)
         {
@@ -118,6 +99,9 @@ namespace Plerion.VPS
             Auth.url = authUrl;
             Auth.username = username;
             Auth.password = password;
+            Auth.LogInfo = message => Debug.Log(message);
+            Auth.LogWarning = message => Debug.LogWarning(message);
+            Auth.LogError = message => Debug.LogError(message);
 
             api = new DefaultApi(
                 new HttpClient(new KeycloakHttpHandler() { InnerHandler = new HttpClientHandler() })
@@ -202,94 +186,46 @@ namespace Plerion.VPS
 
             var localizationResult = localizationResults.FirstOrDefault(); //for now, just use the first one
 
-            var unityWorldFromColmap = BuildUnityWorldFromColmapWorldTransform(
-                colmapRotationCameraFromWorld: localizationResult.Transform.Rotation.ToMathematicsQuaternion(),
-                colmapTranslationCameraFromWorld: localizationResult.Transform.Position.ToFloat3(),
-                unityRotationWorldFromCamera: cameraRotationUnityWorldFromCamera,
-                unityTranslationWorldFromCamera: cameraTranslationUnityWorldFromCamera.ToFloat3()
+            unityFromEcefTransform = LocationUtilities.ComputeUnityFromEcefTransform(
+                localizationResult.Transform.Position.ToDouble3(),
+                localizationResult.Transform.Rotation.ToMathematicsQuaternion().ToDouble3x3(),
+                localizationResult.MapTransform.Position.ToDouble3(),
+                localizationResult.MapTransform.Rotation.ToMathematicsQuaternion().ToDouble3x3(),
+                cameraTranslationUnityWorldFromCamera.ToFloat3(),
+                // TODO: Adjust unity rotation to account for phone orientation (portrait vs landscape)
+                math.mul(
+                    ((quaternion)cameraRotationUnityWorldFromCamera).ToDouble3x3(),
+                    quaternion.AxisAngle(new float3(0f, 0f, 1f), math.radians(0f)).ToDouble3x3())
             );
-
-            var (mapRotation, mapPosition) = ChangeBasisEcefToUnity(
-                new float3x3(localizationResult.MapTransform.Rotation.ToMathematicsQuaternion()),
-                localizationResult.MapTransform.Position.ToFloat3()
-            );
-
-            var ecefFromColmapWorldMatrix = Double4x4.FromTranslationRotation(mapPosition, new quaternion(new float3x3(mapRotation)));
-            var colmapWorldFromEcefMatrix = math.inverse(ecefFromColmapWorldMatrix);
-            var unityWorldFromEcefMatrix = math.mul(unityWorldFromColmap, colmapWorldFromEcefMatrix);
-
-            ecefToUnityTransform = unityWorldFromEcefMatrix;
-            unityToEcefTransform = math.inverse(ecefToUnityTransform);
+            ecefFromUnityTransform = math.inverse(unityFromEcefTransform);
 
             OnEcefToUnityWorldTransformUpdated?.Invoke();
         }
 
         public static void SetUnityWorldToEcefTransform(double4x4 transform)
         {
-            unityToEcefTransform = transform;
-            ecefToUnityTransform = math.inverse(transform);
+            ecefFromUnityTransform = transform;
+            unityFromEcefTransform = math.inverse(transform);
 
             OnEcefToUnityWorldTransformUpdated?.Invoke();
         }
 
         public static void SetEcefToUnityWorldTransform(double4x4 transform)
         {
-            ecefToUnityTransform = transform;
-            unityToEcefTransform = math.inverse(transform);
+            unityFromEcefTransform = transform;
+            ecefFromUnityTransform = math.inverse(transform);
 
             OnEcefToUnityWorldTransformUpdated?.Invoke();
         }
 
-        private static float4x4 BuildUnityWorldFromColmapWorldTransform(
-            quaternion colmapRotationCameraFromWorld,
-            float3 colmapTranslationCameraFromWorld,
-            quaternion unityRotationWorldFromCamera,
-            float3 unityTranslationWorldFromCamera)
-        {
-            // Adjust unity rotation to account for phone orientation (portrait vs landscape)
-            var unityRotationWorldFromCameraMatrix = math.mul(
-                new float3x3(unityRotationWorldFromCamera),
-                new float3x3(quaternion.AxisAngle(new float3(0f, 0f, 1f), math.radians(0f))));
-
-            // Change basis from OpenCV to Unity
-            var colmapRotationCameraFromWorldMatrix = new float3x3(colmapRotationCameraFromWorld);
-            (colmapRotationCameraFromWorldMatrix, colmapTranslationCameraFromWorld) =
-                ChangeBasisOpenCVToUnity(colmapRotationCameraFromWorldMatrix, colmapTranslationCameraFromWorld);
-
-            // Compute similarity transform
-            return new float4x4(
-                math.mul(unityRotationWorldFromCameraMatrix, colmapRotationCameraFromWorldMatrix),
-                math.mul(unityRotationWorldFromCameraMatrix, colmapTranslationCameraFromWorld) + unityTranslationWorldFromCamera
-            );
-        }
-
-        private static (float3x3, float3) ChangeBasisOpenCVToUnity(float3x3 rotation, float3 translation)
-            => (math.mul(basisChangeUnityFromOpenCV, math.mul(rotation, basisChangeOpenCVFromUnity)), math.mul(basisChangeUnityFromOpenCV, translation));
-
-        // private static (float3x3, float3) OpenCVFromUnity(float3x3 rotation, float3 translation)
-        //     => (math.mul(basisChangeOpenCVFromUnity, math.mul(rotation, basisChangeUnityFromOpenCV)), math.mul(basisChangeOpenCVFromUnity, translation));
-
-        private static (double3x3, double3) ChangeBasisEcefToUnity(double3x3 rotation, double3 translation)
-            => (math.mul(basisChangeUnityFromEcef, math.mul(rotation, basisChangeEcefFromUnity)), math.mul(basisChangeUnityFromEcef, translation));
-
-        private static (double3x3, double3) ChangeBasisUnityToEcef(double3x3 rotation, double3 translation)
-            => (math.mul(basisChangeEcefFromUnity, math.mul(rotation, basisChangeUnityFromEcef)), math.mul(basisChangeEcefFromUnity, translation));
-
         public static (Vector3 position, Quaternion rotation) EcefToUnityWorld(double3 ecefPosition, quaternion ecefRotation)
         {
-            var (rot, pos) = ChangeBasisEcefToUnity(new float3x3(ecefRotation), ecefPosition);
-            var ecefTransform = Double4x4.FromTranslationRotation(pos, new quaternion(new float3x3(rot)));
-            var unityTransform = math.mul(ecefToUnityTransform, ecefTransform);
-            return (unityTransform.Position().ToFloats(), unityTransform.Rotation());
+            var (position, rotation) = LocationUtilities.EcefToUnityWorld(unityFromEcefTransform, ecefPosition, ecefRotation);
+            return (new Vector3((float)position.x, (float)position.y, (float)position.z), new Quaternion((float)rotation.value.x, (float)rotation.value.y, (float)rotation.value.z, (float)rotation.value.w));
         }
 
         public static (double3 position, quaternion rotation) UnityWorldToEcef(Vector3 position, Quaternion rotation)
-        {
-            var unityTransform = Double4x4.FromTranslationRotation(position, rotation);
-            var ecefTransform = math.mul(unityToEcefTransform, unityTransform);
-            var (rot, pos) = ChangeBasisUnityToEcef(new float3x3(ecefTransform.Rotation()), ecefTransform.Position());
-            return (pos, new quaternion(new float3x3(rot)));
-        }
+            => LocationUtilities.UnityWorldToEcef(ecefFromUnityTransform, position.ToFloat3(), rotation);
 
         public static async UniTask<MapData[]> GetLoadedLocalizationMapsAsync(bool includePoints = false, CancellationToken cancellationToken = default)
         {
@@ -343,11 +279,11 @@ namespace Plerion.VPS
 
             return points.Select(x =>
             {
-                var pcw = x.Position.ToFloat3();
-                var p_ucam = ChangeBasisOpenCVToUnity(new float3x3(quaternion.identity), pcw).Item2;
+                var pcw = x.Position.ToDouble3();
+                var (p_ucam, _) = LocationUtilities.ChangeBasisOpenCVToUnity(pcw, quaternion.identity.ToDouble3x3());
                 return new Point
                 {
-                    position = p_ucam,
+                    position = new float3((float)p_ucam.x, (float)p_ucam.y, (float)p_ucam.z),
                     color = x.Color.ToUnityColor()
                 };
             }).ToArray();

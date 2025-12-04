@@ -4,6 +4,7 @@
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
     "com.magicleap.unitysdk": "2.6.0",
     "com.plerion.api-client": "file:../../../packages/generated/csharp/api-client/src/PlerionApiClient",
+    "com.plerion.client-core": "file:../../../packages/csharp/Core",
     "com.unity.ai.navigation": "2.0.8",
     "com.unity.collab-proxy": "2.9.3",
     "com.unity.ide.rider": "3.0.36",
