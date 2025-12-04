@@ -44,9 +44,9 @@ RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
     uv pip install -r pylock.neural-networks.toml
 
 # Install neural-networks
-COPY packages/neural-networks /app/packages/neural-networks
-RUN uv pip install --no-deps --no-sources /app/packages/neural-networks/third-party/deep-image-retrieval
-RUN uv pip install --no-deps --no-sources /app/packages/neural-networks
+COPY packages/python/neural-networks /app/packages/python/neural-networks
+RUN uv pip install --no-deps --no-sources /app/packages/python/neural-networks/third-party/deep-image-retrieval
+RUN uv pip install --no-deps --no-sources /app/packages/python/neural-networks
 
 # Preload neural-networks models to cache them in the image
 RUN uv run python -c "import neural_networks.preload"
@@ -57,12 +57,12 @@ RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
     uv pip install -r pylock.toml
 
 # Install the project itself
-COPY packages/core /app/packages/core
-COPY packages/common /app/packages/common
+COPY packages/python/core /app/packages/python/core
+COPY packages/python/common /app/packages/python/common
 COPY docker/reconstructor /app/docker/reconstructor
 RUN uv pip install --no-deps --no-sources \
-    /app/packages/common \
-    /app/packages/core \
+    /app/packages/python/common \
+    /app/packages/python/core \
     /app/docker/reconstructor
 
 # Verify that all declared dependencies were installed

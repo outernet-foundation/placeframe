@@ -34,7 +34,7 @@
       "hash": "36d3260fdca03bf6feb105c67022d1fd7629dd2f"
     },
     "com.plerion.api-client": {
-      "version": "file:../../../packages/generated/api-client-csharp/src/PlerionApiClient",
+      "version": "file:../../../packages/generated/csharp/api-client/src/PlerionApiClient",
       "depth": 0,
       "source": "local",
       "dependencies": {}

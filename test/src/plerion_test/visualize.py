@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 from typing import Any, Sequence, cast
 
-from plerion_api_client.models.pinhole_camera import PinholeCamera
+from plerion_api_client.models.pinhole_camera_config import PinholeCameraConfig
 from plerion_api_client.models.point_cloud_point import PointCloudPoint
 from plerion_api_client.models.quaternion import Quaternion
 from plerion_api_client.models.transform import Transform
@@ -43,7 +43,7 @@ def generate_visualization(
     point_cloud: Sequence[PointCloudPoint],
     reconstruction_image_poses: Sequence[Transform] | None = None,
     localization: Transform | None = None,
-    intrinsics: PinholeCamera | None = None,
+    intrinsics: PinholeCameraConfig | None = None,
 ) -> str:
     axes = dict(
         visible=True,
@@ -330,7 +330,7 @@ def _trace(
     }
 
 
-def _frustum_coords(pose: Transform, intrinsics: PinholeCamera, size: float):
+def _frustum_coords(pose: Transform, intrinsics: PinholeCameraConfig, size: float):
     px = float(pose.position.x)
     py = float(pose.position.y)
     pz = float(pose.position.z)

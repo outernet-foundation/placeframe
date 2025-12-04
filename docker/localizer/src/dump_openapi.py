@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 import json
-from os import environ
+import os
 
-# Prevent pydantic settings from running validation
-environ["CODEGEN"] = "1"
+os.environ["CODEGEN"] = "1"
 
 from .main import app
 

@@ -13,7 +13,7 @@ from plerion_api_client.models.camera import Camera
 from plerion_api_client.models.load_state import LoadState
 from plerion_api_client.models.localization_map_create import LocalizationMapCreate
 from plerion_api_client.models.map_localization import MapLocalization
-from plerion_api_client.models.pinhole_camera import PinholeCamera
+from plerion_api_client.models.pinhole_camera_config import PinholeCameraConfig
 from plerion_api_client.models.point_cloud_point import PointCloudPoint
 from plerion_api_client.models.reconstruction_create import ReconstructionCreate
 from plerion_api_client.models.reconstruction_create_with_options import ReconstructionCreateWithOptions
@@ -31,7 +31,7 @@ OUTPUT_HTML_PATH = SCRIPT_DIR / "vls_test_result.html"
 CAPTURE_ID = UUID("940c7be3-52fd-43d0-ae1f-3988749a638b")
 TEST_IMAGE_PATH = SCRIPT_DIR / "test_image.jpg"
 
-intrinsics = PinholeCamera(
+intrinsics = PinholeCameraConfig(
     model="PINHOLE",
     width=1920,
     height=1080,

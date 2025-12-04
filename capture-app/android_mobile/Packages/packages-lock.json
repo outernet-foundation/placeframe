@@ -67,13 +67,7 @@
       "hash": "f789083c31250c83082da9b29be0c976152d699b"
     },
     "com.plerion.api-client": {
-      "version": "file:../../../packages/generated/api-client-csharp/src/PlerionApiClient",
-      "depth": 0,
-      "source": "local",
-      "dependencies": {}
-    },
-    "com.plerion.zed-client": {
-      "version": "file:../../../packages/generated/zed-client-csharp/src/PlerionZedClient",
+      "version": "file:../../../packages/generated/csharp/api-client/src/PlerionApiClient",
       "depth": 0,
       "source": "local",
       "dependencies": {}
@@ -96,6 +90,12 @@
         "com.cysharp.unitask": "2.5.10",
         "com.unity.xr.arfoundation": "6.0.6"
       }
+    },
+    "com.plerion.zed-client": {
+      "version": "file:../../../packages/generated/csharp/zed-client/src/PlerionZedClient",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
     },
     "com.unity.2d.sprite": {
       "version": "1.0.0",

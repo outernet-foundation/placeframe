@@ -57,20 +57,16 @@ def _dump_openapi_spec(project: Path, no_cache: bool) -> str | None:
 
 
 def _generate_client(openapi_spec: str, project: str, client: str):
-    client_config_path = OPENAPI_GENERATOR_CONFIGS_PATH / f"{client}.json"
-    client_config_json = json.loads(client_config_path.read_text(encoding="utf-8"))
+    client_config_json = json.loads((OPENAPI_GENERATOR_CONFIGS_PATH / f"{client}.json").read_text(encoding="utf-8"))
     client_package_base_name = f"{project.split('/')[-1]}-client"
-    client_path = Path("packages/generated") / f"{client_package_base_name}-{client}"
-
-    # if client_path.exists():
-    #     rmtree(client_path)
-    # client_path.mkdir(parents=True)
+    client_path = Path("packages/generated") / client / f"{client_package_base_name}"
+    client_path.mkdir(parents=True, exist_ok=True)
 
     client_package_name_dashed = f"plerion-{client_package_base_name}"
     client_package_name_underscored = client_package_name_dashed.replace("-", "_")
     client_package_name_camel = f"Plerion{''.join(part.capitalize() for part in client_package_base_name.split('-'))}"
 
-    if client_config_json["generatorName"] == "csharp":
+    if client == "csharp":
         client_config_json["additionalProperties"]["packageName"] = client_package_name_camel
     else:
         client_config_json["additionalProperties"]["projectName"] = client_package_name_dashed
@@ -96,7 +92,7 @@ def _generate_client(openapi_spec: str, project: str, client: str):
 
         run_command(
             f"uv run --no_workspace openapi-generator-cli generate "
-            f"-g {client_config_json['generatorName']} "
+            f"-g {client} "
             f"-i {Path(temp_spec_file.name).resolve().as_posix()} "
             f"-o {client_path.resolve().as_posix()} "
             f"-c {str(Path(temp_config_file.name).resolve())} "
@@ -105,7 +101,8 @@ def _generate_client(openapi_spec: str, project: str, client: str):
             log=True,
         )
 
-    if client_config_json["generatorName"] == "csharp":
+        print(f"Generated {client} client at {client_path}")
+    if client == "csharp":
         (client_path / "src" / client_package_name_camel / "package.json").write_text(
             json.dumps(
                 {
@@ -134,6 +131,8 @@ def _generate_client(openapi_spec: str, project: str, client: str):
                 indent=2,
             )
         )
+    elif client == "python":
+        run_command(f"uv pip install {client_path.resolve().as_posix()}", log=True)
 
     # This is a workaround for a bug in one of the openapi jinja templates for C# that results in stray commas in generated code
     print("Checking for stray commas")

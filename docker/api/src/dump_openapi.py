@@ -2,7 +2,6 @@
 import json
 import os
 
-# Prevent pydantic settings from running validation
 os.environ["CODEGEN"] = "1"
 
 from .main import app

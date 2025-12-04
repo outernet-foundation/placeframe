@@ -14,19 +14,23 @@ from pydantic.alias_generators import to_snake
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql.sqltypes import Enum as SAEnum
-from typer import Option, run
+from typer import run
+
+DATABASE = "plerion"
+DATAMODELS_PATH = Path(__file__).parents[3] / "packages" / "generated" / "python" / "datamodels"
 
 
-def cli(database: str = Option(...), datamodels_path: Path = Option(...)):
-    service_dsn = f"postgresql+psycopg://{database}_api_user:password@localhost:55432/{database}"
-
-    _generate_datamodels_for_schema("public", datamodels_path, service_dsn)
-    _generate_datamodels_for_schema("auth", datamodels_path, service_dsn)
+def cli():
+    service_dsn = f"postgresql+psycopg://{DATABASE}_api_user:password@localhost:55432/{DATABASE}"
+    _generate_datamodels_for_schema("public", DATAMODELS_PATH / "src" / "datamodels", service_dsn)
+    _generate_datamodels_for_schema("auth", DATAMODELS_PATH / "src" / "datamodels", service_dsn)
+    run_command(f"uv pip install {DATAMODELS_PATH.resolve().as_posix()}", log=True)
 
 
 def _generate_datamodels_for_schema(database_schema: str, models_path: Path, service_dsn: str) -> None:
     generated_table_models_path = models_path / f"{database_schema}_tables.py"
     generated_dto_models_path = models_path / f"{database_schema}_dtos.py"
+    generated_table_models_path.parent.mkdir(parents=True, exist_ok=True)
 
     print(f"Generating table models for schema: {database_schema}")
 
@@ -140,7 +144,8 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, ser
         print(f"Generating DTO classes for schema: {database_schema}")
 
         run_command(
-            f"uv run datamodel-codegen "
+            f"uv run --no_workspace "
+            f"datamodel-codegen "
             f"--input {schema_path} "
             f"--input-file-type jsonschema "
             f"--output {dtos_path} "

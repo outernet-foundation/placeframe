@@ -14,7 +14,6 @@ from .map_manager import LoadStateResponse, Localization, get_load_state, locali
 RECONSTRUCTIONS_DIR = Path("/tmp/reconstructions")
 MAX_KEYPOINTS = 2500
 
-
 if not environ.get("CODEGEN"):
     load_models(MAX_KEYPOINTS)
 

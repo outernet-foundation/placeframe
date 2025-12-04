@@ -18,7 +18,6 @@ from .build_metrics import build_localization_metrics
 from .map import Map
 
 DEVICE = "cuda" if cuda.is_available() else "cpu"
-print(f"Using device: {DEVICE}")
 
 
 dir: Any = None
@@ -28,6 +27,8 @@ lightglue: Any = None
 
 def load_models(max_keypoints: int):
     from neural_networks.models import load_DIR, load_lightglue, load_superpoint
+
+    print(f"Using device: {DEVICE}")
 
     global dir, superpoint, lightglue
     dir = load_DIR(DEVICE)

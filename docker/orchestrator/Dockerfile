@@ -28,14 +28,14 @@ RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
     uv pip install -r pylock.toml
 
 # Install project
-COPY packages/common/ /app/packages/common
-COPY packages/core/ /app/packages/core
-COPY packages/datamodels/ /app/packages/datamodels
+COPY packages/python/common/ /app/packages/python/common
+COPY packages/python/core/ /app/packages/python/core
+COPY packages/generated/python/datamodels/ /app/packages/generated/python/datamodels
 COPY docker/orchestrator /app/docker/orchestrator/
 RUN uv pip install --no-deps --no-sources \
-    /app/packages/common \
-    /app/packages/core \
-    /app/packages/datamodels \
+    /app/packages/python/common \
+    /app/packages/python/core \
+    /app/packages/generated/python/datamodels \
     /app/docker/orchestrator
 
 # Verify that all declared dependencies were installed
