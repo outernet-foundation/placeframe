@@ -86,15 +86,13 @@ def pairs_from_retrieval(descriptors: Dict[str, torch.Tensor], num_neighbors: in
     if min_score is not None:
         invalid |= similarity < min_score
 
-    selected = pairs_from_score_matrix(similarity, invalid, num_neighbors, min_score)
+    selected = pairs_from_score_matrix(similarity, invalid, num_neighbors)
     return [(names[i], names[j]) for i, j in selected]
 
 
-def pairs_from_score_matrix(
-    scores: torch.Tensor, invalid: torch.Tensor, num_select: int, min_score: Optional[float] = None
-):
+def pairs_from_score_matrix(scores: torch.Tensor, invalid: torch.Tensor, num_select: int):
     scores.masked_fill_(invalid, float("-inf"))
-    top_k = topk(scores, num_select, dim=1)
+    top_k = topk(scores, min(num_select, scores.size(1)), dim=1)
     indices = top_k.indices.cpu().numpy()
     valid = top_k.values.isfinite().cpu().numpy()
 
