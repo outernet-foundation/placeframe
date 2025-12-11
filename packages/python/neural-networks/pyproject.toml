@@ -5,25 +5,12 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "torch-meta",
     "lightglue",
     "dirtorch",
     "pillow>=12.0.0",
     "gdown>=5.2.0",
-    "torch==2.9.0+cu126",
-    "torchvision==0.24.0+cu126",
-    "scikit-learn>=1.7.2",
 ]
-
-[tool.uv.sources]
-dirtorch = { workspace = true }
-lightglue = { git = "https://github.com/cvg/LightGlue.git" }
-torch = { index = "pytorch-cu126" }
-torchvision = { index = "pytorch-cu126" }
-
-[[tool.uv.index]]
-name = "pytorch-cu126"
-url = "https://download.pytorch.org/whl/cu126"
-explicit = true
 
 [build-system]
 requires = ["hatchling"]

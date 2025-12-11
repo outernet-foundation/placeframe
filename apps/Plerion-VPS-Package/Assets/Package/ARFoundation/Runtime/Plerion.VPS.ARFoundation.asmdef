@@ -1,19 +1,20 @@
 {
-    "name": "Plerion.VPS.ARFoundation",
-    "rootNamespace": "",
-    "references": [
-        "UniTask",
-        "Unity.XR.ARFoundation",
-        "Unity.XR.ARSubsystems",
-        "Plerion.VPS"
-    ],
-    "includePlatforms": [],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": false
+  "name": "Plerion.Core.ARFoundation",
+  "rootNamespace": "",
+  "references": [
+    "UniTask",
+    "Unity.XR.ARFoundation",
+    "Unity.XR.ARSubsystems",
+    "Plerion.Core",
+    "PlerionApiClient"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }

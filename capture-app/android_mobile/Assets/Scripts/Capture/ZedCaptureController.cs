@@ -1,20 +1,17 @@
 using System;
 using System.Collections.Generic;
-using Cysharp.Threading.Tasks;
-using PlerionZedClient.Client;
-using PlerionZedClient.Api;
 using System.IO;
-using System.Threading;
-using System.Net.Sockets;
-using System.Threading.Tasks;
 using System.Net.Http;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using PlerionZedClient.Api;
+using PlerionZedClient.Client;
 
 public static class ZedCaptureController
 {
-    static private DefaultApi capturesApi;
-    static private readonly string host = "http://192.168.55.1";
-    static private readonly int port = 9000;
-    static private readonly int reachabilityTimeout = 500;
+    private static DefaultApi capturesApi;
+    private static readonly string host = "http://192.168.55.1";
+    private static readonly int port = 9000;
 
     [Serializable]
     struct StartCaptureRequest
@@ -32,20 +29,19 @@ public static class ZedCaptureController
             new HttpClient(new HttpClientHandler())
             {
                 BaseAddress = new Uri($"{host}:{port}"),
-                Timeout = TimeSpan.FromSeconds(600)
+                Timeout = TimeSpan.FromSeconds(600),
             },
-            new Configuration
-            {
-                BasePath = $"{host}:{port}",
-                Timeout = TimeSpan.FromSeconds(600)
-            }
+            new Configuration { BasePath = $"{host}:{port}", Timeout = TimeSpan.FromSeconds(600) }
         );
     }
 
-    public static async UniTask<T> WithEthernetIfAndroidMobile<T>(Func<UniTask<T>> action, CancellationToken cancellationToken = default)
+    public static async UniTask<T> WithEthernetIfAndroidMobile<T>(
+        Func<UniTask<T>> action,
+        CancellationToken cancellationToken = default
+    )
     {
 #if !UNITY_EDITOR && UNITY_ANDROID
-        AndroidMobileEthernetNetworkBinder.Enter();
+        await AndroidMobileEthernetNetworkBinder.Enter();
 #endif
         var result = await action();
 #if !UNITY_EDITOR && UNITY_ANDROID
@@ -54,18 +50,26 @@ public static class ZedCaptureController
         return result;
     }
 
-    public static async UniTask StartCapture(float captureInterval, CancellationToken cancellationToken = default)
-        => await WithEthernetIfAndroidMobile(async () => await capturesApi.StartCaptureAsync(captureInterval, cancellationToken));
+    public static async UniTask StartCapture(float captureInterval, CancellationToken cancellationToken = default) =>
+        await WithEthernetIfAndroidMobile(async () =>
+            await capturesApi.StartCaptureAsync(captureInterval, cancellationToken)
+        );
 
-    public static async UniTask StopCapture(CancellationToken cancellationToken = default)
-        => await WithEthernetIfAndroidMobile(async () => await capturesApi.StopCaptureAsync(cancellationToken));
+    public static async UniTask StopCapture(CancellationToken cancellationToken = default) =>
+        await WithEthernetIfAndroidMobile(async () => await capturesApi.StopCaptureAsync(cancellationToken));
 
-    public static async UniTask<IEnumerable<Guid>> GetCaptures(CancellationToken cancellationToken = default)
-        => await WithEthernetIfAndroidMobile<IEnumerable<Guid>>(async () => await capturesApi.GetCapturesAsync(cancellationToken));
+    public static async UniTask<IEnumerable<Guid>> GetCaptures(CancellationToken cancellationToken = default) =>
+        await WithEthernetIfAndroidMobile<IEnumerable<Guid>>(async () =>
+            await capturesApi.GetCapturesAsync(cancellationToken)
+        );
 
-    public static async UniTask<Stream> GetCapture(Guid captureId, CancellationToken cancellationToken = default)
-        => await WithEthernetIfAndroidMobile(async () => (await capturesApi.DownloadCaptureTarAsync(captureId, cancellationToken)).Content);
+    public static async UniTask<Stream> GetCapture(Guid captureId, CancellationToken cancellationToken = default) =>
+        await WithEthernetIfAndroidMobile(async () =>
+            (await capturesApi.DownloadCaptureTarAsync(captureId, cancellationToken)).Content
+        );
 
-    public static async UniTask DeleteCapture(Guid captureId, CancellationToken cancellationToken = default)
-        => await WithEthernetIfAndroidMobile(async () => await capturesApi.DeleteCaptureAsync(captureId, cancellationToken));
+    public static async UniTask DeleteCapture(Guid captureId, CancellationToken cancellationToken = default) =>
+        await WithEthernetIfAndroidMobile(async () =>
+            await capturesApi.DeleteCaptureAsync(captureId, cancellationToken)
+        );
 }

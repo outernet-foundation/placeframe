@@ -40,16 +40,16 @@ namespace PlerionApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="Transform" /> class.
         /// </summary>
-        /// <param name="position">position (required).</param>
+        /// <param name="translation">translation (required).</param>
         /// <param name="rotation">rotation (required).</param>
-        public Transform(Vector3 position, Quaternion rotation)
+        public Transform(Float3 translation, Float4 rotation)
         {
-            // to ensure "position" is required (not null)
-            if (position == null)
+            // to ensure "translation" is required (not null)
+            if (translation == null)
             {
-                throw new ArgumentNullException("position is a required property for Transform and cannot be null");
+                throw new ArgumentNullException("translation is a required property for Transform and cannot be null");
             }
-            this.Position = position;
+            this.Translation = translation;
             // to ensure "rotation" is required (not null)
             if (rotation == null)
             {
@@ -59,34 +59,34 @@ namespace PlerionApiClient.Model
         }
 
         /// <summary>
-        /// Gets or Sets Position
+        /// Gets or Sets Translation
         /// </summary>
-        [DataMember(Name = "position", IsRequired = true, EmitDefaultValue = true)]
-        public Vector3 Position
+        [DataMember(Name = "translation", IsRequired = true, EmitDefaultValue = true)]
+        public Float3 Translation
         {
-            get{ return _Position;}
+            get{ return _Translation;}
             set
             {
-                _Position = value;
-                _flagPosition = true;
+                _Translation = value;
+                _flagTranslation = true;
             }
         }
-        private Vector3 _Position;
-        private bool _flagPosition;
+        private Float3 _Translation;
+        private bool _flagTranslation;
 
         /// <summary>
-        /// Returns false as Position should not be serialized given that it's read-only.
+        /// Returns false as Translation should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializePosition()
+        public bool ShouldSerializeTranslation()
         {
-            return _flagPosition;
+            return _flagTranslation;
         }
         /// <summary>
         /// Gets or Sets Rotation
         /// </summary>
         [DataMember(Name = "rotation", IsRequired = true, EmitDefaultValue = true)]
-        public Quaternion Rotation
+        public Float4 Rotation
         {
             get{ return _Rotation;}
             set
@@ -95,7 +95,7 @@ namespace PlerionApiClient.Model
                 _flagRotation = true;
             }
         }
-        private Quaternion _Rotation;
+        private Float4 _Rotation;
         private bool _flagRotation;
 
         /// <summary>
@@ -114,7 +114,7 @@ namespace PlerionApiClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class Transform {\n");
-            sb.Append("  Position: ").Append(Position).Append("\n");
+            sb.Append("  Translation: ").Append(Translation).Append("\n");
             sb.Append("  Rotation: ").Append(Rotation).Append("\n");
             sb.Append("}\n");
             return sb.ToString();

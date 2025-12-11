@@ -1,8 +1,6 @@
 from typing import Optional
 from uuid import UUID
 
-from common.schemas import binary_schema
-from core.classes import PointCloudPoint, Transform
 from datamodels.public_dtos import (
     LocalizationMapBatchUpdate,
     LocalizationMapCreate,
@@ -15,18 +13,12 @@ from datamodels.public_dtos import (
 )
 from datamodels.public_tables import LocalizationMap
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..settings import get_settings
-from .reconstructions import (
-    get_reconstruction_frame_poses,
-    get_reconstruction_points,
-    get_reconstruction_points3D_ply,
-    get_reconstruction_status,
-)
+from .reconstructions import get_reconstruction_status
 
 settings = get_settings()
 
@@ -117,33 +109,6 @@ async def get_localization_map(id: UUID, session: AsyncSession = Depends(get_ses
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"LocalizationMap with id {id} not found")
 
     return localization_map_to_dto(row)
-
-
-@router.get("/{id}/points")
-async def get_localization_map_points(id: UUID, session: AsyncSession = Depends(get_session)) -> list[PointCloudPoint]:
-    row = await session.get(LocalizationMap, id)
-    if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"LocalizationMap with id {id} not found")
-
-    return await get_reconstruction_points(row.reconstruction_id, session)
-
-
-@router.get("/{id}/points.ply", response_class=StreamingResponse, responses={200: {"content": binary_schema}})
-async def get_localization_map_points_ply(id: UUID, session: AsyncSession = Depends(get_session)) -> StreamingResponse:
-    row = await session.get(LocalizationMap, id)
-    if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"LocalizationMap with id {id} not found")
-    return await get_reconstruction_points3D_ply(row.reconstruction_id, session)
-
-
-@router.patch("/{id}/image_poses")
-async def update_localization_map_image_poses(
-    id: UUID, session: AsyncSession = Depends(get_session)
-) -> list[Transform]:
-    row = await session.get(LocalizationMap, id)
-    if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"LocalizationMap with id {id} not found")
-    return await get_reconstruction_frame_poses(row.reconstruction_id, session)
 
 
 @router.patch("/{id}")

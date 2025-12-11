@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using UnityEngine.XR.MagicLeap;
 using UnityEngine.XR.MagicLeap.Native;
 
-namespace Plerion.VPS.MagicLeap
+namespace Plerion.Core.MagicLeap
 {
     public class NativeBindings : MagicLeapNativeBindings
     {
@@ -15,19 +15,19 @@ namespace Plerion.VPS.MagicLeap
             Disabled,
             DeviceFailed,
             ServiceFailed,
-            CaptureFailed
+            CaptureFailed,
         }
 
         public enum Identifier
         {
             Main,
-            CV
+            CV,
         }
 
         public enum DisconnectReason
         {
             DeviceLost,
-            PriorityLost
+            PriorityLost,
         }
 
         public enum MRQuality
@@ -37,7 +37,7 @@ namespace Plerion.VPS.MagicLeap
             _1944x2160,
             _960x720,
             _1440x1080,
-            _2880x2160
+            _2880x2160,
         }
 
         public struct MLCameraMRConnectInfo
@@ -49,7 +49,7 @@ namespace Plerion.VPS.MagicLeap
 
         public enum MRBlendType
         {
-            Additive = 1
+            Additive = 1,
         }
 
         public enum CaptureFrameRate
@@ -57,30 +57,29 @@ namespace Plerion.VPS.MagicLeap
             None,
             _15FPS,
             _30FPS,
-            _60FPS
+            _60FPS,
         }
 
         public enum ConnectFlag
         {
             CamOnly,
             VirtualOnly,
-            MR
+            MR,
         }
 
         public enum OutputFormat
         {
             YUV_420_888 = 1,
             JPEG,
-            RGBA_8888
+            RGBA_8888,
         }
 
         public enum CaptureType
         {
             Image,
             Video,
-            Preview
+            Preview,
         }
-
 
         public struct MLCameraConnectContext
         {
@@ -195,10 +194,29 @@ namespace Plerion.VPS.MagicLeap
         {
             public delegate void OnCaptureFailedDelegate(ref MLCameraResultExtras extra, IntPtr data);
             public delegate void OnCaptureAbortedDelegate(IntPtr data);
-            public delegate void OnCaptureCompletedDelegate(ulong metadataHandle, ref MLCameraResultExtras extra, IntPtr data);
-            public delegate void OnImageBufferAvailableDelegate(ref MLCameraOutput output, ulong metadataHandle, ref MLCameraResultExtras extra, IntPtr data);
-            public delegate void OnVideoBufferAvailableDelegate(ref MLCameraOutput output, ulong metadataHandle, ref MLCameraResultExtras extra, IntPtr data);
-            public delegate void OnPreviewBufferAvailableDelegate(ulong bufferHandle, ulong metadataHandle, ref MLCameraResultExtras extra, IntPtr data);
+            public delegate void OnCaptureCompletedDelegate(
+                ulong metadataHandle,
+                ref MLCameraResultExtras extra,
+                IntPtr data
+            );
+            public delegate void OnImageBufferAvailableDelegate(
+                ref MLCameraOutput output,
+                ulong metadataHandle,
+                ref MLCameraResultExtras extra,
+                IntPtr data
+            );
+            public delegate void OnVideoBufferAvailableDelegate(
+                ref MLCameraOutput output,
+                ulong metadataHandle,
+                ref MLCameraResultExtras extra,
+                IntPtr data
+            );
+            public delegate void OnPreviewBufferAvailableDelegate(
+                ulong bufferHandle,
+                ulong metadataHandle,
+                ref MLCameraResultExtras extra,
+                IntPtr data
+            );
 
             public uint Version;
             public OnCaptureFailedDelegate OnCaptureFailed;
@@ -210,7 +228,10 @@ namespace Plerion.VPS.MagicLeap
         }
 
         [DllImport("ml_sdk_loader", CallingConvention = CallingConvention.Cdecl)]
-        public static extern MLResult.Code MLCameraInit(ref MLCameraDeviceAvailabilityStatusCallbacks deviceAvailabilityStatusCallback, IntPtr userData);
+        public static extern MLResult.Code MLCameraInit(
+            ref MLCameraDeviceAvailabilityStatusCallbacks deviceAvailabilityStatusCallback,
+            IntPtr userData
+        );
 
         [DllImport("ml_sdk_loader", CallingConvention = CallingConvention.Cdecl)]
         public static extern MLResult.Code MLCameraConnect(ref MLCameraConnectContext inputContext, out ulong handle);
@@ -222,10 +243,18 @@ namespace Plerion.VPS.MagicLeap
         internal static extern MLResult.Code MLCameraPreCaptureAEAWB(ulong contextHandle);
 
         [DllImport("ml_sdk_loader", CallingConvention = CallingConvention.Cdecl)]
-        public static extern MLResult.Code MLCameraPrepareCapture(ulong contextHandle, ref MLCameraCaptureConfig config, out ulong metadataHandle);
+        public static extern MLResult.Code MLCameraPrepareCapture(
+            ulong contextHandle,
+            ref MLCameraCaptureConfig config,
+            out ulong metadataHandle
+        );
 
         [DllImport("ml_sdk_loader", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern MLResult.Code MLCameraSetCaptureCallbacks(ulong handle, ref MLCameraCaptureCallbacks captureCallbacks, IntPtr data);
+        internal static extern MLResult.Code MLCameraSetCaptureCallbacks(
+            ulong handle,
+            ref MLCameraCaptureCallbacks captureCallbacks,
+            IntPtr data
+        );
 
         [DllImport("ml_sdk_loader", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
         public static extern MLResult.Code MLCameraCaptureImage(ulong contextHandle, uint numImages);
@@ -237,10 +266,17 @@ namespace Plerion.VPS.MagicLeap
         public static extern MLResult.Code MLCameraCaptureVideoStop(ulong contextHandle);
 
         [DllImport("ml_sdk_loader", CallingConvention = CallingConvention.Cdecl)]
-        public static extern MLResult.Code MLCameraSetDeviceStatusCallbacks(ulong contextHandle, ref MLCameraDeviceStatusCallbacks deviceStatusCallbacks, IntPtr data);
+        public static extern MLResult.Code MLCameraSetDeviceStatusCallbacks(
+            ulong contextHandle,
+            ref MLCameraDeviceStatusCallbacks deviceStatusCallbacks,
+            IntPtr data
+        );
 
         [DllImport("ml_sdk_loader", CallingConvention = CallingConvention.Cdecl)]
-        internal static extern MLResult.Code MLCameraGetDeviceAvailabilityStatus(Identifier camId, [MarshalAs(UnmanagedType.I1)] out bool deviceAvailabilityStatus);
+        internal static extern MLResult.Code MLCameraGetDeviceAvailabilityStatus(
+            Identifier camId,
+            [MarshalAs(UnmanagedType.I1)] out bool deviceAvailabilityStatus
+        );
     }
 }
 #endif

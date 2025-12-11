@@ -95,7 +95,10 @@ Class | Method | HTTP request | Description
 
 ## Documentation For Models
 
+ - [AxisConvention](docs/AxisConvention.md)
  - [Camera](docs/Camera.md)
+ - [Float3](docs/Float3.md)
+ - [Float4](docs/Float4.md)
  - [FullOpenCVCameraConfig](docs/FullOpenCVCameraConfig.md)
  - [HTTPValidationError](docs/HTTPValidationError.md)
  - [LoadState](docs/LoadState.md)
@@ -104,11 +107,9 @@ Class | Method | HTTP request | Description
  - [LocalizationMetrics](docs/LocalizationMetrics.md)
  - [OpenCVCameraConfig](docs/OpenCVCameraConfig.md)
  - [PinholeCameraConfig](docs/PinholeCameraConfig.md)
- - [Quaternion](docs/Quaternion.md)
  - [Transform](docs/Transform.md)
  - [ValidationError](docs/ValidationError.md)
  - [ValidationErrorLocInner](docs/ValidationErrorLocInner.md)
- - [Vector3](docs/Vector3.md)
 
 
 <a id="documentation-for-authorization"></a>

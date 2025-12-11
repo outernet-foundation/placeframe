@@ -23,8 +23,8 @@
     {
       "label": "Prelaunch: Attach to Unity - Android",
       "type": "shell",
-      "command": "uv run src/forward_unity_android_debug_port.py",
-      "options": { "cwd": "${workspaceFolder}/scripts" },
+      "command": "uv run --project scripts --no_workspace forward-unity-android-debug-port",
+      "options": { "cwd": "${workspaceFolder}" },
       "problemMatcher": []
     }
   ],

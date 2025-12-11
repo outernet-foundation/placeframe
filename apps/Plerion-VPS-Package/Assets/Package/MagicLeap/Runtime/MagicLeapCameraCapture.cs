@@ -9,9 +9,9 @@ using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.XR.MagicLeap;
 using UnityEngine.XR.MagicLeap.Native;
-using static Plerion.VPS.MagicLeap.NativeBindings;
+using static Plerion.Core.MagicLeap.NativeBindings;
 
-namespace Plerion.VPS.MagicLeap
+namespace Plerion.Core.MagicLeap
 {
     public static class MagicLeapCamera
     {
@@ -25,7 +25,7 @@ namespace Plerion.VPS.MagicLeap
         {
             Version = 1u,
             OnDeviceAvailable = OnDeviceAvailable,
-            OnDeviceUnavailable = OnDeviceUnavailable
+            OnDeviceUnavailable = OnDeviceUnavailable,
         };
 
         private static MLCameraCaptureCallbacks captureCallbacks = new()
@@ -36,7 +36,7 @@ namespace Plerion.VPS.MagicLeap
             OnCaptureCompleted = OnCaptureCompletedCallback,
             OnImageBufferAvailable = OnImageBufferAvailableCallback,
             OnVideoBufferAvailable = OnVideoBufferAvailableCallback,
-            OnPreviewBufferAvailable = OnPreviewBufferAvailableCallback
+            OnPreviewBufferAvailable = OnPreviewBufferAvailableCallback,
         };
 
         private static MLCameraDeviceStatusCallbacks deviceStatusCallbacks = new()
@@ -45,7 +45,7 @@ namespace Plerion.VPS.MagicLeap
             OnDeviceStreaming = OnDeviceStreamingCallback,
             OnDeviceIdle = OnDeviceIdleCallback,
             OnDeviceDisconnected = OnDeviceDisconnectedCallback,
-            OnDeviceError = OnDeviceErrorCallback
+            OnDeviceError = OnDeviceErrorCallback,
         };
 
         private static MLCameraConnectContext connectContext = new()
@@ -60,8 +60,8 @@ namespace Plerion.VPS.MagicLeap
             {
                 MrQuality = MRQuality._1440x1080,
                 MrBlendType = MRBlendType.Additive,
-                FrameRate = CaptureFrameRate._15FPS
-            }
+                FrameRate = CaptureFrameRate._15FPS,
+            },
         };
 
         private static MLCameraCaptureConfig captureConfig = new()
@@ -73,16 +73,16 @@ namespace Plerion.VPS.MagicLeap
             // The native API will return an "invalid param" error if there is only one element in this array
             StreamConfig = new MLCameraCaptureStreamConfig[2]
             {
-                new ()
+                new()
                 {
                     CaptureType = CaptureType.Video,
                     Width = 3840,
                     Height = 2160,
                     OutputFormat = OutputFormat.YUV_420_888,
-                    MediaRecorderSurfaceHandle = ulong.MaxValue
+                    MediaRecorderSurfaceHandle = ulong.MaxValue,
                 },
                 default,
-            }
+            },
         };
 
         public static event Action<byte[]> onFrameReceived;
@@ -91,7 +91,8 @@ namespace Plerion.VPS.MagicLeap
         {
             permissionCallbacks.OnPermissionGranted += (string permission) =>
             {
-                if (permission != MLPermission.Camera) return;
+                if (permission != MLPermission.Camera)
+                    return;
 
                 if (MLPermissions.CheckPermission(MLPermission.Camera).IsOk)
                 {
@@ -126,8 +127,14 @@ namespace Plerion.VPS.MagicLeap
             });
 
             Check(MLCameraConnect(ref connectContext, out nativeHandle), "MLCameraConnect");
-            Check(MLCameraSetCaptureCallbacks(nativeHandle, ref captureCallbacks, IntPtr.Zero), "MLCameraSetCaptureCallbacks");
-            Check(MLCameraSetDeviceStatusCallbacks(nativeHandle, ref deviceStatusCallbacks, IntPtr.Zero), "MLCameraSetDeviceStatusCallbacks");
+            Check(
+                MLCameraSetCaptureCallbacks(nativeHandle, ref captureCallbacks, IntPtr.Zero),
+                "MLCameraSetCaptureCallbacks"
+            );
+            Check(
+                MLCameraSetDeviceStatusCallbacks(nativeHandle, ref deviceStatusCallbacks, IntPtr.Zero),
+                "MLCameraSetDeviceStatusCallbacks"
+            );
             Check(MLCameraPrepareCapture(nativeHandle, ref captureConfig, out var _), "MLCameraPrepareCapture");
             Check(MLCameraPreCaptureAEAWB(nativeHandle), "MLCameraPreCaptureAEAWB");
 
@@ -143,12 +150,19 @@ namespace Plerion.VPS.MagicLeap
         }
 
         [MonoPInvokeCallback(typeof(MLCameraCaptureCallbacks.OnVideoBufferAvailableDelegate))]
-        public static void OnVideoBufferAvailableCallback(ref MLCameraOutput output, ulong _, ref MLCameraResultExtras extra, IntPtr __)
+        public static void OnVideoBufferAvailableCallback(
+            ref MLCameraOutput output,
+            ulong _,
+            ref MLCameraResultExtras extra,
+            IntPtr __
+        )
         {
             if (extra.Intrinsics == IntPtr.Zero || onFrameReceived == null)
                 return;
 
-            var mLCameraIntrinsicCalibrationParameters = Marshal.PtrToStructure<MLCameraIntrinsicCalibrationParameters>(extra.Intrinsics);
+            var mLCameraIntrinsicCalibrationParameters = Marshal.PtrToStructure<MLCameraIntrinsicCalibrationParameters>(
+                extra.Intrinsics
+            );
 
             IntPtr data = output.Planes[0].Data;
             int width = (int)output.Planes[0].Width;
@@ -166,7 +180,8 @@ namespace Plerion.VPS.MagicLeap
 
         static void Check(MLResult.Code code, string functionName)
         {
-            if (code != 0) throw new Exception($"{functionName} errored: {MLResult.CodeToString(code)}");
+            if (code != 0)
+                throw new Exception($"{functionName} errored: {MLResult.CodeToString(code)}");
         }
 
         [MonoPInvokeCallback(typeof(MLCameraDeviceAvailabilityStatusCallbacks.DeviceAvailabilityStatusDelegate))]
@@ -200,13 +215,23 @@ namespace Plerion.VPS.MagicLeap
         }
 
         [MonoPInvokeCallback(typeof(MLCameraCaptureCallbacks.OnImageBufferAvailableDelegate))]
-        public static void OnImageBufferAvailableCallback(ref MLCameraOutput _, ulong __, ref MLCameraResultExtras ___, IntPtr ____)
+        public static void OnImageBufferAvailableCallback(
+            ref MLCameraOutput _,
+            ulong __,
+            ref MLCameraResultExtras ___,
+            IntPtr ____
+        )
         {
             Log.Error(LogGroup.MagicLeapCamera, "Magic Leap Camera Image Buffer Available");
         }
 
         [MonoPInvokeCallback(typeof(MLCameraCaptureCallbacks.OnPreviewBufferAvailableDelegate))]
-        public static void OnPreviewBufferAvailableCallback(ulong _, ulong __, ref MLCameraResultExtras ___, IntPtr ____)
+        public static void OnPreviewBufferAvailableCallback(
+            ulong _,
+            ulong __,
+            ref MLCameraResultExtras ___,
+            IntPtr ____
+        )
         {
             Log.Error(LogGroup.MagicLeapCamera, "Magic Leap Camera Preview Buffer Available");
         }

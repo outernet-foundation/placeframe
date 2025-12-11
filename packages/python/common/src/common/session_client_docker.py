@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import http.client
-from typing import TypedDict
+from typing import Any, Literal, TypedDict
 
-import docker
 from docker.models.containers import Container
 from docker.types import DeviceRequest
 from pydantic import AnyHttpUrl
+
+import docker
 
 SESSION_PORT = 8000  # internal port exposed by the session container
 
@@ -25,7 +26,12 @@ class DockerSessionClient:
         self._network_name = network_name
 
     def create_session(
-        self, session_id: str, image: str, *, environment: dict[str, str] | None = None, gpus: bool = True
+        self,
+        session_id: str,
+        image: str,
+        *,
+        torch_device: Literal["cpu", "cuda", "rocm"] = "cpu",
+        environment: dict[str, str] | None = None,
     ) -> tuple[str, AnyHttpUrl]:
         env: dict[str, str] = dict(environment or {})
         env.setdefault("SESSION_ID", session_id)
@@ -35,9 +41,11 @@ class DockerSessionClient:
         # Configure optional host-port publishing
         ports: dict[str, tuple[str, int]] | None = None
 
-        device_requests = None
-        if gpus:
-            device_requests = [DeviceRequest(count=-1, capabilities=[["gpu"]])]
+        run_kwargs: dict[str, Any] = {}
+        if torch_device == "cuda":
+            run_kwargs["device_requests"] = [DeviceRequest(count=-1, capabilities=[["gpu"]])]
+        elif torch_device == "rocm":
+            run_kwargs["devices"] = ["/dev/kfd:/dev/kfd", "/dev/dri:/dev/dri"]
 
         container: Container = self._docker.containers.run(
             image=image,
@@ -47,7 +55,7 @@ class DockerSessionClient:
             labels={"service": "vls-session", "session": session_id},
             network=self._network_name,
             ports=ports,
-            device_requests=device_requests,
+            **run_kwargs,
         )
 
         # Wait for readiness

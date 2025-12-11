@@ -67,10 +67,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
                 # Refresh if missing or expired
                 if not json_web_key or time.time() >= self._expires_at:
-                    with urlopen(
-                        f"{settings.keycloak_internal_host}/realms/{settings.keycloak_realm}/protocol/openid-connect/certs",
-                        timeout=5,
-                    ) as resp:
+                    with urlopen(f"{settings.auth_certs_url}", timeout=5) as resp:
                         json_web_key_set = json.load(resp)
 
                     self._keys = {key["kid"]: key for key in json_web_key_set.get("keys", []) if "kid" in key}
@@ -89,8 +86,8 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 token,
                 public_key,
                 algorithms=[alg],
-                audience=settings.keycloak_client_id,
-                issuer=f"{settings.keycloak_public_host}/realms/{settings.keycloak_realm}",
+                audience=settings.auth_audience,
+                issuer=str(settings.auth_issuer_url),
                 leeway=self._leeway,
                 options={"require": ["exp", "iat"]},  # keep 'nbf' optional
             )

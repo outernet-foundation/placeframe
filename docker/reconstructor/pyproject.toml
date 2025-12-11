@@ -22,24 +22,10 @@ dev = [
     "scipy-stubs>=1.15.3",
     "pybind11-stubgen",
 ]
-torch = [
-    "torch==2.9.0+cu126",
-    "torchvision==0.24.0+cu126",
-    "scikit-learn>=1.7.2",
-]
+torch-cpu = ["torch-meta[cpu]"]
+torch-cuda = ["torch-meta[cuda]"]
+torch-rocm = ["torch-meta[rocm]"]
 neural-networks = ["neural-networks"]
-
-[tool.uv.sources]
-core = { workspace = true }
-neural-networks = { workspace = true }
-pybind11-stubgen = { git = "https://github.com/sarlinpe/pybind11-stubgen", rev = "sarlinpe/fix-2024-08" }
-torch = { index = "pytorch-cu126" }
-torchvision = { index = "pytorch-cu126" }
-
-[[tool.uv.index]]
-name = "pytorch-cu126"
-url = "https://download.pytorch.org/whl/cu126"
-explicit = true
 
 [build-system]
 requires = ["hatchling"]

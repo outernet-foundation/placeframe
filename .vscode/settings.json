@@ -17,11 +17,7 @@
     "editor.inlayHints.enabled": "off"
   },
   "[csharp]": {
-    "editor.codeActionsOnSave": {
-      "source.fixAll": "explicit",
-      "source.organizeImports": "explicit",
-      "source.sortMembers": "explicit"
-    }
+    "editor.defaultFormatter": "csharpier.csharpier-vscode"
   },
   "[postgres]": { "editor.defaultFormatter": "bradymholt.pgformatter" },
   "[json]": {
@@ -33,7 +29,7 @@
   "workbench.iconTheme": "material-icon-theme",
   "material-icon-theme.folders.theme": "classic",
   "editor.formatOnSave": true,
-  "dotnet.previewSolution-freeWorkspaceMode": true,
+  "dotnet.enableWorkspaceBasedDevelopment": true,
   "debug.onTaskErrors": "debugAnyway",
   "python.languageServer": "None",
   "python.experiments.enabled": false,

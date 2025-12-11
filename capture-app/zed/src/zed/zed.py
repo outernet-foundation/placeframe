@@ -12,8 +12,10 @@ from traceback import format_exception
 from typing import Union, cast
 from uuid import UUID, uuid4
 
-from core.classes import Quaternion, Vector3
-from core.rig import Config, PinholeCameraConfig, RigCameraConfig, RigConfig
+from core.axis_convention import AxisConvention
+from core.camera_config import PinholeCameraConfig
+from core.capture_session_manifest import CaptureSessionManifest, RigCameraConfig, RigConfig
+from core.transform import Float3, Float4
 from numpy import asarray, float64
 from PIL import Image
 from pyzed.sl import (
@@ -205,7 +207,7 @@ class Zed(Thread):
         positionTrackingParameters.set_floor_as_origin = False
         enable_positional_tracking(self._camera, positionTrackingParameters)
 
-        print("Writing config.json")
+        print("Writing manifest.json")
 
         cam_info = get_camera_information(self._camera)
         # calibration_parameters = cam_info.camera_configuration.calibration_parameters_raw
@@ -221,9 +223,10 @@ class Zed(Thread):
             list[float], Rotation.from_matrix(stereo_transform_matrix[:3, :3]).as_quat().tolist()
         )
 
-        with open(self._output_directory() / "config.json", "w") as config_file:
+        with open(self._output_directory() / "manifest.json", "w") as config_file:
             config_file.write(
-                Config(
+                CaptureSessionManifest(
+                    axis_convention=AxisConvention.OPENCV,
                     rigs=[
                         RigConfig(
                             id="rig0",
@@ -231,14 +234,13 @@ class Zed(Thread):
                                 RigCameraConfig(
                                     id="camera0",
                                     ref_sensor=True,
-                                    rotation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0),
-                                    translation=Vector3(x=0.0, y=0.0, z=0.0),
+                                    rotation=Float4(x=0.0, y=0.0, z=0.0, w=1.0),
+                                    translation=Float3(x=0.0, y=0.0, z=0.0),
                                     camera_config=PinholeCameraConfig(
                                         model="PINHOLE",
                                         width=left_camera.image_size.width,
                                         height=left_camera.image_size.height,
-                                        mirroring="None",
-                                        rotation="None",
+                                        orientation="TOP_LEFT",
                                         fx=left_camera.fx,
                                         fy=left_camera.fy,
                                         cx=left_camera.cx,
@@ -248,13 +250,13 @@ class Zed(Thread):
                                 RigCameraConfig(
                                     id="camera1",
                                     ref_sensor=False,
-                                    rotation=Quaternion(
+                                    rotation=Float4(
                                         x=stereo_transform_rotation[0],
                                         y=stereo_transform_rotation[1],
                                         z=stereo_transform_rotation[2],
                                         w=stereo_transform_rotation[3],
                                     ),
-                                    translation=Vector3(
+                                    translation=Float3(
                                         # TODO: Figure out why the x component needs to be negated
                                         x=-stereo_transform_translation[0],
                                         y=stereo_transform_translation[1],
@@ -264,8 +266,7 @@ class Zed(Thread):
                                         model="PINHOLE",
                                         width=right_camera.image_size.width,
                                         height=right_camera.image_size.height,
-                                        mirroring="None",
-                                        rotation="None",
+                                        orientation="TOP_LEFT",
                                         fx=right_camera.fx,
                                         fy=right_camera.fy,
                                         cx=right_camera.cx,
@@ -274,7 +275,7 @@ class Zed(Thread):
                                 ),
                             ],
                         )
-                    ]
+                    ],
                 ).model_dump_json(indent=4)
             )
 

@@ -17,8 +17,6 @@ dependencies = [
   "scipy-stubs>=1.16.2.4",
 ]
 
-[tool.uv.sources]
-common = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

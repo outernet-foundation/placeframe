@@ -2,6 +2,7 @@ import json
 import re
 from pathlib import Path
 from re import Pattern
+from shutil import rmtree
 from tempfile import NamedTemporaryFile
 
 from common.run_command import run_command
@@ -60,6 +61,9 @@ def _generate_client(openapi_spec: str, project: str, client: str):
     client_config_json = json.loads((OPENAPI_GENERATOR_CONFIGS_PATH / f"{client}.json").read_text(encoding="utf-8"))
     client_package_base_name = f"{project.split('/')[-1]}-client"
     client_path = Path("packages/generated") / client / f"{client_package_base_name}"
+
+    # Clear existing client directory
+    rmtree(client_path, ignore_errors=True)
     client_path.mkdir(parents=True, exist_ok=True)
 
     client_package_name_dashed = f"plerion-{client_package_base_name}"
@@ -131,6 +135,9 @@ def _generate_client(openapi_spec: str, project: str, client: str):
                 indent=2,
             )
         )
+        # Tell the C# compiler to enable nullable annotations
+        (client_path / "src" / client_package_name_camel / "csc.rsp").write_text("-nullable:annotations")
+
     elif client == "python":
         run_command(f"uv pip install {client_path.resolve().as_posix()}", log=True)
 

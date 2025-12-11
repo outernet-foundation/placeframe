@@ -149,8 +149,6 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**GetGroups**](docs/DefaultApi.md#getgroups) | **GET** /groups | Get Groups
 *DefaultApi* | [**GetLayers**](docs/DefaultApi.md#getlayers) | **GET** /layers | Get Layers
 *DefaultApi* | [**GetLocalizationMap**](docs/DefaultApi.md#getlocalizationmap) | **GET** /localization_maps/{id} | Get Localization Map
-*DefaultApi* | [**GetLocalizationMapPoints**](docs/DefaultApi.md#getlocalizationmappoints) | **GET** /localization_maps/{id}/points | Get Localization Map Points
-*DefaultApi* | [**GetLocalizationMapPointsPly**](docs/DefaultApi.md#getlocalizationmappointsply) | **GET** /localization_maps/{id}/points.ply | Get Localization Map Points Ply
 *DefaultApi* | [**GetLocalizationMaps**](docs/DefaultApi.md#getlocalizationmaps) | **GET** /localization_maps | Get Localization Maps
 *DefaultApi* | [**GetLocalizationSessionStatus**](docs/DefaultApi.md#getlocalizationsessionstatus) | **GET** /localization_sessions/{localization_session_id}/status | Get Localization Session Status
 *DefaultApi* | [**GetMapLoadStatus**](docs/DefaultApi.md#getmaploadstatus) | **GET** /localization_sessions/{localization_session_id}/maps/{map_id}/status | Get Map Load Status
@@ -160,7 +158,6 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**GetReconstructionLocalizationMap**](docs/DefaultApi.md#getreconstructionlocalizationmap) | **GET** /reconstructions/{id}/localization_map | Get Reconstruction Localization Map
 *DefaultApi* | [**GetReconstructionManifest**](docs/DefaultApi.md#getreconstructionmanifest) | **GET** /reconstructions/{id}/manifest | Get Reconstruction Manifest
 *DefaultApi* | [**GetReconstructionPoints**](docs/DefaultApi.md#getreconstructionpoints) | **GET** /reconstructions/{id}/points | Get Reconstruction Points
-*DefaultApi* | [**GetReconstructionPoints3DPly**](docs/DefaultApi.md#getreconstructionpoints3dply) | **GET** /reconstructions/{id}/points.ply | Get Reconstruction Points3D Ply
 *DefaultApi* | [**GetReconstructionStatus**](docs/DefaultApi.md#getreconstructionstatus) | **GET** /reconstructions/{id}/status | Get Reconstruction Status
 *DefaultApi* | [**GetReconstructions**](docs/DefaultApi.md#getreconstructions) | **GET** /reconstructions | Get Reconstructions
 *DefaultApi* | [**LoadLocalizationMaps**](docs/DefaultApi.md#loadlocalizationmaps) | **POST** /localization_sessions/{localization_session_id}/maps | Load Localization Maps
@@ -172,7 +169,6 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**UpdateGroups**](docs/DefaultApi.md#updategroups) | **PATCH** /groups | Update Groups
 *DefaultApi* | [**UpdateLayers**](docs/DefaultApi.md#updatelayers) | **PATCH** /layers | Update Layers
 *DefaultApi* | [**UpdateLocalizationMap**](docs/DefaultApi.md#updatelocalizationmap) | **PATCH** /localization_maps/{id} | Update Localization Map
-*DefaultApi* | [**UpdateLocalizationMapImagePoses**](docs/DefaultApi.md#updatelocalizationmapimageposes) | **PATCH** /localization_maps/{id}/image_poses | Update Localization Map Image Poses
 *DefaultApi* | [**UpdateLocalizationMaps**](docs/DefaultApi.md#updatelocalizationmaps) | **PATCH** /localization_maps | Update Localization Maps
 *DefaultApi* | [**UpdateNodes**](docs/DefaultApi.md#updatenodes) | **PATCH** /nodes | Update Nodes
 *DefaultApi* | [**UploadCaptureSessionTar**](docs/DefaultApi.md#uploadcapturesessiontar) | **PUT** /capture_sessions/{id}/tar | Upload Capture Session Tar
@@ -181,15 +177,17 @@ Class | Method | HTTP request | Description
 <a id="documentation-for-models"></a>
 ## Documentation for Models
 
+ - [Model.AxisConvention](docs/AxisConvention.md)
  - [Model.Camera](docs/Camera.md)
  - [Model.CameraConfig](docs/CameraConfig.md)
  - [Model.CaptureSessionBatchUpdate](docs/CaptureSessionBatchUpdate.md)
  - [Model.CaptureSessionCreate](docs/CaptureSessionCreate.md)
+ - [Model.CaptureSessionManifest](docs/CaptureSessionManifest.md)
  - [Model.CaptureSessionRead](docs/CaptureSessionRead.md)
  - [Model.CaptureSessionUpdate](docs/CaptureSessionUpdate.md)
- - [Model.Color](docs/Color.md)
- - [Model.Config](docs/Config.md)
  - [Model.DeviceType](docs/DeviceType.md)
+ - [Model.Float3](docs/Float3.md)
+ - [Model.Float4](docs/Float4.md)
  - [Model.FullOpenCVCameraConfig](docs/FullOpenCVCameraConfig.md)
  - [Model.GroupBatchUpdate](docs/GroupBatchUpdate.md)
  - [Model.GroupCreate](docs/GroupCreate.md)
@@ -213,8 +211,6 @@ Class | Method | HTTP request | Description
  - [Model.OpenCVCameraConfig](docs/OpenCVCameraConfig.md)
  - [Model.OrchestrationStatus](docs/OrchestrationStatus.md)
  - [Model.PinholeCameraConfig](docs/PinholeCameraConfig.md)
- - [Model.PointCloudPoint](docs/PointCloudPoint.md)
- - [Model.Quaternion](docs/Quaternion.md)
  - [Model.ReconstructionCreate](docs/ReconstructionCreate.md)
  - [Model.ReconstructionCreateWithOptions](docs/ReconstructionCreateWithOptions.md)
  - [Model.ReconstructionManifest](docs/ReconstructionManifest.md)
@@ -226,7 +222,6 @@ Class | Method | HTTP request | Description
  - [Model.Transform](docs/Transform.md)
  - [Model.ValidationError](docs/ValidationError.md)
  - [Model.ValidationErrorLocInner](docs/ValidationErrorLocInner.md)
- - [Model.Vector3](docs/Vector3.md)
 
 
 <a id="documentation-for-authorization"></a>

@@ -2,18 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-
-using UnityEngine;
-using Unity.Mathematics;
-
+using CesiumForUnity;
 using Cysharp.Threading.Tasks;
-
 using FofX;
 using FofX.Stateful;
-
-using CesiumForUnity;
-using PlerionApiClient.Model;
 using Plerion.Core;
+using PlerionApiClient.Model;
+using Unity.Mathematics;
+using UnityEngine;
 using static Plerion.Core.LocationUtilities;
 
 namespace Outernet.MapRegistrationTool
@@ -46,8 +42,10 @@ namespace Outernet.MapRegistrationTool
 
             _updateLocationAndContentTask.Cancel();
 
-            if (_loadedLocation.Equals(App.state.location.value) &&
-                _loadedDrawDistance == App.state.settings.nodeFetchRadius.value)
+            if (
+                _loadedLocation.Equals(App.state.location.value)
+                && _loadedDrawDistance == App.state.settings.nodeFetchRadius.value
+            )
             {
                 return;
             }
@@ -60,16 +58,24 @@ namespace Outernet.MapRegistrationTool
                 return;
             }
 
-            _updateLocationAndContentTask = TaskHandle.Execute(token => HandleUnsavedChangesAndLoadContent(
-                App.state.location.value.Value,
-                App.state.settings.nodeFetchRadius.value,
-                Utility.GetPreviousValue(App.state.location, args.changes),
-                Utility.GetPreviousValue(App.state.settings.nodeFetchRadius, args.changes),
-                token
-            ));
+            _updateLocationAndContentTask = TaskHandle.Execute(token =>
+                HandleUnsavedChangesAndLoadContent(
+                    App.state.location.value.Value,
+                    App.state.settings.nodeFetchRadius.value,
+                    Utility.GetPreviousValue(App.state.location, args.changes),
+                    Utility.GetPreviousValue(App.state.settings.nodeFetchRadius, args.changes),
+                    token
+                )
+            );
         }
 
-        private async UniTask HandleUnsavedChangesAndLoadContent(double2 location, float drawDistance, double2? previousLocation, float previousDrawDistance, CancellationToken cancellationToken = default)
+        private async UniTask HandleUnsavedChangesAndLoadContent(
+            double2 location,
+            float drawDistance,
+            double2? previousLocation,
+            float previousDrawDistance,
+            CancellationToken cancellationToken = default
+        )
         {
             if (App.state.hasUnsavedChanges.value)
             {
@@ -89,7 +95,10 @@ namespace Outernet.MapRegistrationTool
                     Destroy(dialog.gameObject);
                 });
 
-                await UniTask.WaitUntil(() => dialogProps.status.value != DialogStatus.Pending, cancellationToken: cancellationToken);
+                await UniTask.WaitUntil(
+                    () => dialogProps.status.value != DialogStatus.Pending,
+                    cancellationToken: cancellationToken
+                );
 
                 if (dialogProps.status.value == DialogStatus.Canceled)
                 {
@@ -104,7 +113,8 @@ namespace Outernet.MapRegistrationTool
                         title: "Saving",
                         allowCancel: false,
                         minimumWidth: 200,
-                        constructControls: props => UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
+                        constructControls: props =>
+                            UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
                     );
 
                     cancellationToken.Register(() =>
@@ -128,7 +138,12 @@ namespace Outernet.MapRegistrationTool
             await LoadContent(location.x, location.y, drawDistance, cancellationToken);
         }
 
-        private async UniTask LoadContent(double latitude, double longitude, double radius, CancellationToken cancellationToken = default)
+        private async UniTask LoadContent(
+            double latitude,
+            double longitude,
+            double radius,
+            CancellationToken cancellationToken = default
+        )
         {
             App.ExecuteActionOrDelay(new SetLocationContentLoadedAction(false));
 
@@ -136,7 +151,8 @@ namespace Outernet.MapRegistrationTool
                 title: "Loading Content",
                 allowCancel: false,
                 minimumWidth: 250,
-                constructControls: props => UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
+                constructControls: props =>
+                    UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
             );
 
             cancellationToken.Register(() =>
@@ -149,21 +165,36 @@ namespace Outernet.MapRegistrationTool
 
             // Determine ground level (height above WGS84 ellipsoid) at the specified latitude and longitude
             SceneReferences.GroundTileset.suspendUpdate = false;
-            var heightSamplingResult = await SceneReferences.GroundTileset.SampleHeightMostDetailed(new double3(longitude, latitude, 0));
+            var heightSamplingResult = await SceneReferences.GroundTileset.SampleHeightMostDetailed(
+                new double3(longitude, latitude, 0)
+            );
             var groundLevelHeightAboveWGS84Ellipsoid = heightSamplingResult.longitudeLatitudeHeightPositions[0].z;
             SceneReferences.GroundTileset.suspendUpdate = true;
 
             // Convert cartographic coordinates to ECEF coordinates, and use the EUN frame at that location for orientation
-            var ecefPosition = WGS84.CartographicToEcef(CartographicCoordinates.FromLongitudeLatitudeHeight(longitude, latitude, groundLevelHeightAboveWGS84Ellipsoid));
+            var ecefPosition = WGS84.CartographicToEcef(
+                CartographicCoordinates.FromLongitudeLatitudeHeight(
+                    longitude,
+                    latitude,
+                    groundLevelHeightAboveWGS84Ellipsoid
+                )
+            );
             var ecefRotation = WGS84.GetEastNorthUpFrameInEcef(ecefPosition);
 
             // Set Cesium georeference to that position and orientation
-            SceneReferences.CesiumGeoreference.SetOriginEarthCenteredEarthFixed(ecefPosition.x, ecefPosition.y, ecefPosition.z);
+            SceneReferences.CesiumGeoreference.SetOriginEarthCenteredEarthFixed(
+                ecefPosition.x,
+                ecefPosition.y,
+                ecefPosition.z
+            );
             SceneReferences.CesiumGeoreference.transform.rotation = math.inverse(ecefRotation.ToQuaternion());
 
             // Update the application's ECEF to Unity world matrix.
             var (ecefPositionUnityBasis, ecefRotationUnityBasis) = ChangeBasisUnityFromEcef(ecefPosition, ecefRotation);
-            var ecefFromUnityTransformUnityBasis = Double4x4.FromTranslationRotation(ecefPositionUnityBasis, ecefRotationUnityBasis);
+            var ecefFromUnityTransformUnityBasis = Double4x4.FromTranslationRotation(
+                ecefPositionUnityBasis,
+                ecefRotationUnityBasis
+            );
             App.state.unityWorldToEcefMatrix.ExecuteSetOrDelay(ecefFromUnityTransformUnityBasis);
             var unityFromEcefTransformUnityBasis = math.inverse(ecefFromUnityTransformUnityBasis);
             App.state.ecefToUnityWorldMatrix.ExecuteSetOrDelay(unityFromEcefTransformUnityBasis);
@@ -181,15 +212,15 @@ namespace Outernet.MapRegistrationTool
             App.ExecuteActionOrDelay(new SetLocationContentLoadedAction(true));
         }
 
-        private async UniTask<List<GroupRead>> GetNodeGroupsRecursive(List<NodeRead> nodes, CancellationToken cancellationToken = default)
+        private async UniTask<List<GroupRead>> GetNodeGroupsRecursive(
+            List<NodeRead> nodes,
+            CancellationToken cancellationToken = default
+        )
         {
             var groups = new List<GroupRead>();
 
             var directGroups = await App.API.GetGroupsAsync(
-                nodes.Where(x => x.ParentId.HasValue)
-                    .Select(x => x.ParentId.Value)
-                    .Distinct()
-                    .ToList()
+                nodes.Where(x => x.ParentId.HasValue).Select(x => x.ParentId.Value).Distinct().ToList()
             );
 
             groups.AddRange(directGroups);
@@ -199,7 +230,8 @@ namespace Outernet.MapRegistrationTool
             while (groups.Any(x => x.ParentId.HasValue && !groups.Any(y => y.Id == x.ParentId)))
             {
                 var recursiveGroups = await App.API.GetGroupsAsync(
-                    groups.Where(x => x.ParentId.HasValue && !groups.Any(y => y.Id == x.ParentId))
+                    groups
+                        .Where(x => x.ParentId.HasValue && !groups.Any(y => y.Id == x.ParentId))
                         .Select(x => x.ParentId.Value)
                         .Distinct()
                         .ToList()

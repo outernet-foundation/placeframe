@@ -1,21 +1,21 @@
 {
-    "name": "Plerion.VPS.MagicLeap",
-    "rootNamespace": "",
-    "references": [
-        "MagicLeap.SDK",
-        "Plerion.VPS",
-        "UniTask"
-    ],
-    "includePlatforms": [
-        "Android",
-        "Editor"
-    ],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": false
+  "name": "Plerion.Core.MagicLeap",
+  "rootNamespace": "",
+  "references": [
+    "MagicLeap.SDK",
+    "Plerion.Core",
+    "UniTask"
+  ],
+  "includePlatforms": [
+    "Android",
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }

@@ -19,7 +19,10 @@ public class SolutionGenerator : AssetPostprocessor
             if (assetPath.StartsWith("Packages/"))
             {
                 var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForAssetPath(assetPath);
-                assetPath = Path.Combine(packageInfo.resolvedPath, Path.GetRelativePath($"Packages/{packageInfo.name}", assetPath));
+                assetPath = Path.Combine(
+                    packageInfo.resolvedPath,
+                    Path.GetRelativePath($"Packages/{packageInfo.name}", assetPath)
+                );
             }
             else
             {
@@ -38,23 +41,25 @@ public class SolutionGenerator : AssetPostprocessor
                 workspaceFolder = parent.FullName;
             }
             var folderUri = new System.Uri(workspaceFolder).AbsoluteUri;
-            string arguments = line < 0
-                ? $"-g \"{assetPath}\" --folder-uri \"{folderUri}\""
-                : $"-g \"{assetPath}:{line}\" --folder-uri \"{folderUri}\"";
+            string arguments =
+                line < 0
+                    ? $"-g \"{assetPath}\" --folder-uri \"{folderUri}\""
+                    : $"-g \"{assetPath}:{line}\" --folder-uri \"{folderUri}\"";
 
-
-            Process.Start(new ProcessStartInfo
-            {
+            Process.Start(
+                new ProcessStartInfo
+                {
 #if UNITY_EDITOR_WIN
-                FileName = "cmd.exe",
-                Arguments = $"/c code {arguments}",
+                    FileName = "cmd.exe",
+                    Arguments = $"/c code {arguments}",
 #elif UNITY_EDITOR_LINUX
-                FileName = "code",
-                Arguments = arguments,
+                    FileName = "code",
+                    Arguments = arguments,
 #endif
-                CreateNoWindow = true,
-                UseShellExecute = false
-            });
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                }
+            );
 
             return true;
         }

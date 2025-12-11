@@ -14,6 +14,7 @@
     "supabase.postgrestools",
     "bradymholt.pgformatter",
     "ckolkman.vscode-postgres",
-    "pkief.material-icon-theme"
+    "pkief.material-icon-theme",
+    "csharpier.csharpier-vscode"
   ]
 }

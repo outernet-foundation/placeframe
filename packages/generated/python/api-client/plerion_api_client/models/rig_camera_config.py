@@ -20,8 +20,8 @@ import json
 from pydantic import BaseModel, ConfigDict, StrictBool, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
 from plerion_api_client.models.camera_config import CameraConfig
-from plerion_api_client.models.quaternion import Quaternion
-from plerion_api_client.models.vector3 import Vector3
+from plerion_api_client.models.float3 import Float3
+from plerion_api_client.models.float4 import Float4
 from typing import Optional, Set
 from typing_extensions import Self
 
@@ -31,8 +31,8 @@ class RigCameraConfig(BaseModel):
     """ # noqa: E501
     id: StrictStr
     ref_sensor: Optional[StrictBool]
-    rotation: Quaternion
-    translation: Vector3
+    rotation: Float4
+    translation: Float3
     camera_config: CameraConfig
     additional_properties: Dict[str, Any] = {}
     __properties: ClassVar[List[str]] = ["id", "ref_sensor", "rotation", "translation", "camera_config"]
@@ -111,8 +111,8 @@ class RigCameraConfig(BaseModel):
         _obj = cls.model_validate({
             "id": obj.get("id"),
             "ref_sensor": obj.get("ref_sensor"),
-            "rotation": Quaternion.from_dict(obj["rotation"]) if obj.get("rotation") is not None else None,
-            "translation": Vector3.from_dict(obj["translation"]) if obj.get("translation") is not None else None,
+            "rotation": Float4.from_dict(obj["rotation"]) if obj.get("rotation") is not None else None,
+            "translation": Float3.from_dict(obj["translation"]) if obj.get("translation") is not None else None,
             "camera_config": CameraConfig.from_dict(obj["camera_config"]) if obj.get("camera_config") is not None else None
         })
         # store additional fields in additional_properties

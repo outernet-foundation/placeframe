@@ -13,7 +13,10 @@
 """  # noqa: E501
 
 # import models into model package
+from plerion_localizer_client.models.axis_convention import AxisConvention
 from plerion_localizer_client.models.camera import Camera
+from plerion_localizer_client.models.float3 import Float3
+from plerion_localizer_client.models.float4 import Float4
 from plerion_localizer_client.models.full_open_cv_camera_config import FullOpenCVCameraConfig
 from plerion_localizer_client.models.http_validation_error import HTTPValidationError
 from plerion_localizer_client.models.load_state import LoadState
@@ -22,9 +25,7 @@ from plerion_localizer_client.models.localization import Localization
 from plerion_localizer_client.models.localization_metrics import LocalizationMetrics
 from plerion_localizer_client.models.open_cv_camera_config import OpenCVCameraConfig
 from plerion_localizer_client.models.pinhole_camera_config import PinholeCameraConfig
-from plerion_localizer_client.models.quaternion import Quaternion
 from plerion_localizer_client.models.transform import Transform
 from plerion_localizer_client.models.validation_error import ValidationError
 from plerion_localizer_client.models.validation_error_loc_inner import ValidationErrorLocInner
-from plerion_localizer_client.models.vector3 import Vector3
 

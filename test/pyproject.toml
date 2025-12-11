@@ -6,10 +6,6 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = ["core", "httpx>=0.28.1", "plerion_api_client"]
 
-[tool.uv.sources]
-core = { workspace = true }
-plerion_api_client = { workspace = true }
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

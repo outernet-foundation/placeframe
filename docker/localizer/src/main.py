@@ -5,7 +5,8 @@ from pathlib import Path
 from uuid import UUID
 
 from common.fastapi import create_fastapi_app
-from core.rig import CameraConfig, PinholeCameraConfig
+from core.axis_convention import AxisConvention
+from core.camera_config import CameraConfig, PinholeCameraConfig
 from fastapi import File, HTTPException, UploadFile
 
 from .localize import load_models
@@ -59,8 +60,8 @@ async def set_camera_intrinsics(camera: CameraConfig):
 
 
 @app.post("/localization")
-async def localize_image(image: UploadFile = File(...)) -> list[Localization]:
+async def localize_image(axis_convention: AxisConvention, image: UploadFile = File(...)) -> list[Localization]:
     if _camera is None:
         raise HTTPException(status_code=400, detail="Camera intrinsics not set")
 
-    return localize(camera=_camera, image=await image.read())
+    return localize(camera=_camera, axis_convention=axis_convention, image=await image.read())

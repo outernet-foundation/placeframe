@@ -1,14 +1,16 @@
 from uuid import UUID, uuid4
 
 from common.session_client_docker import DockerSessionClient
-from core.classes import Quaternion, Transform, Vector3
+from core.axis_convention import AxisConvention
+from core.camera_config import CameraConfig
 from core.localization_metrics import LocalizationMetrics
-from core.rig import CameraConfig
+from core.transform import Float3, Float4, Transform
 from datamodels.public_dtos import LocalizationSessionRead, localization_session_to_dto
 from datamodels.public_tables import LocalizationMap, LocalizationSession
 from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
 from plerion_localizer_client import ApiClient, Configuration
 from plerion_localizer_client.api.default_api import DefaultApi
+from plerion_localizer_client.models.axis_convention import AxisConvention as LocalizerAxisConvention
 from plerion_localizer_client.models.camera import Camera as LocalizeCamera
 from plerion_localizer_client.models.load_state_response import LoadStateResponse
 from plerion_localizer_client.models.pinhole_camera_config import PinholeCameraConfig
@@ -32,13 +34,13 @@ async def create_localization_session(session: AsyncSession = Depends(get_sessio
     container_id, container_url = DockerSessionClient().create_session(
         session_id=str(row.id),
         image=settings.localization_session_image,
+        torch_device=settings.torch_device,
         environment={
-            "S3_ENDPOINT_URL": str(settings.s3_endpoint_url) or "",
-            "S3_ACCESS_KEY": settings.s3_access_key or "",
-            "S3_SECRET_KEY": settings.s3_secret_key or "",
+            "MINIO_ENDPOINT_URL": str(settings.minio_endpoint_url) or "",
+            "MINIO_ACCESS_KEY": settings.minio_access_key or "",
+            "MINIO_SECRET_KEY": settings.minio_secret_key or "",
             "RECONSTRUCTIONS_BUCKET": settings.reconstructions_bucket,
         },
-        gpus=True,
     )
 
     row.container_id = container_id
@@ -153,19 +155,24 @@ async def get_map_load_status(
 
 class MapLocalization(BaseModel):
     id: UUID
-    transform: Transform
+    camera_from_map_transform: Transform
     map_transform: Transform
     metrics: LocalizationMetrics
 
 
 @router.post("/{localization_session_id}/localization")
 async def localize_image(
-    localization_session_id: UUID, image: UploadFile = File(...), session: AsyncSession = Depends(get_session)
+    localization_session_id: UUID,
+    axis_convention: AxisConvention,
+    image: UploadFile = File(...),
+    session: AsyncSession = Depends(get_session),
 ) -> list[MapLocalization]:
     url = await _session_base_url(session, localization_session_id)
     async with ApiClient(Configuration(host=url)) as api_client:
         try:
-            localizations = await DefaultApi(api_client).localize_image(await image.read())
+            localizations = await DefaultApi(api_client).localize_image(
+                LocalizerAxisConvention(axis_convention.value), await image.read()
+            )
             reconstruction_id_to_map = {
                 map.reconstruction_id: map
                 for map in await get_localization_maps(
@@ -176,14 +183,14 @@ async def localize_image(
             return [
                 MapLocalization(
                     id=reconstruction_id_to_map[localization.id].id,
-                    transform=Transform.model_validate(localization.transform.model_dump()),
+                    camera_from_map_transform=Transform.model_validate(localization.transform.model_dump()),
                     map_transform=Transform(
-                        position=Vector3(
+                        translation=Float3(
                             x=reconstruction_id_to_map[localization.id].position_x,
                             y=reconstruction_id_to_map[localization.id].position_y,
                             z=reconstruction_id_to_map[localization.id].position_z,
                         ),
-                        rotation=Quaternion(
+                        rotation=Float4(
                             x=reconstruction_id_to_map[localization.id].rotation_x,
                             y=reconstruction_id_to_map[localization.id].rotation_y,
                             z=reconstruction_id_to_map[localization.id].rotation_z,

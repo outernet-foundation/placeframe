@@ -30,11 +30,11 @@ class MapLocalization(BaseModel):
     MapLocalization
     """ # noqa: E501
     id: UUID
-    transform: Transform
+    camera_from_map_transform: Transform
     map_transform: Transform
     metrics: LocalizationMetrics
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "transform", "map_transform", "metrics"]
+    __properties: ClassVar[List[str]] = ["id", "camera_from_map_transform", "map_transform", "metrics"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -77,9 +77,9 @@ class MapLocalization(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of transform
-        if self.transform:
-            _dict['transform'] = self.transform.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of camera_from_map_transform
+        if self.camera_from_map_transform:
+            _dict['camera_from_map_transform'] = self.camera_from_map_transform.to_dict()
         # override the default output from pydantic by calling `to_dict()` of map_transform
         if self.map_transform:
             _dict['map_transform'] = self.map_transform.to_dict()
@@ -104,7 +104,7 @@ class MapLocalization(BaseModel):
 
         _obj = cls.model_validate({
             "id": obj.get("id"),
-            "transform": Transform.from_dict(obj["transform"]) if obj.get("transform") is not None else None,
+            "camera_from_map_transform": Transform.from_dict(obj["camera_from_map_transform"]) if obj.get("camera_from_map_transform") is not None else None,
             "map_transform": Transform.from_dict(obj["map_transform"]) if obj.get("map_transform") is not None else None,
             "metrics": LocalizationMetrics.from_dict(obj["metrics"]) if obj.get("metrics") is not None else None
         })

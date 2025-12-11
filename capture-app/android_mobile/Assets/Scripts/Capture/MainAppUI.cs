@@ -16,7 +16,7 @@ using static Nessle.UIBuilder;
 using DeviceType = PlerionApiClient.Model.DeviceType;
 using PlerionApiClient.Model;
 using Cysharp.Threading.Tasks;
-using Plerion.VPS;
+using Plerion.Core;
 
 namespace PlerionClient.Client
 {

@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+from io import BytesIO
+from struct import pack
 from typing import Optional
 from uuid import UUID
 
 from common.boto_clients import create_s3_client
 from common.schemas import binary_schema
-from core.classes import Color, PointCloudPoint, Quaternion, Transform, Vector3
+from core.axis_convention import (
+    AxisConvention,
+    change_basis_unity_from_opencv_points,
+    change_basis_unity_from_opencv_poses,
+)
 from core.reconstruction_manifest import ReconstructionManifest, ReconstructionStatus
 from core.reconstruction_metrics import ReconstructionMetrics
 from core.reconstruction_options import ReconstructionOptions
@@ -18,9 +24,8 @@ from datamodels.public_dtos import (
 from datamodels.public_tables import CaptureSession, LocalizationMap, Reconstruction
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
-from numpy import array
+from numpy import ascontiguousarray, float32, load, uint8
 from pydantic import BaseModel, Field
-from scipy.spatial.transform import Rotation
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,8 +37,11 @@ BUCKET = "dev-reconstructions"
 
 router = APIRouter(prefix="/reconstructions", tags=["reconstructions"])
 
+
 s3_client = create_s3_client(
-    s3_endpoint_url=settings.s3_endpoint_url, s3_access_key=settings.s3_access_key, s3_secret_key=settings.s3_secret_key
+    minio_endpoint_url=settings.minio_endpoint_url,
+    minio_access_key=settings.minio_access_key,
+    minio_secret_key=settings.minio_secret_key,
 )
 
 
@@ -201,89 +209,69 @@ async def get_reconstruction_status(id: UUID, session: AsyncSession = Depends(ge
     return manifest.status
 
 
-@router.get("/{id}/points")
-async def get_reconstruction_points(id: UUID, session: AsyncSession = Depends(get_session)) -> list[PointCloudPoint]:
-    row = await session.get(Reconstruction, id)
-
-    if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reconstruction with id {id} not found")
-
-    return [
-        PointCloudPoint(
-            position=Vector3(x=float(parts[1]), y=float(parts[2]), z=float(parts[3])),
-            color=Color(r=int(parts[4]), g=int(parts[5]), b=int(parts[6])),
-        )
-        for parts in [
-            line.split()
-            for line in [
-                line.decode("utf-8").strip()
-                for line in create_s3_client(settings.s3_endpoint_url, settings.s3_access_key, settings.s3_secret_key)
-                .get_object(Bucket=settings.reconstructions_bucket, Key=f"{row.id}/sfm_model/points3D.txt")["Body"]
-                .iter_lines()
-            ]
-            if line and not line.startswith("#")
-        ]
-    ]
-
-
-@router.get("/{id}/points.ply", response_class=StreamingResponse, responses={200: {"content": binary_schema}})
-async def get_reconstruction_points3D_ply(id: UUID, session: AsyncSession = Depends(get_session)) -> StreamingResponse:
+@router.get("/{id}/points", response_class=StreamingResponse, responses={200: {"content": binary_schema}})
+async def get_reconstruction_points(
+    id: UUID, axis_convention: AxisConvention = Query(...), session: AsyncSession = Depends(get_session)
+) -> StreamingResponse:
     row = await session.get(Reconstruction, id)
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reconstruction with id {id} not found")
 
+    # Load point cloud from S3
+    npz_bytes = s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{row.id}/sfm_model/points3D.npz")[
+        "Body"
+    ].read()
+
+    # Extract positions and colors
+    with load(BytesIO(npz_bytes)) as npz:
+        point_cloud_positions = npz["positions"]
+        point_cloud_colors = npz["colors"]
+
+    # Change basis if needed
+    if axis_convention == AxisConvention.UNITY:
+        point_cloud_positions = change_basis_unity_from_opencv_points(point_cloud_positions)
+
+    # Serialize and return point cloud as binary stream
     return StreamingResponse(
-        create_s3_client(settings.s3_endpoint_url, settings.s3_access_key, settings.s3_secret_key).get_object(
-            Bucket=settings.reconstructions_bucket, Key=f"{row.id}/sfm_model/points3D.ply"
-        )["Body"],
+        BytesIO(
+            (
+                pack("<I", int(point_cloud_positions.shape[0]))
+                + ascontiguousarray(point_cloud_positions, dtype=float32).astype("<f4", copy=False).tobytes()
+                + ascontiguousarray(point_cloud_colors, dtype=uint8).tobytes()
+            )
+        ),
         media_type="application/octet-stream",
     )
 
 
-@router.get("/{id}/frame_poses")
-async def get_reconstruction_frame_poses(id: UUID, session: AsyncSession = Depends(get_session)) -> list[Transform]:
+@router.get("/{id}/frame_poses", response_class=StreamingResponse, responses={200: {"content": binary_schema}})
+async def get_reconstruction_frame_poses(
+    id: UUID, axis_convention: AxisConvention = Query(...), session: AsyncSession = Depends(get_session)
+) -> StreamingResponse:
     row = await session.get(Reconstruction, id)
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Reconstruction with id {id} not found")
 
-    poses: list[Transform] = []
-    for parts in [
-        line.split(
-            maxsplit=9  # COLMAP images.txt: ID QW QX QY QZ TX TY TZ CAM_ID NAME; NAME may have spaces, so keep it as one field
-        )
-        for _, line in enumerate([
-            line
-            for line in [
-                line.decode("utf-8").strip()
-                for line in create_s3_client(settings.s3_endpoint_url, settings.s3_access_key, settings.s3_secret_key)
-                .get_object(Bucket=settings.reconstructions_bucket, Key=f"{row.id}/sfm_model/frames.txt")["Body"]
-                .iter_lines()
-            ]
-            if line and not line.startswith("#")
-        ])
-    ]:
-        qw, qx, qy, qz = map(float, parts[2:6])
-        tx, ty, tz = map(float, parts[6:9])
+    # Load frame poses from S3
+    npz_bytes = s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{row.id}/sfm_model/frame_poses.npz")[
+        "Body"
+    ].read()
 
-        # Convert from camera-to-world to world-to-camera
-        world_from_frame_rotation_matrix = Rotation.from_quat([qx, qy, qz, qw]).as_matrix().T
-        world_from_frame_translation = -world_from_frame_rotation_matrix @ array([tx, ty, tz], dtype=float)
-        world_from_frame_rotation_quaternion = Rotation.from_matrix(world_from_frame_rotation_matrix).as_quat()
+    # Extract positions and orientations
+    with load(BytesIO(npz_bytes)) as npz:
+        frame_positions = npz["positions"]
+        frame_orientations = npz["orientations"]
 
-        poses.append(
-            Transform(
-                position=Vector3(
-                    x=world_from_frame_translation[0],
-                    y=world_from_frame_translation[1],
-                    z=world_from_frame_translation[2],
-                ),
-                rotation=Quaternion(
-                    x=world_from_frame_rotation_quaternion[0],
-                    y=world_from_frame_rotation_quaternion[1],
-                    z=world_from_frame_rotation_quaternion[2],
-                    w=world_from_frame_rotation_quaternion[3],
-                ),
-            )
-        )
+    # Change basis if needed
+    if axis_convention == AxisConvention.UNITY:
+        frame_positions, frame_orientations = change_basis_unity_from_opencv_poses(frame_positions, frame_orientations)
 
-    return poses
+    # Serialize and return frame poses as binary stream
+    return StreamingResponse(
+        BytesIO(
+            pack("<I", int(frame_positions.shape[0]))
+            + ascontiguousarray(frame_positions, dtype=float32).astype("<f4", copy=False).tobytes()
+            + ascontiguousarray(frame_orientations, dtype=float32).astype("<f4", copy=False).tobytes()
+        ),
+        media_type="application/octet-stream",
+    )

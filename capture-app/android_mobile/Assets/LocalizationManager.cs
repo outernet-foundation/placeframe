@@ -1,25 +1,31 @@
-using Plerion.VPS;
-using UnityEngine;
-using UnityEngine.Android;
-using Cysharp.Threading.Tasks;
-using System.Linq;
-using FofX.Stateful;
 using System;
 using System.Collections.Generic;
-
+using Cysharp.Threading.Tasks;
+using FofX.Stateful;
+using Plerion.Core;
+using UnityEngine;
+using UnityEngine.Android;
 #if !UNITY_EDITOR
-using Plerion.VPS.ARFoundation;
+using Plerion.Core.ARFoundation;
 #endif
 
 namespace PlerionClient.Client
 {
     public class LocalizationManager : MonoBehaviour
     {
-        public LocalizationMapVisualizer mapVisualizer;
-
-        private void Start()
+        private void Awake()
         {
-            CameraLocalization.SetProvider(GetCameraProvider());
+            VisualPositioningSystem.Initialize(
+                GetCameraProvider(),
+                App.state.plerionApiUrl.value,
+                App.state.plerionAuthTokenUrl.value,
+                App.state.plerionAuthAudience.value,
+                message => Log.Info(LogGroup.Localizer, message),
+                message => Log.Warn(LogGroup.Localizer, message),
+                message => Log.Error(LogGroup.Localizer, message),
+                (message, exception) => Log.Error(LogGroup.Localizer, exception, message)
+            );
+
             App.RegisterObserver(HandleAppModeChanged, App.state.mode, App.state.loggedIn);
         }
 
@@ -29,12 +35,15 @@ namespace PlerionClient.Client
             {
                 App.DeregisterObserver(HandleLocalizationSessionStatusChanged);
                 App.DeregisterObserver(HandleLocalizingChanged);
-                CameraLocalization.Stop();
-                mapVisualizer.enabled = false;
+
+                if (App.state.localizing.value)
+                {
+                    VisualPositioningSystem.StopLocalizing().Forget();
+                }
+
                 return;
             }
 
-            mapVisualizer.enabled = true;
             App.RegisterObserver(HandleLocalizationSessionStatusChanged, App.state.localizationSessionStatus);
         }
 
@@ -60,7 +69,7 @@ namespace PlerionClient.Client
             if (args.initialize)
             {
                 if (App.state.mapForLocalization.value != Guid.Empty)
-                    VisualPositioningSystem.LoadLocalizationMaps(App.state.mapForLocalization.value);
+                    VisualPositioningSystem.AddLocalizationMaps(App.state.mapForLocalization.value);
 
                 return;
             }
@@ -68,8 +77,8 @@ namespace PlerionClient.Client
             var previousValue = GetPreviousValue(App.state.mapForLocalization, args.changes);
             if (previousValue != App.state.mapForLocalization.value)
             {
-                VisualPositioningSystem.UnloadLocalizationMap(previousValue).Forget();
-                VisualPositioningSystem.LoadLocalizationMaps(App.state.mapForLocalization.value);
+                VisualPositioningSystem.RemoveLocalizationMap(previousValue).Forget();
+                VisualPositioningSystem.AddLocalizationMaps(App.state.mapForLocalization.value);
             }
         }
 
@@ -77,11 +86,11 @@ namespace PlerionClient.Client
         {
             if (App.state.localizing.value)
             {
-                CameraLocalization.Start();
+                VisualPositioningSystem.StartLocalizing().Forget();
             }
             else
             {
-                CameraLocalization.Stop();
+                VisualPositioningSystem.StopLocalizing().Forget();
             }
         }
 
@@ -102,21 +111,9 @@ namespace PlerionClient.Client
 
             try
             {
-                if (!Permission.HasUserAuthorizedPermission(Permission.Camera))
-                    Permission.RequestUserPermission(Permission.Camera);
-
-                UnityEngine.XR.ARSubsystems.XRCameraIntrinsics intrinsics = default;
-                while (!SceneReferences.ARCameraManager.TryGetIntrinsics(out intrinsics))
-                    await UniTask.WaitForEndOfFrame();
-
                 await UniTask.SwitchToMainThread();
 
-                await VisualPositioningSystem.StartLocalizationSession(new CameraIntrinsics()
-                {
-                    resolution = intrinsics.resolution,
-                    focalLength = intrinsics.focalLength,
-                    principlePoint = intrinsics.principalPoint,
-                });
+                await VisualPositioningSystem.StartLocalizationSession();
 
                 await UniTask.SwitchToMainThread();
                 App.state.localizationSessionStatus.ExecuteSetOrDelay(LocalizationSessionStatus.Active);
@@ -133,7 +130,7 @@ namespace PlerionClient.Client
 #if UNITY_EDITOR
             return new NoOpCameraProvider();
 #else
-            return new ARFoundationCameraProvider(SceneReferences.ARCameraManager, manageCameraEnabledState: false);
+            return new ARFoundationCameraProvider(SceneReferences.ARCameraManager);
 #endif
         }
     }

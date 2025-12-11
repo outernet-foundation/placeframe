@@ -1,3 +1,4 @@
+.openapi-generator-ignore
 PlerionApiClient.sln
 README.md
 api/openapi.yaml
@@ -22,15 +23,17 @@ src/PlerionApiClient/Client/RequestOptions.cs
 src/PlerionApiClient/Client/RetryConfiguration.cs
 src/PlerionApiClient/Client/WebRequestPathBuilder.cs
 src/PlerionApiClient/Model/AbstractOpenAPISchema.cs
+src/PlerionApiClient/Model/AxisConvention.cs
 src/PlerionApiClient/Model/Camera.cs
 src/PlerionApiClient/Model/CameraConfig.cs
 src/PlerionApiClient/Model/CaptureSessionBatchUpdate.cs
 src/PlerionApiClient/Model/CaptureSessionCreate.cs
+src/PlerionApiClient/Model/CaptureSessionManifest.cs
 src/PlerionApiClient/Model/CaptureSessionRead.cs
 src/PlerionApiClient/Model/CaptureSessionUpdate.cs
-src/PlerionApiClient/Model/Color.cs
-src/PlerionApiClient/Model/Config.cs
 src/PlerionApiClient/Model/DeviceType.cs
+src/PlerionApiClient/Model/Float3.cs
+src/PlerionApiClient/Model/Float4.cs
 src/PlerionApiClient/Model/FullOpenCVCameraConfig.cs
 src/PlerionApiClient/Model/GroupBatchUpdate.cs
 src/PlerionApiClient/Model/GroupCreate.cs
@@ -54,8 +57,6 @@ src/PlerionApiClient/Model/NodeRead.cs
 src/PlerionApiClient/Model/OpenCVCameraConfig.cs
 src/PlerionApiClient/Model/OrchestrationStatus.cs
 src/PlerionApiClient/Model/PinholeCameraConfig.cs
-src/PlerionApiClient/Model/PointCloudPoint.cs
-src/PlerionApiClient/Model/Quaternion.cs
 src/PlerionApiClient/Model/ReconstructionCreate.cs
 src/PlerionApiClient/Model/ReconstructionCreateWithOptions.cs
 src/PlerionApiClient/Model/ReconstructionManifest.cs
@@ -67,5 +68,4 @@ src/PlerionApiClient/Model/RigConfig.cs
 src/PlerionApiClient/Model/Transform.cs
 src/PlerionApiClient/Model/ValidationError.cs
 src/PlerionApiClient/Model/ValidationErrorLocInner.cs
-src/PlerionApiClient/Model/Vector3.cs
 src/PlerionApiClient/PlerionApiClient.csproj

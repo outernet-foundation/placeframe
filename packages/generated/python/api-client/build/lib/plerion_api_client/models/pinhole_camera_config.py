@@ -28,28 +28,20 @@ class PinholeCameraConfig(BaseModel):
     """ # noqa: E501
     width: StrictInt
     height: StrictInt
-    mirroring: StrictStr
-    rotation: StrictStr
+    orientation: StrictStr
     model: StrictStr
     fx: Union[StrictFloat, StrictInt]
     fy: Union[StrictFloat, StrictInt]
     cx: Union[StrictFloat, StrictInt]
     cy: Union[StrictFloat, StrictInt]
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["width", "height", "mirroring", "rotation", "model", "fx", "fy", "cx", "cy"]
+    __properties: ClassVar[List[str]] = ["width", "height", "orientation", "model", "fx", "fy", "cx", "cy"]
 
-    @field_validator('mirroring')
-    def mirroring_validate_enum(cls, value):
+    @field_validator('orientation')
+    def orientation_validate_enum(cls, value):
         """Validates the enum"""
-        if value not in set(['None', 'X', 'Y']):
-            raise ValueError("must be one of enum values ('None', 'X', 'Y')")
-        return value
-
-    @field_validator('rotation')
-    def rotation_validate_enum(cls, value):
-        """Validates the enum"""
-        if value not in set(['None', '90_CW', '180', '90_CCW']):
-            raise ValueError("must be one of enum values ('None', '90_CW', '180', '90_CCW')")
+        if value not in set(['TOP_LEFT', 'TOP_RIGHT', 'BOTTOM_RIGHT', 'BOTTOM_LEFT', 'LEFT_TOP', 'RIGHT_TOP', 'RIGHT_BOTTOM', 'LEFT_BOTTOM']):
+            raise ValueError("must be one of enum values ('TOP_LEFT', 'TOP_RIGHT', 'BOTTOM_RIGHT', 'BOTTOM_LEFT', 'LEFT_TOP', 'RIGHT_TOP', 'RIGHT_BOTTOM', 'LEFT_BOTTOM')")
         return value
 
     @field_validator('model')
@@ -119,8 +111,7 @@ class PinholeCameraConfig(BaseModel):
         _obj = cls.model_validate({
             "width": obj.get("width"),
             "height": obj.get("height"),
-            "mirroring": obj.get("mirroring"),
-            "rotation": obj.get("rotation"),
+            "orientation": obj.get("orientation"),
             "model": obj.get("model"),
             "fx": obj.get("fx"),
             "fy": obj.get("fy"),
