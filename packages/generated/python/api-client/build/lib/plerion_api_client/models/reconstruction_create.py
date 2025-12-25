@@ -85,11 +85,6 @@ class ReconstructionCreate(BaseModel):
         if self.id is None and "id" in self.model_fields_set:
             _dict['id'] = None
 
-        # set to None if orchestration_status (nullable) is None
-        # and model_fields_set contains the field
-        if self.orchestration_status is None and "orchestration_status" in self.model_fields_set:
-            _dict['orchestration_status'] = None
-
         return _dict
 
     @classmethod

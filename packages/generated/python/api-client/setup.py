@@ -24,7 +24,6 @@ NAME = "plerion-api-client"
 VERSION = "0.1.0"
 PYTHON_REQUIRES = ">= 3.9"
 REQUIRES = [
-    "urllib3 >= 2.1.0, < 3.0.0",
     "python-dateutil >= 2.8.2",
     "httpx >= 0.28.1",
     "pydantic >= 2",

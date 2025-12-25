@@ -14,7 +14,11 @@ cat > /etc/caddy/Caddyfile <<EOF
     }
 
     handle {
-        reverse_proxy api:8000
+        reverse_proxy api:8000 {
+            header_up X-Forwarded-Proto https
+            header_up X-Forwarded-Port 443
+            header_up X-Forwarded-Host {host}
+        }
     }
 }
 EOF

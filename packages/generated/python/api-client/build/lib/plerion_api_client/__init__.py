@@ -29,8 +29,6 @@ __all__ = [
     "ApiAttributeError",
     "ApiException",
     "AxisConvention",
-    "Camera",
-    "CameraConfig",
     "CaptureSessionBatchUpdate",
     "CaptureSessionCreate",
     "CaptureSessionManifest",
@@ -39,11 +37,11 @@ __all__ = [
     "DeviceType",
     "Float3",
     "Float4",
-    "FullOpenCVCameraConfig",
+    "GetCaptureSessions400Response",
+    "GetCaptureSessions400ResponseExtra",
     "GroupBatchUpdate",
     "GroupCreate",
     "GroupRead",
-    "HTTPValidationError",
     "LayerBatchUpdate",
     "LayerCreate",
     "LayerRead",
@@ -59,7 +57,6 @@ __all__ = [
     "NodeBatchUpdate",
     "NodeCreate",
     "NodeRead",
-    "OpenCVCameraConfig",
     "OrchestrationStatus",
     "PinholeCameraConfig",
     "ReconstructionCreate",
@@ -71,8 +68,6 @@ __all__ = [
     "RigCameraConfig",
     "RigConfig",
     "Transform",
-    "ValidationError",
-    "ValidationErrorLocInner",
 ]
 
 # import apis into sdk package
@@ -91,8 +86,6 @@ from plerion_api_client.exceptions import ApiException as ApiException
 
 # import models into sdk package
 from plerion_api_client.models.axis_convention import AxisConvention as AxisConvention
-from plerion_api_client.models.camera import Camera as Camera
-from plerion_api_client.models.camera_config import CameraConfig as CameraConfig
 from plerion_api_client.models.capture_session_batch_update import CaptureSessionBatchUpdate as CaptureSessionBatchUpdate
 from plerion_api_client.models.capture_session_create import CaptureSessionCreate as CaptureSessionCreate
 from plerion_api_client.models.capture_session_manifest import CaptureSessionManifest as CaptureSessionManifest
@@ -101,11 +94,11 @@ from plerion_api_client.models.capture_session_update import CaptureSessionUpdat
 from plerion_api_client.models.device_type import DeviceType as DeviceType
 from plerion_api_client.models.float3 import Float3 as Float3
 from plerion_api_client.models.float4 import Float4 as Float4
-from plerion_api_client.models.full_open_cv_camera_config import FullOpenCVCameraConfig as FullOpenCVCameraConfig
+from plerion_api_client.models.get_capture_sessions400_response import GetCaptureSessions400Response as GetCaptureSessions400Response
+from plerion_api_client.models.get_capture_sessions400_response_extra import GetCaptureSessions400ResponseExtra as GetCaptureSessions400ResponseExtra
 from plerion_api_client.models.group_batch_update import GroupBatchUpdate as GroupBatchUpdate
 from plerion_api_client.models.group_create import GroupCreate as GroupCreate
 from plerion_api_client.models.group_read import GroupRead as GroupRead
-from plerion_api_client.models.http_validation_error import HTTPValidationError as HTTPValidationError
 from plerion_api_client.models.layer_batch_update import LayerBatchUpdate as LayerBatchUpdate
 from plerion_api_client.models.layer_create import LayerCreate as LayerCreate
 from plerion_api_client.models.layer_read import LayerRead as LayerRead
@@ -121,7 +114,6 @@ from plerion_api_client.models.map_localization import MapLocalization as MapLoc
 from plerion_api_client.models.node_batch_update import NodeBatchUpdate as NodeBatchUpdate
 from plerion_api_client.models.node_create import NodeCreate as NodeCreate
 from plerion_api_client.models.node_read import NodeRead as NodeRead
-from plerion_api_client.models.open_cv_camera_config import OpenCVCameraConfig as OpenCVCameraConfig
 from plerion_api_client.models.orchestration_status import OrchestrationStatus as OrchestrationStatus
 from plerion_api_client.models.pinhole_camera_config import PinholeCameraConfig as PinholeCameraConfig
 from plerion_api_client.models.reconstruction_create import ReconstructionCreate as ReconstructionCreate
@@ -133,6 +125,4 @@ from plerion_api_client.models.reconstruction_read import ReconstructionRead as 
 from plerion_api_client.models.rig_camera_config import RigCameraConfig as RigCameraConfig
 from plerion_api_client.models.rig_config import RigConfig as RigConfig
 from plerion_api_client.models.transform import Transform as Transform
-from plerion_api_client.models.validation_error import ValidationError as ValidationError
-from plerion_api_client.models.validation_error_loc_inner import ValidationErrorLocInner as ValidationErrorLocInner
 

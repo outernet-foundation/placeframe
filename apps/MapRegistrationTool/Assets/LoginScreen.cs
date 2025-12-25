@@ -19,8 +19,8 @@ namespace Outernet.MapRegistrationTool
             VisualPositioningSystem.Initialize(
                 null,
                 App.plerionApiUrl,
-                App.plerionAuthUrl,
-                App.plerionAuthClient,
+                App.plerionAuthTokenUrl,
+                App.plerionAuthAudience,
                 message => Debug.Log(message),
                 message => Debug.LogWarning(message),
                 message => Debug.LogError(message),

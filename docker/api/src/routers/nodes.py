@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Annotated
 from uuid import UUID
 
 from datamodels.public_dtos import (
@@ -10,17 +10,18 @@ from datamodels.public_dtos import (
     node_to_dto,
 )
 from datamodels.public_tables import Node
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from litestar import Router, delete, get, patch, post
+from litestar.di import Provide
+from litestar.exceptions import NotFoundException
+from litestar.params import Parameter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 
-router = APIRouter(prefix="/nodes", tags=["nodes"])
 
-
-@router.post("")
-async def create_node(node: NodeCreate, session: AsyncSession = Depends(get_session)) -> NodeRead:
+@post("")
+async def create_node(session: AsyncSession, node: NodeCreate) -> NodeRead:
     row = node_from_dto(node)
 
     session.add(row)
@@ -29,9 +30,9 @@ async def create_node(node: NodeCreate, session: AsyncSession = Depends(get_sess
     return node_to_dto(row)
 
 
-@router.delete("")
+@delete("")
 async def delete_nodes(
-    ids: list[UUID] = Query(..., description="List of Ids to delete"), session: AsyncSession = Depends(get_session)
+    session: AsyncSession, ids: Annotated[list[UUID], Parameter(description="List of Ids to delete")]
 ) -> None:
     for id in ids:
         row = await session.get(Node, id)
@@ -41,10 +42,10 @@ async def delete_nodes(
     await session.flush()
 
 
-@router.get("")
+@get("")
 async def get_nodes(
-    ids: Optional[list[UUID]] = Query(None, description="Optional list of Ids to filter by"),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession,
+    ids: Annotated[list[UUID] | None, Parameter(description="Optional list of Ids to filter by")] = None,
 ) -> list[NodeRead]:
     query = select(Node)
     if ids:
@@ -56,16 +57,16 @@ async def get_nodes(
     return results
 
 
-@router.patch("")
+@patch("")
 async def update_nodes(
-    nodes: list[NodeBatchUpdate], allow_missing: bool = False, session: AsyncSession = Depends(get_session)
+    session: AsyncSession, nodes: list[NodeBatchUpdate], allow_missing: bool = False
 ) -> list[NodeRead]:
     rows: list[Node] = []
     for node in nodes:
         row = await session.get(Node, node.id)
         if not row:
             if not allow_missing:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Node with id {node.id} not found")
+                raise NotFoundException(f"Node with id {node.id} not found")
             continue
 
         node_apply_batch_update_dto(row, node)
@@ -75,3 +76,11 @@ async def update_nodes(
     for row in rows:
         await session.refresh(row)
     return [node_to_dto(r) for r in rows]
+
+
+router = Router(
+    "/nodes",
+    tags=["Nodes"],
+    dependencies={"session": Provide(get_session)},
+    route_handlers=[create_node, delete_nodes, get_nodes, update_nodes],
+)

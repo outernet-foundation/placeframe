@@ -25,7 +25,6 @@ using OpenAPIDateConverter = PlerionApiClient.Client.OpenAPIDateConverter;
 
 namespace PlerionApiClient.Model
 {
-    // fuck
     /// <summary>
     /// ReconstructionOptions
     /// </summary>
@@ -35,34 +34,35 @@ namespace PlerionApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionOptions" /> class.
         /// </summary>
-        /// <param name="randomSeed">randomSeed.</param>
-        /// <param name="singleThreaded">singleThreaded.</param>
-        /// <param name="neighborsCount">neighborsCount.</param>
-        /// <param name="rotationThreshold">rotationThreshold.</param>
-        /// <param name="maxKeypointsPerImage">maxKeypointsPerImage.</param>
-        /// <param name="ransacMaxError">ransacMaxError.</param>
-        /// <param name="ransacMinInlierRatio">ransacMinInlierRatio.</param>
-        /// <param name="usePriorPosition">usePriorPosition.</param>
-        /// <param name="rigVerification">rigVerification.</param>
-        /// <param name="triangulationMinimumAngle">triangulationMinimumAngle.</param>
-        /// <param name="triangulationCompleteMaxReprojectionError">triangulationCompleteMaxReprojectionError.</param>
-        /// <param name="triangulationMergeMaxReprojectionError">triangulationMergeMaxReprojectionError.</param>
-        /// <param name="mapperFilterMaxReprojectionError">mapperFilterMaxReprojectionError.</param>
-        /// <param name="bundleAdjustmentRefineSensorFromRig">bundleAdjustmentRefineSensorFromRig.</param>
-        /// <param name="bundleAdjustmentRefineFocalLength">bundleAdjustmentRefineFocalLength.</param>
-        /// <param name="bundleAdjustmentRefinePrincipalPoint">bundleAdjustmentRefinePrincipalPoint.</param>
-        /// <param name="bundleAdjustmentRefineAdditionalParams">bundleAdjustmentRefineAdditionalParams.</param>
-        /// <param name="compressionOpqNumberOfSubvectors">compressionOpqNumberOfSubvectors.</param>
-        /// <param name="compressionOpqNumberOfBitsPerSubvector">compressionOpqNumberOfBitsPerSubvector.</param>
-        /// <param name="compressionOpqNumberOfTrainingIterations">compressionOpqNumberOfTrainingIterations.</param>
-        /// <param name="posePriorPositionSigmaM">posePriorPositionSigmaM.</param>
+        /// <param name="randomSeed">Random seed to use (for deterministic behavior)..</param>
+        /// <param name="singleThreaded">If true, run reconstruction in single-threaded mode (for deterministic behavior)..</param>
+        /// <param name="neighborsCount">How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). If None, a sensible default is used (currently 12). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage..</param>
+        /// <param name="rotationThreshold">Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. Smaller values reduce weak overlaps and speed up matching at the cost of some coverage..</param>
+        /// <param name="maxKeypointsPerImage">Upper bound on detected local features per image (SuperPoint). Reduces descriptor/match volume and downstream 3D points; too small can hurt registration..</param>
+        /// <param name="ransacMaxError">Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower &#x3D; stricter inlier test; removes borderline correspondences before SfM..</param>
+        /// <param name="ransacMinInlierRatio">Two-view RANSAC minimum inlier ratio to accept the model. Higher &#x3D; reject more weak pairs; typically 0.10–0.20 for stricter matching..</param>
+        /// <param name="usePriorPosition">If true, use position priors during registration. This leverages PosePrior(position&#x3D;...) written into the database to guide image registration..</param>
+        /// <param name="rigVerification">If true, perform rig-based verification during feature matching and two-view geometry verification. Requires images to be tagged with rig/camera IDs..</param>
+        /// <param name="triangulationMinimumAngle">Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points..</param>
+        /// <param name="triangulationCompleteMaxReprojectionError">Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points (triangulation.complete_max_reproj_error). Lower → fewer borderline new points..</param>
+        /// <param name="triangulationMergeMaxReprojectionError">Triangulation-time gate (pixels) for MERGING near-duplicate 3D points (triangulation.merge_max_reproj_error). Lower → fewer merges; higher → more aggressive deduplication..</param>
+        /// <param name="mapperFilterMaxReprojectionError">Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). Points exceeding this after local/global BA are culled. This is NOT a triangulation accept threshold..</param>
+        /// <param name="bundleAdjustmentRefineSensorFromRig">If true, refine per-camera extrinsics within the rig during BA (ba_refine_sensor_from_rig). Useful when rig calibration is approximate..</param>
+        /// <param name="bundleAdjustmentRefineFocalLength">If true, refine the camera focal length during BA (ba_refine_focal_length)..</param>
+        /// <param name="bundleAdjustmentRefinePrincipalPoint">If true, refine the camera principal point during BA (ba_refine_principal_point)..</param>
+        /// <param name="bundleAdjustmentRefineAdditionalParams">If true, refine model-specific additional parameters during BA (ba_refine_extra_params), e.g., radial/tangential distortion where applicable..</param>
+        /// <param name="compressionOpqNumberOfSubvectors">Number of subvectors for OPQ compression..</param>
+        /// <param name="compressionOpqNumberOfBitsPerSubvector">Number of bits per subvector for OPQ compression..</param>
+        /// <param name="compressionOpqNumberOfTrainingIterations">Number of training iterations for OPQ compression..</param>
+        /// <param name="posePriorPositionSigmaM">Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values &#x3D; stronger priors..</param>
         public ReconstructionOptions()
         {
         }
 
         /// <summary>
-        /// Gets or Sets RandomSeed
+        /// Random seed to use (for deterministic behavior).
         /// </summary>
+        /// <value>Random seed to use (for deterministic behavior).</value>
         [DataMember(Name = "random_seed", EmitDefaultValue = true)]
         public int? RandomSeed
         {
@@ -85,8 +85,9 @@ namespace PlerionApiClient.Model
             return _flagRandomSeed;
         }
         /// <summary>
-        /// Gets or Sets SingleThreaded
+        /// If true, run reconstruction in single-threaded mode (for deterministic behavior).
         /// </summary>
+        /// <value>If true, run reconstruction in single-threaded mode (for deterministic behavior).</value>
         [DataMember(Name = "single_threaded", EmitDefaultValue = true)]
         public bool? SingleThreaded
         {
@@ -109,8 +110,9 @@ namespace PlerionApiClient.Model
             return _flagSingleThreaded;
         }
         /// <summary>
-        /// Gets or Sets NeighborsCount
+        /// How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). If None, a sensible default is used (currently 12). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.
         /// </summary>
+        /// <value>How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). If None, a sensible default is used (currently 12). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.</value>
         [DataMember(Name = "neighbors_count", EmitDefaultValue = true)]
         public int? NeighborsCount
         {
@@ -133,8 +135,9 @@ namespace PlerionApiClient.Model
             return _flagNeighborsCount;
         }
         /// <summary>
-        /// Gets or Sets RotationThreshold
+        /// Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.
         /// </summary>
+        /// <value>Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.</value>
         [DataMember(Name = "rotation_threshold", EmitDefaultValue = true)]
         public double? RotationThreshold
         {
@@ -157,8 +160,9 @@ namespace PlerionApiClient.Model
             return _flagRotationThreshold;
         }
         /// <summary>
-        /// Gets or Sets MaxKeypointsPerImage
+        /// Upper bound on detected local features per image (SuperPoint). Reduces descriptor/match volume and downstream 3D points; too small can hurt registration.
         /// </summary>
+        /// <value>Upper bound on detected local features per image (SuperPoint). Reduces descriptor/match volume and downstream 3D points; too small can hurt registration.</value>
         [DataMember(Name = "max_keypoints_per_image", EmitDefaultValue = true)]
         public int? MaxKeypointsPerImage
         {
@@ -181,8 +185,9 @@ namespace PlerionApiClient.Model
             return _flagMaxKeypointsPerImage;
         }
         /// <summary>
-        /// Gets or Sets RansacMaxError
+        /// Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower &#x3D; stricter inlier test; removes borderline correspondences before SfM.
         /// </summary>
+        /// <value>Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower &#x3D; stricter inlier test; removes borderline correspondences before SfM.</value>
         [DataMember(Name = "ransac_max_error", EmitDefaultValue = true)]
         public double? RansacMaxError
         {
@@ -205,8 +210,9 @@ namespace PlerionApiClient.Model
             return _flagRansacMaxError;
         }
         /// <summary>
-        /// Gets or Sets RansacMinInlierRatio
+        /// Two-view RANSAC minimum inlier ratio to accept the model. Higher &#x3D; reject more weak pairs; typically 0.10–0.20 for stricter matching.
         /// </summary>
+        /// <value>Two-view RANSAC minimum inlier ratio to accept the model. Higher &#x3D; reject more weak pairs; typically 0.10–0.20 for stricter matching.</value>
         [DataMember(Name = "ransac_min_inlier_ratio", EmitDefaultValue = true)]
         public double? RansacMinInlierRatio
         {
@@ -229,8 +235,9 @@ namespace PlerionApiClient.Model
             return _flagRansacMinInlierRatio;
         }
         /// <summary>
-        /// Gets or Sets UsePriorPosition
+        /// If true, use position priors during registration. This leverages PosePrior(position&#x3D;...) written into the database to guide image registration.
         /// </summary>
+        /// <value>If true, use position priors during registration. This leverages PosePrior(position&#x3D;...) written into the database to guide image registration.</value>
         [DataMember(Name = "use_prior_position", EmitDefaultValue = true)]
         public bool? UsePriorPosition
         {
@@ -253,8 +260,9 @@ namespace PlerionApiClient.Model
             return _flagUsePriorPosition;
         }
         /// <summary>
-        /// Gets or Sets RigVerification
+        /// If true, perform rig-based verification during feature matching and two-view geometry verification. Requires images to be tagged with rig/camera IDs.
         /// </summary>
+        /// <value>If true, perform rig-based verification during feature matching and two-view geometry verification. Requires images to be tagged with rig/camera IDs.</value>
         [DataMember(Name = "rig_verification", EmitDefaultValue = true)]
         public bool? RigVerification
         {
@@ -277,8 +285,9 @@ namespace PlerionApiClient.Model
             return _flagRigVerification;
         }
         /// <summary>
-        /// Gets or Sets TriangulationMinimumAngle
+        /// Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points.
         /// </summary>
+        /// <value>Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points.</value>
         [DataMember(Name = "triangulation_minimum_angle", EmitDefaultValue = true)]
         public double? TriangulationMinimumAngle
         {
@@ -301,8 +310,9 @@ namespace PlerionApiClient.Model
             return _flagTriangulationMinimumAngle;
         }
         /// <summary>
-        /// Gets or Sets TriangulationCompleteMaxReprojectionError
+        /// Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points (triangulation.complete_max_reproj_error). Lower → fewer borderline new points.
         /// </summary>
+        /// <value>Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points (triangulation.complete_max_reproj_error). Lower → fewer borderline new points.</value>
         [DataMember(Name = "triangulation_complete_max_reprojection_error", EmitDefaultValue = true)]
         public double? TriangulationCompleteMaxReprojectionError
         {
@@ -325,8 +335,9 @@ namespace PlerionApiClient.Model
             return _flagTriangulationCompleteMaxReprojectionError;
         }
         /// <summary>
-        /// Gets or Sets TriangulationMergeMaxReprojectionError
+        /// Triangulation-time gate (pixels) for MERGING near-duplicate 3D points (triangulation.merge_max_reproj_error). Lower → fewer merges; higher → more aggressive deduplication.
         /// </summary>
+        /// <value>Triangulation-time gate (pixels) for MERGING near-duplicate 3D points (triangulation.merge_max_reproj_error). Lower → fewer merges; higher → more aggressive deduplication.</value>
         [DataMember(Name = "triangulation_merge_max_reprojection_error", EmitDefaultValue = true)]
         public double? TriangulationMergeMaxReprojectionError
         {
@@ -349,8 +360,9 @@ namespace PlerionApiClient.Model
             return _flagTriangulationMergeMaxReprojectionError;
         }
         /// <summary>
-        /// Gets or Sets MapperFilterMaxReprojectionError
+        /// Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). Points exceeding this after local/global BA are culled. This is NOT a triangulation accept threshold.
         /// </summary>
+        /// <value>Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). Points exceeding this after local/global BA are culled. This is NOT a triangulation accept threshold.</value>
         [DataMember(Name = "mapper_filter_max_reprojection_error", EmitDefaultValue = true)]
         public double? MapperFilterMaxReprojectionError
         {
@@ -373,8 +385,9 @@ namespace PlerionApiClient.Model
             return _flagMapperFilterMaxReprojectionError;
         }
         /// <summary>
-        /// Gets or Sets BundleAdjustmentRefineSensorFromRig
+        /// If true, refine per-camera extrinsics within the rig during BA (ba_refine_sensor_from_rig). Useful when rig calibration is approximate.
         /// </summary>
+        /// <value>If true, refine per-camera extrinsics within the rig during BA (ba_refine_sensor_from_rig). Useful when rig calibration is approximate.</value>
         [DataMember(Name = "bundle_adjustment_refine_sensor_from_rig", EmitDefaultValue = true)]
         public bool? BundleAdjustmentRefineSensorFromRig
         {
@@ -397,8 +410,9 @@ namespace PlerionApiClient.Model
             return _flagBundleAdjustmentRefineSensorFromRig;
         }
         /// <summary>
-        /// Gets or Sets BundleAdjustmentRefineFocalLength
+        /// If true, refine the camera focal length during BA (ba_refine_focal_length).
         /// </summary>
+        /// <value>If true, refine the camera focal length during BA (ba_refine_focal_length).</value>
         [DataMember(Name = "bundle_adjustment_refine_focal_length", EmitDefaultValue = true)]
         public bool? BundleAdjustmentRefineFocalLength
         {
@@ -421,8 +435,9 @@ namespace PlerionApiClient.Model
             return _flagBundleAdjustmentRefineFocalLength;
         }
         /// <summary>
-        /// Gets or Sets BundleAdjustmentRefinePrincipalPoint
+        /// If true, refine the camera principal point during BA (ba_refine_principal_point).
         /// </summary>
+        /// <value>If true, refine the camera principal point during BA (ba_refine_principal_point).</value>
         [DataMember(Name = "bundle_adjustment_refine_principal_point", EmitDefaultValue = true)]
         public bool? BundleAdjustmentRefinePrincipalPoint
         {
@@ -445,8 +460,9 @@ namespace PlerionApiClient.Model
             return _flagBundleAdjustmentRefinePrincipalPoint;
         }
         /// <summary>
-        /// Gets or Sets BundleAdjustmentRefineAdditionalParams
+        /// If true, refine model-specific additional parameters during BA (ba_refine_extra_params), e.g., radial/tangential distortion where applicable.
         /// </summary>
+        /// <value>If true, refine model-specific additional parameters during BA (ba_refine_extra_params), e.g., radial/tangential distortion where applicable.</value>
         [DataMember(Name = "bundle_adjustment_refine_additional_params", EmitDefaultValue = true)]
         public bool? BundleAdjustmentRefineAdditionalParams
         {
@@ -469,8 +485,9 @@ namespace PlerionApiClient.Model
             return _flagBundleAdjustmentRefineAdditionalParams;
         }
         /// <summary>
-        /// Gets or Sets CompressionOpqNumberOfSubvectors
+        /// Number of subvectors for OPQ compression.
         /// </summary>
+        /// <value>Number of subvectors for OPQ compression.</value>
         [DataMember(Name = "compression_opq_number_of_subvectors", EmitDefaultValue = true)]
         public int? CompressionOpqNumberOfSubvectors
         {
@@ -493,8 +510,9 @@ namespace PlerionApiClient.Model
             return _flagCompressionOpqNumberOfSubvectors;
         }
         /// <summary>
-        /// Gets or Sets CompressionOpqNumberOfBitsPerSubvector
+        /// Number of bits per subvector for OPQ compression.
         /// </summary>
+        /// <value>Number of bits per subvector for OPQ compression.</value>
         [DataMember(Name = "compression_opq_number_of_bits_per_subvector", EmitDefaultValue = true)]
         public int? CompressionOpqNumberOfBitsPerSubvector
         {
@@ -517,8 +535,9 @@ namespace PlerionApiClient.Model
             return _flagCompressionOpqNumberOfBitsPerSubvector;
         }
         /// <summary>
-        /// Gets or Sets CompressionOpqNumberOfTrainingIterations
+        /// Number of training iterations for OPQ compression.
         /// </summary>
+        /// <value>Number of training iterations for OPQ compression.</value>
         [DataMember(Name = "compression_opq_number_of_training_iterations", EmitDefaultValue = true)]
         public int? CompressionOpqNumberOfTrainingIterations
         {
@@ -541,8 +560,9 @@ namespace PlerionApiClient.Model
             return _flagCompressionOpqNumberOfTrainingIterations;
         }
         /// <summary>
-        /// Gets or Sets PosePriorPositionSigmaM
+        /// Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values &#x3D; stronger priors.
         /// </summary>
+        /// <value>Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values &#x3D; stronger priors.</value>
         [DataMember(Name = "pose_prior_position_sigma_m", EmitDefaultValue = true)]
         public double? PosePriorPositionSigmaM
         {

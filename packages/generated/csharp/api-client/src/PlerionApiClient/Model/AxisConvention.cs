@@ -26,8 +26,9 @@ using OpenAPIDateConverter = PlerionApiClient.Client.OpenAPIDateConverter;
 namespace PlerionApiClient.Model
 {
     /// <summary>
-    /// Defines AxisConvention
+    /// List of Ids to delete
     /// </summary>
+    /// <value>List of Ids to delete</value>
     [JsonConverter(typeof(StringEnumConverter))]
     public enum AxisConvention
     {

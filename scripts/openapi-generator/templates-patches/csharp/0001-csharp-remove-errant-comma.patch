@@ -1,0 +1,14 @@
+# Fix errant comma in generated C# AnyOf classes
+diff --git a/scripts/openapi-generator/templates-generated/csharp/modelAnyOf.mustache b/scripts/openapi-generator/templates-generated/csharp/modelAnyOf.mustache
+index f3eac97..036b383 100644
+--- a/scripts/openapi-generator/templates-generated/csharp/modelAnyOf.mustache
++++ b/scripts/openapi-generator/templates-generated/csharp/modelAnyOf.mustache
+@@ -10,7 +10,7 @@
+     {{/vendorExtensions.x-com-visible}}
+     [JsonConverter(typeof({{classname}}JsonConverter))]
+     [DataContract(Name = "{{{name}}}")]
+-    {{>visibility}} partial class {{classname}} : AbstractOpenAPISchema, {{#lambda.joinWithComma}}{{#parent}}{{{.}}}  {{/parent}}{{#equatable}}IEquatable<{{classname}}>  {{/equatable}}{{#validatable}}IValidatableObject  {{/validatable}}{{/lambda.joinWithComma}}
++    {{>visibility}} partial class {{classname}} : {{#lambda.joinWithComma}}AbstractOpenAPISchema  {{#parent}}{{{.}}}  {{/parent}}{{#equatable}}IEquatable<{{classname}}>  {{/equatable}}{{#validatable}}IValidatableObject  {{/validatable}}{{/lambda.joinWithComma}}
+     {
+         {{#isNullable}}
+         /// <summary>

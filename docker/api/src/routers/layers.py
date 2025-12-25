@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Annotated
 from uuid import UUID
 
 from datamodels.public_dtos import (
@@ -10,17 +10,18 @@ from datamodels.public_dtos import (
     layer_to_dto,
 )
 from datamodels.public_tables import Layer
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from litestar import Router, delete, get, patch, post
+from litestar.di import Provide
+from litestar.exceptions import NotFoundException
+from litestar.params import Parameter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 
-router = APIRouter(prefix="/layers", tags=["layers"])
 
-
-@router.post("")
-async def create_layer(layer: LayerCreate, session: AsyncSession = Depends(get_session)) -> LayerRead:
+@post("")
+async def create_layer(session: AsyncSession, layer: LayerCreate) -> LayerRead:
     row = layer_from_dto(layer)
 
     session.add(row)
@@ -29,9 +30,9 @@ async def create_layer(layer: LayerCreate, session: AsyncSession = Depends(get_s
     return layer_to_dto(row)
 
 
-@router.delete("")
+@delete("")
 async def delete_layers(
-    ids: list[UUID] = Query(..., description="List of Ids to delete"), session: AsyncSession = Depends(get_session)
+    session: AsyncSession, ids: Annotated[list[UUID], Parameter(description="List of Ids to delete")]
 ) -> None:
     for id in ids:
         row = await session.get(Layer, id)
@@ -41,10 +42,10 @@ async def delete_layers(
     await session.flush()
 
 
-@router.get("")
+@get("")
 async def get_layers(
-    ids: Optional[list[UUID]] = Query(None, description="Optional list of Ids to filter by"),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession,
+    ids: Annotated[list[UUID] | None, Parameter(description="Optional list of Ids to filter by")] = None,
 ) -> list[LayerRead]:
     query = select(Layer)
     if ids:
@@ -56,16 +57,16 @@ async def get_layers(
     return results
 
 
-@router.patch("")
+@patch("")
 async def update_layers(
-    layers: list[LayerBatchUpdate], allow_missing: bool = False, session: AsyncSession = Depends(get_session)
+    session: AsyncSession, layers: list[LayerBatchUpdate], allow_missing: bool = False
 ) -> list[LayerRead]:
     rows: list[Layer] = []
     for layer in layers:
         row = await session.get(Layer, layer.id)
         if not row:
             if not allow_missing:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Layer with id {layer.id} not found")
+                raise NotFoundException(f"Layer with id {layer.id} not found")
             continue
 
         layer_apply_batch_update_dto(row, layer)
@@ -75,3 +76,11 @@ async def update_layers(
     for row in rows:
         await session.refresh(row)
     return [layer_to_dto(r) for r in rows]
+
+
+router = Router(
+    "/layers",
+    tags=["Layers"],
+    dependencies={"session": Provide(get_session)},
+    route_handlers=[create_layer, delete_layers, get_layers, update_layers],
+)

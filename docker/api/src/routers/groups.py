@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Annotated
 from uuid import UUID
 
 from datamodels.public_dtos import (
@@ -10,17 +10,18 @@ from datamodels.public_dtos import (
     group_to_dto,
 )
 from datamodels.public_tables import Group
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from litestar import Router, delete, get, patch, post
+from litestar.di import Provide
+from litestar.exceptions import NotFoundException
+from litestar.params import Parameter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 
-router = APIRouter(prefix="/groups", tags=["groups"])
 
-
-@router.post("")
-async def create_group(group: GroupCreate, session: AsyncSession = Depends(get_session)) -> GroupRead:
+@post("")
+async def create_group(session: AsyncSession, group: GroupCreate) -> GroupRead:
     row = group_from_dto(group)
 
     session.add(row)
@@ -29,9 +30,9 @@ async def create_group(group: GroupCreate, session: AsyncSession = Depends(get_s
     return group_to_dto(row)
 
 
-@router.delete("")
+@delete("")
 async def delete_groups(
-    ids: list[UUID] = Query(..., description="List of Ids to delete"), session: AsyncSession = Depends(get_session)
+    session: AsyncSession, ids: Annotated[list[UUID], Parameter(description="List of Ids to delete")]
 ) -> None:
     for id in ids:
         row = await session.get(Group, id)
@@ -41,10 +42,10 @@ async def delete_groups(
     await session.flush()
 
 
-@router.get("")
+@get("")
 async def get_groups(
-    ids: Optional[list[UUID]] = Query(None, description="Optional list of Ids to filter by"),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession,
+    ids: Annotated[list[UUID] | None, Parameter(description="Optional list of Ids to filter by")] = None,
 ) -> list[GroupRead]:
     query = select(Group)
     if ids:
@@ -56,16 +57,16 @@ async def get_groups(
     return results
 
 
-@router.patch("")
+@patch("")
 async def update_groups(
-    groups: list[GroupBatchUpdate], allow_missing: bool = False, session: AsyncSession = Depends(get_session)
+    session: AsyncSession, groups: list[GroupBatchUpdate], allow_missing: bool = False
 ) -> list[GroupRead]:
     rows: list[Group] = []
     for group in groups:
         row = await session.get(Group, group.id)
         if not row:
             if not allow_missing:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Group with id {group.id} not found")
+                raise NotFoundException(f"Group with id {group.id} not found")
             continue
 
         group_apply_batch_update_dto(row, group)
@@ -75,3 +76,11 @@ async def update_groups(
     for row in rows:
         await session.refresh(row)
     return [group_to_dto(r) for r in rows]
+
+
+router = Router(
+    "/groups",
+    tags=["Groups"],
+    dependencies={"session": Provide(get_session)},
+    route_handlers=[create_group, delete_groups, get_groups, update_groups],
+)

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     backend: Literal["aws", "docker"] = Field()
     torch_device: Literal["cpu", "cuda", "rocm"] = Field()
 
+    public_url: AnyHttpUrl = Field()
     auth_audience: str = Field()
     auth_issuer_url: AnyHttpUrl = Field()
     auth_url: AnyHttpUrl = Field()
@@ -27,7 +28,7 @@ class Settings(BaseSettings):
     minio_access_key: str | None = None
     minio_secret_key: str | None = None
 
-    localization_session_image: str = Field()
+    localizer_service: str = Field()
     reconstructions_bucket: str = Field(...)
 
     @model_validator(mode="after")

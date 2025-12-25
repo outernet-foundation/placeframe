@@ -171,7 +171,7 @@ namespace Outernet.MapRegistrationTool
             var groundLevelHeightAboveWGS84Ellipsoid = heightSamplingResult.longitudeLatitudeHeightPositions[0].z;
             SceneReferences.GroundTileset.suspendUpdate = true;
 
-            // Convert cartographic coordinates to ECEF coordinates, and use the EUN frame at that location for orientation
+            // Convert cartographic coordinates to ECEF coordinates, and use the ENU frame at that location for orientation
             var ecefPosition = WGS84.CartographicToEcef(
                 CartographicCoordinates.FromLongitudeLatitudeHeight(
                     longitude,
@@ -187,7 +187,7 @@ namespace Outernet.MapRegistrationTool
                 ecefPosition.y,
                 ecefPosition.z
             );
-            SceneReferences.CesiumGeoreference.transform.rotation = math.inverse(ecefRotation.ToQuaternion());
+            // SceneReferences.CesiumGeoreference.transform.rotation = math.inverse(ecefRotation.ToQuaternion());
 
             // Update the application's ECEF to Unity world matrix.
             var (ecefPositionUnityBasis, ecefRotationUnityBasis) = ChangeBasisUnityFromEcef(ecefPosition, ecefRotation);

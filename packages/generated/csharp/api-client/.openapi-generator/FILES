@@ -24,8 +24,6 @@ src/PlerionApiClient/Client/RetryConfiguration.cs
 src/PlerionApiClient/Client/WebRequestPathBuilder.cs
 src/PlerionApiClient/Model/AbstractOpenAPISchema.cs
 src/PlerionApiClient/Model/AxisConvention.cs
-src/PlerionApiClient/Model/Camera.cs
-src/PlerionApiClient/Model/CameraConfig.cs
 src/PlerionApiClient/Model/CaptureSessionBatchUpdate.cs
 src/PlerionApiClient/Model/CaptureSessionCreate.cs
 src/PlerionApiClient/Model/CaptureSessionManifest.cs
@@ -34,11 +32,11 @@ src/PlerionApiClient/Model/CaptureSessionUpdate.cs
 src/PlerionApiClient/Model/DeviceType.cs
 src/PlerionApiClient/Model/Float3.cs
 src/PlerionApiClient/Model/Float4.cs
-src/PlerionApiClient/Model/FullOpenCVCameraConfig.cs
+src/PlerionApiClient/Model/GetCaptureSessions400Response.cs
+src/PlerionApiClient/Model/GetCaptureSessions400ResponseExtra.cs
 src/PlerionApiClient/Model/GroupBatchUpdate.cs
 src/PlerionApiClient/Model/GroupCreate.cs
 src/PlerionApiClient/Model/GroupRead.cs
-src/PlerionApiClient/Model/HTTPValidationError.cs
 src/PlerionApiClient/Model/LayerBatchUpdate.cs
 src/PlerionApiClient/Model/LayerCreate.cs
 src/PlerionApiClient/Model/LayerRead.cs
@@ -54,7 +52,6 @@ src/PlerionApiClient/Model/MapLocalization.cs
 src/PlerionApiClient/Model/NodeBatchUpdate.cs
 src/PlerionApiClient/Model/NodeCreate.cs
 src/PlerionApiClient/Model/NodeRead.cs
-src/PlerionApiClient/Model/OpenCVCameraConfig.cs
 src/PlerionApiClient/Model/OrchestrationStatus.cs
 src/PlerionApiClient/Model/PinholeCameraConfig.cs
 src/PlerionApiClient/Model/ReconstructionCreate.cs
@@ -66,6 +63,4 @@ src/PlerionApiClient/Model/ReconstructionRead.cs
 src/PlerionApiClient/Model/RigCameraConfig.cs
 src/PlerionApiClient/Model/RigConfig.cs
 src/PlerionApiClient/Model/Transform.cs
-src/PlerionApiClient/Model/ValidationError.cs
-src/PlerionApiClient/Model/ValidationErrorLocInner.cs
 src/PlerionApiClient/PlerionApiClient.csproj

@@ -1,15 +1,11 @@
 using System;
 using System.Linq;
 using System.Net.Http;
-
-using UnityEngine;
-
-using FofX.Stateful;
-
-using PlerionApiClient.Api;
-
 using Cysharp.Threading.Tasks;
+using FofX.Stateful;
 using Plerion.Core;
+using PlerionApiClient.Api;
+using UnityEngine;
 
 namespace Outernet.MapRegistrationTool
 {
@@ -18,21 +14,21 @@ namespace Outernet.MapRegistrationTool
         public static DefaultApi API { get; private set; }
 
         public static string plerionApiUrl;
-        public static string plerionAuthUrl;
-        public static string plerionAuthClient;
+        public static string plerionAuthTokenUrl;
+        public static string plerionAuthAudience;
         public static string serverPrefix;
 
         private bool _unsavedChangesIgnored = false;
 
-        protected override void InitializeState(AppState state)
-            => state.Initialize("root", new ObservableNodeContext(new ChannelLogger() { logGroup = LogGroup.Stateful }));
+        protected override void InitializeState(AppState state) =>
+            state.Initialize("root", new ObservableNodeContext(new ChannelLogger() { logGroup = LogGroup.Stateful }));
 
         private void Start()
         {
             API = new DefaultApi(
                 new HttpClient(new AuthHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
-                    BaseAddress = new Uri(plerionApiUrl)
+                    BaseAddress = new Uri(plerionApiUrl),
                 },
                 plerionApiUrl
             );
@@ -65,21 +61,22 @@ namespace Outernet.MapRegistrationTool
                 title: "Unsaved Changes",
                 text: "Would you like to save your changes before quitting?",
                 allowCancel: true,
-                binding: props => Bindings.OnRelease(() =>
-                {
-                    if (props.status.value != DialogStatus.Complete)
-                        return;
+                binding: props =>
+                    Bindings.OnRelease(() =>
+                    {
+                        if (props.status.value != DialogStatus.Complete)
+                            return;
 
-                    if (props.saveRequested.value)
-                    {
-                        SaveWithPopup().Forget();
-                    }
-                    else
-                    {
-                        _unsavedChangesIgnored = true;
-                        Application.Quit();
-                    }
-                })
+                        if (props.saveRequested.value)
+                        {
+                            SaveWithPopup().Forget();
+                        }
+                        else
+                        {
+                            _unsavedChangesIgnored = true;
+                            Application.Quit();
+                        }
+                    })
             );
         }
 
@@ -89,7 +86,8 @@ namespace Outernet.MapRegistrationTool
                 title: "Saving",
                 allowCancel: false,
                 minimumWidth: 200,
-                constructControls: props => UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
+                constructControls: props =>
+                    UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
             );
 
             App.state.saveRequested.ExecuteSetOrDelay(true);
@@ -102,8 +100,10 @@ namespace Outernet.MapRegistrationTool
 
         public static void SetSelectedObjects(params System.Guid[] sceneObjects)
         {
-            if (sceneObjects.Length == App.state.selectedObjects.count &&
-                sceneObjects.All(x => App.state.selectedObjects.Contains(x)))
+            if (
+                sceneObjects.Length == App.state.selectedObjects.count
+                && sceneObjects.All(x => App.state.selectedObjects.Contains(x))
+            )
             {
                 return;
             }
@@ -127,7 +127,9 @@ namespace Outernet.MapRegistrationTool
                 return;
 
             UndoRedoManager.RegisterUndo("Deselect");
-            App.ExecuteAction(new SetSelectedObjectIDAction(App.state.selectedObjects.Where(x => x != sceneObject).ToArray()));
+            App.ExecuteAction(
+                new SetSelectedObjectIDAction(App.state.selectedObjects.Where(x => x != sceneObject).ToArray())
+            );
         }
     }
 }

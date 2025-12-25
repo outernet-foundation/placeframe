@@ -25,7 +25,6 @@ using OpenAPIDateConverter = PlerionApiClient.Client.OpenAPIDateConverter;
 
 namespace PlerionApiClient.Model
 {
-    // fuck
     /// <summary>
     /// LocalizationSessionRead
     /// </summary>
@@ -41,7 +40,7 @@ namespace PlerionApiClient.Model
         /// Initializes a new instance of the <see cref="LocalizationSessionRead" /> class.
         /// </summary>
         /// <param name="id">id (required).</param>
-        /// <param name="createdAt">createdAt (required).</param>
+        /// <param name="createdAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="containerId">containerId (required).</param>
         /// <param name="containerUrl">containerUrl (required).</param>
         public LocalizationSessionRead(Guid id, DateTime createdAt, string containerId, string containerUrl)
@@ -87,8 +86,9 @@ namespace PlerionApiClient.Model
             return _flagId;
         }
         /// <summary>
-        /// Gets or Sets CreatedAt
+        /// datetime with the constraint that the value must have timezone info
         /// </summary>
+        /// <value>datetime with the constraint that the value must have timezone info</value>
         [DataMember(Name = "created_at", IsRequired = true, EmitDefaultValue = true)]
         public DateTime CreatedAt
         {

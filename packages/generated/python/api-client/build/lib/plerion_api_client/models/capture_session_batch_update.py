@@ -80,11 +80,6 @@ class CaptureSessionBatchUpdate(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
-        # set to None if device_type (nullable) is None
-        # and model_fields_set contains the field
-        if self.device_type is None and "device_type" in self.model_fields_set:
-            _dict['device_type'] = None
-
         # set to None if name (nullable) is None
         # and model_fields_set contains the field
         if self.name is None and "name" in self.model_fields_set:

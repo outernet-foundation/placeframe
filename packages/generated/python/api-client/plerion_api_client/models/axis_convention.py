@@ -20,7 +20,7 @@ from typing_extensions import Self
 
 class AxisConvention(str, Enum):
     """
-    AxisConvention
+    List of Ids to delete
     """
 
     """

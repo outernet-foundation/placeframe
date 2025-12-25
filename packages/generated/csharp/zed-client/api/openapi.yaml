@@ -1,4 +1,4 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
   title: Zed API
   version: 0.1.0
@@ -15,6 +15,7 @@ paths:
         required: false
         schema:
           nullable: true
+          title: Capture Interval
           type: number
         style: form
       responses:
@@ -55,6 +56,7 @@ paths:
                 items:
                   format: uuid
                   type: string
+                title: Response Get Captures
                 type: array
           description: Successful Response
       summary: Get Captures
@@ -124,31 +126,34 @@ components:
         detail:
         - msg: msg
           loc:
-          - ValidationError_loc_inner
-          - ValidationError_loc_inner
+          - Location_inner
+          - Location_inner
           type: type
         - msg: msg
           loc:
-          - ValidationError_loc_inner
-          - ValidationError_loc_inner
+          - Location_inner
+          - Location_inner
           type: type
       properties:
         detail:
           items:
             $ref: "#/components/schemas/ValidationError"
+          title: Detail
           type: array
       title: HTTPValidationError
+      type: object
     ValidationError:
       example:
         msg: msg
         loc:
-        - ValidationError_loc_inner
-        - ValidationError_loc_inner
+        - Location_inner
+        - Location_inner
         type: type
       properties:
         loc:
           items:
-            $ref: "#/components/schemas/ValidationError_loc_inner"
+            $ref: "#/components/schemas/Location_inner"
+          title: Location
           type: array
         msg:
           title: Message
@@ -161,7 +166,8 @@ components:
       - msg
       - type
       title: ValidationError
-    ValidationError_loc_inner:
+      type: object
+    Location_inner:
       anyOf:
       - type: string
       - type: integer
