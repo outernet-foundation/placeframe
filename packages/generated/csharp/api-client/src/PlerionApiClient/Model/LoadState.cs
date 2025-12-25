@@ -26,9 +26,9 @@ using OpenAPIDateConverter = PlerionApiClient.Client.OpenAPIDateConverter;
 namespace PlerionApiClient.Model
 {
     /// <summary>
-    /// LoadState
+    ///  LoadState 
     /// </summary>
-    /// <value>LoadState</value>
+    /// <value> LoadState </value>
     [JsonConverter(typeof(StringEnumConverter))]
     public enum LoadState
     {

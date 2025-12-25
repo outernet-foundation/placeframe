@@ -24,7 +24,6 @@ namespace Plerion.Core
         ) =>
             UniTask.FromResult(
                 new PinholeCameraConfig(
-                    model: PinholeCameraConfig.ModelEnum.PINHOLE,
                     orientation: PinholeCameraConfig.OrientationEnum.TOPLEFT,
                     width: 0,
                     height: 0,

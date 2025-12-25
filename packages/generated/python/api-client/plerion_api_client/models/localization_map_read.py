@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, StrictBool, StrictFloat, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from uuid import UUID
 from typing import Optional, Set
@@ -35,11 +35,11 @@ class LocalizationMapRead(BaseModel):
     position_y: Union[StrictFloat, StrictInt]
     position_z: Union[StrictFloat, StrictInt]
     rotation_x: Union[StrictFloat, StrictInt]
-    updated_at: datetime
+    updated_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     rotation_z: Union[StrictFloat, StrictInt]
     rotation_w: Union[StrictFloat, StrictInt]
     color: StrictInt
-    created_at: datetime
+    created_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     active: StrictBool
     lighting: Optional[StrictInt] = None
     name: Optional[StrictStr] = None

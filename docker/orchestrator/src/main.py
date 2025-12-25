@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import time
+from typing import Literal
 
-from common.batch_client import create_batch_client
+# from common.batch_client import create_batch_client
 from common.boto_clients import create_s3_client
+from common.docker_compose_client import create_service
 from core.reconstruction_manifest import ReconstructionManifest
 from datamodels.public_tables import Reconstruction
 from sqlalchemy import create_engine, select
@@ -19,13 +21,17 @@ engine = create_engine(
     future=True,
 )
 
-batch_client = create_batch_client(settings.backend)
+# batch_client = create_batch_client(settings.backend)
 
 s3_client = create_s3_client(
     minio_endpoint_url=settings.minio_endpoint_url,
     minio_access_key=settings.minio_access_key,
     minio_secret_key=settings.minio_secret_key,
 )
+
+Status = Literal["SUBMITTED", "RUNNING", "SUCCEEDED", "FAILED", "UNKNOWN"]
+
+jobs: dict[str, Status] = {}
 
 
 def main() -> None:
@@ -55,21 +61,16 @@ def start_next_reconstruction() -> None:
             f"Starting reconstruction {queued_reconstruction.id} for capture {queued_reconstruction.capture_session_id}"
         )
 
-        batch_client.submit_job(
-            name=str(queued_reconstruction.id),
-            queue_name=settings.batch_job_queue,
-            job_definition_name=f"{settings.batch_job_definition}-{settings.torch_device}",
-            torch_device=settings.torch_device,
+        container_id = create_service(
+            settings.reconstructor_service,
+            f"reconstructor-{queued_reconstruction.id}",
             environment={
-                "MINIO_ENDPOINT_URL": str(settings.minio_endpoint_url),
-                "MINIO_ACCESS_KEY": str(settings.minio_access_key),
-                "MINIO_SECRET_KEY": str(settings.minio_secret_key),
-                "CAPTURES_BUCKET": settings.captures_bucket,
-                "RECONSTRUCTIONS_BUCKET": settings.reconstructions_bucket,
                 "CAPTURE_ID": str(queued_reconstruction.capture_session_id),
                 "RECONSTRUCTION_ID": str(queued_reconstruction.id),
             },
         )
+
+        jobs[container_id] = "SUBMITTED"
 
         # https://github.com/agronholm/sqlacodegen/issues/408
         # TODO: sqlacodegen currently generates strings for enums, which sucks

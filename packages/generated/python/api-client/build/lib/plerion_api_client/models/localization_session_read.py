@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List
 from uuid import UUID
 from typing import Optional, Set
@@ -29,7 +29,7 @@ class LocalizationSessionRead(BaseModel):
     LocalizationSessionRead
     """ # noqa: E501
     id: UUID
-    created_at: datetime
+    created_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     container_id: StrictStr
     container_url: StrictStr
     additional_properties: Dict[str, Any] = {}

@@ -25,7 +25,6 @@ using OpenAPIDateConverter = PlerionApiClient.Client.OpenAPIDateConverter;
 
 namespace PlerionApiClient.Model
 {
-    // fuck
     /// <summary>
     /// CaptureSessionBatchUpdate
     /// </summary>
@@ -37,7 +36,7 @@ namespace PlerionApiClient.Model
         /// Gets or Sets DeviceType
         /// </summary>
 
-        [DataMember(Name = "device_type", EmitDefaultValue = true)]
+        [DataMember(Name = "device_type", EmitDefaultValue = false)]
         public DeviceType? DeviceType
         {
             get{ return _DeviceType;}

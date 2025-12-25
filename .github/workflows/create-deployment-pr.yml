@@ -2,15 +2,13 @@ name: Create Deployment PR
 
 on:
   push:
-    branches: [main]
+    branches: [feature/ci]
     paths:
       - ".github/workflows/create-deployment-pr.yml"
-      - "scripts/src/build.py"
+      - "scripts/src/scripts/build.py"
       - "images.json"
-      - "services/**"
-      - "tasks/**"
-      - "common/**"
-      - "!services/api/src/db/migrations/**"
+      - "docker/**"
+      - "packages/**"
 
 concurrency:
   group: create-deploy-pr
@@ -20,6 +18,7 @@ permissions:
   contents: write
   pull-requests: write
   id-token: write
+  packages: write
 
 env:
   DEPLOY_BRANCH: bot/deploy
@@ -45,7 +44,6 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     outputs:
-      role_arn: ${{ steps.pulumi.outputs.role_arn }}
       names: ${{ steps.plan.outputs.names }}
       needs_lock: ${{ steps.plan.outputs.needs_lock }}
     steps:
@@ -59,41 +57,15 @@ jobs:
             **/pyproject.toml
             **/uv.lock
 
-      - name: Setup Pulumi
-        uses: pulumi/setup-pulumi@v2
-
-      - name: Authenticate Pulumi
-        uses: pulumi/auth-actions@v1
-        with:
-          organization: tyler-s-hatch
-          requested-token-type: urn:pulumi:token-type:access_token:personal
-          scope: user:tyler-s-hatch
-
-      - name: Get AWS role ARN from Pulumi
-        id: pulumi
-        working-directory: infrastructure
-        run: |
-          set -euo pipefail
-          ROLE_ARN=$(pulumi stack output --stack core main-prepare-deploy-role-arn)
-          echo "role_arn=$ROLE_ARN" >> $GITHUB_OUTPUT
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ steps.pulumi.outputs.role_arn }}
-          aws-region: us-east-1
-
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
       - name: Create plan
         id: plan
         run: |
           set -euo pipefail
 
           # Create image build plan
-          cd scripts
-          uv run --locked src/build.py plan --all --output plan.json
+          # cd scripts
+          # uv run --locked src/build.py plan --all --output plan.json
+          uv run --project scripts build plan --output plan.json
 
           # Echo plan json for logging
           echo Plan:
@@ -112,7 +84,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: plan.json
-          path: scripts/plan.json
+          path: plan.json
 
   lock:
     runs-on: ubuntu-latest
@@ -137,14 +109,22 @@ jobs:
             **/pyproject.toml
             **/uv.lock
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Free disk space (runner)
+        uses: jlumbroso/free-disk-space@v1.3.1
         with:
-          role-to-assume: ${{ needs.plan.outputs.role_arn }}
-          aws-region: us-east-1
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
 
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download plan
         uses: actions/download-artifact@v4
@@ -156,11 +136,11 @@ jobs:
           set -euo pipefail
 
           # Extract plan for this image
-          jq -c --arg name '${{ matrix.name }}' '{($name): .[$name]}' plan.json > scripts/image-plan.json
+          jq -c --arg name '${{ matrix.name }}' '{($name): .[$name]}' plan.json > image-plan.json
 
           # Echo plan json for logging
           echo "Image plan for ${{ matrix.name }}:"
-          jq . scripts/image-plan.json
+          jq . image-plan.json
 
       # Require for layer caching
       - name: Setup GitHub Runtime
@@ -174,9 +154,9 @@ jobs:
           docker buildx create --use --driver docker-container
 
           # Lock image
-          cd scripts
-          uv run --locked src/build.py lock --plan image-plan.json --cache-type gha --output ${{ matrix.name }}-image-lock.json
-
+          # cd scripts
+          # uv run --locked src/build.py lock --plan image-plan.json --cache-type gha --output ${{ matrix.name }}-image-lock.json
+          uv run --project scripts build lock --plan image-plan.json --cache-type gha --output ${{ matrix.name }}-image-lock.json
           # Echo lock json for logging
           echo "Image lock for ${{ matrix.name }}:"
           jq . ${{ matrix.name }}-image-lock.json
@@ -185,81 +165,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}-image-lock.json
-          path: scripts/${{ matrix.name }}-image-lock.json
-
-  generate-migrations-and-create-deploy-pr:
-    runs-on: ubuntu-latest
-    needs: [plan, lock]
-    if: ${{ always() && needs.plan.result == 'success' && (
-      needs.plan.outputs.needs_lock == 'false' ||
-      needs.lock.result == 'success' || needs.lock.result == 'skipped'
-      ) }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ env.DEPLOY_BRANCH }}
-
-      - name: Reset deployment branch
-        id: reset-deployment-branch
-        run: |
-          set -euo pipefail
-          git checkout -B "${{ env.DEPLOY_BRANCH }}" origin/"${{ github.ref_name }}"
-          git reset --hard
-          git clean -xfd
-
-      - name: Setup UV
-        uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-          cache-dependency-glob: |
-            **/pyproject.toml
-            **/uv.lock
-
-      - name: Generate migration
-        working-directory: services/api
-        env:
-          PICCOLO_CONF: src.db.local_conf
-        run: |
-          uv run --locked piccolo migrations new all --auto --auto_input=y || true
-
-      - name: Download image lock artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: "*-image-lock.json"
-          merge-multiple: true
-          path: .image-locks
-
-      - name: Build images-lock.json
-        shell: bash
-        run: |
-          set -euo pipefail
-          shopt -s nullglob
-
-          echo "Previous images-lock.json:"
-          jq -S . images-lock.json
-
-          # Merge new locks into existing images-lock.json
-          files=(.image-locks/*.json)
-          tmp="$(mktemp)"
-          jq -S -s 'reduce .[1:][] as $p (.[0]; . * $p)' \
-            images-lock.json "${files[@]}" > "$tmp"
-          mv "$tmp" images-lock.json
-
-          echo "New images-lock.json:"
-          jq -S . images-lock.json
-
-      - name: Create / update Deploy PR
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ github.token }}
-          branch: ${{ env.DEPLOY_BRANCH }}
-          base: ${{ github.ref_name }}
-          title: "Deploy (bot)"
-          body: "Merging this PR will apply migrations and deploy images."
-          commit-message: "chore(deploy): update image-lock.json and migrations"
-          add-paths: |
-            images-lock.json
-            **/migrations/*.py
+          path: ${{ matrix.name }}-image-lock.json

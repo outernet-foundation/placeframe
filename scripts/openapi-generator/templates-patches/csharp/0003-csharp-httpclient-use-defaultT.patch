@@ -1,0 +1,14 @@
+# Fix issue with target-typed `default` in generic error paths by using `default(T)` for broader C# language version compatibility.
+diff --git a/scripts/openapi-generator/templates-generated/csharp/libraries/httpclient/ApiClient.mustache b/scripts/openapi-generator/templates-generated/csharp/libraries/httpclient/ApiClient.mustache
+index fb521d0..9db72d9 100644
+--- a/scripts/openapi-generator/templates-generated/csharp/libraries/httpclient/ApiClient.mustache
++++ b/scripts/openapi-generator/templates-generated/csharp/libraries/httpclient/ApiClient.mustache
+@@ -555,7 +555,7 @@ namespace {{packageName}}.Client
+ 
+                 if (!response.IsSuccessStatusCode)
+                 {
+-                    return await ToApiResponse<T>(response, default, req.RequestUri).ConfigureAwait(false);
++                    return await ToApiResponse<T>(response, default(T), req.RequestUri).ConfigureAwait(false);
+                 }
+ 
+                 object responseData = await deserializer.Deserialize<T>(response).ConfigureAwait(false);

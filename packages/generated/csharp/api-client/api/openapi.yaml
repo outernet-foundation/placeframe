@@ -1,31 +1,30 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
   title: Plerion
   version: 0.1.0
 servers:
 - url: /
-security:
-- oauth2:
-  - openid
-- bearerAuth: []
 paths:
   /capture_sessions:
     get:
+      deprecated: false
       operationId: get_capture_sessions
       parameters:
-      - description: Optional list of Ids to filter by
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: Optional list of Ids to filter by
         explode: true
         in: query
         name: ids
         required: false
         schema:
+          description: Optional list of Ids to filter by
           items:
             format: uuid
             type: string
-            x-schema-name: get_capture_sessions_param_ids_item
-            nullable: false
-          type: array
           nullable: true
+          type: array
         style: form
       responses:
         "200":
@@ -35,26 +34,29 @@ paths:
                 items:
                   $ref: "#/components/schemas/CaptureSessionRead"
                 type: array
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Capture Sessions
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetCaptureSessions
       tags:
       - Default
     patch:
+      deprecated: false
       operationId: update_capture_sessions
       parameters:
-      - explode: true
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        explode: true
         in: query
         name: allow_missing
         required: false
         schema:
           default: false
-          title: Allow Missing
           type: boolean
         style: form
       requestBody:
@@ -73,17 +75,18 @@ paths:
                 items:
                   $ref: "#/components/schemas/CaptureSessionRead"
                 type: array
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Update Capture Sessions
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: UpdateCaptureSessions
       tags:
       - Default
     post:
+      deprecated: false
       operationId: create_capture_session
       requestBody:
         content:
@@ -92,32 +95,35 @@ paths:
               $ref: "#/components/schemas/CaptureSessionCreate"
         required: true
       responses:
-        "200":
+        "201":
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/CaptureSessionRead"
-          description: Successful Response
-        "422":
+          description: "Document created, URL follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Create Capture Session
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: CreateCaptureSession
       tags:
       - Default
   /capture_sessions/bulk:
     post:
+      deprecated: false
       operationId: create_capture_sessions
       parameters:
-      - explode: true
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        explode: true
         in: query
         name: overwrite
         required: false
         schema:
           default: false
-          title: Overwrite
           type: boolean
         style: form
       requestBody:
@@ -129,61 +135,60 @@ paths:
               type: array
         required: true
       responses:
-        "200":
+        "201":
           content:
             application/json:
               schema:
                 items:
                   $ref: "#/components/schemas/CaptureSessionRead"
                 type: array
-          description: Successful Response
-        "422":
+          description: "Document created, URL follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Create Capture Sessions
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: CreateCaptureSessions
       tags:
       - Default
   /capture_sessions/{id}:
     delete:
+      deprecated: false
       operationId: delete_capture_session
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
       responses:
-        "200":
-          content:
-            application/json:
-              schema: {}
-          description: Successful Response
-        "422":
+        "204":
+          description: "Request fulfilled, nothing follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Delete Capture Session
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: DeleteCaptureSession
       tags:
       - Default
     get:
+      deprecated: false
       operationId: get_capture_session
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
       responses:
@@ -192,26 +197,27 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CaptureSessionRead"
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Capture Session
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetCaptureSession
       tags:
       - Default
     patch:
+      deprecated: false
       operationId: update_capture_session
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
       requestBody:
@@ -226,27 +232,28 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CaptureSessionRead"
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Update Capture Session
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: UpdateCaptureSession
       tags:
       - Default
   /capture_sessions/{id}/reconstructions:
     get:
+      deprecated: false
       operationId: get_capture_session_reconstructions
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
       responses:
@@ -257,30 +264,29 @@ paths:
                 items:
                   format: uuid
                   type: string
-                  x-schema-name: get_capture_session_reconstructions_resp_200_application_json_item
-                  nullable: false
                 type: array
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Capture Session Reconstructions
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetCaptureSessionReconstructions
       tags:
       - Default
   /capture_sessions/{id}/tar:
     get:
+      deprecated: false
       operationId: download_capture_session_tar
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
       responses:
@@ -288,64 +294,59 @@ paths:
           content:
             application/json:
               schema: {}
-            application/x-tar:
-              schema:
-                format: binary
-                type: string
-          description: Successful Response
-        "422":
+          description: Stream Response
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Download Capture Session Tar
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: DownloadCaptureSessionTar
       tags:
       - Default
     put:
+      deprecated: false
       operationId: upload_capture_session_tar
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
       requestBody:
         content:
           multipart/form-data:
             schema:
-              $ref: "#/components/schemas/Body_upload_capture_session_tar"
+              $ref: "#/components/schemas/upload_capture_session_tar_request"
         required: true
       responses:
         "200":
-          content:
-            application/json:
-              schema: {}
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Upload Capture Session Tar
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: UploadCaptureSessionTar
       tags:
       - Default
   /capture_sessions/{id}/rig_config:
     get:
+      deprecated: false
       operationId: get_capture_session_rig_config
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
       responses:
@@ -354,52 +355,63 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CaptureSessionManifest"
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Capture Session Rig Config
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetCaptureSessionRigConfig
       tags:
       - Default
   /reconstructions:
     get:
+      deprecated: false
       operationId: get_reconstructions
       parameters:
-      - description: Optional list of Ids to filter by
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: Optional list of Ids to filter by
         explode: true
         in: query
         name: ids
         required: false
         schema:
+          description: Optional list of Ids to filter by
           items:
             format: uuid
             type: string
-            x-schema-name: get_reconstructions_param_ids_item
-            nullable: false
-          type: array
           nullable: true
+          type: array
         style: form
-      - description: Optional capture session Id to filter by
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: Optional capture session Id to filter by
         explode: true
         in: query
         name: capture_session_id
         required: false
         schema:
+          description: Optional capture session Id to filter by
           format: uuid
           nullable: true
           type: string
         style: form
-      - description: Optional capture session name to filter by
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: Optional capture session name to filter by
         explode: true
         in: query
         name: capture_session_name
         required: false
         schema:
-          type: string
+          description: Optional capture session name to filter by
           nullable: true
+          type: string
         style: form
       responses:
         "200":
@@ -409,17 +421,18 @@ paths:
                 items:
                   $ref: "#/components/schemas/ReconstructionRead"
                 type: array
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Reconstructions
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetReconstructions
       tags:
       - Default
     post:
+      deprecated: false
       operationId: create_reconstruction
       requestBody:
         content:
@@ -428,59 +441,58 @@ paths:
               $ref: "#/components/schemas/ReconstructionCreateWithOptions"
         required: true
       responses:
-        "200":
+        "201":
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReconstructionRead"
-          description: Successful Response
-        "422":
+          description: "Document created, URL follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Create Reconstruction
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: CreateReconstruction
       tags:
       - Default
   /reconstructions/{id}:
     delete:
+      deprecated: false
       operationId: delete_reconstruction
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
       responses:
-        "200":
-          content:
-            application/json:
-              schema: {}
-          description: Successful Response
-        "422":
+        "204":
+          description: "Request fulfilled, nothing follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Delete Reconstruction
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: DeleteReconstruction
       tags:
       - Default
     get:
+      deprecated: false
       operationId: get_reconstruction
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
       responses:
@@ -489,27 +501,28 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReconstructionRead"
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Reconstruction
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetReconstruction
       tags:
       - Default
   /reconstructions/{id}/manifest:
     get:
+      deprecated: false
       operationId: get_reconstruction_manifest
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
       responses:
@@ -518,27 +531,28 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReconstructionManifest"
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Reconstruction Manifest
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetReconstructionManifest
       tags:
       - Default
   /reconstructions/{id}/localization_map:
     get:
+      deprecated: false
       operationId: get_reconstruction_localization_map
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
       responses:
@@ -547,29 +561,29 @@ paths:
             application/json:
               schema:
                 format: uuid
-                title: Response Get Reconstruction Localization Map
                 type: string
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Reconstruction Localization Map
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetReconstructionLocalizationMap
       tags:
       - Default
   /reconstructions/{id}/status:
     get:
+      deprecated: false
       operationId: get_reconstruction_status
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
       responses:
@@ -589,32 +603,36 @@ paths:
                 - uploading
                 - succeeded
                 - failed
-                title: Response Get Reconstruction Status
                 type: string
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Reconstruction Status
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetReconstructionStatus
       tags:
       - Default
   /reconstructions/{id}/points:
     get:
+      deprecated: false
       operationId: get_reconstruction_points
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
-      - explode: true
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: List of Ids to delete
+        explode: true
         in: query
         name: axis_convention
         required: true
@@ -628,30 +646,35 @@ paths:
               schema:
                 format: binary
                 type: string
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Reconstruction Points
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetReconstructionPoints
       tags:
       - Default
   /reconstructions/{id}/frame_poses:
     get:
+      deprecated: false
       operationId: get_reconstruction_frame_poses
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
-      - explode: true
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: List of Ids to delete
+        explode: true
         in: query
         name: axis_convention
         required: true
@@ -665,21 +688,25 @@ paths:
               schema:
                 format: binary
                 type: string
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Reconstruction Frame Poses
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetReconstructionFramePoses
       tags:
       - Default
-  /localization_maps:
+  /localization-maps:
     delete:
+      deprecated: false
       operationId: delete_localization_maps
       parameters:
-      - description: List of Ids to delete
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: List of Ids to delete
         explode: true
         in: query
         name: ids
@@ -689,55 +716,55 @@ paths:
           items:
             format: uuid
             type: string
-            x-schema-name: delete_localization_maps_param_ids_item
-            nullable: false
           type: array
         style: form
       responses:
-        "200":
-          content:
-            application/json:
-              schema: {}
-          description: Successful Response
-        "422":
+        "204":
+          description: "Request fulfilled, nothing follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Delete Localization Maps
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: DeleteLocalizationMaps
       tags:
       - Default
     get:
+      deprecated: false
       operationId: get_localization_maps
       parameters:
-      - description: Optional list of Ids to filter by
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: Optional list of Ids to filter by
         explode: true
         in: query
         name: ids
         required: false
         schema:
+          description: Optional list of Ids to filter by
           items:
             format: uuid
             type: string
-            x-schema-name: get_localization_maps_param_ids_item
-            nullable: false
-          type: array
           nullable: true
+          type: array
         style: form
-      - description: Optional list of Reconstruction Ids to filter by
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: Optional list of Reconstruction Ids to filter by
         explode: true
         in: query
         name: reconstruction_ids
         required: false
         schema:
+          description: Optional list of Reconstruction Ids to filter by
           items:
             format: uuid
             type: string
-            x-schema-name: get_localization_maps_param_reconstruction_ids_item
-            nullable: false
-          type: array
           nullable: true
+          type: array
         style: form
       responses:
         "200":
@@ -747,26 +774,29 @@ paths:
                 items:
                   $ref: "#/components/schemas/LocalizationMapRead"
                 type: array
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Localization Maps
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetLocalizationMaps
       tags:
       - Default
     patch:
+      deprecated: false
       operationId: update_localization_maps
       parameters:
-      - explode: true
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        explode: true
         in: query
         name: allow_missing
         required: false
         schema:
           default: false
-          title: Allow Missing
           type: boolean
         style: form
       requestBody:
@@ -785,17 +815,18 @@ paths:
                 items:
                   $ref: "#/components/schemas/LocalizationMapRead"
                 type: array
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Update Localization Maps
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: UpdateLocalizationMaps
       tags:
       - Default
     post:
+      deprecated: false
       operationId: create_localization_map
       requestBody:
         content:
@@ -804,59 +835,58 @@ paths:
               $ref: "#/components/schemas/LocalizationMapCreate"
         required: true
       responses:
-        "200":
+        "201":
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/LocalizationMapRead"
-          description: Successful Response
-        "422":
+          description: "Document created, URL follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Create Localization Map
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: CreateLocalizationMap
       tags:
       - Default
-  /localization_maps/{id}:
+  /localization-maps/{id}:
     delete:
+      deprecated: false
       operationId: delete_localization_map
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
       responses:
-        "200":
-          content:
-            application/json:
-              schema: {}
-          description: Successful Response
-        "422":
+        "204":
+          description: "Request fulfilled, nothing follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Delete Localization Map
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: DeleteLocalizationMap
       tags:
       - Default
     get:
+      deprecated: false
       operationId: get_localization_map
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
       responses:
@@ -865,26 +895,27 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LocalizationMapRead"
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Localization Map
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetLocalizationMap
       tags:
       - Default
     patch:
+      deprecated: false
       operationId: update_localization_map
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: id
         required: true
         schema:
           format: uuid
-          title: Id
           type: string
         style: simple
       requestBody:
@@ -899,218 +930,215 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LocalizationMapRead"
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Update Localization Map
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: UpdateLocalizationMap
       tags:
       - Default
   /localization_sessions:
     post:
+      deprecated: false
       operationId: create_localization_session
       responses:
-        "200":
+        "201":
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/LocalizationSessionRead"
-          description: Successful Response
-      summary: Create Localization Session
+          description: "Document created, URL follows"
+      summary: CreateLocalizationSession
       tags:
       - Default
   /localization_sessions/{localization_session_id}:
     delete:
+      deprecated: false
       operationId: delete_localization_session
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: localization_session_id
         required: true
         schema:
           format: uuid
-          title: Localization Session Id
           type: string
         style: simple
       responses:
-        "200":
-          content:
-            application/json:
-              schema: {}
-          description: Successful Response
-        "422":
+        "204":
+          description: "Request fulfilled, nothing follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Delete Localization Session
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: DeleteLocalizationSession
       tags:
       - Default
   /localization_sessions/{localization_session_id}/camera:
     put:
+      deprecated: false
       operationId: set_localization_session_camera_intrinsics
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: localization_session_id
         required: true
         schema:
           format: uuid
-          title: Localization Session Id
           type: string
         style: simple
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Camera"
+              $ref: "#/components/schemas/PinholeCameraConfig"
         required: true
       responses:
         "200":
-          content:
-            application/json:
-              schema: {}
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Set Localization Session Camera Intrinsics
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: SetLocalizationSessionCameraIntrinsics
       tags:
       - Default
   /localization_sessions/{localization_session_id}/status:
     get:
+      deprecated: false
       operationId: get_localization_session_status
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: localization_session_id
         required: true
         schema:
           format: uuid
-          title: Localization Session Id
           type: string
         style: simple
       responses:
         "200":
           content:
-            application/json:
+            text/plain:
               schema:
-                title: Response Get Localization Session Status
                 type: string
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Localization Session Status
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetLocalizationSessionStatus
       tags:
       - Default
   /localization_sessions/{localization_session_id}/maps:
     post:
+      deprecated: false
       operationId: load_localization_maps
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: localization_session_id
         required: true
         schema:
           format: uuid
-          title: Localization Session Id
           type: string
         style: simple
-      requestBody:
-        content:
-          application/json:
-            schema:
-              description: IDs of localization maps to load
-              items:
-                format: uuid
-                type: string
-                x-schema-name: load_localization_maps_body_application_json_item
-                nullable: false
-              type: array
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: IDs of localization maps to load
+        explode: true
+        in: query
+        name: map_ids
         required: true
+        schema:
+          description: IDs of localization maps to load
+          items:
+            format: uuid
+            type: string
+          type: array
+        style: form
       responses:
-        "200":
-          content:
-            application/json:
-              schema: {}
-          description: Successful Response
-        "422":
+        "201":
+          description: "Document created, URL follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Load Localization Maps
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: LoadLocalizationMaps
       tags:
       - Default
   /localization_sessions/{localization_session_id}/maps/{map_id}:
     delete:
+      deprecated: false
       operationId: unload_map
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: localization_session_id
         required: true
         schema:
           format: uuid
-          title: Localization Session Id
           type: string
         style: simple
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: map_id
         required: true
         schema:
           format: uuid
-          title: Map Id
           type: string
         style: simple
       responses:
-        "200":
-          content:
-            application/json:
-              schema: {}
-          description: Successful Response
-        "422":
+        "204":
+          description: "Request fulfilled, nothing follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Unload Map
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: UnloadMap
       tags:
       - Default
   /localization_sessions/{localization_session_id}/maps/{map_id}/status:
     get:
+      deprecated: false
       operationId: get_map_load_status
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: localization_session_id
         required: true
         schema:
           format: uuid
-          title: Localization Session Id
           type: string
         style: simple
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: map_id
         required: true
         schema:
           format: uuid
-          title: Map Id
           type: string
         style: simple
       responses:
@@ -1119,30 +1147,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LoadStateResponse"
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Map Load Status
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetMapLoadStatus
       tags:
       - Default
   /localization_sessions/{localization_session_id}/localization:
     post:
+      deprecated: false
       operationId: localize_image
       parameters:
-      - explode: false
+      - deprecated: false
+        explode: false
         in: path
         name: localization_session_id
         required: true
         schema:
           format: uuid
-          title: Localization Session Id
           type: string
         style: simple
-      - explode: true
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: List of Ids to delete
+        explode: true
         in: query
         name: axis_convention
         required: true
@@ -1153,31 +1186,35 @@ paths:
         content:
           multipart/form-data:
             schema:
-              $ref: "#/components/schemas/Body_localize_image"
+              $ref: "#/components/schemas/upload_capture_session_tar_request"
         required: true
       responses:
-        "200":
+        "201":
           content:
             application/json:
               schema:
                 items:
                   $ref: "#/components/schemas/MapLocalization"
                 type: array
-          description: Successful Response
-        "422":
+          description: "Document created, URL follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Localize Image
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: LocalizeImage
       tags:
       - Default
   /groups:
     delete:
+      deprecated: false
       operationId: delete_groups
       parameters:
-      - description: List of Ids to delete
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: List of Ids to delete
         explode: true
         in: query
         name: ids
@@ -1187,41 +1224,39 @@ paths:
           items:
             format: uuid
             type: string
-            x-schema-name: delete_groups_param_ids_item
-            nullable: false
           type: array
         style: form
       responses:
-        "200":
-          content:
-            application/json:
-              schema: {}
-          description: Successful Response
-        "422":
+        "204":
+          description: "Request fulfilled, nothing follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Delete Groups
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: DeleteGroups
       tags:
       - Default
     get:
+      deprecated: false
       operationId: get_groups
       parameters:
-      - description: Optional list of Ids to filter by
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: Optional list of Ids to filter by
         explode: true
         in: query
         name: ids
         required: false
         schema:
+          description: Optional list of Ids to filter by
           items:
             format: uuid
             type: string
-            x-schema-name: get_groups_param_ids_item
-            nullable: false
-          type: array
           nullable: true
+          type: array
         style: form
       responses:
         "200":
@@ -1231,36 +1266,43 @@ paths:
                 items:
                   $ref: "#/components/schemas/GroupRead"
                 type: array
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Groups
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetGroups
       tags:
       - Default
     patch:
+      deprecated: false
       operationId: update_groups
       parameters:
-      - explode: true
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        explode: true
+        in: query
+        name: groups
+        required: true
+        schema:
+          items:
+            $ref: "#/components/schemas/GroupBatchUpdate"
+          type: array
+        style: form
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        explode: true
         in: query
         name: allow_missing
         required: false
         schema:
           default: false
-          title: Allow Missing
           type: boolean
         style: form
-      requestBody:
-        content:
-          application/json:
-            schema:
-              items:
-                $ref: "#/components/schemas/GroupBatchUpdate"
-              type: array
-        required: true
       responses:
         "200":
           content:
@@ -1269,45 +1311,55 @@ paths:
                 items:
                   $ref: "#/components/schemas/GroupRead"
                 type: array
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Update Groups
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: UpdateGroups
       tags:
       - Default
     post:
+      deprecated: false
       operationId: create_group
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/GroupCreate"
+      parameters:
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        explode: true
+        in: query
+        name: group
         required: true
+        schema:
+          $ref: "#/components/schemas/GroupCreate"
+        style: form
       responses:
-        "200":
+        "201":
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/GroupRead"
-          description: Successful Response
-        "422":
+          description: "Document created, URL follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Create Group
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: CreateGroup
       tags:
       - Default
   /layers:
     delete:
+      deprecated: false
       operationId: delete_layers
       parameters:
-      - description: List of Ids to delete
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: List of Ids to delete
         explode: true
         in: query
         name: ids
@@ -1317,41 +1369,39 @@ paths:
           items:
             format: uuid
             type: string
-            x-schema-name: delete_layers_param_ids_item
-            nullable: false
           type: array
         style: form
       responses:
-        "200":
-          content:
-            application/json:
-              schema: {}
-          description: Successful Response
-        "422":
+        "204":
+          description: "Request fulfilled, nothing follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Delete Layers
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: DeleteLayers
       tags:
       - Default
     get:
+      deprecated: false
       operationId: get_layers
       parameters:
-      - description: Optional list of Ids to filter by
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: Optional list of Ids to filter by
         explode: true
         in: query
         name: ids
         required: false
         schema:
+          description: Optional list of Ids to filter by
           items:
             format: uuid
             type: string
-            x-schema-name: get_layers_param_ids_item
-            nullable: false
-          type: array
           nullable: true
+          type: array
         style: form
       responses:
         "200":
@@ -1361,36 +1411,43 @@ paths:
                 items:
                   $ref: "#/components/schemas/LayerRead"
                 type: array
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Layers
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetLayers
       tags:
       - Default
     patch:
+      deprecated: false
       operationId: update_layers
       parameters:
-      - explode: true
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        explode: true
+        in: query
+        name: layers
+        required: true
+        schema:
+          items:
+            $ref: "#/components/schemas/LayerBatchUpdate"
+          type: array
+        style: form
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        explode: true
         in: query
         name: allow_missing
         required: false
         schema:
           default: false
-          title: Allow Missing
           type: boolean
         style: form
-      requestBody:
-        content:
-          application/json:
-            schema:
-              items:
-                $ref: "#/components/schemas/LayerBatchUpdate"
-              type: array
-        required: true
       responses:
         "200":
           content:
@@ -1399,45 +1456,55 @@ paths:
                 items:
                   $ref: "#/components/schemas/LayerRead"
                 type: array
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Update Layers
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: UpdateLayers
       tags:
       - Default
     post:
+      deprecated: false
       operationId: create_layer
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/LayerCreate"
+      parameters:
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        explode: true
+        in: query
+        name: layer
         required: true
+        schema:
+          $ref: "#/components/schemas/LayerCreate"
+        style: form
       responses:
-        "200":
+        "201":
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/LayerRead"
-          description: Successful Response
-        "422":
+          description: "Document created, URL follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Create Layer
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: CreateLayer
       tags:
       - Default
   /nodes:
     delete:
+      deprecated: false
       operationId: delete_nodes
       parameters:
-      - description: List of Ids to delete
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: List of Ids to delete
         explode: true
         in: query
         name: ids
@@ -1447,41 +1514,39 @@ paths:
           items:
             format: uuid
             type: string
-            x-schema-name: delete_nodes_param_ids_item
-            nullable: false
           type: array
         style: form
       responses:
-        "200":
-          content:
-            application/json:
-              schema: {}
-          description: Successful Response
-        "422":
+        "204":
+          description: "Request fulfilled, nothing follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Delete Nodes
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: DeleteNodes
       tags:
       - Default
     get:
+      deprecated: false
       operationId: get_nodes
       parameters:
-      - description: Optional list of Ids to filter by
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: Optional list of Ids to filter by
         explode: true
         in: query
         name: ids
         required: false
         schema:
+          description: Optional list of Ids to filter by
           items:
             format: uuid
             type: string
-            x-schema-name: get_nodes_param_ids_item
-            nullable: false
-          type: array
           nullable: true
+          type: array
         style: form
       responses:
         "200":
@@ -1491,36 +1556,43 @@ paths:
                 items:
                   $ref: "#/components/schemas/NodeRead"
                 type: array
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Get Nodes
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetNodes
       tags:
       - Default
     patch:
+      deprecated: false
       operationId: update_nodes
       parameters:
-      - explode: true
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        explode: true
+        in: query
+        name: nodes
+        required: true
+        schema:
+          items:
+            $ref: "#/components/schemas/NodeBatchUpdate"
+          type: array
+        style: form
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        explode: true
         in: query
         name: allow_missing
         required: false
         schema:
           default: false
-          title: Allow Missing
           type: boolean
         style: form
-      requestBody:
-        content:
-          application/json:
-            schema:
-              items:
-                $ref: "#/components/schemas/NodeBatchUpdate"
-              type: array
-        required: true
       responses:
         "200":
           content:
@@ -1529,66 +1601,55 @@ paths:
                 items:
                   $ref: "#/components/schemas/NodeRead"
                 type: array
-          description: Successful Response
-        "422":
+          description: "Request fulfilled, document follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Update Nodes
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: UpdateNodes
       tags:
       - Default
     post:
+      deprecated: false
       operationId: create_node
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/NodeCreate"
+      parameters:
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        explode: true
+        in: query
+        name: node
         required: true
+        schema:
+          $ref: "#/components/schemas/NodeCreate"
+        style: form
       responses:
-        "200":
+        "201":
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/NodeRead"
-          description: Successful Response
-        "422":
+          description: "Document created, URL follows"
+        "400":
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
-          description: Validation Error
-      summary: Create Node
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: CreateNode
       tags:
       - Default
 components:
   schemas:
     AxisConvention:
+      description: List of Ids to delete
       enum:
       - OPENCV
       - UNITY
       title: AxisConvention
       type: string
-    Body_localize_image:
-      properties:
-        image:
-          format: binary
-          title: Image
-          type: string
-      required:
-      - image
-      title: Body_localize_image
-    Body_upload_capture_session_tar:
-      properties:
-        tar:
-          format: binary
-          title: Tar
-          type: string
-      required:
-      - tar
-      title: Body_upload_capture_session_tar
     CaptureSessionBatchUpdate:
       example:
         name: name
@@ -1603,10 +1664,12 @@ components:
           $ref: "#/components/schemas/DeviceType"
         name:
           nullable: true
+          title: Name
           type: string
       required:
       - id
       title: CaptureSessionBatchUpdate
+      type: object
     CaptureSessionCreate:
       example:
         name: name
@@ -1616,6 +1679,7 @@ components:
         id:
           format: uuid
           nullable: true
+          title: Id
           type: string
         device_type:
           $ref: "#/components/schemas/DeviceType"
@@ -1626,6 +1690,7 @@ components:
       - device_type
       - name
       title: CaptureSessionCreate
+      type: object
     CaptureSessionManifest:
       example:
         rigs:
@@ -1637,7 +1702,6 @@ components:
               cx: 7.386281948385884
               cy: 1.2315135367772556
               width: 9
-              model: PINHOLE
               height: 3
             rotation:
               w: 5.962133916683182
@@ -1657,7 +1721,6 @@ components:
               cx: 7.386281948385884
               cy: 1.2315135367772556
               width: 9
-              model: PINHOLE
               height: 3
             rotation:
               w: 5.962133916683182
@@ -1679,7 +1742,6 @@ components:
               cx: 7.386281948385884
               cy: 1.2315135367772556
               width: 9
-              model: PINHOLE
               height: 3
             rotation:
               w: 5.962133916683182
@@ -1699,7 +1761,6 @@ components:
               cx: 7.386281948385884
               cy: 1.2315135367772556
               width: 9
-              model: PINHOLE
               height: 3
             rotation:
               w: 5.962133916683182
@@ -1725,6 +1786,7 @@ components:
       - axis_convention
       - rigs
       title: CaptureSessionManifest
+      type: object
     CaptureSessionRead:
       example:
         updated_at: 2000-01-23T04:56:07.000+00:00
@@ -1738,12 +1800,16 @@ components:
           title: Id
           type: string
         created_at:
+          description: datetime with the constraint that the value must have timezone
+            info
           format: date-time
           title: Created At
           type: string
         updated_at:
+          description: datetime with the constraint that the value must have timezone
+            info
           format: date-time
-          title: Updated At
+          title: Created At
           type: string
         device_type:
           $ref: "#/components/schemas/DeviceType"
@@ -1757,6 +1823,7 @@ components:
       - name
       - updated_at
       title: CaptureSessionRead
+      type: object
     CaptureSessionUpdate:
       example:
         name: name
@@ -1766,8 +1833,10 @@ components:
           $ref: "#/components/schemas/DeviceType"
         name:
           nullable: true
+          title: Name
           type: string
       title: CaptureSessionUpdate
+      type: object
     DeviceType:
       enum:
       - ARFoundation
@@ -1781,19 +1850,17 @@ components:
         z: 7.061401241503109
       properties:
         x:
-          title: X
           type: number
         "y":
-          title: "Y"
           type: number
         z:
-          title: Z
           type: number
       required:
       - x
       - "y"
       - z
       title: Float3
+      type: object
     Float4:
       example:
         w: 5.962133916683182
@@ -1802,16 +1869,12 @@ components:
         z: 1.4658129805029452
       properties:
         x:
-          title: X
           type: number
         "y":
-          title: "Y"
           type: number
         z:
-          title: Z
           type: number
         w:
-          title: W
           type: number
       required:
       - w
@@ -1819,90 +1882,8 @@ components:
       - "y"
       - z
       title: Float4
-    FullOpenCVCameraConfig:
-      properties:
-        width:
-          title: Width
-          type: integer
-        height:
-          title: Height
-          type: integer
-        orientation:
-          enum:
-          - TOP_LEFT
-          - TOP_RIGHT
-          - BOTTOM_RIGHT
-          - BOTTOM_LEFT
-          - LEFT_TOP
-          - RIGHT_TOP
-          - RIGHT_BOTTOM
-          - LEFT_BOTTOM
-          title: Orientation
-          type: string
-        model:
-          enum:
-          - FULL_OPENCV
-          title: Model
-          type: string
-        fx:
-          title: Fx
-          type: number
-        fy:
-          title: Fy
-          type: number
-        cx:
-          title: Cx
-          type: number
-        cy:
-          title: Cy
-          type: number
-        k1:
-          title: K1
-          type: number
-        k2:
-          title: K2
-          type: number
-        p1:
-          title: P1
-          type: number
-        p2:
-          title: P2
-          type: number
-        k3:
-          title: K3
-          type: number
-        k4:
-          title: K4
-          type: number
-        k5:
-          title: K5
-          type: number
-        k6:
-          title: K6
-          type: number
-      required:
-      - cx
-      - cy
-      - fx
-      - fy
-      - height
-      - k1
-      - k2
-      - k3
-      - k4
-      - k5
-      - k6
-      - model
-      - orientation
-      - p1
-      - p2
-      - width
-      title: FullOpenCVCameraConfig
+      type: object
     GroupBatchUpdate:
-      example:
-        parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        name: name
-        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         id:
           format: uuid
@@ -1910,23 +1891,23 @@ components:
           type: string
         name:
           nullable: true
+          title: Name
           type: string
         parent_id:
           format: uuid
           nullable: true
+          title: Parent Id
           type: string
       required:
       - id
       title: GroupBatchUpdate
+      type: object
     GroupCreate:
-      example:
-        parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        name: name
-        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         id:
           format: uuid
           nullable: true
+          title: Id
           type: string
         name:
           title: Name
@@ -1934,10 +1915,12 @@ components:
         parent_id:
           format: uuid
           nullable: true
+          title: Parent Id
           type: string
       required:
       - name
       title: GroupCreate
+      type: object
     GroupRead:
       example:
         updated_at: 2000-01-23T04:56:07.000+00:00
@@ -1951,12 +1934,16 @@ components:
           title: Id
           type: string
         created_at:
+          description: datetime with the constraint that the value must have timezone
+            info
           format: date-time
           title: Created At
           type: string
         updated_at:
+          description: datetime with the constraint that the value must have timezone
+            info
           format: date-time
-          title: Updated At
+          title: Created At
           type: string
         name:
           title: Name
@@ -1964,6 +1951,7 @@ components:
         parent_id:
           format: uuid
           nullable: true
+          title: Parent Id
           type: string
       required:
       - created_at
@@ -1971,29 +1959,8 @@ components:
       - name
       - updated_at
       title: GroupRead
-    HTTPValidationError:
-      example:
-        detail:
-        - msg: msg
-          loc:
-          - ValidationError_loc_inner
-          - ValidationError_loc_inner
-          type: type
-        - msg: msg
-          loc:
-          - ValidationError_loc_inner
-          - ValidationError_loc_inner
-          type: type
-      properties:
-        detail:
-          items:
-            $ref: "#/components/schemas/ValidationError"
-          type: array
-      title: HTTPValidationError
+      type: object
     LayerBatchUpdate:
-      example:
-        name: name
-        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         id:
           format: uuid
@@ -2001,18 +1968,18 @@ components:
           type: string
         name:
           nullable: true
+          title: Name
           type: string
       required:
       - id
       title: LayerBatchUpdate
+      type: object
     LayerCreate:
-      example:
-        name: name
-        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         id:
           format: uuid
           nullable: true
+          title: Id
           type: string
         name:
           title: Name
@@ -2020,6 +1987,7 @@ components:
       required:
       - name
       title: LayerCreate
+      type: object
     LayerRead:
       example:
         updated_at: 2000-01-23T04:56:07.000+00:00
@@ -2032,12 +2000,16 @@ components:
           title: Id
           type: string
         created_at:
+          description: datetime with the constraint that the value must have timezone
+            info
           format: date-time
           title: Created At
           type: string
         updated_at:
+          description: datetime with the constraint that the value must have timezone
+            info
           format: date-time
-          title: Updated At
+          title: Created At
           type: string
         name:
           title: Name
@@ -2048,8 +2020,11 @@ components:
       - name
       - updated_at
       title: LayerRead
+      type: object
     LoadState:
-      description: LoadState
+      description: |2
+
+        LoadState
       enum:
       - pending
       - loading
@@ -2058,7 +2033,6 @@ components:
       title: LoadState
       type: string
     LoadStateResponse:
-      description: LoadStateResponse
       example:
         additional_properties:
           key: ""
@@ -2073,10 +2047,11 @@ components:
         additional_properties:
           additionalProperties: {}
           default: {}
-          title: Additional Properties
+          type: object
       required:
       - status
       title: LoadStateResponse
+      type: object
     LocalizationMapBatchUpdate:
       example:
         rotation_x: 5.637376656633329
@@ -2096,6 +2071,7 @@ components:
         reconstruction_id:
           format: uuid
           nullable: true
+          title: Reconstruction Id
           type: string
         id:
           format: uuid
@@ -2103,40 +2079,52 @@ components:
           type: string
         rotation_y:
           nullable: true
+          title: Rotation Y
           type: number
         position_x:
           nullable: true
+          title: Position X
           type: number
         position_y:
           nullable: true
+          title: Position Y
           type: number
         position_z:
           nullable: true
+          title: Position Z
           type: number
         rotation_x:
           nullable: true
+          title: Rotation X
           type: number
         rotation_z:
           nullable: true
+          title: Rotation Z
           type: number
         rotation_w:
           nullable: true
+          title: Rotation W
           type: number
         color:
           nullable: true
+          title: Color
           type: integer
         active:
           nullable: true
+          title: Active
           type: boolean
         lighting:
           nullable: true
+          title: Lighting
           type: integer
         name:
           nullable: true
+          title: Name
           type: string
       required:
       - id
       title: LocalizationMapBatchUpdate
+      type: object
     LocalizationMapCreate:
       example:
         rotation_x: 5.637376656633329
@@ -2160,6 +2148,7 @@ components:
         id:
           format: uuid
           nullable: true
+          title: Id
           type: string
         rotation_y:
           title: Rotation Y
@@ -2187,12 +2176,15 @@ components:
           type: integer
         active:
           nullable: true
+          title: Active
           type: boolean
         lighting:
           nullable: true
+          title: Lighting
           type: integer
         name:
           nullable: true
+          title: Name
           type: string
       required:
       - color
@@ -2205,6 +2197,7 @@ components:
       - rotation_y
       - rotation_z
       title: LocalizationMapCreate
+      type: object
     LocalizationMapRead:
       example:
         rotation_x: 5.637376656633329
@@ -2247,8 +2240,10 @@ components:
           title: Rotation X
           type: number
         updated_at:
+          description: datetime with the constraint that the value must have timezone
+            info
           format: date-time
-          title: Updated At
+          title: Created At
           type: string
         rotation_z:
           title: Rotation Z
@@ -2260,6 +2255,8 @@ components:
           title: Color
           type: integer
         created_at:
+          description: datetime with the constraint that the value must have timezone
+            info
           format: date-time
           title: Created At
           type: string
@@ -2268,9 +2265,11 @@ components:
           type: boolean
         lighting:
           nullable: true
+          title: Lighting
           type: integer
         name:
           nullable: true
+          title: Name
           type: string
       required:
       - active
@@ -2287,6 +2286,7 @@ components:
       - rotation_z
       - updated_at
       title: LocalizationMapRead
+      type: object
     LocalizationMapUpdate:
       example:
         position_x: 6.027456183070403
@@ -2305,56 +2305,68 @@ components:
         reconstruction_id:
           format: uuid
           nullable: true
+          title: Reconstruction Id
           type: string
         rotation_y:
           nullable: true
+          title: Rotation Y
           type: number
         position_x:
           nullable: true
+          title: Position X
           type: number
         position_y:
           nullable: true
+          title: Position Y
           type: number
         position_z:
           nullable: true
+          title: Position Z
           type: number
         rotation_x:
           nullable: true
+          title: Rotation X
           type: number
         rotation_z:
           nullable: true
+          title: Rotation Z
           type: number
         rotation_w:
           nullable: true
+          title: Rotation W
           type: number
         color:
           nullable: true
+          title: Color
           type: integer
         active:
           nullable: true
+          title: Active
           type: boolean
         lighting:
           nullable: true
+          title: Lighting
           type: integer
         name:
           nullable: true
+          title: Name
           type: string
       title: LocalizationMapUpdate
+      type: object
     LocalizationMetrics:
       example:
         inlier_ratio: 0.8008281904610115
         reprojection_error_median: 6.027456183070403
       properties:
         inlier_ratio:
-          title: Inlier Ratio
           type: number
         reprojection_error_median:
-          title: Reprojection Error Median
           type: number
       required:
       - inlier_ratio
       - reprojection_error_median
       title: LocalizationMetrics
+      type: object
     LocalizationSessionRead:
       example:
         container_url: container_url
@@ -2367,6 +2379,8 @@ components:
           title: Id
           type: string
         created_at:
+          description: datetime with the constraint that the value must have timezone
+            info
           format: date-time
           title: Created At
           type: string
@@ -2382,6 +2396,7 @@ components:
       - created_at
       - id
       title: LocalizationSessionRead
+      type: object
     MapLocalization:
       example:
         camera_from_map_transform:
@@ -2411,7 +2426,6 @@ components:
       properties:
         id:
           format: uuid
-          title: Id
           type: string
         camera_from_map_transform:
           $ref: "#/components/schemas/Transform"
@@ -2425,27 +2439,8 @@ components:
       - map_transform
       - metrics
       title: MapLocalization
+      type: object
     NodeBatchUpdate:
-      example:
-        rotation_x: 5.962133916683182
-        rotation_w: 2.3021358869347655
-        label_scale: 2.027123023002322
-        link: link
-        active: true
-        rotation_z: 0.8008281904610115
-        label_type: 7
-        rotation_y: 5.637376656633329
-        label: label
-        label_height: 3.616076749251911
-        label_width: 9.301444243932576
-        link_type: 4
-        position_x: 7.061401241503109
-        position_y: 6.027456183070403
-        layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        position_z: 1.4658129805029452
-        parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        name: name
-        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         id:
           format: uuid
@@ -2453,88 +2448,88 @@ components:
           type: string
         rotation_z:
           nullable: true
+          title: Rotation Z
           type: number
         position_y:
           nullable: true
+          title: Position Y
           type: number
         position_z:
           nullable: true
+          title: Position Z
           type: number
         rotation_x:
           nullable: true
+          title: Rotation X
           type: number
         rotation_y:
           nullable: true
+          title: Rotation Y
           type: number
         rotation_w:
           nullable: true
+          title: Rotation W
           type: number
         position_x:
           nullable: true
+          title: Position X
           type: number
         active:
           nullable: true
+          title: Active
           type: boolean
         name:
           nullable: true
+          title: Name
           type: string
         layer_id:
           format: uuid
           nullable: true
+          title: Layer Id
           type: string
         parent_id:
           format: uuid
           nullable: true
+          title: Parent Id
           type: string
         label_width:
           nullable: true
+          title: Label Width
           type: number
         label_height:
           nullable: true
+          title: Label Height
           type: number
         label_scale:
           nullable: true
+          title: Label Scale
           type: number
         link_type:
           nullable: true
+          title: Link Type
           type: integer
         label_type:
           nullable: true
+          title: Label Type
           type: integer
         link:
           nullable: true
+          title: Link
           type: string
         label:
           nullable: true
+          title: Label
           type: string
       required:
       - id
       title: NodeBatchUpdate
+      type: object
     NodeCreate:
-      example:
-        rotation_x: 5.962133916683182
-        rotation_w: 2.3021358869347655
-        label_scale: 2.027123023002322
-        link: link
-        active: true
-        rotation_z: 0.8008281904610115
-        label_type: 7
-        rotation_y: 5.637376656633329
-        label: label
-        label_height: 3.616076749251911
-        label_width: 9.301444243932576
-        link_type: 4
-        position_x: 7.061401241503109
-        position_y: 6.027456183070403
-        layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        position_z: 1.4658129805029452
-        parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        name: name
-        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         id:
           format: uuid
           nullable: true
+          title: Id
           type: string
         rotation_z:
           title: Rotation Z
@@ -2559,6 +2554,7 @@ components:
           type: number
         active:
           nullable: true
+          title: Active
           type: boolean
         name:
           title: Name
@@ -2566,31 +2562,40 @@ components:
         layer_id:
           format: uuid
           nullable: true
+          title: Layer Id
           type: string
         parent_id:
           format: uuid
           nullable: true
+          title: Parent Id
           type: string
         label_width:
           nullable: true
+          title: Label Width
           type: number
         label_height:
           nullable: true
+          title: Label Height
           type: number
         label_scale:
           nullable: true
+          title: Label Scale
           type: number
         link_type:
           nullable: true
+          title: Link Type
           type: integer
         label_type:
           nullable: true
+          title: Label Type
           type: integer
         link:
           nullable: true
+          title: Link
           type: string
         label:
           nullable: true
+          title: Label
           type: string
       required:
       - name
@@ -2602,6 +2607,7 @@ components:
       - rotation_y
       - rotation_z
       title: NodeCreate
+      type: object
     NodeRead:
       example:
         rotation_x: 5.962133916683182
@@ -2646,6 +2652,8 @@ components:
           title: Rotation Y
           type: number
         created_at:
+          description: datetime with the constraint that the value must have timezone
+            info
           format: date-time
           title: Created At
           type: string
@@ -2653,8 +2661,10 @@ components:
           title: Rotation W
           type: number
         updated_at:
+          description: datetime with the constraint that the value must have timezone
+            info
           format: date-time
-          title: Updated At
+          title: Created At
           type: string
         position_x:
           title: Position X
@@ -2668,31 +2678,40 @@ components:
         layer_id:
           format: uuid
           nullable: true
+          title: Layer Id
           type: string
         parent_id:
           format: uuid
           nullable: true
+          title: Parent Id
           type: string
         label_width:
           nullable: true
+          title: Label Width
           type: number
         label_height:
           nullable: true
+          title: Label Height
           type: number
         label_scale:
           nullable: true
+          title: Label Scale
           type: number
         link_type:
           nullable: true
+          title: Link Type
           type: integer
         label_type:
           nullable: true
+          title: Label Type
           type: integer
         link:
           nullable: true
+          title: Link
           type: string
         label:
           nullable: true
+          title: Label
           type: string
       required:
       - active
@@ -2708,73 +2727,7 @@ components:
       - rotation_z
       - updated_at
       title: NodeRead
-    OpenCVCameraConfig:
-      properties:
-        width:
-          title: Width
-          type: integer
-        height:
-          title: Height
-          type: integer
-        orientation:
-          enum:
-          - TOP_LEFT
-          - TOP_RIGHT
-          - BOTTOM_RIGHT
-          - BOTTOM_LEFT
-          - LEFT_TOP
-          - RIGHT_TOP
-          - RIGHT_BOTTOM
-          - LEFT_BOTTOM
-          title: Orientation
-          type: string
-        model:
-          enum:
-          - OPENCV
-          title: Model
-          type: string
-        fx:
-          title: Fx
-          type: number
-        fy:
-          title: Fy
-          type: number
-        cx:
-          title: Cx
-          type: number
-        cy:
-          title: Cy
-          type: number
-        k1:
-          title: K1
-          type: number
-        k2:
-          title: K2
-          type: number
-        p1:
-          title: P1
-          type: number
-        p2:
-          title: P2
-          type: number
-        k3:
-          title: K3
-          type: number
-      required:
-      - cx
-      - cy
-      - fx
-      - fy
-      - height
-      - k1
-      - k2
-      - k3
-      - model
-      - orientation
-      - p1
-      - p2
-      - width
-      title: OpenCVCameraConfig
+      type: object
     OrchestrationStatus:
       enum:
       - queued
@@ -2793,14 +2746,11 @@ components:
         cx: 7.386281948385884
         cy: 1.2315135367772556
         width: 9
-        model: PINHOLE
         height: 3
       properties:
         width:
-          title: Width
           type: integer
         height:
-          title: Height
           type: integer
         orientation:
           enum:
@@ -2812,24 +2762,14 @@ components:
           - RIGHT_TOP
           - RIGHT_BOTTOM
           - LEFT_BOTTOM
-          title: Orientation
-          type: string
-        model:
-          enum:
-          - PINHOLE
-          title: Model
           type: string
         fx:
-          title: Fx
           type: number
         fy:
-          title: Fy
           type: number
         cx:
-          title: Cx
           type: number
         cy:
-          title: Cy
           type: number
       required:
       - cx
@@ -2837,10 +2777,10 @@ components:
       - fx
       - fy
       - height
-      - model
       - orientation
       - width
       title: PinholeCameraConfig
+      type: object
     ReconstructionCreate:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -2854,12 +2794,14 @@ components:
         id:
           format: uuid
           nullable: true
+          title: Id
           type: string
         orchestration_status:
           $ref: "#/components/schemas/OrchestrationStatus"
       required:
       - capture_session_id
       title: ReconstructionCreate
+      type: object
     ReconstructionCreateWithOptions:
       example:
         options:
@@ -2896,6 +2838,7 @@ components:
       required:
       - create
       title: ReconstructionCreateWithOptions
+      type: object
     ReconstructionManifest:
       example:
         options:
@@ -2951,7 +2894,6 @@ components:
         status: queued
       properties:
         capture_id:
-          title: Capture Id
           type: string
         status:
           enum:
@@ -2966,7 +2908,6 @@ components:
           - uploading
           - succeeded
           - failed
-          title: Status
           type: string
         error:
           nullable: true
@@ -2981,6 +2922,7 @@ components:
       - options
       - status
       title: ReconstructionManifest
+      type: object
     ReconstructionMetrics:
       example:
         all_verified_match_inliers_median: 1.2315135367772556
@@ -3010,81 +2952,121 @@ components:
         stereo_verified_match_inliers_mean: 6.84685269835264
       properties:
         total_images:
+          description: Total number of input images considered for this reconstruction
+            run.
           nullable: true
           type: integer
         registered_images:
+          description: Number of images successfully registered into the final model.
           nullable: true
           type: integer
         registration_rate:
+          description: "Registration rate in percent: 100 × (registered_images / total_images).\
+            \ Computed after selecting the best reconstruction (max registered images)."
           nullable: true
           type: number
         num_3d_points:
+          description: Count of 3D points in the selected 'best' reconstruction.
           nullable: true
           type: integer
         average_keypoints_per_image:
+          description: "Average number of detected keypoints per image (after SuperPoint\
+            \ extraction), computed across all images."
           nullable: true
           type: number
         reprojection_pixel_error_50th_percentile:
+          description: "Median (50th percentile) reprojection error in pixels across\
+            \ all valid 2D observations in registered images, measured using image.project_point(point3D.xyz)\
+            \ vs. observed 2D keypoint."
           nullable: true
           type: number
         reprojection_pixel_error_90th_percentile:
+          description: "90th percentile reprojection error in pixels across all valid\
+            \ 2D observations, computed the same way as the median."
           nullable: true
           type: number
         track_length_50th_percentile:
+          description: Median (50th percentile) track length across 3D points in the
+            selected model. Track length = number of distinct images observing the
+            point.
           nullable: true
           type: number
         percent_tracks_with_length_greater_than_or_equal_to_3:
+          description: "Percentage of 3D points whose track length is ≥ 3 (a common\
+            \ robustness threshold). Computed as 100 × (#points with length≥3 / #points)."
           nullable: true
           type: number
         all_verified_matches:
+          description: Total number of verified matches across all image pairs.
           nullable: true
           type: integer
         all_verified_match_rate:
+          description: Percentage of verified matches across all image pairs.
           nullable: true
           type: number
         all_verified_match_inliers_mean:
+          description: Mean number of inliers for all verified matches.
           nullable: true
           type: number
         all_verified_match_inliers_median:
+          description: Median number of inliers for all verified matches.
           nullable: true
           type: number
         stereo_verified_matches:
+          description: "Number of verified matches for stereo pairs (same frame, different\
+            \ sensors)."
           nullable: true
           type: integer
         stereo_verified_match_rate:
+          description: Percentage of verified matches for stereo pairs.
           nullable: true
           type: number
         stereo_verified_match_inliers_mean:
+          description: Mean number of inliers for verified matches for stereo pairs.
           nullable: true
           type: number
         stereo_verified_match_inliers_median:
+          description: Median number of inliers for verified matches for stereo pairs.
           nullable: true
           type: number
         same_sensor_verified_matches:
+          description: Number of verified matches for same-sensor pairs (across frames).
           nullable: true
           type: integer
         same_sensor_verified_match_rate:
+          description: Percentage of verified matches for same-sensor pairs.
           nullable: true
           type: number
         same_sensor_verified_match_inliers_mean:
+          description: Mean number of inliers for verified matches for same-sensor
+            pairs.
           nullable: true
           type: number
         same_sensor_verified_match_inliers_median:
+          description: Median number of inliers for verified matches for same-sensor
+            pairs.
           nullable: true
           type: number
         cross_sensor_verified_matches:
+          description: Number of verified matches for cross-sensor pairs (across frames).
           nullable: true
           type: integer
         cross_sensor_verified_match_rate:
+          description: Percentage of verified matches for cross-sensor pairs.
           nullable: true
           type: number
         cross_sensor_verified_match_inliers_mean:
+          description: Mean number of inliers for verified matches for cross-sensor
+            pairs.
           nullable: true
           type: number
         cross_sensor_verified_match_inliers_median:
+          description: Median number of inliers for verified matches for cross-sensor
+            pairs.
           nullable: true
           type: number
       title: ReconstructionMetrics
+      type: object
     ReconstructionOptions:
       example:
         random_seed: 0
@@ -3110,69 +3092,117 @@ components:
         rig_verification: true
       properties:
         random_seed:
+          description: Random seed to use (for deterministic behavior).
           nullable: true
           type: integer
         single_threaded:
+          description: "If true, run reconstruction in single-threaded mode (for deterministic\
+            \ behavior)."
           nullable: true
           type: boolean
         neighbors_count:
+          description: "How many pose-nearest neighbors to consider when generating\
+            \ image pairs. Use -1 for exhaustive matching (all pairs). If None, a\
+            \ sensible default is used (currently 12). Smaller values reduce weak\
+            \ overlaps and speed up matching at the cost of some coverage."
           nullable: true
           type: integer
         rotation_threshold:
+          description: Rotation angle threshold (degrees) for considering two images
+            as neighbors when generating image pairs. Smaller values reduce weak overlaps
+            and speed up matching at the cost of some coverage.
           nullable: true
           type: number
         max_keypoints_per_image:
+          description: Upper bound on detected local features per image (SuperPoint).
+            Reduces descriptor/match volume and downstream 3D points; too small can
+            hurt registration.
           nullable: true
           type: integer
         ransac_max_error:
+          description: Two-view RANSAC inlier threshold (pixels) used by verify_matches().
+            Lower = stricter inlier test; removes borderline correspondences before
+            SfM.
           nullable: true
           type: number
         ransac_min_inlier_ratio:
+          description: Two-view RANSAC minimum inlier ratio to accept the model. Higher
+            = reject more weak pairs; typically 0.10–0.20 for stricter matching.
           nullable: true
           type: number
         use_prior_position:
+          description: "If true, use position priors during registration. This leverages\
+            \ PosePrior(position=...) written into the database to guide image registration."
           nullable: true
           type: boolean
         rig_verification:
+          description: "If true, perform rig-based verification during feature matching\
+            \ and two-view geometry verification. Requires images to be tagged with\
+            \ rig/camera IDs."
           nullable: true
           type: boolean
         triangulation_minimum_angle:
+          description: Minimum triangulation angle (degrees). Applied at creation
+            time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle).
+            Raising it removes low-parallax points.
           nullable: true
           type: number
         triangulation_complete_max_reprojection_error:
+          description: Triangulation-time gate (pixels) for COMPLETING tracks into
+            new 3D points (triangulation.complete_max_reproj_error). Lower → fewer
+            borderline new points.
           nullable: true
           type: number
         triangulation_merge_max_reprojection_error:
+          description: Triangulation-time gate (pixels) for MERGING near-duplicate
+            3D points (triangulation.merge_max_reproj_error). Lower → fewer merges;
+            higher → more aggressive deduplication.
           nullable: true
           type: number
         mapper_filter_max_reprojection_error:
+          description: Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error).
+            Points exceeding this after local/global BA are culled. This is NOT a
+            triangulation accept threshold.
           nullable: true
           type: number
         bundle_adjustment_refine_sensor_from_rig:
+          description: "If true, refine per-camera extrinsics within the rig during\
+            \ BA (ba_refine_sensor_from_rig). Useful when rig calibration is approximate."
           nullable: true
           type: boolean
         bundle_adjustment_refine_focal_length:
+          description: "If true, refine the camera focal length during BA (ba_refine_focal_length)."
           nullable: true
           type: boolean
         bundle_adjustment_refine_principal_point:
+          description: "If true, refine the camera principal point during BA (ba_refine_principal_point)."
           nullable: true
           type: boolean
         bundle_adjustment_refine_additional_params:
+          description: "If true, refine model-specific additional parameters during\
+            \ BA (ba_refine_extra_params), e.g., radial/tangential distortion where\
+            \ applicable."
           nullable: true
           type: boolean
         compression_opq_number_of_subvectors:
+          description: Number of subvectors for OPQ compression.
           nullable: true
           type: integer
         compression_opq_number_of_bits_per_subvector:
+          description: Number of bits per subvector for OPQ compression.
           nullable: true
           type: integer
         compression_opq_number_of_training_iterations:
+          description: Number of training iterations for OPQ compression.
           nullable: true
           type: integer
         pose_prior_position_sigma_m:
+          description: Standard deviation (meters) for position priors when writing
+            PosePrior to the database. Smaller values = stronger priors.
           nullable: true
           type: number
       title: ReconstructionOptions
+      type: object
     ReconstructionRead:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -3190,12 +3220,16 @@ components:
           title: Id
           type: string
         created_at:
+          description: datetime with the constraint that the value must have timezone
+            info
           format: date-time
           title: Created At
           type: string
         updated_at:
+          description: datetime with the constraint that the value must have timezone
+            info
           format: date-time
-          title: Updated At
+          title: Created At
           type: string
         orchestration_status:
           $ref: "#/components/schemas/OrchestrationStatus"
@@ -3206,6 +3240,7 @@ components:
       - orchestration_status
       - updated_at
       title: ReconstructionRead
+      type: object
     RigCameraConfig:
       example:
         camera_config:
@@ -3215,7 +3250,6 @@ components:
           cx: 7.386281948385884
           cy: 1.2315135367772556
           width: 9
-          model: PINHOLE
           height: 3
         rotation:
           w: 5.962133916683182
@@ -3230,17 +3264,15 @@ components:
         id: id
       properties:
         id:
-          title: Id
           type: string
         ref_sensor:
-          nullable: true
           type: boolean
         rotation:
           $ref: "#/components/schemas/Float4"
         translation:
           $ref: "#/components/schemas/Float3"
         camera_config:
-          $ref: "#/components/schemas/Camera_Config"
+          $ref: "#/components/schemas/PinholeCameraConfig"
       required:
       - camera_config
       - id
@@ -3248,6 +3280,7 @@ components:
       - rotation
       - translation
       title: RigCameraConfig
+      type: object
     RigConfig:
       example:
         cameras:
@@ -3258,7 +3291,6 @@ components:
             cx: 7.386281948385884
             cy: 1.2315135367772556
             width: 9
-            model: PINHOLE
             height: 3
           rotation:
             w: 5.962133916683182
@@ -3278,7 +3310,6 @@ components:
             cx: 7.386281948385884
             cy: 1.2315135367772556
             width: 9
-            model: PINHOLE
             height: 3
           rotation:
             w: 5.962133916683182
@@ -3294,7 +3325,6 @@ components:
         id: id
       properties:
         id:
-          title: Id
           type: string
         cameras:
           items:
@@ -3304,6 +3334,7 @@ components:
       - cameras
       - id
       title: RigConfig
+      type: object
     Transform:
       example:
         rotation:
@@ -3324,50 +3355,35 @@ components:
       - rotation
       - translation
       title: Transform
-    ValidationError:
+      type: object
+    get_capture_sessions_400_response_extra:
+      additionalProperties: {}
+      anyOf:
+      - type: object
+      - items: {}
+        type: array
+      nullable: true
+    get_capture_sessions_400_response:
+      description: Validation Exception
       example:
-        msg: msg
-        loc:
-        - ValidationError_loc_inner
-        - ValidationError_loc_inner
-        type: type
+        status_code: 400
+        detail: Bad Request
+        extra: {}
       properties:
-        loc:
-          items:
-            $ref: "#/components/schemas/ValidationError_loc_inner"
-          type: array
-        msg:
-          title: Message
+        status_code:
+          type: integer
+        detail:
           type: string
-        type:
-          title: Error Type
-          type: string
+        extra:
+          $ref: "#/components/schemas/get_capture_sessions_400_response_extra"
       required:
-      - loc
-      - msg
-      - type
-      title: ValidationError
-    Camera:
-      anyOf:
-      - $ref: "#/components/schemas/PinholeCameraConfig"
-      - $ref: "#/components/schemas/OpenCVCameraConfig"
-      - $ref: "#/components/schemas/FullOpenCVCameraConfig"
-      title: Camera
-    Camera_Config:
-      discriminator:
-        mapping:
-          FULL_OPENCV: "#/components/schemas/FullOpenCVCameraConfig"
-          OPENCV: "#/components/schemas/OpenCVCameraConfig"
-          PINHOLE: "#/components/schemas/PinholeCameraConfig"
-        propertyName: model
-      oneOf:
-      - $ref: "#/components/schemas/PinholeCameraConfig"
-      - $ref: "#/components/schemas/OpenCVCameraConfig"
-      - $ref: "#/components/schemas/FullOpenCVCameraConfig"
-      title: Camera Config
-    ValidationError_loc_inner:
-      anyOf:
-      - type: string
-      - type: integer
-  securitySchemes: {}
+      - detail
+      - status_code
+      type: object
+    upload_capture_session_tar_request:
+      properties:
+        file:
+          format: binary
+          type: string
+      type: object
 

@@ -1,5 +1,5 @@
 {
-  "openapi": "3.1.0",
+  "openapi": "3.0.3",
   "info": {
     "title": "Localize",
     "version": "0.1.0"
@@ -149,26 +149,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/PinholeCameraConfig"
-                  },
-                  {
-                    "$ref": "#/components/schemas/OpenCVCameraConfig"
-                  },
-                  {
-                    "$ref": "#/components/schemas/FullOpenCVCameraConfig"
-                  }
-                ],
-                "title": "Camera",
-                "discriminator": {
-                  "propertyName": "model",
-                  "mapping": {
-                    "PINHOLE": "#/components/schemas/PinholeCameraConfig",
-                    "OPENCV": "#/components/schemas/OpenCVCameraConfig",
-                    "FULL_OPENCV": "#/components/schemas/FullOpenCVCameraConfig"
-                  }
-                }
+                "$ref": "#/components/schemas/PinholeCameraConfig"
               }
             }
           },
@@ -324,105 +305,6 @@
         ],
         "title": "Float4"
       },
-      "FullOpenCVCameraConfig": {
-        "properties": {
-          "width": {
-            "type": "integer",
-            "title": "Width"
-          },
-          "height": {
-            "type": "integer",
-            "title": "Height"
-          },
-          "orientation": {
-            "type": "string",
-            "enum": [
-              "TOP_LEFT",
-              "TOP_RIGHT",
-              "BOTTOM_RIGHT",
-              "BOTTOM_LEFT",
-              "LEFT_TOP",
-              "RIGHT_TOP",
-              "RIGHT_BOTTOM",
-              "LEFT_BOTTOM"
-            ],
-            "title": "Orientation"
-          },
-          "model": {
-            "type": "string",
-            "const": "FULL_OPENCV",
-            "title": "Model"
-          },
-          "fx": {
-            "type": "number",
-            "title": "Fx"
-          },
-          "fy": {
-            "type": "number",
-            "title": "Fy"
-          },
-          "cx": {
-            "type": "number",
-            "title": "Cx"
-          },
-          "cy": {
-            "type": "number",
-            "title": "Cy"
-          },
-          "k1": {
-            "type": "number",
-            "title": "K1"
-          },
-          "k2": {
-            "type": "number",
-            "title": "K2"
-          },
-          "p1": {
-            "type": "number",
-            "title": "P1"
-          },
-          "p2": {
-            "type": "number",
-            "title": "P2"
-          },
-          "k3": {
-            "type": "number",
-            "title": "K3"
-          },
-          "k4": {
-            "type": "number",
-            "title": "K4"
-          },
-          "k5": {
-            "type": "number",
-            "title": "K5"
-          },
-          "k6": {
-            "type": "number",
-            "title": "K6"
-          }
-        },
-        "type": "object",
-        "required": [
-          "width",
-          "height",
-          "orientation",
-          "model",
-          "fx",
-          "fy",
-          "cx",
-          "cy",
-          "k1",
-          "k2",
-          "p1",
-          "p2",
-          "k3",
-          "k4",
-          "k5",
-          "k6"
-        ],
-        "title": "FullOpenCVCameraConfig"
-      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -452,15 +334,9 @@
             "$ref": "#/components/schemas/LoadState"
           },
           "error": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error"
+            "title": "Error",
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object",
@@ -509,90 +385,6 @@
         ],
         "title": "LocalizationMetrics"
       },
-      "OpenCVCameraConfig": {
-        "properties": {
-          "width": {
-            "type": "integer",
-            "title": "Width"
-          },
-          "height": {
-            "type": "integer",
-            "title": "Height"
-          },
-          "orientation": {
-            "type": "string",
-            "enum": [
-              "TOP_LEFT",
-              "TOP_RIGHT",
-              "BOTTOM_RIGHT",
-              "BOTTOM_LEFT",
-              "LEFT_TOP",
-              "RIGHT_TOP",
-              "RIGHT_BOTTOM",
-              "LEFT_BOTTOM"
-            ],
-            "title": "Orientation"
-          },
-          "model": {
-            "type": "string",
-            "const": "OPENCV",
-            "title": "Model"
-          },
-          "fx": {
-            "type": "number",
-            "title": "Fx"
-          },
-          "fy": {
-            "type": "number",
-            "title": "Fy"
-          },
-          "cx": {
-            "type": "number",
-            "title": "Cx"
-          },
-          "cy": {
-            "type": "number",
-            "title": "Cy"
-          },
-          "k1": {
-            "type": "number",
-            "title": "K1"
-          },
-          "k2": {
-            "type": "number",
-            "title": "K2"
-          },
-          "p1": {
-            "type": "number",
-            "title": "P1"
-          },
-          "p2": {
-            "type": "number",
-            "title": "P2"
-          },
-          "k3": {
-            "type": "number",
-            "title": "K3"
-          }
-        },
-        "type": "object",
-        "required": [
-          "width",
-          "height",
-          "orientation",
-          "model",
-          "fx",
-          "fy",
-          "cx",
-          "cy",
-          "k1",
-          "k2",
-          "p1",
-          "p2",
-          "k3"
-        ],
-        "title": "OpenCVCameraConfig"
-      },
       "PinholeCameraConfig": {
         "properties": {
           "width": {
@@ -617,11 +409,6 @@
             ],
             "title": "Orientation"
           },
-          "model": {
-            "type": "string",
-            "const": "PINHOLE",
-            "title": "Model"
-          },
           "fx": {
             "type": "number",
             "title": "Fx"
@@ -644,7 +431,6 @@
           "width",
           "height",
           "orientation",
-          "model",
           "fx",
           "fy",
           "cx",

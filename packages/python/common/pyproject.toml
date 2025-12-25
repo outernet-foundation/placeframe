@@ -16,7 +16,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "boto3-stubs[batch,ecs,secretsmanager,s3,lambda]>=1.40.29",
-    "types-docker>=7.1.0.20250907",
+    # "types-docker>=7.1.0.20250907",
 ]
 
 [build-system]

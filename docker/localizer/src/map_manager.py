@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from concurrent.futures import Future, ThreadPoolExecutor
-from enum import Enum
 from pathlib import Path
 from shutil import rmtree
 from threading import Lock
@@ -12,39 +11,19 @@ from common.boto_clients import create_s3_client
 from core.axis_convention import AxisConvention
 from core.camera_config import PinholeCameraConfig
 from core.h5 import FEATURES_FILE, GLOBAL_DESCRIPTORS_FILE, read_features, read_global_descriptors
-from core.localization_metrics import LocalizationMetrics
 from core.opq import OPQ_MATRIX_FILE, PQ_QUANTIZER_FILE, read_opq_matrix, read_pq_quantizer
-from core.transform import Transform
 from numpy import float32, stack, uint8
 from numpy.typing import NDArray
 from pycolmap import Reconstruction
-from pydantic import BaseModel
 
 from .localize import localize_image_against_reconstruction
 from .map import Map
+from .schemas import LoadState, LoadStateResponse, Localization
 from .settings import get_settings
 
 RECONSTRUCTIONS_DIR = Path("/tmp/reconstructions")
 RETRIEVAL_TOP_K = 12  # how many similar database images to keep
 RANSAC_THRESHOLD = 12.0  # reprojection error in pixels
-
-
-class LoadState(str, Enum):
-    PENDING = "pending"
-    LOADING = "loading"
-    READY = "ready"
-    FAILED = "failed"
-
-
-class LoadStateResponse(BaseModel):
-    status: LoadState
-    error: str | None = None
-
-
-class Localization(BaseModel):
-    id: UUID
-    transform: Transform
-    metrics: LocalizationMetrics
 
 
 _executor = ThreadPoolExecutor(max_workers=2)

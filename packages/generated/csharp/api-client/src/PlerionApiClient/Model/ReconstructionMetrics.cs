@@ -25,7 +25,6 @@ using OpenAPIDateConverter = PlerionApiClient.Client.OpenAPIDateConverter;
 
 namespace PlerionApiClient.Model
 {
-    // fuck
     /// <summary>
     /// ReconstructionMetrics
     /// </summary>
@@ -35,38 +34,39 @@ namespace PlerionApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionMetrics" /> class.
         /// </summary>
-        /// <param name="totalImages">totalImages.</param>
-        /// <param name="registeredImages">registeredImages.</param>
-        /// <param name="registrationRate">registrationRate.</param>
-        /// <param name="num3dPoints">num3dPoints.</param>
-        /// <param name="averageKeypointsPerImage">averageKeypointsPerImage.</param>
-        /// <param name="reprojectionPixelError50thPercentile">reprojectionPixelError50thPercentile.</param>
-        /// <param name="reprojectionPixelError90thPercentile">reprojectionPixelError90thPercentile.</param>
-        /// <param name="trackLength50thPercentile">trackLength50thPercentile.</param>
-        /// <param name="percentTracksWithLengthGreaterThanOrEqualTo3">percentTracksWithLengthGreaterThanOrEqualTo3.</param>
-        /// <param name="allVerifiedMatches">allVerifiedMatches.</param>
-        /// <param name="allVerifiedMatchRate">allVerifiedMatchRate.</param>
-        /// <param name="allVerifiedMatchInliersMean">allVerifiedMatchInliersMean.</param>
-        /// <param name="allVerifiedMatchInliersMedian">allVerifiedMatchInliersMedian.</param>
-        /// <param name="stereoVerifiedMatches">stereoVerifiedMatches.</param>
-        /// <param name="stereoVerifiedMatchRate">stereoVerifiedMatchRate.</param>
-        /// <param name="stereoVerifiedMatchInliersMean">stereoVerifiedMatchInliersMean.</param>
-        /// <param name="stereoVerifiedMatchInliersMedian">stereoVerifiedMatchInliersMedian.</param>
-        /// <param name="sameSensorVerifiedMatches">sameSensorVerifiedMatches.</param>
-        /// <param name="sameSensorVerifiedMatchRate">sameSensorVerifiedMatchRate.</param>
-        /// <param name="sameSensorVerifiedMatchInliersMean">sameSensorVerifiedMatchInliersMean.</param>
-        /// <param name="sameSensorVerifiedMatchInliersMedian">sameSensorVerifiedMatchInliersMedian.</param>
-        /// <param name="crossSensorVerifiedMatches">crossSensorVerifiedMatches.</param>
-        /// <param name="crossSensorVerifiedMatchRate">crossSensorVerifiedMatchRate.</param>
-        /// <param name="crossSensorVerifiedMatchInliersMean">crossSensorVerifiedMatchInliersMean.</param>
-        /// <param name="crossSensorVerifiedMatchInliersMedian">crossSensorVerifiedMatchInliersMedian.</param>
+        /// <param name="totalImages">Total number of input images considered for this reconstruction run..</param>
+        /// <param name="registeredImages">Number of images successfully registered into the final model..</param>
+        /// <param name="registrationRate">Registration rate in percent: 100 × (registered_images / total_images). Computed after selecting the best reconstruction (max registered images)..</param>
+        /// <param name="num3dPoints">Count of 3D points in the selected &#39;best&#39; reconstruction..</param>
+        /// <param name="averageKeypointsPerImage">Average number of detected keypoints per image (after SuperPoint extraction), computed across all images..</param>
+        /// <param name="reprojectionPixelError50thPercentile">Median (50th percentile) reprojection error in pixels across all valid 2D observations in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint..</param>
+        /// <param name="reprojectionPixelError90thPercentile">90th percentile reprojection error in pixels across all valid 2D observations, computed the same way as the median..</param>
+        /// <param name="trackLength50thPercentile">Median (50th percentile) track length across 3D points in the selected model. Track length &#x3D; number of distinct images observing the point..</param>
+        /// <param name="percentTracksWithLengthGreaterThanOrEqualTo3">Percentage of 3D points whose track length is ≥ 3 (a common robustness threshold). Computed as 100 × (#points with length≥3 / #points)..</param>
+        /// <param name="allVerifiedMatches">Total number of verified matches across all image pairs..</param>
+        /// <param name="allVerifiedMatchRate">Percentage of verified matches across all image pairs..</param>
+        /// <param name="allVerifiedMatchInliersMean">Mean number of inliers for all verified matches..</param>
+        /// <param name="allVerifiedMatchInliersMedian">Median number of inliers for all verified matches..</param>
+        /// <param name="stereoVerifiedMatches">Number of verified matches for stereo pairs (same frame, different sensors)..</param>
+        /// <param name="stereoVerifiedMatchRate">Percentage of verified matches for stereo pairs..</param>
+        /// <param name="stereoVerifiedMatchInliersMean">Mean number of inliers for verified matches for stereo pairs..</param>
+        /// <param name="stereoVerifiedMatchInliersMedian">Median number of inliers for verified matches for stereo pairs..</param>
+        /// <param name="sameSensorVerifiedMatches">Number of verified matches for same-sensor pairs (across frames)..</param>
+        /// <param name="sameSensorVerifiedMatchRate">Percentage of verified matches for same-sensor pairs..</param>
+        /// <param name="sameSensorVerifiedMatchInliersMean">Mean number of inliers for verified matches for same-sensor pairs..</param>
+        /// <param name="sameSensorVerifiedMatchInliersMedian">Median number of inliers for verified matches for same-sensor pairs..</param>
+        /// <param name="crossSensorVerifiedMatches">Number of verified matches for cross-sensor pairs (across frames)..</param>
+        /// <param name="crossSensorVerifiedMatchRate">Percentage of verified matches for cross-sensor pairs..</param>
+        /// <param name="crossSensorVerifiedMatchInliersMean">Mean number of inliers for verified matches for cross-sensor pairs..</param>
+        /// <param name="crossSensorVerifiedMatchInliersMedian">Median number of inliers for verified matches for cross-sensor pairs..</param>
         public ReconstructionMetrics()
         {
         }
 
         /// <summary>
-        /// Gets or Sets TotalImages
+        /// Total number of input images considered for this reconstruction run.
         /// </summary>
+        /// <value>Total number of input images considered for this reconstruction run.</value>
         [DataMember(Name = "total_images", EmitDefaultValue = true)]
         public int? TotalImages
         {
@@ -89,8 +89,9 @@ namespace PlerionApiClient.Model
             return _flagTotalImages;
         }
         /// <summary>
-        /// Gets or Sets RegisteredImages
+        /// Number of images successfully registered into the final model.
         /// </summary>
+        /// <value>Number of images successfully registered into the final model.</value>
         [DataMember(Name = "registered_images", EmitDefaultValue = true)]
         public int? RegisteredImages
         {
@@ -113,8 +114,9 @@ namespace PlerionApiClient.Model
             return _flagRegisteredImages;
         }
         /// <summary>
-        /// Gets or Sets RegistrationRate
+        /// Registration rate in percent: 100 × (registered_images / total_images). Computed after selecting the best reconstruction (max registered images).
         /// </summary>
+        /// <value>Registration rate in percent: 100 × (registered_images / total_images). Computed after selecting the best reconstruction (max registered images).</value>
         [DataMember(Name = "registration_rate", EmitDefaultValue = true)]
         public double? RegistrationRate
         {
@@ -137,8 +139,9 @@ namespace PlerionApiClient.Model
             return _flagRegistrationRate;
         }
         /// <summary>
-        /// Gets or Sets Num3dPoints
+        /// Count of 3D points in the selected &#39;best&#39; reconstruction.
         /// </summary>
+        /// <value>Count of 3D points in the selected &#39;best&#39; reconstruction.</value>
         [DataMember(Name = "num_3d_points", EmitDefaultValue = true)]
         public int? Num3dPoints
         {
@@ -161,8 +164,9 @@ namespace PlerionApiClient.Model
             return _flagNum3dPoints;
         }
         /// <summary>
-        /// Gets or Sets AverageKeypointsPerImage
+        /// Average number of detected keypoints per image (after SuperPoint extraction), computed across all images.
         /// </summary>
+        /// <value>Average number of detected keypoints per image (after SuperPoint extraction), computed across all images.</value>
         [DataMember(Name = "average_keypoints_per_image", EmitDefaultValue = true)]
         public double? AverageKeypointsPerImage
         {
@@ -185,8 +189,9 @@ namespace PlerionApiClient.Model
             return _flagAverageKeypointsPerImage;
         }
         /// <summary>
-        /// Gets or Sets ReprojectionPixelError50thPercentile
+        /// Median (50th percentile) reprojection error in pixels across all valid 2D observations in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint.
         /// </summary>
+        /// <value>Median (50th percentile) reprojection error in pixels across all valid 2D observations in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint.</value>
         [DataMember(Name = "reprojection_pixel_error_50th_percentile", EmitDefaultValue = true)]
         public double? ReprojectionPixelError50thPercentile
         {
@@ -209,8 +214,9 @@ namespace PlerionApiClient.Model
             return _flagReprojectionPixelError50thPercentile;
         }
         /// <summary>
-        /// Gets or Sets ReprojectionPixelError90thPercentile
+        /// 90th percentile reprojection error in pixels across all valid 2D observations, computed the same way as the median.
         /// </summary>
+        /// <value>90th percentile reprojection error in pixels across all valid 2D observations, computed the same way as the median.</value>
         [DataMember(Name = "reprojection_pixel_error_90th_percentile", EmitDefaultValue = true)]
         public double? ReprojectionPixelError90thPercentile
         {
@@ -233,8 +239,9 @@ namespace PlerionApiClient.Model
             return _flagReprojectionPixelError90thPercentile;
         }
         /// <summary>
-        /// Gets or Sets TrackLength50thPercentile
+        /// Median (50th percentile) track length across 3D points in the selected model. Track length &#x3D; number of distinct images observing the point.
         /// </summary>
+        /// <value>Median (50th percentile) track length across 3D points in the selected model. Track length &#x3D; number of distinct images observing the point.</value>
         [DataMember(Name = "track_length_50th_percentile", EmitDefaultValue = true)]
         public double? TrackLength50thPercentile
         {
@@ -257,8 +264,9 @@ namespace PlerionApiClient.Model
             return _flagTrackLength50thPercentile;
         }
         /// <summary>
-        /// Gets or Sets PercentTracksWithLengthGreaterThanOrEqualTo3
+        /// Percentage of 3D points whose track length is ≥ 3 (a common robustness threshold). Computed as 100 × (#points with length≥3 / #points).
         /// </summary>
+        /// <value>Percentage of 3D points whose track length is ≥ 3 (a common robustness threshold). Computed as 100 × (#points with length≥3 / #points).</value>
         [DataMember(Name = "percent_tracks_with_length_greater_than_or_equal_to_3", EmitDefaultValue = true)]
         public double? PercentTracksWithLengthGreaterThanOrEqualTo3
         {
@@ -281,8 +289,9 @@ namespace PlerionApiClient.Model
             return _flagPercentTracksWithLengthGreaterThanOrEqualTo3;
         }
         /// <summary>
-        /// Gets or Sets AllVerifiedMatches
+        /// Total number of verified matches across all image pairs.
         /// </summary>
+        /// <value>Total number of verified matches across all image pairs.</value>
         [DataMember(Name = "all_verified_matches", EmitDefaultValue = true)]
         public int? AllVerifiedMatches
         {
@@ -305,8 +314,9 @@ namespace PlerionApiClient.Model
             return _flagAllVerifiedMatches;
         }
         /// <summary>
-        /// Gets or Sets AllVerifiedMatchRate
+        /// Percentage of verified matches across all image pairs.
         /// </summary>
+        /// <value>Percentage of verified matches across all image pairs.</value>
         [DataMember(Name = "all_verified_match_rate", EmitDefaultValue = true)]
         public double? AllVerifiedMatchRate
         {
@@ -329,8 +339,9 @@ namespace PlerionApiClient.Model
             return _flagAllVerifiedMatchRate;
         }
         /// <summary>
-        /// Gets or Sets AllVerifiedMatchInliersMean
+        /// Mean number of inliers for all verified matches.
         /// </summary>
+        /// <value>Mean number of inliers for all verified matches.</value>
         [DataMember(Name = "all_verified_match_inliers_mean", EmitDefaultValue = true)]
         public double? AllVerifiedMatchInliersMean
         {
@@ -353,8 +364,9 @@ namespace PlerionApiClient.Model
             return _flagAllVerifiedMatchInliersMean;
         }
         /// <summary>
-        /// Gets or Sets AllVerifiedMatchInliersMedian
+        /// Median number of inliers for all verified matches.
         /// </summary>
+        /// <value>Median number of inliers for all verified matches.</value>
         [DataMember(Name = "all_verified_match_inliers_median", EmitDefaultValue = true)]
         public double? AllVerifiedMatchInliersMedian
         {
@@ -377,8 +389,9 @@ namespace PlerionApiClient.Model
             return _flagAllVerifiedMatchInliersMedian;
         }
         /// <summary>
-        /// Gets or Sets StereoVerifiedMatches
+        /// Number of verified matches for stereo pairs (same frame, different sensors).
         /// </summary>
+        /// <value>Number of verified matches for stereo pairs (same frame, different sensors).</value>
         [DataMember(Name = "stereo_verified_matches", EmitDefaultValue = true)]
         public int? StereoVerifiedMatches
         {
@@ -401,8 +414,9 @@ namespace PlerionApiClient.Model
             return _flagStereoVerifiedMatches;
         }
         /// <summary>
-        /// Gets or Sets StereoVerifiedMatchRate
+        /// Percentage of verified matches for stereo pairs.
         /// </summary>
+        /// <value>Percentage of verified matches for stereo pairs.</value>
         [DataMember(Name = "stereo_verified_match_rate", EmitDefaultValue = true)]
         public double? StereoVerifiedMatchRate
         {
@@ -425,8 +439,9 @@ namespace PlerionApiClient.Model
             return _flagStereoVerifiedMatchRate;
         }
         /// <summary>
-        /// Gets or Sets StereoVerifiedMatchInliersMean
+        /// Mean number of inliers for verified matches for stereo pairs.
         /// </summary>
+        /// <value>Mean number of inliers for verified matches for stereo pairs.</value>
         [DataMember(Name = "stereo_verified_match_inliers_mean", EmitDefaultValue = true)]
         public double? StereoVerifiedMatchInliersMean
         {
@@ -449,8 +464,9 @@ namespace PlerionApiClient.Model
             return _flagStereoVerifiedMatchInliersMean;
         }
         /// <summary>
-        /// Gets or Sets StereoVerifiedMatchInliersMedian
+        /// Median number of inliers for verified matches for stereo pairs.
         /// </summary>
+        /// <value>Median number of inliers for verified matches for stereo pairs.</value>
         [DataMember(Name = "stereo_verified_match_inliers_median", EmitDefaultValue = true)]
         public double? StereoVerifiedMatchInliersMedian
         {
@@ -473,8 +489,9 @@ namespace PlerionApiClient.Model
             return _flagStereoVerifiedMatchInliersMedian;
         }
         /// <summary>
-        /// Gets or Sets SameSensorVerifiedMatches
+        /// Number of verified matches for same-sensor pairs (across frames).
         /// </summary>
+        /// <value>Number of verified matches for same-sensor pairs (across frames).</value>
         [DataMember(Name = "same_sensor_verified_matches", EmitDefaultValue = true)]
         public int? SameSensorVerifiedMatches
         {
@@ -497,8 +514,9 @@ namespace PlerionApiClient.Model
             return _flagSameSensorVerifiedMatches;
         }
         /// <summary>
-        /// Gets or Sets SameSensorVerifiedMatchRate
+        /// Percentage of verified matches for same-sensor pairs.
         /// </summary>
+        /// <value>Percentage of verified matches for same-sensor pairs.</value>
         [DataMember(Name = "same_sensor_verified_match_rate", EmitDefaultValue = true)]
         public double? SameSensorVerifiedMatchRate
         {
@@ -521,8 +539,9 @@ namespace PlerionApiClient.Model
             return _flagSameSensorVerifiedMatchRate;
         }
         /// <summary>
-        /// Gets or Sets SameSensorVerifiedMatchInliersMean
+        /// Mean number of inliers for verified matches for same-sensor pairs.
         /// </summary>
+        /// <value>Mean number of inliers for verified matches for same-sensor pairs.</value>
         [DataMember(Name = "same_sensor_verified_match_inliers_mean", EmitDefaultValue = true)]
         public double? SameSensorVerifiedMatchInliersMean
         {
@@ -545,8 +564,9 @@ namespace PlerionApiClient.Model
             return _flagSameSensorVerifiedMatchInliersMean;
         }
         /// <summary>
-        /// Gets or Sets SameSensorVerifiedMatchInliersMedian
+        /// Median number of inliers for verified matches for same-sensor pairs.
         /// </summary>
+        /// <value>Median number of inliers for verified matches for same-sensor pairs.</value>
         [DataMember(Name = "same_sensor_verified_match_inliers_median", EmitDefaultValue = true)]
         public double? SameSensorVerifiedMatchInliersMedian
         {
@@ -569,8 +589,9 @@ namespace PlerionApiClient.Model
             return _flagSameSensorVerifiedMatchInliersMedian;
         }
         /// <summary>
-        /// Gets or Sets CrossSensorVerifiedMatches
+        /// Number of verified matches for cross-sensor pairs (across frames).
         /// </summary>
+        /// <value>Number of verified matches for cross-sensor pairs (across frames).</value>
         [DataMember(Name = "cross_sensor_verified_matches", EmitDefaultValue = true)]
         public int? CrossSensorVerifiedMatches
         {
@@ -593,8 +614,9 @@ namespace PlerionApiClient.Model
             return _flagCrossSensorVerifiedMatches;
         }
         /// <summary>
-        /// Gets or Sets CrossSensorVerifiedMatchRate
+        /// Percentage of verified matches for cross-sensor pairs.
         /// </summary>
+        /// <value>Percentage of verified matches for cross-sensor pairs.</value>
         [DataMember(Name = "cross_sensor_verified_match_rate", EmitDefaultValue = true)]
         public double? CrossSensorVerifiedMatchRate
         {
@@ -617,8 +639,9 @@ namespace PlerionApiClient.Model
             return _flagCrossSensorVerifiedMatchRate;
         }
         /// <summary>
-        /// Gets or Sets CrossSensorVerifiedMatchInliersMean
+        /// Mean number of inliers for verified matches for cross-sensor pairs.
         /// </summary>
+        /// <value>Mean number of inliers for verified matches for cross-sensor pairs.</value>
         [DataMember(Name = "cross_sensor_verified_match_inliers_mean", EmitDefaultValue = true)]
         public double? CrossSensorVerifiedMatchInliersMean
         {
@@ -641,8 +664,9 @@ namespace PlerionApiClient.Model
             return _flagCrossSensorVerifiedMatchInliersMean;
         }
         /// <summary>
-        /// Gets or Sets CrossSensorVerifiedMatchInliersMedian
+        /// Median number of inliers for verified matches for cross-sensor pairs.
         /// </summary>
+        /// <value>Median number of inliers for verified matches for cross-sensor pairs.</value>
         [DataMember(Name = "cross_sensor_verified_match_inliers_median", EmitDefaultValue = true)]
         public double? CrossSensorVerifiedMatchInliersMedian
         {

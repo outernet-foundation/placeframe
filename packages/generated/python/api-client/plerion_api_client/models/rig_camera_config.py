@@ -18,10 +18,10 @@ import re  # noqa: F401
 import json
 
 from pydantic import BaseModel, ConfigDict, StrictBool, StrictStr
-from typing import Any, ClassVar, Dict, List, Optional
-from plerion_api_client.models.camera_config import CameraConfig
+from typing import Any, ClassVar, Dict, List
 from plerion_api_client.models.float3 import Float3
 from plerion_api_client.models.float4 import Float4
+from plerion_api_client.models.pinhole_camera_config import PinholeCameraConfig
 from typing import Optional, Set
 from typing_extensions import Self
 
@@ -30,10 +30,10 @@ class RigCameraConfig(BaseModel):
     RigCameraConfig
     """ # noqa: E501
     id: StrictStr
-    ref_sensor: Optional[StrictBool]
+    ref_sensor: StrictBool
     rotation: Float4
     translation: Float3
-    camera_config: CameraConfig
+    camera_config: PinholeCameraConfig
     additional_properties: Dict[str, Any] = {}
     __properties: ClassVar[List[str]] = ["id", "ref_sensor", "rotation", "translation", "camera_config"]
 
@@ -92,11 +92,6 @@ class RigCameraConfig(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
-        # set to None if ref_sensor (nullable) is None
-        # and model_fields_set contains the field
-        if self.ref_sensor is None and "ref_sensor" in self.model_fields_set:
-            _dict['ref_sensor'] = None
-
         return _dict
 
     @classmethod
@@ -113,7 +108,7 @@ class RigCameraConfig(BaseModel):
             "ref_sensor": obj.get("ref_sensor"),
             "rotation": Float4.from_dict(obj["rotation"]) if obj.get("rotation") is not None else None,
             "translation": Float3.from_dict(obj["translation"]) if obj.get("translation") is not None else None,
-            "camera_config": CameraConfig.from_dict(obj["camera_config"]) if obj.get("camera_config") is not None else None
+            "camera_config": PinholeCameraConfig.from_dict(obj["camera_config"]) if obj.get("camera_config") is not None else None
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

@@ -22,10 +22,9 @@ dev = [
     "scipy-stubs>=1.15.3",
     "pybind11-stubgen",
 ]
-torch-cpu = ["torch-meta[cpu]"]
-torch-cuda = ["torch-meta[cuda]"]
-torch-rocm = ["torch-meta[rocm]"]
-neural-networks = ["neural-networks"]
+neural-networks-cpu = ["neural-networks[cpu]"]
+neural-networks-cuda = ["neural-networks[cuda]"]
+neural-networks-rocm = ["neural-networks[rocm]"]
 
 [build-system]
 requires = ["hatchling"]

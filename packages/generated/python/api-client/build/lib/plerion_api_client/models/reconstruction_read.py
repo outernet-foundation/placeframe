@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Any, ClassVar, Dict, List
 from uuid import UUID
 from plerion_api_client.models.orchestration_status import OrchestrationStatus
@@ -31,8 +31,8 @@ class ReconstructionRead(BaseModel):
     """ # noqa: E501
     capture_session_id: UUID
     id: UUID
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
+    updated_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     orchestration_status: OrchestrationStatus
     additional_properties: Dict[str, Any] = {}
     __properties: ClassVar[List[str]] = ["capture_session_id", "id", "created_at", "updated_at", "orchestration_status"]

@@ -1,7 +1,7 @@
-using UnityEngine;
 using FofX.Serialization;
-using Unity.Mathematics;
 using SimpleJSON;
+using Unity.Mathematics;
+using UnityEngine;
 
 namespace Outernet.MapRegistrationTool
 {
@@ -31,8 +31,8 @@ namespace Outernet.MapRegistrationTool
 
             UnityEnv env = UnityEnv.GetOrCreateInstance();
             App.plerionApiUrl = env.plerionApiUrl;
-            App.plerionAuthUrl = env.plerionAuthUrl;
-            App.plerionAuthClient = env.plerionAuthClient;
+            App.plerionAuthTokenUrl = env.plerionAuthTokenUrl;
+            App.plerionAuthAudience = env.plerionAuthAudience;
 
             gameObject.AddComponent<App>();
 

@@ -88,7 +88,7 @@ namespace PlerionClient.Client
             {
                 VisualPositioningSystem.StartLocalizing().Forget();
             }
-            else
+            else if (!args.initialize)
             {
                 VisualPositioningSystem.StopLocalizing().Forget();
             }
