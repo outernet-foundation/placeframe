@@ -1,0 +1,144 @@
+# Serialize complex objects as JSON parts in multipart/form-data requests, enabling hybrid payloads alongside binary files
+diff --git a/scripts/openapi-generator/templates-generated/csharp/libraries/httpclient/ApiClient.mustache b/scripts/openapi-generator/templates-generated/csharp/libraries/httpclient/ApiClient.mustache
+index 9db72d9..179dcda 100644
+--- a/scripts/openapi-generator/templates-generated/csharp/libraries/httpclient/ApiClient.mustache
++++ b/scripts/openapi-generator/templates-generated/csharp/libraries/httpclient/ApiClient.mustache
+@@ -312,7 +312,17 @@ namespace {{packageName}}.Client
+                     {
+                         var content = new StreamContent(file.Content);
+                         content.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+-                        multipartContent.Add(content, fileParam.Key, file.Name);
++
++                        if (string.IsNullOrEmpty(file.Name))
++                        {
++                            // Add as a normal form part (but with our custom Content-Type)
++                            multipartContent.Add(content, fileParam.Key);
++                        }
++                        else
++                        {
++                            // Add as a file upload (with filename)
++                            multipartContent.Add(content, fileParam.Key, file.Name);
++                        }
+                     }
+                 }
+             }
+diff --git a/scripts/openapi-generator/templates-generated/csharp/libraries/httpclient/api.mustache b/scripts/openapi-generator/templates-generated/csharp/libraries/httpclient/api.mustache
+index f7330c2..de9cc90 100644
+--- a/scripts/openapi-generator/templates-generated/csharp/libraries/httpclient/api.mustache
++++ b/scripts/openapi-generator/templates-generated/csharp/libraries/httpclient/api.mustache
+@@ -445,7 +445,27 @@ namespace {{packageName}}.{{apiPackage}}
+             localVarRequestOptions.FileParameters.Add("{{baseName}}", {{paramName}});
+             {{/isFile}}
+             {{^isFile}}
+-            localVarRequestOptions.FormParameters.Add("{{baseName}}", {{packageName}}.Client.ClientUtils.ParameterToString({{paramName}})); // form parameter
++            {{#isPrimitiveType}}
++            // Primitive types (int, string, bool) go as standard form fields
++            localVarRequestOptions.FormParameters.Add("{{baseName}}", {{packageName}}.Client.ClientUtils.ParameterToString({{paramName}}));
++            {{/isPrimitiveType}}
++            {{^isPrimitiveType}}
++            {{#isEnum}}
++            // Enums are treated as strings
++            localVarRequestOptions.FormParameters.Add("{{baseName}}", {{packageName}}.Client.ClientUtils.ParameterToString({{paramName}}));
++            {{/isEnum}}
++            {{^isEnum}}
++            // COMPLEX TYPE: Serialize to JSON and add as a "File" with application/json header
++            if ({{paramName}} != null)
++            {
++                var _json_{{paramName}} = Newtonsoft.Json.JsonConvert.SerializeObject({{paramName}}, this.ApiClient.SerializerSettings);
++                var _stream_{{paramName}} = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(_json_{{paramName}}));
++
++                // Add as a file parameter with null filename and application/json content type
++                localVarRequestOptions.FileParameters.Add("{{baseName}}", new {{packageName}}.Client.FileParameter(null, "application/json", _stream_{{paramName}}));
++            }
++            {{/isEnum}}
++            {{/isPrimitiveType}}
+             {{/isFile}}
+             {{/required}}
+             {{^required}}
+@@ -455,7 +475,27 @@ namespace {{packageName}}.{{apiPackage}}
+                 localVarRequestOptions.FileParameters.Add("{{baseName}}", {{paramName}});
+                 {{/isFile}}
+                 {{^isFile}}
+-                localVarRequestOptions.FormParameters.Add("{{baseName}}", {{packageName}}.Client.ClientUtils.ParameterToString({{paramName}})); // form parameter
++                {{#isPrimitiveType}}
++                // Primitive types (int, string, bool) go as standard form fields
++                localVarRequestOptions.FormParameters.Add("{{baseName}}", {{packageName}}.Client.ClientUtils.ParameterToString({{paramName}}));
++                {{/isPrimitiveType}}
++                {{^isPrimitiveType}}
++                {{#isEnum}}
++                // Enums are treated as strings
++                localVarRequestOptions.FormParameters.Add("{{baseName}}", {{packageName}}.Client.ClientUtils.ParameterToString({{paramName}}));
++                {{/isEnum}}
++                {{^isEnum}}
++                // COMPLEX TYPE: Serialize to JSON and add as a "File" with application/json header
++                if ({{paramName}} != null)
++                {
++                    var _json_{{paramName}} = Newtonsoft.Json.JsonConvert.SerializeObject({{paramName}}, this.ApiClient.SerializerSettings);
++                    var _stream_{{paramName}} = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(_json_{{paramName}}));
++
++                    // Add as a file parameter with null filename and application/json content type
++                    localVarRequestOptions.FileParameters.Add("{{baseName}}", new {{packageName}}.Client.FileParameter(null, "application/json", _stream_{{paramName}}));
++                }
++                {{/isEnum}}
++                {{/isPrimitiveType}}
+                 {{/isFile}}
+             }
+             {{/required}}
+@@ -662,7 +702,27 @@ namespace {{packageName}}.{{apiPackage}}
+             localVarRequestOptions.FileParameters.Add("{{baseName}}", {{paramName}});
+             {{/isFile}}
+             {{^isFile}}
+-            localVarRequestOptions.FormParameters.Add("{{baseName}}", {{packageName}}.Client.ClientUtils.ParameterToString({{paramName}})); // form parameter
++            {{#isPrimitiveType}}
++            // Primitive types (int, string, bool) go as standard form fields
++            localVarRequestOptions.FormParameters.Add("{{baseName}}", {{packageName}}.Client.ClientUtils.ParameterToString({{paramName}}));
++            {{/isPrimitiveType}}
++            {{^isPrimitiveType}}
++            {{#isEnum}}
++            // Enums are treated as strings
++            localVarRequestOptions.FormParameters.Add("{{baseName}}", {{packageName}}.Client.ClientUtils.ParameterToString({{paramName}}));
++            {{/isEnum}}
++            {{^isEnum}}
++            // COMPLEX TYPE: Serialize to JSON and add as a "File" with application/json header
++            if ({{paramName}} != null)
++            {
++                var _json_{{paramName}} = Newtonsoft.Json.JsonConvert.SerializeObject({{paramName}}, this.ApiClient.SerializerSettings);
++                var _stream_{{paramName}} = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(_json_{{paramName}}));
++
++                // Add as a file parameter with null filename and application/json content type
++                localVarRequestOptions.FileParameters.Add("{{baseName}}", new {{packageName}}.Client.FileParameter(null, "application/json", _stream_{{paramName}}));
++            }
++            {{/isEnum}}
++            {{/isPrimitiveType}}
+             {{/isFile}}
+             {{/required}}
+             {{^required}}
+@@ -672,7 +732,27 @@ namespace {{packageName}}.{{apiPackage}}
+                 localVarRequestOptions.FileParameters.Add("{{baseName}}", {{paramName}});
+                 {{/isFile}}
+                 {{^isFile}}
+-                localVarRequestOptions.FormParameters.Add("{{baseName}}", {{packageName}}.Client.ClientUtils.ParameterToString({{paramName}})); // form parameter
++                {{#isPrimitiveType}}
++                // Primitive types (int, string, bool) go as standard form fields
++                localVarRequestOptions.FormParameters.Add("{{baseName}}", {{packageName}}.Client.ClientUtils.ParameterToString({{paramName}}));
++                {{/isPrimitiveType}}
++                {{^isPrimitiveType}}
++                {{#isEnum}}
++                // Enums are treated as strings
++                localVarRequestOptions.FormParameters.Add("{{baseName}}", {{packageName}}.Client.ClientUtils.ParameterToString({{paramName}}));
++                {{/isEnum}}
++                {{^isEnum}}
++                // COMPLEX TYPE: Serialize to JSON and add as a "File" with application/json header
++                if ({{paramName}} != null)
++                {
++                    var _json_{{paramName}} = Newtonsoft.Json.JsonConvert.SerializeObject({{paramName}}, this.ApiClient.SerializerSettings);
++                    var _stream_{{paramName}} = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(_json_{{paramName}}));
++
++                    // Add as a file parameter with null filename and application/json content type
++                    localVarRequestOptions.FileParameters.Add("{{baseName}}", new {{packageName}}.Client.FileParameter(null, "application/json", _stream_{{paramName}}));
++                }
++                {{/isEnum}}
++                {{/isPrimitiveType}}
+                 {{/isFile}}
+             }
+             {{/required}}

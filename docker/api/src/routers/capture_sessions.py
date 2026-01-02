@@ -1,8 +1,8 @@
 import tarfile
-from io import BytesIO
-from typing import Annotated
+from typing import Annotated, BinaryIO, cast
 from uuid import UUID
 
+from botocore.exceptions import ReadTimeoutError
 from core.axis_convention import AxisConvention
 from core.capture_session_manifest import CaptureSessionManifest
 from datamodels.public_dtos import (
@@ -21,9 +21,17 @@ from litestar import Router, delete, get, patch, post, put
 from litestar.datastructures import UploadFile
 from litestar.di import Provide
 from litestar.enums import RequestEncodingType
-from litestar.exceptions import HTTPException, NotFoundException
+from litestar.exceptions import HTTPException
+from litestar.openapi.spec import OpenAPIFormat, OpenAPIType, Schema
 from litestar.params import Body, Parameter
 from litestar.response import Stream
+from litestar.status_codes import (
+    HTTP_404_NOT_FOUND,
+    HTTP_409_CONFLICT,
+    HTTP_422_UNPROCESSABLE_ENTITY,
+    HTTP_500_INTERNAL_SERVER_ERROR,
+    HTTP_504_GATEWAY_TIMEOUT,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -82,7 +90,7 @@ async def get_capture_session(session: AsyncSession, id: UUID) -> CaptureSession
     row = await session.get(CaptureSession, id)
 
     if not row:
-        raise NotFoundException(f"Capture session with id {id} not found")
+        raise HTTPException(HTTP_404_NOT_FOUND, f"Capture session with id {id} not found")
 
     return capture_session_to_dto(row)
 
@@ -92,7 +100,7 @@ async def get_capture_session_reconstructions(session: AsyncSession, id: UUID) -
     row = await session.get(CaptureSession, id)
 
     if not row:
-        raise NotFoundException(f"Capture session with id {id} not found")
+        raise HTTPException(HTTP_404_NOT_FOUND, f"Capture session with id {id} not found")
 
     result = await session.execute(select(Reconstruction.id).where(Reconstruction.capture_session_id == id))
 
@@ -104,7 +112,7 @@ async def delete_capture_session(session: AsyncSession, id: UUID) -> None:
     row = await session.get(CaptureSession, id)
 
     if not row:
-        raise NotFoundException(f"Capture session with id {id} not found")
+        raise HTTPException(HTTP_404_NOT_FOUND, f"Capture session with id {id} not found")
 
     await session.delete(row)
 
@@ -117,7 +125,7 @@ async def update_capture_session(session: AsyncSession, id: UUID, data: CaptureS
     row = await session.get(CaptureSession, id)
 
     if not row:
-        raise NotFoundException(f"Capture session with id {id} not found")
+        raise HTTPException(HTTP_404_NOT_FOUND, f"Capture session with id {id} not found")
 
     capture_session_apply_dto(row, data)
 
@@ -136,7 +144,7 @@ async def update_capture_sessions(
 
         if not row:
             if not allow_missing:
-                raise NotFoundException(f"Capture session with id {capture.id} not found")
+                raise HTTPException(HTTP_404_NOT_FOUND, f"Capture session with id {capture.id} not found")
             continue
 
         capture_session_apply_batch_update_dto(row, capture)
@@ -150,44 +158,85 @@ async def update_capture_sessions(
 
 @put("/{id:uuid}/tar")
 async def upload_capture_session_tar(
-    session: AsyncSession, id: UUID, data: Annotated[UploadFile, Body(media_type=RequestEncodingType.MULTI_PART)]
+    session: AsyncSession,
+    id: UUID,
+    data: Annotated[
+        UploadFile,
+        Body(media_type=RequestEncodingType.MULTI_PART, description="Capture session tar archive"),
+        Schema(
+            content_media_type="application/x-tar",
+            description="Tar archive containing manifest.json and capture session data",
+        ),
+    ],
 ) -> None:
     # Validate capture session exists
-    row = await session.get(CaptureSession, id)
-    if row is None:
-        raise NotFoundException(f"Capture session {id} not found")
+    if await session.get(CaptureSession, id) is None:
+        raise HTTPException(HTTP_404_NOT_FOUND, f"Capture session {id} not found")
 
-    #  Validate manifest inside tar
-    file_bytes = await data.read()
-    with tarfile.open(fileobj=BytesIO(file_bytes), mode="r:*") as tar_file:
-        capture_session_manifest = tar_file.extractfile("manifest.json")
-        if capture_session_manifest is None:
-            raise NotFoundException("Capture session tar file is missing manifest.json")
-        try:
-            _ = CaptureSessionManifest.model_validate_json(capture_session_manifest.read().decode("utf-8"))
-        except Exception as exception:
-            raise NotFoundException(f"Capture session manifest.json is invalid: {exception}") from exception
+    fileobj = data.file
 
-    # Upload tar file to storage
+    # Validate tar + manifest.json
     try:
-        get_storage().upload_fileobj(BUCKET, f"{id}.tar", BytesIO(file_bytes), data.content_type or "application/x-tar")
-    except Exception as exception:
-        raise HTTPException(502, f"Upload failed: {exception}") from exception
+        fileobj.seek(0)
+        with tarfile.open(fileobj=fileobj, mode="r:*") as tf:
+            try:
+                member = tf.getmember("manifest.json")
+            except KeyError:
+                raise HTTPException(HTTP_422_UNPROCESSABLE_ENTITY, "Capture session tar file is missing manifest.json")
+
+            if not member.isfile():
+                raise HTTPException(HTTP_422_UNPROCESSABLE_ENTITY, "manifest.json is not a regular file")
+
+            manifest_file = tf.extractfile(member)
+            if manifest_file is None:
+                raise HTTPException(HTTP_422_UNPROCESSABLE_ENTITY, "Could not read manifest.json from tar")
+
+            try:
+                CaptureSessionManifest.model_validate_json(manifest_file.read().decode("utf-8"))
+            except Exception as e:
+                raise HTTPException(
+                    HTTP_422_UNPROCESSABLE_ENTITY, f"Capture session manifest.json is invalid: {e}"
+                ) from e
+
+        fileobj.seek(0)
+
+    except tarfile.ReadError as e:
+        raise HTTPException(HTTP_422_UNPROCESSABLE_ENTITY, f"Invalid tar file: {e}") from e
+
+    # Upload tar to storage
+    try:
+        get_storage().upload_fileobj(
+            BUCKET, f"{id}.tar", cast(BinaryIO, fileobj), data.content_type or "application/x-tar"
+        )
+    except ReadTimeoutError as e:
+        raise HTTPException(HTTP_504_GATEWAY_TIMEOUT, "Upload failed: storage timeout") from e
+    except Exception as e:
+        # Any other failure is an internal error
+        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Upload failed") from e
 
     return None
 
 
-@get("/{id:uuid}/tar")
+@get(
+    "/{id:uuid}/tar",
+    response_media_type="application/x-tar",
+    response_schema=Schema(
+        type=OpenAPIType.STRING, format=OpenAPIFormat.BINARY, description="Capture session tar archive"
+    ),
+)
 async def download_capture_session_tar(session: AsyncSession, id: UUID) -> Stream:
-    row = await session.get(CaptureSession, id)
-
-    if row is None:
-        raise NotFoundException(f"Capture session {id} not found")
+    # Validate capture session exists
+    if await session.get(CaptureSession, id) is None:
+        raise HTTPException(HTTP_404_NOT_FOUND, f"Capture session {id} not found")
 
     try:
-        body = get_storage().get_object(BUCKET, f"{id}.tar")["Body"]
-    except Exception as exception:
-        raise HTTPException(502, f"Download failed: {exception}") from exception
+        obj = get_storage().get_object(BUCKET, f"{id}.tar")
+        body = obj["Body"]
+    except ReadTimeoutError as e:
+        raise HTTPException(HTTP_504_GATEWAY_TIMEOUT, "Download failed: storage timeout") from e
+    except Exception as e:
+        # Missing object or any other storage failure indicates inconsistent internal state
+        raise HTTPException(HTTP_500_INTERNAL_SERVER_ERROR, "Download failed") from e
 
     return Stream(
         body.iter_chunks(chunk_size=1024 * 1024),
@@ -211,7 +260,7 @@ async def _create_capture(session: AsyncSession, capture: CaptureSessionCreate, 
 
         if existing_row is not None:
             if not overwrite:
-                raise HTTPException(409, f"Capture with id {capture.id} already exists")
+                raise HTTPException(HTTP_409_CONFLICT, f"Capture with id {capture.id} already exists")
 
             capture_session_from_dto_overwrite(existing_row, capture)
             return existing_row

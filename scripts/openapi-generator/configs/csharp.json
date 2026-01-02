@@ -14,7 +14,8 @@
     "conditionalSerialization": true,
     "nullableReferenceTypes": true,
     "sortModelPropertiesByRequiredFlag": true,
-    "sortParamsByRequiredFlag": true
+    "sortParamsByRequiredFlag": true,
+    "examples": false
   },
   "typeMappings": {
     "number": "double"

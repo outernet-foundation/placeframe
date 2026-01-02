@@ -1,3 +1,5 @@
+# Vibe code: Gemini 3
+
 """
 Convert OpenAPI 3.1.0 schema to OpenAPI 3.0.3 compatible format.
 
@@ -20,7 +22,7 @@ JsonDict: TypeAlias = dict[str, "JsonValue"]
 JsonList: TypeAlias = list["JsonValue"]
 
 
-def convert_openapi_3_1_to_3_0(schema: JsonDict) -> JsonDict:
+def downgrade_openapi_3_1_to_3_0(schema: JsonDict) -> JsonDict:
     """
     Convert an OpenAPI 3.1.0 schema to 3.0.3 compatible format.
     Modifies the schema in-place and returns it.
@@ -172,7 +174,7 @@ if __name__ == "__main__":
     with open(input_file, "r") as f:
         schema = cast(JsonDict, json.load(f))
 
-    converted = convert_openapi_3_1_to_3_0(schema)
+    converted = downgrade_openapi_3_1_to_3_0(schema)
 
     output = json.dumps(converted, indent=2)
 

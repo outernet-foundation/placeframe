@@ -99,7 +99,7 @@ public static class LocalCaptureController
                     Quaternion.Inverse(captureAnchor.transform.rotation) * cameraTransform.rotation
                 );
             },
-            async (bytes, cameraPosition, cameraRotation) =>
+            async (bytes, pinholeCameraConfig, cameraPosition, cameraRotation) =>
             {
                 long timestampMilliseconds = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 

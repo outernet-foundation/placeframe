@@ -10,7 +10,7 @@ namespace Plerion.Core
         UniTask<PinholeCameraConfig> Start(
             float intervalSeconds,
             Func<(Vector3 position, Quaternion rotation)?> cameraPoseProvider,
-            Func<byte[], Vector3, Quaternion, UniTask> onFrameReceived
+            Func<byte[], PinholeCameraConfig, Vector3, Quaternion, UniTask> onFrameReceived
         );
         UniTask Stop();
     }
@@ -20,7 +20,7 @@ namespace Plerion.Core
         public UniTask<PinholeCameraConfig> Start(
             float intervalSeconds,
             Func<(Vector3 position, Quaternion rotation)?> cameraPoseProvider,
-            Func<byte[], Vector3, Quaternion, UniTask> onFrameReceived
+            Func<byte[], PinholeCameraConfig, Vector3, Quaternion, UniTask> onFrameReceived
         ) =>
             UniTask.FromResult(
                 new PinholeCameraConfig(

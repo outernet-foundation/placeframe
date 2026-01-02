@@ -14,8 +14,9 @@ from datamodels.public_dtos import (
 from datamodels.public_tables import LocalizationMap
 from litestar import Router, delete, get, patch, post
 from litestar.di import Provide
-from litestar.exceptions import HTTPException, NotFoundException
+from litestar.exceptions import HTTPException
 from litestar.params import Parameter
+from litestar.status_codes import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,7 +33,7 @@ async def create_localization_map(session: AsyncSession, data: LocalizationMapCr
 
     if reconstruction_status != "succeeded":
         raise HTTPException(
-            status_code=400, detail=f"Reconstruction with id {data.reconstruction_id} is not in 'succeeded' state"
+            HTTP_409_CONFLICT, f"Reconstruction with id {data.reconstruction_id} is not in 'succeeded' state"
         )
 
     row = localization_map_from_dto(data)
@@ -49,7 +50,7 @@ async def delete_localization_map(session: AsyncSession, id: UUID) -> None:
     row = await session.get(LocalizationMap, id)
 
     if not row:
-        raise NotFoundException(f"LocalizationMap with id {id} not found")
+        raise HTTPException(HTTP_404_NOT_FOUND, f"LocalizationMap with id {id} not found")
 
     await session.delete(row)
 
@@ -65,7 +66,7 @@ async def delete_localization_maps(
         row = await session.get(LocalizationMap, id)
 
         if not row:
-            raise NotFoundException(f"LocalizationMap with id {id} not found")
+            raise HTTPException(HTTP_404_NOT_FOUND, f"LocalizationMap with id {id} not found")
 
         await session.delete(row)
 
@@ -77,7 +78,7 @@ async def fetch_localization_maps(
     session: AsyncSession, ids: list[UUID] | None = None, reconstruction_ids: list[UUID] | None = None
 ) -> list[LocalizationMapRead]:
     if ids and reconstruction_ids:
-        raise HTTPException(status_code=400, detail="Cannot filter by both ids and reconstruction_ids")
+        raise HTTPException(HTTP_400_BAD_REQUEST, "Cannot filter by both ids and reconstruction_ids")
 
     query = select(LocalizationMap)
 
@@ -108,7 +109,7 @@ async def get_localization_map(session: AsyncSession, id: UUID) -> LocalizationM
     row = await session.get(LocalizationMap, id)
 
     if not row:
-        raise HTTPException(status_code=404, detail=f"LocalizationMap with id {id} not found")
+        raise HTTPException(HTTP_404_NOT_FOUND, f"LocalizationMap with id {id} not found")
 
     return localization_map_to_dto(row)
 
@@ -118,7 +119,7 @@ async def update_localization_map(session: AsyncSession, id: UUID, data: Localiz
     row = await session.get(LocalizationMap, id)
 
     if not row:
-        raise NotFoundException(f"LocalizationMap with id {id} not found")
+        raise HTTPException(HTTP_404_NOT_FOUND, f"LocalizationMap with id {id} not found")
 
     localization_map_apply_dto(row, data)
 
@@ -136,7 +137,7 @@ async def update_localization_maps(
         row = await session.get(LocalizationMap, localization_map.id)
         if not row:
             if not allow_missing:
-                raise NotFoundException(f"LocalizationMap with id {localization_map.id} not found")
+                raise HTTPException(HTTP_404_NOT_FOUND, f"LocalizationMap with id {localization_map.id} not found")
             continue
 
         localization_map_apply_batch_update_dto(row, localization_map)

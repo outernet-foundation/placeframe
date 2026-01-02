@@ -29,8 +29,6 @@ plerion_api_client/models/group_read.py
 plerion_api_client/models/layer_batch_update.py
 plerion_api_client/models/layer_create.py
 plerion_api_client/models/layer_read.py
-plerion_api_client/models/load_state.py
-plerion_api_client/models/load_state_response.py
 plerion_api_client/models/localization_map_batch_update.py
 plerion_api_client/models/localization_map_create.py
 plerion_api_client/models/localization_map_read.py

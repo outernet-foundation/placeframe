@@ -113,7 +113,7 @@ namespace PlerionApiClient.Client
         {
             Proxy = null;
             UserAgent = WebUtility.UrlEncode("OpenAPI-Generator/0.1.0/csharp");
-            BasePath = "http://localhost";
+            BasePath = "http://localhost:8000";
             DefaultHeaders = new ConcurrentDictionary<string, string>();
             ApiKey = new ConcurrentDictionary<string, string>();
             ApiKeyPrefix = new ConcurrentDictionary<string, string>();
@@ -121,7 +121,7 @@ namespace PlerionApiClient.Client
             {
                 {
                     new Dictionary<string, object> {
-                        {"url", ""},
+                        {"url", "http://localhost:8000"},
                         {"description", "No description provided"},
                     }
                 }
@@ -142,7 +142,7 @@ namespace PlerionApiClient.Client
             IDictionary<string, string> defaultHeaders,
             IDictionary<string, string> apiKey,
             IDictionary<string, string> apiKeyPrefix,
-            string basePath = "http://localhost") : this()
+            string basePath = "http://localhost:8000") : this()
         {
             if (string.IsNullOrWhiteSpace(basePath))
                 throw new ArgumentException("The provided basePath is invalid.", "basePath");

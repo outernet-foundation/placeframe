@@ -55,10 +55,10 @@ import plerion_localizer_client
 from plerion_localizer_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to http://localhost
+# Defining the host is optional and defaults to http://localhost:8000
 # See configuration.py for a list of all supported configuration parameters.
 configuration = plerion_localizer_client.Configuration(
-    host = "http://localhost"
+    host = "http://localhost:8000"
 )
 
 
@@ -67,30 +67,28 @@ configuration = plerion_localizer_client.Configuration(
 async with plerion_localizer_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = plerion_localizer_client.DefaultApi(api_client)
-    id = UUID('38400000-8cf0-11bd-b23e-10b96e4ef00d') # UUID | 
+    reconstruction_ids = None # List[UUID] | 
+    camera_config = plerion_localizer_client.PinholeCameraConfig() # PinholeCameraConfig | 
+    axis_convention = plerion_localizer_client.AxisConvention() # AxisConvention | 
+    image = None # bytearray | 
 
     try:
-        # Get Reconstruction Load Status
-        api_response = await api_instance.get_reconstruction_load_status(id)
-        print("The response of DefaultApi->get_reconstruction_load_status:\n")
+        # LocalizeImage
+        api_response = await api_instance.localize_image(reconstruction_ids, camera_config, axis_convention, image)
+        print("The response of DefaultApi->localize_image:\n")
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling DefaultApi->get_reconstruction_load_status: %s\n" % e)
+        print("Exception when calling DefaultApi->localize_image: %s\n" % e)
 
 ```
 
 ## Documentation for API Endpoints
 
-All URIs are relative to *http://localhost*
+All URIs are relative to *http://localhost:8000*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
-*DefaultApi* | [**get_reconstruction_load_status**](docs/DefaultApi.md#get_reconstruction_load_status) | **GET** /reconstructions/{id}/status | Get Reconstruction Load Status
-*DefaultApi* | [**health_check**](docs/DefaultApi.md#health_check) | **GET** /health | Health Check
-*DefaultApi* | [**load_reconstruction**](docs/DefaultApi.md#load_reconstruction) | **POST** /reconstructions/{id} | Load Reconstruction
-*DefaultApi* | [**localize_image**](docs/DefaultApi.md#localize_image) | **POST** /localization | Localize Image
-*DefaultApi* | [**set_camera_intrinsics**](docs/DefaultApi.md#set_camera_intrinsics) | **PUT** /camera | Set Camera Intrinsics
-*DefaultApi* | [**unload_reconstruction**](docs/DefaultApi.md#unload_reconstruction) | **DELETE** /reconstructions/{id} | Unload Reconstruction
+*DefaultApi* | [**localize_image**](docs/DefaultApi.md#localize_image) | **POST** /localization | LocalizeImage
 
 
 ## Documentation For Models
@@ -98,15 +96,12 @@ Class | Method | HTTP request | Description
  - [AxisConvention](docs/AxisConvention.md)
  - [Float3](docs/Float3.md)
  - [Float4](docs/Float4.md)
- - [HTTPValidationError](docs/HTTPValidationError.md)
- - [LoadState](docs/LoadState.md)
- - [LoadStateResponse](docs/LoadStateResponse.md)
  - [Localization](docs/Localization.md)
  - [LocalizationMetrics](docs/LocalizationMetrics.md)
- - [LocationInner](docs/LocationInner.md)
+ - [LocalizeImage400Response](docs/LocalizeImage400Response.md)
+ - [LocalizeImage400ResponseExtra](docs/LocalizeImage400ResponseExtra.md)
  - [PinholeCameraConfig](docs/PinholeCameraConfig.md)
  - [Transform](docs/Transform.md)
- - [ValidationError](docs/ValidationError.md)
 
 
 <a id="documentation-for-authorization"></a>

@@ -4,8 +4,9 @@ import os
 from typing import Any, AsyncGenerator, cast
 
 from datamodels.auth_tables import User
+from fastapi import HTTPException
 from litestar import Request
-from litestar.exceptions import NotAuthorizedException
+from litestar.status_codes import HTTP_401_UNAUTHORIZED
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -47,7 +48,7 @@ else:
         user_id = cast(str | None, claims.get("sub"))
 
         if not user_id:
-            raise NotAuthorizedException()
+            raise HTTPException(HTTP_401_UNAUTHORIZED, "Missing subject claim when creating database session")
 
         # JIT create user record if it doesn't exist
         async with AuthSessionLocal() as auth_session, auth_session.begin():

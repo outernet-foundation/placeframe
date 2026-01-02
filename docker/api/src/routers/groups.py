@@ -12,8 +12,9 @@ from datamodels.public_dtos import (
 from datamodels.public_tables import Group
 from litestar import Router, delete, get, patch, post
 from litestar.di import Provide
-from litestar.exceptions import NotFoundException
+from litestar.exceptions import HTTPException
 from litestar.params import Parameter
+from litestar.status_codes import HTTP_404_NOT_FOUND
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -66,7 +67,7 @@ async def update_groups(
         row = await session.get(Group, group.id)
         if not row:
             if not allow_missing:
-                raise NotFoundException(f"Group with id {group.id} not found")
+                raise HTTPException(HTTP_404_NOT_FOUND, f"Group with id {group.id} not found")
             continue
 
         group_apply_batch_update_dto(row, group)

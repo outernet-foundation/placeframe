@@ -10,5 +10,5 @@ Then run:
 
 ```bash
 git diff -- scripts/openapi-generator/templates-generated \
-  > scripts/openapi-generator/template-patches/csharp/000X-your-patch-name.patch
+  > scripts/openapi-generator/templates-patches/csharp/000X-your-patch-name.patch
 ```

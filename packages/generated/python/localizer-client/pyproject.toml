@@ -1,12 +1,12 @@
 [project]
 name = "plerion_localizer_client"
 version = "0.1.0"
-description = "Localize"
+description = "Localizer"
 authors = [
   {name = "OpenAPI Generator Community",email = "team@openapitools.org"},
 ]
 readme = "README.md"
-keywords = ["OpenAPI", "OpenAPI-Generator", "Localize"]
+keywords = ["OpenAPI", "OpenAPI-Generator", "Localizer"]
 requires-python = ">=3.9"
 
 dependencies = [

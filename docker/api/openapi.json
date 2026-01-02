@@ -6,7 +6,7 @@
   "openapi": "3.0.3",
   "servers": [
     {
-      "url": "/"
+      "url": "http://localhost:8000"
     }
   ],
   "paths": {
@@ -763,7 +763,8 @@
                     "format": "binary"
                   }
                 },
-                "type": "object"
+                "type": "object",
+                "description": "Capture session tar archive"
               }
             }
           },
@@ -2308,85 +2309,6 @@
         "deprecated": false
       }
     },
-    "/localization_sessions/{localization_session_id}/camera": {
-      "put": {
-        "tags": [
-          "Localization Sessions"
-        ],
-        "summary": "SetLocalizationSessionCameraIntrinsics",
-        "operationId": "set_localization_session_camera_intrinsics",
-        "parameters": [
-          {
-            "name": "localization_session_id",
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "deprecated": false
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PinholeCameraConfig"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Request fulfilled, document follows",
-            "headers": {}
-          },
-          "400": {
-            "description": "Bad request syntax or unsupported method",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "status_code": {
-                      "type": "integer"
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "extra": {
-                      "additionalProperties": {},
-                      "anyOf": [
-                        {
-                          "type": "object"
-                        },
-                        {
-                          "type": "array",
-                          "items": {}
-                        }
-                      ],
-                      "nullable": true
-                    }
-                  },
-                  "type": "object",
-                  "required": [
-                    "detail",
-                    "status_code"
-                  ],
-                  "description": "Validation Exception",
-                  "example": {
-                    "status_code": 400,
-                    "detail": "Bad Request",
-                    "extra": {}
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
-    },
     "/localization_sessions/{localization_session_id}/status": {
       "get": {
         "tags": [
@@ -2463,257 +2385,6 @@
         "deprecated": false
       }
     },
-    "/localization_sessions/{localization_session_id}/maps": {
-      "post": {
-        "tags": [
-          "Localization Sessions"
-        ],
-        "summary": "LoadLocalizationMaps",
-        "operationId": "load_localization_maps",
-        "parameters": [
-          {
-            "name": "localization_session_id",
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "deprecated": false
-          },
-          {
-            "name": "map_ids",
-            "in": "query",
-            "schema": {
-              "items": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "type": "array",
-              "description": "IDs of localization maps to load"
-            },
-            "description": "IDs of localization maps to load",
-            "required": true,
-            "deprecated": false,
-            "allowEmptyValue": false,
-            "allowReserved": false
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Document created, URL follows",
-            "headers": {}
-          },
-          "400": {
-            "description": "Bad request syntax or unsupported method",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "status_code": {
-                      "type": "integer"
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "extra": {
-                      "additionalProperties": {},
-                      "anyOf": [
-                        {
-                          "type": "object"
-                        },
-                        {
-                          "type": "array",
-                          "items": {}
-                        }
-                      ],
-                      "nullable": true
-                    }
-                  },
-                  "type": "object",
-                  "required": [
-                    "detail",
-                    "status_code"
-                  ],
-                  "description": "Validation Exception",
-                  "example": {
-                    "status_code": 400,
-                    "detail": "Bad Request",
-                    "extra": {}
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
-    },
-    "/localization_sessions/{localization_session_id}/maps/{map_id}": {
-      "delete": {
-        "tags": [
-          "Localization Sessions"
-        ],
-        "summary": "UnloadMap",
-        "operationId": "unload_map",
-        "parameters": [
-          {
-            "name": "localization_session_id",
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "deprecated": false
-          },
-          {
-            "name": "map_id",
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "deprecated": false
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Request fulfilled, nothing follows",
-            "headers": {}
-          },
-          "400": {
-            "description": "Bad request syntax or unsupported method",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "status_code": {
-                      "type": "integer"
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "extra": {
-                      "additionalProperties": {},
-                      "anyOf": [
-                        {
-                          "type": "object"
-                        },
-                        {
-                          "type": "array",
-                          "items": {}
-                        }
-                      ],
-                      "nullable": true
-                    }
-                  },
-                  "type": "object",
-                  "required": [
-                    "detail",
-                    "status_code"
-                  ],
-                  "description": "Validation Exception",
-                  "example": {
-                    "status_code": 400,
-                    "detail": "Bad Request",
-                    "extra": {}
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
-    },
-    "/localization_sessions/{localization_session_id}/maps/{map_id}/status": {
-      "get": {
-        "tags": [
-          "Localization Sessions"
-        ],
-        "summary": "GetMapLoadStatus",
-        "operationId": "get_map_load_status",
-        "parameters": [
-          {
-            "name": "localization_session_id",
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "deprecated": false
-          },
-          {
-            "name": "map_id",
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "deprecated": false
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Request fulfilled, document follows",
-            "headers": {},
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoadStateResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request syntax or unsupported method",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "status_code": {
-                      "type": "integer"
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "extra": {
-                      "additionalProperties": {},
-                      "anyOf": [
-                        {
-                          "type": "object"
-                        },
-                        {
-                          "type": "array",
-                          "items": {}
-                        }
-                      ],
-                      "nullable": true
-                    }
-                  },
-                  "type": "object",
-                  "required": [
-                    "detail",
-                    "status_code"
-                  ],
-                  "description": "Validation Exception",
-                  "example": {
-                    "status_code": 400,
-                    "detail": "Bad Request",
-                    "extra": {}
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
-    },
     "/localization_sessions/{localization_session_id}/localization": {
       "post": {
         "tags": [
@@ -2731,31 +2402,13 @@
             },
             "required": true,
             "deprecated": false
-          },
-          {
-            "name": "axis_convention",
-            "in": "query",
-            "schema": {
-              "$ref": "#/components/schemas/AxisConvention"
-            },
-            "description": "List of Ids to delete",
-            "required": true,
-            "deprecated": false,
-            "allowEmptyValue": false,
-            "allowReserved": false
           }
         ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary"
-                  }
-                },
-                "type": "object"
+                "$ref": "#/components/schemas/LocalizationRequest"
               }
             }
           },
@@ -4150,38 +3803,6 @@
         ],
         "title": "LayerRead"
       },
-      "LoadState": {
-        "type": "string",
-        "enum": [
-          "pending",
-          "loading",
-          "ready",
-          "failed"
-        ],
-        "title": "LoadState",
-        "description": "\nLoadState\n"
-      },
-      "LoadStateResponse": {
-        "properties": {
-          "status": {
-            "$ref": "#/components/schemas/LoadState"
-          },
-          "error": {
-            "nullable": true,
-            "type": "string"
-          },
-          "additional_properties": {
-            "additionalProperties": {},
-            "type": "object",
-            "default": {}
-          }
-        },
-        "type": "object",
-        "required": [
-          "status"
-        ],
-        "title": "LoadStateResponse"
-      },
       "LocalizationMapBatchUpdate": {
         "properties": {
           "reconstruction_id": {
@@ -4504,6 +4125,35 @@
           "reprojection_error_median"
         ],
         "title": "LocalizationMetrics"
+      },
+      "LocalizationRequest": {
+        "properties": {
+          "map_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array"
+          },
+          "camera_config": {
+            "$ref": "#/components/schemas/PinholeCameraConfig"
+          },
+          "axis_convention": {
+            "$ref": "#/components/schemas/AxisConvention"
+          },
+          "image": {
+            "type": "string",
+            "format": "binary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "axis_convention",
+          "camera_config",
+          "image",
+          "map_ids"
+        ],
+        "title": "LocalizationRequest"
       },
       "LocalizationSessionRead": {
         "properties": {

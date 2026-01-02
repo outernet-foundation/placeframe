@@ -8,6 +8,7 @@ from common.schemas import TarStreamResponse, tar_schema
 from common.stream_tar import stream_tar
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import StreamingResponse
+from litestar.exceptions import NotFoundException
 
 CAPTURES_DIRECTORY = pathlib.Path.home() / "captures"
 
@@ -57,7 +58,7 @@ async def get_captures() -> List[UUID]:
 async def download_capture_tar(id: UUID):
     capture_directory = CAPTURES_DIRECTORY / str(id)
     if not capture_directory.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Capture with id {id} not found")
+        raise NotFoundException(f"Capture with id {id} not found")
 
     return StreamingResponse(
         stream_tar(capture_directory),
@@ -70,5 +71,5 @@ async def download_capture_tar(id: UUID):
 async def delete_capture(id: UUID):
     capture_directory = CAPTURES_DIRECTORY / str(id)
     if not capture_directory.exists():
-        raise HTTPException(status_code=404, detail=f"Capture with id {id} not found")
+        raise NotFoundException(f"Capture with id {id} not found")
     rmtree(capture_directory)

@@ -2,13 +2,10 @@
 name = "plerion_workspace"
 version = "0.0.1"
 requires-python = ">=3.13"
-dependencies = [
-    "litestar>=2.19.0",
-]
 
 [tool.uv.workspace]
 members = [
-    # "capture-app/zed",
+    "capture-app/zed",
     "docker/database-manager",
     "docker/api",
     "docker/localizer",

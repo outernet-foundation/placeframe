@@ -498,26 +498,6 @@ namespace PlerionApiClient.Api
         /// <returns>ApiResponse of string</returns>
         ApiResponse<string> GetLocalizationSessionStatusWithHttpInfo(Guid localizationSessionId);
         /// <summary>
-        /// GetMapLoadStatus
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <returns>LoadStateResponse</returns>
-        LoadStateResponse GetMapLoadStatus(Guid localizationSessionId, Guid mapId);
-
-        /// <summary>
-        /// GetMapLoadStatus
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <returns>ApiResponse of LoadStateResponse</returns>
-        ApiResponse<LoadStateResponse> GetMapLoadStatusWithHttpInfo(Guid localizationSessionId, Guid mapId);
-        /// <summary>
         /// GetNodes
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -670,34 +650,16 @@ namespace PlerionApiClient.Api
         /// <returns>ApiResponse of List&lt;ReconstructionRead&gt;</returns>
         ApiResponse<List<ReconstructionRead>> GetReconstructionsWithHttpInfo(List<Guid>? ids = default, Guid? captureSessionId = default, string? captureSessionName = default);
         /// <summary>
-        /// LoadLocalizationMaps
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapIds">IDs of localization maps to load</param>
-        /// <returns></returns>
-        void LoadLocalizationMaps(Guid localizationSessionId, List<Guid> mapIds);
-
-        /// <summary>
-        /// LoadLocalizationMaps
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapIds">IDs of localization maps to load</param>
-        /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> LoadLocalizationMapsWithHttpInfo(Guid localizationSessionId, List<Guid> mapIds);
-        /// <summary>
         /// LocalizeImage
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="localizationSessionId"></param>
-        /// <param name="axisConvention">List of Ids to delete</param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="mapIds"></param>
+        /// <param name="cameraConfig"></param>
+        /// <param name="axisConvention"></param>
+        /// <param name="image"></param>
         /// <returns>List&lt;MapLocalization&gt;</returns>
-        List<MapLocalization> LocalizeImage(Guid localizationSessionId, AxisConvention axisConvention, FileParameter? file = default);
+        List<MapLocalization> LocalizeImage(Guid localizationSessionId, List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image);
 
         /// <summary>
         /// LocalizeImage
@@ -707,50 +669,12 @@ namespace PlerionApiClient.Api
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="localizationSessionId"></param>
-        /// <param name="axisConvention">List of Ids to delete</param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="mapIds"></param>
+        /// <param name="cameraConfig"></param>
+        /// <param name="axisConvention"></param>
+        /// <param name="image"></param>
         /// <returns>ApiResponse of List&lt;MapLocalization&gt;</returns>
-        ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(Guid localizationSessionId, AxisConvention axisConvention, FileParameter? file = default);
-        /// <summary>
-        /// SetLocalizationSessionCameraIntrinsics
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="pinholeCameraConfig"></param>
-        /// <returns></returns>
-        void SetLocalizationSessionCameraIntrinsics(Guid localizationSessionId, PinholeCameraConfig pinholeCameraConfig);
-
-        /// <summary>
-        /// SetLocalizationSessionCameraIntrinsics
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="pinholeCameraConfig"></param>
-        /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> SetLocalizationSessionCameraIntrinsicsWithHttpInfo(Guid localizationSessionId, PinholeCameraConfig pinholeCameraConfig);
-        /// <summary>
-        /// UnloadMap
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <returns></returns>
-        void UnloadMap(Guid localizationSessionId, Guid mapId);
-
-        /// <summary>
-        /// UnloadMap
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> UnloadMapWithHttpInfo(Guid localizationSessionId, Guid mapId);
+        ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(Guid localizationSessionId, List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image);
         /// <summary>
         /// UpdateCaptureSession
         /// </summary>
@@ -1521,31 +1445,6 @@ namespace PlerionApiClient.Api
         /// <returns>Task of ApiResponse (string)</returns>
         System.Threading.Tasks.Task<ApiResponse<string>> GetLocalizationSessionStatusWithHttpInfoAsync(Guid localizationSessionId, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
-        /// GetMapLoadStatus
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of LoadStateResponse</returns>
-        System.Threading.Tasks.Task<LoadStateResponse> GetMapLoadStatusAsync(Guid localizationSessionId, Guid mapId, System.Threading.CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// GetMapLoadStatus
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (LoadStateResponse)</returns>
-        System.Threading.Tasks.Task<ApiResponse<LoadStateResponse>> GetMapLoadStatusWithHttpInfoAsync(Guid localizationSessionId, Guid mapId, System.Threading.CancellationToken cancellationToken = default);
-        /// <summary>
         /// GetNodes
         /// </summary>
         /// <remarks>
@@ -1738,31 +1637,6 @@ namespace PlerionApiClient.Api
         /// <returns>Task of ApiResponse (List&lt;ReconstructionRead&gt;)</returns>
         System.Threading.Tasks.Task<ApiResponse<List<ReconstructionRead>>> GetReconstructionsWithHttpInfoAsync(List<Guid>? ids = default, Guid? captureSessionId = default, string? captureSessionName = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
-        /// LoadLocalizationMaps
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapIds">IDs of localization maps to load</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task LoadLocalizationMapsAsync(Guid localizationSessionId, List<Guid> mapIds, System.Threading.CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// LoadLocalizationMaps
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapIds">IDs of localization maps to load</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> LoadLocalizationMapsWithHttpInfoAsync(Guid localizationSessionId, List<Guid> mapIds, System.Threading.CancellationToken cancellationToken = default);
-        /// <summary>
         /// LocalizeImage
         /// </summary>
         /// <remarks>
@@ -1770,11 +1644,13 @@ namespace PlerionApiClient.Api
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="localizationSessionId"></param>
-        /// <param name="axisConvention">List of Ids to delete</param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="mapIds"></param>
+        /// <param name="cameraConfig"></param>
+        /// <param name="axisConvention"></param>
+        /// <param name="image"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;MapLocalization&gt;</returns>
-        System.Threading.Tasks.Task<List<MapLocalization>> LocalizeImageAsync(Guid localizationSessionId, AxisConvention axisConvention, FileParameter? file = default, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<List<MapLocalization>> LocalizeImageAsync(Guid localizationSessionId, List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// LocalizeImage
@@ -1784,61 +1660,13 @@ namespace PlerionApiClient.Api
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="localizationSessionId"></param>
-        /// <param name="axisConvention">List of Ids to delete</param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="mapIds"></param>
+        /// <param name="cameraConfig"></param>
+        /// <param name="axisConvention"></param>
+        /// <param name="image"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;MapLocalization&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(Guid localizationSessionId, AxisConvention axisConvention, FileParameter? file = default, System.Threading.CancellationToken cancellationToken = default);
-        /// <summary>
-        /// SetLocalizationSessionCameraIntrinsics
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="pinholeCameraConfig"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task SetLocalizationSessionCameraIntrinsicsAsync(Guid localizationSessionId, PinholeCameraConfig pinholeCameraConfig, System.Threading.CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// SetLocalizationSessionCameraIntrinsics
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="pinholeCameraConfig"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> SetLocalizationSessionCameraIntrinsicsWithHttpInfoAsync(Guid localizationSessionId, PinholeCameraConfig pinholeCameraConfig, System.Threading.CancellationToken cancellationToken = default);
-        /// <summary>
-        /// UnloadMap
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task UnloadMapAsync(Guid localizationSessionId, Guid mapId, System.Threading.CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// UnloadMap
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> UnloadMapWithHttpInfoAsync(Guid localizationSessionId, Guid mapId, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(Guid localizationSessionId, List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UpdateCaptureSession
         /// </summary>
@@ -5159,119 +4987,6 @@ namespace PlerionApiClient.Api
         }
 
         /// <summary>
-        /// GetMapLoadStatus 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <returns>LoadStateResponse</returns>
-        public LoadStateResponse GetMapLoadStatus(Guid localizationSessionId, Guid mapId)
-        {
-            PlerionApiClient.Client.ApiResponse<LoadStateResponse> localVarResponse = GetMapLoadStatusWithHttpInfo(localizationSessionId, mapId);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// GetMapLoadStatus 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <returns>ApiResponse of LoadStateResponse</returns>
-        public PlerionApiClient.Client.ApiResponse<LoadStateResponse> GetMapLoadStatusWithHttpInfo(Guid localizationSessionId, Guid mapId)
-        {
-            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("localization_session_id", PlerionApiClient.Client.ClientUtils.ParameterToString(localizationSessionId)); // path parameter
-            localVarRequestOptions.PathParameters.Add("map_id", PlerionApiClient.Client.ClientUtils.ParameterToString(mapId)); // path parameter
-
-
-            // make the HTTP request
-            var localVarResponse = this.Client.Get<LoadStateResponse>("/localization_sessions/{localization_session_id}/maps/{map_id}/status", localVarRequestOptions, this.Configuration);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("GetMapLoadStatus", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// GetMapLoadStatus 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of LoadStateResponse</returns>
-        public async System.Threading.Tasks.Task<LoadStateResponse> GetMapLoadStatusAsync(Guid localizationSessionId, Guid mapId, System.Threading.CancellationToken cancellationToken = default)
-        {
-            PlerionApiClient.Client.ApiResponse<LoadStateResponse> localVarResponse = await GetMapLoadStatusWithHttpInfoAsync(localizationSessionId, mapId, cancellationToken).ConfigureAwait(false);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// GetMapLoadStatus 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (LoadStateResponse)</returns>
-        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<LoadStateResponse>> GetMapLoadStatusWithHttpInfoAsync(Guid localizationSessionId, Guid mapId, System.Threading.CancellationToken cancellationToken = default)
-        {
-
-            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-
-            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("localization_session_id", PlerionApiClient.Client.ClientUtils.ParameterToString(localizationSessionId)); // path parameter
-            localVarRequestOptions.PathParameters.Add("map_id", PlerionApiClient.Client.ClientUtils.ParameterToString(mapId)); // path parameter
-
-
-            // make the HTTP request
-
-            var localVarResponse = await this.AsynchronousClient.GetAsync<LoadStateResponse>("/localization_sessions/{localization_session_id}/maps/{map_id}/status", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("GetMapLoadStatus", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
         /// GetNodes 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -6180,135 +5895,18 @@ namespace PlerionApiClient.Api
         }
 
         /// <summary>
-        /// LoadLocalizationMaps 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapIds">IDs of localization maps to load</param>
-        /// <returns></returns>
-        public void LoadLocalizationMaps(Guid localizationSessionId, List<Guid> mapIds)
-        {
-            LoadLocalizationMapsWithHttpInfo(localizationSessionId, mapIds);
-        }
-
-        /// <summary>
-        /// LoadLocalizationMaps 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapIds">IDs of localization maps to load</param>
-        /// <returns>ApiResponse of Object(void)</returns>
-        public PlerionApiClient.Client.ApiResponse<Object> LoadLocalizationMapsWithHttpInfo(Guid localizationSessionId, List<Guid> mapIds)
-        {
-            // verify the required parameter 'mapIds' is set
-            if (mapIds == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'mapIds' when calling DefaultApi->LoadLocalizationMaps");
-
-            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("localization_session_id", PlerionApiClient.Client.ClientUtils.ParameterToString(localizationSessionId)); // path parameter
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("multi", "map_ids", mapIds));
-
-
-            // make the HTTP request
-            var localVarResponse = this.Client.Post<Object>("/localization_sessions/{localization_session_id}/maps", localVarRequestOptions, this.Configuration);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("LoadLocalizationMaps", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// LoadLocalizationMaps 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapIds">IDs of localization maps to load</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task LoadLocalizationMapsAsync(Guid localizationSessionId, List<Guid> mapIds, System.Threading.CancellationToken cancellationToken = default)
-        {
-            await LoadLocalizationMapsWithHttpInfoAsync(localizationSessionId, mapIds, cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// LoadLocalizationMaps 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapIds">IDs of localization maps to load</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<Object>> LoadLocalizationMapsWithHttpInfoAsync(Guid localizationSessionId, List<Guid> mapIds, System.Threading.CancellationToken cancellationToken = default)
-        {
-            // verify the required parameter 'mapIds' is set
-            if (mapIds == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'mapIds' when calling DefaultApi->LoadLocalizationMaps");
-
-
-            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-
-            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("localization_session_id", PlerionApiClient.Client.ClientUtils.ParameterToString(localizationSessionId)); // path parameter
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("multi", "map_ids", mapIds));
-
-
-            // make the HTTP request
-
-            var localVarResponse = await this.AsynchronousClient.PostAsync<Object>("/localization_sessions/{localization_session_id}/maps", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("LoadLocalizationMaps", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
         /// LocalizeImage 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="localizationSessionId"></param>
-        /// <param name="axisConvention">List of Ids to delete</param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="mapIds"></param>
+        /// <param name="cameraConfig"></param>
+        /// <param name="axisConvention"></param>
+        /// <param name="image"></param>
         /// <returns>List&lt;MapLocalization&gt;</returns>
-        public List<MapLocalization> LocalizeImage(Guid localizationSessionId, AxisConvention axisConvention, FileParameter? file = default)
+        public List<MapLocalization> LocalizeImage(Guid localizationSessionId, List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image)
         {
-            PlerionApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = LocalizeImageWithHttpInfo(localizationSessionId, axisConvention, file);
+            PlerionApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = LocalizeImageWithHttpInfo(localizationSessionId, mapIds, cameraConfig, axisConvention, image);
             return localVarResponse.Data;
         }
 
@@ -6317,11 +5915,25 @@ namespace PlerionApiClient.Api
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="localizationSessionId"></param>
-        /// <param name="axisConvention">List of Ids to delete</param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="mapIds"></param>
+        /// <param name="cameraConfig"></param>
+        /// <param name="axisConvention"></param>
+        /// <param name="image"></param>
         /// <returns>ApiResponse of List&lt;MapLocalization&gt;</returns>
-        public PlerionApiClient.Client.ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(Guid localizationSessionId, AxisConvention axisConvention, FileParameter? file = default)
+        public PlerionApiClient.Client.ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(Guid localizationSessionId, List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image)
         {
+            // verify the required parameter 'mapIds' is set
+            if (mapIds == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'mapIds' when calling DefaultApi->LocalizeImage");
+
+            // verify the required parameter 'cameraConfig' is set
+            if (cameraConfig == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'cameraConfig' when calling DefaultApi->LocalizeImage");
+
+            // verify the required parameter 'image' is set
+            if (image == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'image' when calling DefaultApi->LocalizeImage");
+
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
@@ -6340,11 +5952,27 @@ namespace PlerionApiClient.Api
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
             localVarRequestOptions.PathParameters.Add("localization_session_id", PlerionApiClient.Client.ClientUtils.ParameterToString(localizationSessionId)); // path parameter
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "axis_convention", axisConvention));
-            if (file != null)
+            // COMPLEX TYPE: Serialize to JSON and add as a "File" with application/json header
+            if (mapIds != null)
             {
-                localVarRequestOptions.FileParameters.Add("file", file);
+                var _json_mapIds = Newtonsoft.Json.JsonConvert.SerializeObject(mapIds, this.ApiClient.SerializerSettings);
+                var _stream_mapIds = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(_json_mapIds));
+
+                // Add as a file parameter with null filename and application/json content type
+                localVarRequestOptions.FileParameters.Add("map_ids", new PlerionApiClient.Client.FileParameter(null, "application/json", _stream_mapIds));
             }
+            // COMPLEX TYPE: Serialize to JSON and add as a "File" with application/json header
+            if (cameraConfig != null)
+            {
+                var _json_cameraConfig = Newtonsoft.Json.JsonConvert.SerializeObject(cameraConfig, this.ApiClient.SerializerSettings);
+                var _stream_cameraConfig = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(_json_cameraConfig));
+
+                // Add as a file parameter with null filename and application/json content type
+                localVarRequestOptions.FileParameters.Add("camera_config", new PlerionApiClient.Client.FileParameter(null, "application/json", _stream_cameraConfig));
+            }
+            // Primitive types (int, string, bool) go as standard form fields
+            localVarRequestOptions.FormParameters.Add("axis_convention", PlerionApiClient.Client.ClientUtils.ParameterToString(axisConvention));
+            localVarRequestOptions.FileParameters.Add("image", image);
 
 
             // make the HTTP request
@@ -6364,13 +5992,15 @@ namespace PlerionApiClient.Api
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="localizationSessionId"></param>
-        /// <param name="axisConvention">List of Ids to delete</param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="mapIds"></param>
+        /// <param name="cameraConfig"></param>
+        /// <param name="axisConvention"></param>
+        /// <param name="image"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;MapLocalization&gt;</returns>
-        public async System.Threading.Tasks.Task<List<MapLocalization>> LocalizeImageAsync(Guid localizationSessionId, AxisConvention axisConvention, FileParameter? file = default, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<List<MapLocalization>> LocalizeImageAsync(Guid localizationSessionId, List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlerionApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = await LocalizeImageWithHttpInfoAsync(localizationSessionId, axisConvention, file, cancellationToken).ConfigureAwait(false);
+            PlerionApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = await LocalizeImageWithHttpInfoAsync(localizationSessionId, mapIds, cameraConfig, axisConvention, image, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -6379,12 +6009,26 @@ namespace PlerionApiClient.Api
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="localizationSessionId"></param>
-        /// <param name="axisConvention">List of Ids to delete</param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="mapIds"></param>
+        /// <param name="cameraConfig"></param>
+        /// <param name="axisConvention"></param>
+        /// <param name="image"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;MapLocalization&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(Guid localizationSessionId, AxisConvention axisConvention, FileParameter? file = default, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(Guid localizationSessionId, List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, System.Threading.CancellationToken cancellationToken = default)
         {
+            // verify the required parameter 'mapIds' is set
+            if (mapIds == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'mapIds' when calling DefaultApi->LocalizeImage");
+
+            // verify the required parameter 'cameraConfig' is set
+            if (cameraConfig == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'cameraConfig' when calling DefaultApi->LocalizeImage");
+
+            // verify the required parameter 'image' is set
+            if (image == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'image' when calling DefaultApi->LocalizeImage");
+
 
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
 
@@ -6405,11 +6049,27 @@ namespace PlerionApiClient.Api
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
             localVarRequestOptions.PathParameters.Add("localization_session_id", PlerionApiClient.Client.ClientUtils.ParameterToString(localizationSessionId)); // path parameter
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "axis_convention", axisConvention));
-            if (file != null)
+            // COMPLEX TYPE: Serialize to JSON and add as a "File" with application/json header
+            if (mapIds != null)
             {
-                localVarRequestOptions.FileParameters.Add("file", file);
+                var _json_mapIds = Newtonsoft.Json.JsonConvert.SerializeObject(mapIds, this.ApiClient.SerializerSettings);
+                var _stream_mapIds = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(_json_mapIds));
+
+                // Add as a file parameter with null filename and application/json content type
+                localVarRequestOptions.FileParameters.Add("map_ids", new PlerionApiClient.Client.FileParameter(null, "application/json", _stream_mapIds));
             }
+            // COMPLEX TYPE: Serialize to JSON and add as a "File" with application/json header
+            if (cameraConfig != null)
+            {
+                var _json_cameraConfig = Newtonsoft.Json.JsonConvert.SerializeObject(cameraConfig, this.ApiClient.SerializerSettings);
+                var _stream_cameraConfig = new System.IO.MemoryStream(System.Text.Encoding.UTF8.GetBytes(_json_cameraConfig));
+
+                // Add as a file parameter with null filename and application/json content type
+                localVarRequestOptions.FileParameters.Add("camera_config", new PlerionApiClient.Client.FileParameter(null, "application/json", _stream_cameraConfig));
+            }
+            // Primitive types (int, string, bool) go as standard form fields
+            localVarRequestOptions.FormParameters.Add("axis_convention", PlerionApiClient.Client.ClientUtils.ParameterToString(axisConvention));
+            localVarRequestOptions.FileParameters.Add("image", image);
 
 
             // make the HTTP request
@@ -6419,238 +6079,6 @@ namespace PlerionApiClient.Api
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("LocalizeImage", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// SetLocalizationSessionCameraIntrinsics 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="pinholeCameraConfig"></param>
-        /// <returns></returns>
-        public void SetLocalizationSessionCameraIntrinsics(Guid localizationSessionId, PinholeCameraConfig pinholeCameraConfig)
-        {
-            SetLocalizationSessionCameraIntrinsicsWithHttpInfo(localizationSessionId, pinholeCameraConfig);
-        }
-
-        /// <summary>
-        /// SetLocalizationSessionCameraIntrinsics 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="pinholeCameraConfig"></param>
-        /// <returns>ApiResponse of Object(void)</returns>
-        public PlerionApiClient.Client.ApiResponse<Object> SetLocalizationSessionCameraIntrinsicsWithHttpInfo(Guid localizationSessionId, PinholeCameraConfig pinholeCameraConfig)
-        {
-            // verify the required parameter 'pinholeCameraConfig' is set
-            if (pinholeCameraConfig == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'pinholeCameraConfig' when calling DefaultApi->SetLocalizationSessionCameraIntrinsics");
-
-            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-                "application/json"
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("localization_session_id", PlerionApiClient.Client.ClientUtils.ParameterToString(localizationSessionId)); // path parameter
-            localVarRequestOptions.Data = pinholeCameraConfig;
-
-
-            // make the HTTP request
-            var localVarResponse = this.Client.Put<Object>("/localization_sessions/{localization_session_id}/camera", localVarRequestOptions, this.Configuration);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("SetLocalizationSessionCameraIntrinsics", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// SetLocalizationSessionCameraIntrinsics 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="pinholeCameraConfig"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task SetLocalizationSessionCameraIntrinsicsAsync(Guid localizationSessionId, PinholeCameraConfig pinholeCameraConfig, System.Threading.CancellationToken cancellationToken = default)
-        {
-            await SetLocalizationSessionCameraIntrinsicsWithHttpInfoAsync(localizationSessionId, pinholeCameraConfig, cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// SetLocalizationSessionCameraIntrinsics 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="pinholeCameraConfig"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<Object>> SetLocalizationSessionCameraIntrinsicsWithHttpInfoAsync(Guid localizationSessionId, PinholeCameraConfig pinholeCameraConfig, System.Threading.CancellationToken cancellationToken = default)
-        {
-            // verify the required parameter 'pinholeCameraConfig' is set
-            if (pinholeCameraConfig == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'pinholeCameraConfig' when calling DefaultApi->SetLocalizationSessionCameraIntrinsics");
-
-
-            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-                "application/json"
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-
-            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("localization_session_id", PlerionApiClient.Client.ClientUtils.ParameterToString(localizationSessionId)); // path parameter
-            localVarRequestOptions.Data = pinholeCameraConfig;
-
-
-            // make the HTTP request
-
-            var localVarResponse = await this.AsynchronousClient.PutAsync<Object>("/localization_sessions/{localization_session_id}/camera", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("SetLocalizationSessionCameraIntrinsics", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// UnloadMap 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <returns></returns>
-        public void UnloadMap(Guid localizationSessionId, Guid mapId)
-        {
-            UnloadMapWithHttpInfo(localizationSessionId, mapId);
-        }
-
-        /// <summary>
-        /// UnloadMap 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <returns>ApiResponse of Object(void)</returns>
-        public PlerionApiClient.Client.ApiResponse<Object> UnloadMapWithHttpInfo(Guid localizationSessionId, Guid mapId)
-        {
-            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("localization_session_id", PlerionApiClient.Client.ClientUtils.ParameterToString(localizationSessionId)); // path parameter
-            localVarRequestOptions.PathParameters.Add("map_id", PlerionApiClient.Client.ClientUtils.ParameterToString(mapId)); // path parameter
-
-
-            // make the HTTP request
-            var localVarResponse = this.Client.Delete<Object>("/localization_sessions/{localization_session_id}/maps/{map_id}", localVarRequestOptions, this.Configuration);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("UnloadMap", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// UnloadMap 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task UnloadMapAsync(Guid localizationSessionId, Guid mapId, System.Threading.CancellationToken cancellationToken = default)
-        {
-            await UnloadMapWithHttpInfoAsync(localizationSessionId, mapId, cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// UnloadMap 
-        /// </summary>
-        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="localizationSessionId"></param>
-        /// <param name="mapId"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<Object>> UnloadMapWithHttpInfoAsync(Guid localizationSessionId, Guid mapId, System.Threading.CancellationToken cancellationToken = default)
-        {
-
-            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-
-            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("localization_session_id", PlerionApiClient.Client.ClientUtils.ParameterToString(localizationSessionId)); // path parameter
-            localVarRequestOptions.PathParameters.Add("map_id", PlerionApiClient.Client.ClientUtils.ParameterToString(mapId)); // path parameter
-
-
-            // make the HTTP request
-
-            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/localization_sessions/{localization_session_id}/maps/{map_id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("UnloadMap", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 

@@ -11,6 +11,7 @@ dependencies = [
     "psycopg[binary]>=3.2.10",
     "openapi-generator-cli>=7.14.0",
     "pydantic-settings>=2.10.1",
+    "litestar>=2.19.0",
 ]
 
 [dependency-groups]

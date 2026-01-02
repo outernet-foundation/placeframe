@@ -1,4 +1,3 @@
-# auth.py
 from __future__ import annotations
 
 import json
@@ -11,8 +10,9 @@ import jwt
 from jwt import PyJWK
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from litestar.connection import ASGIConnection
-from litestar.exceptions import NotAuthorizedException
+from litestar.exceptions import HTTPException
 from litestar.middleware import AbstractAuthenticationMiddleware, AuthenticationResult
+from litestar.status_codes import HTTP_401_UNAUTHORIZED
 from litestar.types import ASGIApp
 
 from .settings import get_settings
@@ -33,7 +33,7 @@ class AuthMiddleware(AbstractAuthenticationMiddleware):
     async def authenticate_request(self, connection: ASGIConnection[Any, Any, Any, Any]) -> AuthenticationResult:
         authorization = connection.headers.get("authorization")
         if not authorization or not authorization.lower().startswith("bearer "):
-            raise NotAuthorizedException(detail="Missing bearer token")
+            raise HTTPException(HTTP_401_UNAUTHORIZED, "Missing bearer token")
 
         token = authorization.split(" ", 1)[1].strip()
 
@@ -42,12 +42,12 @@ class AuthMiddleware(AbstractAuthenticationMiddleware):
             try:
                 header = jwt.get_unverified_header(token)
             except Exception:
-                raise NotAuthorizedException(detail="unauthorized: malformed header")
+                raise HTTPException(HTTP_401_UNAUTHORIZED, "Malformed header")
 
             # Get key ID
             kid = header.get("kid")
             if not isinstance(kid, str):
-                raise NotAuthorizedException(detail="unauthorized: missing kid")
+                raise HTTPException(HTTP_401_UNAUTHORIZED, "Missing key id")
 
             # Get key algorithm (default to RS256 if missing)
             alg = header.get("alg")
@@ -70,7 +70,7 @@ class AuthMiddleware(AbstractAuthenticationMiddleware):
                     json_web_key = self._keys.get(kid)
 
                 if json_web_key is None:
-                    raise NotAuthorizedException(detail="unauthorized: unknown key id")
+                    raise HTTPException(HTTP_401_UNAUTHORIZED, "Unknown key id")
 
                 # Get public key
                 public_key = PyJWK.from_dict(json_web_key).key
@@ -86,13 +86,22 @@ class AuthMiddleware(AbstractAuthenticationMiddleware):
                 options={"require": ["exp", "iat"]},  # keep 'nbf' optional
             )
 
-        except ExpiredSignatureError:
-            raise NotAuthorizedException(detail="unauthorized: token expired")
+        except ExpiredSignatureError as exception:
+            raise HTTPException(
+                HTTP_401_UNAUTHORIZED, f"Token expired: {str(exception)}" if exception else "Token expired"
+            )
 
         except InvalidTokenError as exception:
-            raise NotAuthorizedException(detail=f"unauthorized: {str(exception) or 'invalid token'}")
+            raise HTTPException(
+                HTTP_401_UNAUTHORIZED, f"Invalid token: {str(exception)}" if exception else "Invalid token"
+            )
+
+        except Exception as exception:
+            raise HTTPException(
+                HTTP_401_UNAUTHORIZED, f"Unknown exception: {str(exception)}" if exception else "Authentication error"
+            )
 
         if "sub" not in claims:
-            raise NotAuthorizedException(detail="forbidden: missing sub")
+            raise HTTPException(HTTP_401_UNAUTHORIZED, "Missing subject claim")
 
         return AuthenticationResult(user=claims["sub"], auth=claims)

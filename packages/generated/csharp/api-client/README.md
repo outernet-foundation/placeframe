@@ -93,7 +93,7 @@ namespace Example
         {
 
             Configuration config = new Configuration();
-            config.BasePath = "http://localhost";
+            config.BasePath = "http://localhost:8000";
             // create instances of HttpClient, HttpClientHandler to be reused later with different Api classes
             HttpClient httpClient = new HttpClient();
             HttpClientHandler httpClientHandler = new HttpClientHandler();
@@ -121,7 +121,7 @@ namespace Example
 <a id="documentation-for-api-endpoints"></a>
 ## Documentation for API Endpoints
 
-All URIs are relative to *http://localhost*
+All URIs are relative to *http://localhost:8000*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
@@ -151,7 +151,6 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**GetLocalizationMap**](docs/DefaultApi.md#getlocalizationmap) | **GET** /localization-maps/{id} | GetLocalizationMap
 *DefaultApi* | [**GetLocalizationMaps**](docs/DefaultApi.md#getlocalizationmaps) | **GET** /localization-maps | GetLocalizationMaps
 *DefaultApi* | [**GetLocalizationSessionStatus**](docs/DefaultApi.md#getlocalizationsessionstatus) | **GET** /localization_sessions/{localization_session_id}/status | GetLocalizationSessionStatus
-*DefaultApi* | [**GetMapLoadStatus**](docs/DefaultApi.md#getmaploadstatus) | **GET** /localization_sessions/{localization_session_id}/maps/{map_id}/status | GetMapLoadStatus
 *DefaultApi* | [**GetNodes**](docs/DefaultApi.md#getnodes) | **GET** /nodes | GetNodes
 *DefaultApi* | [**GetReconstruction**](docs/DefaultApi.md#getreconstruction) | **GET** /reconstructions/{id} | GetReconstruction
 *DefaultApi* | [**GetReconstructionFramePoses**](docs/DefaultApi.md#getreconstructionframeposes) | **GET** /reconstructions/{id}/frame_poses | GetReconstructionFramePoses
@@ -160,10 +159,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**GetReconstructionPoints**](docs/DefaultApi.md#getreconstructionpoints) | **GET** /reconstructions/{id}/points | GetReconstructionPoints
 *DefaultApi* | [**GetReconstructionStatus**](docs/DefaultApi.md#getreconstructionstatus) | **GET** /reconstructions/{id}/status | GetReconstructionStatus
 *DefaultApi* | [**GetReconstructions**](docs/DefaultApi.md#getreconstructions) | **GET** /reconstructions | GetReconstructions
-*DefaultApi* | [**LoadLocalizationMaps**](docs/DefaultApi.md#loadlocalizationmaps) | **POST** /localization_sessions/{localization_session_id}/maps | LoadLocalizationMaps
 *DefaultApi* | [**LocalizeImage**](docs/DefaultApi.md#localizeimage) | **POST** /localization_sessions/{localization_session_id}/localization | LocalizeImage
-*DefaultApi* | [**SetLocalizationSessionCameraIntrinsics**](docs/DefaultApi.md#setlocalizationsessioncameraintrinsics) | **PUT** /localization_sessions/{localization_session_id}/camera | SetLocalizationSessionCameraIntrinsics
-*DefaultApi* | [**UnloadMap**](docs/DefaultApi.md#unloadmap) | **DELETE** /localization_sessions/{localization_session_id}/maps/{map_id} | UnloadMap
 *DefaultApi* | [**UpdateCaptureSession**](docs/DefaultApi.md#updatecapturesession) | **PATCH** /capture_sessions/{id} | UpdateCaptureSession
 *DefaultApi* | [**UpdateCaptureSessions**](docs/DefaultApi.md#updatecapturesessions) | **PATCH** /capture_sessions | UpdateCaptureSessions
 *DefaultApi* | [**UpdateGroups**](docs/DefaultApi.md#updategroups) | **PATCH** /groups | UpdateGroups
@@ -194,8 +190,6 @@ Class | Method | HTTP request | Description
  - [Model.LayerBatchUpdate](docs/LayerBatchUpdate.md)
  - [Model.LayerCreate](docs/LayerCreate.md)
  - [Model.LayerRead](docs/LayerRead.md)
- - [Model.LoadState](docs/LoadState.md)
- - [Model.LoadStateResponse](docs/LoadStateResponse.md)
  - [Model.LocalizationMapBatchUpdate](docs/LocalizationMapBatchUpdate.md)
  - [Model.LocalizationMapCreate](docs/LocalizationMapCreate.md)
  - [Model.LocalizationMapRead](docs/LocalizationMapRead.md)

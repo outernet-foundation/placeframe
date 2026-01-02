@@ -55,10 +55,10 @@ import plerion_api_client
 from plerion_api_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to http://localhost
+# Defining the host is optional and defaults to http://localhost:8000
 # See configuration.py for a list of all supported configuration parameters.
 configuration = plerion_api_client.Configuration(
-    host = "http://localhost"
+    host = "http://localhost:8000"
 )
 
 
@@ -81,7 +81,7 @@ async with plerion_api_client.ApiClient(configuration) as api_client:
 
 ## Documentation for API Endpoints
 
-All URIs are relative to *http://localhost*
+All URIs are relative to *http://localhost:8000*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
@@ -111,7 +111,6 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**get_localization_map**](docs/DefaultApi.md#get_localization_map) | **GET** /localization-maps/{id} | GetLocalizationMap
 *DefaultApi* | [**get_localization_maps**](docs/DefaultApi.md#get_localization_maps) | **GET** /localization-maps | GetLocalizationMaps
 *DefaultApi* | [**get_localization_session_status**](docs/DefaultApi.md#get_localization_session_status) | **GET** /localization_sessions/{localization_session_id}/status | GetLocalizationSessionStatus
-*DefaultApi* | [**get_map_load_status**](docs/DefaultApi.md#get_map_load_status) | **GET** /localization_sessions/{localization_session_id}/maps/{map_id}/status | GetMapLoadStatus
 *DefaultApi* | [**get_nodes**](docs/DefaultApi.md#get_nodes) | **GET** /nodes | GetNodes
 *DefaultApi* | [**get_reconstruction**](docs/DefaultApi.md#get_reconstruction) | **GET** /reconstructions/{id} | GetReconstruction
 *DefaultApi* | [**get_reconstruction_frame_poses**](docs/DefaultApi.md#get_reconstruction_frame_poses) | **GET** /reconstructions/{id}/frame_poses | GetReconstructionFramePoses
@@ -120,10 +119,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**get_reconstruction_points**](docs/DefaultApi.md#get_reconstruction_points) | **GET** /reconstructions/{id}/points | GetReconstructionPoints
 *DefaultApi* | [**get_reconstruction_status**](docs/DefaultApi.md#get_reconstruction_status) | **GET** /reconstructions/{id}/status | GetReconstructionStatus
 *DefaultApi* | [**get_reconstructions**](docs/DefaultApi.md#get_reconstructions) | **GET** /reconstructions | GetReconstructions
-*DefaultApi* | [**load_localization_maps**](docs/DefaultApi.md#load_localization_maps) | **POST** /localization_sessions/{localization_session_id}/maps | LoadLocalizationMaps
 *DefaultApi* | [**localize_image**](docs/DefaultApi.md#localize_image) | **POST** /localization_sessions/{localization_session_id}/localization | LocalizeImage
-*DefaultApi* | [**set_localization_session_camera_intrinsics**](docs/DefaultApi.md#set_localization_session_camera_intrinsics) | **PUT** /localization_sessions/{localization_session_id}/camera | SetLocalizationSessionCameraIntrinsics
-*DefaultApi* | [**unload_map**](docs/DefaultApi.md#unload_map) | **DELETE** /localization_sessions/{localization_session_id}/maps/{map_id} | UnloadMap
 *DefaultApi* | [**update_capture_session**](docs/DefaultApi.md#update_capture_session) | **PATCH** /capture_sessions/{id} | UpdateCaptureSession
 *DefaultApi* | [**update_capture_sessions**](docs/DefaultApi.md#update_capture_sessions) | **PATCH** /capture_sessions | UpdateCaptureSessions
 *DefaultApi* | [**update_groups**](docs/DefaultApi.md#update_groups) | **PATCH** /groups | UpdateGroups
@@ -153,8 +149,6 @@ Class | Method | HTTP request | Description
  - [LayerBatchUpdate](docs/LayerBatchUpdate.md)
  - [LayerCreate](docs/LayerCreate.md)
  - [LayerRead](docs/LayerRead.md)
- - [LoadState](docs/LoadState.md)
- - [LoadStateResponse](docs/LoadStateResponse.md)
  - [LocalizationMapBatchUpdate](docs/LocalizationMapBatchUpdate.md)
  - [LocalizationMapCreate](docs/LocalizationMapCreate.md)
  - [LocalizationMapRead](docs/LocalizationMapRead.md)

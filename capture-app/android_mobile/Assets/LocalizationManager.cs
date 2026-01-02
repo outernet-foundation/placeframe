@@ -77,7 +77,7 @@ namespace PlerionClient.Client
             var previousValue = GetPreviousValue(App.state.mapForLocalization, args.changes);
             if (previousValue != App.state.mapForLocalization.value)
             {
-                VisualPositioningSystem.RemoveLocalizationMap(previousValue).Forget();
+                VisualPositioningSystem.RemoveLocalizationMap(previousValue);
                 VisualPositioningSystem.AddLocalizationMaps(App.state.mapForLocalization.value);
             }
         }

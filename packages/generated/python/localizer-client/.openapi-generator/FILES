@@ -15,15 +15,12 @@ plerion_localizer_client/models/__init__.py
 plerion_localizer_client/models/axis_convention.py
 plerion_localizer_client/models/float3.py
 plerion_localizer_client/models/float4.py
-plerion_localizer_client/models/http_validation_error.py
-plerion_localizer_client/models/load_state.py
-plerion_localizer_client/models/load_state_response.py
 plerion_localizer_client/models/localization.py
 plerion_localizer_client/models/localization_metrics.py
-plerion_localizer_client/models/location_inner.py
+plerion_localizer_client/models/localize_image400_response.py
+plerion_localizer_client/models/localize_image400_response_extra.py
 plerion_localizer_client/models/pinhole_camera_config.py
 plerion_localizer_client/models/transform.py
-plerion_localizer_client/models/validation_error.py
 plerion_localizer_client/py.typed
 plerion_localizer_client/rest.py
 pyproject.toml

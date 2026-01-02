@@ -46,8 +46,6 @@ def run_command(
                 process = run(command, shell=True, cwd=cwd, env=env, check=True, text=True, capture_output=True)
             else:
                 argv = shlex.split(command, posix=True)
-                if log:
-                    print("argv:", argv)
                 process = run(argv, cwd=cwd, env=env, check=True, text=True, capture_output=True)
 
             if process.stdout and log:

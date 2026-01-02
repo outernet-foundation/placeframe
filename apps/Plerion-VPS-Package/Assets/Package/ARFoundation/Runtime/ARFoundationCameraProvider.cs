@@ -19,9 +19,10 @@ namespace Plerion.Core.ARFoundation
         private float _intervalSeconds;
         private float _nextCaptureTime;
         private int _captureInFlight;
+        private PinholeCameraConfig _cameraConfig;
 
         private Func<(Vector3 position, Quaternion rotation)?> _cameraPoseProvider;
-        private Func<byte[], Vector3, Quaternion, UniTask> _onFrameReceived;
+        private Func<byte[], PinholeCameraConfig, Vector3, Quaternion, UniTask> _onFrameReceived;
 
         public ARFoundationCameraProvider(ARCameraManager cameraManager)
         {
@@ -34,7 +35,7 @@ namespace Plerion.Core.ARFoundation
         public async UniTask<PinholeCameraConfig> Start(
             float intervalSeconds,
             Func<(Vector3 position, Quaternion rotation)?> cameraPoseProvider,
-            Func<byte[], Vector3, Quaternion, UniTask> onFrameReceived
+            Func<byte[], PinholeCameraConfig, Vector3, Quaternion, UniTask> onFrameReceived
         )
         {
             if (_systemState != SystemState.Idle)
@@ -92,7 +93,7 @@ namespace Plerion.Core.ARFoundation
             _systemState = SystemState.Running;
 
             // Return camera intrinsics
-            return new PinholeCameraConfig(
+            _cameraConfig = new PinholeCameraConfig(
                 // ARFoundation on Android Mobile returns images in LEFT_TOP orientation (EXIF/TIFF Orientation=5):
                 //  - 0th row is the visual left edge
                 //  - 0th column is the visual top edge
@@ -107,6 +108,8 @@ namespace Plerion.Core.ARFoundation
                 cx: intrinsics.principalPoint.x,
                 cy: intrinsics.principalPoint.y
             );
+
+            return _cameraConfig;
         }
 
         public async UniTask Stop()
@@ -217,7 +220,7 @@ namespace Plerion.Core.ARFoundation
                         ArrayPool<byte>.Shared.Return(rented);
                     }
 
-                    await _onFrameReceived(bytes, cameraPosition, cameraRotation);
+                    await _onFrameReceived(bytes, _cameraConfig, cameraPosition, cameraRotation);
                 });
 
                 // We have successfully dispatched the frame, schedule the next capture time

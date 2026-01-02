@@ -13,7 +13,8 @@
     "hideGenerationTimestamp": true,
     "disallowAdditionalPropertiesIfNotPresent": false,
     "mapNumberTo": "Union[StrictFloat, StrictInt]",
-    "useOneOfDiscriminatorLookup": false
+    "useOneOfDiscriminatorLookup": false,
+    "examples": false
   },
   "typeMappings": {
     "number": "float"

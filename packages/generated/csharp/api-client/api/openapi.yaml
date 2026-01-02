@@ -3,7 +3,7 @@ info:
   title: Plerion
   version: 0.1.0
 servers:
-- url: /
+- url: http://localhost:8000
 paths:
   /capture_sessions:
     get:
@@ -980,38 +980,6 @@ paths:
       summary: DeleteLocalizationSession
       tags:
       - Default
-  /localization_sessions/{localization_session_id}/camera:
-    put:
-      deprecated: false
-      operationId: set_localization_session_camera_intrinsics
-      parameters:
-      - deprecated: false
-        explode: false
-        in: path
-        name: localization_session_id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PinholeCameraConfig"
-        required: true
-      responses:
-        "200":
-          description: "Request fulfilled, document follows"
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/get_capture_sessions_400_response"
-          description: Bad request syntax or unsupported method
-      summary: SetLocalizationSessionCameraIntrinsics
-      tags:
-      - Default
   /localization_sessions/{localization_session_id}/status:
     get:
       deprecated: false
@@ -1042,121 +1010,6 @@ paths:
       summary: GetLocalizationSessionStatus
       tags:
       - Default
-  /localization_sessions/{localization_session_id}/maps:
-    post:
-      deprecated: false
-      operationId: load_localization_maps
-      parameters:
-      - deprecated: false
-        explode: false
-        in: path
-        name: localization_session_id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
-      - allowEmptyValue: false
-        allowReserved: false
-        deprecated: false
-        description: IDs of localization maps to load
-        explode: true
-        in: query
-        name: map_ids
-        required: true
-        schema:
-          description: IDs of localization maps to load
-          items:
-            format: uuid
-            type: string
-          type: array
-        style: form
-      responses:
-        "201":
-          description: "Document created, URL follows"
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/get_capture_sessions_400_response"
-          description: Bad request syntax or unsupported method
-      summary: LoadLocalizationMaps
-      tags:
-      - Default
-  /localization_sessions/{localization_session_id}/maps/{map_id}:
-    delete:
-      deprecated: false
-      operationId: unload_map
-      parameters:
-      - deprecated: false
-        explode: false
-        in: path
-        name: localization_session_id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
-      - deprecated: false
-        explode: false
-        in: path
-        name: map_id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
-      responses:
-        "204":
-          description: "Request fulfilled, nothing follows"
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/get_capture_sessions_400_response"
-          description: Bad request syntax or unsupported method
-      summary: UnloadMap
-      tags:
-      - Default
-  /localization_sessions/{localization_session_id}/maps/{map_id}/status:
-    get:
-      deprecated: false
-      operationId: get_map_load_status
-      parameters:
-      - deprecated: false
-        explode: false
-        in: path
-        name: localization_session_id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
-      - deprecated: false
-        explode: false
-        in: path
-        name: map_id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LoadStateResponse"
-          description: "Request fulfilled, document follows"
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/get_capture_sessions_400_response"
-          description: Bad request syntax or unsupported method
-      summary: GetMapLoadStatus
-      tags:
-      - Default
   /localization_sessions/{localization_session_id}/localization:
     post:
       deprecated: false
@@ -1171,22 +1024,11 @@ paths:
           format: uuid
           type: string
         style: simple
-      - allowEmptyValue: false
-        allowReserved: false
-        deprecated: false
-        description: List of Ids to delete
-        explode: true
-        in: query
-        name: axis_convention
-        required: true
-        schema:
-          $ref: "#/components/schemas/AxisConvention"
-        style: form
       requestBody:
         content:
           multipart/form-data:
             schema:
-              $ref: "#/components/schemas/upload_capture_session_tar_request"
+              $ref: "#/components/schemas/LocalizationRequest"
         required: true
       responses:
         "201":
@@ -2021,37 +1863,6 @@ components:
       - updated_at
       title: LayerRead
       type: object
-    LoadState:
-      description: |2
-
-        LoadState
-      enum:
-      - pending
-      - loading
-      - ready
-      - failed
-      title: LoadState
-      type: string
-    LoadStateResponse:
-      example:
-        additional_properties:
-          key: ""
-        error: error
-        status: pending
-      properties:
-        status:
-          $ref: "#/components/schemas/LoadState"
-        error:
-          nullable: true
-          type: string
-        additional_properties:
-          additionalProperties: {}
-          default: {}
-          type: object
-      required:
-      - status
-      title: LoadStateResponse
-      type: object
     LocalizationMapBatchUpdate:
       example:
         rotation_x: 5.637376656633329
@@ -2366,6 +2177,27 @@ components:
       - inlier_ratio
       - reprojection_error_median
       title: LocalizationMetrics
+      type: object
+    LocalizationRequest:
+      properties:
+        map_ids:
+          items:
+            format: uuid
+            type: string
+          type: array
+        camera_config:
+          $ref: "#/components/schemas/PinholeCameraConfig"
+        axis_convention:
+          $ref: "#/components/schemas/AxisConvention"
+        image:
+          format: binary
+          type: string
+      required:
+      - axis_convention
+      - camera_config
+      - image
+      - map_ids
+      title: LocalizationRequest
       type: object
     LocalizationSessionRead:
       example:
@@ -3381,6 +3213,7 @@ components:
       - status_code
       type: object
     upload_capture_session_tar_request:
+      description: Capture session tar archive
       properties:
         file:
           format: binary

@@ -237,7 +237,6 @@ class Zed(Thread):
                                     rotation=Float4(x=0.0, y=0.0, z=0.0, w=1.0),
                                     translation=Float3(x=0.0, y=0.0, z=0.0),
                                     camera_config=PinholeCameraConfig(
-                                        model="PINHOLE",
                                         width=left_camera.image_size.width,
                                         height=left_camera.image_size.height,
                                         orientation="TOP_LEFT",
@@ -263,7 +262,6 @@ class Zed(Thread):
                                         z=stereo_transform_translation[2],
                                     ),
                                     camera_config=PinholeCameraConfig(
-                                        model="PINHOLE",
                                         width=right_camera.image_size.width,
                                         height=right_camera.image_size.height,
                                         orientation="TOP_LEFT",

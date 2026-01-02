@@ -12,8 +12,9 @@ from datamodels.public_dtos import (
 from datamodels.public_tables import Layer
 from litestar import Router, delete, get, patch, post
 from litestar.di import Provide
-from litestar.exceptions import NotFoundException
+from litestar.exceptions import HTTPException
 from litestar.params import Parameter
+from litestar.status_codes import HTTP_404_NOT_FOUND
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -66,7 +67,7 @@ async def update_layers(
         row = await session.get(Layer, layer.id)
         if not row:
             if not allow_missing:
-                raise NotFoundException(f"Layer with id {layer.id} not found")
+                raise HTTPException(HTTP_404_NOT_FOUND, f"Layer with id {layer.id} not found")
             continue
 
         layer_apply_batch_update_dto(row, layer)

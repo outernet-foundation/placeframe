@@ -1,232 +1,87 @@
 {
-  "openapi": "3.0.3",
   "info": {
-    "title": "Localize",
+    "title": "Localizer",
     "version": "0.1.0"
   },
+  "openapi": "3.0.3",
+  "servers": [
+    {
+      "url": "http://localhost:8000"
+    }
+  ],
   "paths": {
-    "/health": {
-      "get": {
-        "summary": "Health Check",
-        "operationId": "health_check",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "type": "object",
-                  "title": "Response Health Check"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/reconstructions/{id}": {
+    "/localization": {
       "post": {
-        "summary": "Load Reconstruction",
-        "operationId": "load_reconstruction",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Unload Reconstruction",
-        "operationId": "unload_reconstruction",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/reconstructions/{id}/status": {
-      "get": {
-        "summary": "Get Reconstruction Load Status",
-        "operationId": "get_reconstruction_load_status",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoadStateResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/camera": {
-      "put": {
-        "summary": "Set Camera Intrinsics",
-        "operationId": "set_camera_intrinsics",
+        "summary": "LocalizeImage",
+        "operationId": "localize_image",
         "requestBody": {
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/PinholeCameraConfig"
+                "$ref": "#/components/schemas/LocalizationRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
+          "201": {
+            "description": "Document created, URL follows",
+            "headers": {},
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "items": {
+                    "$ref": "#/components/schemas/Localization"
+                  },
+                  "type": "array"
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/localization": {
-      "post": {
-        "summary": "Localize Image",
-        "operationId": "localize_image",
-        "parameters": [
-          {
-            "name": "axis_convention",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AxisConvention"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_localize_image"
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
               }
             }
           }
         },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Localization"
-                  },
-                  "title": "Response Localize Image"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
+        "deprecated": false
       }
     }
   },
@@ -240,33 +95,16 @@
         ],
         "title": "AxisConvention"
       },
-      "Body_localize_image": {
-        "properties": {
-          "image": {
-            "type": "string",
-            "format": "binary",
-            "title": "Image"
-          }
-        },
-        "type": "object",
-        "required": [
-          "image"
-        ],
-        "title": "Body_localize_image"
-      },
       "Float3": {
         "properties": {
           "x": {
-            "type": "number",
-            "title": "X"
+            "type": "number"
           },
           "y": {
-            "type": "number",
-            "title": "Y"
+            "type": "number"
           },
           "z": {
-            "type": "number",
-            "title": "Z"
+            "type": "number"
           }
         },
         "type": "object",
@@ -280,77 +118,32 @@
       "Float4": {
         "properties": {
           "x": {
-            "type": "number",
-            "title": "X"
+            "type": "number"
           },
           "y": {
-            "type": "number",
-            "title": "Y"
+            "type": "number"
           },
           "z": {
-            "type": "number",
-            "title": "Z"
+            "type": "number"
           },
           "w": {
-            "type": "number",
-            "title": "W"
+            "type": "number"
           }
         },
         "type": "object",
         "required": [
+          "w",
           "x",
           "y",
-          "z",
-          "w"
+          "z"
         ],
         "title": "Float4"
-      },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Detail"
-          }
-        },
-        "type": "object",
-        "title": "HTTPValidationError"
-      },
-      "LoadState": {
-        "type": "string",
-        "enum": [
-          "pending",
-          "loading",
-          "ready",
-          "failed"
-        ],
-        "title": "LoadState"
-      },
-      "LoadStateResponse": {
-        "properties": {
-          "status": {
-            "$ref": "#/components/schemas/LoadState"
-          },
-          "error": {
-            "title": "Error",
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "type": "object",
-        "required": [
-          "status"
-        ],
-        "title": "LoadStateResponse"
       },
       "Localization": {
         "properties": {
           "id": {
             "type": "string",
-            "format": "uuid",
-            "title": "Id"
+            "format": "uuid"
           },
           "transform": {
             "$ref": "#/components/schemas/Transform"
@@ -362,20 +155,18 @@
         "type": "object",
         "required": [
           "id",
-          "transform",
-          "metrics"
+          "metrics",
+          "transform"
         ],
         "title": "Localization"
       },
       "LocalizationMetrics": {
         "properties": {
           "inlier_ratio": {
-            "type": "number",
-            "title": "Inlier Ratio"
+            "type": "number"
           },
           "reprojection_error_median": {
-            "type": "number",
-            "title": "Reprojection Error Median"
+            "type": "number"
           }
         },
         "type": "object",
@@ -385,15 +176,42 @@
         ],
         "title": "LocalizationMetrics"
       },
+      "LocalizationRequest": {
+        "properties": {
+          "reconstruction_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array"
+          },
+          "camera_config": {
+            "$ref": "#/components/schemas/PinholeCameraConfig"
+          },
+          "axis_convention": {
+            "$ref": "#/components/schemas/AxisConvention"
+          },
+          "image": {
+            "type": "string",
+            "format": "binary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "axis_convention",
+          "camera_config",
+          "image",
+          "reconstruction_ids"
+        ],
+        "title": "LocalizationRequest"
+      },
       "PinholeCameraConfig": {
         "properties": {
           "width": {
-            "type": "integer",
-            "title": "Width"
+            "type": "integer"
           },
           "height": {
-            "type": "integer",
-            "title": "Height"
+            "type": "integer"
           },
           "orientation": {
             "type": "string",
@@ -406,35 +224,30 @@
               "RIGHT_TOP",
               "RIGHT_BOTTOM",
               "LEFT_BOTTOM"
-            ],
-            "title": "Orientation"
+            ]
           },
           "fx": {
-            "type": "number",
-            "title": "Fx"
+            "type": "number"
           },
           "fy": {
-            "type": "number",
-            "title": "Fy"
+            "type": "number"
           },
           "cx": {
-            "type": "number",
-            "title": "Cx"
+            "type": "number"
           },
           "cy": {
-            "type": "number",
-            "title": "Cy"
+            "type": "number"
           }
         },
         "type": "object",
         "required": [
-          "width",
-          "height",
-          "orientation",
+          "cx",
+          "cy",
           "fx",
           "fy",
-          "cx",
-          "cy"
+          "height",
+          "orientation",
+          "width"
         ],
         "title": "PinholeCameraConfig"
       },
@@ -449,43 +262,10 @@
         },
         "type": "object",
         "required": [
-          "translation",
-          "rotation"
+          "rotation",
+          "translation"
         ],
         "title": "Transform"
-      },
-      "ValidationError": {
-        "properties": {
-          "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
-            "type": "array",
-            "title": "Location"
-          },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
-          }
-        },
-        "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
-        "title": "ValidationError"
       }
     }
   }
