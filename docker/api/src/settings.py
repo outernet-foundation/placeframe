@@ -1,16 +1,13 @@
 from functools import lru_cache
 from os import environ
-from typing import Literal
 
 from pydantic import AnyHttpUrl, Field, model_validator
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    backend: Literal["aws", "docker"] = Field()
-    torch_device: Literal["cpu", "cuda", "rocm"] = Field()
-
     public_url: AnyHttpUrl = Field()
+
     auth_audience: str = Field()
     auth_issuer_url: AnyHttpUrl = Field()
     auth_url: AnyHttpUrl = Field()
@@ -28,7 +25,8 @@ class Settings(BaseSettings):
     minio_access_key: str | None = None
     minio_secret_key: str | None = None
 
-    localizer_service: str = Field()
+    localizer_container_url: AnyHttpUrl = Field()
+
     reconstructions_bucket: str = Field(...)
 
     @model_validator(mode="after")

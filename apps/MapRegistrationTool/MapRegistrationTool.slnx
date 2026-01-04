@@ -19,7 +19,6 @@
   <Project Path="UnityEngine.TestRunner.csproj" />
   <Project Path="Unity.XR.ARFoundation.VisualScripting.Editor.csproj" />
   <Project Path="Unity.Burst.csproj" />
-  <Project Path="CesiumForUnity.csproj" />
   <Project Path="glTFast.csproj" />
   <Project Path="Unity.VisualScripting.Flow.Editor.csproj" />
   <Project Path="FR2.csproj" />
@@ -31,6 +30,7 @@
   <Project Path="Unity.XR.Simulation.Editor.csproj" />
   <Project Path="UniTask.csproj" />
   <Project Path="Unity.Searcher.Editor.csproj" />
+  <Project Path="Plerion.Core.csproj" />
   <Project Path="UnityEditor.TestRunner.csproj" />
   <Project Path="Unity.VisualScripting.Core.csproj" />
   <Project Path="Unity.RenderPipelines.Universal.Runtime.csproj" />
@@ -57,7 +57,9 @@
   <Project Path="Unity.Rider.Editor.csproj" />
   <Project Path="Unity.XR.ARFoundation.VisualScripting.csproj" />
   <Project Path="Unity.VisualScripting.State.csproj" />
+  <Project Path="CesiumEditor.csproj" />
   <Project Path="Unity.XR.ARSubsystems.Editor.csproj" />
+  <Project Path="CesiumRuntime.csproj" />
   <Project Path="Unity.Performance.Profile-Analyzer.Editor.csproj" />
   <Project Path="Unity.XR.Management.Editor.csproj" />
   <Project Path="UnityEditor.UI.csproj" />
@@ -83,7 +85,6 @@
   <Project Path="Unity.XR.ARFoundation.Editor.csproj" />
   <Project Path="Unity.EditorCoroutines.Editor.csproj" />
   <Project Path="Unity.RenderPipeline.Universal.ShaderLibrary.csproj" />
-  <Project Path="Plerion.Core.csproj" />
   <Project Path="UniTask.Editor.csproj" />
   <Project Path="UnityEngine.SpatialTracking.csproj" />
   <Project Path="UnityEngine.XR.LegacyInputHelpers.csproj" />

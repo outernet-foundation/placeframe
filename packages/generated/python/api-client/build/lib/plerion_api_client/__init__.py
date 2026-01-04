@@ -50,7 +50,6 @@ __all__ = [
     "LocalizationMapRead",
     "LocalizationMapUpdate",
     "LocalizationMetrics",
-    "LocalizationSessionRead",
     "MapLocalization",
     "NodeBatchUpdate",
     "NodeCreate",
@@ -105,7 +104,6 @@ from plerion_api_client.models.localization_map_create import LocalizationMapCre
 from plerion_api_client.models.localization_map_read import LocalizationMapRead as LocalizationMapRead
 from plerion_api_client.models.localization_map_update import LocalizationMapUpdate as LocalizationMapUpdate
 from plerion_api_client.models.localization_metrics import LocalizationMetrics as LocalizationMetrics
-from plerion_api_client.models.localization_session_read import LocalizationSessionRead as LocalizationSessionRead
 from plerion_api_client.models.map_localization import MapLocalization as MapLocalization
 from plerion_api_client.models.node_batch_update import NodeBatchUpdate as NodeBatchUpdate
 from plerion_api_client.models.node_create import NodeCreate as NodeCreate

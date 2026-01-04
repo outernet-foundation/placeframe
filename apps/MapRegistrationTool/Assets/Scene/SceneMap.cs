@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using FofX.Stateful;
 using Plerion.Core;
@@ -74,7 +75,7 @@ namespace Outernet.MapRegistrationTool
                     if (x == Guid.Empty)
                         return;
 
-                    _localizationMapVisualizer.Load(App.API, x).Forget();
+                    _localizationMapVisualizer.Load(App.API, x, CancellationToken.None).Forget();
                 })
             );
         }

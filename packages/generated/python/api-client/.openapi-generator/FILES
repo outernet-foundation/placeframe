@@ -34,7 +34,6 @@ plerion_api_client/models/localization_map_create.py
 plerion_api_client/models/localization_map_read.py
 plerion_api_client/models/localization_map_update.py
 plerion_api_client/models/localization_metrics.py
-plerion_api_client/models/localization_session_read.py
 plerion_api_client/models/map_localization.py
 plerion_api_client/models/node_batch_update.py
 plerion_api_client/models/node_create.py

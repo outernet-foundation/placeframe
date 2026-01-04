@@ -45,10 +45,7 @@ public static class LocalCaptureController
     public static async UniTask<Stream> GetCapture(Guid captureId) =>
         await TarUtils.CreateTarAsync(SessionDir(captureId.ToString()));
 
-    public static async UniTask StartCapture(
-        float requestedCaptureIntervalSeconds,
-        CancellationToken cancellationToken = default
-    )
+    public static async UniTask StartCapture(float requestedCaptureIntervalSeconds, CancellationToken cancellationToken)
     {
         sessionId = Guid.NewGuid();
         sessionDirectory = SessionDir(sessionId.ToString());
@@ -127,7 +124,8 @@ public static class LocalCaptureController
                         cameraRotation.w
                     )
                 );
-            }
+            },
+            cancellationToken
         );
 
         // Write out capture session manifest

@@ -67,7 +67,6 @@ namespace PlerionClient.Client
         public ObservableDictionary<Guid, CaptureState> captures { get; private set; }
 
         public ObservablePrimitive<bool> localizing { get; private set; }
-        public ObservablePrimitive<LocalizationSessionStatus> localizationSessionStatus { get; private set; }
         public ObservablePrimitive<Guid> mapForLocalization { get; private set; }
 
         protected override void PostInitializeInternal()

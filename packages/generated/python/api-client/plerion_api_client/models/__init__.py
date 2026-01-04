@@ -35,7 +35,6 @@ from plerion_api_client.models.localization_map_create import LocalizationMapCre
 from plerion_api_client.models.localization_map_read import LocalizationMapRead
 from plerion_api_client.models.localization_map_update import LocalizationMapUpdate
 from plerion_api_client.models.localization_metrics import LocalizationMetrics
-from plerion_api_client.models.localization_session_read import LocalizationSessionRead
 from plerion_api_client.models.map_localization import MapLocalization
 from plerion_api_client.models.node_batch_update import NodeBatchUpdate
 from plerion_api_client.models.node_create import NodeCreate

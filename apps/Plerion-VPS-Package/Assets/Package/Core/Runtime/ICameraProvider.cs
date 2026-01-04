@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using PinholeCameraConfig = PlerionApiClient.Model.PinholeCameraConfig;
@@ -10,8 +11,10 @@ namespace Plerion.Core
         UniTask<PinholeCameraConfig> Start(
             float intervalSeconds,
             Func<(Vector3 position, Quaternion rotation)?> cameraPoseProvider,
-            Func<byte[], PinholeCameraConfig, Vector3, Quaternion, UniTask> onFrameReceived
+            Func<byte[], PinholeCameraConfig, Vector3, Quaternion, UniTask> onFrameReceived,
+            CancellationToken cancellationToken
         );
+
         UniTask Stop();
     }
 
@@ -20,7 +23,8 @@ namespace Plerion.Core
         public UniTask<PinholeCameraConfig> Start(
             float intervalSeconds,
             Func<(Vector3 position, Quaternion rotation)?> cameraPoseProvider,
-            Func<byte[], PinholeCameraConfig, Vector3, Quaternion, UniTask> onFrameReceived
+            Func<byte[], PinholeCameraConfig, Vector3, Quaternion, UniTask> onFrameReceived,
+            CancellationToken cancellationToken
         ) =>
             UniTask.FromResult(
                 new PinholeCameraConfig(

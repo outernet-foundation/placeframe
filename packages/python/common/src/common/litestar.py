@@ -53,5 +53,6 @@ def create_litestar_app(
         [root, health_check, *route_handlers],
         openapi_config=openapi_config,
         middleware=middleware,
+        request_max_body_size=1024 * 1024 * 1024,
         exception_handlers={HTTPException: log_http_exception, Exception: log_unhandled_exception},
     )

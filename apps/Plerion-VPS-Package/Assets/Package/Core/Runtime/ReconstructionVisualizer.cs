@@ -21,8 +21,7 @@ namespace Plerion.Core
         private static readonly Color DefaultColor = Color.white;
         private static readonly float DefaultThickness = 0.01f;
 
-        private bool _loadingMap = false;
-        private CancellationTokenSource _loadMapCancellationTokenSource;
+        private readonly AsyncLifecycleGuard _loadGuard = new AsyncLifecycleGuard();
         private ParticleSystem _particleSystem;
         private List<Vector3> _framePositions = new List<Vector3>();
 
@@ -67,8 +66,13 @@ namespace Plerion.Core
 
         protected virtual void OnDestroy()
         {
-            _loadMapCancellationTokenSource?.Cancel();
-            _loadMapCancellationTokenSource?.Dispose();
+            if (
+                _loadGuard.State == AsyncLifecycleGuard.LifecycleState.Starting
+                || _loadGuard.State == AsyncLifecycleGuard.LifecycleState.Running
+            )
+            {
+                _loadGuard.StopAsync(() => UniTask.CompletedTask).Forget();
+            }
         }
 
         public void SetColor(Color color)
@@ -77,18 +81,24 @@ namespace Plerion.Core
             m.startColor = color;
         }
 
-        public async UniTask Load(DefaultApi api, Guid reconstructionId, CancellationToken cancellationToken = default)
+        public async UniTask Load(DefaultApi api, Guid reconstructionId, CancellationToken cancellationToken)
         {
-            if (_loadingMap)
+            if (
+                _loadGuard.State == AsyncLifecycleGuard.LifecycleState.Starting
+                || _loadGuard.State == AsyncLifecycleGuard.LifecycleState.Running
+            )
             {
-                _loadMapCancellationTokenSource.Cancel();
-                _loadMapCancellationTokenSource.Dispose();
+                await _loadGuard.StopAsync(() => UniTask.CompletedTask);
             }
 
-            _loadMapCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            var loadCancellationToken = _loadMapCancellationTokenSource.Token;
-            _loadingMap = true;
+            await _loadGuard.StartAsync(
+                loadGuardCancellationToken => LoadInternal(api, reconstructionId, loadGuardCancellationToken),
+                cancellationToken
+            );
+        }
 
+        private async UniTask LoadInternal(DefaultApi api, Guid reconstructionId, CancellationToken cancellationToken)
+        {
             byte[] pointPayload = null;
             byte[] framePayload = null;
 
@@ -98,28 +108,24 @@ namespace Plerion.Core
                     FetchPayloadAsync(
                         api.GetReconstructionPointsAsync(reconstructionId, AxisConvention.UNITY).AsUniTask(),
                         bytesPerElement: (3 * sizeof(float)) + 3,
-                        loadCancellationToken
+                        cancellationToken
                     ),
                     FetchPayloadAsync(
                         api.GetReconstructionFramePosesAsync(reconstructionId, AxisConvention.UNITY).AsUniTask(),
                         bytesPerElement: (3 * sizeof(float)) + (4 * sizeof(float)),
-                        loadCancellationToken
+                        cancellationToken
                     )
                 );
 
-                await UniTask.SwitchToMainThread(cancellationToken: loadCancellationToken);
-
+                await UniTask.SwitchToMainThread(cancellationToken);
                 PopulateFromPayload(pointPayload, framePayload);
             }
             finally
             {
                 if (pointPayload != null)
                     ArrayPool<byte>.Shared.Return(pointPayload);
-
                 if (framePayload != null)
                     ArrayPool<byte>.Shared.Return(framePayload);
-
-                _loadingMap = false;
             }
         }
 
@@ -207,7 +213,7 @@ namespace Plerion.Core
             byte[] buffer,
             int offset,
             int count,
-            CancellationToken cancellationToken = default
+            CancellationToken cancellationToken
         )
         {
             while (count > 0)

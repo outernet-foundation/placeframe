@@ -12,7 +12,7 @@ from scipy.spatial.transform import Rotation
 
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
-from .rig import Rig
+from .rig import Rig, Transform
 
 COLMAP_DB_FILE = "database.db"
 COLMAP_SFM_DIRECTORY = "sfm_model"
@@ -107,26 +107,33 @@ def run_reconstruction(
         max(range(len(reconstructions)), key=lambda i: reconstructions[i].num_reg_images())
     ]
 
-    # Use the first frame to determine similarity transform
-    first_rig = next(iter(rigs.keys()))
-    first_camera = next(iter(rigs[first_rig].cameras.keys()))
-    first_frame = next(iter(rigs[first_rig].frame_poses.keys()))
-    first_image_name = f"{first_rig}/{first_camera}/{first_frame}.jpg"
-    first_image_id = colmap_image_ids[first_image_name]
-    first_reconstruction_frame = cast(Frame, best_reconstruction.images[first_image_id].frame)
+    # Use the first frame that is registered in the best reconstruction to determine the similarity transform
+    anchor_frame_prior_pose: Transform | None = None
+    anchor_rig_from_world_transform: Rigid3d | None = None
+    for rig_id, camera_id, frame_id in (
+        (rig_id, camera_id, frame_id)
+        for rig_id in rigs.keys()
+        for frame_id in rigs[rig_id].frame_poses.keys()
+        for camera_id in rigs[rig_id].cameras.keys()
+    ):
+        image_id = colmap_image_ids[f"{rig_id}/{camera_id}/{frame_id}.jpg"]
+        if image_id in best_reconstruction.images:
+            reconstruction_frame = cast(Frame, best_reconstruction.images[image_id].frame)
+            anchor_frame_prior_pose = rigs[rig_id].frame_poses[frame_id]
+            anchor_rig_from_world_transform = cast(Rigid3d, reconstruction_frame.rig_from_world)  # type: ignore
+            break
 
-    # Get the prior pose and reconstructed pose for the first frame
-    first_frame_prior_pose = rigs[first_rig].frame_poses[first_frame]
-    first_rig_from_world_transform = cast(Rigid3d, first_reconstruction_frame.rig_from_world)  # type: ignore
+    if anchor_frame_prior_pose is None or anchor_rig_from_world_transform is None:
+        raise RuntimeError("Could not find anchor frame in best reconstruction")
 
     # Transform the reconstruction to align with the rig coordinate system
     best_reconstruction.transform(
         Sim3d(
             concatenate(
                 [
-                    first_frame_prior_pose.rotation @ first_rig_from_world_transform.rotation.matrix(),
-                    first_frame_prior_pose.rotation @ first_rig_from_world_transform.translation.reshape(3, 1)
-                    + first_frame_prior_pose.translation.reshape(3, 1),
+                    anchor_frame_prior_pose.rotation @ anchor_rig_from_world_transform.rotation.matrix(),
+                    anchor_frame_prior_pose.rotation @ anchor_rig_from_world_transform.translation.reshape(3, 1)
+                    + anchor_frame_prior_pose.translation.reshape(3, 1),
                 ],
                 axis=1,
             )

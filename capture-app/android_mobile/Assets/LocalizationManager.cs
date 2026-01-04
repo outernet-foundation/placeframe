@@ -4,7 +4,6 @@ using Cysharp.Threading.Tasks;
 using FofX.Stateful;
 using Plerion.Core;
 using UnityEngine;
-using UnityEngine.Android;
 #if !UNITY_EDITOR
 using Plerion.Core.ARFoundation;
 #endif
@@ -26,71 +25,65 @@ namespace PlerionClient.Client
                 (message, exception) => Log.Error(LogGroup.Localizer, exception, message)
             );
 
-            App.RegisterObserver(HandleAppModeChanged, App.state.mode, App.state.loggedIn);
+            App.RegisterObserver(HandleAppModeChanged, App.state.mode, App.state.localizing);
+            App.RegisterObserver(HandleMapForLocalizationChanged, App.state.mapForLocalization);
         }
 
         private void HandleAppModeChanged(NodeChangeEventArgs args)
         {
-            if (!App.state.loggedIn.value || App.state.mode.value != AppMode.Validation)
-            {
-                App.DeregisterObserver(HandleLocalizationSessionStatusChanged);
-                App.DeregisterObserver(HandleLocalizingChanged);
+            if (args.initialize)
+                return;
 
-                if (App.state.localizing.value)
+            var previousLocalizing =
+                GetPreviousValue(App.state.mode, args.changes) == AppMode.Validation
+                && GetPreviousValue(App.state.localizing, args.changes);
+
+            var localizing = App.state.mode.value == AppMode.Validation && App.state.localizing.value;
+
+            if (previousLocalizing && !localizing)
+            {
+                VisualPositioningSystem.StopLocalizing();
+
+                if (App.state.mapForLocalization.value != Guid.Empty)
                 {
-                    VisualPositioningSystem.StopLocalizing().Forget();
+                    VisualPositioningSystem.RemoveLocalizationMap(App.state.mapForLocalization.value);
                 }
-
-                return;
             }
 
-            App.RegisterObserver(HandleLocalizationSessionStatusChanged, App.state.localizationSessionStatus);
-        }
-
-        private void HandleLocalizationSessionStatusChanged(NodeChangeEventArgs args)
-        {
-            App.DeregisterObserver(HandleMapToValidateChanged);
-            App.DeregisterObserver(HandleLocalizingChanged);
-
-            if (App.state.localizationSessionStatus.value == LocalizationSessionStatus.Inactive)
+            if (localizing && !previousLocalizing)
             {
-                InitializeLocalizationSession().Forget();
-                return;
-            }
-            else if (App.state.localizationSessionStatus.value == LocalizationSessionStatus.Active)
-            {
-                App.RegisterObserver(HandleMapToValidateChanged, App.state.mapForLocalization);
-                App.RegisterObserver(HandleLocalizingChanged, App.state.localizing);
+                VisualPositioningSystem.StartLocalizing();
+
+                if (App.state.mapForLocalization.value != Guid.Empty)
+                {
+                    VisualPositioningSystem.AddLocalizationMap(App.state.mapForLocalization.value);
+                }
             }
         }
 
-        private void HandleMapToValidateChanged(NodeChangeEventArgs args)
+        private void HandleMapForLocalizationChanged(NodeChangeEventArgs args)
         {
             if (args.initialize)
-            {
-                if (App.state.mapForLocalization.value != Guid.Empty)
-                    VisualPositioningSystem.AddLocalizationMaps(App.state.mapForLocalization.value);
-
                 return;
+
+            var previousMapForLocalization = GetPreviousValue(App.state.mapForLocalization, args.changes);
+            var mapForLocalization = App.state.mapForLocalization.value;
+
+            if (
+                App.state.mode.value != AppMode.Validation
+                || !App.state.localizing.value
+                || previousMapForLocalization == mapForLocalization
+            )
+                return;
+
+            if (previousMapForLocalization != Guid.Empty)
+            {
+                VisualPositioningSystem.RemoveLocalizationMap(previousMapForLocalization);
             }
 
-            var previousValue = GetPreviousValue(App.state.mapForLocalization, args.changes);
-            if (previousValue != App.state.mapForLocalization.value)
+            if (mapForLocalization != Guid.Empty)
             {
-                VisualPositioningSystem.RemoveLocalizationMap(previousValue);
-                VisualPositioningSystem.AddLocalizationMaps(App.state.mapForLocalization.value);
-            }
-        }
-
-        private void HandleLocalizingChanged(NodeChangeEventArgs args)
-        {
-            if (App.state.localizing.value)
-            {
-                VisualPositioningSystem.StartLocalizing().Forget();
-            }
-            else if (!args.initialize)
-            {
-                VisualPositioningSystem.StopLocalizing().Forget();
+                VisualPositioningSystem.AddLocalizationMap(mapForLocalization);
             }
         }
 
@@ -103,26 +96,6 @@ namespace PlerionClient.Client
             }
 
             return primitive.value;
-        }
-
-        private async UniTask InitializeLocalizationSession()
-        {
-            App.state.localizationSessionStatus.ExecuteSetOrDelay(LocalizationSessionStatus.Starting);
-
-            try
-            {
-                await UniTask.SwitchToMainThread();
-
-                await VisualPositioningSystem.StartLocalizationSession();
-
-                await UniTask.SwitchToMainThread();
-                App.state.localizationSessionStatus.ExecuteSetOrDelay(LocalizationSessionStatus.Active);
-            }
-            catch (Exception exc)
-            {
-                App.state.localizationSessionStatus.ExecuteSetOrDelay(LocalizationSessionStatus.Error);
-                throw exc;
-            }
         }
 
         private ICameraProvider GetCameraProvider()

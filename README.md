@@ -63,7 +63,7 @@ Plerion targets the same class of problems as products like Niantic’s visual p
 - [Docker Engine](https://docs.docker.com/engine/)
 - [ngrok](https://ngrok.com/) (optional)
   - Simple way to get a static domain name
-  - Sign up for a free account and follow their instructions to start a tunnel on port 8080 from
+  - Sign up for a free account and follow their instructions to start a tunnel on port 58080 (or whatever your GATEWAY_PORT is in you .env) from
     your machine to your ngrok "dev domain"
 
 ### Create env file

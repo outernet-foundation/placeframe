@@ -940,90 +940,10 @@ paths:
       summary: UpdateLocalizationMap
       tags:
       - Default
-  /localization_sessions:
-    post:
-      deprecated: false
-      operationId: create_localization_session
-      responses:
-        "201":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LocalizationSessionRead"
-          description: "Document created, URL follows"
-      summary: CreateLocalizationSession
-      tags:
-      - Default
-  /localization_sessions/{localization_session_id}:
-    delete:
-      deprecated: false
-      operationId: delete_localization_session
-      parameters:
-      - deprecated: false
-        explode: false
-        in: path
-        name: localization_session_id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
-      responses:
-        "204":
-          description: "Request fulfilled, nothing follows"
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/get_capture_sessions_400_response"
-          description: Bad request syntax or unsupported method
-      summary: DeleteLocalizationSession
-      tags:
-      - Default
-  /localization_sessions/{localization_session_id}/status:
-    get:
-      deprecated: false
-      operationId: get_localization_session_status
-      parameters:
-      - deprecated: false
-        explode: false
-        in: path
-        name: localization_session_id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
-      responses:
-        "200":
-          content:
-            text/plain:
-              schema:
-                type: string
-          description: "Request fulfilled, document follows"
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/get_capture_sessions_400_response"
-          description: Bad request syntax or unsupported method
-      summary: GetLocalizationSessionStatus
-      tags:
-      - Default
-  /localization_sessions/{localization_session_id}/localization:
+  /localize:
     post:
       deprecated: false
       operationId: localize_image
-      parameters:
-      - deprecated: false
-        explode: false
-        in: path
-        name: localization_session_id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
       requestBody:
         content:
           multipart/form-data:
@@ -2198,36 +2118,6 @@ components:
       - image
       - map_ids
       title: LocalizationRequest
-      type: object
-    LocalizationSessionRead:
-      example:
-        container_url: container_url
-        created_at: 2000-01-23T04:56:07.000+00:00
-        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        container_id: container_id
-      properties:
-        id:
-          format: uuid
-          title: Id
-          type: string
-        created_at:
-          description: datetime with the constraint that the value must have timezone
-            info
-          format: date-time
-          title: Created At
-          type: string
-        container_id:
-          title: Container Id
-          type: string
-        container_url:
-          title: Container Url
-          type: string
-      required:
-      - container_id
-      - container_url
-      - created_at
-      - id
-      title: LocalizationSessionRead
       type: object
     MapLocalization:
       example:

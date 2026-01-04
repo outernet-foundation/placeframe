@@ -11,7 +11,6 @@ services:
   minio:
     image: docker.io/minio/minio:latest
     ports:
-      - "9000:9000"
       - "${MINIO_CONSOLE_PORT}:9001"
     command: server /data --console-address ":9001"
     volumes:
@@ -164,7 +163,7 @@ services:
       - keycloak
       - api
     ports:
-      - "8080:8080"
+      - "${GATEWAY_PORT}:8080"
 
   migrate-database:
     build:
@@ -195,15 +194,13 @@ services:
         condition: service_completed_successfully
     ports:
       - "8000:8000"
-      - "5679:5678"
+      - "5679:5678" # debug port
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./compose.yml:/compose.yml:ro
       - ./.env:/.env:ro
     environment:
       DOCKER_HOST: unix:///var/run/docker.sock
-      BACKEND: docker
-      TORCH_DEVICE: ${TORCH_DEVICE}
       PUBLIC_URL: ${PUBLIC_URL}
       AUTH_AUDIENCE: ${AUTH_AUDIENCE}
       AUTH_ISSUER_URL: ${AUTH_ISSUER_URL}
@@ -220,7 +217,7 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
-      LOCALIZER_SERVICE: localizer-${TORCH_DEVICE}
+      LOCALIZER_CONTAINER_URL: http://localizer:8000
       RELOAD: true
       DEBUG: ${DEBUG_API}
       DEBUG_WAIT: ${DEBUG_WAIT_API}
@@ -256,7 +253,7 @@ services:
       DEBUG_WAIT_RUN_RECONSTRUCTION: ${DEBUG_WAIT_RUN_RECONSTRUCTION}
 
   reconstructor-cuda:
-    profiles: ["ephemeral"]
+    profiles: ["cuda"]
     build:
       dockerfile: docker/reconstructor/Dockerfile
       args: { TORCH_DEVICE: "cuda" }
@@ -267,7 +264,7 @@ services:
     image: plerion-reconstructor-cuda
     gpus: all
     expose:
-      - "5678"
+      - "5678" # debug port
     environment:
       MINIO_ENDPOINT_URL: "http://minio:9000"
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY}"
@@ -276,7 +273,7 @@ services:
       CAPTURES_BUCKET: dev-captures
 
   reconstructor-rocm:
-    profiles: ["ephemeral"]
+    profiles: ["rocm"]
     build:
       dockerfile: docker/reconstructor/Dockerfile
       args: { TORCH_DEVICE: "rocm" }
@@ -292,16 +289,19 @@ services:
       - 44
       - 110
     expose:
-      - "5678"
+      - "5678" # debug port
     environment:
       MINIO_ENDPOINT_URL: "http://minio:9000"
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY}"
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
       CAPTURES_BUCKET: dev-captures
-      
+
   localizer-cuda:
-    profiles: ["ephemeral"]
+    profiles: ["cuda"]
+    networks:
+      default:
+        aliases: ["localizer"]
     build:
       dockerfile: docker/localizer/Dockerfile
       args: { TORCH_DEVICE: "cuda" }
@@ -320,7 +320,10 @@ services:
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
 
   localizer-rocm:
-    profiles: ["ephemeral"]
+    profiles: ["rocm"]
+    networks:
+      default:
+        aliases: ["localizer"]
     build:
       dockerfile: docker/localizer/Dockerfile
       args: { TORCH_DEVICE: "rocm" }

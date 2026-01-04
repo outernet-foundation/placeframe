@@ -90,7 +90,6 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**create_group**](docs/DefaultApi.md#create_group) | **POST** /groups | CreateGroup
 *DefaultApi* | [**create_layer**](docs/DefaultApi.md#create_layer) | **POST** /layers | CreateLayer
 *DefaultApi* | [**create_localization_map**](docs/DefaultApi.md#create_localization_map) | **POST** /localization-maps | CreateLocalizationMap
-*DefaultApi* | [**create_localization_session**](docs/DefaultApi.md#create_localization_session) | **POST** /localization_sessions | CreateLocalizationSession
 *DefaultApi* | [**create_node**](docs/DefaultApi.md#create_node) | **POST** /nodes | CreateNode
 *DefaultApi* | [**create_reconstruction**](docs/DefaultApi.md#create_reconstruction) | **POST** /reconstructions | CreateReconstruction
 *DefaultApi* | [**delete_capture_session**](docs/DefaultApi.md#delete_capture_session) | **DELETE** /capture_sessions/{id} | DeleteCaptureSession
@@ -98,7 +97,6 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**delete_layers**](docs/DefaultApi.md#delete_layers) | **DELETE** /layers | DeleteLayers
 *DefaultApi* | [**delete_localization_map**](docs/DefaultApi.md#delete_localization_map) | **DELETE** /localization-maps/{id} | DeleteLocalizationMap
 *DefaultApi* | [**delete_localization_maps**](docs/DefaultApi.md#delete_localization_maps) | **DELETE** /localization-maps | DeleteLocalizationMaps
-*DefaultApi* | [**delete_localization_session**](docs/DefaultApi.md#delete_localization_session) | **DELETE** /localization_sessions/{localization_session_id} | DeleteLocalizationSession
 *DefaultApi* | [**delete_nodes**](docs/DefaultApi.md#delete_nodes) | **DELETE** /nodes | DeleteNodes
 *DefaultApi* | [**delete_reconstruction**](docs/DefaultApi.md#delete_reconstruction) | **DELETE** /reconstructions/{id} | DeleteReconstruction
 *DefaultApi* | [**download_capture_session_tar**](docs/DefaultApi.md#download_capture_session_tar) | **GET** /capture_sessions/{id}/tar | DownloadCaptureSessionTar
@@ -110,7 +108,6 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**get_layers**](docs/DefaultApi.md#get_layers) | **GET** /layers | GetLayers
 *DefaultApi* | [**get_localization_map**](docs/DefaultApi.md#get_localization_map) | **GET** /localization-maps/{id} | GetLocalizationMap
 *DefaultApi* | [**get_localization_maps**](docs/DefaultApi.md#get_localization_maps) | **GET** /localization-maps | GetLocalizationMaps
-*DefaultApi* | [**get_localization_session_status**](docs/DefaultApi.md#get_localization_session_status) | **GET** /localization_sessions/{localization_session_id}/status | GetLocalizationSessionStatus
 *DefaultApi* | [**get_nodes**](docs/DefaultApi.md#get_nodes) | **GET** /nodes | GetNodes
 *DefaultApi* | [**get_reconstruction**](docs/DefaultApi.md#get_reconstruction) | **GET** /reconstructions/{id} | GetReconstruction
 *DefaultApi* | [**get_reconstruction_frame_poses**](docs/DefaultApi.md#get_reconstruction_frame_poses) | **GET** /reconstructions/{id}/frame_poses | GetReconstructionFramePoses
@@ -119,7 +116,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**get_reconstruction_points**](docs/DefaultApi.md#get_reconstruction_points) | **GET** /reconstructions/{id}/points | GetReconstructionPoints
 *DefaultApi* | [**get_reconstruction_status**](docs/DefaultApi.md#get_reconstruction_status) | **GET** /reconstructions/{id}/status | GetReconstructionStatus
 *DefaultApi* | [**get_reconstructions**](docs/DefaultApi.md#get_reconstructions) | **GET** /reconstructions | GetReconstructions
-*DefaultApi* | [**localize_image**](docs/DefaultApi.md#localize_image) | **POST** /localization_sessions/{localization_session_id}/localization | LocalizeImage
+*DefaultApi* | [**localize_image**](docs/DefaultApi.md#localize_image) | **POST** /localize | LocalizeImage
 *DefaultApi* | [**update_capture_session**](docs/DefaultApi.md#update_capture_session) | **PATCH** /capture_sessions/{id} | UpdateCaptureSession
 *DefaultApi* | [**update_capture_sessions**](docs/DefaultApi.md#update_capture_sessions) | **PATCH** /capture_sessions | UpdateCaptureSessions
 *DefaultApi* | [**update_groups**](docs/DefaultApi.md#update_groups) | **PATCH** /groups | UpdateGroups
@@ -154,7 +151,6 @@ Class | Method | HTTP request | Description
  - [LocalizationMapRead](docs/LocalizationMapRead.md)
  - [LocalizationMapUpdate](docs/LocalizationMapUpdate.md)
  - [LocalizationMetrics](docs/LocalizationMetrics.md)
- - [LocalizationSessionRead](docs/LocalizationSessionRead.md)
  - [MapLocalization](docs/MapLocalization.md)
  - [NodeBatchUpdate](docs/NodeBatchUpdate.md)
  - [NodeCreate](docs/NodeCreate.md)
