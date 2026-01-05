@@ -9,11 +9,12 @@ from typing import Any, Mapping, cast
 from uuid import UUID
 
 from common.boto_clients import create_s3_client
-from core.classes import Transform
+from core.axis_convention import AxisConvention
+from core.camera_config import PinholeCameraConfig
 from core.h5 import FEATURES_FILE, GLOBAL_DESCRIPTORS_FILE, read_features, read_global_descriptors
 from core.localization_metrics import LocalizationMetrics
 from core.opq import OPQ_MATRIX_FILE, PQ_QUANTIZER_FILE, read_opq_matrix, read_pq_quantizer
-from core.rig import PinholeCameraConfig
+from core.transform import Transform
 from numpy import float32, stack, uint8
 from numpy.typing import NDArray
 from pycolmap import Reconstruction
@@ -54,7 +55,9 @@ _maps: dict[UUID, Map] = {}
 
 settings = get_settings()
 s3_client = create_s3_client(
-    s3_endpoint_url=settings.s3_endpoint_url, s3_access_key=settings.s3_access_key, s3_secret_key=settings.s3_secret_key
+    minio_endpoint_url=settings.minio_endpoint_url,
+    minio_access_key=settings.minio_access_key,
+    minio_secret_key=settings.minio_secret_key,
 )
 
 
@@ -95,7 +98,7 @@ def get_load_state(id: UUID):
         return LoadStateResponse(status=_load_state.get(id, LoadState.PENDING), error=_load_error.get(id))
 
 
-def localize(camera: PinholeCameraConfig, image: bytes):
+def localize(camera: PinholeCameraConfig, axis_convention: AxisConvention, image: bytes):
     return [
         Localization(id=id, transform=result[0], metrics=result[1])
         for id, result in zip(
@@ -104,6 +107,7 @@ def localize(camera: PinholeCameraConfig, image: bytes):
                 localize_image_against_reconstruction(
                     map=_maps[id],
                     camera=camera,
+                    axis_convention=axis_convention,
                     image_buffer=image,
                     retrieval_top_k=RETRIEVAL_TOP_K,
                     ransac_threshold=RANSAC_THRESHOLD,

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, ValuesView, cast
 
-from numpy import concatenate, eye, float64, intp, stack, uint32
+from numpy import concatenate, empty, eye, float32, float64, intp, savez_compressed, stack, uint8, uint32
 from numpy.typing import NDArray
 from pycolmap import Database, PosePrior, PosePriorCoordinateSystem
 from pycolmap import Image as pycolmapImage
-from pycolmap._core import Frame, Rigid3d, Sim3d, apply_rig_config, incremental_mapping, match_spatial
+from pycolmap._core import Frame, Point3D, Rigid3d, Sim3d, apply_rig_config, incremental_mapping, match_spatial
+from scipy.spatial.transform import Rotation
 
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
@@ -19,6 +20,7 @@ COLMAP_SFM_DIRECTORY = "sfm_model"
 
 def run_reconstruction(
     root_path: Path,
+    output_path: Path,
     images_path: Path,
     options: OptionsBuilder,
     metrics: MetricsBuilder,
@@ -130,5 +132,39 @@ def run_reconstruction(
             )
         )
     )
+
+    # Write the best reconstruction to disk in COLMAP format
+    best_reconstruction.write_text(str(output_path))
+
+    # Write point cloud to disk in NPZ format
+    point_cloud_point_count = len(best_reconstruction.points3D)
+    point_cloud_positions = empty((point_cloud_point_count, 3), dtype=float32)
+    point_cloud_colors = empty((point_cloud_point_count, 3), dtype=uint8)
+
+    for point_cloud_point_index, point_cloud_point in enumerate(
+        cast(ValuesView[Point3D], best_reconstruction.points3D.values())  # type: ignore
+    ):
+        point_cloud_positions[point_cloud_point_index] = point_cloud_point.xyz
+        point_cloud_colors[point_cloud_point_index] = point_cloud_point.color
+
+    point_cloud_npz_file_path = output_path / "points3D.npz"
+    savez_compressed(str(point_cloud_npz_file_path), positions=point_cloud_positions, colors=point_cloud_colors)
+
+    # Write frame poses to disk in NPZ format
+    frame_count = len(best_reconstruction.frames)
+    frame_positions = empty((frame_count, 3), dtype=float32)
+    frame_orientations = empty((frame_count, 4), dtype=float32)
+
+    for frame_index, frame in enumerate(cast(ValuesView[Frame], best_reconstruction.frames.values())):  # type: ignore
+        # Convert from rig_from_world to world_from_rig
+        rig_from_world = cast(Rigid3d, frame.rig_from_world)
+        world_from_rig_rotation_matrix = rig_from_world.rotation.matrix().T
+        world_from_rig_translation = -world_from_rig_rotation_matrix @ rig_from_world.translation
+
+        frame_positions[frame_index] = world_from_rig_translation
+        frame_orientations[frame_index] = Rotation.from_matrix(world_from_rig_rotation_matrix).as_quat()
+
+    frame_poses_npz_file_path = output_path / "frame_poses.npz"
+    savez_compressed(str(frame_poses_npz_file_path), positions=frame_positions, orientations=frame_orientations)
 
     return best_reconstruction

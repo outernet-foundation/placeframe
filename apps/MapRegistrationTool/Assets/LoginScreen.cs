@@ -1,8 +1,9 @@
+using System;
+using Cysharp.Threading.Tasks;
+using Plerion.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using Cysharp.Threading.Tasks;
-using System;
 
 namespace Outernet.MapRegistrationTool
 {
@@ -15,7 +16,18 @@ namespace Outernet.MapRegistrationTool
 
         private void Awake()
         {
-            loginButton.onClick.AddListener(() => Login(App.plerionAuthUrl, App.plerionAuthClient, username.text, password.text).Forget());
+            VisualPositioningSystem.Initialize(
+                null,
+                App.plerionApiUrl,
+                App.plerionAuthUrl,
+                App.plerionAuthClient,
+                message => Debug.Log(message),
+                message => Debug.LogWarning(message),
+                message => Debug.LogError(message),
+                (message, exception) => Debug.LogError($"{message}\n{exception}")
+            );
+
+            loginButton.onClick.AddListener(() => Login(username.text, password.text).Forget());
 
             App.state.loggedIn.OnChange(x =>
             {
@@ -31,11 +43,11 @@ namespace Outernet.MapRegistrationTool
             });
         }
 
-        private async UniTask Login(string authUrl, string authClient, string username, string password)
+        private async UniTask Login(string username, string password)
         {
             try
             {
-                await Tasks.Login(authUrl, authClient, username, password);
+                await Tasks.Login(username, password);
             }
             catch (Exception exc)
             {

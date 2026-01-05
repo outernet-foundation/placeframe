@@ -9,13 +9,13 @@ namespace PlerionClient.Client
         Idle,
         Starting,
         Capturing,
-        Stopping
+        Stopping,
     }
 
     public enum AppMode
     {
         Capture,
-        Validation
+        Validation,
     }
 
     public enum LocalizationSessionStatus
@@ -24,7 +24,7 @@ namespace PlerionClient.Client
         Starting,
         Active,
         Stopping,
-        Error
+        Error,
     }
 
     public enum AuthStatus
@@ -32,7 +32,7 @@ namespace PlerionClient.Client
         LoggedOut,
         LoggingIn,
         LoggedIn,
-        Error
+        Error,
     }
 
     public class TestState : ObservableObject
@@ -50,8 +50,8 @@ namespace PlerionClient.Client
     public class AppState : ObservableObject
     {
         public ObservablePrimitive<string> plerionApiUrl { get; private set; }
-        public ObservablePrimitive<string> plerionAuthUrl { get; private set; }
-        public ObservablePrimitive<string> plerionAuthClient { get; private set; }
+        public ObservablePrimitive<string> plerionAuthTokenUrl { get; private set; }
+        public ObservablePrimitive<string> plerionAuthAudience { get; private set; }
         public ObservablePrimitive<string> username { get; private set; }
         public ObservablePrimitive<string> password { get; private set; }
         public ObservablePrimitive<bool> loginRequested { get; private set; }
@@ -61,7 +61,8 @@ namespace PlerionClient.Client
 
         public ObservablePrimitive<AppMode> mode { get; private set; }
 
-        public ObservablePrimitive<DeviceType> captureMode { get; private set; } = new ObservablePrimitive<DeviceType>(DeviceType.ARFoundation);
+        public ObservablePrimitive<DeviceType> captureMode { get; private set; } =
+            new ObservablePrimitive<DeviceType>(DeviceType.ARFoundation);
         public ObservablePrimitive<CaptureStatus> captureStatus { get; private set; }
         public ObservableDictionary<Guid, CaptureState> captures { get; private set; }
 
@@ -91,7 +92,7 @@ namespace PlerionClient.Client
         Uploaded,
         CreateMapRequested,
         MapCreated,
-        Failed
+        Failed,
     }
 
     public class CaptureState : ObservableObject, IKeyedObservableNode<Guid>
@@ -108,7 +109,6 @@ namespace PlerionClient.Client
         public ObservablePrimitive<bool> hasLocalFiles { get; private set; }
         public ObservablePrimitive<ReconstructionManifest> manifest { get; private set; }
 
-        void IKeyedObservableNode<Guid>.AssignKey(Guid key)
-            => id = key;
+        void IKeyedObservableNode<Guid>.AssignKey(Guid key) => id = key;
     }
 }

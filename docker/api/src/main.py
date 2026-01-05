@@ -21,7 +21,7 @@ settings = get_settings()
 if environ.get("CODEGEN"):
     app = create_fastapi_app(title="Plerion")
 else:
-    app = create_fastapi_app(title="Plerion", client_id=settings.keycloak_client_id)
+    app = create_fastapi_app(title="Plerion", client_id=settings.auth_audience)
 
 
 def custom_openapi():
@@ -43,8 +43,8 @@ def custom_openapi():
             "type": "oauth2",
             "flows": {
                 "authorizationCode": {
-                    "authorizationUrl": f"{settings.keycloak_public_host}/realms/{settings.keycloak_realm}/protocol/openid-connect/auth",
-                    "tokenUrl": f"{settings.keycloak_public_host}/realms/{settings.keycloak_realm}/protocol/openid-connect/token",
+                    "authorizationUrl": str(settings.auth_url),
+                    "tokenUrl": str(settings.auth_token_url),
                     "scopes": {"openid": "OpenID scope", "email": "Email", "profile": "Profile"},
                 }
             },

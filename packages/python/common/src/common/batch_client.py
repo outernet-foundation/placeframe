@@ -12,6 +12,7 @@ class BatchClient(Protocol):
         job_definition_name: str,
         *,
         array_size: int | None = None,
+        torch_device: Literal["cpu", "cuda", "rocm"] = "cpu",
         environment: dict[str, str] | None = None,
     ) -> str: ...
 

@@ -20,24 +20,10 @@ dependencies = [
 
 [dependency-groups]
 dev = ["h5py-stubs>=0.1.2", "scipy-stubs>=1.16.2.4"]
-torch = [
-  "torch==2.9.0+cu126",
-  "torchvision==0.24.0+cu126",
-  "scikit-learn>=1.7.2",
-]
+torch-cpu = ["torch-meta[cpu]"]
+torch-cuda = ["torch-meta[cuda]"]
+torch-rocm = ["torch-meta[rocm]"]
 neural-networks = ["neural-networks"]
-
-[tool.uv.sources]
-core = { workspace = true }
-common = { workspace = true }
-neural-networks = { workspace = true }
-torch = { index = "pytorch-cu126" }
-torchvision = { index = "pytorch-cu126" }
-
-[[tool.uv.index]]
-name = "pytorch-cu126"
-url = "https://download.pytorch.org/whl/cu126"
-explicit = true
 
 [build-system]
 requires = ["hatchling"]

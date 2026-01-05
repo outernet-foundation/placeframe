@@ -10,11 +10,9 @@ ENV \
     # Enable bytecode compilation, to improve cold-start performance.
     UV_COMPILE_BYTECODE=1 \
     # Ensure layers are deterministic by not including installer metadata
-    # UV_NO_INSTALLER_METADATA=1 \
+    UV_NO_INSTALLER_METADATA=1 \
     # Enable copy mode to support bind mount caching.
     UV_LINK_MODE=copy \
-    # Set pip cache directory
-    PIP_CACHE_DIR=/root/.cache/pip \
     # Set virtual environment location
     UV_PROJECT_ENVIRONMENT=/opt/uv/venv \
     VIRTUAL_ENV=/opt/uv/venv

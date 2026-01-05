@@ -1,7 +1,7 @@
-using UnityEngine;
+using Cysharp.Threading.Tasks;
 using FofX.Stateful;
 using Nessle;
-using Cysharp.Threading.Tasks;
+using UnityEngine;
 
 namespace PlerionClient.Client
 {
@@ -28,8 +28,8 @@ namespace PlerionClient.Client
             var env = UnityEnv.GetOrCreateInstance();
 
             App.state.plerionApiUrl.ExecuteSet(env.plerionApiUrl);
-            App.state.plerionAuthUrl.ExecuteSet(env.plerionAuthUrl);
-            App.state.plerionAuthClient.ExecuteSet(env.plerionAuthClient);
+            App.state.plerionAuthTokenUrl.ExecuteSet(env.plerionAuthTokenUrl);
+            App.state.plerionAuthAudience.ExecuteSet(env.plerionAuthAudience);
 
             if (env.loginAutomatically)
                 App.ExecuteAction(new LogInAction(env.username, env.password));

@@ -55,14 +55,16 @@ def create_lambda_client() -> LambdaClient:
 
 
 def create_s3_client(
-    s3_endpoint_url: AnyHttpUrl | None, s3_access_key: str | None, s3_secret_key: str | None
+    minio_endpoint_url: AnyHttpUrl | None, minio_access_key: str | None, minio_secret_key: str | None
 ) -> S3Client:
+
     kwargs: dict[str, Any] = {}
-    if s3_endpoint_url:
+
+    if minio_endpoint_url:
         kwargs.update(
-            endpoint_url=str(s3_endpoint_url),
-            aws_access_key_id=s3_access_key,
-            aws_secret_access_key=s3_secret_key,
+            endpoint_url=str(minio_endpoint_url),
+            aws_access_key_id=minio_access_key,
+            aws_secret_access_key=minio_secret_key,
             config=Config(
                 signature_version="s3v4",
                 region_name="us-east-1",  # required by SigV4

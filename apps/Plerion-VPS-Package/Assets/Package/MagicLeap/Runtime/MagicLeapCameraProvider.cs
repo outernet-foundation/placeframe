@@ -1,9 +1,9 @@
 #if UNITY_LUMIN
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
-using Plerion.VPS;
+using Plerion.Core;
 
-namespace Plerion.VPS.MagicLeap
+namespace Plerion.Core.MagicLeap
 {
     public class MagicLeapCameraProvider : ICameraProvider
     {

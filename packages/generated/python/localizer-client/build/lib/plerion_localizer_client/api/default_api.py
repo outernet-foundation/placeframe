@@ -19,6 +19,7 @@ from typing_extensions import Annotated
 from pydantic import StrictBytes, StrictStr
 from typing import Any, Dict, List, Tuple, Union
 from uuid import UUID
+from plerion_localizer_client.models.axis_convention import AxisConvention
 from plerion_localizer_client.models.camera import Camera
 from plerion_localizer_client.models.load_state_response import LoadStateResponse
 from plerion_localizer_client.models.localization import Localization
@@ -806,6 +807,7 @@ class DefaultApi:
     @validate_call
     async def localize_image(
         self,
+        axis_convention: AxisConvention,
         image: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
         _request_timeout: Union[
             None,
@@ -823,6 +825,8 @@ class DefaultApi:
         """Localize Image
 
 
+        :param axis_convention: (required)
+        :type axis_convention: AxisConvention
         :param image: (required)
         :type image: bytearray
         :param _request_timeout: timeout setting for this request. If one
@@ -848,6 +852,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._localize_image_serialize(
+            axis_convention=axis_convention,
             image=image,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -873,6 +878,7 @@ class DefaultApi:
     @validate_call
     async def localize_image_with_http_info(
         self,
+        axis_convention: AxisConvention,
         image: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
         _request_timeout: Union[
             None,
@@ -890,6 +896,8 @@ class DefaultApi:
         """Localize Image
 
 
+        :param axis_convention: (required)
+        :type axis_convention: AxisConvention
         :param image: (required)
         :type image: bytearray
         :param _request_timeout: timeout setting for this request. If one
@@ -915,6 +923,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._localize_image_serialize(
+            axis_convention=axis_convention,
             image=image,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -940,6 +949,7 @@ class DefaultApi:
     @validate_call
     async def localize_image_without_preload_content(
         self,
+        axis_convention: AxisConvention,
         image: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
         _request_timeout: Union[
             None,
@@ -957,6 +967,8 @@ class DefaultApi:
         """Localize Image
 
 
+        :param axis_convention: (required)
+        :type axis_convention: AxisConvention
         :param image: (required)
         :type image: bytearray
         :param _request_timeout: timeout setting for this request. If one
@@ -982,6 +994,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._localize_image_serialize(
+            axis_convention=axis_convention,
             image=image,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -1002,6 +1015,7 @@ class DefaultApi:
 
     def _localize_image_serialize(
         self,
+        axis_convention,
         image,
         _request_auth,
         _content_type,
@@ -1025,6 +1039,10 @@ class DefaultApi:
 
         # process the path parameters
         # process the query parameters
+        if axis_convention is not None:
+            
+            _query_params.append(('axis_convention', axis_convention.value))
+            
         # process the header parameters
         # process the form parameters
         if image is not None:

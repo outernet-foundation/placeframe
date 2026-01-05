@@ -1,3 +1,4 @@
+.openapi-generator-ignore
 PlerionZedClient.sln
 README.md
 api/openapi.yaml

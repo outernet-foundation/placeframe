@@ -5,12 +5,11 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import torch
-from core.rig import Transform
 from numpy import arccos, clip, degrees, fill_diagonal, stack, where
 from numpy.linalg import norm
 from torch import from_numpy, topk  # type: ignore
 
-from .rig import Rig
+from .rig import Rig, Transform
 
 PAIRS_FILE = "pairs.txt"
 

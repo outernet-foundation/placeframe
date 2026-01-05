@@ -525,7 +525,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Config"
+                  "$ref": "#/components/schemas/CaptureSessionManifest"
                 }
               }
             }
@@ -903,53 +903,13 @@
               "format": "uuid",
               "title": "Id"
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PointCloudPoint",
-                    "x-schema-name": "get_reconstruction_points_resp_200_application_json_item",
-                    "nullable": false
-                  }
-                }
-              }
-            }
           },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/reconstructions/{id}/points.ply": {
-      "get": {
-        "tags": [
-          "reconstructions"
-        ],
-        "summary": "Get Reconstruction Points3D Ply",
-        "operationId": "get_reconstruction_points3D_ply",
-        "parameters": [
           {
-            "name": "id",
-            "in": "path",
+            "name": "axis_convention",
+            "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Id"
+              "$ref": "#/components/schemas/AxisConvention"
             }
           }
         ],
@@ -995,20 +955,24 @@
               "format": "uuid",
               "title": "Id"
             }
+          },
+          {
+            "name": "axis_convention",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AxisConvention"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
+              "application/octet-stream": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Transform",
-                    "x-schema-name": "get_reconstruction_frame_poses_resp_200_application_json_item",
-                    "nullable": false
-                  }
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
@@ -1374,146 +1338,6 @@
         }
       }
     },
-    "/localization_maps/{id}/points": {
-      "get": {
-        "tags": [
-          "localization_maps"
-        ],
-        "summary": "Get Localization Map Points",
-        "operationId": "get_localization_map_points",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PointCloudPoint",
-                    "x-schema-name": "get_localization_map_points_resp_200_application_json_item",
-                    "nullable": false
-                  }
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/localization_maps/{id}/points.ply": {
-      "get": {
-        "tags": [
-          "localization_maps"
-        ],
-        "summary": "Get Localization Map Points Ply",
-        "operationId": "get_localization_map_points_ply",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/octet-stream": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/localization_maps/{id}/image_poses": {
-      "patch": {
-        "tags": [
-          "localization_maps"
-        ],
-        "summary": "Update Localization Map Image Poses",
-        "operationId": "update_localization_map_image_poses",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Transform",
-                    "x-schema-name": "update_localization_map_image_poses_resp_200_application_json_item",
-                    "nullable": false
-                  }
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/localization_sessions": {
       "post": {
         "tags": [
@@ -1860,6 +1684,14 @@
               "type": "string",
               "format": "uuid",
               "title": "Localization Session Id"
+            }
+          },
+          {
+            "name": "axis_convention",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AxisConvention"
             }
           }
         ],
@@ -2502,6 +2334,14 @@
   },
   "components": {
     "schemas": {
+      "AxisConvention": {
+        "type": "string",
+        "enum": [
+          "OPENCV",
+          "UNITY"
+        ],
+        "title": "AxisConvention"
+      },
       "Body_localize_image": {
         "properties": {
           "image": {
@@ -2594,6 +2434,26 @@
         ],
         "title": "CaptureSessionCreate"
       },
+      "CaptureSessionManifest": {
+        "properties": {
+          "axis_convention": {
+            "$ref": "#/components/schemas/AxisConvention"
+          },
+          "rigs": {
+            "items": {
+              "$ref": "#/components/schemas/RigConfig"
+            },
+            "type": "array",
+            "title": "Rigs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "axis_convention",
+          "rigs"
+        ],
+        "title": "CaptureSessionManifest"
+      },
       "CaptureSessionRead": {
         "properties": {
           "id": {
@@ -2656,45 +2516,6 @@
         "type": "object",
         "title": "CaptureSessionUpdate"
       },
-      "Color": {
-        "properties": {
-          "r": {
-            "type": "integer",
-            "title": "R"
-          },
-          "g": {
-            "type": "integer",
-            "title": "G"
-          },
-          "b": {
-            "type": "integer",
-            "title": "B"
-          }
-        },
-        "type": "object",
-        "required": [
-          "r",
-          "g",
-          "b"
-        ],
-        "title": "Color"
-      },
-      "Config": {
-        "properties": {
-          "rigs": {
-            "items": {
-              "$ref": "#/components/schemas/RigConfig"
-            },
-            "type": "array",
-            "title": "Rigs"
-          }
-        },
-        "type": "object",
-        "required": [
-          "rigs"
-        ],
-        "title": "Config"
-      },
       "DeviceType": {
         "type": "string",
         "enum": [
@@ -2702,6 +2523,57 @@
           "Zed"
         ],
         "title": "DeviceType"
+      },
+      "Float3": {
+        "properties": {
+          "x": {
+            "type": "number",
+            "title": "X"
+          },
+          "y": {
+            "type": "number",
+            "title": "Y"
+          },
+          "z": {
+            "type": "number",
+            "title": "Z"
+          }
+        },
+        "type": "object",
+        "required": [
+          "x",
+          "y",
+          "z"
+        ],
+        "title": "Float3"
+      },
+      "Float4": {
+        "properties": {
+          "x": {
+            "type": "number",
+            "title": "X"
+          },
+          "y": {
+            "type": "number",
+            "title": "Y"
+          },
+          "z": {
+            "type": "number",
+            "title": "Z"
+          },
+          "w": {
+            "type": "number",
+            "title": "W"
+          }
+        },
+        "type": "object",
+        "required": [
+          "x",
+          "y",
+          "z",
+          "w"
+        ],
+        "title": "Float4"
       },
       "FullOpenCVCameraConfig": {
         "properties": {
@@ -2713,24 +2585,19 @@
             "type": "integer",
             "title": "Height"
           },
-          "mirroring": {
+          "orientation": {
             "type": "string",
             "enum": [
-              "None",
-              "X",
-              "Y"
+              "TOP_LEFT",
+              "TOP_RIGHT",
+              "BOTTOM_RIGHT",
+              "BOTTOM_LEFT",
+              "LEFT_TOP",
+              "RIGHT_TOP",
+              "RIGHT_BOTTOM",
+              "LEFT_BOTTOM"
             ],
-            "title": "Mirroring"
-          },
-          "rotation": {
-            "type": "string",
-            "enum": [
-              "None",
-              "90_CW",
-              "180",
-              "90_CCW"
-            ],
-            "title": "Rotation"
+            "title": "Orientation"
           },
           "model": {
             "type": "string",
@@ -2790,8 +2657,7 @@
         "required": [
           "width",
           "height",
-          "mirroring",
-          "rotation",
+          "orientation",
           "model",
           "fx",
           "fy",
@@ -3599,7 +3465,7 @@
             "format": "uuid",
             "title": "Id"
           },
-          "transform": {
+          "camera_from_map_transform": {
             "$ref": "#/components/schemas/Transform"
           },
           "map_transform": {
@@ -3612,7 +3478,7 @@
         "type": "object",
         "required": [
           "id",
-          "transform",
+          "camera_from_map_transform",
           "map_transform",
           "metrics"
         ],
@@ -4186,24 +4052,19 @@
             "type": "integer",
             "title": "Height"
           },
-          "mirroring": {
+          "orientation": {
             "type": "string",
             "enum": [
-              "None",
-              "X",
-              "Y"
+              "TOP_LEFT",
+              "TOP_RIGHT",
+              "BOTTOM_RIGHT",
+              "BOTTOM_LEFT",
+              "LEFT_TOP",
+              "RIGHT_TOP",
+              "RIGHT_BOTTOM",
+              "LEFT_BOTTOM"
             ],
-            "title": "Mirroring"
-          },
-          "rotation": {
-            "type": "string",
-            "enum": [
-              "None",
-              "90_CW",
-              "180",
-              "90_CCW"
-            ],
-            "title": "Rotation"
+            "title": "Orientation"
           },
           "model": {
             "type": "string",
@@ -4251,8 +4112,7 @@
         "required": [
           "width",
           "height",
-          "mirroring",
-          "rotation",
+          "orientation",
           "model",
           "fx",
           "fy",
@@ -4288,24 +4148,19 @@
             "type": "integer",
             "title": "Height"
           },
-          "mirroring": {
+          "orientation": {
             "type": "string",
             "enum": [
-              "None",
-              "X",
-              "Y"
+              "TOP_LEFT",
+              "TOP_RIGHT",
+              "BOTTOM_RIGHT",
+              "BOTTOM_LEFT",
+              "LEFT_TOP",
+              "RIGHT_TOP",
+              "RIGHT_BOTTOM",
+              "LEFT_BOTTOM"
             ],
-            "title": "Mirroring"
-          },
-          "rotation": {
-            "type": "string",
-            "enum": [
-              "None",
-              "90_CW",
-              "180",
-              "90_CCW"
-            ],
-            "title": "Rotation"
+            "title": "Orientation"
           },
           "model": {
             "type": "string",
@@ -4333,8 +4188,7 @@
         "required": [
           "width",
           "height",
-          "mirroring",
-          "rotation",
+          "orientation",
           "model",
           "fx",
           "fy",
@@ -4342,50 +4196,6 @@
           "cy"
         ],
         "title": "PinholeCameraConfig"
-      },
-      "PointCloudPoint": {
-        "properties": {
-          "position": {
-            "$ref": "#/components/schemas/Vector3"
-          },
-          "color": {
-            "$ref": "#/components/schemas/Color"
-          }
-        },
-        "type": "object",
-        "required": [
-          "position",
-          "color"
-        ],
-        "title": "PointCloudPoint"
-      },
-      "Quaternion": {
-        "properties": {
-          "x": {
-            "type": "number",
-            "title": "X"
-          },
-          "y": {
-            "type": "number",
-            "title": "Y"
-          },
-          "z": {
-            "type": "number",
-            "title": "Z"
-          },
-          "w": {
-            "type": "number",
-            "title": "W"
-          }
-        },
-        "type": "object",
-        "required": [
-          "x",
-          "y",
-          "z",
-          "w"
-        ],
-        "title": "Quaternion"
       },
       "ReconstructionCreate": {
         "properties": {
@@ -5114,10 +4924,10 @@
             "title": "Ref Sensor"
           },
           "rotation": {
-            "$ref": "#/components/schemas/Quaternion"
+            "$ref": "#/components/schemas/Float4"
           },
           "translation": {
-            "$ref": "#/components/schemas/Vector3"
+            "$ref": "#/components/schemas/Float3"
           },
           "camera_config": {
             "oneOf": [
@@ -5175,16 +4985,16 @@
       },
       "Transform": {
         "properties": {
-          "position": {
-            "$ref": "#/components/schemas/Vector3"
+          "translation": {
+            "$ref": "#/components/schemas/Float3"
           },
           "rotation": {
-            "$ref": "#/components/schemas/Quaternion"
+            "$ref": "#/components/schemas/Float4"
           }
         },
         "type": "object",
         "required": [
-          "position",
+          "translation",
           "rotation"
         ],
         "title": "Transform"
@@ -5221,29 +5031,6 @@
           "type"
         ],
         "title": "ValidationError"
-      },
-      "Vector3": {
-        "properties": {
-          "x": {
-            "type": "number",
-            "title": "X"
-          },
-          "y": {
-            "type": "number",
-            "title": "Y"
-          },
-          "z": {
-            "type": "number",
-            "title": "Z"
-          }
-        },
-        "type": "object",
-        "required": [
-          "x",
-          "y",
-          "z"
-        ],
-        "title": "Vector3"
       }
     },
     "securitySchemes": {}

@@ -28,7 +28,7 @@ public enum LogGroup
     Permissions = 1 << 10,
     BugReports = 1 << 11,
     ContentManagement = 1 << 12,
-    Stateful = 1 << 13
+    Stateful = 1 << 13,
 }
 
 public static class Log
@@ -73,7 +73,12 @@ public static class Log
             UnityEngine.Debug.LogError($"[{group}] {message}");
     }
 
-    public static void Error(LogGroup group, Exception exception, string messageTemplate, params object[] propertyValues)
+    public static void Error(
+        LogGroup group,
+        Exception exception,
+        string messageTemplate,
+        params object[] propertyValues
+    )
     {
         if (Level <= LogLevel.Error)
         {

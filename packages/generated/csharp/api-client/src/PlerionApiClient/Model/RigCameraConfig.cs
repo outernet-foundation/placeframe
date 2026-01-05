@@ -45,7 +45,7 @@ namespace PlerionApiClient.Model
         /// <param name="rotation">rotation (required).</param>
         /// <param name="translation">translation (required).</param>
         /// <param name="cameraConfig">cameraConfig (required).</param>
-        public RigCameraConfig(string id, bool? refSensor, Quaternion rotation, Vector3 translation, CameraConfig cameraConfig)
+        public RigCameraConfig(string id, bool? refSensor, Float4 rotation, Float3 translation, CameraConfig cameraConfig)
         {
             // to ensure "id" is required (not null)
             if (id == null)
@@ -131,7 +131,7 @@ namespace PlerionApiClient.Model
         /// Gets or Sets Rotation
         /// </summary>
         [DataMember(Name = "rotation", IsRequired = true, EmitDefaultValue = true)]
-        public Quaternion Rotation
+        public Float4 Rotation
         {
             get{ return _Rotation;}
             set
@@ -140,7 +140,7 @@ namespace PlerionApiClient.Model
                 _flagRotation = true;
             }
         }
-        private Quaternion _Rotation;
+        private Float4 _Rotation;
         private bool _flagRotation;
 
         /// <summary>
@@ -155,7 +155,7 @@ namespace PlerionApiClient.Model
         /// Gets or Sets Translation
         /// </summary>
         [DataMember(Name = "translation", IsRequired = true, EmitDefaultValue = true)]
-        public Vector3 Translation
+        public Float3 Translation
         {
             get{ return _Translation;}
             set
@@ -164,7 +164,7 @@ namespace PlerionApiClient.Model
                 _flagTranslation = true;
             }
         }
-        private Vector3 _Translation;
+        private Float3 _Translation;
         private bool _flagTranslation;
 
         /// <summary>

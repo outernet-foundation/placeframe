@@ -1,7 +1,7 @@
 [project]
 name = "plerion_workspace"
 version = "0.0.1"
-requires-python = ">=3.13"
+requires-python = "==3.13.*"
 dependencies = []
 
 [tool.uv.workspace]
@@ -15,6 +15,7 @@ members = [
     "infrastructure",
     "packages/python/core",
     "packages/python/common",
+    "packages/python/torch-meta",
     "packages/python/neural-networks",
     "packages/python/neural-networks/third-party/deep-image-retrieval",
     "packages/generated/python/datamodels",
@@ -27,6 +28,18 @@ members = [
 [tool.uv]
 config-settings-package.plerion-api-client = { editable_mode = "compat" }
 config-settings-package.plerion-localizer-client = { editable_mode = "compat" }
+
+[tool.uv.sources]
+common = { workspace = true }
+core = { workspace = true }
+neural-networks = { workspace = true }
+datamodels = { workspace = true }
+plerion-localizer-client = { workspace = true }
+plerion_api_client = { workspace = true }
+dirtorch = { workspace = true }
+torch-meta = { workspace = true }
+lightglue = { git = "https://github.com/cvg/LightGlue.git" }
+pybind11-stubgen = { git = "https://github.com/sarlinpe/pybind11-stubgen", rev = "sarlinpe/fix-2024-08" }
 
 [tool.basedpyright]
 typeCheckingMode = "strict"

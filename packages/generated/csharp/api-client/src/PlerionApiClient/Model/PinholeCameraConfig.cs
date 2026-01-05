@@ -33,112 +33,85 @@ namespace PlerionApiClient.Model
     public partial class PinholeCameraConfig
     {
         /// <summary>
-        /// Defines Mirroring
+        /// Defines Orientation
         /// </summary>
         [JsonConverter(typeof(StringEnumConverter))]
-        public enum MirroringEnum
+        public enum OrientationEnum
         {
             /// <summary>
-            /// Enum None for value: None
+            /// Enum TOPLEFT for value: TOP_LEFT
             /// </summary>
-            [EnumMember(Value = "None")]
-            None = 1,
+            [EnumMember(Value = "TOP_LEFT")]
+            TOPLEFT = 1,
 
             /// <summary>
-            /// Enum X for value: X
+            /// Enum TOPRIGHT for value: TOP_RIGHT
             /// </summary>
-            [EnumMember(Value = "X")]
-            X = 2,
+            [EnumMember(Value = "TOP_RIGHT")]
+            TOPRIGHT = 2,
 
             /// <summary>
-            /// Enum Y for value: Y
+            /// Enum BOTTOMRIGHT for value: BOTTOM_RIGHT
             /// </summary>
-            [EnumMember(Value = "Y")]
-            Y = 3
+            [EnumMember(Value = "BOTTOM_RIGHT")]
+            BOTTOMRIGHT = 3,
+
+            /// <summary>
+            /// Enum BOTTOMLEFT for value: BOTTOM_LEFT
+            /// </summary>
+            [EnumMember(Value = "BOTTOM_LEFT")]
+            BOTTOMLEFT = 4,
+
+            /// <summary>
+            /// Enum LEFTTOP for value: LEFT_TOP
+            /// </summary>
+            [EnumMember(Value = "LEFT_TOP")]
+            LEFTTOP = 5,
+
+            /// <summary>
+            /// Enum RIGHTTOP for value: RIGHT_TOP
+            /// </summary>
+            [EnumMember(Value = "RIGHT_TOP")]
+            RIGHTTOP = 6,
+
+            /// <summary>
+            /// Enum RIGHTBOTTOM for value: RIGHT_BOTTOM
+            /// </summary>
+            [EnumMember(Value = "RIGHT_BOTTOM")]
+            RIGHTBOTTOM = 7,
+
+            /// <summary>
+            /// Enum LEFTBOTTOM for value: LEFT_BOTTOM
+            /// </summary>
+            [EnumMember(Value = "LEFT_BOTTOM")]
+            LEFTBOTTOM = 8
         }
 
 
         /// <summary>
-        /// Gets or Sets Mirroring
+        /// Gets or Sets Orientation
         /// </summary>
 
-        [DataMember(Name = "mirroring", IsRequired = true, EmitDefaultValue = true)]
-        public MirroringEnum Mirroring
+        [DataMember(Name = "orientation", IsRequired = true, EmitDefaultValue = true)]
+        public OrientationEnum Orientation
         {
-            get{ return _Mirroring;}
+            get{ return _Orientation;}
             set
             {
-                _Mirroring = value;
-                _flagMirroring = true;
+                _Orientation = value;
+                _flagOrientation = true;
             }
         }
-        private MirroringEnum _Mirroring;
-        private bool _flagMirroring;
+        private OrientationEnum _Orientation;
+        private bool _flagOrientation;
 
         /// <summary>
-        /// Returns false as Mirroring should not be serialized given that it's read-only.
+        /// Returns false as Orientation should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeMirroring()
+        public bool ShouldSerializeOrientation()
         {
-            return _flagMirroring;
-        }
-        /// <summary>
-        /// Defines Rotation
-        /// </summary>
-        [JsonConverter(typeof(StringEnumConverter))]
-        public enum RotationEnum
-        {
-            /// <summary>
-            /// Enum None for value: None
-            /// </summary>
-            [EnumMember(Value = "None")]
-            None = 1,
-
-            /// <summary>
-            /// Enum _90CW for value: 90_CW
-            /// </summary>
-            [EnumMember(Value = "90_CW")]
-            _90CW = 2,
-
-            /// <summary>
-            /// Enum _180 for value: 180
-            /// </summary>
-            [EnumMember(Value = "180")]
-            _180 = 3,
-
-            /// <summary>
-            /// Enum _90CCW for value: 90_CCW
-            /// </summary>
-            [EnumMember(Value = "90_CCW")]
-            _90CCW = 4
-        }
-
-
-        /// <summary>
-        /// Gets or Sets Rotation
-        /// </summary>
-
-        [DataMember(Name = "rotation", IsRequired = true, EmitDefaultValue = true)]
-        public RotationEnum Rotation
-        {
-            get{ return _Rotation;}
-            set
-            {
-                _Rotation = value;
-                _flagRotation = true;
-            }
-        }
-        private RotationEnum _Rotation;
-        private bool _flagRotation;
-
-        /// <summary>
-        /// Returns false as Rotation should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRotation()
-        {
-            return _flagRotation;
+            return _flagOrientation;
         }
         /// <summary>
         /// Defines Model
@@ -189,19 +162,17 @@ namespace PlerionApiClient.Model
         /// </summary>
         /// <param name="width">width (required).</param>
         /// <param name="height">height (required).</param>
-        /// <param name="mirroring">mirroring (required).</param>
-        /// <param name="rotation">rotation (required).</param>
+        /// <param name="orientation">orientation (required).</param>
         /// <param name="model">model (required).</param>
         /// <param name="fx">fx (required).</param>
         /// <param name="fy">fy (required).</param>
         /// <param name="cx">cx (required).</param>
         /// <param name="cy">cy (required).</param>
-        public PinholeCameraConfig(int width, int height, MirroringEnum mirroring, RotationEnum rotation, ModelEnum model, double fx, double fy, double cx, double cy)
+        public PinholeCameraConfig(int width, int height, OrientationEnum orientation, ModelEnum model, double fx, double fy, double cx, double cy)
         {
             this.Width = width;
             this.Height = height;
-            this.Mirroring = mirroring;
-            this.Rotation = rotation;
+            this.Orientation = orientation;
             this.Model = model;
             this.Fx = fx;
             this.Fy = fy;
@@ -363,8 +334,7 @@ namespace PlerionApiClient.Model
             sb.Append("class PinholeCameraConfig {\n");
             sb.Append("  Width: ").Append(Width).Append("\n");
             sb.Append("  Height: ").Append(Height).Append("\n");
-            sb.Append("  Mirroring: ").Append(Mirroring).Append("\n");
-            sb.Append("  Rotation: ").Append(Rotation).Append("\n");
+            sb.Append("  Orientation: ").Append(Orientation).Append("\n");
             sb.Append("  Model: ").Append(Model).Append("\n");
             sb.Append("  Fx: ").Append(Fx).Append("\n");
             sb.Append("  Fy: ").Append(Fy).Append("\n");

@@ -31,9 +31,9 @@ def _build_storage() -> Storage:
 
     return Storage(
         s3=create_s3_client(
-            s3_endpoint_url=settings.s3_endpoint_url,
-            s3_access_key=settings.s3_access_key,
-            s3_secret_key=settings.s3_secret_key,
+            minio_endpoint_url=settings.minio_endpoint_url,
+            minio_access_key=settings.minio_access_key,
+            minio_secret_key=settings.minio_secret_key,
         )
     )
 

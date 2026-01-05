@@ -41,18 +41,18 @@ namespace PlerionApiClient.Model
         /// Initializes a new instance of the <see cref="MapLocalization" /> class.
         /// </summary>
         /// <param name="id">id (required).</param>
-        /// <param name="transform">transform (required).</param>
+        /// <param name="cameraFromMapTransform">cameraFromMapTransform (required).</param>
         /// <param name="mapTransform">mapTransform (required).</param>
         /// <param name="metrics">metrics (required).</param>
-        public MapLocalization(Guid id, Transform transform, Transform mapTransform, LocalizationMetrics metrics)
+        public MapLocalization(Guid id, Transform cameraFromMapTransform, Transform mapTransform, LocalizationMetrics metrics)
         {
             this.Id = id;
-            // to ensure "transform" is required (not null)
-            if (transform == null)
+            // to ensure "cameraFromMapTransform" is required (not null)
+            if (cameraFromMapTransform == null)
             {
-                throw new ArgumentNullException("transform is a required property for MapLocalization and cannot be null");
+                throw new ArgumentNullException("cameraFromMapTransform is a required property for MapLocalization and cannot be null");
             }
-            this.Transform = transform;
+            this.CameraFromMapTransform = cameraFromMapTransform;
             // to ensure "mapTransform" is required (not null)
             if (mapTransform == null)
             {
@@ -92,28 +92,28 @@ namespace PlerionApiClient.Model
             return _flagId;
         }
         /// <summary>
-        /// Gets or Sets Transform
+        /// Gets or Sets CameraFromMapTransform
         /// </summary>
-        [DataMember(Name = "transform", IsRequired = true, EmitDefaultValue = true)]
-        public Transform Transform
+        [DataMember(Name = "camera_from_map_transform", IsRequired = true, EmitDefaultValue = true)]
+        public Transform CameraFromMapTransform
         {
-            get{ return _Transform;}
+            get{ return _CameraFromMapTransform;}
             set
             {
-                _Transform = value;
-                _flagTransform = true;
+                _CameraFromMapTransform = value;
+                _flagCameraFromMapTransform = true;
             }
         }
-        private Transform _Transform;
-        private bool _flagTransform;
+        private Transform _CameraFromMapTransform;
+        private bool _flagCameraFromMapTransform;
 
         /// <summary>
-        /// Returns false as Transform should not be serialized given that it's read-only.
+        /// Returns false as CameraFromMapTransform should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeTransform()
+        public bool ShouldSerializeCameraFromMapTransform()
         {
-            return _flagTransform;
+            return _flagCameraFromMapTransform;
         }
         /// <summary>
         /// Gets or Sets MapTransform
@@ -172,7 +172,7 @@ namespace PlerionApiClient.Model
             StringBuilder sb = new StringBuilder();
             sb.Append("class MapLocalization {\n");
             sb.Append("  Id: ").Append(Id).Append("\n");
-            sb.Append("  Transform: ").Append(Transform).Append("\n");
+            sb.Append("  CameraFromMapTransform: ").Append(CameraFromMapTransform).Append("\n");
             sb.Append("  MapTransform: ").Append(MapTransform).Append("\n");
             sb.Append("  Metrics: ").Append(Metrics).Append("\n");
             sb.Append("}\n");

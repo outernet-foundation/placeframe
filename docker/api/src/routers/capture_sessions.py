@@ -1,8 +1,11 @@
+import tarfile
+from io import BytesIO
 from typing import Optional
 from uuid import UUID
 
 from common.schemas import tar_schema
-from core.rig import Config
+from core.axis_convention import AxisConvention
+from core.capture_session_manifest import CaptureSessionManifest
 from datamodels.public_dtos import (
     CaptureSessionBatchUpdate,
     CaptureSessionCreate,
@@ -154,11 +157,25 @@ async def update_capture_sessions(
 async def upload_capture_session_tar(
     id: UUID, tar: UploadFile = File(..., media_type="application/x-tar"), session: AsyncSession = Depends(get_session)
 ) -> None:
+    # Validate capture session exists
     row = await session.get(CaptureSession, id)
-
     if row is None:
         raise HTTPException(404, f"Capture session {id} not found")
 
+    # Validate tar file
+    with tarfile.open(fileobj=BytesIO(tar.file.read()), mode="r:*") as tar_file:
+        capture_session_manifest = tar_file.extractfile("manifest.json")
+        if capture_session_manifest is None:
+            raise HTTPException(400, "Capture session tar file is missing manifest.json")
+        try:
+            _ = CaptureSessionManifest.model_validate_json(capture_session_manifest.read().decode("utf-8"))
+        except Exception as exception:
+            raise HTTPException(400, f"Capture session manifest.json is invalid: {exception}") from exception
+
+    # Reset file pointer to beginning
+    tar.file.seek(0)
+
+    # Upload tar file to storage
     try:
         get_storage().upload_fileobj(BUCKET, f"{id}.tar", tar.file, tar.content_type or "application/x-tar")
     except Exception as exception:
@@ -188,8 +205,10 @@ async def download_capture_session_tar(id: UUID, session: AsyncSession = Depends
 
 # dummy method, just to get RigConfig into the OpenAPI schema
 @router.get("/{id}/rig_config")
-async def get_capture_session_rig_config(id: UUID, session: AsyncSession = Depends(get_session)) -> Config:
-    rig_config = Config(rigs=[])
+async def get_capture_session_rig_config(
+    id: UUID, session: AsyncSession = Depends(get_session)
+) -> CaptureSessionManifest:
+    rig_config = CaptureSessionManifest(axis_convention=AxisConvention.OPENCV, rigs=[])
 
     return rig_config
 

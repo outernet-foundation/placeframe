@@ -22,7 +22,9 @@ engine = create_engine(
 batch_client = create_batch_client(settings.backend)
 
 s3_client = create_s3_client(
-    s3_endpoint_url=settings.s3_endpoint_url, s3_access_key=settings.s3_access_key, s3_secret_key=settings.s3_secret_key
+    minio_endpoint_url=settings.minio_endpoint_url,
+    minio_access_key=settings.minio_access_key,
+    minio_secret_key=settings.minio_secret_key,
 )
 
 
@@ -56,11 +58,12 @@ def start_next_reconstruction() -> None:
         batch_client.submit_job(
             name=str(queued_reconstruction.id),
             queue_name=settings.batch_job_queue,
-            job_definition_name=settings.batch_job_definition,
+            job_definition_name=f"{settings.batch_job_definition}-{settings.torch_device}",
+            torch_device=settings.torch_device,
             environment={
-                "S3_ENDPOINT_URL": str(settings.s3_endpoint_url),
-                "S3_ACCESS_KEY": str(settings.s3_access_key),
-                "S3_SECRET_KEY": str(settings.s3_secret_key),
+                "MINIO_ENDPOINT_URL": str(settings.minio_endpoint_url),
+                "MINIO_ACCESS_KEY": str(settings.minio_access_key),
+                "MINIO_SECRET_KEY": str(settings.minio_secret_key),
                 "CAPTURES_BUCKET": settings.captures_bucket,
                 "RECONSTRUCTIONS_BUCKET": settings.reconstructions_bucket,
                 "CAPTURE_ID": str(queued_reconstruction.capture_session_id),

@@ -1,7 +1,7 @@
-using UnityEngine;
 using UnityEditor;
+using UnityEngine;
 
-namespace Plerion.VPS
+namespace Plerion.Core
 {
     [CustomEditor(typeof(Anchor))]
     public class AnchorInspector : Editor
@@ -12,7 +12,9 @@ namespace Plerion.VPS
 
             EditorGUILayout.LabelField("ECEF");
             EditorGUI.indentLevel++;
-            EditorGUILayout.SelectableLabel($"({target.ecefPosition.x}, {target.ecefPosition.y}, {target.ecefPosition.z})");
+            EditorGUILayout.SelectableLabel(
+                $"({target.ecefPosition.x}, {target.ecefPosition.y}, {target.ecefPosition.z})"
+            );
             EditorGUI.indentLevel--;
         }
     }

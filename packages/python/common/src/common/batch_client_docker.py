@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import threading
 import uuid
-from typing import Literal
+from typing import Any, Literal
+
+from docker.types import DeviceRequest
 
 import docker
-from docker.types import DeviceRequest
 
 Status = Literal["SUBMITTED", "RUNNING", "SUCCEEDED", "FAILED", "UNKNOWN"]
 
@@ -22,6 +23,7 @@ class DockerBatchClient:
         job_definition_name: str,
         *,
         array_size: int | None = None,
+        torch_device: Literal["cpu", "cuda", "rocm"] = "cpu",
         environment: dict[str, str] | None = None,
     ) -> str:
         if array_size is None:
@@ -37,6 +39,12 @@ class DockerBatchClient:
             environment["DOCKER_HOST"] = "unix:///var/run/docker.sock"
             environment["BATCH_JOB_ARRAY_INDEX"] = str(index)
 
+            run_kwargs: dict[str, Any] = {}
+            if torch_device == "cuda":
+                run_kwargs["device_requests"] = [DeviceRequest(count=-1, capabilities=[["gpu"]])]
+            elif torch_device == "rocm":
+                run_kwargs["devices"] = ["/dev/kfd:/dev/kfd", "/dev/dri:/dev/dri"]
+
             container = self._docker.containers.run(
                 image=f"{job_definition_name}:latest",
                 environment=environment,
@@ -48,7 +56,7 @@ class DockerBatchClient:
                 labels={"service": job_definition_name, "job": job_id, "task": str(index)},
                 detach=True,
                 remove=False,
-                device_requests=[DeviceRequest(count=-1, capabilities=[["gpu"]])],
+                **run_kwargs,
             )
 
             container_id = container.id

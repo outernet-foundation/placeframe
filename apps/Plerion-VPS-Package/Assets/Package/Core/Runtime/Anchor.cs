@@ -1,8 +1,7 @@
-using System;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Plerion.VPS
+namespace Plerion.Core
 {
     [ExecuteInEditMode]
     public class Anchor : MonoBehaviour
@@ -72,8 +71,7 @@ namespace Plerion.VPS
 
         private void OnEnable()
         {
-            VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated +=
-                HandleReferenceFrameChanged;
+            VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated += HandleReferenceFrameChanged;
 
             SetEcefTransform(_ecefPosition, _ecefRotation);
             JumpToTarget();
@@ -81,14 +79,12 @@ namespace Plerion.VPS
 
         private void OnDisable()
         {
-            VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated -=
-                HandleReferenceFrameChanged;
+            VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated -= HandleReferenceFrameChanged;
         }
 
         private void LateUpdate()
         {
-            if (transform.position != _lastKnownPosition ||
-                transform.rotation != _lastKnownRotation)
+            if (transform.position != _lastKnownPosition || transform.rotation != _lastKnownRotation)
             {
                 _lastKnownPosition = transform.position;
                 _lastKnownRotation = transform.rotation;
@@ -130,8 +126,10 @@ namespace Plerion.VPS
             _targetPosition = local.position;
             _targetRotation = local.rotation;
 
-            if ((_targetPosition - transform.position).magnitude > 10 ||
-                Quaternion.Angle(_targetRotation, transform.rotation) > 90f)
+            if (
+                (_targetPosition - transform.position).magnitude > 10
+                || Quaternion.Angle(_targetRotation, transform.rotation) > 90f
+            )
             {
                 JumpToTarget();
             }

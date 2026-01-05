@@ -27,7 +27,7 @@ namespace Outernet.MapRegistrationTool
         public static double3 ToDoubles(this Vector3 vector) => new double3(vector.x, vector.y, vector.z);
         public static float3 ToFloat3(this PlerionApiClient.Model.Vector3 vector) => new float3((float)vector.X, (float)vector.Y, (float)vector.Z);
         public static Vector3 ToVector3(this float3 floats) => new Vector3(floats.x, floats.y, floats.z);
-        public static Color ToUnityColor(this PlerionApiClient.Model.Color color) => new Color(color.R / (float)255, color.G / (float)255, color.B / (float)255);
+        // public static Color ToUnityColor(this PlerionApiClient.Model.Color color) => new Color(color.R / (float)255, color.G / (float)255, color.B / (float)255);
 
         public static Vector3 Flatten(this Vector3 vector3)
         {

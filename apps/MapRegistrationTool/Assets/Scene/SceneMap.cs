@@ -1,20 +1,14 @@
 using System;
-using System.Linq;
-
+using Cysharp.Threading.Tasks;
+using FofX.Stateful;
+using Plerion.Core;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-using Cysharp.Threading.Tasks;
-
-using FofX.Stateful;
-using FofX;
-using System.Collections.Generic;
-
-using Unity.Mathematics;
-
 namespace Outernet.MapRegistrationTool
 {
-    [RequireComponent(typeof(ParticleSystem))]
+    [RequireComponent(typeof(ReconstructionVisualizer))]
     public class SceneMap : Control<SceneMap.Props>, IPointerClickHandler
     {
         public class Props : ObservableObject
@@ -25,9 +19,16 @@ namespace Outernet.MapRegistrationTool
             public ObservablePrimitive<Quaternion> rotation { get; private set; }
             public ObservablePrimitive<Guid> reconstructionID { get; private set; }
 
-            public Props() : base() { }
+            public Props()
+                : base() { }
 
-            public Props(Guid sceneObjectID = default, string name = default, Vector3 position = default, Quaternion? rotation = default, Guid reconstructionID = default)
+            public Props(
+                Guid sceneObjectID = default,
+                string name = default,
+                Vector3 position = default,
+                Quaternion? rotation = default,
+                Guid reconstructionID = default
+            )
             {
                 this.sceneObjectID = new ObservablePrimitive<Guid>(sceneObjectID);
                 this.name = new ObservablePrimitive<string>(name);
@@ -37,24 +38,11 @@ namespace Outernet.MapRegistrationTool
             }
         }
 
-        private static readonly float3x3 basisUnity = float3x3.identity;
-
-        private static readonly float3x3 basisOpenCV = new float3x3(
-            1f, 0f, 0f,
-            0f, -1f, 0f,
-            0f, 0f, 1f
-        );
-
-        private static readonly float3x3 basisChangeUnityFromOpenCV = math.mul(math.transpose(basisUnity), basisOpenCV);
-        private static readonly float3x3 basisChangeOpenCVFromUnity = math.transpose(basisChangeUnityFromOpenCV);
-
-        private ParticleSystem _particleSystem;
-        private TaskHandle _loadPointsTask = TaskHandle.Complete;
-        private List<Vector3> _localInputPositions = new List<Vector3>();
+        private ReconstructionVisualizer _localizationMapVisualizer;
 
         private void Awake()
         {
-            _particleSystem = GetComponent<ParticleSystem>();
+            _localizationMapVisualizer = GetComponent<ReconstructionVisualizer>();
         }
 
         private void Update()
@@ -64,23 +52,17 @@ namespace Outernet.MapRegistrationTool
 
             if (props.rotation.value != transform.rotation)
                 props.rotation.ExecuteSet(transform.rotation);
-
-            for (int i = 0; i < _localInputPositions.Count - 1; i++)
-            {
-                RuntimeGizmos.DrawLine(
-                    transform.TransformPoint(_localInputPositions[i]),
-                    transform.TransformPoint(_localInputPositions[i + 1]),
-                    0.01f,
-                    Color.white
-                );
-            }
         }
 
-        public override void Setup()
-            => InitializeAndBind(new Props());
+        public override void Setup() => InitializeAndBind(new Props());
 
-        public void Setup(Guid sceneObjectID = default, string name = default, Vector3 position = default, Quaternion? rotation = default, Guid reconstructionID = default)
-            => InitializeAndBind(new Props(sceneObjectID, name, position, rotation, reconstructionID));
+        public void Setup(
+            Guid sceneObjectID = default,
+            string name = default,
+            Vector3 position = default,
+            Quaternion? rotation = default,
+            Guid reconstructionID = default
+        ) => InitializeAndBind(new Props(sceneObjectID, name, position, rotation, reconstructionID));
 
         protected override void Bind()
         {
@@ -89,53 +71,13 @@ namespace Outernet.MapRegistrationTool
                 props.rotation.OnChange(x => transform.rotation = x),
                 props.reconstructionID.OnChange(x =>
                 {
-                    _loadPointsTask.Cancel();
-
                     if (x == Guid.Empty)
                         return;
 
-                    _loadPointsTask = TaskHandle.Execute(async token =>
-                    {
-                        List<PlerionApiClient.Model.PointCloudPoint> points = default;
-                        List<PlerionApiClient.Model.Transform> localInputPositions = default;
-
-                        await UniTask.WhenAll(
-                            App.API.GetReconstructionPointsAsync(x, token).AsUniTask().ContinueWith(x => points = x),
-                            App.API.GetReconstructionFramePosesAsync(x, token).AsUniTask().ContinueWith(x => localInputPositions = x)
-                        );
-
-                        await UniTask.SwitchToMainThread(cancellationToken: token);
-
-                        _localInputPositions.AddRange(localInputPositions.Select(x =>
-                        {
-                            var unityBasis = ChangeBasisOpenCVToUnity(
-                                new float3x3(quaternion.identity),
-                                new float3((float)x.Position.X, (float)x.Position.Y, (float)x.Position.Z)
-                            );
-
-                            return new Vector3(unityBasis.Item2.x, unityBasis.Item2.y, unityBasis.Item2.z);
-                        }));
-
-                        var m = _particleSystem.main;
-                        _particleSystem.SetParticles(points.Select(x =>
-                        {
-                            var unityBasis = ChangeBasisOpenCVToUnity(new float3x3(quaternion.identity), x.Position.ToFloat3());
-                            return new ParticleSystem.Particle()
-                            {
-                                position = unityBasis.Item2.ToVector3(),
-                                startLifetime = Mathf.Infinity,
-                                startSize = 10000, // Make this huge and cap the particle size in the renderer, so they are always a constant size on screen
-                                startColor = x.Color.ToUnityColor()
-                            };
-                        }).ToArray());
-                        _particleSystem.Play();
-                    });
+                    _localizationMapVisualizer.Load(App.API, x).Forget();
                 })
             );
         }
-
-        private static (float3x3, float3) ChangeBasisOpenCVToUnity(float3x3 rotation, float3 translation)
-            => (math.mul(basisChangeUnityFromOpenCV, math.mul(rotation, basisChangeOpenCVFromUnity)), math.mul(basisChangeUnityFromOpenCV, translation));
 
         public void OnPointerClick(PointerEventData eventData)
         {
@@ -149,16 +91,11 @@ namespace Outernet.MapRegistrationTool
             Quaternion? rotation = default,
             Guid reconstructionID = default,
             Transform parent = default,
-            Func<Props, IDisposable> bind = default)
+            Func<Props, IDisposable> bind = default
+        )
         {
             SceneMap instance = Instantiate(Prefabs.Map, parent);
-            instance.InitializeAndBind(new Props(
-                sceneObjectID,
-                name,
-                position,
-                rotation,
-                reconstructionID
-            ));
+            instance.InitializeAndBind(new Props(sceneObjectID, name, position, rotation, reconstructionID));
 
             instance.AddBinding(Bindings.OnRelease(() => Destroy(instance)));
 

@@ -1,11 +1,10 @@
 {
-  "name": "Plerion.VPS",
+  "name": "Plerion.Core",
   "rootNamespace": "",
   "references": [
     "Unity.Mathematics",
     "UniTask",
-    "PlerionApiClient",
-    "PlerionClientCore"
+    "PlerionApiClient"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

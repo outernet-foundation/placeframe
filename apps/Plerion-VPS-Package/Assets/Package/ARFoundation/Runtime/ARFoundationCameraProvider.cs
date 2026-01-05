@@ -1,103 +1,234 @@
 using System;
+using System.Buffers;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-
+using PlerionApiClient.Model;
 using Unity.Collections;
 using UnityEngine;
+using UnityEngine.Android;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 
-namespace Plerion.VPS.ARFoundation
+namespace Plerion.Core.ARFoundation
 {
     public class ARFoundationCameraProvider : ICameraProvider
     {
-        public ARCameraManager cameraManager;
-        public bool manageCameraEnabledState;
-        private CancellationTokenSource _cancellationTokenSource;
+        private SystemState _systemState = SystemState.Idle;
+        private ARCameraManager _cameraManager;
+        private float _intervalSeconds;
+        private float _nextCaptureTime;
+        private int _captureInFlight;
 
-        public ARFoundationCameraProvider(ARCameraManager cameraManager, bool manageCameraEnabledState = true)
+        private Func<(Vector3 position, Quaternion rotation)?> _cameraPoseProvider;
+        private Func<byte[], Vector3, Quaternion, UniTask> _onFrameReceived;
+
+        public ARFoundationCameraProvider(ARCameraManager cameraManager)
         {
-            this.cameraManager = cameraManager;
-            this.manageCameraEnabledState = manageCameraEnabledState;
+            _cameraManager = cameraManager;
 
-            if (manageCameraEnabledState)
-                cameraManager.enabled = false;
+            // Auto-focus is unhelpful for our use case
+            _cameraManager.autoFocusRequested = false;
         }
 
-        public void Start()
+        public async UniTask<PinholeCameraConfig> Start(
+            float intervalSeconds,
+            Func<(Vector3 position, Quaternion rotation)?> cameraPoseProvider,
+            Func<byte[], Vector3, Quaternion, UniTask> onFrameReceived
+        )
         {
-            if (manageCameraEnabledState)
-                cameraManager.enabled = true;
+            if (_systemState != SystemState.Idle)
+                throw new InvalidOperationException("Camera provider is already started");
 
-            _cancellationTokenSource = new CancellationTokenSource();
-        }
+            _systemState = SystemState.Starting;
 
-        public void Stop()
-        {
-            if (manageCameraEnabledState)
-                cameraManager.enabled = false;
+            _cameraPoseProvider = cameraPoseProvider;
+            _onFrameReceived = onFrameReceived;
 
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
-            _cancellationTokenSource = null;
-        }
+            // Ensure we have camera permission (this should be requested at the app level)
+            if (!Permission.HasUserAuthorizedPermission(Permission.Camera))
+                throw new Exception("Camera permission not granted.");
 
-        public UniTask<byte[]> GetFrameJPG()
-            => GetFrameJPG(_cancellationTokenSource.Token);
-
-        public async UniTask<byte[]> GetFrameJPG(CancellationToken cancellationToken = default)
-        {
-            bool frameReceived = false;
-            Action<ARCameraFrameEventArgs> receivedFrame = args => frameReceived = true;
-            cameraManager.frameReceived += receivedFrame;
-
-            cancellationToken.Register(() => cameraManager.frameReceived -= receivedFrame);
-
-            XRCpuImage cpuImage = default;
-
-            while (!cancellationToken.IsCancellationRequested)
+            // Select the best available camera configuration (highest resolution)
+            XRCameraConfiguration? bestConfig = null;
+            using var configs = _cameraManager.GetConfigurations(Allocator.Temp);
+            foreach (var config in configs)
             {
-                await UniTask.WaitUntil(() => frameReceived, cancellationToken: cancellationToken);
-                await UniTask.SwitchToMainThread(cancellationToken: cancellationToken);
-                if (cameraManager.TryAcquireLatestCpuImage(out cpuImage))
-                    break;
+                if (
+                    bestConfig == null
+                    || (config.width * config.height) > (bestConfig.Value.width * bestConfig.Value.height)
+                )
+                {
+                    bestConfig = config;
+                }
             }
 
-            cancellationToken.ThrowIfCancellationRequested();
+            if (!bestConfig.HasValue)
+            {
+                throw new Exception("No camera configurations available.");
+            }
 
-            cameraManager.frameReceived -= receivedFrame;
-            var result = await ConvertToJPG(cpuImage, flipped: true);
-            cpuImage.Dispose();
+            if (_cameraManager.currentConfiguration != bestConfig)
+            {
+                _cameraManager.currentConfiguration = bestConfig;
+                Debug.Log(
+                    $"Selected camera configuration: {bestConfig.Value.width}x{bestConfig.Value.height} @ {bestConfig.Value.framerate}fps"
+                );
+            }
 
-            return result;
+            // Wait until intrinsics are available and match the selected configuration
+            XRCameraIntrinsics intrinsics = default;
+            await UniTask.WaitUntil(() =>
+                _cameraManager.TryGetIntrinsics(out intrinsics)
+                && intrinsics.resolution.x == bestConfig.Value.width
+                && intrinsics.resolution.y == bestConfig.Value.height
+            );
+
+            // Start capturing frames
+            _intervalSeconds = intervalSeconds;
+            _nextCaptureTime = Time.realtimeSinceStartup;
+            _cameraManager.frameReceived += OnCameraFrameReceived;
+
+            _systemState = SystemState.Running;
+
+            // Return camera intrinsics
+            return new PinholeCameraConfig(
+                model: PinholeCameraConfig.ModelEnum.PINHOLE,
+                // ARFoundation on Android Mobile returns images in LEFT_TOP orientation (EXIF/TIFF Orientation=5):
+                //  - 0th row is the visual left edge
+                //  - 0th column is the visual top edge
+                // To display canonically (TOP_LEFT), apply a transpose (swap X/Y), e.g.:
+                //  - rotate 90° CW, then flip left↔right, OR
+                //  - flip top↔bottom, then rotate 90° CW
+                orientation: PinholeCameraConfig.OrientationEnum.LEFTTOP,
+                width: intrinsics.resolution.x,
+                height: intrinsics.resolution.y,
+                fx: intrinsics.focalLength.x,
+                fy: intrinsics.focalLength.y,
+                cx: intrinsics.principalPoint.x,
+                cy: intrinsics.principalPoint.y
+            );
         }
 
-        private static async UniTask<byte[]> ConvertToJPG(XRCpuImage cpuImage, bool flipped = false)
+        public async UniTask Stop()
         {
-            var conversion = new XRCpuImage.ConversionParams(
-                cpuImage,
-                TextureFormat.RGBA32,
-                // Mirror the image on the X axis to match the display orientation
-                flipped ? XRCpuImage.Transformation.MirrorX : XRCpuImage.Transformation.None
-            );
+            if (_systemState != SystemState.Running)
+                throw new InvalidOperationException("Camera provider is not running");
 
-            int byteCount = cpuImage.GetConvertedDataSize(conversion);
-            using var pixelBuffer = new NativeArray<byte>(byteCount, Allocator.TempJob);
-            cpuImage.Convert(conversion, pixelBuffer);
+            _systemState = SystemState.Stopping;
 
-            var texture = new Texture2D(
-                conversion.outputDimensions.x,
-                conversion.outputDimensions.y,
-                TextureFormat.RGBA32,
-                false
-            );
+            // Wait for any in-flight capture to complete before unsubscribing
+            await UniTask.WaitUntil(() => Interlocked.CompareExchange(ref _captureInFlight, 0, 0) == 0);
 
-            texture.LoadRawTextureData(pixelBuffer);
-            texture.Apply(false, false);
-            byte[] jpgBytes = texture.EncodeToJPG();
-            UnityEngine.Object.Destroy(texture);
+            _cameraManager.frameReceived -= OnCameraFrameReceived;
+            _cameraManager = null;
+            _cameraPoseProvider = null;
+            _onFrameReceived = null;
+            _systemState = SystemState.Idle;
+        }
 
-            return jpgBytes;
+        private void OnCameraFrameReceived(ARCameraFrameEventArgs args)
+        {
+            // Throttle captures to the requested interval, and ensure only one capture is in-flight at a time
+            if (
+                Time.realtimeSinceStartup < _nextCaptureTime
+                || Interlocked.CompareExchange(ref _captureInFlight, 1, 0) != 0
+            )
+                return;
+
+            AcquireAndDispatchImage().Forget(Debug.LogException);
+        }
+
+        private async UniTask AcquireAndDispatchImage()
+        {
+            try
+            {
+                Vector3 cameraPosition;
+                Quaternion cameraRotation;
+                float captureTime;
+                uint width;
+                uint height;
+                TextureFormat format;
+                XRCpuImage.AsyncConversion conversion;
+
+                // Try to acquire the latest CPU image
+                if (!_cameraManager.TryAcquireLatestCpuImage(out var cpuImage))
+                    return;
+
+                try
+                {
+                    // Record capture time
+                    captureTime = Time.realtimeSinceStartup;
+
+                    // Get camera pose at capture time
+                    var cameraPose = _cameraPoseProvider();
+                    if (cameraPose == null)
+                    {
+                        Debug.LogWarning("Camera pose unavailable; skipping frame.");
+                        return;
+                    }
+                    (cameraPosition, cameraRotation) = cameraPose.Value;
+
+                    // Start image conversion
+                    width = (uint)cpuImage.width;
+                    height = (uint)cpuImage.height;
+                    format = cpuImage.FormatSupported(TextureFormat.RGB24) ? TextureFormat.RGB24 : TextureFormat.RGBA32;
+                    conversion = cpuImage.ConvertAsync(new XRCpuImage.ConversionParams(cpuImage, format));
+                }
+                finally
+                {
+                    // Ensure CPU image is always disposed (this is safe and optimal to do immediately after starting conversion)
+                    cpuImage.Dispose();
+                }
+
+                // Temporary variable to ensure conversion is disposed
+                using var asyncImageConversion = conversion;
+
+                // Await conversion completion
+                while (!asyncImageConversion.status.IsDone())
+                    await UniTask.Yield(PlayerLoopTiming.Update);
+
+                // Throw if conversion failed
+                if (asyncImageConversion.status != XRCpuImage.AsyncConversionStatus.Ready)
+                    throw new Exception($"XRCpuImage conversion failed: {asyncImageConversion.status}");
+
+                // Encode to JPG and dispatch callback (on thread pool to avoid blocking main thread)
+                var raw = asyncImageConversion.GetData<byte>();
+                await UniTask.RunOnThreadPool(async () =>
+                {
+                    // Rent from array pool to reduce allocations
+                    byte[] rented = ArrayPool<byte>.Shared.Rent(raw.Length);
+                    byte[] bytes;
+                    try
+                    {
+                        raw.CopyTo(rented);
+                        bytes = ImageConversion.EncodeArrayToJPG(
+                            rented,
+                            (format == TextureFormat.RGB24)
+                                ? GraphicsFormat.R8G8B8_UNorm
+                                : GraphicsFormat.R8G8B8A8_UNorm,
+                            width,
+                            height,
+                            rowBytes: 0,
+                            quality: 75
+                        );
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(rented);
+                    }
+
+                    await _onFrameReceived(bytes, cameraPosition, cameraRotation);
+                });
+
+                // We have successfully dispatched the frame, schedule the next capture time
+                _nextCaptureTime = captureTime + _intervalSeconds;
+            }
+            finally
+            {
+                // Always clear the in-flight flag
+                Interlocked.Exchange(ref _captureInFlight, 0);
+            }
         }
     }
 }

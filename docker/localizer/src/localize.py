@@ -2,16 +2,18 @@ from __future__ import annotations
 
 from typing import Any, cast
 
-import numpy as np
-from core.classes import Quaternion, Transform, Vector3
-from core.create_image_tensors import create_image_tensors
+from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
+from core.camera_config import PinholeCameraConfig
+from core.image_orientation import transform_image, transform_intrinsics
 from core.lightglue import lightglue_match_tensors
 from core.localization_metrics import LocalizationMetrics
 from core.opq import decode_descriptors
-from core.rig import PinholeCameraConfig, transform_intrinsics
+from core.transform import Float3, Float4, Transform
+from numpy import asarray, float32, vstack
 from pycolmap import AbsolutePoseEstimationOptions, RANSACOptions
 from pycolmap import Camera as ColmapCamera
-from pycolmap._core import estimate_and_refine_absolute_pose  # type: ignore
+from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose  # type: ignore
+from scipy.spatial.transform import Rotation
 from torch import cuda, from_numpy, mv, topk  # type: ignore
 
 from .build_metrics import build_localization_metrics
@@ -37,10 +39,17 @@ def load_models(max_keypoints: int):
 
 
 def localize_image_against_reconstruction(
-    map: Map, camera: PinholeCameraConfig, image_buffer: bytes, retrieval_top_k: int, ransac_threshold: float
+    map: Map,
+    camera: PinholeCameraConfig,
+    axis_convention: AxisConvention,
+    image_buffer: bytes,
+    retrieval_top_k: int,
+    ransac_threshold: float,
 ) -> tuple[Transform, LocalizationMetrics]:
     # Extract features from query image
-    (image, rgb_tensor, gray_tensor) = create_image_tensors(image_buffer, camera.rotation)
+    image = transform_image(image_buffer, camera.orientation)
+    rgb_tensor = from_numpy(asarray(image, dtype=float32)).permute(2, 0, 1).div(255.0)
+    gray_tensor = from_numpy(asarray(image.convert("L"), dtype=float32)).unsqueeze(0).div(255.0)
     superpoint_output = superpoint({"image": gray_tensor.unsqueeze(0).to(device=DEVICE)})
     query_global_descriptor = dir({"image": rgb_tensor.unsqueeze(0).to(device=DEVICE)})["global_descriptor"][0]
 
@@ -86,9 +95,8 @@ def localize_image_against_reconstruction(
         raise ValueError("No matching keypoints found")
 
     # Create COLMAP camera model
-    pycolmap_camera = ColmapCamera(
-        width=camera.width, height=camera.height, model="PINHOLE", params=transform_intrinsics(camera)
-    )
+    width, height, *params = transform_intrinsics(camera)
+    pycolmap_camera = ColmapCamera(width=width, height=height, model="PINHOLE", params=params)
 
     # Set estimation options
     ransac_options = RANSACOptions()
@@ -98,7 +106,7 @@ def localize_image_against_reconstruction(
 
     # Estimate pose
     points2D = keypoints["query"][query_keypoint_indices].cpu().numpy()
-    points3D = np.vstack([map.points3D[i].xyz for i in point3d_indices])
+    points3D = vstack([map.points3D[i].xyz for i in point3d_indices])
     pnp_result = cast(
         dict[str, Any] | None,
         estimate_and_refine_absolute_pose(points2D, points3D, pycolmap_camera, estimation_options),
@@ -108,19 +116,18 @@ def localize_image_against_reconstruction(
     if pnp_result is None:
         raise ValueError("Pose estimation failed")
 
+    # Change basis if needed
+    cam_from_world = cast(Rigid3d, pnp_result["cam_from_world"])
+    translation = cam_from_world.translation
+    rotation = cam_from_world.rotation.matrix()
+    if axis_convention == AxisConvention.UNITY:
+        translation, rotation = change_basis_unity_from_opencv_pose(translation, rotation)
+    rotation = Rotation.from_matrix(rotation).as_quat()
+
     # Build final transform
     transform = Transform(
-        position=Vector3(
-            x=float(pnp_result["cam_from_world"].translation[0]),
-            y=float(pnp_result["cam_from_world"].translation[1]),
-            z=float(pnp_result["cam_from_world"].translation[2]),
-        ),
-        rotation=Quaternion(
-            x=float(pnp_result["cam_from_world"].rotation.quat[0]),
-            y=float(pnp_result["cam_from_world"].rotation.quat[1]),
-            z=float(pnp_result["cam_from_world"].rotation.quat[2]),
-            w=float(pnp_result["cam_from_world"].rotation.quat[3]),
-        ),
+        translation=Float3(x=translation[0], y=translation[1], z=translation[2]),
+        rotation=Float4(x=rotation[0], y=rotation[1], z=rotation[2], w=rotation[3]),
     )
 
     # Build metrics

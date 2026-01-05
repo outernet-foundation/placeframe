@@ -19,8 +19,8 @@ import json
 
 from pydantic import BaseModel, ConfigDict
 from typing import Any, ClassVar, Dict, List
-from plerion_api_client.models.quaternion import Quaternion
-from plerion_api_client.models.vector3 import Vector3
+from plerion_api_client.models.float3 import Float3
+from plerion_api_client.models.float4 import Float4
 from typing import Optional, Set
 from typing_extensions import Self
 
@@ -28,10 +28,10 @@ class Transform(BaseModel):
     """
     Transform
     """ # noqa: E501
-    position: Vector3
-    rotation: Quaternion
+    translation: Float3
+    rotation: Float4
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["position", "rotation"]
+    __properties: ClassVar[List[str]] = ["translation", "rotation"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -74,9 +74,9 @@ class Transform(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of position
-        if self.position:
-            _dict['position'] = self.position.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of translation
+        if self.translation:
+            _dict['translation'] = self.translation.to_dict()
         # override the default output from pydantic by calling `to_dict()` of rotation
         if self.rotation:
             _dict['rotation'] = self.rotation.to_dict()
@@ -97,8 +97,8 @@ class Transform(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "position": Vector3.from_dict(obj["position"]) if obj.get("position") is not None else None,
-            "rotation": Quaternion.from_dict(obj["rotation"]) if obj.get("rotation") is not None else None
+            "translation": Float3.from_dict(obj["translation"]) if obj.get("translation") is not None else None,
+            "rotation": Float4.from_dict(obj["rotation"]) if obj.get("rotation") is not None else None
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

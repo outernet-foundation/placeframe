@@ -33,9 +33,3 @@ dev = [
     "scipy-stubs>=1.16.2.4",
     "watchdog>=6.0.0",
 ]
-
-[tool.uv.sources]
-core = { workspace = true }
-common = { workspace = true }
-datamodels = { workspace = true }
-plerion-localizer-client = { workspace = true }
