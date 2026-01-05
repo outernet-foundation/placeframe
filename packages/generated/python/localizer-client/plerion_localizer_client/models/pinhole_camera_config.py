@@ -29,26 +29,18 @@ class PinholeCameraConfig(BaseModel):
     width: StrictInt
     height: StrictInt
     orientation: StrictStr
-    model: StrictStr
     fx: Union[StrictFloat, StrictInt]
     fy: Union[StrictFloat, StrictInt]
     cx: Union[StrictFloat, StrictInt]
     cy: Union[StrictFloat, StrictInt]
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["width", "height", "orientation", "model", "fx", "fy", "cx", "cy"]
+    __properties: ClassVar[List[str]] = ["width", "height", "orientation", "fx", "fy", "cx", "cy"]
 
     @field_validator('orientation')
     def orientation_validate_enum(cls, value):
         """Validates the enum"""
         if value not in set(['TOP_LEFT', 'TOP_RIGHT', 'BOTTOM_RIGHT', 'BOTTOM_LEFT', 'LEFT_TOP', 'RIGHT_TOP', 'RIGHT_BOTTOM', 'LEFT_BOTTOM']):
             raise ValueError("must be one of enum values ('TOP_LEFT', 'TOP_RIGHT', 'BOTTOM_RIGHT', 'BOTTOM_LEFT', 'LEFT_TOP', 'RIGHT_TOP', 'RIGHT_BOTTOM', 'LEFT_BOTTOM')")
-        return value
-
-    @field_validator('model')
-    def model_validate_enum(cls, value):
-        """Validates the enum"""
-        if value not in set(['PINHOLE']):
-            raise ValueError("must be one of enum values ('PINHOLE')")
         return value
 
     model_config = ConfigDict(
@@ -112,7 +104,6 @@ class PinholeCameraConfig(BaseModel):
             "width": obj.get("width"),
             "height": obj.get("height"),
             "orientation": obj.get("orientation"),
-            "model": obj.get("model"),
             "fx": obj.get("fx"),
             "fy": obj.get("fy"),
             "cx": obj.get("cx"),

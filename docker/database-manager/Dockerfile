@@ -1,7 +1,6 @@
-FROM ghcr.io/astral-sh/uv:0.7.22 AS uv
+FROM ghcr.io/astral-sh/uv:0.9.11-python3.13-bookworm-slim AS dev
 
-# First, bundle the dependencies into the task root.
-FROM public.ecr.aws/lambda/python:3.13 AS builder
+WORKDIR /app/docker/database-manager
 
 ENV \
     # Don't buffer stdout/stderr (so logs appear immediately)
@@ -10,25 +9,33 @@ ENV \
     PYTHONDONTWRITEBYTECODE=1 \
     # Enable bytecode compilation, to improve cold-start performance.
     UV_COMPILE_BYTECODE=1 \
+    # Ensure layers are deterministic by not including installer metadata
+    UV_NO_INSTALLER_METADATA=1 \
     # Enable copy mode to support bind mount caching.
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    # Set virtual environment location
+    UV_PROJECT_ENVIRONMENT=/opt/uv/venv \
+    VIRTUAL_ENV=/opt/uv/venv
 
-# https://docs.astral.sh/uv/guides/integration/aws-lambda/#getting-started
-RUN --mount=from=uv,source=/uv,target=/bin/uv \
-    --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=services/database-manager/uv.lock,target=uv.lock \
-    --mount=type=bind,source=services/database-manager/pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=common,target=/common,ro \
-    uv export --frozen --no-emit-workspace --no-dev --no-editable -o requirements.txt && \
-    uv pip install -r requirements.txt --target "${LAMBDA_TASK_ROOT}"
+# Create the virtual environment
+RUN uv venv $UV_PROJECT_ENVIRONMENT
 
-FROM public.ecr.aws/lambda/python:3.13
+# Install dependencies
+COPY docker/database-manager/pylock.toml ./pylock.toml
+RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
+    uv pip install -r pylock.toml
 
-# Copy the runtime dependencies from the builder stage.
-COPY --from=builder ${LAMBDA_TASK_ROOT} ${LAMBDA_TASK_ROOT}
+# Install project
+COPY packages/python/common/ /app/packages/python/common
+COPY docker/database-manager/ /app/docker/database-manager/
+RUN uv pip install --no-deps --no-sources \
+    /app/packages/python/common \
+    /app/docker/database-manager
 
-# Copy the application code.
-COPY ./services/database-manager/src ${LAMBDA_TASK_ROOT}/src
+# Verify that all declared dependencies were installed
+RUN uv pip check
 
-# Set the AWS Lambda handler.
-CMD ["src.main.main"]
+# Copy the entrypoint and make it executable
+COPY --chmod=0755 docker/database-manager/entrypoint.sh /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

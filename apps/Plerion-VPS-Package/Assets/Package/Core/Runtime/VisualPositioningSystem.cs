@@ -9,7 +9,6 @@ using PlerionApiClient.Client;
 using PlerionApiClient.Model;
 using Unity.Mathematics;
 using UnityEngine;
-using Camera = PlerionApiClient.Model.Camera;
 
 namespace Plerion.Core
 {
@@ -103,10 +102,10 @@ namespace Plerion.Core
                 {
                     var status = await api.GetLocalizationSessionStatusAsync(session.Id);
 
-                    if (status == "\"failed\"" || status == "\"exited\"")
+                    if (status == "dead" || status == "exited")
                         throw new Exception("Session failed to start.");
 
-                    if (status == "\"ready\"")
+                    if (status == "ready")
                         break;
 
                     await UniTask.WaitForSeconds(1);
@@ -281,7 +280,7 @@ namespace Plerion.Core
                 }
             );
 
-            await api.SetLocalizationSessionCameraIntrinsicsAsync(localizationSessionId, new Camera(cameraConfig));
+            await api.SetLocalizationSessionCameraIntrinsicsAsync(localizationSessionId, cameraConfig);
 
             _localizingState = SystemState.Running;
         }

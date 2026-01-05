@@ -25,7 +25,6 @@ using OpenAPIDateConverter = PlerionApiClient.Client.OpenAPIDateConverter;
 
 namespace PlerionApiClient.Model
 {
-    // fuck
     /// <summary>
     /// RigCameraConfig
     /// </summary>
@@ -45,7 +44,7 @@ namespace PlerionApiClient.Model
         /// <param name="rotation">rotation (required).</param>
         /// <param name="translation">translation (required).</param>
         /// <param name="cameraConfig">cameraConfig (required).</param>
-        public RigCameraConfig(string id, bool? refSensor, Float4 rotation, Float3 translation, CameraConfig cameraConfig)
+        public RigCameraConfig(string id, bool refSensor, Float4 rotation, Float3 translation, PinholeCameraConfig cameraConfig)
         {
             // to ensure "id" is required (not null)
             if (id == null)
@@ -53,11 +52,6 @@ namespace PlerionApiClient.Model
                 throw new ArgumentNullException("id is a required property for RigCameraConfig and cannot be null");
             }
             this.Id = id;
-            // to ensure "refSensor" is required (not null)
-            if (refSensor == null)
-            {
-                throw new ArgumentNullException("refSensor is a required property for RigCameraConfig and cannot be null");
-            }
             this.RefSensor = refSensor;
             // to ensure "rotation" is required (not null)
             if (rotation == null)
@@ -107,7 +101,7 @@ namespace PlerionApiClient.Model
         /// Gets or Sets RefSensor
         /// </summary>
         [DataMember(Name = "ref_sensor", IsRequired = true, EmitDefaultValue = true)]
-        public bool? RefSensor
+        public bool RefSensor
         {
             get{ return _RefSensor;}
             set
@@ -116,7 +110,7 @@ namespace PlerionApiClient.Model
                 _flagRefSensor = true;
             }
         }
-        private bool? _RefSensor;
+        private bool _RefSensor;
         private bool _flagRefSensor;
 
         /// <summary>
@@ -179,7 +173,7 @@ namespace PlerionApiClient.Model
         /// Gets or Sets CameraConfig
         /// </summary>
         [DataMember(Name = "camera_config", IsRequired = true, EmitDefaultValue = true)]
-        public CameraConfig CameraConfig
+        public PinholeCameraConfig CameraConfig
         {
             get{ return _CameraConfig;}
             set
@@ -188,7 +182,7 @@ namespace PlerionApiClient.Model
                 _flagCameraConfig = true;
             }
         }
-        private CameraConfig _CameraConfig;
+        private PinholeCameraConfig _CameraConfig;
         private bool _flagCameraConfig;
 
         /// <summary>

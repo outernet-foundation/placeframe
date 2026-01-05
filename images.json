@@ -1,54 +1,116 @@
 {
-  "tailscale-beacon": {
-    "stack": "core",
-    "first_party": true,
-    "context": "services/tailscale-beacon",
-    "dockerfile": "Dockerfile"
-  },
-  "oauth2-proxy": {
-    "stack": "core",
-    "first_party": false
-  },
-  "oauth2-reverse-proxy": {
-    "stack": "core",
-    "first_party": true,
-    "context": "services/oauth2-reverse-proxy",
-    "dockerfile": "Dockerfile"
-  },
-  "initialize-cloudbeaver": {
-    "stack": "core",
-    "first_party": true,
-    "context": "tasks/initialize-cloudbeaver",
-    "dockerfile": "Dockerfile",
-    "hash_paths": ["tasks/initialize-cloudbeaver", "common"]
-  },
-  "cloudbeaver": {
-    "stack": "core",
-    "first_party": false
-  },
-  "github-runner": {
-    "stack": "dev",
-    "first_party": false
-  },
   "api": {
-    "stack": "dev",
+    "stack": "core",
     "first_party": true,
     "context": ".",
-    "dockerfile": "services/api/Dockerfile",
-    "hash_paths": ["services/api", "common"]
+    "dockerfile": "docker/api/Dockerfile",
+    "hash_paths": [
+      "docker/api",
+      "packages/python/common",
+      "packages/generated/python/datamodels"
+    ]
   },
-  "reconstructor": {
-    "stack": "dev",
+  "cloudbeaver-initializer": {
+    "stack": "core",
     "first_party": true,
     "context": ".",
-    "dockerfile": "tasks/reconstructor/Dockerfile",
-    "hash_paths": ["tasks/reconstructor", "common"]
+    "dockerfile": "docker/cloudbeaver-initializer/Dockerfile",
+    "hash_paths": ["docker/cloudbeaver-initializer"]
   },
   "database-manager": {
     "stack": "core",
     "first_party": true,
     "context": ".",
-    "dockerfile": "services/database-manager/Dockerfile",
-    "hash_paths": ["services/database-manager", "common"]
+    "dockerfile": "docker/database-manager/Dockerfile",
+    "hash_paths": ["docker/database-manager", "packages/python/common"]
+  },
+  "database-migrator": {
+    "stack": "core",
+    "first_party": true,
+    "context": ".",
+    "dockerfile": "docker/database-migrator/Dockerfile",
+    "hash_paths": ["docker/database-migrator"]
+  },
+  "gateway": {
+    "stack": "core",
+    "first_party": true,
+    "context": ".",
+    "dockerfile": "docker/gateway/Dockerfile",
+    "hash_paths": ["docker/gateway"]
+  },
+  "localizer-cuda": {
+    "stack": "core",
+    "first_party": true,
+    "context": ".",
+    "dockerfile": "docker/localizer/Dockerfile",
+    "hash_paths": [
+      "docker/localizer",
+      "packages/python/common",
+      "packages/python/core",
+      "packages/python/neural-networks",
+      "packages/python/torch-meta"
+    ],
+    "build_args": {
+      "TORCH_DEVICE": "cuda"
+    }
+  },
+  "localizer-rocm": {
+    "stack": "core",
+    "first_party": true,
+    "context": ".",
+    "dockerfile": "docker/localizer/Dockerfile",
+    "hash_paths": [
+      "docker/localizer",
+      "packages/python/common",
+      "packages/python/core",
+      "packages/python/neural-networks",
+      "packages/python/torch-meta"
+    ],
+    "build_args": {
+      "TORCH_DEVICE": "rocm"
+    }
+  },
+  "orchestrator": {
+    "stack": "core",
+    "first_party": true,
+    "context": ".",
+    "dockerfile": "docker/orchestrator/Dockerfile",
+    "hash_paths": [
+      "docker/orchestrator",
+      "packages/python/common",
+      "packages/generated/python/datamodels"
+    ]
+  },
+  "reconstructor-cuda": {
+    "stack": "core",
+    "first_party": true,
+    "context": ".",
+    "dockerfile": "docker/reconstructor/Dockerfile",
+    "hash_paths": [
+      "docker/reconstructor",
+      "packages/python/common",
+      "packages/python/core",
+      "packages/python/neural-networks",
+      "packages/python/torch-meta"
+    ],
+    "build_args": {
+      "TORCH_DEVICE": "cuda"
+    }
+  },
+  "reconstructor-rocm": {
+    "stack": "core",
+    "first_party": true,
+    "context": ".",
+    "dockerfile": "docker/reconstructor/Dockerfile",
+    "hash_paths": [
+      "docker/reconstructor",
+      "packages/python/common",
+      "packages/python/core",
+      "packages/python/neural-networks",
+      "packages/python/torch-meta"
+    ],
+    "build_args": {
+      "TORCH_DEVICE": "rocm"
+    }
   }
 }

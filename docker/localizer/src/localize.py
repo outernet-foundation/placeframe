@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from os import environ
 from typing import Any, cast
 
 from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
-from core.camera_config import PinholeCameraConfig
-from core.image_orientation import transform_image, transform_intrinsics
+from core.camera_config import PinholeCameraConfig, transform_image, transform_intrinsics
 from core.lightglue import lightglue_match_tensors
 from core.localization_metrics import LocalizationMetrics
 from core.opq import decode_descriptors
@@ -28,6 +28,9 @@ lightglue: Any = None
 
 
 def load_models(max_keypoints: int):
+    if environ.get("CODEGEN"):
+        return
+
     from neural_networks.models import load_DIR, load_lightglue, load_superpoint
 
     print(f"Using device: {DEVICE}")

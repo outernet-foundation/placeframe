@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
 from uuid import UUID
 from typing import Optional, Set
@@ -29,8 +29,8 @@ class GroupRead(BaseModel):
     GroupRead
     """ # noqa: E501
     id: UUID
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
+    updated_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     name: StrictStr
     parent_id: Optional[UUID] = None
     additional_properties: Dict[str, Any] = {}

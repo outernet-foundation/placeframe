@@ -10,7 +10,6 @@
   <Project Path="Unity.RenderPipelines.Core.Editor.csproj" />
   <Project Path="Unity.Collections.csproj" />
   <Project Path="UnityEngine.UI.csproj" />
-  <Project Path="PlerionApiClient.csproj" />
   <Project Path="Unity.RenderPipelines.Universal.2D.Runtime.csproj" />
   <Project Path="Unity.XR.Simulation.csproj" />
   <Project Path="Unity.RenderPipelines.Universal.Editor.csproj" />
@@ -20,6 +19,7 @@
   <Project Path="UnityEngine.TestRunner.csproj" />
   <Project Path="Unity.XR.ARFoundation.VisualScripting.Editor.csproj" />
   <Project Path="Unity.Burst.csproj" />
+  <Project Path="CesiumForUnity.csproj" />
   <Project Path="glTFast.csproj" />
   <Project Path="Unity.VisualScripting.Flow.Editor.csproj" />
   <Project Path="FR2.csproj" />
@@ -52,13 +52,12 @@
   <Project Path="Unity.Rendering.LightTransport.Runtime.csproj" />
   <Project Path="Unity.Burst.Editor.csproj" />
   <Project Path="Unity.TestTools.CodeCoverage.Editor.OpenCover.Mono.Reflection.csproj" />
+  <Project Path="PlerionApiClient.csproj" />
   <Project Path="Unity.Mobile.AndroidLogcat.Editor.csproj" />
   <Project Path="Unity.Rider.Editor.csproj" />
   <Project Path="Unity.XR.ARFoundation.VisualScripting.csproj" />
   <Project Path="Unity.VisualScripting.State.csproj" />
-  <Project Path="CesiumEditor.csproj" />
   <Project Path="Unity.XR.ARSubsystems.Editor.csproj" />
-  <Project Path="CesiumRuntime.csproj" />
   <Project Path="Unity.Performance.Profile-Analyzer.Editor.csproj" />
   <Project Path="Unity.XR.Management.Editor.csproj" />
   <Project Path="UnityEditor.UI.csproj" />

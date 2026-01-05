@@ -94,17 +94,13 @@ namespace PlerionClient.Client
                                             onDialogComplete = reconstructionOptions =>
                                             {
                                                 UploadCapture(
-                                                        capture.id,
-                                                        capture.name.value ?? capture.id.ToString(),
-                                                        capture.type.value,
+                                                        capture,
                                                         reconstructionOptions,
                                                         Progress.Create<(CaptureUploadStatus, float?)>(progress =>
                                                             capture.status.ScheduleSet(progress.Item1)
                                                         )
                                                     )
                                                     .Forget();
-
-                                                capture.status.ExecuteSetOrDelay(CaptureUploadStatus.Reconstructing);
                                             },
                                             onDialogCancelled = () =>
                                                 capture.status.ExecuteSetOrDelay(CaptureUploadStatus.NotUploaded),
@@ -162,11 +158,7 @@ namespace PlerionClient.Client
                                         capture.status.ScheduleSet(CaptureUploadStatus.MapCreated);
                                     });
                             }
-                            else if (
-                                x.currentValue == CaptureUploadStatus.Initializing
-                                || x.currentValue == CaptureUploadStatus.Uploading
-                                || x.currentValue == CaptureUploadStatus.Reconstructing
-                            )
+                            else if (x.currentValue == CaptureUploadStatus.Reconstructing)
                             {
                                 if (!awaitReconstructionTasks.ContainsKey(capture.id))
                                 {
@@ -471,14 +463,16 @@ namespace PlerionClient.Client
         }
 
         private async UniTask UploadCapture(
-            Guid id,
-            string name,
-            DeviceType type,
+            CaptureState capture,
             ReconstructionOptions reconstructionOptions,
             IProgress<(CaptureUploadStatus, float?)> progress = default,
             CancellationToken cancellationToken = default
         )
         {
+            var id = capture.id;
+            var name = capture.name.value ?? capture.id.ToString();
+            var type = capture.type.value;
+
             progress?.Report((CaptureUploadStatus.Initializing, null));
 
             CaptureSessionRead captureSession = default;
@@ -532,6 +526,8 @@ namespace PlerionClient.Client
             }
 
             progress?.Report((CaptureUploadStatus.Reconstructing, null));
+
+            capture.status.ExecuteSetOrDelay(CaptureUploadStatus.Reconstructing);
 
             await CreateReconstruction(captureSession.Id, reconstructionOptions);
         }

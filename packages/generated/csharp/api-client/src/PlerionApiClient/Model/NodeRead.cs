@@ -25,7 +25,6 @@ using OpenAPIDateConverter = PlerionApiClient.Client.OpenAPIDateConverter;
 
 namespace PlerionApiClient.Model
 {
-    // fuck
     /// <summary>
     /// NodeRead
     /// </summary>
@@ -46,9 +45,9 @@ namespace PlerionApiClient.Model
         /// <param name="positionZ">positionZ (required).</param>
         /// <param name="rotationX">rotationX (required).</param>
         /// <param name="rotationY">rotationY (required).</param>
-        /// <param name="createdAt">createdAt (required).</param>
+        /// <param name="createdAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="rotationW">rotationW (required).</param>
-        /// <param name="updatedAt">updatedAt (required).</param>
+        /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="positionX">positionX (required).</param>
         /// <param name="active">active (required).</param>
         /// <param name="name">name (required).</param>
@@ -227,8 +226,9 @@ namespace PlerionApiClient.Model
             return _flagRotationY;
         }
         /// <summary>
-        /// Gets or Sets CreatedAt
+        /// datetime with the constraint that the value must have timezone info
         /// </summary>
+        /// <value>datetime with the constraint that the value must have timezone info</value>
         [DataMember(Name = "created_at", IsRequired = true, EmitDefaultValue = true)]
         public DateTime CreatedAt
         {
@@ -275,8 +275,9 @@ namespace PlerionApiClient.Model
             return _flagRotationW;
         }
         /// <summary>
-        /// Gets or Sets UpdatedAt
+        /// datetime with the constraint that the value must have timezone info
         /// </summary>
+        /// <value>datetime with the constraint that the value must have timezone info</value>
         [DataMember(Name = "updated_at", IsRequired = true, EmitDefaultValue = true)]
         public DateTime UpdatedAt
         {

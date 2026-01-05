@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Annotated
 from uuid import UUID
 
 from datamodels.public_dtos import (
@@ -12,32 +12,30 @@ from datamodels.public_dtos import (
     localization_map_to_dto,
 )
 from datamodels.public_tables import LocalizationMap
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from litestar import Router, delete, get, patch, post
+from litestar.di import Provide
+from litestar.exceptions import HTTPException, NotFoundException
+from litestar.params import Parameter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..settings import get_settings
-from .reconstructions import get_reconstruction_status
+from .reconstructions import fetch_reconstruction_status
 
 settings = get_settings()
 
-router = APIRouter(prefix="/localization_maps", tags=["localization_maps"])
 
-
-@router.post("")
-async def create_localization_map(
-    localization_map: LocalizationMapCreate, session: AsyncSession = Depends(get_session)
-) -> LocalizationMapRead:
-    reconstruction_status = await get_reconstruction_status(localization_map.reconstruction_id, session)
+@post("")
+async def create_localization_map(session: AsyncSession, data: LocalizationMapCreate) -> LocalizationMapRead:
+    reconstruction_status = await fetch_reconstruction_status(data.reconstruction_id, session)
 
     if reconstruction_status != "succeeded":
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Reconstruction with id {localization_map.reconstruction_id} is not in 'succeeded' state",
+            status_code=400, detail=f"Reconstruction with id {data.reconstruction_id} is not in 'succeeded' state"
         )
 
-    row = localization_map_from_dto(localization_map)
+    row = localization_map_from_dto(data)
 
     session.add(row)
 
@@ -46,12 +44,12 @@ async def create_localization_map(
     return localization_map_to_dto(row)
 
 
-@router.delete("/{id}")
-async def delete_localization_map(id: UUID, session: AsyncSession = Depends(get_session)) -> None:
+@delete("/{id:uuid}")
+async def delete_localization_map(session: AsyncSession, id: UUID) -> None:
     row = await session.get(LocalizationMap, id)
 
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"LocalizationMap with id {id} not found")
+        raise NotFoundException(f"LocalizationMap with id {id} not found")
 
     await session.delete(row)
 
@@ -59,15 +57,15 @@ async def delete_localization_map(id: UUID, session: AsyncSession = Depends(get_
     return None
 
 
-@router.delete("")
+@delete("")
 async def delete_localization_maps(
-    ids: list[UUID] = Query(..., description="List of Ids to delete"), session: AsyncSession = Depends(get_session)
+    session: AsyncSession, ids: Annotated[list[UUID], Parameter(description="List of Ids to delete")]
 ) -> None:
     for id in ids:
         row = await session.get(LocalizationMap, id)
 
         if not row:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"LocalizationMap with id {id} not found")
+            raise NotFoundException(f"LocalizationMap with id {id} not found")
 
         await session.delete(row)
 
@@ -75,18 +73,11 @@ async def delete_localization_maps(
     return None
 
 
-@router.get("")
-async def get_localization_maps(
-    ids: Optional[list[UUID]] = Query(None, description="Optional list of Ids to filter by"),
-    reconstruction_ids: Optional[list[UUID]] = Query(
-        None, description="Optional list of Reconstruction Ids to filter by"
-    ),
-    session: AsyncSession = Depends(get_session),
+async def fetch_localization_maps(
+    session: AsyncSession, ids: list[UUID] | None = None, reconstruction_ids: list[UUID] | None = None
 ) -> list[LocalizationMapRead]:
     if ids and reconstruction_ids:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot filter by both ids and reconstruction_ids"
-        )
+        raise HTTPException(status_code=400, detail="Cannot filter by both ids and reconstruction_ids")
 
     query = select(LocalizationMap)
 
@@ -101,47 +92,51 @@ async def get_localization_maps(
     return [localization_map_to_dto(row) for row in result.scalars().all()]
 
 
-@router.get("/{id}")
-async def get_localization_map(id: UUID, session: AsyncSession = Depends(get_session)) -> LocalizationMapRead:
+@get("")
+async def get_localization_maps(
+    session: AsyncSession,
+    ids: Annotated[list[UUID] | None, Parameter(description="Optional list of Ids to filter by")] = None,
+    reconstruction_ids: Annotated[
+        list[UUID] | None, Parameter(description="Optional list of Reconstruction Ids to filter by")
+    ] = None,
+) -> list[LocalizationMapRead]:
+    return await fetch_localization_maps(session, ids, reconstruction_ids)
+
+
+@get("/{id:uuid}")
+async def get_localization_map(session: AsyncSession, id: UUID) -> LocalizationMapRead:
     row = await session.get(LocalizationMap, id)
 
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"LocalizationMap with id {id} not found")
+        raise HTTPException(status_code=404, detail=f"LocalizationMap with id {id} not found")
 
     return localization_map_to_dto(row)
 
 
-@router.patch("/{id}")
-async def update_localization_map(
-    id: UUID, localization_map: LocalizationMapUpdate, session: AsyncSession = Depends(get_session)
-) -> LocalizationMapRead:
+@patch("/{id:uuid}")
+async def update_localization_map(session: AsyncSession, id: UUID, data: LocalizationMapUpdate) -> LocalizationMapRead:
     row = await session.get(LocalizationMap, id)
 
     if not row:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"LocalizationMap with id {id} not found")
+        raise NotFoundException(f"LocalizationMap with id {id} not found")
 
-    localization_map_apply_dto(row, localization_map)
+    localization_map_apply_dto(row, data)
 
     await session.flush()
     await session.refresh(row)
     return localization_map_to_dto(row)
 
 
-@router.patch("")
+@patch("")
 async def update_localization_maps(
-    localization_maps: list[LocalizationMapBatchUpdate],
-    allow_missing: bool = False,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession, data: list[LocalizationMapBatchUpdate], allow_missing: bool = False
 ) -> list[LocalizationMapRead]:
     rows: list[LocalizationMap] = []
-    for localization_map in localization_maps:
+    for localization_map in data:
         row = await session.get(LocalizationMap, localization_map.id)
         if not row:
             if not allow_missing:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail=f"LocalizationMap with id {localization_map.id} not found",
-                )
+                raise NotFoundException(f"LocalizationMap with id {localization_map.id} not found")
             continue
 
         localization_map_apply_batch_update_dto(row, localization_map)
@@ -151,3 +146,19 @@ async def update_localization_maps(
     for row in rows:
         await session.refresh(row)
     return [localization_map_to_dto(r) for r in rows]
+
+
+router = Router(
+    "/localization-maps",
+    tags=["Localization Maps"],
+    dependencies={"session": Provide(get_session)},
+    route_handlers=[
+        create_localization_map,
+        delete_localization_map,
+        delete_localization_maps,
+        get_localization_maps,
+        get_localization_map,
+        update_localization_map,
+        update_localization_maps,
+    ],
+)

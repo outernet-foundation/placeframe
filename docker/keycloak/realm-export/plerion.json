@@ -14,8 +14,8 @@
       "publicClient": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
-      "redirectUris": ["${API_HOSTNAME}/docs/oauth2-redirect"],
-      "webOrigins": ["${API_HOSTNAME}"],
+      "redirectUris": ["${PUBLIC_URL}/schema", "${PUBLIC_URL}/schema/"],
+      "webOrigins": ["${PUBLIC_URL}"],
       "protocolMappers": [
         {
           "name": "aud-plerion-api",

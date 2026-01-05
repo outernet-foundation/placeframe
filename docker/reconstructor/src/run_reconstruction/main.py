@@ -6,10 +6,9 @@ from io import BytesIO
 from pathlib import Path
 
 from common.boto_clients import create_s3_client
-from core.camera_config import CameraConfig
+from core.camera_config import PinholeCameraConfig, transform_image
 from core.capture_session_manifest import CaptureSessionManifest
 from core.h5 import write_features, write_global_descriptors
-from core.image_orientation import transform_image
 from core.lightglue import lightglue_match
 from core.opq import encode_descriptors, train_opq_matrix, train_pq_quantizer, write_opq_matrix, write_pq_quantizer
 from core.reconstruction_manifest import ReconstructionManifest
@@ -97,7 +96,7 @@ def main():
     keypoints: dict[str, NDArray[float32]] = {}
     descriptors: dict[str, NDArray[float32]] = {}
     sizes: dict[str, tuple[int, int]] = {}
-    image_list: list[tuple[str, CameraConfig]] = [
+    image_list: list[tuple[str, PinholeCameraConfig]] = [
         (f"{rig_id}/{camera[0].id}/{frame_id}.jpg", camera[0].camera_config)
         for rig_id, rig in rigs.items()
         for camera in rig.cameras.values()

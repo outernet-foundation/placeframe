@@ -25,7 +25,6 @@ using OpenAPIDateConverter = PlerionApiClient.Client.OpenAPIDateConverter;
 
 namespace PlerionApiClient.Model
 {
-    // fuck
     /// <summary>
     /// GroupRead
     /// </summary>
@@ -41,8 +40,8 @@ namespace PlerionApiClient.Model
         /// Initializes a new instance of the <see cref="GroupRead" /> class.
         /// </summary>
         /// <param name="id">id (required).</param>
-        /// <param name="createdAt">createdAt (required).</param>
-        /// <param name="updatedAt">updatedAt (required).</param>
+        /// <param name="createdAt">datetime with the constraint that the value must have timezone info (required).</param>
+        /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="name">name (required).</param>
         /// <param name="parentId">parentId.</param>
         public GroupRead(Guid id, DateTime createdAt, DateTime updatedAt, string name)
@@ -83,8 +82,9 @@ namespace PlerionApiClient.Model
             return _flagId;
         }
         /// <summary>
-        /// Gets or Sets CreatedAt
+        /// datetime with the constraint that the value must have timezone info
         /// </summary>
+        /// <value>datetime with the constraint that the value must have timezone info</value>
         [DataMember(Name = "created_at", IsRequired = true, EmitDefaultValue = true)]
         public DateTime CreatedAt
         {
@@ -107,8 +107,9 @@ namespace PlerionApiClient.Model
             return _flagCreatedAt;
         }
         /// <summary>
-        /// Gets or Sets UpdatedAt
+        /// datetime with the constraint that the value must have timezone info
         /// </summary>
+        /// <value>datetime with the constraint that the value must have timezone info</value>
         [DataMember(Name = "updated_at", IsRequired = true, EmitDefaultValue = true)]
         public DateTime UpdatedAt
         {

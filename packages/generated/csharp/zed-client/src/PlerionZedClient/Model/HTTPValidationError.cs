@@ -25,7 +25,6 @@ using OpenAPIDateConverter = PlerionZedClient.Client.OpenAPIDateConverter;
 
 namespace PlerionZedClient.Model
 {
-    // fuck
     /// <summary>
     /// HTTPValidationError
     /// </summary>

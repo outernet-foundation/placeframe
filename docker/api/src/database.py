@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import os
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator, cast
 
 from datamodels.auth_tables import User
-from fastapi import HTTPException, Request
+from litestar import Request
+from litestar.exceptions import NotAuthorizedException
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -13,7 +14,7 @@ from .settings import get_settings
 
 if os.environ.get("CODEGEN"):
 
-    async def get_session(request: Request) -> AsyncGenerator[AsyncSession]:
+    async def get_session(request: Request[str, dict[str, Any], Any]) -> AsyncGenerator[AsyncSession]:
         yield AsyncSession()
 
 else:
@@ -41,18 +42,17 @@ else:
         class_=AsyncSession,
     )
 
-    async def get_session(request: Request) -> AsyncGenerator[AsyncSession]:
-        claims = getattr(request.state, "claims", {}) or {}
-        user_id = claims.get("sub")
+    async def get_session(request: Request[str, dict[str, Any], Any]) -> AsyncGenerator[AsyncSession]:
+        claims = request.auth
+        user_id = cast(str | None, claims.get("sub"))
 
         if not user_id:
-            raise HTTPException(status_code=401, detail="Unauthorized")
+            raise NotAuthorizedException()
 
         # JIT create user record if it doesn't exist
         async with AuthSessionLocal() as auth_session, auth_session.begin():
             await auth_session.execute(insert(User).values(id=user_id).on_conflict_do_nothing())
 
         async with ApiSessionLocal() as api_session, api_session.begin():
-            if user_id:
-                await api_session.execute(func.set_config("app.user_id", str(user_id), True))
+            await api_session.execute(func.set_config("app.user_id", user_id, True))
             yield api_session

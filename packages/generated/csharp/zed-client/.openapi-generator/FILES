@@ -24,6 +24,6 @@ src/PlerionZedClient/Client/RetryConfiguration.cs
 src/PlerionZedClient/Client/WebRequestPathBuilder.cs
 src/PlerionZedClient/Model/AbstractOpenAPISchema.cs
 src/PlerionZedClient/Model/HTTPValidationError.cs
+src/PlerionZedClient/Model/LocationInner.cs
 src/PlerionZedClient/Model/ValidationError.cs
-src/PlerionZedClient/Model/ValidationErrorLocInner.cs
 src/PlerionZedClient/PlerionZedClient.csproj

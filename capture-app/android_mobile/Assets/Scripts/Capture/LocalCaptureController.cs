@@ -146,7 +146,7 @@ public static class LocalCaptureController
                                 true,
                                 new Float4(0, 0, 0, 1),
                                 new Float3(0, 0, 0),
-                                new CameraConfig(cameraConfig)
+                                cameraConfig
                             ),
                         }
                     ),

@@ -1,16 +1,17 @@
 import json
-import re
 from pathlib import Path
-from re import Pattern
 from shutil import rmtree
 from tempfile import NamedTemporaryFile
 
+from common.fix_openapi_schema import convert_openapi_3_1_to_3_0
 from common.run_command import run_command
-from typer import Option, run
+from typer import Option, Typer
 
-MUSTACHE_TEMPLATES_PATH = Path(__file__).parents[2] / "mustache-templates"
-OPENAPI_GENERATOR_IGNORE_PATH = Path(__file__).parents[2] / ".openapi-generator-ignore"
-OPENAPI_GENERATOR_CONFIGS_PATH = Path(__file__).parents[2] / "openapi-generator-configs"
+REPO_ROOT = Path(__file__).parents[3]
+OPENAPI_GENERATOR_PATH = Path(__file__).parents[2] / "openapi-generator"
+CONFIGS_PATH = OPENAPI_GENERATOR_PATH / "configs"
+TEMPLATES_PATH = OPENAPI_GENERATOR_PATH / "templates-generated"
+TEMPLATE_PATCHES_PATH = OPENAPI_GENERATOR_PATH / "templates-patches"
 
 
 def cli(
@@ -22,11 +23,14 @@ def cli(
     with Path(config).open("r", encoding="utf-8") as file:
         config_json: dict[str, list[str]] = json.load(file)
 
+    _generate_templates()
+
     for project_name, clients in config_json.items():
         if project is not None and project.name != project_name:
             continue
 
         openapi_spec = _dump_openapi_spec(Path(project_name), no_cache)
+
         if openapi_spec is None:
             continue
 
@@ -41,6 +45,9 @@ def _dump_openapi_spec(project: Path, no_cache: bool) -> str | None:
     print(f"Dumping OpenAPI spec for project: {project}")
 
     openapi_spec = run_command("uv run --project . --no_workspace python -m src.dump_openapi", cwd=project)
+    openapi_json = json.loads(openapi_spec)
+    convert_openapi_3_1_to_3_0(openapi_json)
+    openapi_spec = json.dumps(openapi_json, indent=2)
 
     spec_path = project / "openapi.json"
 
@@ -57,8 +64,22 @@ def _dump_openapi_spec(project: Path, no_cache: bool) -> str | None:
     return openapi_spec
 
 
+def _generate_templates():
+    (TEMPLATES_PATH).mkdir(parents=True, exist_ok=True)
+
+    run_command(
+        f"uv run --no_workspace openapi-generator-cli author template -g csharp --library httpclient -o {str(TEMPLATES_PATH / 'csharp')}",
+        log=True,
+        cwd=REPO_ROOT,
+    )
+
+    # git apply directory is always relative to the repo root
+    for patch_file in (TEMPLATE_PATCHES_PATH / "csharp").iterdir():
+        run_command(f"git apply {str(patch_file)}", log=True)
+
+
 def _generate_client(openapi_spec: str, project: str, client: str):
-    client_config_json = json.loads((OPENAPI_GENERATOR_CONFIGS_PATH / f"{client}.json").read_text(encoding="utf-8"))
+    client_config_json = json.loads((CONFIGS_PATH / f"{client}.json").read_text(encoding="utf-8"))
     client_package_base_name = f"{project.split('/')[-1]}-client"
     client_path = Path("packages/generated") / client / f"{client_package_base_name}"
 
@@ -94,18 +115,22 @@ def _generate_client(openapi_spec: str, project: str, client: str):
         json.dump(client_config_json, temp_config_file)
         temp_config_file.flush()
 
-        run_command(
+        command = (
             f"uv run --no_workspace openapi-generator-cli generate "
             f"-g {client} "
             f"-i {Path(temp_spec_file.name).resolve().as_posix()} "
             f"-o {client_path.resolve().as_posix()} "
             f"-c {str(Path(temp_config_file.name).resolve())} "
-            f"-t {str(MUSTACHE_TEMPLATES_PATH.resolve())} "
-            f"--ignore-file-override {str(OPENAPI_GENERATOR_IGNORE_PATH.resolve())}",
-            log=True,
+            f"--ignore-file-override {str(OPENAPI_GENERATOR_PATH / '.openapi-generator-ignore')}"
         )
 
+        if client == "csharp":
+            command += f" -t {str(TEMPLATES_PATH / 'csharp')}"
+
+        run_command(command, log=True)
+
         print(f"Generated {client} client at {client_path}")
+
     if client == "csharp":
         (client_path / "src" / client_package_name_camel / "package.json").write_text(
             json.dumps(
@@ -141,29 +166,13 @@ def _generate_client(openapi_spec: str, project: str, client: str):
     elif client == "python":
         run_command(f"uv pip install {client_path.resolve().as_posix()}", log=True)
 
-    # This is a workaround for a bug in one of the openapi jinja templates for C# that results in stray commas in generated code
-    print("Checking for stray commas")
 
-    pat_next: Pattern[str] = re.compile(
-        r"(?m)^(\s*(?:public|internal)(?:\s+(?:abstract|sealed))?(?:\s+partial)?\s+class\s+\w+\s*:[^{\r\n]+),\s*\r?\n(\s*)\{"
-    )
-
-    pat_same: Pattern[str] = re.compile(
-        r"(?m)^(\s*(?:public|internal)(?:\s+(?:abstract|sealed))?(?:\s+partial)?\s+class\s+\w+\s*:[^{\r\n]+),\s*\{"
-    )
-
-    for cs_file in client_path.rglob("*.cs"):
-        text: str = cs_file.read_text(encoding="utf-8")
-        fixed: str = pat_next.sub(r"\1\n\2{", text)
-        fixed = pat_same.sub(r"\1 {", fixed)
-
-        if fixed != text:
-            cs_file.write_text(fixed, encoding="utf-8")
-            print(f"Patched stray comma in {cs_file}")
+app = Typer(pretty_exceptions_show_locals=False)
+app.command()(cli)
 
 
 def main():
-    run(cli)
+    app()
 
 
 if __name__ == "__main__":

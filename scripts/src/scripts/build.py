@@ -10,7 +10,7 @@ from common.run_command import run_command
 from pydantic import TypeAdapter
 from typer import Option, Typer
 
-workspace_directory = Path("..").resolve()
+workspace_directory = Path(".").resolve()
 images_path = workspace_directory / "images.json"
 images_lock_path = workspace_directory / "images.lock"
 infrastructure_directory = workspace_directory / "infrastructure"
@@ -22,6 +22,7 @@ class Image(TypedDict):
     context: NotRequired[str]
     dockerfile: NotRequired[str]
     hash_paths: NotRequired[list[str]]
+    build_args: NotRequired[dict[str, str]]
 
 
 class ImageLock(TypedDict):
@@ -36,6 +37,7 @@ class FirstPartyPlan(TypedDict):
     context: str
     dockerfile: str
     tree_sha: str
+    build_args: NotRequired[dict[str, str]]
 
 
 class ThirdPartyPlan(TypedDict):
@@ -45,7 +47,7 @@ class ThirdPartyPlan(TypedDict):
 
 
 ImageOption = Option(None, "--image", "-i", help="Image name; can be repeated.")
-StackOption = Option(None, "--stack", "-s", help="Pulumi stack name, or all")
+# StackOption = Option(None, "--stack", "-s", help="Pulumi stack name, or all")
 PlanOption = Option(None, "--plan", "-p", help="Path to a plan JSON file (dict keyed by image name).")
 CacheTypeOption = Option("registry", "--cache-type", "-c", help="Type of cache to use when building images.")
 PlanOutputPathOption = Option(..., "--output", "-o", help="Path to write the plan JSON file.")
@@ -55,18 +57,11 @@ app = Typer()
 
 
 @app.command()
-def plan(
-    images: Optional[list[str]] = ImageOption, stack: Optional[str] = StackOption, plan_path: str = PlanOutputPathOption
-):
-    if images is None and not stack:
-        raise ValueError("Either '--images' or '--stack' must be provided")
-    if stack and images is not None:
-        raise ValueError("Cannot provide both '--images' and '--stack'")
-
+def plan(images: list[str] = ImageOption, plan_path: str = PlanOutputPathOption):
     if not images_path.is_file():
         raise FileNotFoundError(f"{images_path} not found")
 
-    _, plan = create_plan(images, stack)
+    _, plan = create_plan(images)
 
     with open(plan_path, "w") as plan_file:
         json.dump(plan, plan_file, indent=2)
@@ -75,15 +70,14 @@ def plan(
 @app.command()
 def lock(
     images: Optional[list[str]] = ImageOption,
-    stack: Optional[str] = StackOption,
     plan_path: Optional[str] = PlanOption,
     cache_type: str = CacheTypeOption,
     output_path: Optional[Path] = LockOutputPathOption,
 ):
-    if images is None and not stack and plan_path is None:
-        raise ValueError("Either '--images', '--stack', or '--plan' must be provided")
-    if sum([bool(stack), images is not None, plan_path is not None]) > 1:
-        raise ValueError("Only one of '--stack', '--images', or '--plan' may be provided")
+    if images is None and plan_path is None:
+        raise ValueError("Either '--images' or '--plan' must be provided")
+    if images is not None and plan_path is not None:
+        raise ValueError("Only one of '--images' or '--plan' may be provided")
 
     if plan_path:
         if not Path(plan_path).is_file():
@@ -96,12 +90,13 @@ def lock(
         if not images_path.is_file():
             raise FileNotFoundError(f"{images_path} not found")
 
-        images_lock, plan = create_plan(images, stack)
+        assert images is not None
+        images_lock, plan = create_plan(images)
 
     lock_images(images_lock, plan, cache_type, output_path)
 
 
-def create_plan(images: Optional[list[str]] = None, stack: Optional[str] = None):
+def create_plan(images: list[str]):
     # Load images.json and images.lock
     all_images = TypeAdapter(dict[str, Image]).validate_python(json.load(images_path.open("r", encoding="utf-8")))
     images_lock = TypeAdapter(dict[str, ImageLock]).validate_python(
@@ -113,26 +108,19 @@ def create_plan(images: Optional[list[str]] = None, stack: Optional[str] = None)
     if images:
         selected_images = {name: all_images[name] for name in images}
     else:
-        assert stack is not None
-        if stack == "all":
-            selected_images = {name: image for name, image in all_images.items()}
-        else:
-            selected_images = {name: image for name, image in all_images.items() if image["stack"] == stack}
+        selected_images = {name: image for name, image in all_images.items()}
 
-    # Get Pulumi stack outputs for selected images
-    stacks: dict[str, dict[str, str]] = {}
-    for stack in {img["stack"] for img in selected_images.values()}:
-        print(f"Getting Pulumi stack outputs for stack: {stack}")
-        stacks[stack] = json.loads(
-            run_command(f"pulumi stack output --stack {quote(stack)} --json", cwd=infrastructure_directory)
-        )
+    # GHCR namespace (e.g. "owner/repo"). In GitHub Actions, GITHUB_REPOSITORY is always set.
+    ghcr_namespace = environ.get("GHCR_NAMESPACE") or environ.get("GITHUB_REPOSITORY")
+    if not ghcr_namespace:
+        ghcr_namespace = "temp"
+        # raise RuntimeError("Set GHCR_NAMESPACE (e.g. 'owner/repo') or run in GitHub Actions (GITHUB_REPOSITORY).")
 
     # Create plan
     plan: dict[str, FirstPartyPlan | ThirdPartyPlan] = {}
     for image_name, image in selected_images.items():
-        result = create_image_plan(
-            image_name, image, images_lock.get(image_name), stacks[image["stack"]][f"{image_name}-image-repo-url"]
-        )
+        image_repo_url = f"ghcr.io/{ghcr_namespace}/{image_name}"
+        result = create_image_plan(image_name, image, images_lock.get(image_name), image_repo_url)
         if result is not None:
             image_name, image_plan = result
             plan[image_name] = image_plan
@@ -185,6 +173,7 @@ def create_image_plan(
         "context": context,
         "dockerfile": image["dockerfile"],
         "tree_sha": tree_sha,
+        "build_args": image.get("build_args", {}),
     }
 
 
@@ -241,11 +230,16 @@ def lock_image(
         else:
             raise ValueError(f"Unknown cache type: {cache_type}")
 
+        build_args = ""
+        if "build_args" in image_plan:
+            build_args = " " + " ".join(f"--build-arg {quote(f'{k}={v}')}" for k, v in image_plan["build_args"].items())
+
         run_command(
             "docker buildx build --push --platform linux/amd64 --provenance=false"
             + f" --cache-from type={cache_type}"
             + f" --cache-to type={cache_type},mode=max"
             + f" -t {git_sha_tag} -t {tree_sha_tag}"
+            + build_args
             + f' -f "{workspace_directory / image_plan["context"] / image_plan["dockerfile"]}"'
             + f' "{workspace_directory / image_plan["context"]}"',
             stream_log=True,

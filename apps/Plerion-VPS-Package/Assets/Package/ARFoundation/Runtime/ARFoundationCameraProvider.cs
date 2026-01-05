@@ -93,7 +93,6 @@ namespace Plerion.Core.ARFoundation
 
             // Return camera intrinsics
             return new PinholeCameraConfig(
-                model: PinholeCameraConfig.ModelEnum.PINHOLE,
                 // ARFoundation on Android Mobile returns images in LEFT_TOP orientation (EXIF/TIFF Orientation=5):
                 //  - 0th row is the visual left edge
                 //  - 0th column is the visual top edge

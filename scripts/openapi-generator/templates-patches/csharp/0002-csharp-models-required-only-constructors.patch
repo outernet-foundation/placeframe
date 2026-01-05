@@ -1,0 +1,75 @@
+# Generate constructors with only required params, allowing optional params to be set via property setters
+diff --git diff --git a/scripts/openapi-generator/templates-generated/csharp/modelGeneric.mustache b/scripts/openapi-generator/templates-generated/csharp/modelGeneric.mustache
+index 5a95ada..f0f6ba4 100644
+--- a/scripts/openapi-generator/templates-generated/csharp/modelGeneric.mustache
++++ b/scripts/openapi-generator/templates-generated/csharp/modelGeneric.mustache
+@@ -140,38 +141,20 @@
+     {{#hasOnlyReadOnly}}
+         [JsonConstructorAttribute]
+     {{/hasOnlyReadOnly}}
+-        public {{classname}}({{#readWriteVars}}{{{datatypeWithEnum}}}{{#isEnum}}{{^isContainer}}{{^required}}?{{/required}}{{/isContainer}}{{/isEnum}} {{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}} = {{#defaultValue}}{{^isDateTime}}{{#isString}}{{^isEnum}}@{{/isEnum}}{{/isString}}{{{defaultValue}}}{{/isDateTime}}{{#isDateTime}}default{{/isDateTime}}{{/defaultValue}}{{^defaultValue}}default{{/defaultValue}}{{^-last}}, {{/-last}}{{/readWriteVars}}){{#parent}} : base({{#parentVars}}{{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}}{{^-last}}, {{/-last}}{{/parentVars}}){{/parent}}
++        public {{classname}}({{#requiredVars}}{{{datatypeWithEnum}}} {{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}}{{^-last}}, {{/-last}}{{/requiredVars}}){{#parent}} : base({{#parentVars}}{{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}}{{^-last}}, {{/-last}}{{/parentVars}}){{/parent}}
+         {
+             {{#vars}}
+             {{^isInherited}}
+             {{^isReadOnly}}
+             {{#required}}
+-            {{^conditionalSerialization}}
+             {{^vendorExtensions.x-csharp-value-type}}
+             // to ensure "{{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}}" is required (not null)
+             if ({{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}} == null)
+             {
+                 throw new ArgumentNullException("{{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}} is a required property for {{classname}} and cannot be null");
+             }
+-            this.{{name}} = {{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}};
+             {{/vendorExtensions.x-csharp-value-type}}
+-            {{#vendorExtensions.x-csharp-value-type}}
+             this.{{name}} = {{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}};
+-            {{/vendorExtensions.x-csharp-value-type}}
+-            {{/conditionalSerialization}}
+-            {{#conditionalSerialization}}
+-            {{^vendorExtensions.x-csharp-value-type}}
+-            // to ensure "{{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}}" is required (not null)
+-            if ({{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}} == null)
+-            {
+-                throw new ArgumentNullException("{{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}} is a required property for {{classname}} and cannot be null");
+-            }
+-            this._{{name}} = {{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}};
+-            {{/vendorExtensions.x-csharp-value-type}}
+-            {{#vendorExtensions.x-csharp-value-type}}
+-            this._{{name}} = {{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}};
+-            {{/vendorExtensions.x-csharp-value-type}}
+-            {{/conditionalSerialization}}
+             {{/required}}
+             {{/isReadOnly}}
+             {{/isInherited}}
+@@ -180,29 +163,6 @@
+             {{^isInherited}}
+             {{^isReadOnly}}
+             {{^required}}
+-            {{#defaultValue}}
+-            {{^conditionalSerialization}}
+-            {{^vendorExtensions.x-csharp-value-type}}
+-            // use default value if no "{{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}}" provided
+-            this.{{name}} = {{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}} ?? {{#isString}}@{{/isString}}{{{defaultValue}}};
+-            {{/vendorExtensions.x-csharp-value-type}}
+-            {{#vendorExtensions.x-csharp-value-type}}
+-            this.{{name}} = {{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}};
+-            {{/vendorExtensions.x-csharp-value-type}}
+-            {{/conditionalSerialization}}
+-            {{/defaultValue}}
+-            {{^defaultValue}}
+-            {{^conditionalSerialization}}
+-            this.{{name}} = {{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}};
+-            {{/conditionalSerialization}}
+-            {{#conditionalSerialization}}
+-            this._{{name}} = {{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}};
+-            if (this.{{name}} != null)
+-            {
+-                this._flag{{name}} = true;
+-            }
+-            {{/conditionalSerialization}}
+-            {{/defaultValue}}
+             {{/required}}
+             {{/isReadOnly}}
+             {{/isInherited}}

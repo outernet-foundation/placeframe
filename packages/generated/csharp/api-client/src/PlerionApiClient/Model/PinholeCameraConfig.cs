@@ -25,7 +25,6 @@ using OpenAPIDateConverter = PlerionApiClient.Client.OpenAPIDateConverter;
 
 namespace PlerionApiClient.Model
 {
-    // fuck
     /// <summary>
     /// PinholeCameraConfig
     /// </summary>
@@ -114,45 +113,6 @@ namespace PlerionApiClient.Model
             return _flagOrientation;
         }
         /// <summary>
-        /// Defines Model
-        /// </summary>
-        [JsonConverter(typeof(StringEnumConverter))]
-        public enum ModelEnum
-        {
-            /// <summary>
-            /// Enum PINHOLE for value: PINHOLE
-            /// </summary>
-            [EnumMember(Value = "PINHOLE")]
-            PINHOLE = 1
-        }
-
-
-        /// <summary>
-        /// Gets or Sets Model
-        /// </summary>
-
-        [DataMember(Name = "model", IsRequired = true, EmitDefaultValue = true)]
-        public ModelEnum Model
-        {
-            get{ return _Model;}
-            set
-            {
-                _Model = value;
-                _flagModel = true;
-            }
-        }
-        private ModelEnum _Model;
-        private bool _flagModel;
-
-        /// <summary>
-        /// Returns false as Model should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeModel()
-        {
-            return _flagModel;
-        }
-        /// <summary>
         /// Initializes a new instance of the <see cref="PinholeCameraConfig" /> class.
         /// </summary>
         [JsonConstructorAttribute]
@@ -163,17 +123,15 @@ namespace PlerionApiClient.Model
         /// <param name="width">width (required).</param>
         /// <param name="height">height (required).</param>
         /// <param name="orientation">orientation (required).</param>
-        /// <param name="model">model (required).</param>
         /// <param name="fx">fx (required).</param>
         /// <param name="fy">fy (required).</param>
         /// <param name="cx">cx (required).</param>
         /// <param name="cy">cy (required).</param>
-        public PinholeCameraConfig(int width, int height, OrientationEnum orientation, ModelEnum model, double fx, double fy, double cx, double cy)
+        public PinholeCameraConfig(int width, int height, OrientationEnum orientation, double fx, double fy, double cx, double cy)
         {
             this.Width = width;
             this.Height = height;
             this.Orientation = orientation;
-            this.Model = model;
             this.Fx = fx;
             this.Fy = fy;
             this.Cx = cx;
@@ -335,7 +293,6 @@ namespace PlerionApiClient.Model
             sb.Append("  Width: ").Append(Width).Append("\n");
             sb.Append("  Height: ").Append(Height).Append("\n");
             sb.Append("  Orientation: ").Append(Orientation).Append("\n");
-            sb.Append("  Model: ").Append(Model).Append("\n");
             sb.Append("  Fx: ").Append(Fx).Append("\n");
             sb.Append("  Fy: ").Append(Fy).Append("\n");
             sb.Append("  Cx: ").Append(Cx).Append("\n");

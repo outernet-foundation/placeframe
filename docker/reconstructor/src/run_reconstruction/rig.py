@@ -1,6 +1,6 @@
 from core.axis_convention import AxisConvention, change_basis_opencv_from_unity_pose
+from core.camera_config import transform_intrinsics
 from core.capture_session_manifest import RigCameraConfig, RigConfig
-from core.image_orientation import transform_intrinsics
 from core.transform import Float3, Float4
 from numpy import array, float64
 from numpy.typing import NDArray
