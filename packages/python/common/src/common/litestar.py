@@ -20,10 +20,13 @@ def use_handler_name(
 
 
 def log_http_exception(request: Request[Any, Any, Any], exc: HTTPException) -> Response[dict[str, Any]]:
-    logger.exception(
-        "HTTPException %s on %s %s: %r", exc.status_code, request.method, request.url.path, exc.detail, exc_info=exc
-    )
     logger.warning("HTTPException %s on %s %s: %r", exc.status_code, request.method, request.url.path, exc.detail)
+
+    if exc.status_code >= 500:
+        logger.exception(
+            "HTTPException %s on %s %s: %r", exc.status_code, request.method, request.url.path, exc.detail, exc_info=exc
+        )
+
     return Response(content={"detail": exc.detail}, status_code=exc.status_code)
 
 

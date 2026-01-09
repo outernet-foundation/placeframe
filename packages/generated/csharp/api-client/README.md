@@ -98,17 +98,17 @@ namespace Example
             HttpClient httpClient = new HttpClient();
             HttpClientHandler httpClientHandler = new HttpClientHandler();
             var apiInstance = new DefaultApi(httpClient, config, httpClientHandler);
-            var captureSessionCreate = new CaptureSessionCreate(); // CaptureSessionCreate | 
+            var id = "id_example";  // Guid | 
+            var body = null;  // string | 
 
             try
             {
-                // CreateCaptureSession
-                CaptureSessionRead result = apiInstance.CreateCaptureSession(captureSessionCreate);
-                Debug.WriteLine(result);
+                // CompleteLease
+                apiInstance.CompleteLease(id, body);
             }
             catch (ApiException e)
             {
-                Debug.Print("Exception when calling DefaultApi.CreateCaptureSession: " + e.Message );
+                Debug.Print("Exception when calling DefaultApi.CompleteLease: " + e.Message );
                 Debug.Print("Status Code: "+ e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -125,6 +125,7 @@ All URIs are relative to *http://localhost:8000*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
+*DefaultApi* | [**CompleteLease**](docs/DefaultApi.md#completelease) | **PUT** /internal/leases/{id}/complete | CompleteLease
 *DefaultApi* | [**CreateCaptureSession**](docs/DefaultApi.md#createcapturesession) | **POST** /capture_sessions | CreateCaptureSession
 *DefaultApi* | [**CreateCaptureSessions**](docs/DefaultApi.md#createcapturesessions) | **POST** /capture_sessions/bulk | CreateCaptureSessions
 *DefaultApi* | [**CreateGraph**](docs/DefaultApi.md#creategraph) | **POST** /graph | CreateGraph
@@ -160,6 +161,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**GetReconstructionStatus**](docs/DefaultApi.md#getreconstructionstatus) | **GET** /reconstructions/{id}/status | GetReconstructionStatus
 *DefaultApi* | [**GetReconstructions**](docs/DefaultApi.md#getreconstructions) | **GET** /reconstructions | GetReconstructions
 *DefaultApi* | [**LocalizeImage**](docs/DefaultApi.md#localizeimage) | **POST** /localize | LocalizeImage
+*DefaultApi* | [**RequestLease**](docs/DefaultApi.md#requestlease) | **POST** /internal/leases/request | RequestLease
 *DefaultApi* | [**UpdateCaptureSession**](docs/DefaultApi.md#updatecapturesession) | **PATCH** /capture_sessions/{id} | UpdateCaptureSession
 *DefaultApi* | [**UpdateCaptureSessions**](docs/DefaultApi.md#updatecapturesessions) | **PATCH** /capture_sessions | UpdateCaptureSessions
 *DefaultApi* | [**UpdateGroups**](docs/DefaultApi.md#updategroups) | **PATCH** /groups | UpdateGroups
@@ -193,6 +195,7 @@ Class | Method | HTTP request | Description
  - [Model.LayerBatchUpdate](docs/LayerBatchUpdate.md)
  - [Model.LayerCreate](docs/LayerCreate.md)
  - [Model.LayerRead](docs/LayerRead.md)
+ - [Model.LeaseResponse](docs/LeaseResponse.md)
  - [Model.LocalizationMapBatchUpdate](docs/LocalizationMapBatchUpdate.md)
  - [Model.LocalizationMapCreate](docs/LocalizationMapCreate.md)
  - [Model.LocalizationMapRead](docs/LocalizationMapRead.md)

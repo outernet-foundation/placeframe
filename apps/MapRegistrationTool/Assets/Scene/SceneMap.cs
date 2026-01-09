@@ -9,7 +9,7 @@ using UnityEngine.EventSystems;
 
 namespace Outernet.MapRegistrationTool
 {
-    [RequireComponent(typeof(ReconstructionVisualizer))]
+    [RequireComponent(typeof(LocalizationMap))]
     public class SceneMap : Control<SceneMap.Props>, IPointerClickHandler
     {
         public class Props : ObservableObject
@@ -39,11 +39,11 @@ namespace Outernet.MapRegistrationTool
             }
         }
 
-        private ReconstructionVisualizer _localizationMapVisualizer;
+        private LocalizationMap _localizationMapVisualizer;
 
         private void Awake()
         {
-            _localizationMapVisualizer = GetComponent<ReconstructionVisualizer>();
+            _localizationMapVisualizer = GetComponent<LocalizationMap>();
         }
 
         private void Update()

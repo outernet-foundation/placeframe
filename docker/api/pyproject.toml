@@ -9,20 +9,19 @@ dependencies = [
     "datamodels",
     "core",
     "plerion-localizer-client",
-    "boto3>=1.39.5",
     "fastapi>=0.116.1",
-    "piccolo[postgres]>=1.27.1",
     "uvicorn[standard]>=0.35.0",
+    "psycopg[binary]>=3.2.10",
     "debugpy>=1.8.16",
     "sqlalchemy[asyncio]>=2.0.43",
-    "psycopg[binary]>=3.2.10",
     "pyjwt>=2.10.1",
-    "cryptography>=46.0.1",
-    "python-multipart>=0.0.20",
-    "httpx>=0.28.1",
     "numpy>=2.3.4",
-    "scipy>=1.16.2",
-    "pydantic-settings>=2.12.0",
+    "pydantic-settings>=2.10.1",
+    "litestar>=2.19.0",
+    "botocore>=1.42.24",
+    "pydantic>=2.12.5",
+    "cryptography>=46.0.3",
+    "httpx>=0.28.1",
 ]
 
 [dependency-groups]
@@ -33,3 +32,6 @@ dev = [
     "scipy-stubs>=1.16.2.4",
     "watchdog>=6.0.0",
 ]
+
+[tool.deptry.per_rule_ignores]
+DEP002 = ["uvicorn", "debugpy", "psycopg", "cryptography"]

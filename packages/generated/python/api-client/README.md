@@ -67,15 +67,14 @@ configuration = plerion_api_client.Configuration(
 async with plerion_api_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = plerion_api_client.DefaultApi(api_client)
-    capture_session_create = plerion_api_client.CaptureSessionCreate() # CaptureSessionCreate | 
+    id = UUID('38400000-8cf0-11bd-b23e-10b96e4ef00d') # UUID | 
+    body = 'body_example' # str | 
 
     try:
-        # CreateCaptureSession
-        api_response = await api_instance.create_capture_session(capture_session_create)
-        print("The response of DefaultApi->create_capture_session:\n")
-        pprint(api_response)
+        # CompleteLease
+        await api_instance.complete_lease(id, body)
     except ApiException as e:
-        print("Exception when calling DefaultApi->create_capture_session: %s\n" % e)
+        print("Exception when calling DefaultApi->complete_lease: %s\n" % e)
 
 ```
 
@@ -85,6 +84,7 @@ All URIs are relative to *http://localhost:8000*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
+*DefaultApi* | [**complete_lease**](docs/DefaultApi.md#complete_lease) | **PUT** /internal/leases/{id}/complete | CompleteLease
 *DefaultApi* | [**create_capture_session**](docs/DefaultApi.md#create_capture_session) | **POST** /capture_sessions | CreateCaptureSession
 *DefaultApi* | [**create_capture_sessions**](docs/DefaultApi.md#create_capture_sessions) | **POST** /capture_sessions/bulk | CreateCaptureSessions
 *DefaultApi* | [**create_graph**](docs/DefaultApi.md#create_graph) | **POST** /graph | CreateGraph
@@ -120,6 +120,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**get_reconstruction_status**](docs/DefaultApi.md#get_reconstruction_status) | **GET** /reconstructions/{id}/status | GetReconstructionStatus
 *DefaultApi* | [**get_reconstructions**](docs/DefaultApi.md#get_reconstructions) | **GET** /reconstructions | GetReconstructions
 *DefaultApi* | [**localize_image**](docs/DefaultApi.md#localize_image) | **POST** /localize | LocalizeImage
+*DefaultApi* | [**request_lease**](docs/DefaultApi.md#request_lease) | **POST** /internal/leases/request | RequestLease
 *DefaultApi* | [**update_capture_session**](docs/DefaultApi.md#update_capture_session) | **PATCH** /capture_sessions/{id} | UpdateCaptureSession
 *DefaultApi* | [**update_capture_sessions**](docs/DefaultApi.md#update_capture_sessions) | **PATCH** /capture_sessions | UpdateCaptureSessions
 *DefaultApi* | [**update_groups**](docs/DefaultApi.md#update_groups) | **PATCH** /groups | UpdateGroups
@@ -152,6 +153,7 @@ Class | Method | HTTP request | Description
  - [LayerBatchUpdate](docs/LayerBatchUpdate.md)
  - [LayerCreate](docs/LayerCreate.md)
  - [LayerRead](docs/LayerRead.md)
+ - [LeaseResponse](docs/LeaseResponse.md)
  - [LocalizationMapBatchUpdate](docs/LocalizationMapBatchUpdate.md)
  - [LocalizationMapCreate](docs/LocalizationMapCreate.md)
  - [LocalizationMapRead](docs/LocalizationMapRead.md)

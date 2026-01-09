@@ -365,6 +365,52 @@ paths:
       summary: GetCaptureSessionRigConfig
       tags:
       - Default
+  /internal/leases/request:
+    post:
+      deprecated: false
+      operationId: request_lease
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaseResponse"
+          description: "Document created, URL follows"
+      summary: RequestLease
+      tags:
+      - Default
+  /internal/leases/{id}/complete:
+    put:
+      deprecated: false
+      operationId: complete_lease
+      parameters:
+      - deprecated: false
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrchestrationStatus"
+        required: true
+      responses:
+        "200":
+          description: "Request fulfilled, document follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: CompleteLease
+      tags:
+      - Default
   /reconstructions:
     get:
       deprecated: false
@@ -2020,6 +2066,22 @@ components:
       - name
       - updated_at
       title: LayerRead
+      type: object
+    LeaseResponse:
+      example:
+        capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        reconstruction_id:
+          format: uuid
+          type: string
+        capture_session_id:
+          format: uuid
+          type: string
+      required:
+      - capture_session_id
+      - reconstruction_id
+      title: LeaseResponse
       type: object
     LocalizationMapBatchUpdate:
       example:

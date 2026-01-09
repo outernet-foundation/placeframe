@@ -28,6 +28,26 @@ namespace PlerionApiClient.Api
     {
         #region Synchronous Operations
         /// <summary>
+        /// CompleteLease
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <returns></returns>
+        void CompleteLease(Guid id, string body);
+
+        /// <summary>
+        /// CompleteLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        ApiResponse<Object> CompleteLeaseWithHttpInfo(Guid id, string body);
+        /// <summary>
         /// CreateCaptureSession
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -678,6 +698,22 @@ namespace PlerionApiClient.Api
         /// <returns>ApiResponse of List&lt;MapLocalization&gt;</returns>
         ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image);
         /// <summary>
+        /// RequestLease
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>LeaseResponse</returns>
+        LeaseResponse RequestLease();
+
+        /// <summary>
+        /// RequestLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>ApiResponse of LeaseResponse</returns>
+        ApiResponse<LeaseResponse> RequestLeaseWithHttpInfo();
+        /// <summary>
         /// UpdateCaptureSession
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -846,6 +882,31 @@ namespace PlerionApiClient.Api
     public interface IDefaultApiAsync : IApiAccessor
     {
         #region Asynchronous Operations
+        /// <summary>
+        /// CompleteLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        System.Threading.Tasks.Task CompleteLeaseAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// CompleteLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        System.Threading.Tasks.Task<ApiResponse<Object>> CompleteLeaseWithHttpInfoAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateCaptureSession
         /// </summary>
@@ -1672,6 +1733,27 @@ namespace PlerionApiClient.Api
         /// <returns>Task of ApiResponse (List&lt;MapLocalization&gt;)</returns>
         System.Threading.Tasks.Task<ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
+        /// RequestLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of LeaseResponse</returns>
+        System.Threading.Tasks.Task<LeaseResponse> RequestLeaseAsync(System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// RequestLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (LeaseResponse)</returns>
+        System.Threading.Tasks.Task<ApiResponse<LeaseResponse>> RequestLeaseWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
         /// UpdateCaptureSession
         /// </summary>
         /// <remarks>
@@ -2082,6 +2164,127 @@ namespace PlerionApiClient.Api
                 return _exceptionFactory;
             }
             set { _exceptionFactory = value; }
+        }
+
+        /// <summary>
+        /// CompleteLease 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <returns></returns>
+        public void CompleteLease(Guid id, string body)
+        {
+            CompleteLeaseWithHttpInfo(id, body);
+        }
+
+        /// <summary>
+        /// CompleteLease 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        public PlerionApiClient.Client.ApiResponse<Object> CompleteLeaseWithHttpInfo(Guid id, string body)
+        {
+            // verify the required parameter 'body' is set
+            if (body == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'body' when calling DefaultApi->CompleteLease");
+
+            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlerionApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.Data = body;
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Put<Object>("/internal/leases/{id}/complete", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("CompleteLease", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// CompleteLease 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        public async System.Threading.Tasks.Task CompleteLeaseAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default)
+        {
+            await CompleteLeaseWithHttpInfoAsync(id, body, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// CompleteLease 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<Object>> CompleteLeaseWithHttpInfoAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default)
+        {
+            // verify the required parameter 'body' is set
+            if (body == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'body' when calling DefaultApi->CompleteLease");
+
+
+            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlerionApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.Data = body;
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PutAsync<Object>("/internal/leases/{id}/complete", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("CompleteLease", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
         }
 
         /// <summary>
@@ -6131,6 +6334,107 @@ namespace PlerionApiClient.Api
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("LocalizeImage", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// RequestLease 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>LeaseResponse</returns>
+        public LeaseResponse RequestLease()
+        {
+            PlerionApiClient.Client.ApiResponse<LeaseResponse> localVarResponse = RequestLeaseWithHttpInfo();
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// RequestLease 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>ApiResponse of LeaseResponse</returns>
+        public PlerionApiClient.Client.ApiResponse<LeaseResponse> RequestLeaseWithHttpInfo()
+        {
+            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Post<LeaseResponse>("/internal/leases/request", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("RequestLease", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// RequestLease 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of LeaseResponse</returns>
+        public async System.Threading.Tasks.Task<LeaseResponse> RequestLeaseAsync(System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlerionApiClient.Client.ApiResponse<LeaseResponse> localVarResponse = await RequestLeaseWithHttpInfoAsync(cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// RequestLease 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (LeaseResponse)</returns>
+        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<LeaseResponse>> RequestLeaseWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PostAsync<LeaseResponse>("/internal/leases/request", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("RequestLease", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 

@@ -115,7 +115,7 @@ This is a monorepo using a uv workspace, but the dockerfiles that are used to bu
 If you change any dependencies for any projects, use this command to regenerate all lock files.
 
 ```
-uv run --project scripts --no_workspace generate-lock-files
+uv run generate-lock-files
 ```
 
 ### Migrate the database
@@ -132,7 +132,7 @@ docker compose up -d
 If instead you want to migrate your existing database without resetting everything, you can do so by installing [pg-schema-diff](https://github.com/stripe/pg-schema-diff) locally and running the below command. This will introspect your existing database to determine its current schema, compare that against the schema defined by SQL DDL files in the `./database` folder, generate a SQL migration, and then apply that migration.
 
 ```
-uv run --project scripts --no_workspace migrate-database
+uv run migrate-database
 ```
 
 If the generated migration has hazards, such as dropping data from the database or updating authorization, you can also pass a list of allowed hazards to the command.
@@ -140,7 +140,7 @@ If the generated migration has hazards, such as dropping data from the database 
 **_Warning: Hazards are called hazards for a reason. Make sure you know what you're doing._**
 
 ```
-uv run --project scripts --no_workspace migrate-database --allow-hazards DELETES_DATA,AUTHZ_UPDATE
+uv run migrate-database --allow-hazards DELETES_DATA,AUTHZ_UPDATE
 ```
 
 ### (Re)generate datamodels
@@ -148,7 +148,7 @@ uv run --project scripts --no_workspace migrate-database --allow-hazards DELETES
 If you migrate the database schema using either of the above methods, use this command to regenerate python datamodels from the schema. This command directly introspects a locally running database, so the database container must be running locally for this command to work (such as via the docker earlier `docker compose up -d` command)
 
 ```
-uv run --project scripts --no_workspace generate-datamodels
+uv run generate-datamodels
 ```
 
 ### (Re)generate clients
@@ -158,8 +158,7 @@ If you change the signature any of the APIs, run this command to regenerate the 
 NOTE: This command uses [openapi-generator-cli](https://github.com/OpenAPITools/openapi-generator-cli), which requires that Java to be installed on your system and available on your PATH.
 
 ```
-uv run --project scripts --no_workspace \
-  generate-clients \
+uv run generate-clients \
   --config openapi-projects.json \
   [--no-cache (optional)]
 ```

@@ -896,6 +896,110 @@
         "deprecated": false
       }
     },
+    "/internal/leases/request": {
+      "post": {
+        "tags": [
+          "Internal",
+          "Leases"
+        ],
+        "summary": "RequestLease",
+        "operationId": "request_lease",
+        "responses": {
+          "201": {
+            "description": "Document created, URL follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaseResponse"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/internal/leases/{id}/complete": {
+      "put": {
+        "tags": [
+          "Internal",
+          "Leases"
+        ],
+        "summary": "CompleteLease",
+        "operationId": "complete_lease",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrchestrationStatus"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
     "/reconstructions": {
       "get": {
         "tags": [
@@ -3924,6 +4028,24 @@
           "updated_at"
         ],
         "title": "LayerRead"
+      },
+      "LeaseResponse": {
+        "properties": {
+          "reconstruction_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "capture_session_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "capture_session_id",
+          "reconstruction_id"
+        ],
+        "title": "LeaseResponse"
       },
       "LocalizationMapBatchUpdate": {
         "properties": {

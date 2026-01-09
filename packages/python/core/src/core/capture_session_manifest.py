@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from core.axis_convention import AxisConvention
-from core.camera_config import PinholeCameraConfig
-from core.transform import Float3, Float4
 from pydantic import BaseModel
+
+from .axis_convention import AxisConvention
+from .camera_config import PinholeCameraConfig
+from .transform import Float3, Float4
 
 
 class RigCameraConfig(BaseModel):

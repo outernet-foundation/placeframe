@@ -1,4 +1,6 @@
-FROM ghcr.io/astral-sh/uv:0.9.11-python3.13-bookworm-slim AS dev
+ARG UV_BASE_DIGEST
+
+FROM ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS dev
 
 WORKDIR /app/docker/api
 
@@ -15,7 +17,10 @@ ENV \
     UV_LINK_MODE=copy \
     # Set virtual environment location
     UV_PROJECT_ENVIRONMENT=/opt/uv/venv \
-    VIRTUAL_ENV=/opt/uv/venv
+    VIRTUAL_ENV=/opt/uv/venv \
+    UV_TOOLS_ENVIRONMENT=/opt/uv/tools
+
+RUN uv venv $UV_PROJECT_ENVIRONMENT 
 
 # Install Docker CLI + Compose v2 plugin (so this container can run `docker compose ...`)
 RUN apt-get update \
@@ -28,9 +33,6 @@ RUN apt-get update \
     && apt-get update \
     && apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin \
     && rm -rf /var/lib/apt/lists/*
-
-# Create the virtual environment
-RUN uv venv $UV_PROJECT_ENVIRONMENT
 
 # Install dependencies
 COPY docker/api/pylock.toml ./pylock.toml

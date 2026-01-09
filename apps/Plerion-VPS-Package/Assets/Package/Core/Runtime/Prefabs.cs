@@ -4,7 +4,7 @@ namespace Plerion.Core
 {
     public class Prefabs : ScriptableObject
     {
-        public ReconstructionVisualizer mapRendererPrefab;
+        public LocalizationMap localizationMapPrefab;
         public Material GizmoMaterial;
         public Mesh CylinderMesh;
     }

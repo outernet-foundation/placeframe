@@ -45,7 +45,7 @@ namespace Plerion.Core
         private static readonly HttpClient _httpClient = new HttpClient();
         private static DateTimeOffset _accessTokenExpiresAt;
         private static DateTimeOffset _refreshTokenExpiresAt;
-        private static readonly TimeSpan _skew = TimeSpan.FromSeconds(90);
+        private static readonly TimeSpan _skew = TimeSpan.FromSeconds(60);
 
         private static Action<string> LogInfo;
         private static Action<string> LogWarning;

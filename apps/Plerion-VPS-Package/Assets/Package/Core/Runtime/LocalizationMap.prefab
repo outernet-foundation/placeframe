@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: -5772665285345291868}
   - component: {fileID: 8410913971276956591}
   m_Layer: 0
-  m_Name: LocalizationMapVisualizer
+  m_Name: LocalizationMap
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -57,7 +57,7 @@ MonoBehaviour:
       y: 0
       z: 0
       w: 1
-  _lastKnownPosition: {x: -0, y: -0, z: -0}
+  _lastKnownPosition: {x: 0, y: 0, z: 0}
   _lastKnownRotation: {x: 0, y: 0, z: 0, w: 1}
   _positionInitialized: 1
 --- !u!198 &7397562476662303366
@@ -4869,6 +4869,6 @@ MonoBehaviour:
   m_GameObject: {fileID: 1628050442463339716}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f53727c2dfb59b14a9928ae568e596ac, type: 3}
+  m_Script: {fileID: 11500000, guid: fab99b80bbf458549a62b5207fe77d9b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 

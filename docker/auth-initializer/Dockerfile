@@ -1,8 +1,6 @@
-ARG UV_BASE_DIGEST
+FROM ghcr.io/astral-sh/uv:0.9.11-python3.13-bookworm-slim AS dev
 
-FROM ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS dev
-
-WORKDIR /app/docker/database-manager
+WORKDIR /app/docker/api
 
 ENV \
     # Don't buffer stdout/stderr (so logs appear immediately)
@@ -23,21 +21,19 @@ ENV \
 RUN uv venv $UV_PROJECT_ENVIRONMENT
 
 # Install dependencies
-COPY docker/database-manager/pylock.toml ./pylock.toml
+COPY docker/auth-initializer/pylock.toml ./pylock.toml
 RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
     uv pip install -r pylock.toml
 
 # Install project
-COPY packages/python/common/ /app/packages/python/common
-COPY docker/database-manager/ /app/docker/database-manager/
+COPY docker/auth-initializer /app/docker/auth-initializer
 RUN uv pip install --no-deps --no-sources \
-    /app/packages/python/common \
-    /app/docker/database-manager
+    /app/docker/auth-initializer
 
 # Verify that all declared dependencies were installed
 RUN uv pip check
 
 # Copy the entrypoint and make it executable
-COPY --chmod=0755 docker/database-manager/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY --chmod=0755 docker/auth-initializer/entrypoint.sh /usr/local/bin/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

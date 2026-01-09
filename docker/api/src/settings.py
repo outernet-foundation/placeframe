@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     database_api_user_password: str = Field()
     database_auth_user: str = Field()
     database_auth_user_password: str = Field()
+    database_orchestration_user: str = Field()
+    database_orchestration_user_password: str = Field()
 
     minio_endpoint_url: AnyHttpUrl | None = None
     minio_access_key: str | None = None

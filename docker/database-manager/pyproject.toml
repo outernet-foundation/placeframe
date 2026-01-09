@@ -6,11 +6,11 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "common",
-    "boto3>=1.40.29",
     "pydantic-settings>=2.10.1",
     "typer>=0.17.4",
     "psycopg[binary]>=3.2.10",
     "docker>=7.1.0",
+    "pydantic>=2.12.5",
 ]
 
 [dependency-groups]

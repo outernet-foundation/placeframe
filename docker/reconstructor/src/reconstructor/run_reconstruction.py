@@ -4,6 +4,7 @@ import gc
 import tarfile
 from io import BytesIO
 from pathlib import Path
+from uuid import UUID
 
 from common.boto_clients import create_s3_client
 from core.camera_config import PinholeCameraConfig, transform_image
@@ -18,7 +19,7 @@ from numpy.typing import NDArray
 from pycolmap._core import set_random_seed
 from torch import cuda, from_numpy, inference_mode  # type: ignore
 
-from .colmap import run_reconstruction
+from .colmap import run_colmap_reconstruction
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
 from .pairs import generate_image_pairs, write_pairs
@@ -29,7 +30,7 @@ WORK_DIR = Path("/tmp/reconstruction")
 CAPTURE_SESSION_DIRECTORY = WORK_DIR / "capture_session"
 
 
-def main():
+def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
     device = "cuda" if cuda.is_available() else "cpu"
     print(f"Using device: {device}")
 
@@ -41,15 +42,13 @@ def main():
     )
 
     def _put_reconstruction_object(key: str, body: bytes):
-        print(f"Putting object in bucket {settings.reconstructions_bucket} with key {settings.reconstruction_id}/{key}")
-        s3_client.put_object(
-            Bucket=settings.reconstructions_bucket, Key=f"{settings.reconstruction_id}/{key}", Body=body
-        )
+        print(f"Putting object in bucket {settings.reconstructions_bucket} with key {reconstruction_id}/{key}")
+        s3_client.put_object(Bucket=settings.reconstructions_bucket, Key=f"{reconstruction_id}/{key}", Body=body)
 
     print(
-        f"Downloading capture session archive for capture session ID: {settings.capture_id} from bucket {settings.captures_bucket}"
+        f"Downloading capture session archive for capture session ID: {capture_id} from bucket {settings.captures_bucket}"
     )
-    bytes = s3_client.get_object(Bucket=settings.captures_bucket, Key=f"{settings.capture_id}.tar")["Body"].read()
+    bytes = s3_client.get_object(Bucket=settings.captures_bucket, Key=f"{capture_id}.tar")["Body"].read()
     print(f"Downloaded capture session archive, size: {len(bytes)} bytes")
     # Download and validate capture session manifest
     with tarfile.open(fileobj=BytesIO(bytes), mode="r:*") as tar:
@@ -70,7 +69,7 @@ def main():
 
     # Download and validate reconstruction manifest
     manifest = ReconstructionManifest.model_validate_json(
-        s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{settings.reconstruction_id}/manifest.json")[
+        s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{reconstruction_id}/manifest.json")[
             "Body"
         ].read()
     )
@@ -181,7 +180,7 @@ def main():
     # Run COLMAP reconstruction
     sfm_output_path = WORK_DIR / "sfm_output"
     sfm_output_path.mkdir(parents=True, exist_ok=True)
-    reconstruction = run_reconstruction(
+    reconstruction = run_colmap_reconstruction(
         WORK_DIR, sfm_output_path, CAPTURE_SESSION_DIRECTORY, options, metrics, rigs, keypoints, pairs, match_indices
     )
 
@@ -202,7 +201,3 @@ def main():
     manifest.metrics = metrics.metrics
     manifest.status = "succeeded"
     _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
-
-
-if __name__ == "__main__":
-    main()

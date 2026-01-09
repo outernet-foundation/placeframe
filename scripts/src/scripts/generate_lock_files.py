@@ -24,7 +24,13 @@ def main():
 
         pylock = member_dir / "pylock.toml"
         run_command(
-            f"uv export --package {package_name} --no-default-groups --no-emit-local --frozen --output-file {pylock} "
+            f"uv export "
+            f"--no-header "
+            f"--package {package_name} "
+            f"--no-default-groups "
+            f"--no-emit-local "
+            f"--frozen "
+            f"--output-file {pylock} "
         )
         _normalize_line_endings(pylock)
 
@@ -35,6 +41,7 @@ def main():
             dependency_group_lock = member_dir / f"pylock.{group}.toml"
             run_command(
                 f"uv export "
+                f"--no-header "
                 f"--package {package_name} "
                 f"--only-group {group} "
                 f"--no-emit-local "

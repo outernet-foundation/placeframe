@@ -5,7 +5,12 @@ volumes:
   minio_data:
   postgres_data:
   cloudbeaver_data:
+  auth_data:
+  keycloak_import:
   keycloak_data:
+
+x-uv-digest-arg: &uv-digest-arg
+  UV_BASE_DIGEST: "@sha256:b6617231e5b985e887de048bf9100dfb66554d8b3ab07582d852aa59cc932825"
 
 services:
   minio:
@@ -111,6 +116,7 @@ services:
   create-database:
     build:
       dockerfile: docker/database-manager/Dockerfile
+      args: *uv-digest-arg
     restart: "no"
     depends_on:
       postgres:
@@ -136,12 +142,37 @@ services:
       --auth-user-password ${DATABASE_AUTH_USER_PASSWORD}
       --orchestration-user-password ${DATABASE_ORCHESTRATION_USER_PASSWORD}
 
+  auth-initializer:
+    build:
+      dockerfile: docker/auth-initializer/Dockerfile
+      args: *uv-digest-arg
+    restart: "no"
+    volumes:
+      - auth_data:/auth_data
+      - keycloak_import:/keycloak_import
+      - ./docker/keycloak/realm-export:/templates:ro
+
   keycloak:
     image: quay.io/keycloak/keycloak:26.3.5
     command:
       - start-dev
       - --import-realm
       - --health-enabled=true
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "/bin/bash",
+          "-c",
+          "exec 3<>/dev/tcp/127.0.0.1/9000; echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; cat <&3 | grep -q '200 OK'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    depends_on:
+      auth-initializer:
+        condition: service_completed_successfully
     environment:
       PUBLIC_URL: ${PUBLIC_URL}
       KEYCLOAK_ACCESS_TOKEN_LIFESPAN: ${KEYCLOAK_ACCESS_TOKEN_LIFESPAN}
@@ -153,7 +184,7 @@ services:
       KC_HOSTNAME_STRICT_HTTPS: true
       KC_HOSTNAME_DEBUG: true
     volumes:
-      - ./docker/keycloak/realm-export:/opt/keycloak/data/import:ro
+      - keycloak_import:/opt/keycloak/data/import:ro
       - keycloak_data:/opt/keycloak/data
 
   gateway:
@@ -187,13 +218,23 @@ services:
   api:
     build:
       dockerfile: docker/api/Dockerfile
+      args: *uv-digest-arg
     depends_on:
+      keycloak:
+        condition: service_healthy
       initialize-minio:
         condition: service_completed_successfully
       migrate-database:
         condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
     ports:
-      - "8000:8000"
       - "5679:5678" # debug port
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -213,6 +254,8 @@ services:
       DATABASE_AUTH_USER: ${DATABASE_NAME}_auth_user
       DATABASE_API_USER_PASSWORD: ${DATABASE_API_USER_PASSWORD}
       DATABASE_AUTH_USER_PASSWORD: ${DATABASE_AUTH_USER_PASSWORD}
+      DATABASE_ORCHESTRATION_USER: ${DATABASE_NAME}_orchestration_user
+      DATABASE_ORCHESTRATION_USER_PASSWORD: ${DATABASE_ORCHESTRATION_USER_PASSWORD}
       MINIO_ENDPOINT_URL: "http://minio:9000"
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
@@ -222,50 +265,31 @@ services:
       DEBUG: ${DEBUG_API}
       DEBUG_WAIT: ${DEBUG_WAIT_API}
 
-  orchestrator:
-    build:
-      dockerfile: docker/orchestrator/Dockerfile
-    depends_on:
-      create-database:
-        condition: service_completed_successfully
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./compose.yml:/compose.yml:ro
-      - ./.env:/.env:ro
-    environment:
-      DOCKER_HOST: unix:///var/run/docker.sock
-      BACKEND: docker
-      TORCH_DEVICE: ${TORCH_DEVICE}
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      DATABASE_NAME: ${DATABASE_NAME}
-      DATABASE_USER: ${DATABASE_NAME}_orchestration_user
-      DATABASE_USER_PASSWORD: ${DATABASE_ORCHESTRATION_USER_PASSWORD}
-      MINIO_ENDPOINT_URL: "http://minio:9000"
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-      CAPTURES_BUCKET: dev-captures
-      RECONSTRUCTIONS_BUCKET: dev-reconstructions
-      BATCH_JOB_QUEUE: dummy
-      RECONSTRUCTOR_SERVICE: reconstructor-${TORCH_DEVICE}
-      DEBUG: ${DEBUG_RECONSTRUCTION_ORCHESTRATOR}
-      DEBUG_WAIT: ${DEBUG_WAIT_RECONSTRUCTION_ORCHESTRATOR}
-      DEBUG_RUN_RECONSTRUCTION: ${DEBUG_RUN_RECONSTRUCTION}
-      DEBUG_WAIT_RUN_RECONSTRUCTION: ${DEBUG_WAIT_RUN_RECONSTRUCTION}
-
   reconstructor-cuda:
     profiles: ["cuda"]
+    depends_on:
+      api:
+        condition: service_healthy
     build:
       dockerfile: docker/reconstructor/Dockerfile
-      args: { TORCH_DEVICE: "cuda" }
+      args:
+        <<: *uv-digest-arg
+        TORCH_DEVICE: "cuda"
       cache_from:
         - type=local,src=${HOME}/.buildx-cache/reconstructor-${TORCH_DEVICE}
       cache_to:
         - type=local,dest=${HOME}/.buildx-cache/reconstructor-${TORCH_DEVICE},mode=max
     image: plerion-reconstructor-cuda
+    volumes:
+      - auth_data:/run/secrets:ro
     gpus: all
     expose:
       - "5678" # debug port
     environment:
+      API_INTERNAL_URL: http://api:8000
+      AUTH_TOKEN_URL: ${AUTH_TOKEN_URL}
+      AUTH_CLIENT_ID: ${AUTH_WORKER_CLIENT_ID}
+      PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
       MINIO_ENDPOINT_URL: "http://minio:9000"
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY}"
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY}"
@@ -274,14 +298,21 @@ services:
 
   reconstructor-rocm:
     profiles: ["rocm"]
+    depends_on:
+      api:
+        condition: service_healthy
     build:
       dockerfile: docker/reconstructor/Dockerfile
-      args: { TORCH_DEVICE: "rocm" }
+      args:
+        <<: *uv-digest-arg
+        TORCH_DEVICE: "rocm"
       cache_from:
         - type=local,src=${HOME}/.buildx-cache/reconstructor-${TORCH_DEVICE}
       cache_to:
         - type=local,dest=${HOME}/.buildx-cache/reconstructor-${TORCH_DEVICE},mode=max
     image: plerion-reconstructor-rocm
+    volumes:
+      - auth_data:/run/secrets:ro
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri
@@ -291,6 +322,10 @@ services:
     expose:
       - "5678" # debug port
     environment:
+      API_INTERNAL_URL: http://api:8000
+      AUTH_TOKEN_URL: ${AUTH_TOKEN_URL}
+      AUTH_CLIENT_ID: ${AUTH_WORKER_CLIENT_ID}
+      PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
       MINIO_ENDPOINT_URL: "http://minio:9000"
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY}"
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY}"
@@ -304,7 +339,9 @@ services:
         aliases: ["localizer"]
     build:
       dockerfile: docker/localizer/Dockerfile
-      args: { TORCH_DEVICE: "cuda" }
+      args:
+        <<: *uv-digest-arg
+        TORCH_DEVICE: "cuda"
       cache_from:
         - type=local,src=${HOME}/.buildx-cache/localizer-cuda
       cache_to:
@@ -326,7 +363,9 @@ services:
         aliases: ["localizer"]
     build:
       dockerfile: docker/localizer/Dockerfile
-      args: { TORCH_DEVICE: "rocm" }
+      args:
+        <<: *uv-digest-arg
+        TORCH_DEVICE: "rocm"
       cache_from:
         - type=local,src=${HOME}/.buildx-cache/localizer-rocm
       cache_to:
