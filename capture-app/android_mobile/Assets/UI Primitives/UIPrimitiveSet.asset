@@ -30,3 +30,4 @@ MonoBehaviour:
   _toggle: {fileID: -7750439492341916571, guid: 306499c1b0649b443bed890421dbd780,
     type: 3}
   _slider: {fileID: 2931852168897566758, guid: b45c299b27bbced40a51a3f4f9873278, type: 3}
+  _canvas: {fileID: 7481321059890797730, guid: ed29afd21323c4944807ba6f3940ecb1, type: 3}

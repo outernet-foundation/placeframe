@@ -17,13 +17,13 @@
       "hash": "73a63b7f672b88f7e9992f6917eb458a8cbb6fa9"
     },
     "com.fofx.nessle": {
-      "version": "https://github.com/outernet-foundation/Nessle.git?path=Assets/Package/Core",
+      "version": "https://github.com/outernet-foundation/Nessle.git?path=Assets/Package/Core#feature/element-props",
       "depth": 0,
       "source": "git",
       "dependencies": {
         "com.fofx.observething": "1.0.0"
       },
-      "hash": "f018781a7c549d549ec58e110cee0fc7869789ee"
+      "hash": "9659c1f128789f4c05a0d3930e4cfb0f5755e2c8"
     },
     "com.fofx.observething": {
       "version": "https://github.com/outernet-foundation/ObserveThing.git?path=Assets/Package/Core",

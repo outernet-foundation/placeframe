@@ -35,18 +35,6 @@ namespace PlerionClient.Client
         Error,
     }
 
-    public class TestState : ObservableObject
-    {
-        public ObservablePrimitive<int> intValue { get; private set; }
-        public ObservablePrimitive<float> floatValue { get; private set; }
-        public ObservablePrimitive<string> stringValue { get; private set; }
-        public ObservablePrimitive<bool> boolValue { get; private set; }
-        public ObservablePrimitive<LocalizationSessionStatus> enumValue { get; private set; }
-        public ObservablePrimitive<Guid> unhandledValue { get; private set; }
-        public ObservableList<ObservablePrimitive<int>> listOfPrimitives { get; private set; }
-        public ObservableSet<float> setOfPrimitives { get; private set; }
-    }
-
     public class AppState : ObservableObject
     {
         public ObservablePrimitive<string> plerionApiUrl { get; private set; }

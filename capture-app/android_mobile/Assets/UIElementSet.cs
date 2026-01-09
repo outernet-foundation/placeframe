@@ -14,10 +14,10 @@ namespace PlerionClient.Client
         public Color highlightColor => _highlightColor;
         public Sprite roundedRect => _roundedRect;
         public Sprite moreMenuSprite => _moreMenuSprite;
-        public PrimitiveControl<ToggleProps> recordButton => _recordButton;
-        public PrimitiveControl<ToggleProps> playButton => _playButton;
-        public PrimitiveControl<FoldoutProps> foldout => _foldout;
-        public PrimitiveControl<ButtonProps> roundButton => _roundButton;
+        public Control<ToggleProps> recordButton => _recordButton;
+        public Control<ToggleProps> playButton => _playButton;
+        public Control<FoldoutProps> foldout => _foldout;
+        public Control<ButtonProps> roundButton => _roundButton;
 
         [SerializeField]
         private Color _foregroundColor;
@@ -41,15 +41,15 @@ namespace PlerionClient.Client
         private Sprite _moreMenuSprite;
 
         [SerializeField]
-        private PrimitiveControl<ToggleProps> _recordButton;
+        private Control<ToggleProps> _recordButton;
 
         [SerializeField]
-        private PrimitiveControl<ToggleProps> _playButton;
+        private Control<ToggleProps> _playButton;
 
         [SerializeField]
-        private PrimitiveControl<FoldoutProps> _foldout;
+        private Control<FoldoutProps> _foldout;
 
         [SerializeField]
-        private PrimitiveControl<ButtonProps> _roundButton;
+        private Control<ButtonProps> _roundButton;
     }
 }

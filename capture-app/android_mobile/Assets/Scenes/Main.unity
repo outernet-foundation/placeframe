@@ -523,8 +523,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sceneReferences: {fileID: 131364963}
-  captureControllerPrefab: {fileID: 5391395635588278998, guid: 139cc86c2a14cc74d9f55224f45e567f,
-    type: 3}
   localizationManager: {fileID: 1888326200937376642, guid: b9fbd5e6c270c5b41a0c3684ca806ae8,
     type: 3}
   uiPrimitives: {fileID: 11400000, guid: 9c11dd85584e91349a2565e81546a8c7, type: 2}
