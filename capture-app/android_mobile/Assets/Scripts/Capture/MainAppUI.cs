@@ -17,7 +17,6 @@ using DeviceType = PlerionApiClient.Model.DeviceType;
 using PlerionApiClient.Model;
 using Cysharp.Threading.Tasks;
 using Plerion.Core;
-using Plerion.VPS;
 using UnityEngine.Events;
 
 namespace PlerionClient.Client

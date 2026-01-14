@@ -4,11 +4,10 @@ using Nessle;
 using static Nessle.UIBuilder;
 using ObserveThing;
 using System;
-using UnityEngine.EventSystems;
-using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine.Events;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 
 namespace PlerionClient.Client
 {
@@ -80,7 +79,7 @@ namespace PlerionClient.Client
                 })
             );
 
-            var control = Canvas(new()
+            var control = OrderedCanvas(new()
             {
                 element = props.element,
                 children = children
@@ -315,22 +314,16 @@ namespace PlerionClient.Client
             return control;
         }
 
-        // public static T Columns<T>(this T control, float spacing, params IControl[] controls)
-        //     where T : IControl
-        // {
-        //     control.children.From(controls);
-        //     float step = 1f / controls.Length;
-        //     for (int i = 0; i < controls.Length; i++)
-        //     {
-        //         var child = controls[i];
-        //         child.rectTransform.anchorMin = new Vector2(step * i, 0);
-        //         child.rectTransform.anchorMax = new Vector2(step * (i + 1), 1);
+        private static int _lastCanvasSortOrder = -1;
 
-        //         child.rectTransform.offsetMin = new Vector2(Mathf.Lerp(0f, spacing, i * step), 0);
-        //         child.rectTransform.offsetMax = new Vector2(Mathf.Lerp(-spacing, 0f, (i + 1) * step), 0);
-        //     }
+        public static IControl OrderedCanvas(CanvasProps props)
+            => OrderedCanvas(primitives.canvas, props);
 
-        //     return control;
-        // }
+        public static IControl OrderedCanvas(Control<CanvasProps> prefab, CanvasProps props)
+        {
+            props.sortingOrder = Props.Value(_lastCanvasSortOrder + 1);
+            _lastCanvasSortOrder++;
+            return Canvas(prefab, props);
+        }
     }
 }
