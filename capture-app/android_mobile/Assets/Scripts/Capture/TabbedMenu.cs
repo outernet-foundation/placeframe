@@ -11,6 +11,8 @@ namespace PlerionClient.Client
     {
         public class TabbedMenuProps
         {
+            public ElementProps element;
+            public LayoutProps layout;
             public IListObservable<string> tabs;
             public ImageProps background;
             public ImageProps deselectedBackground;
@@ -22,31 +24,41 @@ namespace PlerionClient.Client
 
         public static IControl TabbedMenu(TabbedMenuProps props = default)
         {
-            props.selectedBackground.color = props.selectedBackground.color ?? Props.From(elements.foregroundColor);
-            props.selectedBackground.pixelsPerUnitMultiplier = props.selectedBackground.pixelsPerUnitMultiplier ?? Props.From(1.3f);
-            props.selectedBackground.imageType = props.selectedBackground.imageType ?? Props.From(UnityEngine.UI.Image.Type.Sliced);
-            props.selectedBackground.sprite = props.selectedBackground.sprite ?? Props.From(elements.roundedRect);
-            props.selectedBackground.fillCenter = props.selectedBackground.fillCenter ?? Props.From(true);
+            props.selectedBackground.color = props.selectedBackground.color ?? Props.Value(elements.foregroundColor);
+            props.selectedBackground.pixelsPerUnitMultiplier = props.selectedBackground.pixelsPerUnitMultiplier ?? Props.Value(1.3f);
+            props.selectedBackground.imageType = props.selectedBackground.imageType ?? Props.Value(UnityEngine.UI.Image.Type.Sliced);
+            props.selectedBackground.sprite = props.selectedBackground.sprite ?? Props.Value(elements.roundedRect);
+            props.selectedBackground.fillCenter = props.selectedBackground.fillCenter ?? Props.Value(true);
+            props.selectedBackground.raycastTarget = props.selectedBackground.raycastTarget ?? Props.Value(true);
 
-            props.background.color = props.background.color ?? Props.From(elements.backgroundColor);
-            props.background.pixelsPerUnitMultiplier = props.background.pixelsPerUnitMultiplier ?? Props.From(1f);
-            props.background.imageType = props.background.imageType ?? Props.From(UnityEngine.UI.Image.Type.Sliced);
-            props.background.sprite = props.background.sprite ?? Props.From(elements.roundedRect);
-            props.background.fillCenter = props.background.fillCenter ?? Props.From(true);
+            props.deselectedBackground.raycastTarget = props.deselectedBackground.raycastTarget ?? Props.Value(true);
+
+            props.background.color = props.background.color ?? Props.Value(elements.backgroundColor);
+            props.background.pixelsPerUnitMultiplier = props.background.pixelsPerUnitMultiplier ?? Props.Value(1f);
+            props.background.imageType = props.background.imageType ?? Props.Value(UnityEngine.UI.Image.Type.Sliced);
+            props.background.sprite = props.background.sprite ?? Props.Value(elements.roundedRect);
+            props.background.fillCenter = props.background.fillCenter ?? Props.Value(true);
+            props.background.layout = Utility.FillParentProps(props.background.layout);
 
             ValueObservable<int> selectedTabIndex = new ValueObservable<int>(-1);
 
-            var control = Control(new GameObject("Tabbed Menu")).Children(
-                Image(props.background).FillParent(),
-                Columns(props.tabSpacing)
-                    .FillParent()
-                    .OffsetMin(new Vector2(10, 10))
-                    .OffsetMax(new Vector2(-10, -10))
-                    .Style(columns => columns.Children(
-                        props.tabs.CreateDynamic(tabLabel =>
+            var control = Control(new GameObject("Tabbed Menu"), new()
+            {
+                element = props.element,
+                layout = props.layout,
+                children = Props.List(
+                    Image(props.background),
+                    Columns(new()
+                    {
+                        layout = Utility.FillParentProps(new()
                         {
-                            var tab = Control(new GameObject("tab"));
-                            var tabIndex = columns.children.IndexOfDynamic(tab);
+                            offsetMin = Props.Value(new Vector2(10, 10)),
+                            offsetMax = Props.Value(new Vector2(-10, -10))
+                        }),
+                        spacing = props.tabSpacing,
+                        columns = props.tabs.CreateDynamic(tabLabel =>
+                        {
+                            var tabIndex = props.tabs.IndexOfDynamic(tabLabel);
                             var currentTabIndex = -1;
                             var currentBackground = Observables.Combine(
                                 tabIndex,
@@ -54,13 +66,14 @@ namespace PlerionClient.Client
                                 (index, selectedIndex) => index == selectedIndex ? props.selectedBackground : props.deselectedBackground
                             );
 
-                            tab.AddBinding(tabIndex.Subscribe(x => currentTabIndex = x.currentValue));
-
-                            var button = tab.gameObject.AddComponent<Button>();
-                            button.onClick.AddListener(() => selectedTabIndex.From(currentTabIndex));
-
-                            return tab.Children(
-                                Image(new ImageProps()
+                            return Button(new()
+                            {
+                                element = new()
+                                {
+                                    bindings = Props.List(tabIndex.Subscribe(x => currentTabIndex = x.currentValue))
+                                },
+                                onClick = () => selectedTabIndex.value = currentTabIndex,
+                                background =
                                 {
                                     sprite = currentBackground.SelectDynamic(x => x.sprite),
                                     color = currentBackground.SelectDynamic(x => x.color),
@@ -74,24 +87,28 @@ namespace PlerionClient.Client
                                     fillOrigin = currentBackground.SelectDynamic(x => x.fillOrigin),
                                     fillMethod = currentBackground.SelectDynamic(x => x.fillMethod),
                                     fillAmount = currentBackground.SelectDynamic(x => x.fillAmount)
-                                }).FillParent(),
-                                Text(new TextProps()
-                                {
-                                    value = Props.From(tabLabel),
-                                    style = new TextStyleProps()
+                                },
+                                content = Props.List(
+                                    Text(new TextProps()
                                     {
-                                        verticalAlignment = Props.From(TMPro.VerticalAlignmentOptions.Capline),
-                                        horizontalAlignment = Props.From(TMPro.HorizontalAlignmentOptions.Center)
-                                    }
-                                }).FillParent()
-                            );
+                                        value = Props.Value(tabLabel),
+                                        layout = Utility.FillParentProps(),
+                                        style = new TextStyleProps()
+                                        {
+                                            verticalAlignment = Props.Value(TMPro.VerticalAlignmentOptions.Capline),
+                                            horizontalAlignment = Props.Value(TMPro.HorizontalAlignmentOptions.Center)
+                                        }
+                                    })
+                                )
+                            });
                         })
-                    ))
-            );
+                    })
+                )
+            });
 
             control.AddBinding(
-                props.tabs.Subscribe(_ => selectedTabIndex.From(0)),
-                props.value.Subscribe(x => selectedTabIndex.From(x.currentValue)),
+                props.tabs.Subscribe(_ => selectedTabIndex.value = 0),
+                props.value.Subscribe(x => selectedTabIndex.value = x.currentValue),
                 selectedTabIndex.Subscribe(x => props.onValueChanged?.Invoke(x.currentValue))
             );
 

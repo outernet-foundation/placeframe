@@ -8,7 +8,6 @@ namespace PlerionClient.Client
     public class AppSetup : MonoBehaviour
     {
         public SceneReferences sceneReferences;
-        public CaptureController captureControllerPrefab;
         public LocalizationManager localizationManager;
         public UIPrimitiveSet uiPrimitives;
         public UIElementSet uiElements;
@@ -36,10 +35,11 @@ namespace PlerionClient.Client
 
             LocalCaptureController.Initialize();
             ZedCaptureController.Initialize();
-            Instantiate(captureControllerPrefab);
+
             Instantiate(localizationManager);
 
             gameObject.AddComponent<AuthManager>();
+            gameObject.AddComponent<CaptureController>();
 
             Destroy(this);
         }

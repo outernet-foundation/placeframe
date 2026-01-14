@@ -4,10 +4,10 @@ using Nessle;
 using static Nessle.UIBuilder;
 using ObserveThing;
 using System;
-using UnityEngine.EventSystems;
-using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine.Events;
+using System.Collections.Generic;
+using System.Security.Cryptography;
 
 namespace PlerionClient.Client
 {
@@ -17,6 +17,8 @@ namespace PlerionClient.Client
 
         public struct LabeledButtonProps
         {
+            public ElementProps element;
+            public LayoutProps layout;
             public IValueObservable<string> label;
             public TextStyleProps labelStyle;
             public UnityAction onClick;
@@ -26,28 +28,82 @@ namespace PlerionClient.Client
 
         public static IControl LabeledButton(LabeledButtonProps props = default)
         {
-            props.labelStyle.horizontalAlignment = props.labelStyle.horizontalAlignment ?? Props.From(HorizontalAlignmentOptions.Center);
-            props.labelStyle.verticalAlignment = props.labelStyle.verticalAlignment ?? Props.From(VerticalAlignmentOptions.Capline);
+            props.labelStyle.horizontalAlignment = props.labelStyle.horizontalAlignment ?? Props.Value(HorizontalAlignmentOptions.Center);
+            props.labelStyle.verticalAlignment = props.labelStyle.verticalAlignment ?? Props.Value(VerticalAlignmentOptions.Capline);
 
             return Button(new ButtonProps()
             {
                 interactable = props.interactable,
                 background = props.background,
-                onClick = props.onClick
-            }).Children(Text(new TextProps() { style = props.labelStyle, value = props.label }));
+                onClick = props.onClick,
+                element = props.element,
+                layout = props.layout,
+                content = Props.List(
+                    Text(new TextProps()
+                    {
+                        style = props.labelStyle,
+                        value = props.label
+                    })
+                )
+            });
         }
 
-        public static IControl Row(LayoutProps props = default, PrimitiveControl<LayoutProps> prefab = default)
+        public static IControl Row(LayoutGroupProps props = default, Control<LayoutGroupProps> prefab = default)
         {
-            props.childControlWidth = props.childControlWidth ?? Props.From(true);
-            props.childControlHeight = props.childControlHeight ?? Props.From(true);
-            props.childAlignment = props.childAlignment ?? Props.From(TextAnchor.MiddleLeft);
-            props.spacing = props.spacing ?? Props.From(10f);
-            return HorizontalLayout(props, prefab);
+            if (prefab == null)
+                prefab = primitives.horizontalLayout;
+
+            props.childControlWidth = props.childControlWidth ?? Props.Value(true);
+            props.childControlHeight = props.childControlHeight ?? Props.Value(true);
+            props.childAlignment = props.childAlignment ?? Props.Value(TextAnchor.MiddleLeft);
+            props.spacing = props.spacing ?? Props.Value(10f);
+            return HorizontalLayout(prefab, props);
         }
 
-        public static IControl SafeArea()
-            => Control(new GameObject("Safe Area", typeof(SafeArea)));
+        public struct DialogProps
+        {
+            public ElementProps element;
+            public IValueObservable<bool> useBackground;
+            public IValueObservable<Color> backgroundColor;
+            public Func<IDisposable, IValueObservable<IControl>> contentConstructor;
+        }
+
+        public static IControl Dialog(DialogProps props)
+        {
+            var children = new ListObservable<IControl>(
+                Image(new()
+                {
+                    layout = Utility.FillParentProps(),
+                    color = props.backgroundColor,
+                    element = { active = props.useBackground }
+                })
+            );
+
+            var control = OrderedCanvas(new()
+            {
+                element = props.element,
+                children = children
+            });
+
+            control.AddBinding(
+                props.contentConstructor?.Invoke(control).Subscribe(x =>
+                {
+                    children.Remove(x.currentValue);
+                    children.Add(x.currentValue);
+                })
+            );
+
+            return control;
+        }
+
+        public struct SafeAreaProps
+        {
+            public ElementProps element;
+            public IListObservable<IControl> children;
+        }
+
+        public static IControl SafeArea(SafeAreaProps props)
+            => Control(new GameObject("Safe Area", typeof(SafeArea)), new() { element = props.element, children = props.children });
 
         public class EditableLabelProps
         {
@@ -56,115 +112,77 @@ namespace PlerionClient.Client
             public IValueObservable<bool> inputFieldActive;
         }
 
-        public static IControl EditableLabel(EditableLabelProps props = default)
+        // public static IControl PropertyLabel(IControl label, IControl control)
+        // {
+        //     return HorizontalLayout(new LayoutProps()
+        //     {
+        //         childScaleHeight = Props.Value(true),
+        //         childControlWidth = Props.Value(true),
+        //         childForceExpandHeight = Props.Value(true),
+        //         spacing = Props.Value(10f)
+        //     }).Children(label, control.FlexibleWidth(true));
+        // }
+
+        public static IControl Title(TextProps props)
+            => Title(primitives.text, props);
+
+        public static IControl Title(Control<TextProps> prefab, TextProps props)
         {
-            UnityAction<string> onEndEdit = props.inputField.onEndEdit;
-            ValueObservable<bool> inputFieldActive = new ValueObservable<bool>();
+            props.style.horizontalAlignment = props.style.horizontalAlignment ?? Props.Value(HorizontalAlignmentOptions.Center);
+            props.style.verticalAlignment = props.style.verticalAlignment ?? Props.Value(VerticalAlignmentOptions.Capline);
+            props.style.fontSize = props.style.fontSize ?? Props.Value(48f);
 
-            props.inputField.onEndEdit = x =>
-            {
-                inputFieldActive.From(false);
-                onEndEdit?.Invoke(x);
-            };
-
-            return Control(new GameObject("EditableLabel"))
-                .OnPointerClick(x =>
-                {
-                    var eventSystem = EventSystem.current;
-                    var target = x.pointerPress;
-
-                    eventSystem.SetSelectedGameObject(target);
-
-                    UniTask.WaitForSeconds(0.5f).ContinueWith(() =>
-                    {
-                        if (eventSystem.currentSelectedGameObject != target)
-                            return;
-
-                        inputFieldActive.From(true);
-                    }).Forget();
-                })
-                .Children(
-                    InputField(props.inputField)
-                        .FillParent()
-                        .Active(props.inputFieldActive)
-                        .Selected(props.inputFieldActive)
-                        .OnDeselect(_ => inputFieldActive.From(false)),
-                    Text(new TextProps()
-                    {
-                        style = props.label,
-                        value = Observables.Combine(
-                            props.inputField.value,
-                            props.inputField.placeholderValue,
-                            (input, placeholder) => string.IsNullOrEmpty(input) ? placeholder : input
-                        )
-                    })
-                    .FillParent()
-                );
+            return Text(prefab, props);
         }
 
-        public static IControl PropertyLabel(IControl label, IControl control)
+        public static IControl TightRowsWideColumns(LayoutGroupProps props)
+            => TightRowsWideColumns(primitives.verticalLayout, props);
+
+        public static IControl TightRowsWideColumns(Control<LayoutGroupProps> prefab, LayoutGroupProps props)
         {
-            return HorizontalLayout(new LayoutProps()
-            {
-                childScaleHeight = Props.From(true),
-                childControlWidth = Props.From(true),
-                childForceExpandHeight = Props.From(true),
-                spacing = Props.From(10f)
-            }).Children(label, control.FlexibleWidth(true));
-        }
+            props.childControlWidth = props.childControlWidth ?? Props.Value(true);
+            props.childControlHeight = props.childControlHeight ?? Props.Value(true);
+            props.childForceExpandWidth = props.childForceExpandWidth ?? Props.Value(true);
+            props.spacing = props.spacing ?? Props.Value(30f);
 
-        public static IControl Title(TextProps props = default, PrimitiveControl<TextProps> prefab = default)
-        {
-            props.style.horizontalAlignment = props.style.horizontalAlignment ?? Props.From(HorizontalAlignmentOptions.Center);
-            props.style.verticalAlignment = props.style.verticalAlignment ?? Props.From(VerticalAlignmentOptions.Capline);
-            props.style.fontSize = props.style.fontSize ?? Props.From(48f);
-
-            return Text(props, prefab);
-        }
-
-        public static IControl TightRowsWideColumns(LayoutProps props = default, PrimitiveControl<LayoutProps> prefab = default)
-        {
-            props.childControlWidth = props.childControlWidth ?? Props.From(true);
-            props.childControlHeight = props.childControlHeight ?? Props.From(true);
-            props.childForceExpandWidth = props.childForceExpandWidth ?? Props.From(true);
-            props.spacing = props.spacing ?? Props.From(30f);
-
-            return VerticalLayout(props, prefab);
+            return VerticalLayout(prefab, props);
         }
 
         public struct LabeledControlProps
         {
-            public LayoutProps layout;
-            public TextProps label;
+            public IValueObservable<string> label;
+            public TextStyleProps labelStyle;
             public IValueObservable<float> labelWidth;
             public IControl control;
         }
 
         public static IControl LabeledControl(LabeledControlProps props = default)
         {
-            props.layout.childAlignment = props.layout.childAlignment ?? Props.From(TextAnchor.MiddleLeft);
-            props.layout.childControlWidth = props.layout.childControlWidth ?? Props.From(true);
-            props.layout.childControlHeight = props.layout.childControlHeight ?? Props.From(true);
+            props.labelStyle.verticalAlignment = props.labelStyle.verticalAlignment ?? Props.Value(VerticalAlignmentOptions.Capline);
+            props.labelStyle.overflowMode = props.labelStyle.overflowMode ?? Props.Value(TextOverflowModes.Ellipsis);
+            props.labelStyle.textWrappingMode = props.labelStyle.textWrappingMode ?? Props.Value(TextWrappingModes.NoWrap);
 
-            props.label.style.verticalAlignment = props.label.style.verticalAlignment ?? Props.From(VerticalAlignmentOptions.Capline);
-            props.label.style.overflowMode = props.label.style.overflowMode ?? Props.From(TextOverflowModes.Ellipsis);
-            props.label.style.textWrappingMode = props.label.style.textWrappingMode ?? Props.From(TextWrappingModes.NoWrap);
+            props.labelWidth = props.labelWidth ?? Props.Value(200f);
 
-            props.labelWidth = props.labelWidth ?? Props.From(200f);
-
-            var control = HorizontalLayout(props.layout)
-                .Children(
-                    Text(props.label)
-                        .MinWidth(props.labelWidth)
-                        .PreferredWidth(props.labelWidth)
-                );
-
-            if (props.control != null)
+            var control = HorizontalLayout(new()
             {
-                control.children.Add(
-                    props.control.FlexibleWidth(true)
-                );
-            }
+                childAlignment = Props.Value(TextAnchor.MiddleLeft),
+                childControlWidth = Props.Value(true),
+                childControlHeight = Props.Value(true),
+                children = Props.List(
+                    Text(new()
+                    {
+                        value = props.label,
+                        style = props.labelStyle,
+                        layout = new()
+                        {
+                            minWidth = props.labelWidth,
+                            preferredWidth = props.labelWidth
+                        }
+                    }),
+                    props.control
+                )
+            });
 
             return control;
         }
@@ -183,15 +201,16 @@ namespace PlerionClient.Client
             {
                 background = props.background,
                 interactable = props.interactable,
-                onClick = props.onClick
-            }).Children(Image(props.icon));
+                onClick = props.onClick,
+                content = Props.List(Image(props.icon))
+            });
         }
 
         public static IControl RoundButton(ButtonProps props = default)
-            => Control(props, elements.roundButton);
+            => Control(elements.roundButton, props);
 
         public static IControl Foldout(FoldoutProps props = default)
-            => Control(props, elements.foldout);
+            => Control(elements.foldout, props);
 
         // public static IControl AdaptiveLabel(IControl label, IControl content)
         // {
@@ -237,52 +256,74 @@ namespace PlerionClient.Client
         //     });
         // }
 
-        public static IControl Columns(IValueObservable<float> spacing)
+        public struct ColumnsProps
         {
-            spacing = spacing ?? Props.From(0f);
-            float spacingValue = 0;
-
-            return Control(new GameObject("Columns"))
-                .Style(columns =>
-                {
-                    columns.AddBinding(
-                        Observables.Any(columns.children, spacing).Subscribe(x =>
-                        {
-                            if (x.source == spacing)
-                                spacingValue = ((IValueEventArgs<float>)x).currentValue;
-
-                            float step = 1f / columns.children.count;
-
-                            for (int i = 0; i < columns.children.count; i++)
-                            {
-                                var child = columns.children[i];
-                                child.rectTransform.anchorMin = new Vector2(step * i, 0);
-                                child.rectTransform.anchorMax = new Vector2(step * (i + 1), 1);
-
-                                child.rectTransform.offsetMin = new Vector2(Mathf.Lerp(0f, spacingValue, i * step), 0);
-                                child.rectTransform.offsetMax = new Vector2(Mathf.Lerp(-spacingValue, 0f, (i + 1) * step), 0);
-                            }
-                        })
-                    );
-                });
+            public ElementProps element;
+            public LayoutProps layout;
+            public IValueObservable<float> spacing;
+            public IListObservable<IControl> columns;
         }
 
-        public static T Columns<T>(this T control, float spacing, params IControl[] controls)
-            where T : IControl
+        public static IControl Columns(ColumnsProps props)
         {
-            control.children.From(controls);
-            float step = 1f / controls.Length;
-            for (int i = 0; i < controls.Length; i++)
-            {
-                var child = controls[i];
-                child.rectTransform.anchorMin = new Vector2(step * i, 0);
-                child.rectTransform.anchorMax = new Vector2(step * (i + 1), 1);
+            props.spacing = props.spacing ?? Props.Value(0f);
+            List<IControl> columns = new List<IControl>();
+            float spacingValue = 0;
 
-                child.rectTransform.offsetMin = new Vector2(Mathf.Lerp(0f, spacing, i * step), 0);
-                child.rectTransform.offsetMax = new Vector2(Mathf.Lerp(-spacing, 0f, (i + 1) * step), 0);
-            }
+            var control = Control("Columns", new()
+            {
+                element = props.element,
+                layout = props.layout,
+                children = props.columns
+            });
+
+            control.AddBinding(
+                Observables.Any(props.columns, props.spacing).Subscribe(x =>
+                {
+                    if (x.source == props.spacing)
+                    {
+                        spacingValue = ((IValueEventArgs<float>)x).currentValue;
+                    }
+                    else
+                    {
+                        var args = (IListEventArgs<IControl>)x;
+                        if (args.operationType == OpType.Add)
+                        {
+                            columns.Insert(args.index, args.element);
+                        }
+                        else if (args.operationType == OpType.Remove)
+                        {
+                            columns.RemoveAt(args.index);
+                        }
+                    }
+
+                    float step = 1f / columns.Count;
+
+                    for (int i = 0; i < columns.Count; i++)
+                    {
+                        var child = columns[i];
+                        child.rectTransform.anchorMin = new Vector2(step * i, 0);
+                        child.rectTransform.anchorMax = new Vector2(step * (i + 1), 1);
+
+                        child.rectTransform.offsetMin = new Vector2(Mathf.Lerp(0f, spacingValue, i * step), 0);
+                        child.rectTransform.offsetMax = new Vector2(Mathf.Lerp(-spacingValue, 0f, (i + 1) * step), 0);
+                    }
+                })
+            );
 
             return control;
+        }
+
+        private static int _lastCanvasSortOrder = -1;
+
+        public static IControl OrderedCanvas(CanvasProps props)
+            => OrderedCanvas(primitives.canvas, props);
+
+        public static IControl OrderedCanvas(Control<CanvasProps> prefab, CanvasProps props)
+        {
+            props.sortingOrder = Props.Value(_lastCanvasSortOrder + 1);
+            _lastCanvasSortOrder++;
+            return Canvas(prefab, props);
         }
     }
 }

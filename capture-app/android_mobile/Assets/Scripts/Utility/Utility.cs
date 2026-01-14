@@ -13,16 +13,13 @@ namespace PlerionClient.Client
 {
     public static class Utility
     {
-        public static T SingleChild<T>(this T control, IValueObservable<IControl> child)
-            where T : IControl
+        public static LayoutProps FillParentProps(LayoutProps props = default)
         {
-            control.AddBinding(child.Subscribe(x =>
-            {
-                x.previousValue?.Dispose();
-                x.currentValue?.parent.From(control);
-            }));
-
-            return control;
+            props.anchorMin = props.anchorMin ?? Props.Value(new Vector2(0, 0));
+            props.anchorMax = props.anchorMax ?? Props.Value(new Vector2(1, 1));
+            props.offsetMin = props.offsetMin ?? Props.Value(new Vector2(0, 0));
+            props.offsetMax = props.offsetMax ?? Props.Value(new Vector2(0, 0));
+            return props;
         }
 
         public static IDisposable SubscribeEach<T>(this ICollectionObservable<T> collection, Func<T, IDisposable> subscribe)
@@ -53,5 +50,10 @@ namespace PlerionClient.Client
 
         public static IValueObservable<int> FollowIndexDynamic<T>(this IListObservable<T> list, int index)
             => new FollowIndexObservable<T>(list, index);
+
+        public static void AddRange<T>(this ListObservable<T> list, params T[] elements)
+        {
+            list.AddRange(elements);
+        }
     }
 }

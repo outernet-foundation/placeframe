@@ -9,20 +9,20 @@ namespace PlerionClient.Client
         public TextProps label;
         public IValueObservable<bool> interactable;
         public IValueObservable<bool> isOpen;
-        public LayoutProps layout;
+        public LayoutGroupProps childrenLayout;
         public UnityAction<bool> isOpenChanged;
     }
 
-    public class FoldoutControl : PrimitiveControl<FoldoutProps>
+    public class FoldoutControl : Control<FoldoutProps>
     {
-        public PrimitiveControl<ToggleProps> toggle;
-        public PrimitiveControl<TextProps> label;
-        public PrimitiveControl<LayoutProps> layout;
+        public Control<ToggleProps> toggle;
+        public Control<TextProps> label;
+        public Control<LayoutGroupProps> layout;
 
         protected override void SetupInternal()
         {
             label.Setup(props.label);
-            layout.Setup(props.layout);
+            layout.Setup(props.childrenLayout);
             toggle.Setup(new ToggleProps()
             {
                 value = props.isOpen,
