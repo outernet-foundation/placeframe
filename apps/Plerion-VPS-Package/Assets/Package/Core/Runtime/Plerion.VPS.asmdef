@@ -4,7 +4,9 @@
   "references": [
     "Unity.Mathematics",
     "UniTask",
-    "PlerionApiClient"
+    "R3.Unity",
+    "PlerionApiClient",
+    "SharpZipLib"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

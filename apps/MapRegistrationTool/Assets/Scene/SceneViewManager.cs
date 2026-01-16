@@ -31,9 +31,7 @@ namespace Outernet.MapRegistrationTool
 
         private void HandleEcefToUnityWorldChanged(NodeChangeEventArgs args)
         {
-            App.ExecuteActionOrDelay(
-                new UpdateMapLocationsAction(_maps.Values.Select(x => x.props).ToArray())
-            );
+            App.ExecuteActionOrDelay(new UpdateMapLocationsAction(_maps.Values.Select(x => x.props).ToArray()));
         }
 
         private IDisposable SetupMap(MapState map)
@@ -41,12 +39,18 @@ namespace Outernet.MapRegistrationTool
             var transform = App.state.transforms[map.uuid];
             var instance = SceneMap.Create(
                 sceneObjectID: map.uuid,
-                bind: props => Bindings.Compose(
-                    Bindings.BindECEFTransform(transform.position, transform.rotation, props.position, props.rotation),
-                    props.name.From(map.name),
-                    props.reconstructionID.From(map.reconstructionID),
-                    Bindings.OnRelease(() => _maps.Remove(map.uuid))
-                )
+                mapId: map.uuid,
+                bind: props =>
+                    Bindings.Compose(
+                        Bindings.BindECEFTransform(
+                            transform.position,
+                            transform.rotation,
+                            props.position,
+                            props.rotation
+                        ),
+                        props.name.From(map.name),
+                        Bindings.OnRelease(() => _maps.Remove(map.uuid))
+                    )
             );
 
             _maps.Add(map.uuid, instance);

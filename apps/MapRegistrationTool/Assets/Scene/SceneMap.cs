@@ -18,7 +18,6 @@ namespace Outernet.MapRegistrationTool
             public ObservablePrimitive<string> name { get; private set; }
             public ObservablePrimitive<Vector3> position { get; private set; }
             public ObservablePrimitive<Quaternion> rotation { get; private set; }
-            public ObservablePrimitive<Guid> reconstructionID { get; private set; }
 
             public Props()
                 : base() { }
@@ -27,15 +26,13 @@ namespace Outernet.MapRegistrationTool
                 Guid sceneObjectID = default,
                 string name = default,
                 Vector3 position = default,
-                Quaternion? rotation = default,
-                Guid reconstructionID = default
+                Quaternion? rotation = default
             )
             {
                 this.sceneObjectID = new ObservablePrimitive<Guid>(sceneObjectID);
                 this.name = new ObservablePrimitive<string>(name);
                 this.position = new ObservablePrimitive<Vector3>(position);
                 this.rotation = new ObservablePrimitive<Quaternion>(rotation ?? Quaternion.identity);
-                this.reconstructionID = new ObservablePrimitive<Guid>(reconstructionID);
             }
         }
 
@@ -61,22 +58,14 @@ namespace Outernet.MapRegistrationTool
             Guid sceneObjectID = default,
             string name = default,
             Vector3 position = default,
-            Quaternion? rotation = default,
-            Guid reconstructionID = default
-        ) => InitializeAndBind(new Props(sceneObjectID, name, position, rotation, reconstructionID));
+            Quaternion? rotation = default
+        ) => InitializeAndBind(new Props(sceneObjectID, name, position, rotation));
 
         protected override void Bind()
         {
             AddBinding(
                 props.position.OnChange(x => transform.position = x),
-                props.rotation.OnChange(x => transform.rotation = x),
-                props.reconstructionID.OnChange(x =>
-                {
-                    if (x == Guid.Empty)
-                        return;
-
-                    _localizationMapVisualizer.Load(App.API, x, CancellationToken.None).Forget();
-                })
+                props.rotation.OnChange(x => transform.rotation = x)
             );
         }
 
@@ -90,13 +79,14 @@ namespace Outernet.MapRegistrationTool
             string name = default,
             Vector3 position = default,
             Quaternion? rotation = default,
-            Guid reconstructionID = default,
+            Guid mapId = default,
             Transform parent = default,
             Func<Props, IDisposable> bind = default
         )
         {
             SceneMap instance = Instantiate(Prefabs.Map, parent);
-            instance.InitializeAndBind(new Props(sceneObjectID, name, position, rotation, reconstructionID));
+            instance._localizationMapVisualizer.Initialize(mapId);
+            instance.InitializeAndBind(new Props(sceneObjectID, name, position, rotation));
 
             instance.AddBinding(Bindings.OnRelease(() => Destroy(instance)));
 

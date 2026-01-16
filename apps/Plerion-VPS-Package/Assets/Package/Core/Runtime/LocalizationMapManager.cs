@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 namespace Plerion.Core
@@ -9,7 +7,6 @@ namespace Plerion.Core
     public class LocalizationMapManager : MonoBehaviour
     {
         public LocalizationMap localizationMapPrefab;
-        private Dictionary<Guid, CancellationTokenSource> _loadOperations = new Dictionary<Guid, CancellationTokenSource>();
         private Dictionary<Guid, LocalizationMap> _visualizers = new Dictionary<Guid, LocalizationMap>();
 
         private void Awake()
@@ -17,61 +14,30 @@ namespace Plerion.Core
             VisualPositioningSystem.SetLocalizationMapManager(this);
         }
 
-        private async UniTask AddMapAndLoad(Guid mapID, CancellationToken cancellationToken)
+        public void AddMap(Guid mapID, bool visible)
         {
-            LocalizationMap localizationMap = null;
-            try
-            {
-                localizationMap = Instantiate(
-                    localizationMapPrefab,
-                    Vector3.zero,
-                    Quaternion.identity
-                );
+            if (_visualizers.ContainsKey(mapID))
+                throw new InvalidOperationException($"Map {mapID} is already added");
 
-                localizationMap.gameObject.SetActive(enabled);
-                await localizationMap.Load(mapID, cancellationToken);
-                _visualizers.Add(mapID, localizationMap);
-            }
-            catch (Exception exception)
-            {
-                if (localizationMap != null)
-                    Destroy(localizationMap.gameObject);
-
-                if (exception is not OperationCanceledException)
-                    throw;
-            }
-            finally
-            {
-                if (_loadOperations.TryGetValue(mapID, out var cancellationTokenSource))
-                {
-                    cancellationTokenSource.Dispose();
-                    _loadOperations.Remove(mapID);
-                }
-            }
-        }
-
-        public void AddMap(Guid mapID)
-        {
-            if (_loadOperations.ContainsKey(mapID) || _visualizers.ContainsKey(mapID))
-                return;
-
-            var tokenSource = new CancellationTokenSource();
-            _loadOperations.Add(mapID, tokenSource);
-            AddMapAndLoad(mapID, tokenSource.Token).Forget();
+            _visualizers[mapID] = Instantiate(localizationMapPrefab, Vector3.zero, Quaternion.identity);
+            _visualizers[mapID].SetVisible(visible);
+            _visualizers[mapID].Initialize(mapID);
         }
 
         public void RemoveMap(Guid mapID)
         {
-            if (_loadOperations.TryGetValue(mapID, out var loadOperation))
-            {
-                _loadOperations.Remove(mapID);
-                loadOperation.Cancel();
-            }
+            if (!_visualizers.ContainsKey(mapID))
+                throw new InvalidOperationException($"Map {mapID} is not added");
 
-            if (_visualizers.TryGetValue(mapID, out var visualizer))
+            Destroy(_visualizers[mapID].gameObject);
+            _visualizers.Remove(mapID);
+        }
+
+        public void SetVisible(bool visible)
+        {
+            foreach (var visualizer in _visualizers.Values)
             {
-                _visualizers.Remove(mapID);
-                Destroy(visualizer.gameObject);
+                visualizer.SetVisible(visible);
             }
         }
     }

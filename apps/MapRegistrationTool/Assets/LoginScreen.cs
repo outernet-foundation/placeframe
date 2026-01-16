@@ -23,8 +23,7 @@ namespace Outernet.MapRegistrationTool
                 App.plerionAuthAudience,
                 message => Debug.Log(message),
                 message => Debug.LogWarning(message),
-                message => Debug.LogError(message),
-                (message, exception) => Debug.LogError($"{message}\n{exception}")
+                message => Debug.LogError(message)
             );
 
             loginButton.onClick.AddListener(() => Login(username.text, password.text).Forget());

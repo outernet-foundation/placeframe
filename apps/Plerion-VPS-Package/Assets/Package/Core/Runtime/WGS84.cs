@@ -16,12 +16,20 @@ namespace Plerion.Core
             Height = height;
         }
 
-        public static CartographicCoordinates FromLongitudeLatitudeHeight(double longitudeDegrees, double latitudeDegrees, double height)
+        public static CartographicCoordinates FromLongitudeLatitudeHeight(
+            double longitudeDegrees,
+            double latitudeDegrees,
+            double height
+        )
         {
             return new CartographicCoordinates(longitudeDegrees, latitudeDegrees, height);
         }
 
-        public static CartographicCoordinates FromLatitudeLongitudeHeight(double latitudeDegrees, double longitudeDegrees, double height)
+        public static CartographicCoordinates FromLatitudeLongitudeHeight(
+            double latitudeDegrees,
+            double longitudeDegrees,
+            double height
+        )
         {
             return new CartographicCoordinates(longitudeDegrees, latitudeDegrees, height);
         }
@@ -66,10 +74,7 @@ namespace Plerion.Core
             double3 worldZAxis = new double3(0.0, 0.0, 1.0);
             double3 worldYAxis = new double3(0.0, 1.0, 0.0);
 
-            double3 referenceAxis =
-                math.abs(upDirection.z) < 0.99
-                    ? worldZAxis
-                    : worldYAxis;
+            double3 referenceAxis = math.abs(upDirection.z) < 0.99 ? worldZAxis : worldYAxis;
 
             double3 eastDirection = math.normalize(math.cross(referenceAxis, upDirection));
             double3 northDirection = math.normalize(math.cross(upDirection, eastDirection));
@@ -109,8 +114,7 @@ namespace Plerion.Core
 
             double longitudeRadians = math.atan2(y, x);
 
-            double auxiliaryAngle =
-                math.atan2(EquatorialRadius * z, PolarRadius * horizontalDistance);
+            double auxiliaryAngle = math.atan2(EquatorialRadius * z, PolarRadius * horizontalDistance);
 
             double sinAuxiliaryAngle = math.sin(auxiliaryAngle);
             double cosAuxiliaryAngle = math.cos(auxiliaryAngle);
@@ -119,20 +123,21 @@ namespace Plerion.Core
                 z + SecondEccentricitySquared * PolarRadius * sinAuxiliaryAngle * sinAuxiliaryAngle * sinAuxiliaryAngle;
 
             double latitudeDenominator =
-                horizontalDistance -
-                FirstEccentricitySquared * EquatorialRadius * cosAuxiliaryAngle * cosAuxiliaryAngle * cosAuxiliaryAngle;
+                horizontalDistance
+                - FirstEccentricitySquared
+                    * EquatorialRadius
+                    * cosAuxiliaryAngle
+                    * cosAuxiliaryAngle
+                    * cosAuxiliaryAngle;
 
-            double latitudeRadians =
-                math.atan2(latitudeNumerator, latitudeDenominator);
+            double latitudeRadians = math.atan2(latitudeNumerator, latitudeDenominator);
 
             double sinLatitude = math.sin(latitudeRadians);
 
             double radiusOfCurvature =
                 EquatorialRadius / math.sqrt(1.0 - FirstEccentricitySquared * sinLatitude * sinLatitude);
 
-            double height =
-                horizontalDistance / math.cos(latitudeRadians) -
-                radiusOfCurvature;
+            double height = horizontalDistance / math.cos(latitudeRadians) - radiusOfCurvature;
 
             double longitudeDegrees = math.degrees(longitudeRadians);
             double latitudeDegrees = math.degrees(latitudeRadians);
