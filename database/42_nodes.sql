@@ -45,7 +45,7 @@ CREATE TABLE nodes (
         NULL,
     parent_id uuid
         NULL
-        REFERENCES nodes(id)
+        REFERENCES groups(id)
         ON DELETE RESTRICT,
     layer_id uuid
         NULL

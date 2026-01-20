@@ -66,6 +66,7 @@ class Group(Base):
     parent: Mapped[Optional['Group']] = relationship('Group', remote_side=[id], back_populates='parent_reverse')
     parent_reverse: Mapped[list['Group']] = relationship('Group', remote_side=[parent_id], back_populates='parent')
     tenant: Mapped['Tenant'] = relationship('Tenant', back_populates='groups')
+    nodes: Mapped[list['Node']] = relationship('Node', back_populates='parent')
 
 
 class Layer(Base):
@@ -107,7 +108,7 @@ class Node(Base):
     __tablename__ = 'nodes'
     __table_args__ = (
         ForeignKeyConstraint(['layer_id'], ['public.layers.id'], ondelete='RESTRICT', name='nodes_layer_id_fkey'),
-        ForeignKeyConstraint(['parent_id'], ['public.nodes.id'], ondelete='RESTRICT', name='nodes_parent_id_fkey'),
+        ForeignKeyConstraint(['parent_id'], ['public.groups.id'], ondelete='RESTRICT', name='nodes_parent_id_fkey'),
         ForeignKeyConstraint(['tenant_id'], ['auth.tenants.id'], ondelete='RESTRICT', name='nodes_tenant_id_fkey'),
         PrimaryKeyConstraint('id', name='nodes_pkey'),
         {'schema': 'public'}
@@ -137,8 +138,7 @@ class Node(Base):
     label: Mapped[Optional[str]] = mapped_column(Text)
 
     layer: Mapped[Optional['Layer']] = relationship('Layer', back_populates='nodes')
-    parent: Mapped[Optional['Node']] = relationship('Node', remote_side=[id], back_populates='parent_reverse')
-    parent_reverse: Mapped[list['Node']] = relationship('Node', remote_side=[parent_id], back_populates='parent')
+    parent: Mapped[Optional['Group']] = relationship('Group', back_populates='nodes')
     tenant: Mapped['Tenant'] = relationship('Tenant', back_populates='nodes')
 
 

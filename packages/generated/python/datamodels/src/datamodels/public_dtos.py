@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from enum import StrEnum
 from pydantic import AwareDatetime, BaseModel, Field
-from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import inspect as sa_inspect
@@ -16,20 +15,20 @@ class Model(BaseModel):
 
 
 class GroupCreate(BaseModel):
-    id: Optional[UUID] = Field(None, title='Id')
+    id: UUID | None = Field(None, title='Id')
     name: str = Field(..., title='Name')
-    parent_id: Optional[UUID] = Field(None, title='Parent Id')
+    parent_id: UUID | None = Field(None, title='Parent Id')
 
 
 class GroupUpdate(BaseModel):
-    name: Optional[str] = Field(None, title='Name')
-    parent_id: Optional[UUID] = Field(None, title='Parent Id')
+    name: str | None = Field(None, title='Name')
+    parent_id: UUID | None = Field(None, title='Parent Id')
 
 
 class GroupBatchUpdate(BaseModel):
     id: UUID = Field(..., title='Id')
-    name: Optional[str] = Field(None, title='Name')
-    parent_id: Optional[UUID] = Field(None, title='Parent Id')
+    name: str | None = Field(None, title='Name')
+    parent_id: UUID | None = Field(None, title='Parent Id')
 
 
 class GroupRead(BaseModel):
@@ -37,21 +36,21 @@ class GroupRead(BaseModel):
     created_at: AwareDatetime = Field(..., title='Created At')
     updated_at: AwareDatetime = Field(..., title='Updated At')
     name: str = Field(..., title='Name')
-    parent_id: Optional[UUID] = Field(None, title='Parent Id')
+    parent_id: UUID | None = Field(None, title='Parent Id')
 
 
 class LayerCreate(BaseModel):
-    id: Optional[UUID] = Field(None, title='Id')
+    id: UUID | None = Field(None, title='Id')
     name: str = Field(..., title='Name')
 
 
 class LayerUpdate(BaseModel):
-    name: Optional[str] = Field(None, title='Name')
+    name: str | None = Field(None, title='Name')
 
 
 class LayerBatchUpdate(BaseModel):
     id: UUID = Field(..., title='Id')
-    name: Optional[str] = Field(None, title='Name')
+    name: str | None = Field(None, title='Name')
 
 
 class LayerRead(BaseModel):
@@ -63,7 +62,7 @@ class LayerRead(BaseModel):
 
 class LocalizationMapCreate(BaseModel):
     reconstruction_id: UUID = Field(..., title='Reconstruction Id')
-    id: Optional[UUID] = Field(None, title='Id')
+    id: UUID | None = Field(None, title='Id')
     rotation_y: float = Field(..., title='Rotation Y')
     position_x: float = Field(..., title='Position X')
     position_y: float = Field(..., title='Position Y')
@@ -72,40 +71,40 @@ class LocalizationMapCreate(BaseModel):
     rotation_z: float = Field(..., title='Rotation Z')
     rotation_w: float = Field(..., title='Rotation W')
     color: int = Field(..., title='Color')
-    active: Optional[bool] = Field(None, title='Active')
-    lighting: Optional[int] = Field(None, title='Lighting')
-    name: Optional[str] = Field(None, title='Name')
+    active: bool | None = Field(None, title='Active')
+    lighting: int | None = Field(None, title='Lighting')
+    name: str | None = Field(None, title='Name')
 
 
 class LocalizationMapUpdate(BaseModel):
-    reconstruction_id: Optional[UUID] = Field(None, title='Reconstruction Id')
-    rotation_y: Optional[float] = Field(None, title='Rotation Y')
-    position_x: Optional[float] = Field(None, title='Position X')
-    position_y: Optional[float] = Field(None, title='Position Y')
-    position_z: Optional[float] = Field(None, title='Position Z')
-    rotation_x: Optional[float] = Field(None, title='Rotation X')
-    rotation_z: Optional[float] = Field(None, title='Rotation Z')
-    rotation_w: Optional[float] = Field(None, title='Rotation W')
-    color: Optional[int] = Field(None, title='Color')
-    active: Optional[bool] = Field(None, title='Active')
-    lighting: Optional[int] = Field(None, title='Lighting')
-    name: Optional[str] = Field(None, title='Name')
+    reconstruction_id: UUID | None = Field(None, title='Reconstruction Id')
+    rotation_y: float | None = Field(None, title='Rotation Y')
+    position_x: float | None = Field(None, title='Position X')
+    position_y: float | None = Field(None, title='Position Y')
+    position_z: float | None = Field(None, title='Position Z')
+    rotation_x: float | None = Field(None, title='Rotation X')
+    rotation_z: float | None = Field(None, title='Rotation Z')
+    rotation_w: float | None = Field(None, title='Rotation W')
+    color: int | None = Field(None, title='Color')
+    active: bool | None = Field(None, title='Active')
+    lighting: int | None = Field(None, title='Lighting')
+    name: str | None = Field(None, title='Name')
 
 
 class LocalizationMapBatchUpdate(BaseModel):
-    reconstruction_id: Optional[UUID] = Field(None, title='Reconstruction Id')
+    reconstruction_id: UUID | None = Field(None, title='Reconstruction Id')
     id: UUID = Field(..., title='Id')
-    rotation_y: Optional[float] = Field(None, title='Rotation Y')
-    position_x: Optional[float] = Field(None, title='Position X')
-    position_y: Optional[float] = Field(None, title='Position Y')
-    position_z: Optional[float] = Field(None, title='Position Z')
-    rotation_x: Optional[float] = Field(None, title='Rotation X')
-    rotation_z: Optional[float] = Field(None, title='Rotation Z')
-    rotation_w: Optional[float] = Field(None, title='Rotation W')
-    color: Optional[int] = Field(None, title='Color')
-    active: Optional[bool] = Field(None, title='Active')
-    lighting: Optional[int] = Field(None, title='Lighting')
-    name: Optional[str] = Field(None, title='Name')
+    rotation_y: float | None = Field(None, title='Rotation Y')
+    position_x: float | None = Field(None, title='Position X')
+    position_y: float | None = Field(None, title='Position Y')
+    position_z: float | None = Field(None, title='Position Z')
+    rotation_x: float | None = Field(None, title='Rotation X')
+    rotation_z: float | None = Field(None, title='Rotation Z')
+    rotation_w: float | None = Field(None, title='Rotation W')
+    color: int | None = Field(None, title='Color')
+    active: bool | None = Field(None, title='Active')
+    lighting: int | None = Field(None, title='Lighting')
+    name: str | None = Field(None, title='Name')
 
 
 class LocalizationMapRead(BaseModel):
@@ -122,12 +121,12 @@ class LocalizationMapRead(BaseModel):
     color: int = Field(..., title='Color')
     created_at: AwareDatetime = Field(..., title='Created At')
     active: bool = Field(..., title='Active')
-    lighting: Optional[int] = Field(None, title='Lighting')
-    name: Optional[str] = Field(None, title='Name')
+    lighting: int | None = Field(None, title='Lighting')
+    name: str | None = Field(None, title='Name')
 
 
 class LocalizationSessionCreate(BaseModel):
-    id: Optional[UUID] = Field(None, title='Id')
+    id: UUID | None = Field(None, title='Id')
 
 
 class LocalizationSessionUpdate(BaseModel):
@@ -146,7 +145,7 @@ class LocalizationSessionRead(BaseModel):
 
 
 class NodeCreate(BaseModel):
-    id: Optional[UUID] = Field(None, title='Id')
+    id: UUID | None = Field(None, title='Id')
     rotation_z: float = Field(..., title='Rotation Z')
     position_y: float = Field(..., title='Position Y')
     position_z: float = Field(..., title='Position Z')
@@ -154,60 +153,60 @@ class NodeCreate(BaseModel):
     rotation_y: float = Field(..., title='Rotation Y')
     rotation_w: float = Field(..., title='Rotation W')
     position_x: float = Field(..., title='Position X')
-    active: Optional[bool] = Field(None, title='Active')
+    active: bool | None = Field(None, title='Active')
     name: str = Field(..., title='Name')
-    layer_id: Optional[UUID] = Field(None, title='Layer Id')
-    parent_id: Optional[UUID] = Field(None, title='Parent Id')
-    label_width: Optional[float] = Field(None, title='Label Width')
-    label_height: Optional[float] = Field(None, title='Label Height')
-    label_scale: Optional[float] = Field(None, title='Label Scale')
-    link_type: Optional[int] = Field(None, title='Link Type')
-    label_type: Optional[int] = Field(None, title='Label Type')
-    link: Optional[str] = Field(None, title='Link')
-    label: Optional[str] = Field(None, title='Label')
+    layer_id: UUID | None = Field(None, title='Layer Id')
+    parent_id: UUID | None = Field(None, title='Parent Id')
+    label_width: float | None = Field(None, title='Label Width')
+    label_height: float | None = Field(None, title='Label Height')
+    label_scale: float | None = Field(None, title='Label Scale')
+    link_type: int | None = Field(None, title='Link Type')
+    label_type: int | None = Field(None, title='Label Type')
+    link: str | None = Field(None, title='Link')
+    label: str | None = Field(None, title='Label')
 
 
 class NodeUpdate(BaseModel):
-    rotation_z: Optional[float] = Field(None, title='Rotation Z')
-    position_y: Optional[float] = Field(None, title='Position Y')
-    position_z: Optional[float] = Field(None, title='Position Z')
-    rotation_x: Optional[float] = Field(None, title='Rotation X')
-    rotation_y: Optional[float] = Field(None, title='Rotation Y')
-    rotation_w: Optional[float] = Field(None, title='Rotation W')
-    position_x: Optional[float] = Field(None, title='Position X')
-    active: Optional[bool] = Field(None, title='Active')
-    name: Optional[str] = Field(None, title='Name')
-    layer_id: Optional[UUID] = Field(None, title='Layer Id')
-    parent_id: Optional[UUID] = Field(None, title='Parent Id')
-    label_width: Optional[float] = Field(None, title='Label Width')
-    label_height: Optional[float] = Field(None, title='Label Height')
-    label_scale: Optional[float] = Field(None, title='Label Scale')
-    link_type: Optional[int] = Field(None, title='Link Type')
-    label_type: Optional[int] = Field(None, title='Label Type')
-    link: Optional[str] = Field(None, title='Link')
-    label: Optional[str] = Field(None, title='Label')
+    rotation_z: float | None = Field(None, title='Rotation Z')
+    position_y: float | None = Field(None, title='Position Y')
+    position_z: float | None = Field(None, title='Position Z')
+    rotation_x: float | None = Field(None, title='Rotation X')
+    rotation_y: float | None = Field(None, title='Rotation Y')
+    rotation_w: float | None = Field(None, title='Rotation W')
+    position_x: float | None = Field(None, title='Position X')
+    active: bool | None = Field(None, title='Active')
+    name: str | None = Field(None, title='Name')
+    layer_id: UUID | None = Field(None, title='Layer Id')
+    parent_id: UUID | None = Field(None, title='Parent Id')
+    label_width: float | None = Field(None, title='Label Width')
+    label_height: float | None = Field(None, title='Label Height')
+    label_scale: float | None = Field(None, title='Label Scale')
+    link_type: int | None = Field(None, title='Link Type')
+    label_type: int | None = Field(None, title='Label Type')
+    link: str | None = Field(None, title='Link')
+    label: str | None = Field(None, title='Label')
 
 
 class NodeBatchUpdate(BaseModel):
     id: UUID = Field(..., title='Id')
-    rotation_z: Optional[float] = Field(None, title='Rotation Z')
-    position_y: Optional[float] = Field(None, title='Position Y')
-    position_z: Optional[float] = Field(None, title='Position Z')
-    rotation_x: Optional[float] = Field(None, title='Rotation X')
-    rotation_y: Optional[float] = Field(None, title='Rotation Y')
-    rotation_w: Optional[float] = Field(None, title='Rotation W')
-    position_x: Optional[float] = Field(None, title='Position X')
-    active: Optional[bool] = Field(None, title='Active')
-    name: Optional[str] = Field(None, title='Name')
-    layer_id: Optional[UUID] = Field(None, title='Layer Id')
-    parent_id: Optional[UUID] = Field(None, title='Parent Id')
-    label_width: Optional[float] = Field(None, title='Label Width')
-    label_height: Optional[float] = Field(None, title='Label Height')
-    label_scale: Optional[float] = Field(None, title='Label Scale')
-    link_type: Optional[int] = Field(None, title='Link Type')
-    label_type: Optional[int] = Field(None, title='Label Type')
-    link: Optional[str] = Field(None, title='Link')
-    label: Optional[str] = Field(None, title='Label')
+    rotation_z: float | None = Field(None, title='Rotation Z')
+    position_y: float | None = Field(None, title='Position Y')
+    position_z: float | None = Field(None, title='Position Z')
+    rotation_x: float | None = Field(None, title='Rotation X')
+    rotation_y: float | None = Field(None, title='Rotation Y')
+    rotation_w: float | None = Field(None, title='Rotation W')
+    position_x: float | None = Field(None, title='Position X')
+    active: bool | None = Field(None, title='Active')
+    name: str | None = Field(None, title='Name')
+    layer_id: UUID | None = Field(None, title='Layer Id')
+    parent_id: UUID | None = Field(None, title='Parent Id')
+    label_width: float | None = Field(None, title='Label Width')
+    label_height: float | None = Field(None, title='Label Height')
+    label_scale: float | None = Field(None, title='Label Scale')
+    link_type: int | None = Field(None, title='Link Type')
+    label_type: int | None = Field(None, title='Label Type')
+    link: str | None = Field(None, title='Link')
+    label: str | None = Field(None, title='Label')
 
 
 class NodeRead(BaseModel):
@@ -223,19 +222,19 @@ class NodeRead(BaseModel):
     position_x: float = Field(..., title='Position X')
     active: bool = Field(..., title='Active')
     name: str = Field(..., title='Name')
-    layer_id: Optional[UUID] = Field(None, title='Layer Id')
-    parent_id: Optional[UUID] = Field(None, title='Parent Id')
-    label_width: Optional[float] = Field(None, title='Label Width')
-    label_height: Optional[float] = Field(None, title='Label Height')
-    label_scale: Optional[float] = Field(None, title='Label Scale')
-    link_type: Optional[int] = Field(None, title='Link Type')
-    label_type: Optional[int] = Field(None, title='Label Type')
-    link: Optional[str] = Field(None, title='Link')
-    label: Optional[str] = Field(None, title='Label')
+    layer_id: UUID | None = Field(None, title='Layer Id')
+    parent_id: UUID | None = Field(None, title='Parent Id')
+    label_width: float | None = Field(None, title='Label Width')
+    label_height: float | None = Field(None, title='Label Height')
+    label_scale: float | None = Field(None, title='Label Scale')
+    link_type: int | None = Field(None, title='Link Type')
+    label_type: int | None = Field(None, title='Label Type')
+    link: str | None = Field(None, title='Link')
+    label: str | None = Field(None, title='Label')
 
 
 class TenantCreate(BaseModel):
-    id: Optional[UUID] = Field(None, title='Id')
+    id: UUID | None = Field(None, title='Id')
 
 
 class TenantUpdate(BaseModel):
@@ -266,20 +265,20 @@ class OrchestrationStatus(StrEnum):
 
 
 class CaptureSessionCreate(BaseModel):
-    id: Optional[UUID] = Field(None, title='Id')
+    id: UUID | None = Field(None, title='Id')
     device_type: DeviceType
     name: str = Field(..., title='Name')
 
 
 class CaptureSessionUpdate(BaseModel):
-    device_type: Optional[DeviceType] = None
-    name: Optional[str] = Field(None, title='Name')
+    device_type: DeviceType | None = None
+    name: str | None = Field(None, title='Name')
 
 
 class CaptureSessionBatchUpdate(BaseModel):
     id: UUID = Field(..., title='Id')
-    device_type: Optional[DeviceType] = None
-    name: Optional[str] = Field(None, title='Name')
+    device_type: DeviceType | None = None
+    name: str | None = Field(None, title='Name')
 
 
 class CaptureSessionRead(BaseModel):
@@ -292,19 +291,19 @@ class CaptureSessionRead(BaseModel):
 
 class ReconstructionCreate(BaseModel):
     capture_session_id: UUID = Field(..., title='Capture Session Id')
-    id: Optional[UUID] = Field(None, title='Id')
-    orchestration_status: Optional[OrchestrationStatus] = None
+    id: UUID | None = Field(None, title='Id')
+    orchestration_status: OrchestrationStatus | None = None
 
 
 class ReconstructionUpdate(BaseModel):
-    capture_session_id: Optional[UUID] = Field(None, title='Capture Session Id')
-    orchestration_status: Optional[OrchestrationStatus] = None
+    capture_session_id: UUID | None = Field(None, title='Capture Session Id')
+    orchestration_status: OrchestrationStatus | None = None
 
 
 class ReconstructionBatchUpdate(BaseModel):
-    capture_session_id: Optional[UUID] = Field(None, title='Capture Session Id')
+    capture_session_id: UUID | None = Field(None, title='Capture Session Id')
     id: UUID = Field(..., title='Id')
-    orchestration_status: Optional[OrchestrationStatus] = None
+    orchestration_status: OrchestrationStatus | None = None
 
 
 class ReconstructionRead(BaseModel):

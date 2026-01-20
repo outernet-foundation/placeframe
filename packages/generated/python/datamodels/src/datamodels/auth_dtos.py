@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from enum import StrEnum
 from pydantic import AwareDatetime, BaseModel, Field
-from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import inspect as sa_inspect
@@ -16,7 +15,7 @@ class Model(BaseModel):
 
 
 class TenantCreate(BaseModel):
-    id: Optional[UUID] = Field(None, title='Id')
+    id: UUID | None = Field(None, title='Id')
 
 
 class TenantUpdate(BaseModel):
@@ -57,19 +56,19 @@ class MembershipRole(StrEnum):
 
 class MembershipCreate(BaseModel):
     user_id: UUID = Field(..., title='User Id')
-    role: Optional[MembershipRole] = None
-    is_personal: Optional[bool] = Field(None, title='Is Personal')
+    role: MembershipRole | None = None
+    is_personal: bool | None = Field(None, title='Is Personal')
 
 
 class MembershipUpdate(BaseModel):
-    role: Optional[MembershipRole] = None
-    is_personal: Optional[bool] = Field(None, title='Is Personal')
+    role: MembershipRole | None = None
+    is_personal: bool | None = Field(None, title='Is Personal')
 
 
 class MembershipBatchUpdate(BaseModel):
     user_id: UUID = Field(..., title='User Id')
-    role: Optional[MembershipRole] = None
-    is_personal: Optional[bool] = Field(None, title='Is Personal')
+    role: MembershipRole | None = None
+    is_personal: bool | None = Field(None, title='Is Personal')
 
 
 class MembershipRead(BaseModel):
