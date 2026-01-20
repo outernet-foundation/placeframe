@@ -1,24 +1,22 @@
-# universal junk
-**/.git
-**/.gitmodules
-**/.svn
-**/.DS_Store
-**/.idea
-**/.vscode
 **/__pycache__
-**/.pytest_cache
-**/.mypy_cache
-**/.ruff_cache
 **/*.pyc
+**/*.pyo
+**/*.pyd
+**/.venv/
+**/*.egg-info
+**/*.sln
+**/*.slnx
+**/*.meta
+**/bin/
+**/obj/
+.venv
+.ruff_cache
+.vs
+.env
+.secrets
+metadata.json
 
-# Python/uv/venv stuff
-**/.venv
-**/.env
-**/.tox
-**/.cache
-**/.uv
-**/dist
-**/build
-
-# JS
-**/node_modules
+apps/**
+legacy/Outernet.Client/**
+.env.lock
+.env.local.lock
