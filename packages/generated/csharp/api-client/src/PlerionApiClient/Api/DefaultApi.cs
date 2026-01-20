@@ -123,9 +123,9 @@ namespace PlerionApiClient.Api
         /// CreateNode
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="node"></param>
+        /// <param name="nodeCreate"></param>
         /// <returns>NodeRead</returns>
-        NodeRead CreateNode(NodeCreate node);
+        NodeRead CreateNode(NodeCreate nodeCreate);
 
         /// <summary>
         /// CreateNode
@@ -134,9 +134,9 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="node"></param>
+        /// <param name="nodeCreate"></param>
         /// <returns>ApiResponse of NodeRead</returns>
-        ApiResponse<NodeRead> CreateNodeWithHttpInfo(NodeCreate node);
+        ApiResponse<NodeRead> CreateNodeWithHttpInfo(NodeCreate nodeCreate);
         /// <summary>
         /// CreateReconstruction
         /// </summary>
@@ -914,10 +914,10 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="node"></param>
+        /// <param name="nodeCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of NodeRead</returns>
-        System.Threading.Tasks.Task<NodeRead> CreateNodeAsync(NodeCreate node, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<NodeRead> CreateNodeAsync(NodeCreate nodeCreate, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// CreateNode
@@ -926,10 +926,10 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="node"></param>
+        /// <param name="nodeCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (NodeRead)</returns>
-        System.Threading.Tasks.Task<ApiResponse<NodeRead>> CreateNodeWithHttpInfoAsync(NodeCreate node, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<NodeRead>> CreateNodeWithHttpInfoAsync(NodeCreate nodeCreate, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateReconstruction
         /// </summary>
@@ -2558,11 +2558,11 @@ namespace PlerionApiClient.Api
         /// CreateNode 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="node"></param>
+        /// <param name="nodeCreate"></param>
         /// <returns>NodeRead</returns>
-        public NodeRead CreateNode(NodeCreate node)
+        public NodeRead CreateNode(NodeCreate nodeCreate)
         {
-            PlerionApiClient.Client.ApiResponse<NodeRead> localVarResponse = CreateNodeWithHttpInfo(node);
+            PlerionApiClient.Client.ApiResponse<NodeRead> localVarResponse = CreateNodeWithHttpInfo(nodeCreate);
             return localVarResponse.Data;
         }
 
@@ -2570,17 +2570,18 @@ namespace PlerionApiClient.Api
         /// CreateNode 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="node"></param>
+        /// <param name="nodeCreate"></param>
         /// <returns>ApiResponse of NodeRead</returns>
-        public PlerionApiClient.Client.ApiResponse<NodeRead> CreateNodeWithHttpInfo(NodeCreate node)
+        public PlerionApiClient.Client.ApiResponse<NodeRead> CreateNodeWithHttpInfo(NodeCreate nodeCreate)
         {
-            // verify the required parameter 'node' is set
-            if (node == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'node' when calling DefaultApi->CreateNode");
+            // verify the required parameter 'nodeCreate' is set
+            if (nodeCreate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'nodeCreate' when calling DefaultApi->CreateNode");
 
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -2594,7 +2595,7 @@ namespace PlerionApiClient.Api
             var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "node", node));
+            localVarRequestOptions.Data = nodeCreate;
 
 
             // make the HTTP request
@@ -2613,12 +2614,12 @@ namespace PlerionApiClient.Api
         /// CreateNode 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="node"></param>
+        /// <param name="nodeCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of NodeRead</returns>
-        public async System.Threading.Tasks.Task<NodeRead> CreateNodeAsync(NodeCreate node, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<NodeRead> CreateNodeAsync(NodeCreate nodeCreate, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlerionApiClient.Client.ApiResponse<NodeRead> localVarResponse = await CreateNodeWithHttpInfoAsync(node, cancellationToken).ConfigureAwait(false);
+            PlerionApiClient.Client.ApiResponse<NodeRead> localVarResponse = await CreateNodeWithHttpInfoAsync(nodeCreate, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -2626,19 +2627,20 @@ namespace PlerionApiClient.Api
         /// CreateNode 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="node"></param>
+        /// <param name="nodeCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (NodeRead)</returns>
-        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<NodeRead>> CreateNodeWithHttpInfoAsync(NodeCreate node, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<NodeRead>> CreateNodeWithHttpInfoAsync(NodeCreate nodeCreate, System.Threading.CancellationToken cancellationToken = default)
         {
-            // verify the required parameter 'node' is set
-            if (node == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'node' when calling DefaultApi->CreateNode");
+            // verify the required parameter 'nodeCreate' is set
+            if (nodeCreate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'nodeCreate' when calling DefaultApi->CreateNode");
 
 
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -2653,7 +2655,7 @@ namespace PlerionApiClient.Api
             var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "node", node));
+            localVarRequestOptions.Data = nodeCreate;
 
 
             // make the HTTP request

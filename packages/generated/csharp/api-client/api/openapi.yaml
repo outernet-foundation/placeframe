@@ -1354,17 +1354,12 @@ paths:
     post:
       deprecated: false
       operationId: create_node
-      parameters:
-      - allowEmptyValue: false
-        allowReserved: false
-        deprecated: false
-        explode: true
-        in: query
-        name: node
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NodeCreate"
         required: true
-        schema:
-          $ref: "#/components/schemas/NodeCreate"
-        style: form
       responses:
         "201":
           content:
@@ -2259,6 +2254,26 @@ components:
       title: NodeBatchUpdate
       type: object
     NodeCreate:
+      example:
+        rotation_x: 5.962133916683182
+        rotation_w: 2.3021358869347655
+        label_scale: 2.027123023002322
+        link: link
+        active: true
+        rotation_z: 0.8008281904610115
+        label_type: 7
+        rotation_y: 5.637376656633329
+        label: label
+        label_height: 3.616076749251911
+        label_width: 9.301444243932576
+        link_type: 4
+        position_x: 7.061401241503109
+        position_y: 6.027456183070403
+        layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        position_z: 1.4658129805029452
+        parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        name: name
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         id:
           format: uuid

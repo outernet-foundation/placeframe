@@ -3036,19 +3036,16 @@
         ],
         "summary": "CreateNode",
         "operationId": "create_node",
-        "parameters": [
-          {
-            "name": "node",
-            "in": "query",
-            "schema": {
-              "$ref": "#/components/schemas/NodeCreate"
-            },
-            "required": true,
-            "deprecated": false,
-            "allowEmptyValue": false,
-            "allowReserved": false
-          }
-        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NodeCreate"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": "Document created, URL follows",

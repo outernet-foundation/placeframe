@@ -1449,7 +1449,7 @@ class DefaultApi:
     @validate_call
     async def create_node(
         self,
-        node: NodeCreate,
+        node_create: NodeCreate,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1466,8 +1466,8 @@ class DefaultApi:
         """CreateNode
 
 
-        :param node: (required)
-        :type node: NodeCreate
+        :param node_create: (required)
+        :type node_create: NodeCreate
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1491,7 +1491,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._create_node_serialize(
-            node=node,
+            node_create=node_create,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1516,7 +1516,7 @@ class DefaultApi:
     @validate_call
     async def create_node_with_http_info(
         self,
-        node: NodeCreate,
+        node_create: NodeCreate,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1533,8 +1533,8 @@ class DefaultApi:
         """CreateNode
 
 
-        :param node: (required)
-        :type node: NodeCreate
+        :param node_create: (required)
+        :type node_create: NodeCreate
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1558,7 +1558,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._create_node_serialize(
-            node=node,
+            node_create=node_create,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1583,7 +1583,7 @@ class DefaultApi:
     @validate_call
     async def create_node_without_preload_content(
         self,
-        node: NodeCreate,
+        node_create: NodeCreate,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1600,8 +1600,8 @@ class DefaultApi:
         """CreateNode
 
 
-        :param node: (required)
-        :type node: NodeCreate
+        :param node_create: (required)
+        :type node_create: NodeCreate
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1625,7 +1625,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._create_node_serialize(
-            node=node,
+            node_create=node_create,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1645,7 +1645,7 @@ class DefaultApi:
 
     def _create_node_serialize(
         self,
-        node,
+        node_create,
         _request_auth,
         _content_type,
         _headers,
@@ -1668,13 +1668,11 @@ class DefaultApi:
 
         # process the path parameters
         # process the query parameters
-        if node is not None:
-            
-            _query_params.append(('node', node))
-            
         # process the header parameters
         # process the form parameters
         # process the body parameter
+        if node_create is not None:
+            _body_params = node_create
 
 
         # set the HTTP header `Accept`
@@ -1685,6 +1683,19 @@ class DefaultApi:
                 ]
             )
 
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
 
         # authentication setting
         _auth_settings: List[str] = [

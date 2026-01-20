@@ -22,8 +22,8 @@ from ..database import get_session
 
 
 @post("")
-async def create_node(session: AsyncSession, node: NodeCreate) -> NodeRead:
-    row = node_from_dto(node)
+async def create_node(session: AsyncSession, data: NodeCreate) -> NodeRead:
+    row = node_from_dto(data)
 
     session.add(row)
     await session.flush()
