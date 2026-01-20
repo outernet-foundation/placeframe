@@ -32,3 +32,6 @@ forward-unity-android-debug-port = "scripts.forward_unity_android_debug_port:mai
 list-debug-targets = "scripts.list_debug_targets:main"
 migrate-database = "scripts.migrate_database:main"
 deptry-check = "scripts.deptry_check:main"
+lock = "scripts.lock:main"
+up = "scripts.up:main"
+down = "scripts.down:main"

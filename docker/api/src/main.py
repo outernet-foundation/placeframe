@@ -18,6 +18,7 @@ from .routers.nodes import router as nodes_router
 from .routers.reconstructions import router as reconstructions_router
 from .settings import get_settings
 
+#####
 if environ.get("CODEGEN"):
     middleware: list[partial[AuthMiddleware]] = []
 

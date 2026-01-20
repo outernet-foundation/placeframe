@@ -16,6 +16,7 @@ images_lock_path = workspace_directory / "images.lock"
 infrastructure_directory = workspace_directory / "infrastructure"
 
 
+#
 class Image(TypedDict):
     stack: str
     first_party: bool
@@ -74,11 +75,6 @@ def lock(
     cache_type: str = CacheTypeOption,
     output_path: Optional[Path] = LockOutputPathOption,
 ):
-    if images is None and plan_path is None:
-        raise ValueError("Either '--images' or '--plan' must be provided")
-    if images is not None and plan_path is not None:
-        raise ValueError("Only one of '--images' or '--plan' may be provided")
-
     if plan_path:
         if not Path(plan_path).is_file():
             raise FileNotFoundError(f"{plan_path} not found")
@@ -90,7 +86,9 @@ def lock(
         if not images_path.is_file():
             raise FileNotFoundError(f"{images_path} not found")
 
-        assert images is not None
+        if images is None:
+            images = []
+
         images_lock, plan = create_plan(images)
 
     lock_images(images_lock, plan, cache_type, output_path)

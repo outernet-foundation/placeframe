@@ -15,6 +15,7 @@
     "bradymholt.pgformatter",
     "ckolkman.vscode-postgres",
     "pkief.material-icon-theme",
-    "csharpier.csharpier-vscode"
+    "csharpier.csharpier-vscode",
+    "sashabusinaro.yaml-compose-sorter"
   ]
 }

@@ -1,0 +1,135 @@
+# -----------------------------------------------------------------------------
+# BASE IMAGE DEFINITIONS (Metadata for lock.py)
+# -----------------------------------------------------------------------------
+x-base-images:
+  UV_BASE_DIGEST: "ghcr.io/astral-sh/uv:python3.13-bookworm-slim"
+  DOTNET_SDK_DIGEST: "mcr.microsoft.com/dotnet/sdk:8.0"
+  DOTNET_ASPNET_DIGEST: "mcr.microsoft.com/dotnet/aspnet:8.0"
+  GOLANG_DIGEST: "golang:1.22-alpine"
+  ALPINE_DIGEST: "alpine:3.20"
+  CADDY_DIGEST: "docker.io/library/caddy:2.8.4-alpine"
+  POSTGRES_BOOKWORM_DIGEST: "docker.io/library/postgres:16-bookworm"
+
+# -----------------------------------------------------------------------------
+# BUILD ARG INJECTION (Consumed by Docker Bake)
+# -----------------------------------------------------------------------------
+x-base-args: &base-args
+  UV_BASE_DIGEST: "${UV_BASE_DIGEST:-}"
+  DOTNET_SDK_DIGEST: "${DOTNET_SDK_DIGEST:-}"
+  DOTNET_ASPNET_DIGEST: "${DOTNET_ASPNET_DIGEST:-}"
+  GOLANG_DIGEST: "${GOLANG_DIGEST:-}"
+  ALPINE_DIGEST: "${ALPINE_DIGEST:-}"
+  CADDY_DIGEST: "${CADDY_DIGEST:-}"
+  POSTGRES_BOOKWORM_DIGEST: "${POSTGRES_BOOKWORM_DIGEST:-}"
+
+# -----------------------------------------------------------------------------
+# CACHE DEFINITIONS
+# -----------------------------------------------------------------------------
+x-cache-cuda: &cache-cuda
+  cache_from:
+    - type=registry,ref=ghcr.io/outernet-foundation/placeframe/build-cache:cuda
+  cache_to:
+    - type=registry,ref=ghcr.io/outernet-foundation/placeframe/build-cache:cuda,mode=max,image-manifest=true,oci-mediatypes=true
+
+x-cache-rocm: &cache-rocm
+  cache_from:
+    - type=registry,ref=ghcr.io/outernet-foundation/placeframe/build-cache:rocm
+  cache_to:
+    - type=registry,ref=ghcr.io/outernet-foundation/placeframe/build-cache:rocm,mode=max,image-manifest=true,oci-mediatypes=true
+
+# -----------------------------------------------------------------------------
+# SERVICES
+# -----------------------------------------------------------------------------
+services:
+  # --- BASE SERVICES ---
+  initialize-cloudbeaver:
+    build:
+      context: .
+      dockerfile: docker/cloudbeaver-initializer/Dockerfile
+      args: *base-args
+      tags: [ "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:latest" ]
+
+  create-database:
+    build:
+      context: .
+      dockerfile: docker/database-manager/Dockerfile
+      args: *base-args
+      tags: [ "ghcr.io/outernet-foundation/placeframe/database-manager:latest" ]
+
+  auth-initializer:
+    build:
+      context: .
+      dockerfile: docker/auth-initializer/Dockerfile
+      args: *base-args
+      tags: [ "ghcr.io/outernet-foundation/placeframe/auth-initializer:latest" ]
+
+  gateway:
+    build:
+      context: .
+      dockerfile: docker/gateway/Dockerfile
+      args: *base-args
+      tags: [ "ghcr.io/outernet-foundation/placeframe/gateway:latest" ]
+
+  migrate-database:
+    build:
+      context: .
+      dockerfile: docker/database-migrator/Dockerfile
+      args: *base-args
+      tags: [ "ghcr.io/outernet-foundation/placeframe/database-migrator:latest" ]
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+      target: dev
+      args: *base-args
+      tags: [ "ghcr.io/outernet-foundation/placeframe/api:latest" ]
+
+  state-sync:
+    build:
+      context: .
+      dockerfile: docker/state-sync/Dockerfile
+      args: *base-args
+      tags: [ "ghcr.io/outernet-foundation/placeframe/state-sync:latest" ]
+
+  # --- CUDA SERVICES ---
+  reconstructor-cuda:
+    build:
+      context: .
+      dockerfile: docker/reconstructor/Dockerfile
+      args:
+        <<: *base-args
+        TORCH_DEVICE: "cuda"
+      tags: [ "ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:latest" ]
+      <<: *cache-cuda
+
+  localizer-cuda:
+    build:
+      context: .
+      dockerfile: docker/localizer/Dockerfile
+      args:
+        <<: *base-args
+        TORCH_DEVICE: "cuda"
+      tags: [ "ghcr.io/outernet-foundation/placeframe/localizer-cuda:latest" ]
+      <<: *cache-cuda
+
+  # --- ROCM SERVICES ---
+  reconstructor-rocm:
+    build:
+      context: .
+      dockerfile: docker/reconstructor/Dockerfile
+      args:
+        <<: *base-args
+        TORCH_DEVICE: "rocm"
+      tags: [ "ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:latest" ]
+      <<: *cache-rocm
+
+  localizer-rocm:
+    build:
+      context: .
+      dockerfile: docker/localizer/Dockerfile
+      args:
+        <<: *base-args
+        TORCH_DEVICE: "rocm"
+      tags: [ "ghcr.io/outernet-foundation/placeframe/localizer-rocm:latest" ]
+      <<: *cache-rocm

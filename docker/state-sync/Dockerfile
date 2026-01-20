@@ -1,5 +1,9 @@
+ARG DOTNET_SDK_DIGEST
+ARG DOTNET_ASPNET_DIGEST
+
 # Stage 1: Build
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# We explicitly list the repo so the digest simply appends to it
+FROM mcr.microsoft.com/dotnet/sdk${DOTNET_SDK_DIGEST} AS build
 WORKDIR /src
 
 # Copy project files and local packages
@@ -18,7 +22,7 @@ WORKDIR "/src/legacy/Outernet.Server"
 RUN dotnet publish "Outernet.Server.csproj" -c Debug -o /app/publish /p:UseAppHost=false
 
 # Stage 2: Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet${DOTNET_ASPNET_DIGEST} AS final
 WORKDIR /app
 EXPOSE 8080
 
@@ -28,12 +32,12 @@ USER root
 RUN apt-get update \
     && apt-get install -y --no-install-recommends unzip curl \
     && rm -rf /var/lib/apt/lists/* \
-    && curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /app/vsdbg \
+    && curl -sSL https://aka.ms/getvsdbgsh | \
+    bash /dev/stdin -v latest -l /app/vsdbg \
     && chown -R app:app /app/vsdbg
 
 # Switch to the non-root user for execution
 USER app
 COPY --from=build /app/publish .
-
 # The binary name must match your project output
 ENTRYPOINT ["dotnet", "Outernet.Server.dll"]

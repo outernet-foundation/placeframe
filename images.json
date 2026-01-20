@@ -8,7 +8,10 @@
       "docker/api",
       "packages/python/common",
       "packages/generated/python/datamodels"
-    ]
+    ],
+    "build_args": {
+      "UV_BASE_DIGEST": "@sha256:b6617231e5b985e887de048bf9100dfb66554d8b3ab07582d852aa59cc932825"
+    }
   },
   "cloudbeaver-initializer": {
     "stack": "core",
@@ -22,7 +25,10 @@
     "first_party": true,
     "context": ".",
     "dockerfile": "docker/database-manager/Dockerfile",
-    "hash_paths": ["docker/database-manager", "packages/python/common"]
+    "hash_paths": ["docker/database-manager", "packages/python/common"],
+    "build_args": {
+      "UV_BASE_DIGEST": "@sha256:b6617231e5b985e887de048bf9100dfb66554d8b3ab07582d852aa59cc932825"
+    }
   },
   "database-migrator": {
     "stack": "core",
@@ -47,11 +53,11 @@
       "docker/localizer",
       "packages/python/common",
       "packages/python/core",
-      "packages/python/neural-networks",
-      "packages/python/torch-meta"
+      "packages/python/neural-networks"
     ],
     "build_args": {
-      "TORCH_DEVICE": "cuda"
+      "TORCH_DEVICE": "cuda",
+      "UV_BASE_DIGEST": "@sha256:b6617231e5b985e887de048bf9100dfb66554d8b3ab07582d852aa59cc932825"
     }
   },
   "localizer-rocm": {
@@ -63,23 +69,12 @@
       "docker/localizer",
       "packages/python/common",
       "packages/python/core",
-      "packages/python/neural-networks",
-      "packages/python/torch-meta"
+      "packages/python/neural-networks"
     ],
     "build_args": {
-      "TORCH_DEVICE": "rocm"
+      "TORCH_DEVICE": "rocm",
+      "UV_BASE_DIGEST": "@sha256:b6617231e5b985e887de048bf9100dfb66554d8b3ab07582d852aa59cc932825"
     }
-  },
-  "orchestrator": {
-    "stack": "core",
-    "first_party": true,
-    "context": ".",
-    "dockerfile": "docker/orchestrator/Dockerfile",
-    "hash_paths": [
-      "docker/orchestrator",
-      "packages/python/common",
-      "packages/generated/python/datamodels"
-    ]
   },
   "reconstructor-cuda": {
     "stack": "core",
@@ -90,11 +85,11 @@
       "docker/reconstructor",
       "packages/python/common",
       "packages/python/core",
-      "packages/python/neural-networks",
-      "packages/python/torch-meta"
+      "packages/python/neural-networks"
     ],
     "build_args": {
-      "TORCH_DEVICE": "cuda"
+      "TORCH_DEVICE": "cuda",
+      "UV_BASE_DIGEST": "@sha256:b6617231e5b985e887de048bf9100dfb66554d8b3ab07582d852aa59cc932825"
     }
   },
   "reconstructor-rocm": {
@@ -106,11 +101,11 @@
       "docker/reconstructor",
       "packages/python/common",
       "packages/python/core",
-      "packages/python/neural-networks",
-      "packages/python/torch-meta"
+      "packages/python/neural-networks"
     ],
     "build_args": {
-      "TORCH_DEVICE": "rocm"
+      "TORCH_DEVICE": "rocm",
+      "UV_BASE_DIGEST": "@sha256:b6617231e5b985e887de048bf9100dfb66554d8b3ab07582d852aa59cc932825"
     }
   }
 }
