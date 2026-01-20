@@ -60,10 +60,10 @@ async def get_nodes(
 
 @patch("")
 async def update_nodes(
-    session: AsyncSession, nodes: list[NodeBatchUpdate], allow_missing: bool = False
+    session: AsyncSession, data: list[NodeBatchUpdate], allow_missing: bool = False
 ) -> list[NodeRead]:
     rows: list[Node] = []
-    for node in nodes:
+    for node in data:
         row = await session.get(Node, node.id)
         if not row:
             if not allow_missing:

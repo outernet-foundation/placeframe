@@ -630,7 +630,7 @@ class DefaultApi:
     @validate_call
     async def create_group(
         self,
-        group: GroupCreate,
+        group_create: GroupCreate,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -647,8 +647,8 @@ class DefaultApi:
         """CreateGroup
 
 
-        :param group: (required)
-        :type group: GroupCreate
+        :param group_create: (required)
+        :type group_create: GroupCreate
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -672,7 +672,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._create_group_serialize(
-            group=group,
+            group_create=group_create,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -697,7 +697,7 @@ class DefaultApi:
     @validate_call
     async def create_group_with_http_info(
         self,
-        group: GroupCreate,
+        group_create: GroupCreate,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -714,8 +714,8 @@ class DefaultApi:
         """CreateGroup
 
 
-        :param group: (required)
-        :type group: GroupCreate
+        :param group_create: (required)
+        :type group_create: GroupCreate
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -739,7 +739,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._create_group_serialize(
-            group=group,
+            group_create=group_create,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -764,7 +764,7 @@ class DefaultApi:
     @validate_call
     async def create_group_without_preload_content(
         self,
-        group: GroupCreate,
+        group_create: GroupCreate,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -781,8 +781,8 @@ class DefaultApi:
         """CreateGroup
 
 
-        :param group: (required)
-        :type group: GroupCreate
+        :param group_create: (required)
+        :type group_create: GroupCreate
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -806,7 +806,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._create_group_serialize(
-            group=group,
+            group_create=group_create,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -826,7 +826,7 @@ class DefaultApi:
 
     def _create_group_serialize(
         self,
-        group,
+        group_create,
         _request_auth,
         _content_type,
         _headers,
@@ -849,13 +849,11 @@ class DefaultApi:
 
         # process the path parameters
         # process the query parameters
-        if group is not None:
-            
-            _query_params.append(('group', group))
-            
         # process the header parameters
         # process the form parameters
         # process the body parameter
+        if group_create is not None:
+            _body_params = group_create
 
 
         # set the HTTP header `Accept`
@@ -866,6 +864,19 @@ class DefaultApi:
                 ]
             )
 
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -892,7 +903,7 @@ class DefaultApi:
     @validate_call
     async def create_layer(
         self,
-        layer: LayerCreate,
+        layer_create: LayerCreate,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -909,8 +920,8 @@ class DefaultApi:
         """CreateLayer
 
 
-        :param layer: (required)
-        :type layer: LayerCreate
+        :param layer_create: (required)
+        :type layer_create: LayerCreate
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -934,7 +945,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._create_layer_serialize(
-            layer=layer,
+            layer_create=layer_create,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -959,7 +970,7 @@ class DefaultApi:
     @validate_call
     async def create_layer_with_http_info(
         self,
-        layer: LayerCreate,
+        layer_create: LayerCreate,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -976,8 +987,8 @@ class DefaultApi:
         """CreateLayer
 
 
-        :param layer: (required)
-        :type layer: LayerCreate
+        :param layer_create: (required)
+        :type layer_create: LayerCreate
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1001,7 +1012,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._create_layer_serialize(
-            layer=layer,
+            layer_create=layer_create,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1026,7 +1037,7 @@ class DefaultApi:
     @validate_call
     async def create_layer_without_preload_content(
         self,
-        layer: LayerCreate,
+        layer_create: LayerCreate,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -1043,8 +1054,8 @@ class DefaultApi:
         """CreateLayer
 
 
-        :param layer: (required)
-        :type layer: LayerCreate
+        :param layer_create: (required)
+        :type layer_create: LayerCreate
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -1068,7 +1079,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._create_layer_serialize(
-            layer=layer,
+            layer_create=layer_create,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -1088,7 +1099,7 @@ class DefaultApi:
 
     def _create_layer_serialize(
         self,
-        layer,
+        layer_create,
         _request_auth,
         _content_type,
         _headers,
@@ -1111,13 +1122,11 @@ class DefaultApi:
 
         # process the path parameters
         # process the query parameters
-        if layer is not None:
-            
-            _query_params.append(('layer', layer))
-            
         # process the header parameters
         # process the form parameters
         # process the body parameter
+        if layer_create is not None:
+            _body_params = layer_create
 
 
         # set the HTTP header `Accept`
@@ -1128,6 +1137,19 @@ class DefaultApi:
                 ]
             )
 
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -9218,7 +9240,7 @@ class DefaultApi:
     @validate_call
     async def update_groups(
         self,
-        groups: List[GroupBatchUpdate],
+        group_batch_update: List[GroupBatchUpdate],
         allow_missing: Optional[StrictBool] = None,
         _request_timeout: Union[
             None,
@@ -9236,8 +9258,8 @@ class DefaultApi:
         """UpdateGroups
 
 
-        :param groups: (required)
-        :type groups: List[GroupBatchUpdate]
+        :param group_batch_update: (required)
+        :type group_batch_update: List[GroupBatchUpdate]
         :param allow_missing:
         :type allow_missing: bool
         :param _request_timeout: timeout setting for this request. If one
@@ -9263,7 +9285,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._update_groups_serialize(
-            groups=groups,
+            group_batch_update=group_batch_update,
             allow_missing=allow_missing,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -9289,7 +9311,7 @@ class DefaultApi:
     @validate_call
     async def update_groups_with_http_info(
         self,
-        groups: List[GroupBatchUpdate],
+        group_batch_update: List[GroupBatchUpdate],
         allow_missing: Optional[StrictBool] = None,
         _request_timeout: Union[
             None,
@@ -9307,8 +9329,8 @@ class DefaultApi:
         """UpdateGroups
 
 
-        :param groups: (required)
-        :type groups: List[GroupBatchUpdate]
+        :param group_batch_update: (required)
+        :type group_batch_update: List[GroupBatchUpdate]
         :param allow_missing:
         :type allow_missing: bool
         :param _request_timeout: timeout setting for this request. If one
@@ -9334,7 +9356,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._update_groups_serialize(
-            groups=groups,
+            group_batch_update=group_batch_update,
             allow_missing=allow_missing,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -9360,7 +9382,7 @@ class DefaultApi:
     @validate_call
     async def update_groups_without_preload_content(
         self,
-        groups: List[GroupBatchUpdate],
+        group_batch_update: List[GroupBatchUpdate],
         allow_missing: Optional[StrictBool] = None,
         _request_timeout: Union[
             None,
@@ -9378,8 +9400,8 @@ class DefaultApi:
         """UpdateGroups
 
 
-        :param groups: (required)
-        :type groups: List[GroupBatchUpdate]
+        :param group_batch_update: (required)
+        :type group_batch_update: List[GroupBatchUpdate]
         :param allow_missing:
         :type allow_missing: bool
         :param _request_timeout: timeout setting for this request. If one
@@ -9405,7 +9427,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._update_groups_serialize(
-            groups=groups,
+            group_batch_update=group_batch_update,
             allow_missing=allow_missing,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -9426,7 +9448,7 @@ class DefaultApi:
 
     def _update_groups_serialize(
         self,
-        groups,
+        group_batch_update,
         allow_missing,
         _request_auth,
         _content_type,
@@ -9437,7 +9459,7 @@ class DefaultApi:
         _host = None
 
         _collection_formats: Dict[str, str] = {
-            'groups': 'multi',
+            'GroupBatchUpdate': '',
         }
 
         _path_params: Dict[str, str] = {}
@@ -9451,10 +9473,6 @@ class DefaultApi:
 
         # process the path parameters
         # process the query parameters
-        if groups is not None:
-            
-            _query_params.append(('groups', groups))
-            
         if allow_missing is not None:
             
             _query_params.append(('allow_missing', allow_missing))
@@ -9462,6 +9480,8 @@ class DefaultApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
+        if group_batch_update is not None:
+            _body_params = group_batch_update
 
 
         # set the HTTP header `Accept`
@@ -9472,6 +9492,19 @@ class DefaultApi:
                 ]
             )
 
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -9498,7 +9531,7 @@ class DefaultApi:
     @validate_call
     async def update_layers(
         self,
-        layers: List[LayerBatchUpdate],
+        layer_batch_update: List[LayerBatchUpdate],
         allow_missing: Optional[StrictBool] = None,
         _request_timeout: Union[
             None,
@@ -9516,8 +9549,8 @@ class DefaultApi:
         """UpdateLayers
 
 
-        :param layers: (required)
-        :type layers: List[LayerBatchUpdate]
+        :param layer_batch_update: (required)
+        :type layer_batch_update: List[LayerBatchUpdate]
         :param allow_missing:
         :type allow_missing: bool
         :param _request_timeout: timeout setting for this request. If one
@@ -9543,7 +9576,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._update_layers_serialize(
-            layers=layers,
+            layer_batch_update=layer_batch_update,
             allow_missing=allow_missing,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -9569,7 +9602,7 @@ class DefaultApi:
     @validate_call
     async def update_layers_with_http_info(
         self,
-        layers: List[LayerBatchUpdate],
+        layer_batch_update: List[LayerBatchUpdate],
         allow_missing: Optional[StrictBool] = None,
         _request_timeout: Union[
             None,
@@ -9587,8 +9620,8 @@ class DefaultApi:
         """UpdateLayers
 
 
-        :param layers: (required)
-        :type layers: List[LayerBatchUpdate]
+        :param layer_batch_update: (required)
+        :type layer_batch_update: List[LayerBatchUpdate]
         :param allow_missing:
         :type allow_missing: bool
         :param _request_timeout: timeout setting for this request. If one
@@ -9614,7 +9647,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._update_layers_serialize(
-            layers=layers,
+            layer_batch_update=layer_batch_update,
             allow_missing=allow_missing,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -9640,7 +9673,7 @@ class DefaultApi:
     @validate_call
     async def update_layers_without_preload_content(
         self,
-        layers: List[LayerBatchUpdate],
+        layer_batch_update: List[LayerBatchUpdate],
         allow_missing: Optional[StrictBool] = None,
         _request_timeout: Union[
             None,
@@ -9658,8 +9691,8 @@ class DefaultApi:
         """UpdateLayers
 
 
-        :param layers: (required)
-        :type layers: List[LayerBatchUpdate]
+        :param layer_batch_update: (required)
+        :type layer_batch_update: List[LayerBatchUpdate]
         :param allow_missing:
         :type allow_missing: bool
         :param _request_timeout: timeout setting for this request. If one
@@ -9685,7 +9718,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._update_layers_serialize(
-            layers=layers,
+            layer_batch_update=layer_batch_update,
             allow_missing=allow_missing,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -9706,7 +9739,7 @@ class DefaultApi:
 
     def _update_layers_serialize(
         self,
-        layers,
+        layer_batch_update,
         allow_missing,
         _request_auth,
         _content_type,
@@ -9717,7 +9750,7 @@ class DefaultApi:
         _host = None
 
         _collection_formats: Dict[str, str] = {
-            'layers': 'multi',
+            'LayerBatchUpdate': '',
         }
 
         _path_params: Dict[str, str] = {}
@@ -9731,10 +9764,6 @@ class DefaultApi:
 
         # process the path parameters
         # process the query parameters
-        if layers is not None:
-            
-            _query_params.append(('layers', layers))
-            
         if allow_missing is not None:
             
             _query_params.append(('allow_missing', allow_missing))
@@ -9742,6 +9771,8 @@ class DefaultApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
+        if layer_batch_update is not None:
+            _body_params = layer_batch_update
 
 
         # set the HTTP header `Accept`
@@ -9752,6 +9783,19 @@ class DefaultApi:
                 ]
             )
 
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -10357,7 +10401,7 @@ class DefaultApi:
     @validate_call
     async def update_nodes(
         self,
-        nodes: List[NodeBatchUpdate],
+        node_batch_update: List[NodeBatchUpdate],
         allow_missing: Optional[StrictBool] = None,
         _request_timeout: Union[
             None,
@@ -10375,8 +10419,8 @@ class DefaultApi:
         """UpdateNodes
 
 
-        :param nodes: (required)
-        :type nodes: List[NodeBatchUpdate]
+        :param node_batch_update: (required)
+        :type node_batch_update: List[NodeBatchUpdate]
         :param allow_missing:
         :type allow_missing: bool
         :param _request_timeout: timeout setting for this request. If one
@@ -10402,7 +10446,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._update_nodes_serialize(
-            nodes=nodes,
+            node_batch_update=node_batch_update,
             allow_missing=allow_missing,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -10428,7 +10472,7 @@ class DefaultApi:
     @validate_call
     async def update_nodes_with_http_info(
         self,
-        nodes: List[NodeBatchUpdate],
+        node_batch_update: List[NodeBatchUpdate],
         allow_missing: Optional[StrictBool] = None,
         _request_timeout: Union[
             None,
@@ -10446,8 +10490,8 @@ class DefaultApi:
         """UpdateNodes
 
 
-        :param nodes: (required)
-        :type nodes: List[NodeBatchUpdate]
+        :param node_batch_update: (required)
+        :type node_batch_update: List[NodeBatchUpdate]
         :param allow_missing:
         :type allow_missing: bool
         :param _request_timeout: timeout setting for this request. If one
@@ -10473,7 +10517,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._update_nodes_serialize(
-            nodes=nodes,
+            node_batch_update=node_batch_update,
             allow_missing=allow_missing,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -10499,7 +10543,7 @@ class DefaultApi:
     @validate_call
     async def update_nodes_without_preload_content(
         self,
-        nodes: List[NodeBatchUpdate],
+        node_batch_update: List[NodeBatchUpdate],
         allow_missing: Optional[StrictBool] = None,
         _request_timeout: Union[
             None,
@@ -10517,8 +10561,8 @@ class DefaultApi:
         """UpdateNodes
 
 
-        :param nodes: (required)
-        :type nodes: List[NodeBatchUpdate]
+        :param node_batch_update: (required)
+        :type node_batch_update: List[NodeBatchUpdate]
         :param allow_missing:
         :type allow_missing: bool
         :param _request_timeout: timeout setting for this request. If one
@@ -10544,7 +10588,7 @@ class DefaultApi:
         """ # noqa: E501
 
         _param = self._update_nodes_serialize(
-            nodes=nodes,
+            node_batch_update=node_batch_update,
             allow_missing=allow_missing,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -10565,7 +10609,7 @@ class DefaultApi:
 
     def _update_nodes_serialize(
         self,
-        nodes,
+        node_batch_update,
         allow_missing,
         _request_auth,
         _content_type,
@@ -10576,7 +10620,7 @@ class DefaultApi:
         _host = None
 
         _collection_formats: Dict[str, str] = {
-            'nodes': 'multi',
+            'NodeBatchUpdate': '',
         }
 
         _path_params: Dict[str, str] = {}
@@ -10590,10 +10634,6 @@ class DefaultApi:
 
         # process the path parameters
         # process the query parameters
-        if nodes is not None:
-            
-            _query_params.append(('nodes', nodes))
-            
         if allow_missing is not None:
             
             _query_params.append(('allow_missing', allow_missing))
@@ -10601,6 +10641,8 @@ class DefaultApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
+        if node_batch_update is not None:
+            _body_params = node_batch_update
 
 
         # set the HTTP header `Accept`
@@ -10611,6 +10653,19 @@ class DefaultApi:
                 ]
             )
 
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
 
         # authentication setting
         _auth_settings: List[str] = [

@@ -69,9 +69,9 @@ namespace PlerionApiClient.Api
         /// CreateGroup
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="group"></param>
+        /// <param name="groupCreate"></param>
         /// <returns>GroupRead</returns>
-        GroupRead CreateGroup(GroupCreate group);
+        GroupRead CreateGroup(GroupCreate groupCreate);
 
         /// <summary>
         /// CreateGroup
@@ -80,16 +80,16 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="group"></param>
+        /// <param name="groupCreate"></param>
         /// <returns>ApiResponse of GroupRead</returns>
-        ApiResponse<GroupRead> CreateGroupWithHttpInfo(GroupCreate group);
+        ApiResponse<GroupRead> CreateGroupWithHttpInfo(GroupCreate groupCreate);
         /// <summary>
         /// CreateLayer
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layer"></param>
+        /// <param name="layerCreate"></param>
         /// <returns>LayerRead</returns>
-        LayerRead CreateLayer(LayerCreate layer);
+        LayerRead CreateLayer(LayerCreate layerCreate);
 
         /// <summary>
         /// CreateLayer
@@ -98,9 +98,9 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layer"></param>
+        /// <param name="layerCreate"></param>
         /// <returns>ApiResponse of LayerRead</returns>
-        ApiResponse<LayerRead> CreateLayerWithHttpInfo(LayerCreate layer);
+        ApiResponse<LayerRead> CreateLayerWithHttpInfo(LayerCreate layerCreate);
         /// <summary>
         /// CreateLocalizationMap
         /// </summary>
@@ -665,10 +665,10 @@ namespace PlerionApiClient.Api
         /// UpdateGroups
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="groups"></param>
+        /// <param name="groupBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <returns>List&lt;GroupRead&gt;</returns>
-        List<GroupRead> UpdateGroups(List<GroupBatchUpdate> groups, bool? allowMissing = default);
+        List<GroupRead> UpdateGroups(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default);
 
         /// <summary>
         /// UpdateGroups
@@ -677,18 +677,18 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="groups"></param>
+        /// <param name="groupBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <returns>ApiResponse of List&lt;GroupRead&gt;</returns>
-        ApiResponse<List<GroupRead>> UpdateGroupsWithHttpInfo(List<GroupBatchUpdate> groups, bool? allowMissing = default);
+        ApiResponse<List<GroupRead>> UpdateGroupsWithHttpInfo(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default);
         /// <summary>
         /// UpdateLayers
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layers"></param>
+        /// <param name="layerBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <returns>List&lt;LayerRead&gt;</returns>
-        List<LayerRead> UpdateLayers(List<LayerBatchUpdate> layers, bool? allowMissing = default);
+        List<LayerRead> UpdateLayers(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default);
 
         /// <summary>
         /// UpdateLayers
@@ -697,10 +697,10 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layers"></param>
+        /// <param name="layerBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <returns>ApiResponse of List&lt;LayerRead&gt;</returns>
-        ApiResponse<List<LayerRead>> UpdateLayersWithHttpInfo(List<LayerBatchUpdate> layers, bool? allowMissing = default);
+        ApiResponse<List<LayerRead>> UpdateLayersWithHttpInfo(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default);
         /// <summary>
         /// UpdateLocalizationMap
         /// </summary>
@@ -745,10 +745,10 @@ namespace PlerionApiClient.Api
         /// UpdateNodes
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="nodes"></param>
+        /// <param name="nodeBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <returns>List&lt;NodeRead&gt;</returns>
-        List<NodeRead> UpdateNodes(List<NodeBatchUpdate> nodes, bool? allowMissing = default);
+        List<NodeRead> UpdateNodes(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default);
 
         /// <summary>
         /// UpdateNodes
@@ -757,10 +757,10 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="nodes"></param>
+        /// <param name="nodeBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <returns>ApiResponse of List&lt;NodeRead&gt;</returns>
-        ApiResponse<List<NodeRead>> UpdateNodesWithHttpInfo(List<NodeBatchUpdate> nodes, bool? allowMissing = default);
+        ApiResponse<List<NodeRead>> UpdateNodesWithHttpInfo(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default);
         /// <summary>
         /// UploadCaptureSessionTar
         /// </summary>
@@ -845,10 +845,10 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="group"></param>
+        /// <param name="groupCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of GroupRead</returns>
-        System.Threading.Tasks.Task<GroupRead> CreateGroupAsync(GroupCreate group, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<GroupRead> CreateGroupAsync(GroupCreate groupCreate, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// CreateGroup
@@ -857,10 +857,10 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="group"></param>
+        /// <param name="groupCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (GroupRead)</returns>
-        System.Threading.Tasks.Task<ApiResponse<GroupRead>> CreateGroupWithHttpInfoAsync(GroupCreate group, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<GroupRead>> CreateGroupWithHttpInfoAsync(GroupCreate groupCreate, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateLayer
         /// </summary>
@@ -868,10 +868,10 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layer"></param>
+        /// <param name="layerCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of LayerRead</returns>
-        System.Threading.Tasks.Task<LayerRead> CreateLayerAsync(LayerCreate layer, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<LayerRead> CreateLayerAsync(LayerCreate layerCreate, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// CreateLayer
@@ -880,10 +880,10 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layer"></param>
+        /// <param name="layerCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (LayerRead)</returns>
-        System.Threading.Tasks.Task<ApiResponse<LayerRead>> CreateLayerWithHttpInfoAsync(LayerCreate layer, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<LayerRead>> CreateLayerWithHttpInfoAsync(LayerCreate layerCreate, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateLocalizationMap
         /// </summary>
@@ -1601,11 +1601,11 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="groups"></param>
+        /// <param name="groupBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;GroupRead&gt;</returns>
-        System.Threading.Tasks.Task<List<GroupRead>> UpdateGroupsAsync(List<GroupBatchUpdate> groups, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<List<GroupRead>> UpdateGroupsAsync(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// UpdateGroups
@@ -1614,11 +1614,11 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="groups"></param>
+        /// <param name="groupBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;GroupRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<GroupRead>>> UpdateGroupsWithHttpInfoAsync(List<GroupBatchUpdate> groups, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<List<GroupRead>>> UpdateGroupsWithHttpInfoAsync(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UpdateLayers
         /// </summary>
@@ -1626,11 +1626,11 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layers"></param>
+        /// <param name="layerBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;LayerRead&gt;</returns>
-        System.Threading.Tasks.Task<List<LayerRead>> UpdateLayersAsync(List<LayerBatchUpdate> layers, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<List<LayerRead>> UpdateLayersAsync(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// UpdateLayers
@@ -1639,11 +1639,11 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layers"></param>
+        /// <param name="layerBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;LayerRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<LayerRead>>> UpdateLayersWithHttpInfoAsync(List<LayerBatchUpdate> layers, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<List<LayerRead>>> UpdateLayersWithHttpInfoAsync(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UpdateLocalizationMap
         /// </summary>
@@ -1701,11 +1701,11 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="nodes"></param>
+        /// <param name="nodeBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;NodeRead&gt;</returns>
-        System.Threading.Tasks.Task<List<NodeRead>> UpdateNodesAsync(List<NodeBatchUpdate> nodes, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<List<NodeRead>> UpdateNodesAsync(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// UpdateNodes
@@ -1714,11 +1714,11 @@ namespace PlerionApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="nodes"></param>
+        /// <param name="nodeBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;NodeRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<NodeRead>>> UpdateNodesWithHttpInfoAsync(List<NodeBatchUpdate> nodes, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<List<NodeRead>>> UpdateNodesWithHttpInfoAsync(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UploadCaptureSessionTar
         /// </summary>
@@ -2207,11 +2207,11 @@ namespace PlerionApiClient.Api
         /// CreateGroup 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="group"></param>
+        /// <param name="groupCreate"></param>
         /// <returns>GroupRead</returns>
-        public GroupRead CreateGroup(GroupCreate group)
+        public GroupRead CreateGroup(GroupCreate groupCreate)
         {
-            PlerionApiClient.Client.ApiResponse<GroupRead> localVarResponse = CreateGroupWithHttpInfo(group);
+            PlerionApiClient.Client.ApiResponse<GroupRead> localVarResponse = CreateGroupWithHttpInfo(groupCreate);
             return localVarResponse.Data;
         }
 
@@ -2219,17 +2219,18 @@ namespace PlerionApiClient.Api
         /// CreateGroup 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="group"></param>
+        /// <param name="groupCreate"></param>
         /// <returns>ApiResponse of GroupRead</returns>
-        public PlerionApiClient.Client.ApiResponse<GroupRead> CreateGroupWithHttpInfo(GroupCreate group)
+        public PlerionApiClient.Client.ApiResponse<GroupRead> CreateGroupWithHttpInfo(GroupCreate groupCreate)
         {
-            // verify the required parameter 'group' is set
-            if (group == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'group' when calling DefaultApi->CreateGroup");
+            // verify the required parameter 'groupCreate' is set
+            if (groupCreate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'groupCreate' when calling DefaultApi->CreateGroup");
 
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -2243,7 +2244,7 @@ namespace PlerionApiClient.Api
             var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "group", group));
+            localVarRequestOptions.Data = groupCreate;
 
 
             // make the HTTP request
@@ -2262,12 +2263,12 @@ namespace PlerionApiClient.Api
         /// CreateGroup 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="group"></param>
+        /// <param name="groupCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of GroupRead</returns>
-        public async System.Threading.Tasks.Task<GroupRead> CreateGroupAsync(GroupCreate group, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<GroupRead> CreateGroupAsync(GroupCreate groupCreate, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlerionApiClient.Client.ApiResponse<GroupRead> localVarResponse = await CreateGroupWithHttpInfoAsync(group, cancellationToken).ConfigureAwait(false);
+            PlerionApiClient.Client.ApiResponse<GroupRead> localVarResponse = await CreateGroupWithHttpInfoAsync(groupCreate, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -2275,19 +2276,20 @@ namespace PlerionApiClient.Api
         /// CreateGroup 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="group"></param>
+        /// <param name="groupCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (GroupRead)</returns>
-        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<GroupRead>> CreateGroupWithHttpInfoAsync(GroupCreate group, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<GroupRead>> CreateGroupWithHttpInfoAsync(GroupCreate groupCreate, System.Threading.CancellationToken cancellationToken = default)
         {
-            // verify the required parameter 'group' is set
-            if (group == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'group' when calling DefaultApi->CreateGroup");
+            // verify the required parameter 'groupCreate' is set
+            if (groupCreate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'groupCreate' when calling DefaultApi->CreateGroup");
 
 
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -2302,7 +2304,7 @@ namespace PlerionApiClient.Api
             var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "group", group));
+            localVarRequestOptions.Data = groupCreate;
 
 
             // make the HTTP request
@@ -2322,11 +2324,11 @@ namespace PlerionApiClient.Api
         /// CreateLayer 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layer"></param>
+        /// <param name="layerCreate"></param>
         /// <returns>LayerRead</returns>
-        public LayerRead CreateLayer(LayerCreate layer)
+        public LayerRead CreateLayer(LayerCreate layerCreate)
         {
-            PlerionApiClient.Client.ApiResponse<LayerRead> localVarResponse = CreateLayerWithHttpInfo(layer);
+            PlerionApiClient.Client.ApiResponse<LayerRead> localVarResponse = CreateLayerWithHttpInfo(layerCreate);
             return localVarResponse.Data;
         }
 
@@ -2334,17 +2336,18 @@ namespace PlerionApiClient.Api
         /// CreateLayer 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layer"></param>
+        /// <param name="layerCreate"></param>
         /// <returns>ApiResponse of LayerRead</returns>
-        public PlerionApiClient.Client.ApiResponse<LayerRead> CreateLayerWithHttpInfo(LayerCreate layer)
+        public PlerionApiClient.Client.ApiResponse<LayerRead> CreateLayerWithHttpInfo(LayerCreate layerCreate)
         {
-            // verify the required parameter 'layer' is set
-            if (layer == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'layer' when calling DefaultApi->CreateLayer");
+            // verify the required parameter 'layerCreate' is set
+            if (layerCreate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'layerCreate' when calling DefaultApi->CreateLayer");
 
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -2358,7 +2361,7 @@ namespace PlerionApiClient.Api
             var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "layer", layer));
+            localVarRequestOptions.Data = layerCreate;
 
 
             // make the HTTP request
@@ -2377,12 +2380,12 @@ namespace PlerionApiClient.Api
         /// CreateLayer 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layer"></param>
+        /// <param name="layerCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of LayerRead</returns>
-        public async System.Threading.Tasks.Task<LayerRead> CreateLayerAsync(LayerCreate layer, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<LayerRead> CreateLayerAsync(LayerCreate layerCreate, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlerionApiClient.Client.ApiResponse<LayerRead> localVarResponse = await CreateLayerWithHttpInfoAsync(layer, cancellationToken).ConfigureAwait(false);
+            PlerionApiClient.Client.ApiResponse<LayerRead> localVarResponse = await CreateLayerWithHttpInfoAsync(layerCreate, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -2390,19 +2393,20 @@ namespace PlerionApiClient.Api
         /// CreateLayer 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layer"></param>
+        /// <param name="layerCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (LayerRead)</returns>
-        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<LayerRead>> CreateLayerWithHttpInfoAsync(LayerCreate layer, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<LayerRead>> CreateLayerWithHttpInfoAsync(LayerCreate layerCreate, System.Threading.CancellationToken cancellationToken = default)
         {
-            // verify the required parameter 'layer' is set
-            if (layer == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'layer' when calling DefaultApi->CreateLayer");
+            // verify the required parameter 'layerCreate' is set
+            if (layerCreate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'layerCreate' when calling DefaultApi->CreateLayer");
 
 
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -2417,7 +2421,7 @@ namespace PlerionApiClient.Api
             var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "layer", layer));
+            localVarRequestOptions.Data = layerCreate;
 
 
             // make the HTTP request
@@ -5897,12 +5901,12 @@ namespace PlerionApiClient.Api
         /// UpdateGroups 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="groups"></param>
+        /// <param name="groupBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <returns>List&lt;GroupRead&gt;</returns>
-        public List<GroupRead> UpdateGroups(List<GroupBatchUpdate> groups, bool? allowMissing = default)
+        public List<GroupRead> UpdateGroups(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default)
         {
-            PlerionApiClient.Client.ApiResponse<List<GroupRead>> localVarResponse = UpdateGroupsWithHttpInfo(groups, allowMissing);
+            PlerionApiClient.Client.ApiResponse<List<GroupRead>> localVarResponse = UpdateGroupsWithHttpInfo(groupBatchUpdate, allowMissing);
             return localVarResponse.Data;
         }
 
@@ -5910,18 +5914,19 @@ namespace PlerionApiClient.Api
         /// UpdateGroups 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="groups"></param>
+        /// <param name="groupBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <returns>ApiResponse of List&lt;GroupRead&gt;</returns>
-        public PlerionApiClient.Client.ApiResponse<List<GroupRead>> UpdateGroupsWithHttpInfo(List<GroupBatchUpdate> groups, bool? allowMissing = default)
+        public PlerionApiClient.Client.ApiResponse<List<GroupRead>> UpdateGroupsWithHttpInfo(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default)
         {
-            // verify the required parameter 'groups' is set
-            if (groups == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'groups' when calling DefaultApi->UpdateGroups");
+            // verify the required parameter 'groupBatchUpdate' is set
+            if (groupBatchUpdate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'groupBatchUpdate' when calling DefaultApi->UpdateGroups");
 
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -5935,11 +5940,11 @@ namespace PlerionApiClient.Api
             var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("multi", "groups", groups));
             if (allowMissing != null)
             {
                 localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "allow_missing", allowMissing));
             }
+            localVarRequestOptions.Data = groupBatchUpdate;
 
 
             // make the HTTP request
@@ -5958,13 +5963,13 @@ namespace PlerionApiClient.Api
         /// UpdateGroups 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="groups"></param>
+        /// <param name="groupBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;GroupRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<GroupRead>> UpdateGroupsAsync(List<GroupBatchUpdate> groups, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<List<GroupRead>> UpdateGroupsAsync(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlerionApiClient.Client.ApiResponse<List<GroupRead>> localVarResponse = await UpdateGroupsWithHttpInfoAsync(groups, allowMissing, cancellationToken).ConfigureAwait(false);
+            PlerionApiClient.Client.ApiResponse<List<GroupRead>> localVarResponse = await UpdateGroupsWithHttpInfoAsync(groupBatchUpdate, allowMissing, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -5972,20 +5977,21 @@ namespace PlerionApiClient.Api
         /// UpdateGroups 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="groups"></param>
+        /// <param name="groupBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;GroupRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<List<GroupRead>>> UpdateGroupsWithHttpInfoAsync(List<GroupBatchUpdate> groups, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<List<GroupRead>>> UpdateGroupsWithHttpInfoAsync(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            // verify the required parameter 'groups' is set
-            if (groups == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'groups' when calling DefaultApi->UpdateGroups");
+            // verify the required parameter 'groupBatchUpdate' is set
+            if (groupBatchUpdate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'groupBatchUpdate' when calling DefaultApi->UpdateGroups");
 
 
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -6000,11 +6006,11 @@ namespace PlerionApiClient.Api
             var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("multi", "groups", groups));
             if (allowMissing != null)
             {
                 localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "allow_missing", allowMissing));
             }
+            localVarRequestOptions.Data = groupBatchUpdate;
 
 
             // make the HTTP request
@@ -6024,12 +6030,12 @@ namespace PlerionApiClient.Api
         /// UpdateLayers 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layers"></param>
+        /// <param name="layerBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <returns>List&lt;LayerRead&gt;</returns>
-        public List<LayerRead> UpdateLayers(List<LayerBatchUpdate> layers, bool? allowMissing = default)
+        public List<LayerRead> UpdateLayers(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default)
         {
-            PlerionApiClient.Client.ApiResponse<List<LayerRead>> localVarResponse = UpdateLayersWithHttpInfo(layers, allowMissing);
+            PlerionApiClient.Client.ApiResponse<List<LayerRead>> localVarResponse = UpdateLayersWithHttpInfo(layerBatchUpdate, allowMissing);
             return localVarResponse.Data;
         }
 
@@ -6037,18 +6043,19 @@ namespace PlerionApiClient.Api
         /// UpdateLayers 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layers"></param>
+        /// <param name="layerBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <returns>ApiResponse of List&lt;LayerRead&gt;</returns>
-        public PlerionApiClient.Client.ApiResponse<List<LayerRead>> UpdateLayersWithHttpInfo(List<LayerBatchUpdate> layers, bool? allowMissing = default)
+        public PlerionApiClient.Client.ApiResponse<List<LayerRead>> UpdateLayersWithHttpInfo(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default)
         {
-            // verify the required parameter 'layers' is set
-            if (layers == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'layers' when calling DefaultApi->UpdateLayers");
+            // verify the required parameter 'layerBatchUpdate' is set
+            if (layerBatchUpdate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'layerBatchUpdate' when calling DefaultApi->UpdateLayers");
 
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -6062,11 +6069,11 @@ namespace PlerionApiClient.Api
             var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("multi", "layers", layers));
             if (allowMissing != null)
             {
                 localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "allow_missing", allowMissing));
             }
+            localVarRequestOptions.Data = layerBatchUpdate;
 
 
             // make the HTTP request
@@ -6085,13 +6092,13 @@ namespace PlerionApiClient.Api
         /// UpdateLayers 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layers"></param>
+        /// <param name="layerBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;LayerRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<LayerRead>> UpdateLayersAsync(List<LayerBatchUpdate> layers, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<List<LayerRead>> UpdateLayersAsync(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlerionApiClient.Client.ApiResponse<List<LayerRead>> localVarResponse = await UpdateLayersWithHttpInfoAsync(layers, allowMissing, cancellationToken).ConfigureAwait(false);
+            PlerionApiClient.Client.ApiResponse<List<LayerRead>> localVarResponse = await UpdateLayersWithHttpInfoAsync(layerBatchUpdate, allowMissing, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -6099,20 +6106,21 @@ namespace PlerionApiClient.Api
         /// UpdateLayers 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="layers"></param>
+        /// <param name="layerBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;LayerRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<List<LayerRead>>> UpdateLayersWithHttpInfoAsync(List<LayerBatchUpdate> layers, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<List<LayerRead>>> UpdateLayersWithHttpInfoAsync(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            // verify the required parameter 'layers' is set
-            if (layers == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'layers' when calling DefaultApi->UpdateLayers");
+            // verify the required parameter 'layerBatchUpdate' is set
+            if (layerBatchUpdate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'layerBatchUpdate' when calling DefaultApi->UpdateLayers");
 
 
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -6127,11 +6135,11 @@ namespace PlerionApiClient.Api
             var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("multi", "layers", layers));
             if (allowMissing != null)
             {
                 localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "allow_missing", allowMissing));
             }
+            localVarRequestOptions.Data = layerBatchUpdate;
 
 
             // make the HTTP request
@@ -6403,12 +6411,12 @@ namespace PlerionApiClient.Api
         /// UpdateNodes 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="nodes"></param>
+        /// <param name="nodeBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <returns>List&lt;NodeRead&gt;</returns>
-        public List<NodeRead> UpdateNodes(List<NodeBatchUpdate> nodes, bool? allowMissing = default)
+        public List<NodeRead> UpdateNodes(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default)
         {
-            PlerionApiClient.Client.ApiResponse<List<NodeRead>> localVarResponse = UpdateNodesWithHttpInfo(nodes, allowMissing);
+            PlerionApiClient.Client.ApiResponse<List<NodeRead>> localVarResponse = UpdateNodesWithHttpInfo(nodeBatchUpdate, allowMissing);
             return localVarResponse.Data;
         }
 
@@ -6416,18 +6424,19 @@ namespace PlerionApiClient.Api
         /// UpdateNodes 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="nodes"></param>
+        /// <param name="nodeBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <returns>ApiResponse of List&lt;NodeRead&gt;</returns>
-        public PlerionApiClient.Client.ApiResponse<List<NodeRead>> UpdateNodesWithHttpInfo(List<NodeBatchUpdate> nodes, bool? allowMissing = default)
+        public PlerionApiClient.Client.ApiResponse<List<NodeRead>> UpdateNodesWithHttpInfo(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default)
         {
-            // verify the required parameter 'nodes' is set
-            if (nodes == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'nodes' when calling DefaultApi->UpdateNodes");
+            // verify the required parameter 'nodeBatchUpdate' is set
+            if (nodeBatchUpdate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'nodeBatchUpdate' when calling DefaultApi->UpdateNodes");
 
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -6441,11 +6450,11 @@ namespace PlerionApiClient.Api
             var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("multi", "nodes", nodes));
             if (allowMissing != null)
             {
                 localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "allow_missing", allowMissing));
             }
+            localVarRequestOptions.Data = nodeBatchUpdate;
 
 
             // make the HTTP request
@@ -6464,13 +6473,13 @@ namespace PlerionApiClient.Api
         /// UpdateNodes 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="nodes"></param>
+        /// <param name="nodeBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;NodeRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<NodeRead>> UpdateNodesAsync(List<NodeBatchUpdate> nodes, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<List<NodeRead>> UpdateNodesAsync(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlerionApiClient.Client.ApiResponse<List<NodeRead>> localVarResponse = await UpdateNodesWithHttpInfoAsync(nodes, allowMissing, cancellationToken).ConfigureAwait(false);
+            PlerionApiClient.Client.ApiResponse<List<NodeRead>> localVarResponse = await UpdateNodesWithHttpInfoAsync(nodeBatchUpdate, allowMissing, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -6478,20 +6487,21 @@ namespace PlerionApiClient.Api
         /// UpdateNodes 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="nodes"></param>
+        /// <param name="nodeBatchUpdate"></param>
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;NodeRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<List<NodeRead>>> UpdateNodesWithHttpInfoAsync(List<NodeBatchUpdate> nodes, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<List<NodeRead>>> UpdateNodesWithHttpInfoAsync(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            // verify the required parameter 'nodes' is set
-            if (nodes == null)
-                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'nodes' when calling DefaultApi->UpdateNodes");
+            // verify the required parameter 'nodeBatchUpdate' is set
+            if (nodeBatchUpdate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'nodeBatchUpdate' when calling DefaultApi->UpdateNodes");
 
 
             PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -6506,11 +6516,11 @@ namespace PlerionApiClient.Api
             var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("multi", "nodes", nodes));
             if (allowMissing != null)
             {
                 localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "allow_missing", allowMissing));
             }
+            localVarRequestOptions.Data = nodeBatchUpdate;
 
 
             // make the HTTP request

@@ -5,7 +5,10 @@ __pycache__/
 **/migrations/*_auto-dev.py
 .vscode/temp
 .vs
-*.sln
+**/*.sln
+**/*.slnx
 .env
 **/bin/
 **/obj/
+**/bin.meta
+**/obj.meta

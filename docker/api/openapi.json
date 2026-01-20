@@ -2386,19 +2386,16 @@
         ],
         "summary": "CreateGroup",
         "operationId": "create_group",
-        "parameters": [
-          {
-            "name": "group",
-            "in": "query",
-            "schema": {
-              "$ref": "#/components/schemas/GroupCreate"
-            },
-            "required": true,
-            "deprecated": false,
-            "allowEmptyValue": false,
-            "allowReserved": false
-          }
-        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupCreate"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": "Document created, URL follows",
@@ -2537,20 +2534,6 @@
         "operationId": "update_groups",
         "parameters": [
           {
-            "name": "groups",
-            "in": "query",
-            "schema": {
-              "items": {
-                "$ref": "#/components/schemas/GroupBatchUpdate"
-              },
-              "type": "array"
-            },
-            "required": true,
-            "deprecated": false,
-            "allowEmptyValue": false,
-            "allowReserved": false
-          },
-          {
             "name": "allow_missing",
             "in": "query",
             "schema": {
@@ -2563,6 +2546,19 @@
             "allowReserved": false
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/GroupBatchUpdate"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Request fulfilled, document follows",
@@ -2715,19 +2711,16 @@
         ],
         "summary": "CreateLayer",
         "operationId": "create_layer",
-        "parameters": [
-          {
-            "name": "layer",
-            "in": "query",
-            "schema": {
-              "$ref": "#/components/schemas/LayerCreate"
-            },
-            "required": true,
-            "deprecated": false,
-            "allowEmptyValue": false,
-            "allowReserved": false
-          }
-        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LayerCreate"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": "Document created, URL follows",
@@ -2866,20 +2859,6 @@
         "operationId": "update_layers",
         "parameters": [
           {
-            "name": "layers",
-            "in": "query",
-            "schema": {
-              "items": {
-                "$ref": "#/components/schemas/LayerBatchUpdate"
-              },
-              "type": "array"
-            },
-            "required": true,
-            "deprecated": false,
-            "allowEmptyValue": false,
-            "allowReserved": false
-          },
-          {
             "name": "allow_missing",
             "in": "query",
             "schema": {
@@ -2892,6 +2871,19 @@
             "allowReserved": false
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/LayerBatchUpdate"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Request fulfilled, document follows",
@@ -3195,20 +3187,6 @@
         "operationId": "update_nodes",
         "parameters": [
           {
-            "name": "nodes",
-            "in": "query",
-            "schema": {
-              "items": {
-                "$ref": "#/components/schemas/NodeBatchUpdate"
-              },
-              "type": "array"
-            },
-            "required": true,
-            "deprecated": false,
-            "allowEmptyValue": false,
-            "allowReserved": false
-          },
-          {
             "name": "allow_missing",
             "in": "query",
             "schema": {
@@ -3221,6 +3199,19 @@
             "allowReserved": false
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/NodeBatchUpdate"
+                },
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Request fulfilled, document follows",

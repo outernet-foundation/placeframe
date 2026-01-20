@@ -22,8 +22,8 @@ from ..database import get_session
 
 
 @post("")
-async def create_layer(session: AsyncSession, layer: LayerCreate) -> LayerRead:
-    row = layer_from_dto(layer)
+async def create_layer(session: AsyncSession, data: LayerCreate) -> LayerRead:
+    row = layer_from_dto(data)
 
     session.add(row)
     await session.flush()
@@ -60,10 +60,10 @@ async def get_layers(
 
 @patch("")
 async def update_layers(
-    session: AsyncSession, layers: list[LayerBatchUpdate], allow_missing: bool = False
+    session: AsyncSession, data: list[LayerBatchUpdate], allow_missing: bool = False
 ) -> list[LayerRead]:
     rows: list[Layer] = []
-    for layer in layers:
+    for layer in data:
         row = await session.get(Layer, layer.id)
         if not row:
             if not allow_missing:

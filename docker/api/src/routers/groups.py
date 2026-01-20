@@ -22,8 +22,8 @@ from ..database import get_session
 
 
 @post("")
-async def create_group(session: AsyncSession, group: GroupCreate) -> GroupRead:
-    row = group_from_dto(group)
+async def create_group(session: AsyncSession, data: GroupCreate) -> GroupRead:
+    row = group_from_dto(data)
 
     session.add(row)
     await session.flush()
@@ -60,10 +60,10 @@ async def get_groups(
 
 @patch("")
 async def update_groups(
-    session: AsyncSession, groups: list[GroupBatchUpdate], allow_missing: bool = False
+    session: AsyncSession, data: list[GroupBatchUpdate], allow_missing: bool = False
 ) -> list[GroupRead]:
     rows: list[Group] = []
-    for group in groups:
+    for group in data:
         row = await session.get(Group, group.id)
         if not row:
             if not allow_missing:
