@@ -11,12 +11,12 @@ from datamodels.public_dtos import (
     localization_map_from_dto,
     localization_map_to_dto,
 )
-from datamodels.public_tables import LocalizationMap
+from datamodels.public_tables import LocalizationMap, OrchestrationStatus
 from litestar import Router, delete, get, patch, post
 from litestar.di import Provide
-from litestar.exceptions import HTTPException
+from litestar.exceptions import ClientException, HTTPException, NotFoundException
 from litestar.params import Parameter
-from litestar.status_codes import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
+from litestar.status_codes import HTTP_409_CONFLICT
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,9 +29,9 @@ settings = get_settings()
 
 @post("")
 async def create_localization_map(session: AsyncSession, data: LocalizationMapCreate) -> LocalizationMapRead:
-    reconstruction_status = await fetch_reconstruction_status(data.reconstruction_id, session)
+    reconstruction_status = await fetch_reconstruction_status(session, data.reconstruction_id)
 
-    if reconstruction_status != "succeeded":
+    if reconstruction_status != OrchestrationStatus.SUCCEEDED:
         raise HTTPException(
             HTTP_409_CONFLICT, f"Reconstruction with id {data.reconstruction_id} is not in 'succeeded' state"
         )
@@ -50,7 +50,7 @@ async def delete_localization_map(session: AsyncSession, id: UUID) -> None:
     row = await session.get(LocalizationMap, id)
 
     if not row:
-        raise HTTPException(HTTP_404_NOT_FOUND, f"LocalizationMap with id {id} not found")
+        raise NotFoundException(f"LocalizationMap with id {id} not found")
 
     await session.delete(row)
 
@@ -66,7 +66,7 @@ async def delete_localization_maps(
         row = await session.get(LocalizationMap, id)
 
         if not row:
-            raise HTTPException(HTTP_404_NOT_FOUND, f"LocalizationMap with id {id} not found")
+            raise NotFoundException(f"LocalizationMap with id {id} not found")
 
         await session.delete(row)
 
@@ -78,7 +78,7 @@ async def fetch_localization_maps(
     session: AsyncSession, ids: list[UUID] | None = None, reconstruction_ids: list[UUID] | None = None
 ) -> list[LocalizationMapRead]:
     if ids and reconstruction_ids:
-        raise HTTPException(HTTP_400_BAD_REQUEST, "Cannot filter by both ids and reconstruction_ids")
+        raise ClientException("Cannot filter by both ids and reconstruction_ids")
 
     query = select(LocalizationMap)
 
@@ -89,8 +89,12 @@ async def fetch_localization_maps(
         query = query.where(LocalizationMap.reconstruction_id.in_(reconstruction_ids))
 
     result = await session.execute(query)
+    rows = result.scalars().all()
 
-    return [localization_map_to_dto(row) for row in result.scalars().all()]
+    if (ids and len(ids) != len(rows)) or (reconstruction_ids and len(reconstruction_ids) != len(rows)):
+        raise NotFoundException("One or more LocalizationMaps not found")
+
+    return [localization_map_to_dto(row) for row in rows]
 
 
 @get("")
@@ -109,7 +113,7 @@ async def get_localization_map(session: AsyncSession, id: UUID) -> LocalizationM
     row = await session.get(LocalizationMap, id)
 
     if not row:
-        raise HTTPException(HTTP_404_NOT_FOUND, f"LocalizationMap with id {id} not found")
+        raise NotFoundException(f"LocalizationMap with id {id} not found")
 
     return localization_map_to_dto(row)
 
@@ -119,7 +123,7 @@ async def update_localization_map(session: AsyncSession, id: UUID, data: Localiz
     row = await session.get(LocalizationMap, id)
 
     if not row:
-        raise HTTPException(HTTP_404_NOT_FOUND, f"LocalizationMap with id {id} not found")
+        raise NotFoundException(f"LocalizationMap with id {id} not found")
 
     localization_map_apply_dto(row, data)
 
@@ -137,7 +141,7 @@ async def update_localization_maps(
         row = await session.get(LocalizationMap, localization_map.id)
         if not row:
             if not allow_missing:
-                raise HTTPException(HTTP_404_NOT_FOUND, f"LocalizationMap with id {localization_map.id} not found")
+                raise NotFoundException(f"LocalizationMap with id {localization_map.id} not found")
             continue
 
         localization_map_apply_batch_update_dto(row, localization_map)

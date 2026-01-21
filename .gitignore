@@ -1,9 +1,6 @@
 __pycache__/
 **/.venv/
 **/*.egg-info
-# Ignore Piccolo auto-generated dev migrations
-**/migrations/*_auto-dev.py
-.vscode/temp
 .vs
 **/*.sln
 **/*.slnx
@@ -12,3 +9,4 @@ __pycache__/
 **/obj/
 **/bin.meta
 **/obj.meta
+.ruff_cache/

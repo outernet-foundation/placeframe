@@ -30,7 +30,7 @@ class ReconstructionOptions(BaseModel):
     single_threaded: Optional[StrictBool] = Field(default=None, description="If true, run reconstruction in single-threaded mode (for deterministic behavior).")
     neighbors_count: Optional[StrictInt] = Field(default=None, description="How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). If None, a sensible default is used (currently 12). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.")
     rotation_threshold: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.")
-    max_keypoints_per_image: Optional[StrictInt] = Field(default=None, description="Upper bound on detected local features per image (SuperPoint). Reduces descriptor/match volume and downstream 3D points; too small can hurt registration.")
+    lightglue_batch_size: Optional[StrictInt] = Field(default=None, description="Batch size to use when running LightGlue for feature matching. Larger batch sizes can improve GPU utilization but require more memory.")
     ransac_max_error: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower = stricter inlier test; removes borderline correspondences before SfM.")
     ransac_min_inlier_ratio: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Two-view RANSAC minimum inlier ratio to accept the model. Higher = reject more weak pairs; typically 0.10–0.20 for stricter matching.")
     use_prior_position: Optional[StrictBool] = Field(default=None, description="If true, use position priors during registration. This leverages PosePrior(position=...) written into the database to guide image registration.")
@@ -48,7 +48,7 @@ class ReconstructionOptions(BaseModel):
     compression_opq_number_of_training_iterations: Optional[StrictInt] = Field(default=None, description="Number of training iterations for OPQ compression.")
     pose_prior_position_sigma_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values = stronger priors.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["random_seed", "single_threaded", "neighbors_count", "rotation_threshold", "max_keypoints_per_image", "ransac_max_error", "ransac_min_inlier_ratio", "use_prior_position", "rig_verification", "triangulation_minimum_angle", "triangulation_complete_max_reprojection_error", "triangulation_merge_max_reprojection_error", "mapper_filter_max_reprojection_error", "bundle_adjustment_refine_sensor_from_rig", "bundle_adjustment_refine_focal_length", "bundle_adjustment_refine_principal_point", "bundle_adjustment_refine_additional_params", "compression_opq_number_of_subvectors", "compression_opq_number_of_bits_per_subvector", "compression_opq_number_of_training_iterations", "pose_prior_position_sigma_m"]
+    __properties: ClassVar[List[str]] = ["random_seed", "single_threaded", "neighbors_count", "rotation_threshold", "lightglue_batch_size", "ransac_max_error", "ransac_min_inlier_ratio", "use_prior_position", "rig_verification", "triangulation_minimum_angle", "triangulation_complete_max_reprojection_error", "triangulation_merge_max_reprojection_error", "mapper_filter_max_reprojection_error", "bundle_adjustment_refine_sensor_from_rig", "bundle_adjustment_refine_focal_length", "bundle_adjustment_refine_principal_point", "bundle_adjustment_refine_additional_params", "compression_opq_number_of_subvectors", "compression_opq_number_of_bits_per_subvector", "compression_opq_number_of_training_iterations", "pose_prior_position_sigma_m"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -116,10 +116,10 @@ class ReconstructionOptions(BaseModel):
         if self.rotation_threshold is None and "rotation_threshold" in self.model_fields_set:
             _dict['rotation_threshold'] = None
 
-        # set to None if max_keypoints_per_image (nullable) is None
+        # set to None if lightglue_batch_size (nullable) is None
         # and model_fields_set contains the field
-        if self.max_keypoints_per_image is None and "max_keypoints_per_image" in self.model_fields_set:
-            _dict['max_keypoints_per_image'] = None
+        if self.lightglue_batch_size is None and "lightglue_batch_size" in self.model_fields_set:
+            _dict['lightglue_batch_size'] = None
 
         # set to None if ransac_max_error (nullable) is None
         # and model_fields_set contains the field
@@ -217,7 +217,7 @@ class ReconstructionOptions(BaseModel):
             "single_threaded": obj.get("single_threaded"),
             "neighbors_count": obj.get("neighbors_count"),
             "rotation_threshold": obj.get("rotation_threshold"),
-            "max_keypoints_per_image": obj.get("max_keypoints_per_image"),
+            "lightglue_batch_size": obj.get("lightglue_batch_size"),
             "ransac_max_error": obj.get("ransac_max_error"),
             "ransac_min_inlier_ratio": obj.get("ransac_min_inlier_ratio"),
             "use_prior_position": obj.get("use_prior_position"),

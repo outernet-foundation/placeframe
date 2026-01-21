@@ -6,13 +6,13 @@ from core.axis_convention import AxisConvention
 from core.camera_config import PinholeCameraConfig
 from core.localization_metrics import LocalizationMetrics
 from core.transform import Float3, Float4, Transform
-from fastapi.exceptions import HTTPException
 from litestar import Router, post
 from litestar.datastructures import UploadFile
 from litestar.di import Provide
 from litestar.enums import RequestEncodingType
+from litestar.exceptions import HTTPException
 from litestar.params import Body
-from litestar.status_codes import HTTP_502_BAD_GATEWAY
+from litestar.status_codes import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_502_BAD_GATEWAY
 from plerion_localizer_client import ApiClient, ApiException, Configuration
 from plerion_localizer_client.api.default_api import DefaultApi
 from plerion_localizer_client.models.axis_convention import AxisConvention as LocalizerAxisConvention
@@ -31,6 +31,8 @@ class LocalizationRequest(MultipartRequestModel):
     map_ids: list[UUID]
     camera_config: PinholeCameraConfig
     axis_convention: AxisConvention
+    retrieval_top_k: int
+    ransac_threshold: float
     image: UploadFile
 
 
@@ -45,23 +47,19 @@ class MapLocalization(BaseModel):
 async def localize_image(
     session: AsyncSession, data: Annotated[LocalizationRequest, Body(media_type=RequestEncodingType.MULTI_PART)]
 ) -> list[MapLocalization]:
-    map_ids = data.map_ids
-    camera_config = data.camera_config
-    axis_convention = data.axis_convention
-    image = data.image
-
     reconstruction_id_to_map_id = {
-        map.reconstruction_id: map
-        for map in await fetch_localization_maps(reconstruction_ids=None, ids=map_ids, session=session)
+        map.reconstruction_id: map for map in await fetch_localization_maps(session, data.map_ids)
     }
 
     async with ApiClient(Configuration(host=str(settings.localizer_container_url))) as api_client:
         try:
             localizations = await DefaultApi(api_client).localize_image(
                 list(reconstruction_id_to_map_id.keys()),
-                LocalizerPinholeCameraConfig.model_validate(camera_config.model_dump()),
-                LocalizerAxisConvention(axis_convention.value),
-                await image.read(),
+                LocalizerPinholeCameraConfig.model_validate(data.camera_config.model_dump()),
+                LocalizerAxisConvention(data.axis_convention.value),
+                data.retrieval_top_k,
+                data.ransac_threshold,
+                await data.image.read(),
             )
 
             return [
@@ -88,9 +86,9 @@ async def localize_image(
 
         except ApiException as e:
             status = cast(int | None, e.status)
-            if status is not None and 400 <= status < 500:
-                raise HTTPException(status, cast(str | None, e.reason) or "Localization session client error") from e
-            raise HTTPException(HTTP_502_BAD_GATEWAY, "Localization session backend error") from e
+            if status == 422:
+                raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY) from e
+            raise HTTPException(status_code=HTTP_502_BAD_GATEWAY, detail="Localization session backend error") from e
 
 
 router = Router(

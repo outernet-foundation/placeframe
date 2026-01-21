@@ -637,19 +637,7 @@ paths:
           content:
             application/json:
               schema:
-                enum:
-                - queued
-                - pending
-                - downloading
-                - extracting_features
-                - matching_features
-                - reconstructing
-                - training_opq_matrix
-                - training_product_quantizer
-                - uploading
-                - succeeded
-                - failed
-                type: string
+                $ref: "#/components/schemas/OrchestrationStatus"
           description: "Request fulfilled, document follows"
         "400":
           content:
@@ -2409,6 +2397,10 @@ components:
           $ref: "#/components/schemas/PinholeCameraConfig"
         axis_convention:
           $ref: "#/components/schemas/AxisConvention"
+        retrieval_top_k:
+          type: integer
+        ransac_threshold:
+          type: number
         image:
           format: binary
           type: string
@@ -2417,6 +2409,8 @@ components:
       - camera_config
       - image
       - map_ids
+      - ransac_threshold
+      - retrieval_top_k
       title: LocalizationRequest
       type: object
     MapLocalization:
@@ -2982,7 +2976,7 @@ components:
           compression_opq_number_of_bits_per_subvector: 7
           use_prior_position: true
           pose_prior_position_sigma_m: 1.0246457001441578
-          max_keypoints_per_image: 5
+          lightglue_batch_size: 5
           compression_opq_number_of_training_iterations: 1
           neighbors_count: 6
           triangulation_complete_max_reprojection_error: 9.301444243932576
@@ -3019,7 +3013,7 @@ components:
           compression_opq_number_of_bits_per_subvector: 7
           use_prior_position: true
           pose_prior_position_sigma_m: 1.0246457001441578
-          max_keypoints_per_image: 5
+          lightglue_batch_size: 5
           compression_opq_number_of_training_iterations: 1
           neighbors_count: 6
           triangulation_complete_max_reprojection_error: 9.301444243932576
@@ -3246,7 +3240,7 @@ components:
         compression_opq_number_of_bits_per_subvector: 7
         use_prior_position: true
         pose_prior_position_sigma_m: 1.0246457001441578
-        max_keypoints_per_image: 5
+        lightglue_batch_size: 5
         compression_opq_number_of_training_iterations: 1
         neighbors_count: 6
         triangulation_complete_max_reprojection_error: 9.301444243932576
@@ -3279,10 +3273,9 @@ components:
             and speed up matching at the cost of some coverage.
           nullable: true
           type: number
-        max_keypoints_per_image:
-          description: Upper bound on detected local features per image (SuperPoint).
-            Reduces descriptor/match volume and downstream 3D points; too small can
-            hurt registration.
+        lightglue_batch_size:
+          description: Batch size to use when running LightGlue for feature matching.
+            Larger batch sizes can improve GPU utilization but require more memory.
           nullable: true
           type: integer
         ransac_max_error:

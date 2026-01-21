@@ -6,7 +6,7 @@ from typing import Any, NoReturn, cast
 from common.token_manager import TokenManager
 from plerion_api_client import ApiClient, ApiException, Configuration, DefaultApi, OrchestrationStatus
 
-from .run_reconstruction import run_reconstruction
+from .run_reconstruction import load_models, run_reconstruction
 from .settings import get_settings
 
 POLL_INTERVAL_SECONDS = 5.0
@@ -69,6 +69,8 @@ def handle_sigterm(signum: int, frame: Any) -> NoReturn:
 
 
 def main() -> None:
+    load_models(settings.max_keypoints_per_image)
+
     # Register the signal handler for graceful Docker shutdowns
     signal(SIGTERM, handle_sigterm)
 

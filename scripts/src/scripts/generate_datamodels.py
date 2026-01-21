@@ -269,7 +269,7 @@ def _post_process_generated_enums(file_path: Path) -> None:
         class_name: str = str(pascalize(enum_db_name))
 
         # Build strict Python Enum Class
-        class_lines: list[str] = [f"class {class_name}(str, enum.Enum):"]
+        class_lines: list[str] = [f"class {class_name}(enum.Enum):"]
 
         for v in enum_values:
             if not v:

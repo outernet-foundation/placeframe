@@ -5,8 +5,7 @@ from uuid import UUID
 from datamodels.public_tables import OrchestrationStatus, Reconstruction
 from litestar import Router, post, put
 from litestar.di import Provide
-from litestar.exceptions import HTTPException
-from litestar.status_codes import HTTP_404_NOT_FOUND
+from litestar.exceptions import NotFoundException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,7 +31,7 @@ async def request_lease(session: AsyncSession) -> LeaseResponse:
     row = result.scalar_one_or_none()
 
     if not row:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="No pending jobs")
+        raise NotFoundException("No pending jobs")
 
     row.orchestration_status = OrchestrationStatus.PENDING
 
@@ -47,7 +46,7 @@ async def complete_lease(session: AsyncSession, id: UUID, data: OrchestrationSta
     row = await session.get(Reconstruction, id)
 
     if not row:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND, detail="Reconstruction not found")
+        raise NotFoundException("Reconstruction not found")
 
     row.orchestration_status = data
 

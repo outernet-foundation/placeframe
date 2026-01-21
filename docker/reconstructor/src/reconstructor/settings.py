@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     captures_bucket: str = Field()
     reconstructions_bucket: str = Field()
 
+    max_keypoints_per_image: int = Field(...)
+
     @model_validator(mode="after")
     def check_storage_config(self):
         using_minio = self.minio_endpoint_url is not None

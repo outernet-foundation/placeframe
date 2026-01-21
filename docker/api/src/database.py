@@ -4,9 +4,8 @@ import os
 from typing import Any, AsyncGenerator, cast
 
 from datamodels.auth_tables import User
-from fastapi import HTTPException
 from litestar import Request
-from litestar.status_codes import HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
+from litestar.exceptions import NotAuthorizedException, PermissionDeniedException
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -62,7 +61,7 @@ else:
         user_id = cast(str | None, claims.get("sub"))
 
         if not user_id:
-            raise HTTPException(HTTP_401_UNAUTHORIZED, "Missing subject claim when creating database session")
+            raise NotAuthorizedException("Missing subject claim when creating database session")
 
         # JIT create user record if it doesn't exist
         async with AuthSessionLocal() as auth_session, auth_session.begin():
@@ -76,7 +75,7 @@ else:
         claims = request.auth
 
         if not claims or claims.get("azp") != "plerion-worker":
-            raise HTTPException(HTTP_403_FORBIDDEN, "Only workers are authorized to access this scope")
+            raise PermissionDeniedException("Only workers are authorized to access this scope")
 
         async with OrchestrationSessionLocal() as session, session.begin():
             yield session

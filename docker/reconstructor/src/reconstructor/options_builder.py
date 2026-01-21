@@ -4,7 +4,6 @@ from core.reconstruction_options import ReconstructionOptions
 from pycolmap import FeatureMatchingOptions, IncrementalPipelineOptions, TwoViewGeometryOptions
 
 DEFAULT_NEIGHBORS_COUNT = 12
-DEFAULT_MAX_KEYPOINTS_PER_IMAGE = 2500
 DEFAULT_NEIGHBOR_ROTATION_THRESHOLD = 30.0
 DEFAULT_RANSAC_MAX_ERROR = 2.0
 DEFAULT_RANSAC_MIN_INLIER_RATIO = 0.15
@@ -16,6 +15,7 @@ DEFAULT_POSE_PRIOR_POS_SIGMA_M = 0.25
 DEFAULT_OPQ_NUMBER_OF_SUBVECTORS = 16
 DEFAULT_OPQ_NUMBER_OF_BITS_PER_SUBVECTOR = 8
 DEFAULT_OPQ_NUMBER_OF_TRAINING_ITERATIONS = 20
+DEFAULT_LIGHTGLUE_BATCH_SIZE = 16
 
 
 class OptionsBuilder:
@@ -48,9 +48,6 @@ class OptionsBuilder:
     def rotation_threshold_deg(self):
         return self.options.rotation_threshold or DEFAULT_NEIGHBOR_ROTATION_THRESHOLD
 
-    def max_keypoints_per_image(self):
-        return self.options.max_keypoints_per_image or DEFAULT_MAX_KEYPOINTS_PER_IMAGE
-
     def compression_opq_number_of_subvectors(self):
         return self.options.compression_opq_number_of_subvectors or DEFAULT_OPQ_NUMBER_OF_SUBVECTORS
 
@@ -62,6 +59,9 @@ class OptionsBuilder:
 
     def pose_prior_position_sigma_m(self):
         return self.options.pose_prior_position_sigma_m or DEFAULT_POSE_PRIOR_POS_SIGMA_M
+
+    def lightglue_batch_size(self):
+        return self.options.lightglue_batch_size or DEFAULT_LIGHTGLUE_BATCH_SIZE
 
     def incremental_pipeline_options(self):
         incremental_pipeline_options = IncrementalPipelineOptions()

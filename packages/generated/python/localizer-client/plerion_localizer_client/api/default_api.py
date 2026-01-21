@@ -16,7 +16,7 @@ from pydantic import validate_call, Field, StrictFloat, StrictStr, StrictInt
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
-from pydantic import StrictBytes, StrictStr
+from pydantic import StrictBytes, StrictFloat, StrictInt, StrictStr
 from typing import List, Tuple, Union
 from uuid import UUID
 from plerion_localizer_client.models.axis_convention import AxisConvention
@@ -47,6 +47,8 @@ class DefaultApi:
         reconstruction_ids: List[UUID],
         camera_config: PinholeCameraConfig,
         axis_convention: AxisConvention,
+        retrieval_top_k: StrictInt,
+        ransac_threshold: Union[StrictFloat, StrictInt],
         image: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
         _request_timeout: Union[
             None,
@@ -70,6 +72,10 @@ class DefaultApi:
         :type camera_config: PinholeCameraConfig
         :param axis_convention: (required)
         :type axis_convention: AxisConvention
+        :param retrieval_top_k: (required)
+        :type retrieval_top_k: int
+        :param ransac_threshold: (required)
+        :type ransac_threshold: float
         :param image: (required)
         :type image: bytearray
         :param _request_timeout: timeout setting for this request. If one
@@ -98,6 +104,8 @@ class DefaultApi:
             reconstruction_ids=reconstruction_ids,
             camera_config=camera_config,
             axis_convention=axis_convention,
+            retrieval_top_k=retrieval_top_k,
+            ransac_threshold=ransac_threshold,
             image=image,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -126,6 +134,8 @@ class DefaultApi:
         reconstruction_ids: List[UUID],
         camera_config: PinholeCameraConfig,
         axis_convention: AxisConvention,
+        retrieval_top_k: StrictInt,
+        ransac_threshold: Union[StrictFloat, StrictInt],
         image: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
         _request_timeout: Union[
             None,
@@ -149,6 +159,10 @@ class DefaultApi:
         :type camera_config: PinholeCameraConfig
         :param axis_convention: (required)
         :type axis_convention: AxisConvention
+        :param retrieval_top_k: (required)
+        :type retrieval_top_k: int
+        :param ransac_threshold: (required)
+        :type ransac_threshold: float
         :param image: (required)
         :type image: bytearray
         :param _request_timeout: timeout setting for this request. If one
@@ -177,6 +191,8 @@ class DefaultApi:
             reconstruction_ids=reconstruction_ids,
             camera_config=camera_config,
             axis_convention=axis_convention,
+            retrieval_top_k=retrieval_top_k,
+            ransac_threshold=ransac_threshold,
             image=image,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -205,6 +221,8 @@ class DefaultApi:
         reconstruction_ids: List[UUID],
         camera_config: PinholeCameraConfig,
         axis_convention: AxisConvention,
+        retrieval_top_k: StrictInt,
+        ransac_threshold: Union[StrictFloat, StrictInt],
         image: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
         _request_timeout: Union[
             None,
@@ -228,6 +246,10 @@ class DefaultApi:
         :type camera_config: PinholeCameraConfig
         :param axis_convention: (required)
         :type axis_convention: AxisConvention
+        :param retrieval_top_k: (required)
+        :type retrieval_top_k: int
+        :param ransac_threshold: (required)
+        :type ransac_threshold: float
         :param image: (required)
         :type image: bytearray
         :param _request_timeout: timeout setting for this request. If one
@@ -256,6 +278,8 @@ class DefaultApi:
             reconstruction_ids=reconstruction_ids,
             camera_config=camera_config,
             axis_convention=axis_convention,
+            retrieval_top_k=retrieval_top_k,
+            ransac_threshold=ransac_threshold,
             image=image,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -279,6 +303,8 @@ class DefaultApi:
         reconstruction_ids,
         camera_config,
         axis_convention,
+        retrieval_top_k,
+        ransac_threshold,
         image,
         _request_auth,
         _content_type,
@@ -311,6 +337,10 @@ class DefaultApi:
             _form_params.append(('camera_config', camera_config))
         if axis_convention is not None:
             _form_params.append(('axis_convention', axis_convention))
+        if retrieval_top_k is not None:
+            _form_params.append(('retrieval_top_k', retrieval_top_k))
+        if ransac_threshold is not None:
+            _form_params.append(('ransac_threshold', ransac_threshold))
         if image is not None:
             _files['image'] = image
         # process the body parameter

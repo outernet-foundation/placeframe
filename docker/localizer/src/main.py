@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import json
 from concurrent.futures import ThreadPoolExecutor
 from os import environ
 from pathlib import Path
 from threading import Lock
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from common.boto_clients import create_s3_client
@@ -16,18 +15,17 @@ from core.camera_config import PinholeCameraConfig
 from litestar import post
 from litestar.datastructures import UploadFile
 from litestar.enums import RequestEncodingType
+from litestar.exceptions import HTTPException
 from litestar.openapi.config import OpenAPIConfig
 from litestar.openapi.spec import Server
 from litestar.params import Body
+from litestar.status_codes import HTTP_422_UNPROCESSABLE_ENTITY
 
 from .map import Map, load_map
 from .schemas import LoadState, Localization
 from .settings import get_settings
 
 RECONSTRUCTIONS_DIR = Path("/tmp/reconstructions")
-MAX_KEYPOINTS = 2500
-RETRIEVAL_TOP_K = 12  # how many similar database images to keep
-RANSAC_THRESHOLD = 12.0  # reprojection error in pixels
 
 
 _executor = ThreadPoolExecutor(max_workers=2)
@@ -47,21 +45,15 @@ s3_client = create_s3_client(
 if not environ.get("CODEGEN"):
     from .localize import load_models
 
-    load_models(2500)
-
-
-def deserialize_json(v: Any) -> Any:
-    try:
-        return json.loads(v)
-    except (ValueError, TypeError):
-        # If parsing fails, return original to let Pydantic raise the validation error
-        return v
+    load_models(settings.max_keypoints_per_image)
 
 
 class LocalizationRequest(MultipartRequestModel):
     reconstruction_ids: list[UUID]
     camera_config: PinholeCameraConfig
     axis_convention: AxisConvention
+    retrieval_top_k: int
+    ransac_threshold: float
     image: UploadFile
 
 
@@ -73,28 +65,28 @@ async def localize_image(
         raise
 
     # Import here to avoid importing torch during codegen
-    from .localize import localize_image_against_reconstruction
+    from .localize import LocalizationError, localize_image_against_reconstruction
 
-    reconstruction_ids = data.reconstruction_ids
-    camera = data.camera_config
-    axis_convention = data.axis_convention
     image = await data.image.read()
 
     localizations: list[Localization] = []
-    for id in reconstruction_ids:
+    errors: list[str] = []
+
+    for id in data.reconstruction_ids:
         if id not in _maps:
             _maps[id] = load_map(id, s3_client, settings.reconstructions_bucket, RECONSTRUCTIONS_DIR)
 
-        result = localize_image_against_reconstruction(
-            map=_maps[id],
-            camera=camera,
-            axis_convention=axis_convention,
-            image_buffer=image,
-            retrieval_top_k=RETRIEVAL_TOP_K,
-            ransac_threshold=RANSAC_THRESHOLD,
-        )
+        try:
+            result = localize_image_against_reconstruction(
+                _maps[id], data.camera_config, data.axis_convention, image, data.retrieval_top_k, data.ransac_threshold
+            )
 
-        localizations.append(Localization(id=id, transform=result[0], metrics=result[1]))
+            localizations.append(Localization(id=id, transform=result[0], metrics=result[1]))
+        except LocalizationError as e:
+            errors.append(f"Reconstruction {id}: {str(e)}")
+
+    if not localizations:
+        raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail="; ".join(errors))
 
     return localizations
 

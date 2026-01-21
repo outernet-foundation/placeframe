@@ -1510,20 +1510,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "enum": [
-                    "queued",
-                    "pending",
-                    "downloading",
-                    "extracting_features",
-                    "matching_features",
-                    "reconstructing",
-                    "training_opq_matrix",
-                    "training_product_quantizer",
-                    "uploading",
-                    "succeeded",
-                    "failed"
-                  ]
+                  "$ref": "#/components/schemas/OrchestrationStatus"
                 }
               }
             }
@@ -4385,6 +4372,12 @@
           "axis_convention": {
             "$ref": "#/components/schemas/AxisConvention"
           },
+          "retrieval_top_k": {
+            "type": "integer"
+          },
+          "ransac_threshold": {
+            "type": "number"
+          },
           "image": {
             "type": "string",
             "format": "binary"
@@ -4395,7 +4388,9 @@
           "axis_convention",
           "camera_config",
           "image",
-          "map_ids"
+          "map_ids",
+          "ransac_threshold",
+          "retrieval_top_k"
         ],
         "title": "LocalizationRequest"
       },
@@ -5156,8 +5151,8 @@
             "nullable": true,
             "type": "number"
           },
-          "max_keypoints_per_image": {
-            "description": "Upper bound on detected local features per image (SuperPoint). Reduces descriptor/match volume and downstream 3D points; too small can hurt registration.",
+          "lightglue_batch_size": {
+            "description": "Batch size to use when running LightGlue for feature matching. Larger batch sizes can improve GPU utilization but require more memory.",
             "nullable": true,
             "type": "integer"
           },

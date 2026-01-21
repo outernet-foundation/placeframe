@@ -191,6 +191,12 @@
           "axis_convention": {
             "$ref": "#/components/schemas/AxisConvention"
           },
+          "retrieval_top_k": {
+            "type": "integer"
+          },
+          "ransac_threshold": {
+            "type": "number"
+          },
           "image": {
             "type": "string",
             "format": "binary"
@@ -201,7 +207,9 @@
           "axis_convention",
           "camera_config",
           "image",
-          "reconstruction_ids"
+          "ransac_threshold",
+          "reconstruction_ids",
+          "retrieval_top_k"
         ],
         "title": "LocalizationRequest"
       },

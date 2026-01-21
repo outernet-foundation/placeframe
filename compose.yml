@@ -218,6 +218,7 @@ services:
   api:
     build:
       dockerfile: docker/api/Dockerfile
+      target: dev
       args: *uv-digest-arg
     depends_on:
       keycloak:
@@ -234,12 +235,17 @@ services:
           "-c",
           "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
         ]
+      interval: 5s
+      start_period: 5s
+      timeout: 5s
+      retries: 3
     ports:
       - "5679:5678" # debug port
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./compose.yml:/compose.yml:ro
       - ./.env:/.env:ro
+      - ./:/app:ro
     environment:
       DOCKER_HOST: unix:///var/run/docker.sock
       PUBLIC_URL: ${PUBLIC_URL}
@@ -295,6 +301,7 @@ services:
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
       CAPTURES_BUCKET: dev-captures
+      MAX_KEYPOINTS_PER_IMAGE: ${MAX_KEYPOINTS_PER_IMAGE}
 
   reconstructor-rocm:
     profiles: ["rocm"]
@@ -331,6 +338,7 @@ services:
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
       CAPTURES_BUCKET: dev-captures
+      MAX_KEYPOINTS_PER_IMAGE: ${MAX_KEYPOINTS_PER_IMAGE}
 
   localizer-cuda:
     profiles: ["cuda"]
@@ -355,6 +363,7 @@ services:
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY}"
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
+      MAX_KEYPOINTS_PER_IMAGE: ${MAX_KEYPOINTS_PER_IMAGE}
 
   localizer-rocm:
     profiles: ["rocm"]
@@ -384,3 +393,4 @@ services:
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY}"
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
+      MAX_KEYPOINTS_PER_IMAGE: ${MAX_KEYPOINTS_PER_IMAGE}

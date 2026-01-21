@@ -25,11 +25,11 @@ class ReconstructionOptions(BaseModel):
             "Smaller values reduce weak overlaps and speed up matching at the cost of some coverage."
         ),
     )
-    max_keypoints_per_image: Optional[int] = Field(
+    lightglue_batch_size: Optional[int] = Field(
         default=None,
         description=(
-            "Upper bound on detected local features per image (SuperPoint). "
-            "Reduces descriptor/match volume and downstream 3D points; too small can hurt registration."
+            "Batch size to use when running LightGlue for feature matching. "
+            "Larger batch sizes can improve GPU utilization but require more memory."
         ),
     )
     ransac_max_error: Optional[float] = Field(

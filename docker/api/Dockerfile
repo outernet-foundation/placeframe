@@ -1,6 +1,6 @@
 ARG UV_BASE_DIGEST
 
-FROM ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS dev
+FROM ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS base
 
 WORKDIR /app/docker/api
 
@@ -39,12 +39,34 @@ COPY docker/api/pylock.toml ./pylock.toml
 RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
     uv pip install -r pylock.toml
 
-# Install project
+# Copy source code
 COPY packages/python/common/ /app/packages/python/common
 COPY packages/python/core/ /app/packages/python/core
 COPY packages/generated/python/datamodels/ /app/packages/generated/python/datamodels
 COPY packages/generated/python/localizer-client/ /app/packages/generated/python/localizer-client
 COPY docker/api /app/docker/api/
+
+# Copy the entrypoint and make it executable
+COPY --chmod=0755 docker/api/entrypoint.sh /usr/local/bin/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+FROM base AS dev
+
+# Install editable packages for development
+RUN uv pip install --no-deps --no-sources \
+    -e /app/packages/python/common \
+    -e /app/packages/python/core \
+    -e /app/packages/generated/python/datamodels \
+    -e /app/packages/generated/python/localizer-client \
+    -e /app/docker/api
+
+# Verify that all declared dependencies were installed
+RUN uv pip check
+
+FROM base AS prod
+
+# Install non-editable packages for production
 RUN uv pip install --no-deps --no-sources \
     /app/packages/python/common \
     /app/packages/python/core \
@@ -55,7 +77,3 @@ RUN uv pip install --no-deps --no-sources \
 # Verify that all declared dependencies were installed
 RUN uv pip check
 
-# Copy the entrypoint and make it executable
-COPY --chmod=0755 docker/api/entrypoint.sh /usr/local/bin/entrypoint.sh
-
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

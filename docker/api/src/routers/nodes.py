@@ -12,9 +12,8 @@ from datamodels.public_dtos import (
 from datamodels.public_tables import Group, Node
 from litestar import Router, delete, get, patch, post
 from litestar.di import Provide
-from litestar.exceptions import HTTPException
+from litestar.exceptions import ClientException, NotFoundException
 from litestar.params import Parameter
-from litestar.status_codes import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,7 +25,7 @@ async def create_node(session: AsyncSession, data: NodeCreate) -> NodeRead:
     if data.parent_id is not None:
         result = await session.execute(select(1).where(Group.id == data.parent_id))
         if not result.scalar():
-            raise HTTPException(HTTP_400_BAD_REQUEST, f"Parent group with id {data.parent_id} does not exist.")
+            raise ClientException(f"Parent group with id {data.parent_id} does not exist.")
 
     row = node_from_dto(data)
     session.add(row)
@@ -48,7 +47,7 @@ async def create_nodes_batch(session: AsyncSession, data: list[NodeCreate]) -> l
 
         missing = parent_ids - found_ids
         if missing:
-            raise HTTPException(HTTP_400_BAD_REQUEST, f"The following parent group IDs do not exist: {missing}")
+            raise ClientException(f"The following parent group IDs do not exist: {missing}")
 
     # 3. Create
     rows: list[Node] = []
@@ -101,7 +100,7 @@ async def update_nodes(
         row = await session.get(Node, node.id)
         if not row:
             if not allow_missing:
-                raise HTTPException(HTTP_404_NOT_FOUND, f"Node with id {node.id} not found")
+                raise NotFoundException(f"Node with id {node.id} not found")
             continue
 
         node_apply_batch_update_dto(row, node)

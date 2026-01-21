@@ -11,7 +11,7 @@ from core.axis_convention import (
     change_basis_unity_from_opencv_points,
     change_basis_unity_from_opencv_poses,
 )
-from core.reconstruction_manifest import ReconstructionManifest, ReconstructionStatus
+from core.reconstruction_manifest import ReconstructionManifest
 from core.reconstruction_metrics import ReconstructionMetrics
 from core.reconstruction_options import ReconstructionOptions
 from datamodels.public_dtos import (
@@ -20,18 +20,13 @@ from datamodels.public_dtos import (
     reconstruction_from_dto,
     reconstruction_to_dto,
 )
-from datamodels.public_tables import CaptureSession, LocalizationMap, Reconstruction
+from datamodels.public_tables import CaptureSession, LocalizationMap, OrchestrationStatus, Reconstruction
 from litestar import Router, delete, get, post
 from litestar.di import Provide
-from litestar.exceptions import HTTPException
+from litestar.exceptions import ClientException, HTTPException, InternalServerException, NotFoundException
 from litestar.params import KwargDefinition, Parameter
 from litestar.response import Stream
-from litestar.status_codes import (
-    HTTP_400_BAD_REQUEST,
-    HTTP_404_NOT_FOUND,
-    HTTP_409_CONFLICT,
-    HTTP_500_INTERNAL_SERVER_ERROR,
-)
+from litestar.status_codes import HTTP_409_CONFLICT
 from numpy import ascontiguousarray, float32, load, uint8
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -66,12 +61,13 @@ async def create_reconstruction(session: AsyncSession, data: ReconstructionCreat
         existing_row = result.scalar_one_or_none()
 
         if existing_row is not None:
-            raise HTTPException(HTTP_409_CONFLICT, f"Reconstruction with id {data.create.id} already exists")
+            raise HTTPException(
+                status_code=HTTP_409_CONFLICT, detail=f"Reconstruction with id {data.create.id} already exists"
+            )
 
     capture_session = await session.get(CaptureSession, data.create.capture_session_id)
     if not capture_session:
-        raise HTTPException(HTTP_404_NOT_FOUND, f"Capture session with id {data.create.capture_session_id} not found")
-
+        raise NotFoundException(f"Capture session with id {data.create.capture_session_id} not found")
     row = reconstruction_from_dto(data.create)
 
     session.add(row)
@@ -101,15 +97,13 @@ async def delete_reconstruction(session: AsyncSession, id: UUID) -> None:
     row = await session.get(Reconstruction, id)
 
     if not row:
-        raise HTTPException(HTTP_404_NOT_FOUND, f"Reconstruction with id {id} not found")
+        raise NotFoundException(f"Reconstruction with id {id} not found")
 
     result = await session.execute(select(LocalizationMap).where(LocalizationMap.reconstruction_id == id))
     localization_map = result.scalar_one_or_none()
 
     if localization_map:
-        raise HTTPException(
-            HTTP_404_NOT_FOUND, f"Reconstruction with id {id} has an associated localization map and cannot be deleted"
-        )
+        raise NotFoundException(f"Reconstruction with id {id} has an associated localization map and cannot be deleted")
 
     await session.delete(row)
 
@@ -129,7 +123,7 @@ async def get_reconstructions(
     ] = None,
 ) -> list[ReconstructionRead]:
     if capture_session_name and capture_session_id:
-        raise HTTPException(HTTP_400_BAD_REQUEST, "Cannot provide both capture_session_id and capture_session_name")
+        raise ClientException("Cannot provide both capture_session_id and capture_session_name")
 
     query = select(Reconstruction)
 
@@ -143,7 +137,7 @@ async def get_reconstructions(
         result = await session.execute(select(CaptureSession.id).where(CaptureSession.name == capture_session_name))
         capture_session_row = result.scalar_one_or_none()
         if not capture_session_row:
-            raise HTTPException(HTTP_404_NOT_FOUND, f"Capture session with name {capture_session_name} not found")
+            raise NotFoundException(f"Capture session with name {capture_session_name} not found")
         query = query.where(Reconstruction.capture_session_id == capture_session_row)
 
     result = await session.execute(query)
@@ -156,7 +150,7 @@ async def get_reconstruction(session: AsyncSession, id: UUID) -> ReconstructionR
     row = await session.get(Reconstruction, id)
 
     if not row:
-        raise HTTPException(HTTP_404_NOT_FOUND, f"Reconstruction with id {id} not found")
+        raise NotFoundException(f"Reconstruction with id {id} not found")
 
     return reconstruction_to_dto(row)
 
@@ -165,16 +159,13 @@ async def fetch_reconstruction_manifest(session: AsyncSession, id: UUID) -> Reco
     row = await session.get(Reconstruction, id)
 
     if not row:
-        raise HTTPException(HTTP_404_NOT_FOUND, f"Reconstruction with id {id} not found")
-
+        raise NotFoundException(f"Reconstruction with id {id} not found")
     try:
         manifest = ReconstructionManifest.model_validate_json(
             s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{id}/manifest.json")["Body"].read()
         )
     except Exception as e:
-        raise HTTPException(
-            HTTP_500_INTERNAL_SERVER_ERROR, f"Error retrieving manifest for reconstruction with id {id}: {e}"
-        )
+        raise InternalServerException(f"Error retrieving manifest for reconstruction with id {id}: {e}") from e
 
     return manifest
 
@@ -189,26 +180,29 @@ async def get_reconstruction_localization_map(session: AsyncSession, id: UUID) -
     row = await session.get(Reconstruction, id)
 
     if not row:
-        raise HTTPException(HTTP_404_NOT_FOUND, f"Reconstruction with id {id} not found")
+        raise NotFoundException(f"Reconstruction with id {id} not found")
 
     result = await session.execute(select(LocalizationMap.id).where(LocalizationMap.reconstruction_id == id))
 
     localization_map = result.scalar_one_or_none()
 
     if localization_map is None:
-        raise HTTPException(HTTP_404_NOT_FOUND, f"Localization map for reconstruction with id {id} not found")
+        raise NotFoundException(f"Localization map for reconstruction with id {id} not found")
 
     return localization_map
 
 
-async def fetch_reconstruction_status(id: UUID, session: AsyncSession) -> ReconstructionStatus:
-    manifest = await fetch_reconstruction_manifest(session, id)
-    return manifest.status
+async def fetch_reconstruction_status(session: AsyncSession, id: UUID) -> OrchestrationStatus:
+    row = await session.get(Reconstruction, id)
+
+    if not row:
+        raise NotFoundException(f"Reconstruction with id {id} not found")
+    return row.orchestration_status
 
 
 @get("/{id:uuid}/status")
-async def get_reconstruction_status(session: AsyncSession, id: UUID) -> ReconstructionStatus:
-    return await fetch_reconstruction_status(id, session)
+async def get_reconstruction_status(session: AsyncSession, id: UUID) -> OrchestrationStatus:
+    return await fetch_reconstruction_status(session, id)
 
 
 @get("/{id:uuid}/points", media_type="application/octet-stream")
@@ -219,7 +213,7 @@ async def get_reconstruction_points(
 ) -> Annotated[bytes, KwargDefinition(format="binary")]:
     row = await session.get(Reconstruction, id)
     if not row:
-        raise HTTPException(HTTP_404_NOT_FOUND, f"Reconstruction with id {id} not found")
+        raise NotFoundException(f"Reconstruction with id {id} not found")
 
     # Load point cloud from S3
     npz_bytes = s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{row.id}/sfm_model/points3D.npz")[
@@ -259,7 +253,7 @@ async def get_reconstruction_frame_poses(
 ) -> Annotated[bytes, KwargDefinition(format="binary")]:
     row = await session.get(Reconstruction, id)
     if not row:
-        raise HTTPException(HTTP_404_NOT_FOUND, f"Reconstruction with id {id} not found")
+        raise NotFoundException(f"Reconstruction with id {id} not found")
 
     # Load frame poses from S3
     npz_bytes = s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{row.id}/sfm_model/frame_poses.npz")[

@@ -10,7 +10,6 @@ from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from litestar.connection import ASGIConnection
 from litestar.exceptions import NotAuthorizedException
 from litestar.middleware import AbstractAuthenticationMiddleware, AuthenticationResult
-from litestar.status_codes import HTTP_401_UNAUTHORIZED
 from litestar.types import ASGIApp
 
 from .settings import get_settings
@@ -87,18 +86,14 @@ class AuthMiddleware(AbstractAuthenticationMiddleware):
             )
 
         except ExpiredSignatureError as exception:
-            raise NotAuthorizedException(
-                HTTP_401_UNAUTHORIZED, f"Token expired: {str(exception)}" if exception else "Token expired"
-            )
+            raise NotAuthorizedException(f"Token expired: {str(exception)}" if exception else "Token expired")
 
         except InvalidTokenError as exception:
-            raise NotAuthorizedException(
-                HTTP_401_UNAUTHORIZED, f"Invalid token: {str(exception)}" if exception else "Invalid token"
-            )
+            raise NotAuthorizedException(f"Invalid token: {str(exception)}" if exception else "Invalid token")
 
         except Exception as exception:
             raise NotAuthorizedException(
-                HTTP_401_UNAUTHORIZED, f"Unknown exception: {str(exception)}" if exception else "Authentication error"
+                f"Unknown exception: {str(exception)}" if exception else "Authentication error"
             )
 
         if "sub" not in claims:
