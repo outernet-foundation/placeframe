@@ -27,17 +27,25 @@ superpoint: Any = None
 lightglue: Any = None
 
 
-def load_models(max_keypoints: int):
+class LocalizationError(ValueError):
+    pass
+
+
+def load_models(max_keypoints_per_image: int):
     if environ.get("CODEGEN"):
         return
 
     from neural_networks.models import load_DIR, load_lightglue, load_superpoint
+    from torch import set_grad_enabled
 
     print(f"Using device: {DEVICE}")
 
+    # Turn off gradient calculations globally (we only do inference here)
+    set_grad_enabled(False)
+
     global dir, superpoint, lightglue
     dir = load_DIR(DEVICE)
-    superpoint = load_superpoint(max_num_keypoints=max_keypoints, device=DEVICE)
+    superpoint = load_superpoint(max_num_keypoints=max_keypoints_per_image, device=DEVICE)
     lightglue = load_lightglue(DEVICE)
 
 
@@ -78,6 +86,7 @@ def localize_image_against_reconstruction(
 
     # Match features between query and database images
     pairs = [(str(image_id), "query") for image_id in matched_image_ids]
+
     match_indices = lightglue_match_tensors(lightglue, pairs, keypoints, descriptors, sizes, len(pairs), DEVICE)
 
     # Collect 2D-3D correspondences
@@ -95,7 +104,7 @@ def localize_image_against_reconstruction(
 
     # Verify we have enough correspondences
     if not query_keypoint_indices:
-        raise ValueError("No matching keypoints found")
+        raise LocalizationError("No matching keypoints found")
 
     # Create COLMAP camera model
     width, height, *params = transform_intrinsics(camera)
@@ -117,7 +126,7 @@ def localize_image_against_reconstruction(
 
     # Check if pose estimation was successful
     if pnp_result is None:
-        raise ValueError("Pose estimation failed")
+        raise LocalizationError("Pose estimation failed")
 
     # Change basis if needed
     cam_from_world = cast(Rigid3d, pnp_result["cam_from_world"])

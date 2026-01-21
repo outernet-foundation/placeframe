@@ -11,12 +11,17 @@ dependencies = [
     "fastapi>=0.116.1",
     "scipy>=1.16.1",
     "uvicorn>=0.35.0",
-    "openapi-generator-cli>=7.14.0",
     "typer>=0.20.0",
+    "litestar>=2.19.0",
+    "numpy>=2.4.0",
+    "pillow>=12.1.0",
 ]
 
 [dependency-groups]
 dev = ["scipy-stubs"]
+
+[tool.deptry.per_rule_ignores]
+DEP002 = ["uvicorn"]
 
 [[tool.uv.sources.pyzed]]
 path = "./third-party/pyzed/pyzed-5.1-cp313-cp313-win_amd64.whl"

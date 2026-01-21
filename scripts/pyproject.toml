@@ -7,16 +7,14 @@ requires-python = ">=3.13"
 dependencies = [
   "common",
   "datamodel-code-generator>=0.33.0",
-  "debugpy>=1.8.16",
-  "psycopg[binary]>=3.2.10",
   "pydantic>=2.11.7",
   "pyhumps>=3.8.0",
-  "scipy>=1.16.2",
   "typer>=0.17.4",
-  "watchdog>=6.0.0",
-  "scipy-stubs>=1.16.2.4",
+  "sqlalchemy>=2.0.45",
 ]
 
+[tool.deptry.per_rule_ignores]
+DEP002 = ["datamodel-code-generator"]
 
 [build-system]
 requires = ["hatchling"]
@@ -33,3 +31,4 @@ generate-datamodels = "scripts.generate_datamodels:main"
 forward-unity-android-debug-port = "scripts.forward_unity_android_debug_port:main"
 list-debug-targets = "scripts.list_debug_targets:main"
 migrate-database = "scripts.migrate_database:main"
+deptry-check = "scripts.deptry_check:main"

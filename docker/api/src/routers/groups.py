@@ -12,9 +12,9 @@ from datamodels.public_dtos import (
 from datamodels.public_tables import Group, Node
 from litestar import Router, delete, get, patch, post
 from litestar.di import Provide
-from litestar.exceptions import HTTPException
+from litestar.exceptions import ClientException, HTTPException, NotFoundException
 from litestar.params import Parameter
-from litestar.status_codes import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
+from litestar.status_codes import HTTP_409_CONFLICT
 from sqlalchemy import delete as sql_delete
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,7 +40,7 @@ async def create_group(session: AsyncSession, data: GroupCreate) -> GroupRead:
     if data.parent_id is not None:
         result = await session.execute(select(1).where(Group.id == data.parent_id))
         if not result.scalar():
-            raise HTTPException(HTTP_400_BAD_REQUEST, f"Parent group with id {data.parent_id} does not exist.")
+            raise ClientException(f"Parent group with id {data.parent_id} does not exist.")
 
     row = group_from_dto(data)
     session.add(row)
@@ -62,7 +62,7 @@ async def create_groups_batch(session: AsyncSession, data: list[GroupCreate]) ->
 
         missing = parent_ids - found_ids
         if missing:
-            raise HTTPException(HTTP_400_BAD_REQUEST, f"The following parent group IDs do not exist: {missing}")
+            raise ClientException(f"The following parent group IDs do not exist: {missing}")
 
     # Insert
     rows = [group_from_dto(group_data) for group_data in data]
@@ -127,7 +127,7 @@ async def update_groups(
         row = await session.get(Group, group.id)
         if not row:
             if not allow_missing:
-                raise HTTPException(HTTP_404_NOT_FOUND, f"Group with id {group.id} not found")
+                raise NotFoundException(f"Group with id {group.id} not found")
             continue
 
         group_apply_batch_update_dto(row, group)

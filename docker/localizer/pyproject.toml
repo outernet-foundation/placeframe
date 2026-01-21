@@ -8,21 +8,30 @@ dependencies = [
   "common",
   "core",
   "pycolmap>=3.13.0",
-  "h5py>=3.15.0",
-  "fastapi>=0.119.0",
   "pydantic-settings>=2.11.0",
-  "python-multipart>=0.0.20",
   "uvicorn[standard]>=0.35.0",
-  "opencv-python>=4.10.0",
   "scipy>=1.16.2",
   "faiss-cpu>=1.12.0",
+  "numpy>=2.4.0",
+  "litestar>=2.19.0",
+  "pydantic>=2.12.5",
 ]
 
 [dependency-groups]
-dev = ["h5py-stubs>=0.1.2", "scipy-stubs>=1.16.2.4"]
+dev = ["h5py-stubs>=0.1.2", "scipy-stubs>=1.16.2.4", "debugpy>=1.6.7"]
 neural-networks-cpu = ["neural-networks[cpu]"]
 neural-networks-cuda = ["neural-networks[cuda]"]
 neural-networks-rocm = ["neural-networks[rocm]"]
+
+
+[tool.deptry.per_rule_ignores]
+# Code in this package directly imports 'torch', but cannot directly depend on torch, because torch has multiple conflicting 
+# platform-specific variants that are declared using 'extras' in the 'neural-networks' package, and declaring bare 'torch' 
+# directly in this package would lead to dependency conflicts; we therefore must ignore deptry's check for this specific package
+DEP003 = ["torch"]
+DEP004 = ["neural_networks"]
+# DEP002: Ignore "Unused dependency" for runtime tools that are never imported
+DEP002 = ["uvicorn", "debugpy"]
 
 [build-system]
 requires = ["hatchling"]

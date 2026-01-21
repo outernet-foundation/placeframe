@@ -38,7 +38,7 @@ namespace PlerionApiClient.Model
         /// <param name="singleThreaded">If true, run reconstruction in single-threaded mode (for deterministic behavior)..</param>
         /// <param name="neighborsCount">How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). If None, a sensible default is used (currently 12). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage..</param>
         /// <param name="rotationThreshold">Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. Smaller values reduce weak overlaps and speed up matching at the cost of some coverage..</param>
-        /// <param name="maxKeypointsPerImage">Upper bound on detected local features per image (SuperPoint). Reduces descriptor/match volume and downstream 3D points; too small can hurt registration..</param>
+        /// <param name="lightglueBatchSize">Batch size to use when running LightGlue for feature matching. Larger batch sizes can improve GPU utilization but require more memory..</param>
         /// <param name="ransacMaxError">Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower &#x3D; stricter inlier test; removes borderline correspondences before SfM..</param>
         /// <param name="ransacMinInlierRatio">Two-view RANSAC minimum inlier ratio to accept the model. Higher &#x3D; reject more weak pairs; typically 0.10–0.20 for stricter matching..</param>
         /// <param name="usePriorPosition">If true, use position priors during registration. This leverages PosePrior(position&#x3D;...) written into the database to guide image registration..</param>
@@ -160,29 +160,29 @@ namespace PlerionApiClient.Model
             return _flagRotationThreshold;
         }
         /// <summary>
-        /// Upper bound on detected local features per image (SuperPoint). Reduces descriptor/match volume and downstream 3D points; too small can hurt registration.
+        /// Batch size to use when running LightGlue for feature matching. Larger batch sizes can improve GPU utilization but require more memory.
         /// </summary>
-        /// <value>Upper bound on detected local features per image (SuperPoint). Reduces descriptor/match volume and downstream 3D points; too small can hurt registration.</value>
-        [DataMember(Name = "max_keypoints_per_image", EmitDefaultValue = true)]
-        public int? MaxKeypointsPerImage
+        /// <value>Batch size to use when running LightGlue for feature matching. Larger batch sizes can improve GPU utilization but require more memory.</value>
+        [DataMember(Name = "lightglue_batch_size", EmitDefaultValue = true)]
+        public int? LightglueBatchSize
         {
-            get{ return _MaxKeypointsPerImage;}
+            get{ return _LightglueBatchSize;}
             set
             {
-                _MaxKeypointsPerImage = value;
-                _flagMaxKeypointsPerImage = true;
+                _LightglueBatchSize = value;
+                _flagLightglueBatchSize = true;
             }
         }
-        private int? _MaxKeypointsPerImage;
-        private bool _flagMaxKeypointsPerImage;
+        private int? _LightglueBatchSize;
+        private bool _flagLightglueBatchSize;
 
         /// <summary>
-        /// Returns false as MaxKeypointsPerImage should not be serialized given that it's read-only.
+        /// Returns false as LightglueBatchSize should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeMaxKeypointsPerImage()
+        public bool ShouldSerializeLightglueBatchSize()
         {
-            return _flagMaxKeypointsPerImage;
+            return _flagLightglueBatchSize;
         }
         /// <summary>
         /// Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower &#x3D; stricter inlier test; removes borderline correspondences before SfM.
@@ -596,7 +596,7 @@ namespace PlerionApiClient.Model
             sb.Append("  SingleThreaded: ").Append(SingleThreaded).Append("\n");
             sb.Append("  NeighborsCount: ").Append(NeighborsCount).Append("\n");
             sb.Append("  RotationThreshold: ").Append(RotationThreshold).Append("\n");
-            sb.Append("  MaxKeypointsPerImage: ").Append(MaxKeypointsPerImage).Append("\n");
+            sb.Append("  LightglueBatchSize: ").Append(LightglueBatchSize).Append("\n");
             sb.Append("  RansacMaxError: ").Append(RansacMaxError).Append("\n");
             sb.Append("  RansacMinInlierRatio: ").Append(RansacMinInlierRatio).Append("\n");
             sb.Append("  UsePriorPosition: ").Append(UsePriorPosition).Append("\n");

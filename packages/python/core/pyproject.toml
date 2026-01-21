@@ -5,15 +5,22 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "common",
     "scipy>=1.16.3",
-    "opencv-python>=4.10.0",
     "faiss-cpu>=1.12.0",
     "pillow>=12.0.0",
+    "numpy>=2.4.0",
+    "pydantic>=2.12.5",
+    "h5py>=3.15.1",
 ]
 
 [dependency-groups]
 dev = ["scipy-stubs>=1.16.3.0"]
+
+[tool.deptry.per_rule_ignores]
+# Code in this package directly imports 'torch', but cannot directly depend on torch, because torch has multiple conflicting 
+# platform-specific variants that are declared using 'extras' in the 'neural-networks' package, and declaring bare 'torch' 
+# directly in this package would lead to dependency conflicts; we therefore must ignore deptry's check for this specific package
+DEP003 = ["torch", "lightglue"]
 
 [build-system]
 requires = ["hatchling"]

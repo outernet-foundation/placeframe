@@ -18,7 +18,7 @@ COLMAP_DB_FILE = "database.db"
 COLMAP_SFM_DIRECTORY = "sfm_model"
 
 
-def run_reconstruction(
+def run_colmap_reconstruction(
     root_path: Path,
     output_path: Path,
     images_path: Path,

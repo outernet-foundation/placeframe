@@ -43,21 +43,11 @@ namespace PlerionClient.Client
             if (previousLocalizing && !localizing)
             {
                 VisualPositioningSystem.StopLocalizing();
-
-                if (App.state.mapForLocalization.value != Guid.Empty)
-                {
-                    VisualPositioningSystem.RemoveLocalizationMap(App.state.mapForLocalization.value);
-                }
             }
 
             if (localizing && !previousLocalizing)
             {
                 VisualPositioningSystem.StartLocalizing();
-
-                if (App.state.mapForLocalization.value != Guid.Empty)
-                {
-                    VisualPositioningSystem.AddLocalizationMap(App.state.mapForLocalization.value);
-                }
             }
         }
 
@@ -68,13 +58,6 @@ namespace PlerionClient.Client
 
             var previousMapForLocalization = GetPreviousValue(App.state.mapForLocalization, args.changes);
             var mapForLocalization = App.state.mapForLocalization.value;
-
-            if (
-                App.state.mode.value != AppMode.Validation
-                || !App.state.localizing.value
-                || previousMapForLocalization == mapForLocalization
-            )
-                return;
 
             if (previousMapForLocalization != Guid.Empty)
             {

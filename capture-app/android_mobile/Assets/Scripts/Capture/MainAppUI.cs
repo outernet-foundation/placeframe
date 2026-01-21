@@ -306,7 +306,7 @@ namespace PlerionClient.Client
         public static IControl ValidationUI()
         {
             var metricsDialogOpen = new ValueObservable<bool>(false);
-            IControl selectValidationTargetDialog = default;
+            //IControl selectValidationTargetDialog = default;
 
             return Control("Validation UI", new()
             {
@@ -365,7 +365,7 @@ namespace PlerionClient.Client
                                     onValidationTargetSelected = x =>
                                     {
                                         App.state.mapForLocalization.ExecuteSetOrDelay(x);
-                                        selectValidationTargetDialog.Dispose();
+                                        //selectValidationTargetDialog.Dispose();
                                     }
                                 }),
                                 layout = new()
@@ -444,7 +444,7 @@ namespace PlerionClient.Client
                                                     {
                                                         App.state.mapForLocalization.ExecuteSetOrDelay(x.Value.localizationMapId.value);
                                                         App.state.localizing.ExecuteSetOrDelay(true);
-                                                        props.onValidationTargetSelected?.Invoke(x.Key);
+                                                        props.onValidationTargetSelected?.Invoke(x.Value.localizationMapId.value);
                                                     }
                                                 }))
                                         })

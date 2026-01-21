@@ -8,17 +8,16 @@ dependencies = [
     "fastapi>=0.116.1",
     "boto3>=1.39.5",
     "docker>=7.1.0",
-    "psycopg[binary]>=3.2.10",
-    "openapi-generator-cli>=7.14.0",
-    "pydantic-settings>=2.10.1",
     "litestar>=2.19.0",
+    "pydantic>=2.12.5",
+    "httpx>=0.28.1",
+    "botocore>=1.42.24",
+    "starlette>=0.50.0",
+    "pyjwt>=2.10.1",
 ]
 
 [dependency-groups]
-dev = [
-    "boto3-stubs[batch,ecs,secretsmanager,s3,lambda]>=1.40.29",
-    # "types-docker>=7.1.0.20250907",
-]
+dev = ["boto3-stubs[batch,ecs,secretsmanager,s3,lambda]>=1.40.29"]
 
 [build-system]
 requires = ["hatchling"]

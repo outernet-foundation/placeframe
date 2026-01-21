@@ -5,6 +5,8 @@ cat > /etc/caddy/Caddyfile <<EOF
 :8080 {
     redir /auth /auth/ 308
 
+    respond /internal/* 403
+
     handle_path /auth/* {
         reverse_proxy keycloak:8080 {
             header_up X-Forwarded-Proto https

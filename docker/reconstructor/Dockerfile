@@ -1,4 +1,6 @@
-FROM ghcr.io/astral-sh/uv:0.9.11-python3.13-bookworm-slim AS dev
+ARG UV_BASE_DIGEST
+
+FROM ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS dev
 
 WORKDIR /app/docker/reconstructor
 
@@ -17,9 +19,12 @@ ENV \
     TORCH_HOME=/opt/torch_cache \
     # Enable experimental AOTriton fast attention kernels for ROCm (speeds up LightGlue on ROCm)
     TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1 \
-    # Set virtual environment location
+    # Set main and tool virtual environment locations
     UV_PROJECT_ENVIRONMENT=/opt/uv/venv \
-    VIRTUAL_ENV=/opt/uv/venv
+    VIRTUAL_ENV=/opt/uv/venv \
+    UV_TOOLS_ENVIRONMENT=/opt/uv/tools
+
+RUN uv venv $UV_PROJECT_ENVIRONMENT 
 
 # Install git (in order to install lightglue) + libGL for OpenCV
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -29,9 +34,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     git ca-certificates \
     libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 \
     && rm -rf /var/lib/apt/lists/*
-
-# Create the virtual environment
-RUN uv venv $UV_PROJECT_ENVIRONMENT
 
 # Install neural-networks dependencies
 ARG TORCH_DEVICE
@@ -56,10 +58,12 @@ RUN --mount=type=cache,id=uvcache,sharing=locked,target=/root/.cache/uv \
 # Install remaining packages and the project itself
 COPY packages/python/core /app/packages/python/core
 COPY packages/python/common /app/packages/python/common
+COPY packages/generated/python/api-client /app/packages/generated/python/api-client
 COPY docker/reconstructor /app/docker/reconstructor
 RUN uv pip install --no-deps --no-sources \
     /app/packages/python/common \
     /app/packages/python/core \
+    /app/packages/generated/python/api-client \
     /app/docker/reconstructor
 
 # Verify that all declared dependencies were installed

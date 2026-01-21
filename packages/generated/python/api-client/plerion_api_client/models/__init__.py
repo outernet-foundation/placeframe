@@ -33,6 +33,7 @@ from plerion_api_client.models.group_read import GroupRead
 from plerion_api_client.models.layer_batch_update import LayerBatchUpdate
 from plerion_api_client.models.layer_create import LayerCreate
 from plerion_api_client.models.layer_read import LayerRead
+from plerion_api_client.models.lease_response import LeaseResponse
 from plerion_api_client.models.localization_map_batch_update import LocalizationMapBatchUpdate
 from plerion_api_client.models.localization_map_create import LocalizationMapCreate
 from plerion_api_client.models.localization_map_read import LocalizationMapRead

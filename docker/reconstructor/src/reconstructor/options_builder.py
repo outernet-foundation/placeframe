@@ -3,12 +3,19 @@ from __future__ import annotations
 from core.reconstruction_options import ReconstructionOptions
 from pycolmap import FeatureMatchingOptions, IncrementalPipelineOptions, TwoViewGeometryOptions
 
+DEFAULT_NEIGHBORS_COUNT = 12
+DEFAULT_NEIGHBOR_ROTATION_THRESHOLD = 30.0
+DEFAULT_RANSAC_MAX_ERROR = 2.0
+DEFAULT_RANSAC_MIN_INLIER_RATIO = 0.15
+DEFAULT_TRIANGULATION_MINIMUM_ANGLE = 3.0
+DEFAULT_TRIANGULATION_COMPLETE_MAX_REPROJECTION_ERROR = 2.0
+DEFAULT_TRIANGULATION_MERGE_MAX_REPROJECTION_ERROR = 4.0
+DEFAULT_MAPPER_FILTER_MAX_REPROJECTION_ERROR = 2.0
+DEFAULT_POSE_PRIOR_POS_SIGMA_M = 0.25
 DEFAULT_OPQ_NUMBER_OF_SUBVECTORS = 16
 DEFAULT_OPQ_NUMBER_OF_BITS_PER_SUBVECTOR = 8
 DEFAULT_OPQ_NUMBER_OF_TRAINING_ITERATIONS = 20
-DEFAULT_NEIGHBORS_COUNT = 12
-DEFAULT_NEIGHBOR_ROTATION_THRESHOLD = 30.0
-DEFAULT_POSE_PRIOR_POS_SIGMA_M = 0.25
+DEFAULT_LIGHTGLUE_BATCH_SIZE = 16
 
 
 class OptionsBuilder:
@@ -20,10 +27,10 @@ class OptionsBuilder:
         two_view_geometry_options.compute_relative_pose = True
         if self.options.random_seed is not None:
             two_view_geometry_options.ransac.random_seed = self.options.random_seed
-        if self.options.ransac_max_error is not None:
-            two_view_geometry_options.ransac.max_error = self.options.ransac_max_error
-        if self.options.ransac_min_inlier_ratio is not None:
-            two_view_geometry_options.ransac.min_inlier_ratio = self.options.ransac_min_inlier_ratio
+        two_view_geometry_options.ransac.max_error = self.options.ransac_max_error or DEFAULT_RANSAC_MAX_ERROR
+        two_view_geometry_options.ransac.min_inlier_ratio = (
+            self.options.ransac_min_inlier_ratio or DEFAULT_RANSAC_MIN_INLIER_RATIO
+        )
         two_view_geometry_options.filter_stationary_matches = True
         two_view_geometry_options.stationary_matches_max_error = 4.0
         return two_view_geometry_options
@@ -41,9 +48,6 @@ class OptionsBuilder:
     def rotation_threshold_deg(self):
         return self.options.rotation_threshold or DEFAULT_NEIGHBOR_ROTATION_THRESHOLD
 
-    def max_keypoints_per_image(self):
-        return self.options.max_keypoints_per_image or None
-
     def compression_opq_number_of_subvectors(self):
         return self.options.compression_opq_number_of_subvectors or DEFAULT_OPQ_NUMBER_OF_SUBVECTORS
 
@@ -55,6 +59,9 @@ class OptionsBuilder:
 
     def pose_prior_position_sigma_m(self):
         return self.options.pose_prior_position_sigma_m or DEFAULT_POSE_PRIOR_POS_SIGMA_M
+
+    def lightglue_batch_size(self):
+        return self.options.lightglue_batch_size or DEFAULT_LIGHTGLUE_BATCH_SIZE
 
     def incremental_pipeline_options(self):
         incremental_pipeline_options = IncrementalPipelineOptions()
@@ -78,19 +85,20 @@ class OptionsBuilder:
                 self.options.bundle_adjustment_refine_principal_point
             )
 
-        if self.options.triangulation_minimum_angle is not None:
-            incremental_pipeline_options.mapper.filter_min_tri_angle = self.options.triangulation_minimum_angle
-            incremental_pipeline_options.triangulation.min_angle = self.options.triangulation_minimum_angle
-        if self.options.mapper_filter_max_reprojection_error is not None:
-            incremental_pipeline_options.mapper.filter_max_reproj_error = (
-                self.options.mapper_filter_max_reprojection_error
-            )
-        if self.options.triangulation_complete_max_reprojection_error is not None:
-            incremental_pipeline_options.triangulation.complete_max_reproj_error = (
-                self.options.triangulation_complete_max_reprojection_error
-            )
-        if self.options.triangulation_merge_max_reprojection_error is not None:
-            incremental_pipeline_options.triangulation.merge_max_reproj_error = (
-                self.options.triangulation_merge_max_reprojection_error
-            )
+        triangulation_min_angle = self.options.triangulation_minimum_angle or DEFAULT_TRIANGULATION_MINIMUM_ANGLE
+
+        incremental_pipeline_options.triangulation.min_angle = triangulation_min_angle
+        incremental_pipeline_options.triangulation.complete_max_reproj_error = (
+            self.options.triangulation_complete_max_reprojection_error
+            or DEFAULT_TRIANGULATION_COMPLETE_MAX_REPROJECTION_ERROR
+        )
+        incremental_pipeline_options.triangulation.merge_max_reproj_error = (
+            self.options.triangulation_merge_max_reprojection_error
+            or DEFAULT_TRIANGULATION_MERGE_MAX_REPROJECTION_ERROR
+        )
+        incremental_pipeline_options.mapper.filter_min_tri_angle = triangulation_min_angle
+        incremental_pipeline_options.mapper.filter_max_reproj_error = (
+            self.options.mapper_filter_max_reprojection_error or DEFAULT_MAPPER_FILTER_MAX_REPROJECTION_ERROR
+        )
+
         return incremental_pipeline_options

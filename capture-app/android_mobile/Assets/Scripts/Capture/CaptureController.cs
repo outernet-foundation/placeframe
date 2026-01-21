@@ -46,30 +46,34 @@ namespace PlerionClient.Client
                 new Configuration() { BasePath = App.state.plerionApiUrl.value, Timeout = TimeSpan.FromSeconds(600) }
             );
 
-            ui = OrderedCanvas(new()
-            {
-                children = Props.List(
-                    App.state.loggedIn.AsObservable()
-                        .CreateDynamic(loggedIn =>
-                        {
-                            IControl screen = default;
-                            if (loggedIn)
+            ui = OrderedCanvas(
+                new()
+                {
+                    children = Props.List(
+                        App.state.loggedIn.AsObservable()
+                            .CreateDynamic(loggedIn =>
                             {
-                                screen = MainAppUI(new MainAppUIProps()
+                                IControl screen = default;
+                                if (loggedIn)
                                 {
-                                    mode = App.state.mode.AsObservable(),
-                                    onModeChanged = x => App.state.mode.ExecuteSetOrDelay(x)
-                                });
-                            }
-                            else
-                            {
-                                screen = LoginUI();
-                            }
+                                    screen = MainAppUI(
+                                        new MainAppUIProps()
+                                        {
+                                            mode = App.state.mode.AsObservable(),
+                                            onModeChanged = x => App.state.mode.ExecuteSetOrDelay(x),
+                                        }
+                                    );
+                                }
+                                else
+                                {
+                                    screen = LoginUI();
+                                }
 
-                            return screen;
-                        })
-                )
-            });
+                                return screen;
+                            })
+                    ),
+                }
+            );
 
             App.RegisterObserver(HandleCaptureStatusChanged, App.state.loggedIn, App.state.captureStatus);
             App.RegisterObserver(HandleCapturesChanged, App.state.captures);
@@ -202,7 +206,6 @@ namespace PlerionClient.Client
                 return new ReconstructionOptions()
                 {
                     NeighborsCount = 12,
-                    MaxKeypointsPerImage = 2500,
                     RansacMaxError = 2.0,
                     RansacMinInlierRatio = 0.15,
                     TriangulationMinimumAngle = 3.0,
@@ -603,10 +606,10 @@ namespace PlerionClient.Client
             {
                 var status = await capturesApi.GetReconstructionStatusAsync(reconstructionId, cancellationToken);
 
-                if (status == "\"succeeded\"")
+                if (status == OrchestrationStatus.Succeeded)
                     break;
 
-                if (status == "\"failed\"" || status == "\"exited\"")
+                if (status == OrchestrationStatus.Failed || status == OrchestrationStatus.Cancelled)
                 {
                     progress?.Report(CaptureUploadStatus.Failed);
                     throw new Exception("Capture reconstruction failed.");

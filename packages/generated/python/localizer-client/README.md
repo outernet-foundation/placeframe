@@ -70,11 +70,13 @@ async with plerion_localizer_client.ApiClient(configuration) as api_client:
     reconstruction_ids = None # List[UUID] | 
     camera_config = plerion_localizer_client.PinholeCameraConfig() # PinholeCameraConfig | 
     axis_convention = plerion_localizer_client.AxisConvention() # AxisConvention | 
+    retrieval_top_k = 56 # int | 
+    ransac_threshold = 3.4 # float | 
     image = None # bytearray | 
 
     try:
         # LocalizeImage
-        api_response = await api_instance.localize_image(reconstruction_ids, camera_config, axis_convention, image)
+        api_response = await api_instance.localize_image(reconstruction_ids, camera_config, axis_convention, retrieval_top_k, ransac_threshold, image)
         print("The response of DefaultApi->localize_image:\n")
         pprint(api_response)
     except ApiException as e:

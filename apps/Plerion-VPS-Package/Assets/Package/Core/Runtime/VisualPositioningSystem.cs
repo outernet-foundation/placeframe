@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Threading;
 using Cysharp.Threading.Tasks;
 using PlerionApiClient.Api;
 using PlerionApiClient.Client;
@@ -15,24 +14,16 @@ namespace Plerion.Core
 {
     public static class VisualPositioningSystem
     {
-        struct MapData
-        {
-            public LocalizationMapRead Metadata;
-            public ReconstructionVisualizer Visualizer;
-        }
-
         private static Action<string> _logCallback;
         private static Action<string> _warnCallback;
         private static Action<string> _errorCallback;
         private static Action<string, Exception> _logExceptionCallback;
-        private static DefaultApi _api;
         private static readonly AsyncLifecycleGuard _serviceGuard = new AsyncLifecycleGuard();
-        private static Dictionary<Guid, MapData> _maps = new Dictionary<Guid, MapData>();
-        private static Dictionary<Guid, CancellationTokenSource> _loadOperations =
-            new Dictionary<Guid, CancellationTokenSource>();
+        private static Dictionary<Guid, LocalizationMap> _maps = new Dictionary<Guid, LocalizationMap>();
         private static double4x4 _unityFromEcefTransform = double4x4.identity;
         private static double4x4 _ecefFromUnityTransform = math.inverse(_unityFromEcefTransform);
 
+        public static DefaultApi Api { get; private set; }
         public static Prefabs Prefabs { get; private set; }
         public static ICameraProvider CameraProvider { get; private set; }
         public static LocalizationMetrics MostRecentMetrics { get; private set; }
@@ -63,16 +54,16 @@ namespace Plerion.Core
             if (CameraProvider != null)
                 throw new InvalidOperationException("VisualPositioningSystem is already initialized");
 
-            CameraProvider = cameraProvider;
             _logCallback = logCallback;
             _warnCallback = warnCallback;
             _errorCallback = errorCallback;
             _logExceptionCallback = logException;
 
-            Prefabs = Resources.Load<Prefabs>("PrefabReferences");
             Auth.Initialize(authTokenUrl, authAudience, logCallback, warnCallback, errorCallback);
 
-            _api = new DefaultApi(
+            CameraProvider = cameraProvider;
+            Prefabs = Resources.Load<Prefabs>("PrefabReferences");
+            Api = new DefaultApi(
                 new HttpClient(new AuthHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
                     BaseAddress = new Uri(apiUrl),
@@ -85,30 +76,30 @@ namespace Plerion.Core
 
         public static void AddLocalizationMap(Guid mapId)
         {
-            if (_maps.ContainsKey(mapId) || _loadOperations.ContainsKey(mapId))
+            if (_maps.ContainsKey(mapId))
                 throw new InvalidOperationException($"Map {mapId} is already added");
 
-            _loadOperations[mapId] = new CancellationTokenSource();
-            LoadMap(mapId, _loadOperations[mapId].Token).Forget();
+            _maps[mapId] = GameObject.Instantiate(Prefabs.localizationMapPrefab, Vector3.zero, Quaternion.identity);
+            _maps[mapId]
+                .gameObject.SetActive(
+                    _serviceGuard.State == AsyncLifecycleGuard.LifecycleState.Starting
+                        || _serviceGuard.State == AsyncLifecycleGuard.LifecycleState.Running
+                );
+
+            _maps[mapId].Initialize(mapId);
         }
 
-        public static void RemoveLocalizationMap(Guid map)
+        public static void RemoveLocalizationMap(Guid mapId)
         {
-            if (_loadOperations.TryGetValue(map, out var cts))
+            if (_maps.TryGetValue(mapId, out var visualizer))
             {
-                cts.Cancel();
+                if (visualizer != null)
+                    GameObject.Destroy(visualizer.gameObject);
+                _maps.Remove(mapId);
                 return;
             }
 
-            if (_maps.TryGetValue(map, out var loadedMap))
-            {
-                if (loadedMap.Visualizer != null)
-                    GameObject.Destroy(loadedMap.Visualizer.gameObject);
-                _maps.Remove(map);
-                return;
-            }
-
-            throw new InvalidOperationException($"Map {map} is not added or loading");
+            throw new InvalidOperationException($"Map {mapId} is not added");
         }
 
         public static void StartLocalizing() => StartLocalizingInternal().Forget();
@@ -138,68 +129,13 @@ namespace Plerion.Core
                 rotation
             );
 
-        private static async UniTaskVoid LoadMap(Guid mapId, CancellationToken token)
-        {
-            ReconstructionVisualizer reconstructionVisualizer = null;
-            try
-            {
-                var mapData = await _api.GetLocalizationMapAsync(mapId).AsUniTask();
-                if (token.IsCancellationRequested)
-                    return;
-
-                reconstructionVisualizer = GameObject.Instantiate(
-                    Prefabs.mapRendererPrefab,
-                    Vector3.zero,
-                    Quaternion.identity
-                );
-
-                reconstructionVisualizer.gameObject.SetActive(
-                    _serviceGuard.State == AsyncLifecycleGuard.LifecycleState.Starting
-                        || _serviceGuard.State == AsyncLifecycleGuard.LifecycleState.Running
-                );
-
-                await reconstructionVisualizer.Load(_api, mapData.ReconstructionId, token);
-
-                reconstructionVisualizer
-                    .GetComponent<Anchor>()
-                    .SetEcefTransform(
-                        new double3(mapData.PositionX, mapData.PositionY, mapData.PositionZ),
-                        new quaternion(
-                            (float)mapData.RotationX,
-                            (float)mapData.RotationY,
-                            (float)mapData.RotationZ,
-                            (float)mapData.RotationW
-                        )
-                    );
-
-                _maps[mapId] = new MapData { Metadata = mapData, Visualizer = reconstructionVisualizer };
-            }
-            catch (Exception exception)
-            {
-                if (reconstructionVisualizer != null)
-                    GameObject.Destroy(reconstructionVisualizer);
-
-                if (exception is not OperationCanceledException)
-                    LogException($"Failed to load map {mapId}", exception);
-            }
-            finally
-            {
-                if (_loadOperations.TryGetValue(mapId, out var cancellationTokenSource))
-                {
-                    cancellationTokenSource.Dispose();
-                    _loadOperations.Remove(mapId);
-                }
-            }
-        }
-
         private static async UniTask StartLocalizingInternal()
         {
             try
             {
-                // Enable all loaded visualizers
                 foreach (var map in _maps.Values)
                 {
-                    map.Visualizer.gameObject.SetActive(true);
+                    map.gameObject.SetActive(true);
                 }
 
                 await _serviceGuard.StartAsync(
@@ -225,10 +161,9 @@ namespace Plerion.Core
 
         private static async UniTask StopLocalizingInternal()
         {
-            // Disable all loaded visualizers
             foreach (var map in _maps.Values)
             {
-                map.Visualizer.gameObject.SetActive(false);
+                map.gameObject.SetActive(false);
             }
 
             await _serviceGuard.StopAsync(CameraProvider.Stop);
@@ -265,10 +200,12 @@ namespace Plerion.Core
                     return;
                 }
 
-                var localizationResults = await _api.LocalizeImageAsync(
+                var localizationResults = await Api.LocalizeImageAsync(
                     mapIds,
                     cameraConfig,
                     AxisConvention.UNITY,
+                    12,
+                    12.0,
                     new FileParameter(memoryStream)
                 );
 

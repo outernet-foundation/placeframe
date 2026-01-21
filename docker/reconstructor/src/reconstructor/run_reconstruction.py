@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import gc
 import tarfile
 from io import BytesIO
 from pathlib import Path
+from typing import Any
+from uuid import UUID
 
 from common.boto_clients import create_s3_client
 from core.camera_config import PinholeCameraConfig, transform_image
@@ -16,22 +17,38 @@ from neural_networks.models import load_DIR, load_lightglue, load_superpoint
 from numpy import asarray, ascontiguousarray, float32, random, vstack
 from numpy.typing import NDArray
 from pycolmap._core import set_random_seed
-from torch import cuda, from_numpy, inference_mode  # type: ignore
+from torch import cuda, from_numpy, set_grad_enabled  # type: ignore
 
-from .colmap import run_reconstruction
+from .colmap import run_colmap_reconstruction
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
 from .pairs import generate_image_pairs, write_pairs
 from .rig import Rig
 from .settings import get_settings
 
+DEVICE = "cuda" if cuda.is_available() else "cpu"
+
 WORK_DIR = Path("/tmp/reconstruction")
 CAPTURE_SESSION_DIRECTORY = WORK_DIR / "capture_session"
 
+dir: Any = None
+lightglue: Any = None
+superpoint: Any = None
 
-def main():
-    device = "cuda" if cuda.is_available() else "cpu"
-    print(f"Using device: {device}")
+
+def load_models(max_keypoints_per_image: int):
+    print(f"Using device: {DEVICE}")
+
+    # Turn off gradient calculations globally (we only do inference here)
+    set_grad_enabled(False)
+
+    global dir, lightglue, superpoint
+    dir = load_DIR(DEVICE)
+    lightglue = load_lightglue(DEVICE)
+    superpoint = load_superpoint(max_num_keypoints=max_keypoints_per_image, device=DEVICE)
+
+
+def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
 
     settings = get_settings()
     s3_client = create_s3_client(
@@ -41,15 +58,13 @@ def main():
     )
 
     def _put_reconstruction_object(key: str, body: bytes):
-        print(f"Putting object in bucket {settings.reconstructions_bucket} with key {settings.reconstruction_id}/{key}")
-        s3_client.put_object(
-            Bucket=settings.reconstructions_bucket, Key=f"{settings.reconstruction_id}/{key}", Body=body
-        )
+        print(f"Putting object in bucket {settings.reconstructions_bucket} with key {reconstruction_id}/{key}")
+        s3_client.put_object(Bucket=settings.reconstructions_bucket, Key=f"{reconstruction_id}/{key}", Body=body)
 
     print(
-        f"Downloading capture session archive for capture session ID: {settings.capture_id} from bucket {settings.captures_bucket}"
+        f"Downloading capture session archive for capture session ID: {capture_id} from bucket {settings.captures_bucket}"
     )
-    bytes = s3_client.get_object(Bucket=settings.captures_bucket, Key=f"{settings.capture_id}.tar")["Body"].read()
+    bytes = s3_client.get_object(Bucket=settings.captures_bucket, Key=f"{capture_id}.tar")["Body"].read()
     print(f"Downloaded capture session archive, size: {len(bytes)} bytes")
     # Download and validate capture session manifest
     with tarfile.open(fileobj=BytesIO(bytes), mode="r:*") as tar:
@@ -70,7 +85,7 @@ def main():
 
     # Download and validate reconstruction manifest
     manifest = ReconstructionManifest.model_validate_json(
-        s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{settings.reconstruction_id}/manifest.json")[
+        s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{reconstruction_id}/manifest.json")[
             "Body"
         ].read()
     )
@@ -86,10 +101,6 @@ def main():
     pairs = generate_image_pairs(rigs, options.neighbors_count(), options.rotation_threshold_deg())
     file_name, file_bytes = write_pairs(pairs, WORK_DIR)
     _put_reconstruction_object(key=file_name, body=file_bytes)
-
-    # Load DIR and SuperPoint models
-    dir = load_DIR(device)
-    superpoint = load_superpoint(max_num_keypoints=options.max_keypoints_per_image(), device=device)
 
     # Extract features
     global_descriptors: dict[str, NDArray[float32]] = {}
@@ -114,21 +125,13 @@ def main():
         # Write image back to disk, so incremental_mapping samples the processed image for point cloud colorization
         image.save(image_path)
 
-        with inference_mode():
-            dir_output = dir({"image": rgb_tensor.unsqueeze(0).to(device=device)})
-            superpoint_output = superpoint({"image": gray_tensor.unsqueeze(0).to(device=device)})
+        dir_output = dir({"image": rgb_tensor.unsqueeze(0).to(device=DEVICE)})
+        superpoint_output = superpoint({"image": gray_tensor.unsqueeze(0).to(device=DEVICE)})
 
         global_descriptors[image_name] = dir_output["global_descriptor"][0].cpu().numpy().astype(float32, copy=False)
         keypoints[image_name] = superpoint_output["keypoints"][0].cpu().numpy().astype(float32, copy=False)
         descriptors[image_name] = superpoint_output["descriptors"][0].cpu().numpy().astype(float32, copy=False)
         sizes[image_name] = (image.height, image.width)
-
-    # Unload DIR and SuperPoint models
-    del dir
-    del superpoint
-    gc.collect()
-    if cuda.is_available():
-        cuda.empty_cache()
 
     # Write global descriptors to storage
     file_name, file_bytes = write_global_descriptors(WORK_DIR, global_descriptors)
@@ -166,22 +169,17 @@ def main():
     file_name, file_bytes = write_features(WORK_DIR, keypoints, image_codes)
     _put_reconstruction_object(key=file_name, body=file_bytes)
 
-    # Load LightGlue model
-    lightglue = load_lightglue(device)
-
     # Match features
-    match_indices = lightglue_match(lightglue, pairs, keypoints, descriptors, sizes, batch_size=32, device=device)
-
-    # Unload LightGlue model
-    del lightglue
-    gc.collect()
+    match_indices = lightglue_match(
+        lightglue, pairs, keypoints, descriptors, sizes, options.lightglue_batch_size(), DEVICE
+    )
     if cuda.is_available():
         cuda.empty_cache()
 
     # Run COLMAP reconstruction
     sfm_output_path = WORK_DIR / "sfm_output"
     sfm_output_path.mkdir(parents=True, exist_ok=True)
-    reconstruction = run_reconstruction(
+    reconstruction = run_colmap_reconstruction(
         WORK_DIR, sfm_output_path, CAPTURE_SESSION_DIRECTORY, options, metrics, rigs, keypoints, pairs, match_indices
     )
 
@@ -202,7 +200,3 @@ def main():
     manifest.metrics = metrics.metrics
     manifest.status = "succeeded"
     _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
-
-
-if __name__ == "__main__":
-    main()

@@ -1,12 +1,10 @@
 {
   "realm": "plerion-dev",
   "enabled": true,
-
   "accessTokenLifespan": "${KEYCLOAK_ACCESS_TOKEN_LIFESPAN}",
   "accessTokenLifespanForImplicitFlow": "${KEYCLOAK_ACCESS_TOKEN_LIFESPAN}",
   "ssoSessionIdleTimeout": "${KEYCLOAK_ACCESS_TOKEN_LIFESPAN}",
   "ssoSessionMaxLifespan": "${KEYCLOAK_ACCESS_TOKEN_LIFESPAN}",
-
   "clients": [
     {
       "clientId": "plerion-api",
@@ -16,6 +14,31 @@
       "directAccessGrantsEnabled": true,
       "redirectUris": ["${PUBLIC_URL}/schema", "${PUBLIC_URL}/schema/"],
       "webOrigins": ["${PUBLIC_URL}"],
+      "protocolMappers": [
+        {
+          "name": "aud-plerion-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "plerion-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "plerion-worker",
+      "enabled": true,
+      "clientAuthenticatorType": "client-jwt",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "jwt.credential.public.key": "${WORKER_PUBLIC_KEY_PLACEHOLDER}"
+      },
       "protocolMappers": [
         {
           "name": "aud-plerion-api",

@@ -1,4 +1,6 @@
-FROM ghcr.io/astral-sh/uv:0.9.11-python3.13-bookworm-slim AS dev
+ARG UV_BASE_DIGEST
+
+FROM ghcr.io/astral-sh/uv${UV_BASE_DIGEST} AS dev
 
 WORKDIR /app/docker/database-manager
 

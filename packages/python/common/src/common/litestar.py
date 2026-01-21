@@ -2,7 +2,7 @@ from logging import getLogger
 from typing import Any, Sequence
 
 from litestar import Litestar, Request, Response, get
-from litestar.exceptions import HTTPException
+from litestar.exceptions import HTTPException, ValidationException
 from litestar.handlers import HTTPRouteHandler
 from litestar.openapi.config import OpenAPIConfig
 from litestar.response import Redirect
@@ -19,16 +19,36 @@ def use_handler_name(
     return route_handler.handler_name
 
 
-def log_http_exception(request: Request[Any, Any, Any], exc: HTTPException) -> Response[dict[str, Any]]:
-    logger.exception(
-        "HTTPException %s on %s %s: %r", exc.status_code, request.method, request.url.path, exc.detail, exc_info=exc
+def log_http_exception(request: Request[Any, Any, Any], exception: HTTPException) -> Response[dict[str, Any]]:
+    # Server Errors
+    if exception.status_code >= 500:
+        logger.exception(
+            "HTTPException %s on %s %s: %r",
+            exception.status_code,
+            request.method,
+            request.url.path,
+            exception.detail,
+            exc_info=exception,
+        )
+
+        return Response(content={"detail": "Internal Server Error"}, status_code=exception.status_code)
+
+    # Client Errors
+    logger.info(
+        "HTTPException %s on %s %s: %r", exception.status_code, request.method, request.url.path, exception.detail
     )
-    logger.warning("HTTPException %s on %s %s: %r", exc.status_code, request.method, request.url.path, exc.detail)
-    return Response(content={"detail": exc.detail}, status_code=exc.status_code)
+
+    content: dict[str, Any] = {"detail": exception.detail}
+
+    if isinstance(exception, ValidationException) and exception.extra:
+        content["validation_errors"] = exception.extra
+
+    return Response(content=content, status_code=exception.status_code)
 
 
-def log_unhandled_exception(request: Request[Any, Any, Any], exc: Exception) -> Response[dict[str, Any]]:
-    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+def log_unhandled_exception(request: Request[Any, Any, Any], exception: Exception) -> Response[dict[str, Any]]:
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path, exc_info=exception)
+
     return Response(content={"detail": "Internal Server Error"}, status_code=500)
 
 
