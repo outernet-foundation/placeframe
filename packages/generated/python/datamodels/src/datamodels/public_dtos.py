@@ -20,6 +20,12 @@ class GroupCreate(BaseModel):
     parent_id: UUID | None = Field(None, title='Parent Id')
 
 
+class GroupBatchCreate(BaseModel):
+    id: UUID = Field(..., title='Id')
+    name: str = Field(..., title='Name')
+    parent_id: UUID | None = Field(None, title='Parent Id')
+
+
 class GroupUpdate(BaseModel):
     name: str | None = Field(None, title='Name')
     parent_id: UUID | None = Field(None, title='Parent Id')
@@ -44,6 +50,11 @@ class LayerCreate(BaseModel):
     name: str = Field(..., title='Name')
 
 
+class LayerBatchCreate(BaseModel):
+    id: UUID = Field(..., title='Id')
+    name: str = Field(..., title='Name')
+
+
 class LayerUpdate(BaseModel):
     name: str | None = Field(None, title='Name')
 
@@ -63,6 +74,22 @@ class LayerRead(BaseModel):
 class LocalizationMapCreate(BaseModel):
     reconstruction_id: UUID = Field(..., title='Reconstruction Id')
     id: UUID | None = Field(None, title='Id')
+    rotation_y: float = Field(..., title='Rotation Y')
+    position_x: float = Field(..., title='Position X')
+    position_y: float = Field(..., title='Position Y')
+    position_z: float = Field(..., title='Position Z')
+    rotation_x: float = Field(..., title='Rotation X')
+    rotation_z: float = Field(..., title='Rotation Z')
+    rotation_w: float = Field(..., title='Rotation W')
+    color: int = Field(..., title='Color')
+    active: bool | None = Field(None, title='Active')
+    lighting: int | None = Field(None, title='Lighting')
+    name: str | None = Field(None, title='Name')
+
+
+class LocalizationMapBatchCreate(BaseModel):
+    reconstruction_id: UUID = Field(..., title='Reconstruction Id')
+    id: UUID = Field(..., title='Id')
     rotation_y: float = Field(..., title='Rotation Y')
     position_x: float = Field(..., title='Position X')
     position_y: float = Field(..., title='Position Y')
@@ -129,6 +156,10 @@ class LocalizationSessionCreate(BaseModel):
     id: UUID | None = Field(None, title='Id')
 
 
+class LocalizationSessionBatchCreate(BaseModel):
+    id: UUID = Field(..., title='Id')
+
+
 class LocalizationSessionUpdate(BaseModel):
     pass
 
@@ -146,6 +177,28 @@ class LocalizationSessionRead(BaseModel):
 
 class NodeCreate(BaseModel):
     id: UUID | None = Field(None, title='Id')
+    rotation_z: float = Field(..., title='Rotation Z')
+    position_y: float = Field(..., title='Position Y')
+    position_z: float = Field(..., title='Position Z')
+    rotation_x: float = Field(..., title='Rotation X')
+    rotation_y: float = Field(..., title='Rotation Y')
+    rotation_w: float = Field(..., title='Rotation W')
+    position_x: float = Field(..., title='Position X')
+    active: bool | None = Field(None, title='Active')
+    name: str = Field(..., title='Name')
+    layer_id: UUID | None = Field(None, title='Layer Id')
+    parent_id: UUID | None = Field(None, title='Parent Id')
+    label_width: float | None = Field(None, title='Label Width')
+    label_height: float | None = Field(None, title='Label Height')
+    label_scale: float | None = Field(None, title='Label Scale')
+    link_type: int | None = Field(None, title='Link Type')
+    label_type: int | None = Field(None, title='Label Type')
+    link: str | None = Field(None, title='Link')
+    label: str | None = Field(None, title='Label')
+
+
+class NodeBatchCreate(BaseModel):
+    id: UUID = Field(..., title='Id')
     rotation_z: float = Field(..., title='Rotation Z')
     position_y: float = Field(..., title='Position Y')
     position_z: float = Field(..., title='Position Z')
@@ -237,6 +290,10 @@ class TenantCreate(BaseModel):
     id: UUID | None = Field(None, title='Id')
 
 
+class TenantBatchCreate(BaseModel):
+    id: UUID = Field(..., title='Id')
+
+
 class TenantUpdate(BaseModel):
     pass
 
@@ -270,6 +327,12 @@ class CaptureSessionCreate(BaseModel):
     name: str = Field(..., title='Name')
 
 
+class CaptureSessionBatchCreate(BaseModel):
+    id: UUID = Field(..., title='Id')
+    device_type: DeviceType
+    name: str = Field(..., title='Name')
+
+
 class CaptureSessionUpdate(BaseModel):
     device_type: DeviceType | None = None
     name: str | None = Field(None, title='Name')
@@ -295,6 +358,12 @@ class ReconstructionCreate(BaseModel):
     orchestration_status: OrchestrationStatus | None = None
 
 
+class ReconstructionBatchCreate(BaseModel):
+    capture_session_id: UUID = Field(..., title='Capture Session Id')
+    id: UUID = Field(..., title='Id')
+    orchestration_status: OrchestrationStatus | None = None
+
+
 class ReconstructionUpdate(BaseModel):
     capture_session_id: UUID | None = Field(None, title='Capture Session Id')
     orchestration_status: OrchestrationStatus | None = None
@@ -314,6 +383,10 @@ class ReconstructionRead(BaseModel):
     orchestration_status: OrchestrationStatus
 
 def capture_session_from_dto(create: CaptureSessionCreate) -> CaptureSession:
+    data = create.model_dump(exclude_unset=True, mode="json")
+    return CaptureSession(**data)
+
+def capture_session_from_batch_create_dto(create: CaptureSessionBatchCreate) -> CaptureSession:
     data = create.model_dump(exclude_unset=True, mode="json")
     return CaptureSession(**data)
 
@@ -341,6 +414,10 @@ def group_from_dto(create: GroupCreate) -> Group:
     data = create.model_dump(exclude_unset=True, mode="json")
     return Group(**data)
 
+def group_from_batch_create_dto(create: GroupBatchCreate) -> Group:
+    data = create.model_dump(exclude_unset=True, mode="json")
+    return Group(**data)
+
 def group_from_dto_overwrite(instance: Group, create: GroupCreate) -> Group:
     for field, value in create.model_dump(exclude_unset=True, mode="json").items():
         setattr(instance, field, value)
@@ -362,6 +439,10 @@ def group_apply_batch_update_dto(instance: Group, update: GroupBatchUpdate) -> G
     return instance
 
 def layer_from_dto(create: LayerCreate) -> Layer:
+    data = create.model_dump(exclude_unset=True, mode="json")
+    return Layer(**data)
+
+def layer_from_batch_create_dto(create: LayerBatchCreate) -> Layer:
     data = create.model_dump(exclude_unset=True, mode="json")
     return Layer(**data)
 
@@ -389,6 +470,10 @@ def localization_map_from_dto(create: LocalizationMapCreate) -> LocalizationMap:
     data = create.model_dump(exclude_unset=True, mode="json")
     return LocalizationMap(**data)
 
+def localization_map_from_batch_create_dto(create: LocalizationMapBatchCreate) -> LocalizationMap:
+    data = create.model_dump(exclude_unset=True, mode="json")
+    return LocalizationMap(**data)
+
 def localization_map_from_dto_overwrite(instance: LocalizationMap, create: LocalizationMapCreate) -> LocalizationMap:
     for field, value in create.model_dump(exclude_unset=True, mode="json").items():
         setattr(instance, field, value)
@@ -410,6 +495,10 @@ def localization_map_apply_batch_update_dto(instance: LocalizationMap, update: L
     return instance
 
 def localization_session_from_dto(create: LocalizationSessionCreate) -> LocalizationSession:
+    data = create.model_dump(exclude_unset=True, mode="json")
+    return LocalizationSession(**data)
+
+def localization_session_from_batch_create_dto(create: LocalizationSessionBatchCreate) -> LocalizationSession:
     data = create.model_dump(exclude_unset=True, mode="json")
     return LocalizationSession(**data)
 
@@ -437,6 +526,10 @@ def node_from_dto(create: NodeCreate) -> Node:
     data = create.model_dump(exclude_unset=True, mode="json")
     return Node(**data)
 
+def node_from_batch_create_dto(create: NodeBatchCreate) -> Node:
+    data = create.model_dump(exclude_unset=True, mode="json")
+    return Node(**data)
+
 def node_from_dto_overwrite(instance: Node, create: NodeCreate) -> Node:
     for field, value in create.model_dump(exclude_unset=True, mode="json").items():
         setattr(instance, field, value)
@@ -461,6 +554,10 @@ def reconstruction_from_dto(create: ReconstructionCreate) -> Reconstruction:
     data = create.model_dump(exclude_unset=True, mode="json")
     return Reconstruction(**data)
 
+def reconstruction_from_batch_create_dto(create: ReconstructionBatchCreate) -> Reconstruction:
+    data = create.model_dump(exclude_unset=True, mode="json")
+    return Reconstruction(**data)
+
 def reconstruction_from_dto_overwrite(instance: Reconstruction, create: ReconstructionCreate) -> Reconstruction:
     for field, value in create.model_dump(exclude_unset=True, mode="json").items():
         setattr(instance, field, value)
@@ -482,6 +579,10 @@ def reconstruction_apply_batch_update_dto(instance: Reconstruction, update: Reco
     return instance
 
 def tenant_from_dto(create: TenantCreate) -> Tenant:
+    data = create.model_dump(exclude_unset=True, mode="json")
+    return Tenant(**data)
+
+def tenant_from_batch_create_dto(create: TenantBatchCreate) -> Tenant:
     data = create.model_dump(exclude_unset=True, mode="json")
     return Tenant(**data)
 

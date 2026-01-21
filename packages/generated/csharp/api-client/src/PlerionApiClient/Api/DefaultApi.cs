@@ -66,6 +66,24 @@ namespace PlerionApiClient.Api
         /// <returns>ApiResponse of List&lt;CaptureSessionRead&gt;</returns>
         ApiResponse<List<CaptureSessionRead>> CreateCaptureSessionsWithHttpInfo(List<CaptureSessionCreate> captureSessionCreate, bool? overwrite = default);
         /// <summary>
+        /// CreateGraph
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="createGraphRequest"></param>
+        /// <returns>CreateGraphResponse</returns>
+        CreateGraphResponse CreateGraph(CreateGraphRequest createGraphRequest);
+
+        /// <summary>
+        /// CreateGraph
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="createGraphRequest"></param>
+        /// <returns>ApiResponse of CreateGraphResponse</returns>
+        ApiResponse<CreateGraphResponse> CreateGraphWithHttpInfo(CreateGraphRequest createGraphRequest);
+        /// <summary>
         /// CreateGroup
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -83,6 +101,24 @@ namespace PlerionApiClient.Api
         /// <param name="groupCreate"></param>
         /// <returns>ApiResponse of GroupRead</returns>
         ApiResponse<GroupRead> CreateGroupWithHttpInfo(GroupCreate groupCreate);
+        /// <summary>
+        /// CreateGroupsBatch
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="groupCreate"></param>
+        /// <returns>List&lt;GroupRead&gt;</returns>
+        List<GroupRead> CreateGroupsBatch(List<GroupCreate> groupCreate);
+
+        /// <summary>
+        /// CreateGroupsBatch
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="groupCreate"></param>
+        /// <returns>ApiResponse of List&lt;GroupRead&gt;</returns>
+        ApiResponse<List<GroupRead>> CreateGroupsBatchWithHttpInfo(List<GroupCreate> groupCreate);
         /// <summary>
         /// CreateLayer
         /// </summary>
@@ -138,6 +174,24 @@ namespace PlerionApiClient.Api
         /// <returns>ApiResponse of NodeRead</returns>
         ApiResponse<NodeRead> CreateNodeWithHttpInfo(NodeCreate nodeCreate);
         /// <summary>
+        /// CreateNodesBatch
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="nodeCreate"></param>
+        /// <returns>List&lt;NodeRead&gt;</returns>
+        List<NodeRead> CreateNodesBatch(List<NodeCreate> nodeCreate);
+
+        /// <summary>
+        /// CreateNodesBatch
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="nodeCreate"></param>
+        /// <returns>ApiResponse of List&lt;NodeRead&gt;</returns>
+        ApiResponse<List<NodeRead>> CreateNodesBatchWithHttpInfo(List<NodeCreate> nodeCreate);
+        /// <summary>
         /// CreateReconstruction
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -178,8 +232,9 @@ namespace PlerionApiClient.Api
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">List of Ids to delete</param>
+        /// <param name="cascade">If true, recursively delete children. (optional, default to false)</param>
         /// <returns></returns>
-        void DeleteGroups(List<Guid> ids);
+        void DeleteGroups(List<Guid> ids, bool? cascade = default);
 
         /// <summary>
         /// DeleteGroups
@@ -189,8 +244,9 @@ namespace PlerionApiClient.Api
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">List of Ids to delete</param>
+        /// <param name="cascade">If true, recursively delete children. (optional, default to false)</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> DeleteGroupsWithHttpInfo(List<Guid> ids);
+        ApiResponse<Object> DeleteGroupsWithHttpInfo(List<Guid> ids, bool? cascade = default);
         /// <summary>
         /// DeleteLayers
         /// </summary>
@@ -839,6 +895,29 @@ namespace PlerionApiClient.Api
         /// <returns>Task of ApiResponse (List&lt;CaptureSessionRead&gt;)</returns>
         System.Threading.Tasks.Task<ApiResponse<List<CaptureSessionRead>>> CreateCaptureSessionsWithHttpInfoAsync(List<CaptureSessionCreate> captureSessionCreate, bool? overwrite = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
+        /// CreateGraph
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="createGraphRequest"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of CreateGraphResponse</returns>
+        System.Threading.Tasks.Task<CreateGraphResponse> CreateGraphAsync(CreateGraphRequest createGraphRequest, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// CreateGraph
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="createGraphRequest"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (CreateGraphResponse)</returns>
+        System.Threading.Tasks.Task<ApiResponse<CreateGraphResponse>> CreateGraphWithHttpInfoAsync(CreateGraphRequest createGraphRequest, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
         /// CreateGroup
         /// </summary>
         /// <remarks>
@@ -861,6 +940,29 @@ namespace PlerionApiClient.Api
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (GroupRead)</returns>
         System.Threading.Tasks.Task<ApiResponse<GroupRead>> CreateGroupWithHttpInfoAsync(GroupCreate groupCreate, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// CreateGroupsBatch
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="groupCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of List&lt;GroupRead&gt;</returns>
+        System.Threading.Tasks.Task<List<GroupRead>> CreateGroupsBatchAsync(List<GroupCreate> groupCreate, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// CreateGroupsBatch
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="groupCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (List&lt;GroupRead&gt;)</returns>
+        System.Threading.Tasks.Task<ApiResponse<List<GroupRead>>> CreateGroupsBatchWithHttpInfoAsync(List<GroupCreate> groupCreate, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateLayer
         /// </summary>
@@ -931,6 +1033,29 @@ namespace PlerionApiClient.Api
         /// <returns>Task of ApiResponse (NodeRead)</returns>
         System.Threading.Tasks.Task<ApiResponse<NodeRead>> CreateNodeWithHttpInfoAsync(NodeCreate nodeCreate, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
+        /// CreateNodesBatch
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="nodeCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of List&lt;NodeRead&gt;</returns>
+        System.Threading.Tasks.Task<List<NodeRead>> CreateNodesBatchAsync(List<NodeCreate> nodeCreate, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// CreateNodesBatch
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="nodeCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (List&lt;NodeRead&gt;)</returns>
+        System.Threading.Tasks.Task<ApiResponse<List<NodeRead>>> CreateNodesBatchWithHttpInfoAsync(List<NodeCreate> nodeCreate, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
         /// CreateReconstruction
         /// </summary>
         /// <remarks>
@@ -984,9 +1109,10 @@ namespace PlerionApiClient.Api
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">List of Ids to delete</param>
+        /// <param name="cascade">If true, recursively delete children. (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task DeleteGroupsAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task DeleteGroupsAsync(List<Guid> ids, bool? cascade = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// DeleteGroups
@@ -996,9 +1122,10 @@ namespace PlerionApiClient.Api
         /// </remarks>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">List of Ids to delete</param>
+        /// <param name="cascade">If true, recursively delete children. (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> DeleteGroupsWithHttpInfoAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<Object>> DeleteGroupsWithHttpInfoAsync(List<Guid> ids, bool? cascade = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// DeleteLayers
         /// </summary>
@@ -2204,6 +2331,123 @@ namespace PlerionApiClient.Api
         }
 
         /// <summary>
+        /// CreateGraph 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="createGraphRequest"></param>
+        /// <returns>CreateGraphResponse</returns>
+        public CreateGraphResponse CreateGraph(CreateGraphRequest createGraphRequest)
+        {
+            PlerionApiClient.Client.ApiResponse<CreateGraphResponse> localVarResponse = CreateGraphWithHttpInfo(createGraphRequest);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// CreateGraph 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="createGraphRequest"></param>
+        /// <returns>ApiResponse of CreateGraphResponse</returns>
+        public PlerionApiClient.Client.ApiResponse<CreateGraphResponse> CreateGraphWithHttpInfo(CreateGraphRequest createGraphRequest)
+        {
+            // verify the required parameter 'createGraphRequest' is set
+            if (createGraphRequest == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'createGraphRequest' when calling DefaultApi->CreateGraph");
+
+            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.Data = createGraphRequest;
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Post<CreateGraphResponse>("/graph", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("CreateGraph", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// CreateGraph 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="createGraphRequest"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of CreateGraphResponse</returns>
+        public async System.Threading.Tasks.Task<CreateGraphResponse> CreateGraphAsync(CreateGraphRequest createGraphRequest, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlerionApiClient.Client.ApiResponse<CreateGraphResponse> localVarResponse = await CreateGraphWithHttpInfoAsync(createGraphRequest, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// CreateGraph 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="createGraphRequest"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (CreateGraphResponse)</returns>
+        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<CreateGraphResponse>> CreateGraphWithHttpInfoAsync(CreateGraphRequest createGraphRequest, System.Threading.CancellationToken cancellationToken = default)
+        {
+            // verify the required parameter 'createGraphRequest' is set
+            if (createGraphRequest == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'createGraphRequest' when calling DefaultApi->CreateGraph");
+
+
+            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.Data = createGraphRequest;
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PostAsync<CreateGraphResponse>("/graph", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("CreateGraph", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
         /// CreateGroup 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -2314,6 +2558,123 @@ namespace PlerionApiClient.Api
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("CreateGroup", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// CreateGroupsBatch 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="groupCreate"></param>
+        /// <returns>List&lt;GroupRead&gt;</returns>
+        public List<GroupRead> CreateGroupsBatch(List<GroupCreate> groupCreate)
+        {
+            PlerionApiClient.Client.ApiResponse<List<GroupRead>> localVarResponse = CreateGroupsBatchWithHttpInfo(groupCreate);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// CreateGroupsBatch 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="groupCreate"></param>
+        /// <returns>ApiResponse of List&lt;GroupRead&gt;</returns>
+        public PlerionApiClient.Client.ApiResponse<List<GroupRead>> CreateGroupsBatchWithHttpInfo(List<GroupCreate> groupCreate)
+        {
+            // verify the required parameter 'groupCreate' is set
+            if (groupCreate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'groupCreate' when calling DefaultApi->CreateGroupsBatch");
+
+            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.Data = groupCreate;
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Post<List<GroupRead>>("/groups/batch", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("CreateGroupsBatch", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// CreateGroupsBatch 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="groupCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of List&lt;GroupRead&gt;</returns>
+        public async System.Threading.Tasks.Task<List<GroupRead>> CreateGroupsBatchAsync(List<GroupCreate> groupCreate, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlerionApiClient.Client.ApiResponse<List<GroupRead>> localVarResponse = await CreateGroupsBatchWithHttpInfoAsync(groupCreate, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// CreateGroupsBatch 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="groupCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (List&lt;GroupRead&gt;)</returns>
+        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<List<GroupRead>>> CreateGroupsBatchWithHttpInfoAsync(List<GroupCreate> groupCreate, System.Threading.CancellationToken cancellationToken = default)
+        {
+            // verify the required parameter 'groupCreate' is set
+            if (groupCreate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'groupCreate' when calling DefaultApi->CreateGroupsBatch");
+
+
+            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.Data = groupCreate;
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PostAsync<List<GroupRead>>("/groups/batch", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("CreateGroupsBatch", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -2672,6 +3033,123 @@ namespace PlerionApiClient.Api
         }
 
         /// <summary>
+        /// CreateNodesBatch 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="nodeCreate"></param>
+        /// <returns>List&lt;NodeRead&gt;</returns>
+        public List<NodeRead> CreateNodesBatch(List<NodeCreate> nodeCreate)
+        {
+            PlerionApiClient.Client.ApiResponse<List<NodeRead>> localVarResponse = CreateNodesBatchWithHttpInfo(nodeCreate);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// CreateNodesBatch 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="nodeCreate"></param>
+        /// <returns>ApiResponse of List&lt;NodeRead&gt;</returns>
+        public PlerionApiClient.Client.ApiResponse<List<NodeRead>> CreateNodesBatchWithHttpInfo(List<NodeCreate> nodeCreate)
+        {
+            // verify the required parameter 'nodeCreate' is set
+            if (nodeCreate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'nodeCreate' when calling DefaultApi->CreateNodesBatch");
+
+            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.Data = nodeCreate;
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Post<List<NodeRead>>("/nodes/batch", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("CreateNodesBatch", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// CreateNodesBatch 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="nodeCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of List&lt;NodeRead&gt;</returns>
+        public async System.Threading.Tasks.Task<List<NodeRead>> CreateNodesBatchAsync(List<NodeCreate> nodeCreate, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlerionApiClient.Client.ApiResponse<List<NodeRead>> localVarResponse = await CreateNodesBatchWithHttpInfoAsync(nodeCreate, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// CreateNodesBatch 
+        /// </summary>
+        /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="nodeCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (List&lt;NodeRead&gt;)</returns>
+        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<List<NodeRead>>> CreateNodesBatchWithHttpInfoAsync(List<NodeCreate> nodeCreate, System.Threading.CancellationToken cancellationToken = default)
+        {
+            // verify the required parameter 'nodeCreate' is set
+            if (nodeCreate == null)
+                throw new PlerionApiClient.Client.ApiException(400, "Missing required parameter 'nodeCreate' when calling DefaultApi->CreateNodesBatch");
+
+
+            PlerionApiClient.Client.RequestOptions localVarRequestOptions = new PlerionApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlerionApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlerionApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.Data = nodeCreate;
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PostAsync<List<NodeRead>>("/nodes/batch", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("CreateNodesBatch", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
         /// CreateReconstruction 
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -2898,10 +3376,11 @@ namespace PlerionApiClient.Api
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">List of Ids to delete</param>
+        /// <param name="cascade">If true, recursively delete children. (optional, default to false)</param>
         /// <returns></returns>
-        public void DeleteGroups(List<Guid> ids)
+        public void DeleteGroups(List<Guid> ids, bool? cascade = default)
         {
-            DeleteGroupsWithHttpInfo(ids);
+            DeleteGroupsWithHttpInfo(ids, cascade);
         }
 
         /// <summary>
@@ -2909,8 +3388,9 @@ namespace PlerionApiClient.Api
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">List of Ids to delete</param>
+        /// <param name="cascade">If true, recursively delete children. (optional, default to false)</param>
         /// <returns>ApiResponse of Object(void)</returns>
-        public PlerionApiClient.Client.ApiResponse<Object> DeleteGroupsWithHttpInfo(List<Guid> ids)
+        public PlerionApiClient.Client.ApiResponse<Object> DeleteGroupsWithHttpInfo(List<Guid> ids, bool? cascade = default)
         {
             // verify the required parameter 'ids' is set
             if (ids == null)
@@ -2933,6 +3413,10 @@ namespace PlerionApiClient.Api
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
             localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("multi", "ids", ids));
+            if (cascade != null)
+            {
+                localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "cascade", cascade));
+            }
 
 
             // make the HTTP request
@@ -2952,11 +3436,12 @@ namespace PlerionApiClient.Api
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">List of Ids to delete</param>
+        /// <param name="cascade">If true, recursively delete children. (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task DeleteGroupsAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task DeleteGroupsAsync(List<Guid> ids, bool? cascade = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            await DeleteGroupsWithHttpInfoAsync(ids, cancellationToken).ConfigureAwait(false);
+            await DeleteGroupsWithHttpInfoAsync(ids, cascade, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -2964,9 +3449,10 @@ namespace PlerionApiClient.Api
         /// </summary>
         /// <exception cref="PlerionApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">List of Ids to delete</param>
+        /// <param name="cascade">If true, recursively delete children. (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<Object>> DeleteGroupsWithHttpInfoAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlerionApiClient.Client.ApiResponse<Object>> DeleteGroupsWithHttpInfoAsync(List<Guid> ids, bool? cascade = default, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'ids' is set
             if (ids == null)
@@ -2991,6 +3477,10 @@ namespace PlerionApiClient.Api
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
             localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("multi", "ids", ids));
+            if (cascade != null)
+            {
+                localVarRequestOptions.QueryParameters.Add(PlerionApiClient.Client.ClientUtils.ParameterToMultiMap("", "cascade", cascade));
+            }
 
 
             // make the HTTP request

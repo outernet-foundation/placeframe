@@ -29,11 +29,14 @@ src/PlerionApiClient/Model/CaptureSessionCreate.cs
 src/PlerionApiClient/Model/CaptureSessionManifest.cs
 src/PlerionApiClient/Model/CaptureSessionRead.cs
 src/PlerionApiClient/Model/CaptureSessionUpdate.cs
+src/PlerionApiClient/Model/CreateGraphRequest.cs
+src/PlerionApiClient/Model/CreateGraphResponse.cs
 src/PlerionApiClient/Model/DeviceType.cs
 src/PlerionApiClient/Model/Float3.cs
 src/PlerionApiClient/Model/Float4.cs
 src/PlerionApiClient/Model/GetCaptureSessions400Response.cs
 src/PlerionApiClient/Model/GetCaptureSessions400ResponseExtra.cs
+src/PlerionApiClient/Model/GroupBatchCreate.cs
 src/PlerionApiClient/Model/GroupBatchUpdate.cs
 src/PlerionApiClient/Model/GroupCreate.cs
 src/PlerionApiClient/Model/GroupRead.cs
@@ -46,6 +49,7 @@ src/PlerionApiClient/Model/LocalizationMapRead.cs
 src/PlerionApiClient/Model/LocalizationMapUpdate.cs
 src/PlerionApiClient/Model/LocalizationMetrics.cs
 src/PlerionApiClient/Model/MapLocalization.cs
+src/PlerionApiClient/Model/NodeBatchCreate.cs
 src/PlerionApiClient/Model/NodeBatchUpdate.cs
 src/PlerionApiClient/Model/NodeCreate.cs
 src/PlerionApiClient/Model/NodeRead.cs

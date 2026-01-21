@@ -9,12 +9,12 @@ from datamodels.public_dtos import (
     node_from_dto,
     node_to_dto,
 )
-from datamodels.public_tables import Node
+from datamodels.public_tables import Group, Node
 from litestar import Router, delete, get, patch, post
 from litestar.di import Provide
 from litestar.exceptions import HTTPException
 from litestar.params import Parameter
-from litestar.status_codes import HTTP_404_NOT_FOUND
+from litestar.status_codes import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,12 +23,46 @@ from ..database import get_session
 
 @post("")
 async def create_node(session: AsyncSession, data: NodeCreate) -> NodeRead:
-    row = node_from_dto(data)
+    if data.parent_id is not None:
+        result = await session.execute(select(1).where(Group.id == data.parent_id))
+        if not result.scalar():
+            raise HTTPException(HTTP_400_BAD_REQUEST, f"Parent group with id {data.parent_id} does not exist.")
 
+    row = node_from_dto(data)
     session.add(row)
     await session.flush()
     await session.refresh(row)
     return node_to_dto(row)
+
+
+@post("/batch")
+async def create_nodes_batch(session: AsyncSession, data: list[NodeCreate]) -> list[NodeRead]:
+    # 1. Collect unique parent IDs
+    parent_ids = {n.parent_id for n in data if n.parent_id is not None}
+
+    # 2. Verify existence
+    if parent_ids:
+        stmt = select(Group.id).where(Group.id.in_(parent_ids))
+        result = await session.execute(stmt)
+        found_ids = set(result.scalars().all())
+
+        missing = parent_ids - found_ids
+        if missing:
+            raise HTTPException(HTTP_400_BAD_REQUEST, f"The following parent group IDs do not exist: {missing}")
+
+    # 3. Create
+    rows: list[Node] = []
+    for node_data in data:
+        row = node_from_dto(node_data)
+        session.add(row)
+        rows.append(row)
+
+    await session.flush()
+
+    for row in rows:
+        await session.refresh(row)
+
+    return [node_to_dto(r) for r in rows]
 
 
 @delete("")
@@ -83,5 +117,5 @@ router = Router(
     "/nodes",
     tags=["Nodes"],
     dependencies={"session": Provide(get_session)},
-    route_handlers=[create_node, delete_nodes, get_nodes, update_nodes],
+    route_handlers=[create_node, create_nodes_batch, delete_nodes, get_nodes, update_nodes],
 )

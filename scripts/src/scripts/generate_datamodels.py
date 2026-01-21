@@ -62,6 +62,7 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, ser
 
     for table_name, table in tables.items():
         create_fields: dict[str, Any] = {}
+        batch_create_fields: dict[str, Any] = {}
         update_fields: dict[str, Any] = {}
         batch_update_fields: dict[str, Any] = {}
         read_fields: dict[str, Any] = {}
@@ -109,11 +110,18 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, ser
                 or getattr(column, "server_default", None) is not None
             ):
                 create_fields[column.name] = (column_type | None, None)
+                # For BatchCreate, 'id' must be required, even if the DB has a default generator.
+                if column.name == "id":
+                    batch_create_fields[column.name] = (column_type, ...)
+                else:
+                    batch_create_fields[column.name] = (column_type | None, None)
             else:
                 create_fields[column.name] = (column_type, ...)
+                batch_create_fields[column.name] = (column_type, ...)
 
         for schema_name, fields in [
             (f"{table_name}Create", create_fields),
+            (f"{table_name}BatchCreate", batch_create_fields),
             (f"{table_name}Update", update_fields),
             (f"{table_name}BatchUpdate", batch_update_fields),
             (f"{table_name}Read", read_fields),
@@ -184,6 +192,10 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, ser
                 dedent(
                     f"""
                     def {to_snake(name)}_from_dto(create: {name}Create) -> {name}:
+                        data = create.model_dump(exclude_unset=True, mode="json")
+                        return {name}(**data)
+
+                    def {to_snake(name)}_from_batch_create_dto(create: {name}BatchCreate) -> {name}:
                         data = create.model_dump(exclude_unset=True, mode="json")
                         return {name}(**data)
 

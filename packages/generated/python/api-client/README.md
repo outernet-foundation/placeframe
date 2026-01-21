@@ -87,10 +87,13 @@ Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
 *DefaultApi* | [**create_capture_session**](docs/DefaultApi.md#create_capture_session) | **POST** /capture_sessions | CreateCaptureSession
 *DefaultApi* | [**create_capture_sessions**](docs/DefaultApi.md#create_capture_sessions) | **POST** /capture_sessions/bulk | CreateCaptureSessions
+*DefaultApi* | [**create_graph**](docs/DefaultApi.md#create_graph) | **POST** /graph | CreateGraph
 *DefaultApi* | [**create_group**](docs/DefaultApi.md#create_group) | **POST** /groups | CreateGroup
+*DefaultApi* | [**create_groups_batch**](docs/DefaultApi.md#create_groups_batch) | **POST** /groups/batch | CreateGroupsBatch
 *DefaultApi* | [**create_layer**](docs/DefaultApi.md#create_layer) | **POST** /layers | CreateLayer
 *DefaultApi* | [**create_localization_map**](docs/DefaultApi.md#create_localization_map) | **POST** /localization-maps | CreateLocalizationMap
 *DefaultApi* | [**create_node**](docs/DefaultApi.md#create_node) | **POST** /nodes | CreateNode
+*DefaultApi* | [**create_nodes_batch**](docs/DefaultApi.md#create_nodes_batch) | **POST** /nodes/batch | CreateNodesBatch
 *DefaultApi* | [**create_reconstruction**](docs/DefaultApi.md#create_reconstruction) | **POST** /reconstructions | CreateReconstruction
 *DefaultApi* | [**delete_capture_session**](docs/DefaultApi.md#delete_capture_session) | **DELETE** /capture_sessions/{id} | DeleteCaptureSession
 *DefaultApi* | [**delete_groups**](docs/DefaultApi.md#delete_groups) | **DELETE** /groups | DeleteGroups
@@ -135,11 +138,14 @@ Class | Method | HTTP request | Description
  - [CaptureSessionManifest](docs/CaptureSessionManifest.md)
  - [CaptureSessionRead](docs/CaptureSessionRead.md)
  - [CaptureSessionUpdate](docs/CaptureSessionUpdate.md)
+ - [CreateGraphRequest](docs/CreateGraphRequest.md)
+ - [CreateGraphResponse](docs/CreateGraphResponse.md)
  - [DeviceType](docs/DeviceType.md)
  - [Float3](docs/Float3.md)
  - [Float4](docs/Float4.md)
  - [GetCaptureSessions400Response](docs/GetCaptureSessions400Response.md)
  - [GetCaptureSessions400ResponseExtra](docs/GetCaptureSessions400ResponseExtra.md)
+ - [GroupBatchCreate](docs/GroupBatchCreate.md)
  - [GroupBatchUpdate](docs/GroupBatchUpdate.md)
  - [GroupCreate](docs/GroupCreate.md)
  - [GroupRead](docs/GroupRead.md)
@@ -152,6 +158,7 @@ Class | Method | HTTP request | Description
  - [LocalizationMapUpdate](docs/LocalizationMapUpdate.md)
  - [LocalizationMetrics](docs/LocalizationMetrics.md)
  - [MapLocalization](docs/MapLocalization.md)
+ - [NodeBatchCreate](docs/NodeBatchCreate.md)
  - [NodeBatchUpdate](docs/NodeBatchUpdate.md)
  - [NodeCreate](docs/NodeCreate.md)
  - [NodeRead](docs/NodeRead.md)
