@@ -19,11 +19,14 @@ from plerion_api_client.models.capture_session_create import CaptureSessionCreat
 from plerion_api_client.models.capture_session_manifest import CaptureSessionManifest
 from plerion_api_client.models.capture_session_read import CaptureSessionRead
 from plerion_api_client.models.capture_session_update import CaptureSessionUpdate
+from plerion_api_client.models.create_graph_request import CreateGraphRequest
+from plerion_api_client.models.create_graph_response import CreateGraphResponse
 from plerion_api_client.models.device_type import DeviceType
 from plerion_api_client.models.float3 import Float3
 from plerion_api_client.models.float4 import Float4
 from plerion_api_client.models.get_capture_sessions400_response import GetCaptureSessions400Response
 from plerion_api_client.models.get_capture_sessions400_response_extra import GetCaptureSessions400ResponseExtra
+from plerion_api_client.models.group_batch_create import GroupBatchCreate
 from plerion_api_client.models.group_batch_update import GroupBatchUpdate
 from plerion_api_client.models.group_create import GroupCreate
 from plerion_api_client.models.group_read import GroupRead
@@ -36,6 +39,7 @@ from plerion_api_client.models.localization_map_read import LocalizationMapRead
 from plerion_api_client.models.localization_map_update import LocalizationMapUpdate
 from plerion_api_client.models.localization_metrics import LocalizationMetrics
 from plerion_api_client.models.map_localization import MapLocalization
+from plerion_api_client.models.node_batch_create import NodeBatchCreate
 from plerion_api_client.models.node_batch_update import NodeBatchUpdate
 from plerion_api_client.models.node_create import NodeCreate
 from plerion_api_client.models.node_read import NodeRead

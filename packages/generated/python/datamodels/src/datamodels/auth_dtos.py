@@ -18,6 +18,10 @@ class TenantCreate(BaseModel):
     id: UUID | None = Field(None, title='Id')
 
 
+class TenantBatchCreate(BaseModel):
+    id: UUID = Field(..., title='Id')
+
+
 class TenantUpdate(BaseModel):
     pass
 
@@ -32,6 +36,10 @@ class TenantRead(BaseModel):
 
 
 class UserCreate(BaseModel):
+    id: UUID = Field(..., title='Id')
+
+
+class UserBatchCreate(BaseModel):
     id: UUID = Field(..., title='Id')
 
 
@@ -60,6 +68,12 @@ class MembershipCreate(BaseModel):
     is_personal: bool | None = Field(None, title='Is Personal')
 
 
+class MembershipBatchCreate(BaseModel):
+    user_id: UUID = Field(..., title='User Id')
+    role: MembershipRole | None = None
+    is_personal: bool | None = Field(None, title='Is Personal')
+
+
 class MembershipUpdate(BaseModel):
     role: MembershipRole | None = None
     is_personal: bool | None = Field(None, title='Is Personal')
@@ -79,6 +93,10 @@ class MembershipRead(BaseModel):
     is_personal: bool = Field(..., title='Is Personal')
 
 def membership_from_dto(create: MembershipCreate) -> Membership:
+    data = create.model_dump(exclude_unset=True, mode="json")
+    return Membership(**data)
+
+def membership_from_batch_create_dto(create: MembershipBatchCreate) -> Membership:
     data = create.model_dump(exclude_unset=True, mode="json")
     return Membership(**data)
 
@@ -106,6 +124,10 @@ def tenant_from_dto(create: TenantCreate) -> Tenant:
     data = create.model_dump(exclude_unset=True, mode="json")
     return Tenant(**data)
 
+def tenant_from_batch_create_dto(create: TenantBatchCreate) -> Tenant:
+    data = create.model_dump(exclude_unset=True, mode="json")
+    return Tenant(**data)
+
 def tenant_from_dto_overwrite(instance: Tenant, create: TenantCreate) -> Tenant:
     for field, value in create.model_dump(exclude_unset=True, mode="json").items():
         setattr(instance, field, value)
@@ -127,6 +149,10 @@ def tenant_apply_batch_update_dto(instance: Tenant, update: TenantBatchUpdate) -
     return instance
 
 def user_from_dto(create: UserCreate) -> User:
+    data = create.model_dump(exclude_unset=True, mode="json")
+    return User(**data)
+
+def user_from_batch_create_dto(create: UserBatchCreate) -> User:
     data = create.model_dump(exclude_unset=True, mode="json")
     return User(**data)
 

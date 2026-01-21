@@ -8,6 +8,7 @@ from litestar.openapi.spec import Components, OAuthFlow, OAuthFlows, SecuritySch
 
 from .auth import AuthMiddleware
 from .routers.capture_sessions import router as capture_sessions_router
+from .routers.graph import router as graph_router
 from .routers.groups import router as groups_router
 from .routers.layers import router as layers_router
 from .routers.localization import router as localization_router
@@ -83,6 +84,7 @@ app = create_litestar_app(
         groups_router,
         layers_router,
         nodes_router,
+        graph_router,
     ],
     openapi_config,
     middleware,

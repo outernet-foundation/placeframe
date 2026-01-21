@@ -18,11 +18,14 @@ plerion_api_client/models/capture_session_create.py
 plerion_api_client/models/capture_session_manifest.py
 plerion_api_client/models/capture_session_read.py
 plerion_api_client/models/capture_session_update.py
+plerion_api_client/models/create_graph_request.py
+plerion_api_client/models/create_graph_response.py
 plerion_api_client/models/device_type.py
 plerion_api_client/models/float3.py
 plerion_api_client/models/float4.py
 plerion_api_client/models/get_capture_sessions400_response.py
 plerion_api_client/models/get_capture_sessions400_response_extra.py
+plerion_api_client/models/group_batch_create.py
 plerion_api_client/models/group_batch_update.py
 plerion_api_client/models/group_create.py
 plerion_api_client/models/group_read.py
@@ -35,6 +38,7 @@ plerion_api_client/models/localization_map_read.py
 plerion_api_client/models/localization_map_update.py
 plerion_api_client/models/localization_metrics.py
 plerion_api_client/models/map_localization.py
+plerion_api_client/models/node_batch_create.py
 plerion_api_client/models/node_batch_update.py
 plerion_api_client/models/node_create.py
 plerion_api_client/models/node_read.py

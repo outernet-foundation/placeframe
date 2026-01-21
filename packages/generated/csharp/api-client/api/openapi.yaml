@@ -988,6 +988,19 @@ paths:
             type: string
           type: array
         style: form
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: "If true, recursively delete children."
+        explode: true
+        in: query
+        name: cascade
+        required: false
+        schema:
+          default: false
+          description: "If true, recursively delete children."
+          type: boolean
+        style: form
       responses:
         "204":
           description: "Request fulfilled, nothing follows"
@@ -1102,6 +1115,36 @@ paths:
                 $ref: "#/components/schemas/get_capture_sessions_400_response"
           description: Bad request syntax or unsupported method
       summary: CreateGroup
+      tags:
+      - Default
+  /groups/batch:
+    post:
+      deprecated: false
+      operationId: create_groups_batch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: "#/components/schemas/GroupCreate"
+              type: array
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/GroupRead"
+                type: array
+          description: "Document created, URL follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: CreateGroupsBatch
       tags:
       - Default
   /layers:
@@ -1376,6 +1419,62 @@ paths:
       summary: CreateNode
       tags:
       - Default
+  /nodes/batch:
+    post:
+      deprecated: false
+      operationId: create_nodes_batch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: "#/components/schemas/NodeCreate"
+              type: array
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/NodeRead"
+                type: array
+          description: "Document created, URL follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: CreateNodesBatch
+      tags:
+      - Default
+  /graph:
+    post:
+      deprecated: false
+      operationId: create_graph
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGraphRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateGraphResponse"
+          description: "Document created, URL follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: CreateGraph
+      tags:
+      - Default
 components:
   schemas:
     AxisConvention:
@@ -1572,6 +1671,135 @@ components:
           type: string
       title: CaptureSessionUpdate
       type: object
+    CreateGraphRequest:
+      example:
+        nodes:
+        - rotation_x: 5.962133916683182
+          rotation_w: 2.3021358869347655
+          label_scale: 2.027123023002322
+          link: link
+          active: true
+          rotation_z: 0.8008281904610115
+          label_type: 7
+          rotation_y: 5.637376656633329
+          label: label
+          label_height: 3.616076749251911
+          label_width: 9.301444243932576
+          link_type: 4
+          position_x: 7.061401241503109
+          position_y: 6.027456183070403
+          layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          position_z: 1.4658129805029452
+          parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          name: name
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - rotation_x: 5.962133916683182
+          rotation_w: 2.3021358869347655
+          label_scale: 2.027123023002322
+          link: link
+          active: true
+          rotation_z: 0.8008281904610115
+          label_type: 7
+          rotation_y: 5.637376656633329
+          label: label
+          label_height: 3.616076749251911
+          label_width: 9.301444243932576
+          link_type: 4
+          position_x: 7.061401241503109
+          position_y: 6.027456183070403
+          layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          position_z: 1.4658129805029452
+          parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          name: name
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        groups:
+        - parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          name: name
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          name: name
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        groups:
+          items:
+            $ref: "#/components/schemas/GroupBatchCreate"
+          type: array
+        nodes:
+          items:
+            $ref: "#/components/schemas/NodeBatchCreate"
+          type: array
+      title: CreateGraphRequest
+      type: object
+    CreateGraphResponse:
+      example:
+        nodes:
+        - rotation_x: 5.962133916683182
+          rotation_w: 2.3021358869347655
+          label_scale: 2.027123023002322
+          link: link
+          created_at: 2000-01-23T04:56:07.000+00:00
+          active: true
+          rotation_z: 0.8008281904610115
+          label_type: 7
+          rotation_y: 5.637376656633329
+          label: label
+          label_height: 3.616076749251911
+          label_width: 9.301444243932576
+          link_type: 4
+          position_x: 7.061401241503109
+          position_y: 6.027456183070403
+          layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          position_z: 1.4658129805029452
+          updated_at: 2000-01-23T04:56:07.000+00:00
+          parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          name: name
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - rotation_x: 5.962133916683182
+          rotation_w: 2.3021358869347655
+          label_scale: 2.027123023002322
+          link: link
+          created_at: 2000-01-23T04:56:07.000+00:00
+          active: true
+          rotation_z: 0.8008281904610115
+          label_type: 7
+          rotation_y: 5.637376656633329
+          label: label
+          label_height: 3.616076749251911
+          label_width: 9.301444243932576
+          link_type: 4
+          position_x: 7.061401241503109
+          position_y: 6.027456183070403
+          layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          position_z: 1.4658129805029452
+          updated_at: 2000-01-23T04:56:07.000+00:00
+          parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          name: name
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        groups:
+        - updated_at: 2000-01-23T04:56:07.000+00:00
+          parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          name: name
+          created_at: 2000-01-23T04:56:07.000+00:00
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        - updated_at: 2000-01-23T04:56:07.000+00:00
+          parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          name: name
+          created_at: 2000-01-23T04:56:07.000+00:00
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        groups:
+          items:
+            $ref: "#/components/schemas/GroupRead"
+          type: array
+        nodes:
+          items:
+            $ref: "#/components/schemas/NodeRead"
+          type: array
+      required:
+      - groups
+      - nodes
+      title: CreateGraphResponse
+      type: object
     DeviceType:
       enum:
       - ARFoundation
@@ -1617,6 +1845,29 @@ components:
       - "y"
       - z
       title: Float4
+      type: object
+    GroupBatchCreate:
+      example:
+        parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        name: name
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        name:
+          title: Name
+          type: string
+        parent_id:
+          format: uuid
+          nullable: true
+          title: Parent Id
+          type: string
+      required:
+      - id
+      - name
+      title: GroupBatchCreate
       type: object
     GroupBatchUpdate:
       example:
@@ -2148,6 +2399,110 @@ components:
       - map_transform
       - metrics
       title: MapLocalization
+      type: object
+    NodeBatchCreate:
+      example:
+        rotation_x: 5.962133916683182
+        rotation_w: 2.3021358869347655
+        label_scale: 2.027123023002322
+        link: link
+        active: true
+        rotation_z: 0.8008281904610115
+        label_type: 7
+        rotation_y: 5.637376656633329
+        label: label
+        label_height: 3.616076749251911
+        label_width: 9.301444243932576
+        link_type: 4
+        position_x: 7.061401241503109
+        position_y: 6.027456183070403
+        layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        position_z: 1.4658129805029452
+        parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        name: name
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          title: Id
+          type: string
+        rotation_z:
+          title: Rotation Z
+          type: number
+        position_y:
+          title: Position Y
+          type: number
+        position_z:
+          title: Position Z
+          type: number
+        rotation_x:
+          title: Rotation X
+          type: number
+        rotation_y:
+          title: Rotation Y
+          type: number
+        rotation_w:
+          title: Rotation W
+          type: number
+        position_x:
+          title: Position X
+          type: number
+        active:
+          nullable: true
+          title: Active
+          type: boolean
+        name:
+          title: Name
+          type: string
+        layer_id:
+          format: uuid
+          nullable: true
+          title: Layer Id
+          type: string
+        parent_id:
+          format: uuid
+          nullable: true
+          title: Parent Id
+          type: string
+        label_width:
+          nullable: true
+          title: Label Width
+          type: number
+        label_height:
+          nullable: true
+          title: Label Height
+          type: number
+        label_scale:
+          nullable: true
+          title: Label Scale
+          type: number
+        link_type:
+          nullable: true
+          title: Link Type
+          type: integer
+        label_type:
+          nullable: true
+          title: Label Type
+          type: integer
+        link:
+          nullable: true
+          title: Link
+          type: string
+        label:
+          nullable: true
+          title: Label
+          type: string
+      required:
+      - id
+      - name
+      - position_x
+      - position_y
+      - position_z
+      - rotation_w
+      - rotation_x
+      - rotation_y
+      - rotation_z
+      title: NodeBatchCreate
       type: object
     NodeBatchUpdate:
       example:
