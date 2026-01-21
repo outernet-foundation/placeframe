@@ -47,14 +47,14 @@ namespace Plerion.Core
         internal static void LogException(string message, Exception exception = null) =>
             _logExceptionCallback?.Invoke(message, exception);
 
-        private static ReconstructionVisualizationManager _reconstructionVisualizationManager;
+        private static LocalizationMapManager _localizationMapManager;
 
-        public static void SetReconstructionVisualizationManager(ReconstructionVisualizationManager reconstructionVisualizationManager)
+        public static void SetLocalizationMapManager(LocalizationMapManager localizationMapManager)
         {
-            _reconstructionVisualizationManager = reconstructionVisualizationManager;
+            _localizationMapManager = localizationMapManager;
 
             foreach (var map in _maps)
-                _reconstructionVisualizationManager.AddMap(map);
+                _localizationMapManager.AddMap(map);
         }
 
         public static void Initialize(
@@ -95,7 +95,7 @@ namespace Plerion.Core
             if (!_maps.Add(mapId))
                 throw new InvalidOperationException($"Map {mapId} is already added");
 
-            _reconstructionVisualizationManager?.AddMap(mapId);
+            _localizationMapManager?.AddMap(mapId);
         }
 
         public static void RemoveLocalizationMap(Guid mapId)
@@ -103,7 +103,7 @@ namespace Plerion.Core
             if (!_maps.Remove(mapId))
                 throw new InvalidOperationException($"Map {mapId} is not added or loading");
 
-            _reconstructionVisualizationManager?.RemoveMap(mapId);
+            _localizationMapManager?.RemoveMap(mapId);
         }
 
         public static void StartLocalizing() => StartLocalizingInternal().Forget();
@@ -137,8 +137,8 @@ namespace Plerion.Core
         {
             try
             {
-                if (_reconstructionVisualizationManager != null)
-                    _reconstructionVisualizationManager.enabled = true;
+                if (_localizationMapManager != null)
+                    _localizationMapManager.enabled = true;
 
                 await _serviceGuard.StartAsync(
                     (token) =>
@@ -163,8 +163,8 @@ namespace Plerion.Core
 
         private static async UniTask StopLocalizingInternal()
         {
-            if (_reconstructionVisualizationManager != null)
-                _reconstructionVisualizationManager.enabled = false;
+            if (_localizationMapManager != null)
+                _localizationMapManager.enabled = false;
 
             await _serviceGuard.StopAsync(CameraProvider.Stop);
         }

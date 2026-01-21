@@ -7,10 +7,12 @@ using Color = UnityEngine.Color;
 using Quaternion = UnityEngine.Quaternion;
 using Vector3 = UnityEngine.Vector3;
 
+using Unity.Mathematics;
+
 namespace Plerion.Core
 {
-    [RequireComponent(typeof(ParticleSystem))]
-    public class ReconstructionVisualizer : MonoBehaviour
+    [RequireComponent(typeof(ParticleSystem), typeof(Anchor))]
+    public class LocalizationMap : MonoBehaviour
     {
         private static readonly Color DefaultColor = Color.white;
         private static readonly float DefaultThickness = 0.01f;
@@ -19,11 +21,13 @@ namespace Plerion.Core
         public Material material;
 
         private readonly AsyncLifecycleGuard _loadGuard = new AsyncLifecycleGuard();
+        private Anchor _anchor;
         private ParticleSystem _particleSystem;
         private Vector3[] _framePositions = null;
 
         private void Awake()
         {
+            _anchor = GetComponent<Anchor>();
             _particleSystem = GetComponent<ParticleSystem>();
         }
 
@@ -81,7 +85,7 @@ namespace Plerion.Core
             m.startColor = color;
         }
 
-        public async UniTask Load(Guid reconstructionId, CancellationToken cancellationToken = default)
+        public async UniTask Load(Guid mapID, CancellationToken cancellationToken = default)
         {
             if (
                 _loadGuard.State == AsyncLifecycleGuard.LifecycleState.Starting
@@ -92,16 +96,28 @@ namespace Plerion.Core
             }
 
             await _loadGuard.StartAsync(
-                loadGuardCancellationToken => LoadInternal(reconstructionId, loadGuardCancellationToken),
+                loadGuardCancellationToken => LoadInternal(mapID, loadGuardCancellationToken),
                 cancellationToken
             );
         }
 
-        private async UniTask LoadInternal(Guid reconstructionId, CancellationToken cancellationToken = default)
+        private async UniTask LoadInternal(Guid mapID, CancellationToken cancellationToken = default)
         {
+            var mapData = await VisualPositioningSystem.GetMapData(mapID);
+
+            _anchor.SetEcefTransform(
+                new double3(mapData.PositionX, mapData.PositionY, mapData.PositionZ),
+                new quaternion(
+                    (float)mapData.RotationX,
+                    (float)mapData.RotationY,
+                    (float)mapData.RotationZ,
+                    (float)mapData.RotationW
+                )
+            );
+
             (var pointPayload, var framePayload) = await UniTask.WhenAll(
-                VisualPositioningSystem.GetReconstructionPoints(reconstructionId),
-                VisualPositioningSystem.GetReconstructionFramePoses(reconstructionId)
+                VisualPositioningSystem.GetReconstructionPoints(mapData.ReconstructionId),
+                VisualPositioningSystem.GetReconstructionFramePoses(mapData.ReconstructionId)
             );
 
             await UniTask.SwitchToMainThread(cancellationToken);

@@ -4,59 +4,38 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
-using Unity.Mathematics;
-
 namespace Plerion.Core
 {
-    public class ReconstructionVisualizationManager : MonoBehaviour
+    public class LocalizationMapManager : MonoBehaviour
     {
-        public ReconstructionVisualizer reconstructionVisualizerPrefab;
+        public LocalizationMap localizationMapPrefab;
         private Dictionary<Guid, CancellationTokenSource> _loadOperations = new Dictionary<Guid, CancellationTokenSource>();
-        private Dictionary<Guid, ReconstructionVisualizer> _visualizers = new Dictionary<Guid, ReconstructionVisualizer>();
+        private Dictionary<Guid, LocalizationMap> _visualizers = new Dictionary<Guid, LocalizationMap>();
 
         private void Awake()
         {
-            VisualPositioningSystem.SetReconstructionVisualizationManager(this);
+            VisualPositioningSystem.SetLocalizationMapManager(this);
         }
 
         private async UniTask AddMapAndLoad(Guid mapID, CancellationToken cancellationToken)
         {
-            ReconstructionVisualizer reconstructionVisualizer = null;
+            LocalizationMap localizationMap = null;
             try
             {
-                var mapData = await VisualPositioningSystem.GetMapData(mapID);
-
-                if (cancellationToken.IsCancellationRequested)
-                    return;
-
-                reconstructionVisualizer = GameObject.Instantiate(
-                    reconstructionVisualizerPrefab,
+                localizationMap = Instantiate(
+                    localizationMapPrefab,
                     Vector3.zero,
                     Quaternion.identity
                 );
 
-                reconstructionVisualizer.gameObject.SetActive(enabled);
-
-                await reconstructionVisualizer.Load(mapData.ReconstructionId, cancellationToken);
-
-                reconstructionVisualizer
-                    .GetComponent<Anchor>()
-                    .SetEcefTransform(
-                        new double3(mapData.PositionX, mapData.PositionY, mapData.PositionZ),
-                        new quaternion(
-                            (float)mapData.RotationX,
-                            (float)mapData.RotationY,
-                            (float)mapData.RotationZ,
-                            (float)mapData.RotationW
-                        )
-                    );
-
-                _visualizers.Add(mapID, reconstructionVisualizer);
+                localizationMap.gameObject.SetActive(enabled);
+                await localizationMap.Load(mapID, cancellationToken);
+                _visualizers.Add(mapID, localizationMap);
             }
             catch (Exception exception)
             {
-                if (reconstructionVisualizer != null)
-                    GameObject.Destroy(reconstructionVisualizer);
+                if (localizationMap != null)
+                    Destroy(localizationMap.gameObject);
 
                 if (exception is not OperationCanceledException)
                     throw;
