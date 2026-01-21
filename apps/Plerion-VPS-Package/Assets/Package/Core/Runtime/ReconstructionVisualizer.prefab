@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: -5772665285345291868}
   - component: {fileID: 8410913971276956591}
   m_Layer: 0
-  m_Name: LocalizationMapVisualizer
+  m_Name: ReconstructionVisualizer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4872,3 +4872,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f53727c2dfb59b14a9928ae568e596ac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  cylinderMesh: {fileID: 546404529894870380, guid: 2531532d450bc2f43a6a2ae4e0218a8b, type: 3}
+  material: {fileID: 2100000, guid: 708a5f2e1bb305c489e3190839eeab49, type: 2}

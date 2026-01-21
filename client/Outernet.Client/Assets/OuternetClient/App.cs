@@ -15,13 +15,11 @@ using ObservableCollections;
 using Cysharp.Threading.Tasks;
 
 using PlerionApiClient.Api;
-using Plerion.VPS;
-using Plerion.VPS.ARFoundation;
-using PlerionApiClient.Model;
+using Plerion.Core;
+
 #if UNITY_LUMIN
 using Plerion.VPS.MagicLeap;
 #endif
-
 
 namespace Outernet.Client
 {
@@ -42,9 +40,11 @@ namespace Outernet.Client
 
         public static RoomRecord State_Old => ConnectionManager.State;
         public static Guid? ClientID => ConnectionManager.ClientID;
+
         public static string environmentURL;
-        public static string plerionAPIBaseUrl;
-        public static string serverPrefix;
+        public static string apiUrl;
+        public static string authTokenUrl;
+        public static string authAudience;
 
         private static bool internetReachable = false;
         public static bool InternetReachable => internetReachable;
@@ -59,21 +59,31 @@ namespace Outernet.Client
             API = new DefaultApi(
                 new HttpClient(new KeycloakHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
-                    BaseAddress = new Uri(plerionAPIBaseUrl)
+                    BaseAddress = new Uri(apiUrl)
                 },
-                plerionAPIBaseUrl
+                apiUrl
             );
 
             Application.wantsToQuit += WantsToQuit;
             ConnectionManager.HubConnectionRequested.EnqueueSet(true);
 
+#if !AUTHORING_TOOLS_ENABLED
+
+            VisualPositioningSystem.Initialize(
+                GetProvider(),
+                apiUrl,
+                authTokenUrl,
+                authAudience,
+                x => Log.Debug(LogGroup.Localizer, x),
+                x => Log.Warn(LogGroup.Localizer, x),
+                x => Log.Error(LogGroup.Localizer, x),
+                (x, exc) => Log.Error(LogGroup.Localizer, x, exc)
+            );
+
             VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated += () =>
                 state.ecefToLocalMatrix.ExecuteSetOrDelay(VisualPositioningSystem.EcefToUnityWorldTransform);
 
-            CameraLocalization.SetProvider(GetProvider());
-            CameraLocalization.Start();
-
-#if !AUTHORING_TOOLS_ENABLED && !MAP_REGISTRATION_TOOLS_ENABLED
+            VisualPositioningSystem.StartLocalizing();
 
             internetReachable = Application.internetReachability != NetworkReachability.NotReachable;
 
@@ -122,17 +132,21 @@ namespace Outernet.Client
                     );
                 }
             );
+#else
+            VisualPositioningSystem.Initialize(
+                null,
+                apiUrl,
+                authTokenUrl,
+                authAudience,
+                message => Debug.Log(message),
+                message => Debug.LogWarning(message),
+                message => Debug.LogError(message),
+                (message, exception) => Debug.LogError($"{message}\n{exception}")
+            );
 #endif
-            App.RegisterObserver(HandleLoggedInChanged, App.state.loggedIn);
-            initialized = true;
-        }
-
-        private void HandleLoggedInChanged(NodeChangeEventArgs args)
-        {
-            if (!App.state.loggedIn.value)
-                return;
 
             GetLayersAndPopulate();
+            initialized = true;
         }
 
         private async void GetLayersAndPopulate()
@@ -313,25 +327,30 @@ namespace Outernet.Client
 
         private void OnApplicationPause(bool pause)
         {
+#if !AUTHORING_TOOLS_ENABLED
             if (!initialized)
                 return;
 
             if (pause)
             {
-                CameraLocalization.Stop();
+                VisualPositioningSystem.StopLocalizing();
             }
             else
             {
-                CameraLocalization.Start();
+                VisualPositioningSystem.StartLocalizing();
             }
+#endif
         }
 
         private bool WantsToQuit()
         {
             ConnectionManager.Terminate(); // BUG, this is async
             SceneViewManager.Terminate();
-            CameraLocalization.Stop();
             Logger.Terminate();
+
+#if !AUTHORING_TOOLS_ENABLED
+            VisualPositioningSystem.StopLocalizing();
+#endif
 
             return true;
         }

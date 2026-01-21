@@ -7,7 +7,7 @@ using FofX.Stateful;
 using Unity.Mathematics;
 using System.Collections.Generic;
 
-using Plerion.VPS;
+using Plerion.Core;
 using PlerionApiClient.Model;
 
 using Vector3 = UnityEngine.Vector3;
@@ -131,7 +131,7 @@ namespace Outernet.Client
                     name: toUpdate.Name,
                     position: new double3() { x = toUpdate.PositionX, y = toUpdate.PositionY, z = toUpdate.PositionZ },
                     rotation: new Quaternion((float)toUpdate.RotationX, (float)toUpdate.RotationY, (float)toUpdate.RotationZ, (float)toUpdate.RotationW),
-                    lighting: (Lighting)(toUpdate.Lighting ?? 0),
+                    lighting: toUpdate.Lighting,
                     reconstructionID: toUpdate.ReconstructionId
                 ).Execute(target);
             }
@@ -144,7 +144,7 @@ namespace Outernet.Client
         private string _name;
         private double3 _position;
         private Quaternion _rotation;
-        private Lighting _lighting;
+        private int? _lighting;
         private Guid _reconstructionID;
 
         public AddOrUpdateMapAction(
@@ -152,7 +152,7 @@ namespace Outernet.Client
             string name = default,
             double3 position = default,
             Quaternion rotation = default,
-            Lighting lighting = default,
+            int? lighting = default,
             Guid reconstructionID = default)
         {
             _uuid = uuid;

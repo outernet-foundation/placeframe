@@ -7,13 +7,12 @@ using UnityEngine;
 using FofX.Stateful;
 
 using Outernet.Client.AuthoringTools;
-using Plerion.VPS;
+using Plerion.Core;
 
 namespace Outernet.Client
 {
     public class ClientState : ObservableObject
     {
-        public ObservablePrimitive<bool> loggedIn { get; private set; }
         public ObservablePrimitive<double2> roughGrainedLocation { get; private set; }
         public ObservableDictionary<Guid, NodeState> nodes { get; private set; }
         public ObservableDictionary<Guid, TransformState> transforms { get; private set; }
@@ -108,7 +107,7 @@ namespace Outernet.Client
         [HideInInspectorUI]
         public ObservablePrimitive<Guid> reconstructionID { get; private set; }
         public ObservablePrimitive<string> name { get; private set; }
-        public ObservablePrimitive<Lighting> lighting { get; private set; }
+        public ObservablePrimitive<int?> lighting { get; private set; }
 
         void IKeyedObservableNode<Guid>.AssignKey(Guid key)
             => uuid = key;

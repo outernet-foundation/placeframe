@@ -1,7 +1,7 @@
 using Outernet.Shared;
 using R3;
 using UnityEngine;
-using Plerion.VPS;
+using Plerion.Core;
 
 namespace Outernet.Client
 {
@@ -19,8 +19,8 @@ namespace Outernet.Client
         // public static LocalizationReducer localizationReducer = LocalizationReducer.RANSAC;
         public static bool fallbackToMostRecent = false;
         public static bool thresholding = false;
-        public static Lighting? lightingConditionOverride = null;
-        public static Lighting lightingCondition = Lighting.Day;
+        public static int? lightingConditionOverride = null;
+        public static int? lightingCondition = null;
         public static float positionThreshold = 0.05f;
         public static float rotationThreshold = 2f;
         public static float positionInlierThreshold = 0.05f;

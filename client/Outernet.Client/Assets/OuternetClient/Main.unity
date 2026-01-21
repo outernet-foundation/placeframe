@@ -417,7 +417,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   prefabSystem: {fileID: 2055501425331506340, guid: 9ea1c470a1d101649b95ebdb469a7ba1, type: 3}
   sceneReferences: {fileID: 1580230602}
-  mapVisualizer: {fileID: 4711668150554885863, guid: 252413a4587c7bb4aa72dc59d3fbd1ad, type: 3}
+  mapVisualizer: {fileID: 7774093108422875943, guid: a90b476aed8b07943afc72469b86bc69, type: 3}
 --- !u!4 &255342862
 Transform:
   m_ObjectHideFlags: 0

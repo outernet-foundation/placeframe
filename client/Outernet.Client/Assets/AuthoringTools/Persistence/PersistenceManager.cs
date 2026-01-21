@@ -222,7 +222,7 @@ namespace Outernet.Client.AuthoringTools
             _pendingPersists.Enqueue(new PersistenceData()
             {
                 insertedNodes = _nodePersistenceHelper.inserts.Select(Utility.ToNodeCreate).ToList(),
-                insertedGroups = _nodeGroupPersistenceHelper.inserts.Select(Utility.ToGroupCreate).ToList(),
+                insertedGroups = _nodeGroupPersistenceHelper.inserts.OrderBy(CountParents).Select(Utility.ToGroupCreate).ToList(),
                 insertedMaps = _mapPersistenceHelper.inserts.Select(Utility.ToMapCreate).ToList(),
                 insertedLayers = _layerPersistenceHelper.inserts.Select(Utility.ToLayerCreate).ToList(),
 
@@ -244,6 +244,20 @@ namespace Outernet.Client.AuthoringTools
 
             if (!_persistenceTask.pending)
                 _persistenceTask = TaskHandle.Execute(_ => PersistAllPendingChanges());
+        }
+
+        private int CountParents(Guid groupID)
+        {
+            var currUpstream = App.state.authoringTools.nodeGroups[groupID].parentID.value;
+            int parentCount = 0;
+
+            while (currUpstream != null)
+            {
+                parentCount++;
+                currUpstream = App.state.authoringTools.nodeGroups[currUpstream.Value].parentID.value;
+            }
+
+            return parentCount;
         }
 
         private async UniTask PersistAllPendingChanges()
@@ -279,8 +293,11 @@ namespace Outernet.Client.AuthoringTools
         private UniTask CreateNodesAsync(List<NodeCreate> nodes)
             => UniTask.WhenAll(nodes.Select(x => App.API.CreateNodeAsync(x).AsUniTask()));
 
-        private UniTask CreateGroupsAsync(List<GroupCreate> groups)
-            => UniTask.WhenAll(groups.Select(x => App.API.CreateGroupAsync(x).AsUniTask()));
+        private async UniTask CreateGroupsAsync(List<GroupCreate> groups)
+        {
+            foreach (var group in groups)
+                await App.API.CreateGroupAsync(group).AsUniTask();
+        }
 
         private UniTask CreateLocalizationMapsAsync(List<LocalizationMapCreate> localizationMaps)
             => UniTask.WhenAll(localizationMaps.Select(x => App.API.CreateLocalizationMapAsync(x).AsUniTask()));

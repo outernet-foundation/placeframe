@@ -10,7 +10,7 @@ using Outernet.Client.Location;
 using Cysharp.Threading.Tasks;
 using System;
 using Unity.Mathematics;
-using Plerion.VPS;
+using Plerion.Core;
 
 namespace Outernet.Client
 {
@@ -108,16 +108,8 @@ namespace Outernet.Client
 
                 lightingConditionDropdown.onValueChanged.AsObservable().Subscribe(value =>
                 {
-                    if (value == 0)
-                    {
-                        Settings.lightingConditionOverride = null;
-                        return;
-                    }
-
-                    Lighting parsedValue = (Lighting)Enum.Parse(
-                        typeof(Lighting), lightingConditionDropdown.options[value].text);
-
-                    Settings.lightingConditionOverride = parsedValue;
+                    value -= 1;
+                    Settings.lightingConditionOverride = value == -1 ? null : value;
                 }),
 
                 terrainTilesetMode.onValueChanged.AsObservable().Subscribe(value =>

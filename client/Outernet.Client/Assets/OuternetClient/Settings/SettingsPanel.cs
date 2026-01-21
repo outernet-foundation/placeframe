@@ -3,7 +3,7 @@ using Outernet.Shared;
 using Outernet.Client.Location;
 using System;
 using R3;
-using Plerion.VPS;
+using Plerion.Core;
 
 namespace Outernet.Client
 {

@@ -14,7 +14,7 @@ using UnityEngine.InputSystem;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using PlerionApiClient.Model;
-using Plerion.VPS;
+using Plerion.Core;
 
 using Vector3 = UnityEngine.Vector3;
 using Quaternion = UnityEngine.Quaternion;
@@ -201,7 +201,7 @@ namespace Outernet.Client.AuthoringTools
                 color: 0 //TODO EP: What should this value be? Do we even want to use it if we're going to use the colors from the point cloud?
             )
             {
-                Lighting = (int)map.lighting.value,
+                Lighting = map.lighting.value,
                 Name = map.name.value,
                 Active = true,
             };

@@ -7,7 +7,7 @@ using UnityEngine.EventSystems;
 using Cysharp.Threading.Tasks;
 
 using FofX.Stateful;
-using Plerion.VPS;
+using Plerion.Core;
 using FofX;
 using System.Collections.Generic;
 
@@ -37,18 +37,7 @@ namespace Outernet.Client.AuthoringTools
             }
         }
 
-        private static readonly float3x3 basisUnity = float3x3.identity;
-
-        private static readonly float3x3 basisOpenCV = new float3x3(
-            1f, 0f, 0f,
-            0f, -1f, 0f,
-            0f, 0f, 1f
-        );
-
-        private static readonly float3x3 basisChangeUnityFromOpenCV = math.mul(math.transpose(basisUnity), basisOpenCV);
-        private static readonly float3x3 basisChangeOpenCVFromUnity = math.transpose(basisChangeUnityFromOpenCV);
-
-        public LocalizationMapRenderer mapRenderer;
+        public ReconstructionVisualizer mapRenderer;
         private TaskHandle _loadPointsTask = TaskHandle.Complete;
         private List<Vector3> _localInputPositions = new List<Vector3>();
 
@@ -84,45 +73,11 @@ namespace Outernet.Client.AuthoringTools
                 props.rotation.OnChange(x => transform.rotation = x),
                 props.reconstructionID.OnChange(x =>
                 {
-                    _loadPointsTask.Cancel();
-
-                    if (x == Guid.Empty)
-                        return;
-
-                    _loadPointsTask = TaskHandle.Execute(async token =>
-                    {
-                        List<PlerionApiClient.Model.PointCloudPoint> points = default;
-                        List<PlerionApiClient.Model.Transform> localInputPositions = default;
-
-                        await UniTask.WhenAll(
-                            App.API.GetReconstructionPointsAsync(x, token).AsUniTask().ContinueWith(x => points = x),
-                            App.API.GetReconstructionImagePosesAsync(x, token).AsUniTask().ContinueWith(x => localInputPositions = x)
-                        );
-
-                        await UniTask.SwitchToMainThread(cancellationToken: token);
-
-                        _localInputPositions.AddRange(localInputPositions.Select(x =>
-                        {
-                            var unityBasis = ChangeBasisOpenCVToUnity(new float3x3(quaternion.identity), x.Position.ToFloat3());
-                            return unityBasis.Item2.ToVector3();
-                        }));
-
-                        mapRenderer.Load(points.Select(x =>
-                        {
-                            var unityBasis = ChangeBasisOpenCVToUnity(new float3x3(quaternion.identity), x.Position.ToFloat3());
-                            return new Point()
-                            {
-                                position = unityBasis.Item2.ToVector3(),
-                                color = x.Color.ToUnityColor()
-                            };
-                        }).ToArray());
-                    });
+                    if (x != Guid.Empty)
+                        mapRenderer.Load(x).Forget();
                 })
             );
         }
-
-        private static (float3x3, float3) ChangeBasisOpenCVToUnity(float3x3 rotation, float3 translation)
-            => (math.mul(basisChangeUnityFromOpenCV, math.mul(rotation, basisChangeOpenCVFromUnity)), math.mul(basisChangeUnityFromOpenCV, translation));
 
         public void OnPointerClick(PointerEventData eventData)
         {

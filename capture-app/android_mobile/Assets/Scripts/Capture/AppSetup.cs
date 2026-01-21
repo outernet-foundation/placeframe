@@ -1,6 +1,7 @@
 using Cysharp.Threading.Tasks;
 using FofX.Stateful;
 using Nessle;
+using Plerion.Core;
 using UnityEngine;
 
 namespace PlerionClient.Client
@@ -11,6 +12,7 @@ namespace PlerionClient.Client
         public LocalizationManager localizationManager;
         public UIPrimitiveSet uiPrimitives;
         public UIElementSet uiElements;
+        public ReconstructionVisualizationManager reconstructionVisualizationManager;
 
         private void Awake()
         {
@@ -37,6 +39,7 @@ namespace PlerionClient.Client
             ZedCaptureController.Initialize();
 
             Instantiate(localizationManager);
+            Instantiate(reconstructionVisualizationManager);
 
             gameObject.AddComponent<AuthManager>();
             gameObject.AddComponent<CaptureController>();

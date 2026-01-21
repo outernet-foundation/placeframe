@@ -195,7 +195,7 @@ namespace Outernet.MapRegistrationTool
                 ecefPositionUnityBasis,
                 ecefRotationUnityBasis
             );
-            App.state.unityWorldToEcefMatrix.ExecuteSetOrDelay(ecefFromUnityTransformUnityBasis);
+
             var unityFromEcefTransformUnityBasis = math.inverse(ecefFromUnityTransformUnityBasis);
             App.state.ecefToUnityWorldMatrix.ExecuteSetOrDelay(unityFromEcefTransformUnityBasis);
 

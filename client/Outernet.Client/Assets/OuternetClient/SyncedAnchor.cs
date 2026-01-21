@@ -2,7 +2,7 @@ using Outernet.Client.Location;
 using Outernet.Shared;
 using Unity.Mathematics;
 using UnityEngine;
-using Plerion.VPS;
+using Plerion.Core;
 
 namespace Outernet.Client
 {

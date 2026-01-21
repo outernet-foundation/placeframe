@@ -1,5 +1,5 @@
 // using Outernet.Client.Location;
-// using Plerion.VPS;
+// using Plerion.Core;
 // using Unity.Mathematics;
 // using UnityEngine;
 

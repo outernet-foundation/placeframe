@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using R3;
 using System;
-using Plerion.VPS;
+using Plerion.Core;
 
 namespace Outernet.Client
 {

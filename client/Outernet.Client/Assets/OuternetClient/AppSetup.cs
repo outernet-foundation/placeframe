@@ -4,10 +4,9 @@ using Cysharp.Threading.Tasks;
 using FofX.Serialization;
 using Unity.Mathematics;
 using SimpleJSON;
-using Outernet.Client.AuthoringTools;
-using Plerion.VPS;
+using Plerion.Core;
 
-#if AUTHORING_TOOLS_ENABLED || MAP_REGISTRATION_TOOLS_ENABLED
+#if AUTHORING_TOOLS_ENABLED
 using UnityEngine.InputSystem.UI;
 #endif
 
@@ -17,7 +16,7 @@ namespace Outernet.Client
     {
         public PrefabSystem prefabSystem;
         public SceneReferences sceneReferences;
-        public LocalizationMapVisualizer mapVisualizer;
+        public ReconstructionVisualizationManager mapVisualizer;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Initialize()
@@ -36,7 +35,7 @@ namespace Outernet.Client
             AddCustomSerializers();
             sceneReferences.Initialize();
 
-#if AUTHORING_TOOLS_ENABLED || MAP_REGISTRATION_TOOLS_ENABLED
+#if AUTHORING_TOOLS_ENABLED
             AuthoringTools.AuthoringToolsPrefabs.Initialize("AuthoringToolsPrefabs");
 
             Destroy(SceneReferences.XrOrigin);
@@ -48,7 +47,9 @@ namespace Outernet.Client
 
             UnityEnv env = UnityEnv.GetOrCreateInstance();
             App.environmentURL = env.environmentURL;
-            App.plerionAPIBaseUrl = env.plerionAPIBaseUrl;
+            App.apiUrl = env.plerionApiUrl;
+            App.authTokenUrl = env.plerionAuthTokenUrl;
+            App.authAudience = env.plerionAuthAudience;
 
             Instantiate(prefabSystem, transform);
 
@@ -62,25 +63,28 @@ namespace Outernet.Client
 
             gameObject.AddComponent<GPSManager>();
 
-#if !AUTHORING_TOOLS_ENABLED && !MAP_REGISTRATION_TOOLS_ENABLED
+#if !AUTHORING_TOOLS_ENABLED
             SceneViewManager.Initialize();
             TilesetManager.Initialize();
             Instantiate(mapVisualizer);
 #else
+            Auth.Initialize(
+                env.plerionAuthTokenUrl,
+                env.plerionAuthAudience,
+                x => Log.Info(x),
+                x => Log.Warn(x),
+                x => Log.Error(x)
+            );
+
+            Auth.Login("user", "password").Forget();
+
             gameObject.AddComponent<AuthoringTools.AuthoringToolsApp>();
 
             var canvas = Instantiate(AuthoringTools.AuthoringToolsPrefabs.Canvas);
             var systemUI = Instantiate(AuthoringTools.AuthoringToolsPrefabs.SystemMenu, canvas.transform);
-            var mainUI =
-#if MAP_REGISTRATION_TOOLS_ENABLED
-            Instantiate(AuthoringTools.AuthoringToolsPrefabs.MapRegistrationUI, canvas.transform);
-#else
-            Instantiate(AuthoringTools.AuthoringToolsPrefabs.UI, canvas.transform);
-#endif
+            var mainUI = Instantiate(AuthoringTools.AuthoringToolsPrefabs.UI, canvas.transform);
 
             systemUI.transform.SetAsLastSibling();
-
-            Instantiate(AuthoringTools.AuthoringToolsPrefabs.LoginScreen, canvas.transform);
 
             gameObject.AddComponent<AuthoringTools.LocationContentManager>();
             gameObject.AddComponent<AuthoringTools.SettingsManager>();
@@ -98,10 +102,6 @@ namespace Outernet.Client
             // set runtime handles to be a child of the scene view root so input events bubble properly
             var runtimeHandles = new GameObject("RuntimeHandles", typeof(AuthoringTools.RuntimeHandles));
             runtimeHandles.transform.SetParent(sceneViewRoot.transform);
-#endif
-
-#if !MAP_REGISTRATION_TOOLS_ENABLED
-            Tasks.Login(App.plerionAPIBaseUrl, "user", "password").Forget();
 #endif
 
             Destroy(this);
