@@ -12,6 +12,7 @@ using FofX;
 using System.Collections.Generic;
 
 using Unity.Mathematics;
+using System.Threading;
 
 namespace Outernet.Client.AuthoringTools
 {
@@ -37,9 +38,8 @@ namespace Outernet.Client.AuthoringTools
             }
         }
 
-        public ReconstructionVisualizer mapRenderer;
+        public LocalizationMap localizationMap;
         private TaskHandle _loadPointsTask = TaskHandle.Complete;
-        private List<Vector3> _localInputPositions = new List<Vector3>();
 
         private void Update()
         {
@@ -48,16 +48,6 @@ namespace Outernet.Client.AuthoringTools
 
             if (props.rotation.value != transform.rotation)
                 props.rotation.ExecuteSet(transform.rotation);
-
-            for (int i = 0; i < _localInputPositions.Count - 1; i++)
-            {
-                RuntimeGizmos.DrawLine(
-                    transform.TransformPoint(_localInputPositions[i]),
-                    transform.TransformPoint(_localInputPositions[i + 1]),
-                    0.01f,
-                    Color.white
-                );
-            }
         }
 
         public override void Setup()
@@ -73,10 +63,26 @@ namespace Outernet.Client.AuthoringTools
                 props.rotation.OnChange(x => transform.rotation = x),
                 props.reconstructionID.OnChange(x =>
                 {
-                    if (x != Guid.Empty)
-                        mapRenderer.Load(x).Forget();
+                    _loadPointsTask.Cancel();
+
+                    if (x == Guid.Empty)
+                        return;
+
+                    _loadPointsTask = TaskHandle.Execute(token => LoadReconstruction(x, token));
                 })
             );
+        }
+
+        private async UniTask LoadReconstruction(Guid reconstructionID, CancellationToken cancellationToken)
+        {
+            (var pointPayload, var framePayload) = await UniTask.WhenAll(
+                VisualPositioningSystem.GetReconstructionPoints(reconstructionID, cancellationToken),
+                VisualPositioningSystem.GetReconstructionFramePoses(reconstructionID, cancellationToken)
+            );
+
+            await UniTask.SwitchToMainThread(cancellationToken);
+
+            localizationMap.Load(pointPayload, framePayload);
         }
 
         public void OnPointerClick(PointerEventData eventData)

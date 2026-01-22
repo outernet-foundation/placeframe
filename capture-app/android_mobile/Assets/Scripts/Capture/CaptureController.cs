@@ -323,7 +323,10 @@ namespace PlerionClient.Client
                     .ContinueWith(x => remoteCaptureReconstructionManifests = x),
                 capturesApi
                     .GetLocalizationMapsAsync(
-                        reconstructionIds: remoteCaptureReconstructions.Select(x => x.Id).ToList()
+                        reconstructionIds: remoteCaptureReconstructions
+                            .Where(x => x.OrchestrationStatus == OrchestrationStatus.Succeeded)
+                            .Select(x => x.Id)
+                            .ToList()
                     )
                     .AsUniTask()
                     .ContinueWith(x => remoteCaptureLocalizationMaps = x)

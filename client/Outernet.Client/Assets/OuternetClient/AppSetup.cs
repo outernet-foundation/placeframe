@@ -16,7 +16,7 @@ namespace Outernet.Client
     {
         public PrefabSystem prefabSystem;
         public SceneReferences sceneReferences;
-        public ReconstructionVisualizationManager mapVisualizer;
+        public LocalizationMapManager localizationMapManager;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Initialize()
@@ -66,7 +66,7 @@ namespace Outernet.Client
 #if !AUTHORING_TOOLS_ENABLED
             SceneViewManager.Initialize();
             TilesetManager.Initialize();
-            Instantiate(mapVisualizer);
+            Instantiate(localizationMapManager);
 #else
             Auth.Initialize(
                 env.plerionAuthTokenUrl,

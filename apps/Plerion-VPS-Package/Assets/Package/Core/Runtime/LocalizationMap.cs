@@ -105,7 +105,7 @@ namespace Plerion.Core
         {
             var mapData = await VisualPositioningSystem.GetMapData(mapID);
 
-            _anchor.SetEcefTransform(
+            SetEcefAnchor(
                 new double3(mapData.PositionX, mapData.PositionY, mapData.PositionZ),
                 new quaternion(
                     (float)mapData.RotationX,
@@ -121,17 +121,17 @@ namespace Plerion.Core
             );
 
             await UniTask.SwitchToMainThread(cancellationToken);
-            PopulateFromPayload(pointPayload, framePayload);
+            Load(pointPayload, framePayload);
         }
 
-        private void PopulateFromPayload(VisualPositioningSystem.ReconstructionPoint[] pointPayload, Vector3[] framePayload)
+        public void Load(VisualPositioningSystem.ReconstructionPoint[] points, Vector3[] framePositions)
         {
-            var particles = ArrayPool<ParticleSystem.Particle>.Shared.Rent(pointPayload.Length);
+            var particles = ArrayPool<ParticleSystem.Particle>.Shared.Rent(points.Length);
             try
             {
-                for (var i = 0; i < pointPayload.Length; i++)
+                for (var i = 0; i < points.Length; i++)
                 {
-                    var point = pointPayload[i];
+                    var point = points[i];
                     particles[i].position = point.position;
                     particles[i].startColor = point.color;
                     particles[i].startSize = 10000;
@@ -139,14 +139,19 @@ namespace Plerion.Core
                     particles[i].remainingLifetime = float.MaxValue;
                 }
 
-                _particleSystem.SetParticles(particles, pointPayload.Length);
+                _particleSystem.SetParticles(particles, points.Length);
             }
             finally
             {
                 ArrayPool<ParticleSystem.Particle>.Shared.Return(particles);
             }
 
-            _framePositions = framePayload;
+            _framePositions = framePositions;
+        }
+
+        public void SetEcefAnchor(double3 ecefPosition, quaternion ecefRotation)
+        {
+            _anchor.SetEcefTransform(ecefPosition, ecefRotation);
         }
     }
 }

@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 7397562476662303366}
   - component: {fileID: -5772665285345291868}
   - component: {fileID: 8410913971276956591}
-  - component: {fileID: 2351134979143672407}
   m_Layer: 0
   m_Name: LocalizationMap
   m_TagString: Untagged
@@ -4875,28 +4874,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cylinderMesh: {fileID: 546404529894870380, guid: 2531532d450bc2f43a6a2ae4e0218a8b, type: 3}
   material: {fileID: 2100000, guid: 708a5f2e1bb305c489e3190839eeab49, type: 2}
---- !u!114 &2351134979143672407
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1628050442463339716}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 93a3d65dae844014fbce67911049c1a4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _ecefPosition:
-    x: 0
-    y: 0
-    z: 0
-  _ecefRotation:
-    value:
-      x: 0
-      y: 0
-      z: 0
-      w: 0
-  _lastKnownPosition: {x: 0, y: 0, z: 0}
-  _lastKnownRotation: {x: 0, y: 0, z: 0, w: 0}
-  _positionInitialized: 0

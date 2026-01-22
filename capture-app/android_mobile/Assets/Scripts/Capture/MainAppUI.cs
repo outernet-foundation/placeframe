@@ -306,7 +306,7 @@ namespace PlerionClient.Client
         public static IControl ValidationUI()
         {
             var metricsDialogOpen = new ValueObservable<bool>(false);
-            //IControl selectValidationTargetDialog = default;
+            IControl selectValidationTargetDialog = default;
 
             return Control("Validation UI", new()
             {

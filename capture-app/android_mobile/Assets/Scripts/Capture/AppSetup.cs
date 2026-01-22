@@ -12,7 +12,7 @@ namespace PlerionClient.Client
         public LocalizationManager localizationManager;
         public UIPrimitiveSet uiPrimitives;
         public UIElementSet uiElements;
-        public ReconstructionVisualizationManager reconstructionVisualizationManager;
+        public LocalizationMapManager localizationMapManager;
 
         private void Awake()
         {
@@ -39,7 +39,7 @@ namespace PlerionClient.Client
             ZedCaptureController.Initialize();
 
             Instantiate(localizationManager);
-            Instantiate(reconstructionVisualizationManager);
+            Instantiate(localizationMapManager);
 
             gameObject.AddComponent<AuthManager>();
             gameObject.AddComponent<CaptureController>();
