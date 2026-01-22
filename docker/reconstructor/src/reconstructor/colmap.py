@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from shutil import rmtree
 from typing import Any, ValuesView, cast
 
 from numpy import concatenate, empty, eye, float32, float64, intp, savez_compressed, stack, uint8, uint32
@@ -30,8 +31,14 @@ def run_colmap_reconstruction(
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
 ):
     colmap_db_path = root_path / COLMAP_DB_FILE
+    if colmap_db_path.exists():
+        colmap_db_path.unlink()
+
     colmap_sfm_directory = root_path / COLMAP_SFM_DIRECTORY
-    colmap_sfm_directory.mkdir(parents=True, exist_ok=True)
+    if colmap_sfm_directory.exists():
+        rmtree(colmap_sfm_directory)
+
+    colmap_sfm_directory.mkdir(parents=True)
 
     position_covariance = (options.pose_prior_position_sigma_m() ** 2) * eye(3, dtype=float64)
 

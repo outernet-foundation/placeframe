@@ -91,8 +91,8 @@ async def fetch_localization_maps(
     result = await session.execute(query)
     rows = result.scalars().all()
 
-    if (ids and len(ids) != len(rows)) or (reconstruction_ids and len(reconstruction_ids) != len(rows)):
-        raise NotFoundException("One or more LocalizationMaps not found")
+    # if (ids and len(ids) != len(rows)) or (reconstruction_ids and len(reconstruction_ids) != len(rows)):
+    #     raise NotFoundException("One or more LocalizationMaps not found")
 
     return [localization_map_to_dto(row) for row in rows]
 
