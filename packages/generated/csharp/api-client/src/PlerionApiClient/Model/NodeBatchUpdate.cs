@@ -31,6 +31,58 @@ namespace PlerionApiClient.Model
     [DataContract(Name = "NodeBatchUpdate")]
     public partial class NodeBatchUpdate
     {
+
+        /// <summary>
+        /// Gets or Sets LinkType
+        /// </summary>
+
+        [DataMember(Name = "link_type", EmitDefaultValue = false)]
+        public LinkType? LinkType
+        {
+            get{ return _LinkType;}
+            set
+            {
+                _LinkType = value;
+                _flagLinkType = true;
+            }
+        }
+        private LinkType? _LinkType;
+        private bool _flagLinkType;
+
+        /// <summary>
+        /// Returns false as LinkType should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeLinkType()
+        {
+            return _flagLinkType;
+        }
+
+        /// <summary>
+        /// Gets or Sets LabelType
+        /// </summary>
+
+        [DataMember(Name = "label_type", EmitDefaultValue = false)]
+        public LabelType? LabelType
+        {
+            get{ return _LabelType;}
+            set
+            {
+                _LabelType = value;
+                _flagLabelType = true;
+            }
+        }
+        private LabelType? _LabelType;
+        private bool _flagLabelType;
+
+        /// <summary>
+        /// Returns false as LabelType should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeLabelType()
+        {
+            return _flagLabelType;
+        }
         /// <summary>
         /// Initializes a new instance of the <see cref="NodeBatchUpdate" /> class.
         /// </summary>
@@ -41,23 +93,23 @@ namespace PlerionApiClient.Model
         /// </summary>
         /// <param name="id">id (required).</param>
         /// <param name="rotationZ">rotationZ.</param>
+        /// <param name="labelWidth">labelWidth.</param>
         /// <param name="positionY">positionY.</param>
         /// <param name="positionZ">positionZ.</param>
         /// <param name="rotationX">rotationX.</param>
         /// <param name="rotationY">rotationY.</param>
         /// <param name="rotationW">rotationW.</param>
-        /// <param name="positionX">positionX.</param>
-        /// <param name="active">active.</param>
-        /// <param name="name">name.</param>
-        /// <param name="layerId">layerId.</param>
-        /// <param name="parentId">parentId.</param>
-        /// <param name="labelWidth">labelWidth.</param>
         /// <param name="labelHeight">labelHeight.</param>
+        /// <param name="positionX">positionX.</param>
         /// <param name="labelScale">labelScale.</param>
         /// <param name="linkType">linkType.</param>
         /// <param name="labelType">labelType.</param>
+        /// <param name="active">active.</param>
         /// <param name="link">link.</param>
         /// <param name="label">label.</param>
+        /// <param name="name">name.</param>
+        /// <param name="layerId">layerId.</param>
+        /// <param name="parentId">parentId.</param>
         public NodeBatchUpdate(Guid id)
         {
             this.Id = id;
@@ -110,6 +162,30 @@ namespace PlerionApiClient.Model
         public bool ShouldSerializeRotationZ()
         {
             return _flagRotationZ;
+        }
+        /// <summary>
+        /// Gets or Sets LabelWidth
+        /// </summary>
+        [DataMember(Name = "label_width", EmitDefaultValue = true)]
+        public double? LabelWidth
+        {
+            get{ return _LabelWidth;}
+            set
+            {
+                _LabelWidth = value;
+                _flagLabelWidth = true;
+            }
+        }
+        private double? _LabelWidth;
+        private bool _flagLabelWidth;
+
+        /// <summary>
+        /// Returns false as LabelWidth should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeLabelWidth()
+        {
+            return _flagLabelWidth;
         }
         /// <summary>
         /// Gets or Sets PositionY
@@ -232,6 +308,30 @@ namespace PlerionApiClient.Model
             return _flagRotationW;
         }
         /// <summary>
+        /// Gets or Sets LabelHeight
+        /// </summary>
+        [DataMember(Name = "label_height", EmitDefaultValue = true)]
+        public double? LabelHeight
+        {
+            get{ return _LabelHeight;}
+            set
+            {
+                _LabelHeight = value;
+                _flagLabelHeight = true;
+            }
+        }
+        private double? _LabelHeight;
+        private bool _flagLabelHeight;
+
+        /// <summary>
+        /// Returns false as LabelHeight should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeLabelHeight()
+        {
+            return _flagLabelHeight;
+        }
+        /// <summary>
         /// Gets or Sets PositionX
         /// </summary>
         [DataMember(Name = "position_x", EmitDefaultValue = true)]
@@ -256,6 +356,30 @@ namespace PlerionApiClient.Model
             return _flagPositionX;
         }
         /// <summary>
+        /// Gets or Sets LabelScale
+        /// </summary>
+        [DataMember(Name = "label_scale", EmitDefaultValue = true)]
+        public double? LabelScale
+        {
+            get{ return _LabelScale;}
+            set
+            {
+                _LabelScale = value;
+                _flagLabelScale = true;
+            }
+        }
+        private double? _LabelScale;
+        private bool _flagLabelScale;
+
+        /// <summary>
+        /// Returns false as LabelScale should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeLabelScale()
+        {
+            return _flagLabelScale;
+        }
+        /// <summary>
         /// Gets or Sets Active
         /// </summary>
         [DataMember(Name = "active", EmitDefaultValue = true)]
@@ -278,6 +402,54 @@ namespace PlerionApiClient.Model
         public bool ShouldSerializeActive()
         {
             return _flagActive;
+        }
+        /// <summary>
+        /// Gets or Sets Link
+        /// </summary>
+        [DataMember(Name = "link", EmitDefaultValue = true)]
+        public string Link
+        {
+            get{ return _Link;}
+            set
+            {
+                _Link = value;
+                _flagLink = true;
+            }
+        }
+        private string _Link;
+        private bool _flagLink;
+
+        /// <summary>
+        /// Returns false as Link should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeLink()
+        {
+            return _flagLink;
+        }
+        /// <summary>
+        /// Gets or Sets Label
+        /// </summary>
+        [DataMember(Name = "label", EmitDefaultValue = true)]
+        public string Label
+        {
+            get{ return _Label;}
+            set
+            {
+                _Label = value;
+                _flagLabel = true;
+            }
+        }
+        private string _Label;
+        private bool _flagLabel;
+
+        /// <summary>
+        /// Returns false as Label should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeLabel()
+        {
+            return _flagLabel;
         }
         /// <summary>
         /// Gets or Sets Name
@@ -352,174 +524,6 @@ namespace PlerionApiClient.Model
             return _flagParentId;
         }
         /// <summary>
-        /// Gets or Sets LabelWidth
-        /// </summary>
-        [DataMember(Name = "label_width", EmitDefaultValue = true)]
-        public double? LabelWidth
-        {
-            get{ return _LabelWidth;}
-            set
-            {
-                _LabelWidth = value;
-                _flagLabelWidth = true;
-            }
-        }
-        private double? _LabelWidth;
-        private bool _flagLabelWidth;
-
-        /// <summary>
-        /// Returns false as LabelWidth should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeLabelWidth()
-        {
-            return _flagLabelWidth;
-        }
-        /// <summary>
-        /// Gets or Sets LabelHeight
-        /// </summary>
-        [DataMember(Name = "label_height", EmitDefaultValue = true)]
-        public double? LabelHeight
-        {
-            get{ return _LabelHeight;}
-            set
-            {
-                _LabelHeight = value;
-                _flagLabelHeight = true;
-            }
-        }
-        private double? _LabelHeight;
-        private bool _flagLabelHeight;
-
-        /// <summary>
-        /// Returns false as LabelHeight should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeLabelHeight()
-        {
-            return _flagLabelHeight;
-        }
-        /// <summary>
-        /// Gets or Sets LabelScale
-        /// </summary>
-        [DataMember(Name = "label_scale", EmitDefaultValue = true)]
-        public double? LabelScale
-        {
-            get{ return _LabelScale;}
-            set
-            {
-                _LabelScale = value;
-                _flagLabelScale = true;
-            }
-        }
-        private double? _LabelScale;
-        private bool _flagLabelScale;
-
-        /// <summary>
-        /// Returns false as LabelScale should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeLabelScale()
-        {
-            return _flagLabelScale;
-        }
-        /// <summary>
-        /// Gets or Sets LinkType
-        /// </summary>
-        [DataMember(Name = "link_type", EmitDefaultValue = true)]
-        public int? LinkType
-        {
-            get{ return _LinkType;}
-            set
-            {
-                _LinkType = value;
-                _flagLinkType = true;
-            }
-        }
-        private int? _LinkType;
-        private bool _flagLinkType;
-
-        /// <summary>
-        /// Returns false as LinkType should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeLinkType()
-        {
-            return _flagLinkType;
-        }
-        /// <summary>
-        /// Gets or Sets LabelType
-        /// </summary>
-        [DataMember(Name = "label_type", EmitDefaultValue = true)]
-        public int? LabelType
-        {
-            get{ return _LabelType;}
-            set
-            {
-                _LabelType = value;
-                _flagLabelType = true;
-            }
-        }
-        private int? _LabelType;
-        private bool _flagLabelType;
-
-        /// <summary>
-        /// Returns false as LabelType should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeLabelType()
-        {
-            return _flagLabelType;
-        }
-        /// <summary>
-        /// Gets or Sets Link
-        /// </summary>
-        [DataMember(Name = "link", EmitDefaultValue = true)]
-        public string Link
-        {
-            get{ return _Link;}
-            set
-            {
-                _Link = value;
-                _flagLink = true;
-            }
-        }
-        private string _Link;
-        private bool _flagLink;
-
-        /// <summary>
-        /// Returns false as Link should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeLink()
-        {
-            return _flagLink;
-        }
-        /// <summary>
-        /// Gets or Sets Label
-        /// </summary>
-        [DataMember(Name = "label", EmitDefaultValue = true)]
-        public string Label
-        {
-            get{ return _Label;}
-            set
-            {
-                _Label = value;
-                _flagLabel = true;
-            }
-        }
-        private string _Label;
-        private bool _flagLabel;
-
-        /// <summary>
-        /// Returns false as Label should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeLabel()
-        {
-            return _flagLabel;
-        }
-        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -529,23 +533,23 @@ namespace PlerionApiClient.Model
             sb.Append("class NodeBatchUpdate {\n");
             sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  RotationZ: ").Append(RotationZ).Append("\n");
+            sb.Append("  LabelWidth: ").Append(LabelWidth).Append("\n");
             sb.Append("  PositionY: ").Append(PositionY).Append("\n");
             sb.Append("  PositionZ: ").Append(PositionZ).Append("\n");
             sb.Append("  RotationX: ").Append(RotationX).Append("\n");
             sb.Append("  RotationY: ").Append(RotationY).Append("\n");
             sb.Append("  RotationW: ").Append(RotationW).Append("\n");
-            sb.Append("  PositionX: ").Append(PositionX).Append("\n");
-            sb.Append("  Active: ").Append(Active).Append("\n");
-            sb.Append("  Name: ").Append(Name).Append("\n");
-            sb.Append("  LayerId: ").Append(LayerId).Append("\n");
-            sb.Append("  ParentId: ").Append(ParentId).Append("\n");
-            sb.Append("  LabelWidth: ").Append(LabelWidth).Append("\n");
             sb.Append("  LabelHeight: ").Append(LabelHeight).Append("\n");
+            sb.Append("  PositionX: ").Append(PositionX).Append("\n");
             sb.Append("  LabelScale: ").Append(LabelScale).Append("\n");
             sb.Append("  LinkType: ").Append(LinkType).Append("\n");
             sb.Append("  LabelType: ").Append(LabelType).Append("\n");
+            sb.Append("  Active: ").Append(Active).Append("\n");
             sb.Append("  Link: ").Append(Link).Append("\n");
             sb.Append("  Label: ").Append(Label).Append("\n");
+            sb.Append("  Name: ").Append(Name).Append("\n");
+            sb.Append("  LayerId: ").Append(LayerId).Append("\n");
+            sb.Append("  ParentId: ").Append(ParentId).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

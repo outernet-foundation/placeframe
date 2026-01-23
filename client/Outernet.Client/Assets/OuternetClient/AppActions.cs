@@ -12,6 +12,7 @@ using PlerionApiClient.Model;
 
 using Vector3 = UnityEngine.Vector3;
 using Quaternion = UnityEngine.Quaternion;
+using Outernet.Shared;
 
 namespace Outernet.Client
 {
@@ -199,12 +200,12 @@ namespace Outernet.Client
                     id: toUpdate.Id,
                     name: toUpdate.Name,
                     label: toUpdate.Label,
-                    labelType: (Shared.LabelType)(toUpdate.LabelType.HasValue ? toUpdate.LabelType.Value : default),
+                    labelType: Conversions.LabelType(toUpdate.LabelType),
                     link: toUpdate.Link,
-                    linkType: (Shared.LinkType)(toUpdate.LinkType.HasValue ? toUpdate.LinkType.Value : default),
-                    labelScale: (float)(toUpdate.LabelScale.HasValue ? toUpdate.LabelScale.Value : default),
-                    labelWidth: (float)(toUpdate.LabelWidth.HasValue ? toUpdate.LabelWidth.Value : default),
-                    labelHeight: (float)(toUpdate.LabelHeight.HasValue ? toUpdate.LabelHeight.Value : default),
+                    linkType: Conversions.LinkType(toUpdate.LinkType),
+                    labelScale: (float)toUpdate.LabelScale,
+                    labelWidth: (float)toUpdate.LabelWidth,
+                    labelHeight: (float)toUpdate.LabelHeight,
                     layer: toUpdate.LayerId.HasValue ? toUpdate.LayerId.Value : Guid.Empty,
                     parentID: toUpdate.ParentId,
                     position: new double3() { x = toUpdate.PositionX, y = toUpdate.PositionY, z = toUpdate.PositionZ },

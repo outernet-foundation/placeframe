@@ -194,7 +194,24 @@ services:
       - keycloak
       - api
     ports:
-      - "${GATEWAY_PORT}:8080"
+      - "${GATEWAY_PORT}:8443"
+    volumes:
+      - ./docker/certs:/certs:ro
+
+  ngrok:
+    image: ngrok/ngrok:alpine
+    depends_on:
+      - gateway
+    restart: unless-stopped
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+    ports:
+      - "4040:4040"
+    command:
+      - "http"
+      - "--domain=${DOMAIN}"
+      - "--upstream-protocol=http2" # Forces HTTP/2 (Prior Knowledge) upstream
+      - "http://gateway:8080" # Connects to the h2c listener
 
   migrate-database:
     build:
@@ -270,6 +287,20 @@ services:
       RELOAD: true
       DEBUG: ${DEBUG_API}
       DEBUG_WAIT: ${DEBUG_WAIT_API}
+
+  state-sync:
+    build:
+      context: .
+      dockerfile: docker/state-sync/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      AUTH_TOKEN_URL: ${AUTH_TOKEN_URL}
+      AUTH_CLIENT_ID: ${AUTH_WORKER_CLIENT_ID}
+      PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
+    volumes:
+      - auth_data:/run/secrets:ro
 
   reconstructor-cuda:
     profiles: ["cuda"]

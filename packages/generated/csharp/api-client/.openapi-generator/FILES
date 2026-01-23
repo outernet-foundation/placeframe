@@ -40,10 +40,12 @@ src/PlerionApiClient/Model/GroupBatchCreate.cs
 src/PlerionApiClient/Model/GroupBatchUpdate.cs
 src/PlerionApiClient/Model/GroupCreate.cs
 src/PlerionApiClient/Model/GroupRead.cs
+src/PlerionApiClient/Model/LabelType.cs
 src/PlerionApiClient/Model/LayerBatchUpdate.cs
 src/PlerionApiClient/Model/LayerCreate.cs
 src/PlerionApiClient/Model/LayerRead.cs
 src/PlerionApiClient/Model/LeaseResponse.cs
+src/PlerionApiClient/Model/LinkType.cs
 src/PlerionApiClient/Model/LocalizationMapBatchUpdate.cs
 src/PlerionApiClient/Model/LocalizationMapCreate.cs
 src/PlerionApiClient/Model/LocalizationMapRead.cs

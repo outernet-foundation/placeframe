@@ -1,3 +1,16 @@
+CREATE TYPE link_type AS ENUM (
+    'none',
+    'address',
+    'annotation',
+    'image_list'
+);
+
+CREATE TYPE label_type AS ENUM (
+    'automatic',
+    'text',
+    'image'
+);
+
 CREATE TABLE nodes (
     tenant_id uuid 
         NOT NULL 
@@ -29,20 +42,20 @@ CREATE TABLE nodes (
         NOT NULL,
     rotation_w double precision
         NOT NULL,
-    label_type int
-        NULL,
+    label_type label_type
+        NOT NULL,
     label text
-        NULL,
-    link_type int
-        NULL,
+        NOT NULL,
+    link_type link_type
+        NOT NULL,
     link text
-        NULL,
+        NOT NULL,
     label_scale double precision
-        NULL,
+        NOT NULL,
     label_width double precision
-        NULL,
+        NOT NULL,
     label_height double precision
-        NULL,
+        NOT NULL,
     parent_id uuid
         NULL
         REFERENCES groups(id)

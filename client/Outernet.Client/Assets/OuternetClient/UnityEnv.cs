@@ -13,11 +13,6 @@ namespace Outernet.Client
     {
         private static UnityEnv _instance;
 
-        // beta: http://52.200.81.198;
-        // dev: http://34.196.34.28;
-
-        public string environmentURL = "http://34.196.34.28";
-
         public LogGroup enabledLogGroups = ~LogGroup.None; // Enable all log groups
         public LogLevel logLevel = LogLevel.Info;
         public LogLevel stackTraceLevel = LogLevel.Warn;

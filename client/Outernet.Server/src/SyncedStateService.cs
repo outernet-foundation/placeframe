@@ -8,7 +8,9 @@ namespace Outernet.Server
 {
     class SyncedStateService : SyncedStateSystem, IHostedService
     {
-        static private SyncedStateService? singleton;
+        private static SyncedStateService? singleton;
+
+        private readonly PlerionAPI _plerionApi;
 
         public const int targetFps = 60;
         private const int shutdownDelay = 0;
@@ -18,7 +20,8 @@ namespace Outernet.Server
         private Dictionary<string, Room> rooms = [];
         private long lastFetchNodesFrame = 0;
 
-        protected override void HandleException(Exception exception) => Log.Error(exception, "Exception throw while executing enqueued actions");
+        protected override void HandleException(Exception exception) =>
+            Log.Error(exception, "Exception throw while executing enqueued actions");
 
         public override Guid? ClientID { get; set; } = Guid.Empty;
         public override bool Deserializing { get; protected set; } = false;
@@ -26,9 +29,11 @@ namespace Outernet.Server
 
         public static Dictionary<string, RoomRecord.InitializationData> roomSettings { get; } = new();
 
-        public SyncedStateService()
+        public SyncedStateService(PlerionAPI plerionApi)
         {
             singleton = this;
+
+            _plerionApi = plerionApi;
 
             logicLooper = new LogicLooper(targetFps);
         }
@@ -84,9 +89,15 @@ namespace Outernet.Server
             return true;
         }
 
-        public static async ValueTask<byte[]> JoinRoom(string roomID, string userName, Guid clientID, IGroup<ISyncedStateHubReceiver> group)
+        public static async ValueTask<byte[]> JoinRoom(
+            string roomID,
+            string userName,
+            Guid clientID,
+            IGroup<ISyncedStateHubReceiver> group
+        )
         {
-            if (singleton == null) throw new InvalidOperationException("StateSyncService singleton not initialized");
+            if (singleton == null)
+                throw new InvalidOperationException("StateSyncService singleton not initialized");
 
             try
             {
@@ -97,7 +108,7 @@ namespace Outernet.Server
                     // Create the room if it does not exist
                     if (!singleton.rooms.ContainsKey(roomID))
                     {
-                        singleton.rooms.Add(roomID, new Room(singleton, roomID));
+                        singleton.rooms.Add(roomID, new Room(singleton, roomID, singleton._plerionApi));
                         roomSettings.TryGetValue(roomID, out RoomRecord.InitializationData? value);
                         Log.Info("dafuq");
                         if (value != null)
@@ -112,15 +123,19 @@ namespace Outernet.Server
                         Log.Info($"Room \"{roomID}\" created");
                     }
 
-                    singleton.rooms[roomID].roomState.users.EnqueueAdd(
-                        clientID,
-                        new UserRecord.InitializationData()
-                        {
-                            userName = userName,
-                        }
-                    );
+                    singleton
+                        .rooms[roomID]
+                        .roomState.users.EnqueueAdd(
+                            clientID,
+                            new UserRecord.InitializationData() { userName = userName }
+                        );
 
-                    singleton.rooms[roomID].clients.Add(clientID, new Client(clientID, group, fullSerializationTaskCompletionSource, singleton.Tick));
+                    singleton
+                        .rooms[roomID]
+                        .clients.Add(
+                            clientID,
+                            new Client(clientID, group, fullSerializationTaskCompletionSource, singleton.Tick)
+                        );
                 }
 
                 // The delta must be empty when the new client joins the room, so use a task
@@ -148,7 +163,8 @@ namespace Outernet.Server
                 {
                     // If the client is not in the room, they timed out and were removed before the
                     // actual OnDisconnected function was called
-                    if (!singleton.rooms[roomID].clients.ContainsKey(clientID)) return;
+                    if (!singleton.rooms[roomID].clients.ContainsKey(clientID))
+                        return;
 
                     singleton.rooms[roomID].roomState.users.EnqueueRemove(clientID);
                     singleton.rooms[roomID].clients.Remove(clientID);
@@ -176,14 +192,18 @@ namespace Outernet.Server
 
         public static void ReceiveRoomStateDelta(Guid clientID, byte[] roomStateDeltaData, string roomID)
         {
-            if (singleton == null) throw new InvalidOperationException("StateSyncService singleton not initialized");
+            if (singleton == null)
+                throw new InvalidOperationException("StateSyncService singleton not initialized");
 
             lock (singleton.rooms)
             {
                 if (!singleton.rooms[roomID].clients.ContainsKey(clientID))
                 {
                     // Client timed out and was removed from the room, throw an exception
-                    throw new ReturnStatusException(Grpc.Core.StatusCode.NotFound, $"Client {clientID} timed out and was removed from room \"{roomID}\"");
+                    throw new ReturnStatusException(
+                        Grpc.Core.StatusCode.NotFound,
+                        $"Client {clientID} timed out and was removed from room \"{roomID}\""
+                    );
                 }
 
                 singleton.rooms[roomID].clients[clientID].heartbeat = singleton.Tick;

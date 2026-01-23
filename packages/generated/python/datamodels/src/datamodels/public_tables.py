@@ -29,6 +29,19 @@ class DeviceType(enum.Enum):
     ZED = "Zed"
 
 
+class LinkType(enum.Enum):
+    NONE = "none"
+    ADDRESS = "address"
+    ANNOTATION = "annotation"
+    IMAGE_LIST = "image_list"
+
+
+class LabelType(enum.Enum):
+    AUTOMATIC = "automatic"
+    TEXT = "text"
+    IMAGE = "image"
+
+
 class OrchestrationStatus(enum.Enum):
     QUEUED = "queued"
     PENDING = "pending"
@@ -155,6 +168,7 @@ class Node(Base):
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, server_default=text("current_tenant()"))
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("gen_random_uuid()"))
     rotation_z: Mapped[float] = mapped_column(Double(53), nullable=False)
+    label_width: Mapped[float] = mapped_column(Double(53), nullable=False)
     position_y: Mapped[float] = mapped_column(Double(53), nullable=False)
     position_z: Mapped[float] = mapped_column(Double(53), nullable=False)
     rotation_x: Mapped[float] = mapped_column(Double(53), nullable=False)
@@ -162,18 +176,21 @@ class Node(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     rotation_w: Mapped[float] = mapped_column(Double(53), nullable=False)
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    label_height: Mapped[float] = mapped_column(Double(53), nullable=False)
     position_x: Mapped[float] = mapped_column(Double(53), nullable=False)
+    label_scale: Mapped[float] = mapped_column(Double(53), nullable=False)
+    link_type: Mapped[LinkType] = mapped_column(
+        Enum(LinkType, name="link_type", values_callable=enum_values), nullable=False
+    )
+    label_type: Mapped[LabelType] = mapped_column(
+        Enum(LabelType, name="label_type", values_callable=enum_values), nullable=False
+    )
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("true"))
+    link: Mapped[str] = mapped_column(Text, nullable=False)
+    label: Mapped[str] = mapped_column(Text, nullable=False)
     name: Mapped[str] = mapped_column(Text, nullable=False)
     layer_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
     parent_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
-    label_width: Mapped[Optional[float]] = mapped_column(Double(53))
-    label_height: Mapped[Optional[float]] = mapped_column(Double(53))
-    label_scale: Mapped[Optional[float]] = mapped_column(Double(53))
-    link_type: Mapped[Optional[int]] = mapped_column(Integer)
-    label_type: Mapped[Optional[int]] = mapped_column(Integer)
-    link: Mapped[Optional[str]] = mapped_column(Text)
-    label: Mapped[Optional[str]] = mapped_column(Text)
 
     layer: Mapped[Optional["Layer"]] = relationship("Layer", back_populates="nodes")
     parent: Mapped[Optional["Group"]] = relationship("Group", back_populates="nodes")

@@ -45,10 +45,12 @@ __all__ = [
     "GroupBatchUpdate",
     "GroupCreate",
     "GroupRead",
+    "LabelType",
     "LayerBatchUpdate",
     "LayerCreate",
     "LayerRead",
     "LeaseResponse",
+    "LinkType",
     "LocalizationMapBatchUpdate",
     "LocalizationMapCreate",
     "LocalizationMapRead",
@@ -104,10 +106,12 @@ from plerion_api_client.models.group_batch_create import GroupBatchCreate as Gro
 from plerion_api_client.models.group_batch_update import GroupBatchUpdate as GroupBatchUpdate
 from plerion_api_client.models.group_create import GroupCreate as GroupCreate
 from plerion_api_client.models.group_read import GroupRead as GroupRead
+from plerion_api_client.models.label_type import LabelType as LabelType
 from plerion_api_client.models.layer_batch_update import LayerBatchUpdate as LayerBatchUpdate
 from plerion_api_client.models.layer_create import LayerCreate as LayerCreate
 from plerion_api_client.models.layer_read import LayerRead as LayerRead
 from plerion_api_client.models.lease_response import LeaseResponse as LeaseResponse
+from plerion_api_client.models.link_type import LinkType as LinkType
 from plerion_api_client.models.localization_map_batch_update import LocalizationMapBatchUpdate as LocalizationMapBatchUpdate
 from plerion_api_client.models.localization_map_create import LocalizationMapCreate as LocalizationMapCreate
 from plerion_api_client.models.localization_map_read import LocalizationMapRead as LocalizationMapRead

@@ -14,7 +14,7 @@ namespace Outernet.Server
                 .MinimumLevel.Verbose()
                 .Enrich.With<Enricher>()
                 .WriteTo.Loki()
-                // .WriteTo.Console()
+                .WriteTo.Console()
                 .CreateLogger();
 
             // If serilog itself throws an exception, log it to the console

@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
+﻿using System.Diagnostics;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Outernet.Server
 {
@@ -13,7 +13,8 @@ namespace Outernet.Server
             if (args.Contains("--wait-for-debugger"))
             {
                 Console.WriteLine("Waiting for debugger");
-                while (!Debugger.IsAttached) Thread.Sleep(100);
+                while (!Debugger.IsAttached)
+                    Thread.Sleep(100);
                 Console.WriteLine("Debugger attached");
             }
 
@@ -37,6 +38,9 @@ namespace Outernet.Server
             builder.Services.AddGrpc();
             builder.Services.AddMagicOnion();
             builder.Services.AddHostedService<SyncedStateService>();
+            builder.Services.AddHttpClient<TokenManager>();
+            builder.Services.AddSingleton<TokenManager>();
+            builder.Services.AddSingleton<PlerionAPI>();
 
             var app = builder.Build();
 
