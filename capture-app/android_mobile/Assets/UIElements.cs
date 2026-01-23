@@ -74,7 +74,7 @@ namespace PlerionClient.Client
                 Image(new()
                 {
                     layout = Utility.FillParentProps(),
-                    color = props.backgroundColor,
+                    style = { color = props.backgroundColor },
                     element = { active = props.useBackground }
                 })
             );

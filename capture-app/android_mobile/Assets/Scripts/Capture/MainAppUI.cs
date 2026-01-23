@@ -165,7 +165,7 @@ namespace PlerionClient.Client
                             children = Props.List(
                                 Image(new()
                                 {
-                                    color = Props.Value(elements.backgroundColor),
+                                    style = { color = Props.Value(elements.backgroundColor) },
                                     layout = Utility.FillParentProps(new() { ignoreLayout = Props.Value(true) })
                                 }),
                                 Title(new() { value = Props.Value("Captures") }),

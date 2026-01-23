@@ -14,9 +14,12 @@ namespace PlerionClient.Client
             public ElementProps element;
             public LayoutProps layout;
             public IListObservable<string> tabs;
-            public ImageProps background;
-            public ImageProps deselectedBackground;
-            public ImageProps selectedBackground;
+            public IValueObservable<Sprite> background;
+            public ImageStyleProps backgroundStyle;
+            public IValueObservable<Sprite> deselectedBackground;
+            public ImageStyleProps deselectedBackgroundStyle;
+            public IValueObservable<Sprite> selectedBackground;
+            public ImageStyleProps selectedBackgroundStyle;
             public IValueObservable<float> tabSpacing;
             public IValueObservable<int> value;
             public Action<int> onValueChanged;
@@ -24,21 +27,20 @@ namespace PlerionClient.Client
 
         public static IControl TabbedMenu(TabbedMenuProps props = default)
         {
-            props.selectedBackground.color = props.selectedBackground.color ?? Props.Value(elements.foregroundColor);
-            props.selectedBackground.pixelsPerUnitMultiplier = props.selectedBackground.pixelsPerUnitMultiplier ?? Props.Value(1.3f);
-            props.selectedBackground.imageType = props.selectedBackground.imageType ?? Props.Value(UnityEngine.UI.Image.Type.Sliced);
-            props.selectedBackground.sprite = props.selectedBackground.sprite ?? Props.Value(elements.roundedRect);
-            props.selectedBackground.fillCenter = props.selectedBackground.fillCenter ?? Props.Value(true);
-            props.selectedBackground.raycastTarget = props.selectedBackground.raycastTarget ?? Props.Value(true);
+            props.selectedBackground = props.selectedBackground ?? Props.Value(elements.roundedRect);
+            props.selectedBackgroundStyle.color = props.selectedBackgroundStyle.color ?? Props.Value(elements.foregroundColor);
+            props.selectedBackgroundStyle.pixelsPerUnitMultiplier = props.selectedBackgroundStyle.pixelsPerUnitMultiplier ?? Props.Value(1.3f);
+            props.selectedBackgroundStyle.imageType = props.selectedBackgroundStyle.imageType ?? Props.Value(UnityEngine.UI.Image.Type.Sliced);
+            props.selectedBackgroundStyle.fillCenter = props.selectedBackgroundStyle.fillCenter ?? Props.Value(true);
+            props.selectedBackgroundStyle.raycastTarget = props.selectedBackgroundStyle.raycastTarget ?? Props.Value(true);
 
-            props.deselectedBackground.raycastTarget = props.deselectedBackground.raycastTarget ?? Props.Value(true);
+            props.deselectedBackgroundStyle.raycastTarget = props.deselectedBackgroundStyle.raycastTarget ?? Props.Value(true);
 
-            props.background.color = props.background.color ?? Props.Value(elements.backgroundColor);
-            props.background.pixelsPerUnitMultiplier = props.background.pixelsPerUnitMultiplier ?? Props.Value(1f);
-            props.background.imageType = props.background.imageType ?? Props.Value(UnityEngine.UI.Image.Type.Sliced);
-            props.background.sprite = props.background.sprite ?? Props.Value(elements.roundedRect);
-            props.background.fillCenter = props.background.fillCenter ?? Props.Value(true);
-            props.background.layout = Utility.FillParentProps(props.background.layout);
+            props.background = props.background ?? Props.Value(elements.roundedRect);
+            props.backgroundStyle.color = props.backgroundStyle.color ?? Props.Value(elements.backgroundColor);
+            props.backgroundStyle.pixelsPerUnitMultiplier = props.backgroundStyle.pixelsPerUnitMultiplier ?? Props.Value(1f);
+            props.backgroundStyle.imageType = props.backgroundStyle.imageType ?? Props.Value(UnityEngine.UI.Image.Type.Sliced);
+            props.backgroundStyle.fillCenter = props.backgroundStyle.fillCenter ?? Props.Value(true);
 
             ValueObservable<int> selectedTabIndex = new ValueObservable<int>(-1);
 
@@ -47,7 +49,7 @@ namespace PlerionClient.Client
                 element = props.element,
                 layout = props.layout,
                 children = Props.List(
-                    Image(props.background),
+                    Image(new() { sprite = props.background, style = props.backgroundStyle, layout = Utility.FillParentProps() }),
                     Columns(new()
                     {
                         layout = Utility.FillParentProps(new()
@@ -60,10 +62,10 @@ namespace PlerionClient.Client
                         {
                             var tabIndex = props.tabs.IndexOfDynamic(tabLabel);
                             var currentTabIndex = -1;
-                            var currentBackground = Observables.Combine(
+                            var currentBackgroundStyle = Observables.Combine(
                                 tabIndex,
                                 selectedTabIndex,
-                                (index, selectedIndex) => index == selectedIndex ? props.selectedBackground : props.deselectedBackground
+                                (index, selectedIndex) => index == selectedIndex ? props.selectedBackgroundStyle : props.deselectedBackgroundStyle
                             );
 
                             return Button(new()
@@ -75,18 +77,25 @@ namespace PlerionClient.Client
                                 onClick = () => selectedTabIndex.value = currentTabIndex,
                                 background =
                                 {
-                                    sprite = currentBackground.SelectDynamic(x => x.sprite),
-                                    color = currentBackground.SelectDynamic(x => x.color),
-                                    imageType = currentBackground.SelectDynamic(x => x.imageType),
-                                    fillCenter = currentBackground.SelectDynamic(x => x.fillCenter),
-                                    pixelsPerUnitMultiplier = currentBackground.SelectDynamic(x => x.pixelsPerUnitMultiplier),
-                                    raycastTarget = currentBackground.SelectDynamic(x => x.raycastTarget),
-                                    raycastPadding = currentBackground.SelectDynamic(x => x.raycastPadding),
-                                    useSpriteMesh = currentBackground.SelectDynamic(x => x.useSpriteMesh),
-                                    preserveAspect = currentBackground.SelectDynamic(x => x.preserveAspect),
-                                    fillOrigin = currentBackground.SelectDynamic(x => x.fillOrigin),
-                                    fillMethod = currentBackground.SelectDynamic(x => x.fillMethod),
-                                    fillAmount = currentBackground.SelectDynamic(x => x.fillAmount)
+                                    sprite = Observables.Combine(
+                                        tabIndex,
+                                        selectedTabIndex,
+                                        (index, selectedIndex) => index == selectedIndex ? props.selectedBackground : props.deselectedBackground
+                                    ).ShallowCopyDynamic(),
+                                    style =
+                                    {
+                                        color = currentBackgroundStyle.SelectDynamic(x => x.color),
+                                        imageType = currentBackgroundStyle.SelectDynamic(x => x.imageType),
+                                        fillCenter = currentBackgroundStyle.SelectDynamic(x => x.fillCenter),
+                                        pixelsPerUnitMultiplier = currentBackgroundStyle.SelectDynamic(x => x.pixelsPerUnitMultiplier),
+                                        raycastTarget = currentBackgroundStyle.SelectDynamic(x => x.raycastTarget),
+                                        raycastPadding = currentBackgroundStyle.SelectDynamic(x => x.raycastPadding),
+                                        useSpriteMesh = currentBackgroundStyle.SelectDynamic(x => x.useSpriteMesh),
+                                        preserveAspect = currentBackgroundStyle.SelectDynamic(x => x.preserveAspect),
+                                        fillOrigin = currentBackgroundStyle.SelectDynamic(x => x.fillOrigin),
+                                        fillMethod = currentBackgroundStyle.SelectDynamic(x => x.fillMethod),
+                                        fillAmount = currentBackgroundStyle.SelectDynamic(x => x.fillAmount)
+                                    }
                                 },
                                 content = Props.List(
                                     Text(new TextProps()
