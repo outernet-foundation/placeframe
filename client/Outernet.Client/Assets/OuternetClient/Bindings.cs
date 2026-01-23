@@ -12,7 +12,7 @@ using Outernet.Client.Location;
 using FofX;
 using TMPro;
 
-using Plerion.VPS;
+using Plerion.Core;
 
 namespace Outernet.Client
 {

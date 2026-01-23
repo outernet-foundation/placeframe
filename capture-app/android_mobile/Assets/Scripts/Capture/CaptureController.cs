@@ -27,6 +27,7 @@ namespace PlerionClient.Client
         private DefaultApi capturesApi;
         private IControl ui;
         private TaskHandle currentCaptureTask = TaskHandle.Complete;
+        private bool capturesLoaded;
 
         private string localCaptureNamePath;
 
@@ -259,6 +260,9 @@ namespace PlerionClient.Client
 
         private void HandleCapturesChanged(NodeChangeEventArgs args)
         {
+            if (!capturesLoaded)
+                return;
+
             var json = new SimpleJSON.JSONObject();
 
             foreach (var kvp in App.state.captures.Where(x => x.value.status.value == CaptureUploadStatus.NotUploaded))
@@ -323,7 +327,10 @@ namespace PlerionClient.Client
                     .ContinueWith(x => remoteCaptureReconstructionManifests = x),
                 capturesApi
                     .GetLocalizationMapsAsync(
-                        reconstructionIds: remoteCaptureReconstructions.Select(x => x.Id).ToList()
+                        reconstructionIds: remoteCaptureReconstructions
+                            .Where(x => x.OrchestrationStatus == OrchestrationStatus.Succeeded)
+                            .Select(x => x.Id)
+                            .ToList()
                     )
                     .AsUniTask()
                     .ContinueWith(x => remoteCaptureLocalizationMaps = x)
@@ -468,6 +475,8 @@ namespace PlerionClient.Client
                     );
                 }
             );
+
+            capturesLoaded = true;
         }
 
         private async UniTask<List<ReconstructionRead>> GetReconstructionsForCaptures(List<Guid> captures)

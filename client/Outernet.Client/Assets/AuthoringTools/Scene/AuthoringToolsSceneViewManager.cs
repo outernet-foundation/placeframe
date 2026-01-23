@@ -6,7 +6,7 @@ using UnityEngine;
 using FofX.Stateful;
 
 using Outernet.Client.Location;
-using Plerion.VPS;
+using Plerion.Core;
 using UnityEngine.UIElements;
 
 namespace Outernet.Client.AuthoringTools

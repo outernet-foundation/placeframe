@@ -1,14 +1,22 @@
 using System;
+using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Runtime.InteropServices;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using PlerionApiClient.Api;
 using PlerionApiClient.Client;
 using PlerionApiClient.Model;
 using Unity.Mathematics;
 using UnityEngine;
+
+using Quaternion = UnityEngine.Quaternion;
+using Vector3 = UnityEngine.Vector3;
+
 
 namespace Plerion.Core
 {
@@ -19,12 +27,11 @@ namespace Plerion.Core
         private static Action<string> _errorCallback;
         private static Action<string, Exception> _logExceptionCallback;
         private static readonly AsyncLifecycleGuard _serviceGuard = new AsyncLifecycleGuard();
-        private static Dictionary<Guid, LocalizationMap> _maps = new Dictionary<Guid, LocalizationMap>();
+        private static DefaultApi _api;
+        private static HashSet<Guid> _maps = new HashSet<Guid>();
         private static double4x4 _unityFromEcefTransform = double4x4.identity;
         private static double4x4 _ecefFromUnityTransform = math.inverse(_unityFromEcefTransform);
 
-        public static DefaultApi Api { get; private set; }
-        public static Prefabs Prefabs { get; private set; }
         public static ICameraProvider CameraProvider { get; private set; }
         public static LocalizationMetrics MostRecentMetrics { get; private set; }
         public static double4x4 EcefToUnityWorldTransform => _unityFromEcefTransform;
@@ -39,6 +46,8 @@ namespace Plerion.Core
 
         internal static void LogException(string message, Exception exception = null) =>
             _logExceptionCallback?.Invoke(message, exception);
+
+        private static LocalizationMapManager _localizationMapManager;
 
         public static void Initialize(
             ICameraProvider cameraProvider,
@@ -62,8 +71,7 @@ namespace Plerion.Core
             Auth.Initialize(authTokenUrl, authAudience, logCallback, warnCallback, errorCallback);
 
             CameraProvider = cameraProvider;
-            Prefabs = Resources.Load<Prefabs>("PrefabReferences");
-            Api = new DefaultApi(
+            _api = new DefaultApi(
                 new HttpClient(new AuthHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
                     BaseAddress = new Uri(apiUrl),
@@ -74,32 +82,43 @@ namespace Plerion.Core
 
         public static async UniTask Login(string username, string password) => await Auth.Login(username, password);
 
+        public static void SetLocalizationMapManager(LocalizationMapManager localizationMapManager)
+        {
+            _localizationMapManager = localizationMapManager;
+
+            foreach (var map in _maps)
+                _localizationMapManager.AddMap(map);
+        }
+
+        public static void SetEcefToUnityWorldTransform(double4x4 ecefToUnityWorldTransform)
+        {
+            if (_serviceGuard.State != AsyncLifecycleGuard.LifecycleState.Idle &&
+                _serviceGuard.State != AsyncLifecycleGuard.LifecycleState.Stopping)
+            {
+                throw new Exception($"Setting {nameof(ecefToUnityWorldTransform)} while localizing from camera is not supported.");
+            }
+
+            _unityFromEcefTransform = ecefToUnityWorldTransform;
+            _ecefFromUnityTransform = math.inverse(_unityFromEcefTransform);
+
+            // Notify listeners about the updated transform
+            OnEcefToUnityWorldTransformUpdated?.Invoke();
+        }
+
         public static void AddLocalizationMap(Guid mapId)
         {
-            if (_maps.ContainsKey(mapId))
+            if (!_maps.Add(mapId))
                 throw new InvalidOperationException($"Map {mapId} is already added");
 
-            _maps[mapId] = GameObject.Instantiate(Prefabs.localizationMapPrefab, Vector3.zero, Quaternion.identity);
-            _maps[mapId]
-                .gameObject.SetActive(
-                    _serviceGuard.State == AsyncLifecycleGuard.LifecycleState.Starting
-                        || _serviceGuard.State == AsyncLifecycleGuard.LifecycleState.Running
-                );
-
-            _maps[mapId].Initialize(mapId);
+            _localizationMapManager?.AddMap(mapId);
         }
 
         public static void RemoveLocalizationMap(Guid mapId)
         {
-            if (_maps.TryGetValue(mapId, out var visualizer))
-            {
-                if (visualizer != null)
-                    GameObject.Destroy(visualizer.gameObject);
-                _maps.Remove(mapId);
-                return;
-            }
+            if (!_maps.Remove(mapId))
+                throw new InvalidOperationException($"Map {mapId} is not added or loading");
 
-            throw new InvalidOperationException($"Map {mapId} is not added");
+            _localizationMapManager?.RemoveMap(mapId);
         }
 
         public static void StartLocalizing() => StartLocalizingInternal().Forget();
@@ -133,10 +152,8 @@ namespace Plerion.Core
         {
             try
             {
-                foreach (var map in _maps.Values)
-                {
-                    map.gameObject.SetActive(true);
-                }
+                if (_localizationMapManager != null)
+                    _localizationMapManager.enabled = true;
 
                 await _serviceGuard.StartAsync(
                     (token) =>
@@ -161,10 +178,8 @@ namespace Plerion.Core
 
         private static async UniTask StopLocalizingInternal()
         {
-            foreach (var map in _maps.Values)
-            {
-                map.gameObject.SetActive(false);
-            }
+            if (_localizationMapManager != null)
+                _localizationMapManager.enabled = false;
 
             await _serviceGuard.StopAsync(CameraProvider.Stop);
         }
@@ -193,15 +208,14 @@ namespace Plerion.Core
             {
                 using var memoryStream = new MemoryStream(image);
 
-                var mapIds = _maps.Keys.ToList();
-                if (mapIds.Count == 0)
+                if (_maps.Count == 0)
                 {
                     LogWarn("No localization maps loaded, skipping localization");
                     return;
                 }
 
-                var localizationResults = await Api.LocalizeImageAsync(
-                    mapIds,
+                var localizationResults = await _api.LocalizeImageAsync(
+                    _maps.ToList(),
                     cameraConfig,
                     AxisConvention.UNITY,
                     12,
@@ -288,5 +302,128 @@ namespace Plerion.Core
         //     float3 forward = math.normalize(math.cross(right, up));
         //     return quaternion.LookRotationSafe(forward, up).ToDouble3x3();
         // }
+
+        public static UniTask<LocalizationMapRead> GetMapData(Guid mapID)
+        {
+            return _api.GetLocalizationMapAsync(mapID).AsUniTask();
+        }
+
+        public static async UniTask<ReconstructionPoint[]> GetReconstructionPoints(Guid reconstructionID, CancellationToken cancellationToken = default)
+        {
+            var pointPayload = await FetchPayloadAsync(
+                _api.GetReconstructionPointsAsync(reconstructionID, AxisConvention.UNITY).AsUniTask(),
+                bytesPerElement: (3 * sizeof(float)) + 3,
+                cancellationToken
+            );
+
+            return ParseReconstructionPointPayload(pointPayload);
+        }
+
+        private static ReconstructionPoint[] ParseReconstructionPointPayload(byte[] pointPayload)
+        {
+            var pointCount = (int)BinaryPrimitives.ReadUInt32LittleEndian(pointPayload.AsSpan(0, 4));
+            var positionsByteCount = pointCount * 3 * sizeof(float);
+            var positions = MemoryMarshal.Cast<byte, float>(pointPayload.AsSpan(4, positionsByteCount));
+            var colors = pointPayload.AsSpan(4 + positionsByteCount, pointCount * 3);
+            var points = new ReconstructionPoint[pointCount];
+
+            for (var i = 0; i < points.Length; i++)
+            {
+                var index = i * 3;
+                points[i] = new()
+                {
+                    position = new Vector3(
+                        positions[index + 0],
+                        positions[index + 1],
+                        positions[index + 2]
+                    ),
+                    color = new Color32(colors[index + 0], colors[index + 1], colors[index + 2], 255)
+                };
+            }
+
+            return points;
+        }
+
+        public static async UniTask<Vector3[]> GetReconstructionFramePoses(Guid reconstructionID, CancellationToken cancellationToken = default)
+        {
+            var framePayload = await FetchPayloadAsync(
+                _api.GetReconstructionFramePosesAsync(reconstructionID, AxisConvention.UNITY).AsUniTask(),
+                bytesPerElement: (3 * sizeof(float)) + (4 * sizeof(float)),
+                cancellationToken
+            );
+
+            return ParseReconsructionFramePosesPayload(framePayload);
+        }
+
+        private static Vector3[] ParseReconsructionFramePosesPayload(byte[] framePayload)
+        {
+            var frameCount = (int)BinaryPrimitives.ReadUInt32LittleEndian(framePayload.AsSpan(0, 4));
+            var positionsByteCount = frameCount * 3 * sizeof(float);
+            var positions = MemoryMarshal.Cast<byte, float>(framePayload.AsSpan(4, positionsByteCount));
+            var framePositions = new Vector3[frameCount];
+
+            for (var i = 0; i < framePositions.Length; i++)
+            {
+                var index = i * 3;
+                framePositions[i] = new Vector3(positions[index + 0], positions[index + 1], positions[index + 2]);
+            }
+
+            return framePositions;
+        }
+
+        public struct ReconstructionPoint
+        {
+            public Vector3 position;
+            public Color32 color;
+        }
+
+        private static async UniTask<byte[]> FetchPayloadAsync(
+            UniTask<FileParameter> responseTask,
+            int bytesPerElement,
+            CancellationToken cancellationToken
+        )
+        {
+            var response = await responseTask;
+            var stream = response.Content;
+            try
+            {
+                var header = new byte[4];
+                await stream.ReadExactlyAsync(header, 0, 4, cancellationToken);
+
+                var count = (int)BinaryPrimitives.ReadUInt32LittleEndian(header);
+                var payloadByteCount = 4 + (count * bytesPerElement);
+
+                var payload = ArrayPool<byte>.Shared.Rent(payloadByteCount);
+                Buffer.BlockCopy(header, 0, payload, 0, 4);
+                await stream.ReadExactlyAsync(payload, 4, payloadByteCount - 4, cancellationToken);
+
+                return payload;
+            }
+            finally
+            {
+                stream.Dispose();
+            }
+        }
+    }
+
+    internal static class StreamExtensions
+    {
+        public static async UniTask ReadExactlyAsync(
+            this Stream stream,
+            byte[] buffer,
+            int offset,
+            int count,
+            CancellationToken cancellationToken
+        )
+        {
+            while (count > 0)
+            {
+                var read = await stream.ReadAsync(buffer, offset, count, cancellationToken);
+                if (read == 0)
+                    throw new EndOfStreamException();
+                offset += read;
+                count -= read;
+            }
+        }
     }
 }

@@ -1,4 +1,7 @@
+using System;
+using System.IO;
 using UnityEngine;
+using dotenv.net;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -15,16 +18,14 @@ namespace Outernet.Client
 
         public string environmentURL = "http://34.196.34.28";
 
-        // Development: public
-        // Production: public
-        // Beta: dev2
-        // Development2: dev2
-        public string environmentSchema = "dev2";
-
         public LogGroup enabledLogGroups = ~LogGroup.None; // Enable all log groups
         public LogLevel logLevel = LogLevel.Info;
         public LogLevel stackTraceLevel = LogLevel.Warn;
-        public string plerionAPIBaseUrl;
+
+        public string dotEnvPath;
+        public string plerionApiUrl;
+        public string plerionAuthTokenUrl;
+        public string plerionAuthAudience;
 
         public static UnityEnv GetOrCreateInstance()
         {
@@ -51,6 +52,67 @@ namespace Outernet.Client
             }
 
             return _instance;
+        }
+
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            // Called when you change fields (like dotEnvPath) in the inspector and hit save.
+            if (!Application.isPlaying && _instance != null)
+            {
+                ReloadFromDotEnv();
+                EditorUtility.SetDirty(this);
+            }
+        }
+#endif
+
+
+        private static void ReloadFromDotEnv()
+        {
+            if (!string.IsNullOrEmpty(_instance.dotEnvPath))
+            {
+                try
+                {
+                    DotEnv.Load(
+                        new DotEnvOptions(
+                            envFilePaths: new[]
+                            {
+                                Path.GetFullPath(
+                                    Path.Combine(
+                                        Directory.GetParent(Application.dataPath)!.FullName,
+                                        _instance.dotEnvPath
+                                    )
+                                ),
+                            },
+                            ignoreExceptions: false
+                        )
+                    );
+
+                    ApplyEnvironmentVariable("PUBLIC_URL", ref _instance.plerionApiUrl);
+                    ApplyEnvironmentVariable("AUTH_TOKEN_URL", ref _instance.plerionAuthTokenUrl);
+                    ApplyEnvironmentVariable("AUTH_AUDIENCE", ref _instance.plerionAuthAudience);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogError($"Failed to load .env file at {_instance.dotEnvPath}: {exception.Message}");
+                }
+            }
+        }
+
+        private static void ApplyEnvironmentVariable(string key, ref string field)
+        {
+            string value = Environment.GetEnvironmentVariable(key);
+
+            if (string.IsNullOrEmpty(value))
+            {
+                Debug.LogError(
+                    $"UnityEnv: required environment variable '{key}' is missing or empty. "
+                        + $"Keeping existing value '{field ?? "<null>"}'."
+                );
+                return;
+            }
+
+            field = value;
         }
     }
 }

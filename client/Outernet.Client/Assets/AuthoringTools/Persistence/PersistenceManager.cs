@@ -221,8 +221,8 @@ namespace Outernet.Client.AuthoringTools
 
             _pendingPersists.Enqueue(new PersistenceData()
             {
-                insertedNodes = _nodePersistenceHelper.inserts.Select(Utility.ToNodeCreate).ToList(),
-                insertedGroups = _nodeGroupPersistenceHelper.inserts.Select(Utility.ToGroupCreate).ToList(),
+                insertedNodes = _nodePersistenceHelper.inserts.Select(Utility.ToNodeBatchCreate).ToList(),
+                insertedGroups = _nodeGroupPersistenceHelper.inserts.Select(Utility.ToGroupBatchCreate).ToList(),
                 insertedMaps = _mapPersistenceHelper.inserts.Select(Utility.ToMapCreate).ToList(),
                 insertedLayers = _layerPersistenceHelper.inserts.Select(Utility.ToLayerCreate).ToList(),
 
@@ -256,12 +256,13 @@ namespace Outernet.Client.AuthoringTools
                     toPersist.insertedMaps.Count != 0 ? CreateLocalizationMapsAsync(toPersist.insertedMaps) : UniTask.CompletedTask,
                     toPersist.updatedMaps.Count != 0 ? App.API.UpdateLocalizationMapsAsync(toPersist.updatedMaps).AsUniTask() : UniTask.CompletedTask,
                     toPersist.deletedMaps.Count != 0 ? App.API.DeleteLocalizationMapsAsync(toPersist.deletedMaps).AsUniTask() : UniTask.CompletedTask,
-                    toPersist.deletedGroups.Count != 0 ? App.API.DeleteGroupsAsync(toPersist.deletedGroups).AsUniTask() : UniTask.CompletedTask,
+                    toPersist.deletedGroups.Count != 0 ? App.API.DeleteGroupsAsync(toPersist.deletedGroups, cascade: true).AsUniTask() : UniTask.CompletedTask,
                     toPersist.deletedLayers.Count != 0 ? App.API.DeleteLayersAsync(toPersist.deletedLayers).AsUniTask() : UniTask.CompletedTask,
                     toPersist.deletedNodes.Count != 0 ? App.API.DeleteNodesAsync(toPersist.deletedNodes).AsUniTask() : UniTask.CompletedTask,
                     (toPersist.insertedLayers.Count != 0 ? CreateLayersAsync(toPersist.insertedLayers) : UniTask.CompletedTask)
-                        .ContinueWith(() => toPersist.insertedGroups.Count != 0 ? CreateGroupsAsync(toPersist.insertedGroups) : UniTask.CompletedTask)
-                        .ContinueWith(() => toPersist.insertedNodes.Count != 0 ? CreateNodesAsync(toPersist.insertedNodes) : UniTask.CompletedTask)
+                        .ContinueWith(() => toPersist.insertedGroups.Count != 0 || toPersist.insertedNodes.Count != 0 ?
+                            App.API.CreateGraphAsync(new CreateGraphRequest() { Groups = toPersist.insertedGroups, Nodes = toPersist.insertedNodes }).AsUniTask() : UniTask.CompletedTask
+                        )
                         .ContinueWith(() => UniTask.WhenAll(
                             toPersist.updatedLayers.Count != 0 ? App.API.UpdateLayersAsync(toPersist.updatedLayers).AsUniTask() : UniTask.CompletedTask,
                             toPersist.updatedGroups.Count != 0 ? App.API.UpdateGroupsAsync(toPersist.updatedGroups).AsUniTask() : UniTask.CompletedTask,
@@ -279,8 +280,11 @@ namespace Outernet.Client.AuthoringTools
         private UniTask CreateNodesAsync(List<NodeCreate> nodes)
             => UniTask.WhenAll(nodes.Select(x => App.API.CreateNodeAsync(x).AsUniTask()));
 
-        private UniTask CreateGroupsAsync(List<GroupCreate> groups)
-            => UniTask.WhenAll(groups.Select(x => App.API.CreateGroupAsync(x).AsUniTask()));
+        private async UniTask CreateGroupsAsync(List<GroupCreate> groups)
+        {
+            foreach (var group in groups)
+                await App.API.CreateGroupAsync(group).AsUniTask();
+        }
 
         private UniTask CreateLocalizationMapsAsync(List<LocalizationMapCreate> localizationMaps)
             => UniTask.WhenAll(localizationMaps.Select(x => App.API.CreateLocalizationMapAsync(x).AsUniTask()));
@@ -304,8 +308,8 @@ namespace Outernet.Client.AuthoringTools
 
         private class PersistenceData
         {
-            public List<NodeCreate> insertedNodes;
-            public List<GroupCreate> insertedGroups;
+            public List<NodeBatchCreate> insertedNodes;
+            public List<GroupBatchCreate> insertedGroups;
             public List<LocalizationMapCreate> insertedMaps;
             public List<LayerCreate> insertedLayers;
 

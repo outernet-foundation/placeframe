@@ -527,6 +527,8 @@ MonoBehaviour:
     type: 3}
   uiPrimitives: {fileID: 11400000, guid: 9c11dd85584e91349a2565e81546a8c7, type: 2}
   uiElements: {fileID: 11400000, guid: 49b66e4a8cb7e86408ca2f2efb6ab9f7, type: 2}
+  localizationMapManager: {fileID: 7774093108422875943, guid: b6138b2ca4cc248478f5438e4621a4dc,
+    type: 3}
 --- !u!4 &1353736508
 Transform:
   m_ObjectHideFlags: 0

@@ -9,7 +9,7 @@ using FofX.Stateful;
 
 using Outernet.Client.Location;
 using System.Linq;
-using Plerion.VPS;
+using Plerion.Core;
 
 namespace Outernet.Client
 {

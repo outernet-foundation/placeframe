@@ -2,11 +2,9 @@ using Unity.Mathematics;
 
 using FofX.Stateful;
 
-using Outernet.Client.Location;
-
 using CesiumForUnity;
 using System;
-using Plerion.VPS;
+using Plerion.Core;
 
 namespace Outernet.Client.AuthoringTools
 {

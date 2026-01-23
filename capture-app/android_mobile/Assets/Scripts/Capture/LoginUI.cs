@@ -20,7 +20,7 @@ namespace PlerionClient.Client
                 children = Props.List(
                     Image(new ImageProps()
                     {
-                        color = Props.Value(elements.midgroundColor),
+                        style = { color = Props.Value(elements.midgroundColor) },
                         layout = Utility.FillParentProps(new() { ignoreLayout = Props.Value(true) })
                     }),
                     TightRowsWideColumns(new()

@@ -13,9 +13,8 @@ using Cysharp.Threading.Tasks;
 using FofX;
 using FofX.Stateful;
 
-using Plerion.VPS;
+using Plerion.Core;
 using TMPro;
-using UnityEditor.VersionControl;
 
 namespace Outernet.Client.AuthoringTools
 {
@@ -71,7 +70,7 @@ namespace Outernet.Client.AuthoringTools
             //     "File/Add Scan",
             //     OpenAddScanDialog
             // );
-#if !MAP_REGISTRATION_TOOLS_ENABLED
+
             SystemMenu.AddMenuItem(
                 "Edit/Duplicate",
                 () =>
@@ -93,7 +92,7 @@ namespace Outernet.Client.AuthoringTools
                     Key.D
                 }
             );
-#endif
+
             SystemMenu.AddMenuItem(
                 "Edit/Delete",
                 () =>
@@ -110,7 +109,7 @@ namespace Outernet.Client.AuthoringTools
                     new Key[] { Key.Backspace }
                 }
             );
-#if !MAP_REGISTRATION_TOOLS_ENABLED
+
             SystemMenu.AddMenuItem(
                 "Create/Node",
                 CreateNewNode,
@@ -130,7 +129,6 @@ namespace Outernet.Client.AuthoringTools
                     Key.G
                 }
             );
-#endif
 
             SystemMenu.AddMenuItem(
                 "Create/Map",
@@ -752,7 +750,7 @@ namespace Outernet.Client.AuthoringTools
                 scanName,
                 newMapTransform.position,
                 newMapTransform.rotation,
-                Lighting.Day,
+                null,
                 reconstruction.Id
             ));
         }
@@ -763,7 +761,6 @@ namespace Outernet.Client.AuthoringTools
                 title: "Settings",
                 constructControls: props => UIBuilder.VerticalLayout(
                     UIBuilder.AdaptivePropertyLabel("Content Radius", UIBuilder.FloatField(App.state.authoringTools.settings.nodeFetchRadius)),
-#if !MAP_REGISTRATION_TOOLS_ENABLED
                     UIBuilder.HorizontalLayout(
                         UIBuilder.Text("Layers"),
                         UIBuilder.FlexibleSpace(flexibleWidth: true),
@@ -808,7 +805,6 @@ namespace Outernet.Client.AuthoringTools
                                     }
                                 ))
                         ),
-#endif
                     UIBuilder.HorizontalLayout()
                         .Alignment(TextAnchor.LowerRight)
                         .WithChildren(

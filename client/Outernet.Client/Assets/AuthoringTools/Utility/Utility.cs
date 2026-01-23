@@ -14,7 +14,7 @@ using UnityEngine.InputSystem;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using PlerionApiClient.Model;
-using Plerion.VPS;
+using Plerion.Core;
 
 using Vector3 = UnityEngine.Vector3;
 using Quaternion = UnityEngine.Quaternion;
@@ -162,13 +162,12 @@ namespace Outernet.Client.AuthoringTools
             return primitive.value;
         }
 
-        public static GroupCreate ToGroupCreate(Guid sceneObjectID)
+        public static GroupBatchCreate ToGroupBatchCreate(Guid sceneObjectID)
         {
             var group = App.state.authoringTools.nodeGroups[sceneObjectID];
 
-            return new GroupCreate(group.name.value)
+            return new GroupBatchCreate(group.id, group.name.value)
             {
-                Id = group.id,
                 ParentId = group.parentID.value
             };
         }
@@ -201,7 +200,7 @@ namespace Outernet.Client.AuthoringTools
                 color: 0 //TODO EP: What should this value be? Do we even want to use it if we're going to use the colors from the point cloud?
             )
             {
-                Lighting = (int)map.lighting.value,
+                Lighting = map.lighting.value,
                 Name = map.name.value,
                 Active = true,
             };
@@ -215,7 +214,7 @@ namespace Outernet.Client.AuthoringTools
             return new LocalizationMapBatchUpdate(id: map.uuid)
             {
                 Name = map.name.value,
-                Lighting = (int)map.lighting.value,
+                Lighting = map.lighting.value,
                 Active = true,
                 PositionX = transform.position.value.x,
                 PositionY = transform.position.value.y,
@@ -227,12 +226,13 @@ namespace Outernet.Client.AuthoringTools
             };
         }
 
-        public static NodeCreate ToNodeCreate(Guid sceneObjectID)
+        public static NodeBatchCreate ToNodeBatchCreate(Guid sceneObjectID)
         {
             var node = App.state.nodes[sceneObjectID];
             var transform = App.state.transforms[sceneObjectID];
 
-            return new NodeCreate(
+            return new NodeBatchCreate(
+                id: node.id,
                 name: node.name.value,
                 positionX: transform.position.value.x,
                 positionY: transform.position.value.y,
@@ -243,7 +243,6 @@ namespace Outernet.Client.AuthoringTools
                 rotationW: transform.rotation.value.w
             )
             {
-                Id = node.id,
                 Active = true,
                 Link = node.link.value,
                 LinkType = (int)node.linkType.value,

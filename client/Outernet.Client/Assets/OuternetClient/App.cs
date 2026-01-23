@@ -15,13 +15,11 @@ using ObservableCollections;
 using Cysharp.Threading.Tasks;
 
 using PlerionApiClient.Api;
-using Plerion.VPS;
-using Plerion.VPS.ARFoundation;
-using PlerionApiClient.Model;
+using Plerion.Core;
+
 #if UNITY_LUMIN
 using Plerion.VPS.MagicLeap;
 #endif
-
 
 namespace Outernet.Client
 {
@@ -42,38 +40,40 @@ namespace Outernet.Client
 
         public static RoomRecord State_Old => ConnectionManager.State;
         public static Guid? ClientID => ConnectionManager.ClientID;
-        public static string environmentURL;
-        public static string plerionAPIBaseUrl;
-        public static string serverPrefix;
 
-        private static bool internetReachable = false;
+        public static string environmentURL;
+        public static string apiUrl;
         public static bool InternetReachable => internetReachable;
 
+        private static bool internetReachable = false;
         private bool initialized = false;
 
         protected override void InitializeState(ClientState state)
             => state.Initialize("root", new ObservableNodeContext(new ChannelLogger() { logGroup = LogGroup.Stateful }));
 
-        private void Start()
+        protected override void Awake()
         {
+            base.Awake();
+
             API = new DefaultApi(
                 new HttpClient(new KeycloakHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
-                    BaseAddress = new Uri(plerionAPIBaseUrl)
+                    BaseAddress = new Uri(apiUrl)
                 },
-                plerionAPIBaseUrl
+                apiUrl
             );
 
             Application.wantsToQuit += WantsToQuit;
             ConnectionManager.HubConnectionRequested.EnqueueSet(true);
+        }
 
+        private void Start()
+        {
+#if !AUTHORING_TOOLS_ENABLED
             VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated += () =>
                 state.ecefToLocalMatrix.ExecuteSetOrDelay(VisualPositioningSystem.EcefToUnityWorldTransform);
 
-            CameraLocalization.SetProvider(GetProvider());
-            CameraLocalization.Start();
-
-#if !AUTHORING_TOOLS_ENABLED && !MAP_REGISTRATION_TOOLS_ENABLED
+            VisualPositioningSystem.StartLocalizing();
 
             internetReachable = Application.internetReachability != NetworkReachability.NotReachable;
 
@@ -123,16 +123,9 @@ namespace Outernet.Client
                 }
             );
 #endif
-            App.RegisterObserver(HandleLoggedInChanged, App.state.loggedIn);
-            initialized = true;
-        }
-
-        private void HandleLoggedInChanged(NodeChangeEventArgs args)
-        {
-            if (!App.state.loggedIn.value)
-                return;
 
             GetLayersAndPopulate();
+            initialized = true;
         }
 
         private async void GetLayersAndPopulate()
@@ -144,19 +137,6 @@ namespace Outernet.Client
                 return;
 
             App.ExecuteActionOrDelay(new SetLayersAction(layers.ToArray()));
-        }
-
-        private ICameraProvider GetProvider()
-        {
-#if UNITY_EDITOR
-            return new NoOpCameraProvider();
-#elif UNITY_LUMIN
-            return new MagicLeapCameraProvider();
-#elif UNITY_ANDROID
-            return new ARFoundationCameraProvider(Camera.main.GetComponent<UnityEngine.XR.ARFoundation.ARCameraManager>());
-#else
-            return new NoOpCameraProvider();
-#endif
         }
 
         private IDisposable SetBinding<T, U>(SyncedSet<T> remote, ObservableSet<U> local, Func<T, U> toLocal, Func<U, T> toRemote)
@@ -313,25 +293,30 @@ namespace Outernet.Client
 
         private void OnApplicationPause(bool pause)
         {
+#if !AUTHORING_TOOLS_ENABLED
             if (!initialized)
                 return;
 
             if (pause)
             {
-                CameraLocalization.Stop();
+                VisualPositioningSystem.StopLocalizing();
             }
             else
             {
-                CameraLocalization.Start();
+                VisualPositioningSystem.StartLocalizing();
             }
+#endif
         }
 
         private bool WantsToQuit()
         {
             ConnectionManager.Terminate(); // BUG, this is async
             SceneViewManager.Terminate();
-            CameraLocalization.Stop();
             Logger.Terminate();
+
+#if !AUTHORING_TOOLS_ENABLED
+            VisualPositioningSystem.StopLocalizing();
+#endif
 
             return true;
         }

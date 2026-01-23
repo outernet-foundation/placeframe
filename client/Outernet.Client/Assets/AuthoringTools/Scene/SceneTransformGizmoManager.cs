@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 
 using Outernet.Client.Location;
 using FofX.Stateful;
-using Plerion.VPS;
+using Plerion.Core;
 
 namespace Outernet.Client.AuthoringTools
 {

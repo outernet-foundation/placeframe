@@ -7,7 +7,7 @@ using Outernet.Client.Location;
 using System.Linq;
 using System;
 
-using Plerion.VPS;
+using Plerion.Core;
 
 namespace Outernet.Client.AuthoringTools
 {

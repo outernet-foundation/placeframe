@@ -4,10 +4,9 @@ using Cysharp.Threading.Tasks;
 using FofX.Serialization;
 using Unity.Mathematics;
 using SimpleJSON;
-using Outernet.Client.AuthoringTools;
-using Plerion.VPS;
+using Plerion.Core;
 
-#if AUTHORING_TOOLS_ENABLED || MAP_REGISTRATION_TOOLS_ENABLED
+#if AUTHORING_TOOLS_ENABLED
 using UnityEngine.InputSystem.UI;
 #endif
 
@@ -17,7 +16,7 @@ namespace Outernet.Client
     {
         public PrefabSystem prefabSystem;
         public SceneReferences sceneReferences;
-        public LocalizationMapVisualizer mapVisualizer;
+        public LocalizationMapManager localizationMapManager;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Initialize()
@@ -36,7 +35,7 @@ namespace Outernet.Client
             AddCustomSerializers();
             sceneReferences.Initialize();
 
-#if AUTHORING_TOOLS_ENABLED || MAP_REGISTRATION_TOOLS_ENABLED
+#if AUTHORING_TOOLS_ENABLED
             AuthoringTools.AuthoringToolsPrefabs.Initialize("AuthoringToolsPrefabs");
 
             Destroy(SceneReferences.XrOrigin);
@@ -48,7 +47,17 @@ namespace Outernet.Client
 
             UnityEnv env = UnityEnv.GetOrCreateInstance();
             App.environmentURL = env.environmentURL;
-            App.plerionAPIBaseUrl = env.plerionAPIBaseUrl;
+            App.apiUrl = env.plerionApiUrl;
+
+            Auth.Initialize(
+                env.plerionAuthTokenUrl,
+                env.plerionAuthAudience,
+                x => Log.Debug(LogGroup.Default, x),
+                x => Log.Warn(LogGroup.Default, x),
+                x => Log.Error(LogGroup.Default, x)
+            );
+
+            Auth.Login("user", "password").Forget();
 
             Instantiate(prefabSystem, transform);
 
@@ -62,25 +71,18 @@ namespace Outernet.Client
 
             gameObject.AddComponent<GPSManager>();
 
-#if !AUTHORING_TOOLS_ENABLED && !MAP_REGISTRATION_TOOLS_ENABLED
+#if !AUTHORING_TOOLS_ENABLED
             SceneViewManager.Initialize();
             TilesetManager.Initialize();
-            Instantiate(mapVisualizer);
+            Instantiate(localizationMapManager);
 #else
             gameObject.AddComponent<AuthoringTools.AuthoringToolsApp>();
 
             var canvas = Instantiate(AuthoringTools.AuthoringToolsPrefabs.Canvas);
             var systemUI = Instantiate(AuthoringTools.AuthoringToolsPrefabs.SystemMenu, canvas.transform);
-            var mainUI =
-#if MAP_REGISTRATION_TOOLS_ENABLED
-            Instantiate(AuthoringTools.AuthoringToolsPrefabs.MapRegistrationUI, canvas.transform);
-#else
-            Instantiate(AuthoringTools.AuthoringToolsPrefabs.UI, canvas.transform);
-#endif
+            var mainUI = Instantiate(AuthoringTools.AuthoringToolsPrefabs.UI, canvas.transform);
 
             systemUI.transform.SetAsLastSibling();
-
-            Instantiate(AuthoringTools.AuthoringToolsPrefabs.LoginScreen, canvas.transform);
 
             gameObject.AddComponent<AuthoringTools.LocationContentManager>();
             gameObject.AddComponent<AuthoringTools.SettingsManager>();
@@ -100,9 +102,18 @@ namespace Outernet.Client
             runtimeHandles.transform.SetParent(sceneViewRoot.transform);
 #endif
 
-#if !MAP_REGISTRATION_TOOLS_ENABLED
-            Tasks.Login(App.plerionAPIBaseUrl, "user", "password").Forget();
-#endif
+            VisualPositioningSystem.Initialize(
+                GetProvider(),
+                env.plerionApiUrl,
+                env.plerionAuthTokenUrl,
+                env.plerionAuthAudience,
+                x => Log.Debug(LogGroup.Default, x),
+                x => Log.Warn(LogGroup.Default, x),
+                x => Log.Error(LogGroup.Default, x),
+                (x, exc) => Log.Error(LogGroup.Default, x, exc)
+            );
+
+            gameObject.AddComponent<LocalizationManager>();
 
             Destroy(this);
         }
@@ -188,6 +199,19 @@ namespace Outernet.Client
                     return arr;
                 }
             );
+        }
+
+        private ICameraProvider GetProvider()
+        {
+#if UNITY_EDITOR
+            return new NoOpCameraProvider();
+#elif UNITY_LUMIN
+            return new MagicLeapCameraProvider();
+#elif UNITY_ANDROID
+            return new ARFoundationCameraProvider(Camera.main.GetComponent<UnityEngine.XR.ARFoundation.ARCameraManager>());
+#else
+            return new NoOpCameraProvider();
+#endif
         }
     }
 }

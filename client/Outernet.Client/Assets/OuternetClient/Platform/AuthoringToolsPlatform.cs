@@ -1,4 +1,4 @@
-#if AUTHORING_TOOLS_ENABLED || MAP_REGISTRATION_TOOLS_ENABLED
+#if AUTHORING_TOOLS_ENABLED
 using UnityEngine;
 using UnityEngine.InputSystem;
 

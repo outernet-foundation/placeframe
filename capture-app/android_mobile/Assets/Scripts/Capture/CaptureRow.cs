@@ -28,7 +28,7 @@ namespace PlerionClient.Client
                 children = Props.List(
                     Image(new()
                     {
-                        color = Props.Value(new Color(.25f, .25f, .25f, 1f)),
+                        style = { color = Props.Value(new Color(.25f, .25f, .25f, 1f)) },
                         layout = Utility.FillParentProps(new() { ignoreLayout = Props.Value(true) })
                     }),
                     LabeledControl(new LabeledControlProps()
@@ -63,7 +63,7 @@ namespace PlerionClient.Client
                                     icon = new ImageProps()
                                     {
                                         sprite = Props.Value(elements.moreMenuSprite),
-                                        preserveAspect = Props.Value(true)
+                                        style = { preserveAspect = Props.Value(true) }
                                     },
                                     onClick = () => CaptureDataDialog(capture)
                                 })

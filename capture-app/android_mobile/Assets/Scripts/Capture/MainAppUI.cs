@@ -165,7 +165,7 @@ namespace PlerionClient.Client
                             children = Props.List(
                                 Image(new()
                                 {
-                                    color = Props.Value(elements.backgroundColor),
+                                    style = { color = Props.Value(elements.backgroundColor) },
                                     layout = Utility.FillParentProps(new() { ignoreLayout = Props.Value(true) })
                                 }),
                                 Title(new() { value = Props.Value("Captures") }),
@@ -306,7 +306,7 @@ namespace PlerionClient.Client
         public static IControl ValidationUI()
         {
             var metricsDialogOpen = new ValueObservable<bool>(false);
-            //IControl selectValidationTargetDialog = default;
+            IControl selectValidationTargetDialog = default;
 
             return Control("Validation UI", new()
             {
@@ -354,18 +354,19 @@ namespace PlerionClient.Client
                                         x => x.Value
                                     )
                                     .TrackDynamic(App.state.mapForLocalization.AsObservable())
-                                    .SelectDynamic(x => x.keyPresent ? x.value.name.value : "Maps"),
+                                    .SelectDynamic(x => x.keyPresent ? x.value.name.AsObservable() : Props.Value("Maps")),
                                 labelStyle = new TextStyleProps()
                                 {
                                     textWrappingMode = Props.Value(TMPro.TextWrappingModes.NoWrap),
                                     overflowMode = Props.Value(TMPro.TextOverflowModes.Ellipsis)
                                 },
-                                onClick = () => SelectValidationTargetDialog(new()
+                                onClick = () => selectValidationTargetDialog = SelectValidationTargetDialog(new()
                                 {
                                     onValidationTargetSelected = x =>
                                     {
                                         App.state.mapForLocalization.ExecuteSetOrDelay(x);
-                                        //selectValidationTargetDialog.Dispose();
+                                        App.state.localizing.ExecuteSetOrDelay(true);
+                                        selectValidationTargetDialog.Dispose();
                                     }
                                 }),
                                 layout = new()
@@ -440,12 +441,7 @@ namespace PlerionClient.Client
                                                 .SelectDynamic(x => LabeledButton(new LabeledButtonProps()
                                                 {
                                                     label = x.Value.name.AsObservable(),
-                                                    onClick = () =>
-                                                    {
-                                                        App.state.mapForLocalization.ExecuteSetOrDelay(x.Value.localizationMapId.value);
-                                                        App.state.localizing.ExecuteSetOrDelay(true);
-                                                        props.onValidationTargetSelected?.Invoke(x.Value.localizationMapId.value);
-                                                    }
+                                                    onClick = () => props.onValidationTargetSelected?.Invoke(x.Value.localizationMapId.value)
                                                 }))
                                         })
                                     )
