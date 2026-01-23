@@ -43,19 +43,18 @@ namespace Outernet.Client
 
         public static string environmentURL;
         public static string apiUrl;
-        public static string authTokenUrl;
-        public static string authAudience;
-
-        private static bool internetReachable = false;
         public static bool InternetReachable => internetReachable;
 
+        private static bool internetReachable = false;
         private bool initialized = false;
 
         protected override void InitializeState(ClientState state)
             => state.Initialize("root", new ObservableNodeContext(new ChannelLogger() { logGroup = LogGroup.Stateful }));
 
-        private void Start()
+        protected override void Awake()
         {
+            base.Awake();
+
             API = new DefaultApi(
                 new HttpClient(new KeycloakHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
@@ -66,20 +65,11 @@ namespace Outernet.Client
 
             Application.wantsToQuit += WantsToQuit;
             ConnectionManager.HubConnectionRequested.EnqueueSet(true);
+        }
 
+        private void Start()
+        {
 #if !AUTHORING_TOOLS_ENABLED
-
-            VisualPositioningSystem.Initialize(
-                GetProvider(),
-                apiUrl,
-                authTokenUrl,
-                authAudience,
-                x => Log.Debug(LogGroup.Localizer, x),
-                x => Log.Warn(LogGroup.Localizer, x),
-                x => Log.Error(LogGroup.Localizer, x),
-                (x, exc) => Log.Error(LogGroup.Localizer, x, exc)
-            );
-
             VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated += () =>
                 state.ecefToLocalMatrix.ExecuteSetOrDelay(VisualPositioningSystem.EcefToUnityWorldTransform);
 
@@ -132,17 +122,6 @@ namespace Outernet.Client
                     );
                 }
             );
-#else
-            VisualPositioningSystem.Initialize(
-                null,
-                apiUrl,
-                authTokenUrl,
-                authAudience,
-                message => Debug.Log(message),
-                message => Debug.LogWarning(message),
-                message => Debug.LogError(message),
-                (message, exception) => Debug.LogError($"{message}\n{exception}")
-            );
 #endif
 
             GetLayersAndPopulate();
@@ -158,19 +137,6 @@ namespace Outernet.Client
                 return;
 
             App.ExecuteActionOrDelay(new SetLayersAction(layers.ToArray()));
-        }
-
-        private ICameraProvider GetProvider()
-        {
-#if UNITY_EDITOR
-            return new NoOpCameraProvider();
-#elif UNITY_LUMIN
-            return new MagicLeapCameraProvider();
-#elif UNITY_ANDROID
-            return new ARFoundationCameraProvider(Camera.main.GetComponent<UnityEngine.XR.ARFoundation.ARCameraManager>());
-#else
-            return new NoOpCameraProvider();
-#endif
         }
 
         private IDisposable SetBinding<T, U>(SyncedSet<T> remote, ObservableSet<U> local, Func<T, U> toLocal, Func<U, T> toRemote)

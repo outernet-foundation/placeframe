@@ -49,14 +49,6 @@ namespace Plerion.Core
 
         private static LocalizationMapManager _localizationMapManager;
 
-        public static void SetLocalizationMapManager(LocalizationMapManager localizationMapManager)
-        {
-            _localizationMapManager = localizationMapManager;
-
-            foreach (var map in _maps)
-                _localizationMapManager.AddMap(map);
-        }
-
         public static void Initialize(
             ICameraProvider cameraProvider,
             string apiUrl,
@@ -89,6 +81,29 @@ namespace Plerion.Core
         }
 
         public static async UniTask Login(string username, string password) => await Auth.Login(username, password);
+
+        public static void SetLocalizationMapManager(LocalizationMapManager localizationMapManager)
+        {
+            _localizationMapManager = localizationMapManager;
+
+            foreach (var map in _maps)
+                _localizationMapManager.AddMap(map);
+        }
+
+        public static void SetEcefToUnityWorldTransform(double4x4 ecefToUnityWorldTransform)
+        {
+            if (_serviceGuard.State != AsyncLifecycleGuard.LifecycleState.Idle &&
+                _serviceGuard.State != AsyncLifecycleGuard.LifecycleState.Stopping)
+            {
+                throw new Exception($"Setting {nameof(ecefToUnityWorldTransform)} while localizing from camera is not supported.");
+            }
+
+            _unityFromEcefTransform = ecefToUnityWorldTransform;
+            _ecefFromUnityTransform = math.inverse(_unityFromEcefTransform);
+
+            // Notify listeners about the updated transform
+            OnEcefToUnityWorldTransformUpdated?.Invoke();
+        }
 
         public static void AddLocalizationMap(Guid mapId)
         {

@@ -48,8 +48,16 @@ namespace Outernet.Client
             UnityEnv env = UnityEnv.GetOrCreateInstance();
             App.environmentURL = env.environmentURL;
             App.apiUrl = env.plerionApiUrl;
-            App.authTokenUrl = env.plerionAuthTokenUrl;
-            App.authAudience = env.plerionAuthAudience;
+
+            Auth.Initialize(
+                env.plerionAuthTokenUrl,
+                env.plerionAuthAudience,
+                x => Log.Debug(LogGroup.Default, x),
+                x => Log.Warn(LogGroup.Default, x),
+                x => Log.Error(LogGroup.Default, x)
+            );
+
+            Auth.Login("user", "password").Forget();
 
             Instantiate(prefabSystem, transform);
 
@@ -68,16 +76,6 @@ namespace Outernet.Client
             TilesetManager.Initialize();
             Instantiate(localizationMapManager);
 #else
-            Auth.Initialize(
-                env.plerionAuthTokenUrl,
-                env.plerionAuthAudience,
-                x => Log.Info(x),
-                x => Log.Warn(x),
-                x => Log.Error(x)
-            );
-
-            Auth.Login("user", "password").Forget();
-
             gameObject.AddComponent<AuthoringTools.AuthoringToolsApp>();
 
             var canvas = Instantiate(AuthoringTools.AuthoringToolsPrefabs.Canvas);
@@ -103,6 +101,19 @@ namespace Outernet.Client
             var runtimeHandles = new GameObject("RuntimeHandles", typeof(AuthoringTools.RuntimeHandles));
             runtimeHandles.transform.SetParent(sceneViewRoot.transform);
 #endif
+
+            VisualPositioningSystem.Initialize(
+                GetProvider(),
+                env.plerionApiUrl,
+                env.plerionAuthTokenUrl,
+                env.plerionAuthAudience,
+                x => Log.Debug(LogGroup.Default, x),
+                x => Log.Warn(LogGroup.Default, x),
+                x => Log.Error(LogGroup.Default, x),
+                (x, exc) => Log.Error(LogGroup.Default, x, exc)
+            );
+
+            gameObject.AddComponent<LocalizationManager>();
 
             Destroy(this);
         }
@@ -188,6 +199,19 @@ namespace Outernet.Client
                     return arr;
                 }
             );
+        }
+
+        private ICameraProvider GetProvider()
+        {
+#if UNITY_EDITOR
+            return new NoOpCameraProvider();
+#elif UNITY_LUMIN
+            return new MagicLeapCameraProvider();
+#elif UNITY_ANDROID
+            return new ARFoundationCameraProvider(Camera.main.GetComponent<UnityEngine.XR.ARFoundation.ARCameraManager>());
+#else
+            return new NoOpCameraProvider();
+#endif
         }
     }
 }
