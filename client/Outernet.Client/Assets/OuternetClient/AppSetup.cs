@@ -46,7 +46,6 @@ namespace Outernet.Client
 #endif
 
             UnityEnv env = UnityEnv.GetOrCreateInstance();
-            App.environmentURL = env.environmentURL;
             App.apiUrl = env.plerionApiUrl;
 
             Auth.Initialize(
@@ -109,8 +108,7 @@ namespace Outernet.Client
                 env.plerionAuthAudience,
                 x => Log.Debug(LogGroup.Default, x),
                 x => Log.Warn(LogGroup.Default, x),
-                x => Log.Error(LogGroup.Default, x),
-                (x, exc) => Log.Error(LogGroup.Default, x, exc)
+                x => Log.Error(LogGroup.Default, x)
             );
 
             gameObject.AddComponent<LocalizationManager>();

@@ -1,16 +1,17 @@
 {
-    "name": "Outernet.Shared.Unity",
-    "references": [
-        "MessagePack",
-        "MessagePack.Annotations",
-        "MagicOnion.Abstractions"
-    ],
-    "optionalUnityReferences": [],
-    "includePlatforms": [],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": []
+  "name": "Outernet.Shared.Unity",
+  "references": [
+    "MessagePack",
+    "MessagePack.Annotations",
+    "MagicOnion.Abstractions",
+    "PlerionApiClient"
+  ],
+  "optionalUnityReferences": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": []
 }

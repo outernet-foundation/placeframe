@@ -123,7 +123,7 @@ namespace Plerion.Core
             Load(pointPayload, framePayload);
         }
 
-        private void Load(VisualPositioningSystem.ReconstructionPoint[] points, Vector3[] framePositions)
+        public void Load(VisualPositioningSystem.ReconstructionPoint[] points, Vector3[] framePositions)
         {
             var particles = ArrayPool<ParticleSystem.Particle>.Shared.Rent(points.Length);
             try

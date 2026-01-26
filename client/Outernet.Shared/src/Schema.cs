@@ -37,6 +37,55 @@ namespace Outernet.Shared
         Image,
     }
 
+    public static class Conversions
+    {
+        static public LinkType LinkType(PlerionApiClient.Model.LinkType linkType)
+        {
+            return linkType switch
+            {
+                PlerionApiClient.Model.LinkType.None => Shared.LinkType.None,
+                PlerionApiClient.Model.LinkType.Address => Shared.LinkType.Address,
+                PlerionApiClient.Model.LinkType.Annotation => Shared.LinkType.Annotation,
+                PlerionApiClient.Model.LinkType.ImageList => Shared.LinkType.ImageList,
+                _ => throw new ArgumentOutOfRangeException(nameof(linkType), linkType, null),
+            };
+        }
+
+        static public PlerionApiClient.Model.LinkType LinkType(LinkType linkType)
+        {
+            return linkType switch
+            {
+                Shared.LinkType.None => PlerionApiClient.Model.LinkType.None,
+                Shared.LinkType.Address => PlerionApiClient.Model.LinkType.Address,
+                Shared.LinkType.Annotation => PlerionApiClient.Model.LinkType.Annotation,
+                Shared.LinkType.ImageList => PlerionApiClient.Model.LinkType.ImageList,
+                _ => throw new ArgumentOutOfRangeException(nameof(linkType), linkType, null),
+            };
+        }
+
+        static public LabelType LabelType(PlerionApiClient.Model.LabelType labelType)
+        {
+            return labelType switch
+            {
+                PlerionApiClient.Model.LabelType.Automatic => Shared.LabelType.Automatic,
+                PlerionApiClient.Model.LabelType.Image => Shared.LabelType.Image,
+                PlerionApiClient.Model.LabelType.Text => Shared.LabelType.Text,
+                _ => throw new ArgumentOutOfRangeException(nameof(labelType), labelType, null),
+            };
+        }
+
+        static public PlerionApiClient.Model.LabelType LabelType(LabelType labelType)
+        {
+            return labelType switch
+            {
+                Shared.LabelType.Automatic => PlerionApiClient.Model.LabelType.Automatic,
+                Shared.LabelType.Image => PlerionApiClient.Model.LabelType.Image,
+                Shared.LabelType.Text => PlerionApiClient.Model.LabelType.Text,
+                _ => throw new ArgumentOutOfRangeException(nameof(labelType), labelType, null),
+            };
+        }
+    }
+
     public enum TilesetMode
     {
         Disable,

@@ -41,7 +41,6 @@ namespace Outernet.Client
         public static RoomRecord State_Old => ConnectionManager.State;
         public static Guid? ClientID => ConnectionManager.ClientID;
 
-        public static string environmentURL;
         public static string apiUrl;
         public static bool InternetReachable => internetReachable;
 
@@ -65,6 +64,7 @@ namespace Outernet.Client
 
             Application.wantsToQuit += WantsToQuit;
             ConnectionManager.HubConnectionRequested.EnqueueSet(true);
+            ConnectionManager.RoomConnectionRequested.EnqueueSet("test");
         }
 
         private void Start()
@@ -73,7 +73,7 @@ namespace Outernet.Client
             VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated += () =>
                 state.ecefToLocalMatrix.ExecuteSetOrDelay(VisualPositioningSystem.EcefToUnityWorldTransform);
 
-            VisualPositioningSystem.StartLocalizing();
+            VisualPositioningSystem.StartLocalizing(1f);
 
             internetReachable = Application.internetReachability != NetworkReachability.NotReachable;
 
@@ -303,7 +303,7 @@ namespace Outernet.Client
             }
             else
             {
-                VisualPositioningSystem.StartLocalizing();
+                VisualPositioningSystem.StartLocalizing(1f);
             }
 #endif
         }

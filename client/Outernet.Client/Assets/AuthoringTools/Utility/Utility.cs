@@ -19,6 +19,7 @@ using Plerion.Core;
 using Vector3 = UnityEngine.Vector3;
 using Quaternion = UnityEngine.Quaternion;
 using Color = UnityEngine.Color;
+using Outernet.Shared;
 
 namespace Outernet.Client.AuthoringTools
 {
@@ -240,17 +241,17 @@ namespace Outernet.Client.AuthoringTools
                 rotationX: transform.rotation.value.x,
                 rotationY: transform.rotation.value.y,
                 rotationZ: transform.rotation.value.z,
-                rotationW: transform.rotation.value.w
+                rotationW: transform.rotation.value.w,
+                labelWidth: node.labelWidth.value,
+                labelHeight: node.labelHeight.value,
+                labelScale: node.labelScale.value,
+                labelType: Conversions.LabelType(node.labelType.value),
+                label: node.label.value,
+                linkType: Conversions.LinkType(node.linkType.value),
+                link: node.link.value
             )
             {
                 Active = true,
-                Link = node.link.value,
-                LinkType = (int)node.linkType.value,
-                Label = node.label.value,
-                LabelType = (int)node.labelType.value,
-                LabelScale = node.labelScale.value,
-                LabelWidth = node.labelWidth.value,
-                LabelHeight = node.labelHeight.value,
                 LayerId = node.layer.value,
                 ParentId = node.parentID.value
             };
@@ -273,9 +274,9 @@ namespace Outernet.Client.AuthoringTools
                 RotationZ = transform.rotation.value.z,
                 RotationW = transform.rotation.value.w,
                 Link = node.link.value,
-                LinkType = (int)node.linkType.value,
+                LinkType = Conversions.LinkType(node.linkType.value),
                 Label = node.label.value,
-                LabelType = (int)node.labelType.value,
+                LabelType = Conversions.LabelType(node.labelType.value),
                 LabelScale = node.labelScale.value,
                 LabelWidth = node.labelWidth.value,
                 LabelHeight = node.labelHeight.value,

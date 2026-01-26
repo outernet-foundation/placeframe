@@ -29,10 +29,12 @@ plerion_api_client/models/group_batch_create.py
 plerion_api_client/models/group_batch_update.py
 plerion_api_client/models/group_create.py
 plerion_api_client/models/group_read.py
+plerion_api_client/models/label_type.py
 plerion_api_client/models/layer_batch_update.py
 plerion_api_client/models/layer_create.py
 plerion_api_client/models/layer_read.py
 plerion_api_client/models/lease_response.py
+plerion_api_client/models/link_type.py
 plerion_api_client/models/localization_map_batch_update.py
 plerion_api_client/models/localization_map_create.py
 plerion_api_client/models/localization_map_read.py

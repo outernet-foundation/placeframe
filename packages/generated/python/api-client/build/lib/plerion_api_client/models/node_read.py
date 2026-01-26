@@ -21,6 +21,8 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from uuid import UUID
+from plerion_api_client.models.label_type import LabelType
+from plerion_api_client.models.link_type import LinkType
 from typing import Optional, Set
 from typing_extensions import Self
 
@@ -30,6 +32,7 @@ class NodeRead(BaseModel):
     """ # noqa: E501
     id: UUID
     rotation_z: Union[StrictFloat, StrictInt]
+    label_width: Union[StrictFloat, StrictInt]
     position_y: Union[StrictFloat, StrictInt]
     position_z: Union[StrictFloat, StrictInt]
     rotation_x: Union[StrictFloat, StrictInt]
@@ -37,20 +40,19 @@ class NodeRead(BaseModel):
     created_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     rotation_w: Union[StrictFloat, StrictInt]
     updated_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
+    label_height: Union[StrictFloat, StrictInt]
     position_x: Union[StrictFloat, StrictInt]
+    label_scale: Union[StrictFloat, StrictInt]
+    link_type: LinkType
+    label_type: LabelType
     active: StrictBool
+    link: StrictStr
+    label: StrictStr
     name: StrictStr
     layer_id: Optional[UUID] = None
     parent_id: Optional[UUID] = None
-    label_width: Optional[Union[StrictFloat, StrictInt]] = None
-    label_height: Optional[Union[StrictFloat, StrictInt]] = None
-    label_scale: Optional[Union[StrictFloat, StrictInt]] = None
-    link_type: Optional[StrictInt] = None
-    label_type: Optional[StrictInt] = None
-    link: Optional[StrictStr] = None
-    label: Optional[StrictStr] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "rotation_z", "position_y", "position_z", "rotation_x", "rotation_y", "created_at", "rotation_w", "updated_at", "position_x", "active", "name", "layer_id", "parent_id", "label_width", "label_height", "label_scale", "link_type", "label_type", "link", "label"]
+    __properties: ClassVar[List[str]] = ["id", "rotation_z", "label_width", "position_y", "position_z", "rotation_x", "rotation_y", "created_at", "rotation_w", "updated_at", "label_height", "position_x", "label_scale", "link_type", "label_type", "active", "link", "label", "name", "layer_id", "parent_id"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -108,41 +110,6 @@ class NodeRead(BaseModel):
         if self.parent_id is None and "parent_id" in self.model_fields_set:
             _dict['parent_id'] = None
 
-        # set to None if label_width (nullable) is None
-        # and model_fields_set contains the field
-        if self.label_width is None and "label_width" in self.model_fields_set:
-            _dict['label_width'] = None
-
-        # set to None if label_height (nullable) is None
-        # and model_fields_set contains the field
-        if self.label_height is None and "label_height" in self.model_fields_set:
-            _dict['label_height'] = None
-
-        # set to None if label_scale (nullable) is None
-        # and model_fields_set contains the field
-        if self.label_scale is None and "label_scale" in self.model_fields_set:
-            _dict['label_scale'] = None
-
-        # set to None if link_type (nullable) is None
-        # and model_fields_set contains the field
-        if self.link_type is None and "link_type" in self.model_fields_set:
-            _dict['link_type'] = None
-
-        # set to None if label_type (nullable) is None
-        # and model_fields_set contains the field
-        if self.label_type is None and "label_type" in self.model_fields_set:
-            _dict['label_type'] = None
-
-        # set to None if link (nullable) is None
-        # and model_fields_set contains the field
-        if self.link is None and "link" in self.model_fields_set:
-            _dict['link'] = None
-
-        # set to None if label (nullable) is None
-        # and model_fields_set contains the field
-        if self.label is None and "label" in self.model_fields_set:
-            _dict['label'] = None
-
         return _dict
 
     @classmethod
@@ -157,6 +124,7 @@ class NodeRead(BaseModel):
         _obj = cls.model_validate({
             "id": obj.get("id"),
             "rotation_z": obj.get("rotation_z"),
+            "label_width": obj.get("label_width"),
             "position_y": obj.get("position_y"),
             "position_z": obj.get("position_z"),
             "rotation_x": obj.get("rotation_x"),
@@ -164,18 +132,17 @@ class NodeRead(BaseModel):
             "created_at": obj.get("created_at"),
             "rotation_w": obj.get("rotation_w"),
             "updated_at": obj.get("updated_at"),
-            "position_x": obj.get("position_x"),
-            "active": obj.get("active"),
-            "name": obj.get("name"),
-            "layer_id": obj.get("layer_id"),
-            "parent_id": obj.get("parent_id"),
-            "label_width": obj.get("label_width"),
             "label_height": obj.get("label_height"),
+            "position_x": obj.get("position_x"),
             "label_scale": obj.get("label_scale"),
             "link_type": obj.get("link_type"),
             "label_type": obj.get("label_type"),
+            "active": obj.get("active"),
             "link": obj.get("link"),
-            "label": obj.get("label")
+            "label": obj.get("label"),
+            "name": obj.get("name"),
+            "layer_id": obj.get("layer_id"),
+            "parent_id": obj.get("parent_id")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

@@ -61,8 +61,17 @@ namespace Outernet.Client
 
         public async UniTask ConnectToHubAsync(CancellationToken cancellationToken)
         {
+            var channelOptions = new GrpcChannelOptions()
+            {
+                HttpHandler = new YetAnotherHttpHandler() 
+                { 
+                    Http2Only = true
+                },
+                DisposeHttpClient = true
+            };
+
             client = await StreamingHubClient.ConnectAsync<ISyncedStateHub, ISyncedStateHubReceiver>(
-                GrpcChannelx.ForAddress($"{App.environmentURL}:5000"),
+                GrpcChannel.ForAddress(App.apiUrl, channelOptions),
                 stateSyncReceiver,
                 StreamingHubClientOptions.CreateWithDefault()
                     .WithClientHeartbeatInterval(TimeSpan.FromSeconds(10))

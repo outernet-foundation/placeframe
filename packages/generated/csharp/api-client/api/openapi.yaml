@@ -1708,41 +1708,41 @@ components:
     CreateGraphRequest:
       example:
         nodes:
-        - rotation_x: 5.962133916683182
-          rotation_w: 2.3021358869347655
+        - rotation_x: 5.637376656633329
+          rotation_w: 7.061401241503109
           label_scale: 2.027123023002322
           link: link
           active: true
           rotation_z: 0.8008281904610115
-          label_type: 7
-          rotation_y: 5.637376656633329
+          label_type: automatic
+          rotation_y: 2.3021358869347655
           label: label
-          label_height: 3.616076749251911
-          label_width: 9.301444243932576
-          link_type: 4
-          position_x: 7.061401241503109
-          position_y: 6.027456183070403
+          label_height: 9.301444243932576
+          label_width: 6.027456183070403
+          link_type: none
+          position_x: 3.616076749251911
+          position_y: 1.4658129805029452
           layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-          position_z: 1.4658129805029452
+          position_z: 5.962133916683182
           parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           name: name
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        - rotation_x: 5.962133916683182
-          rotation_w: 2.3021358869347655
+        - rotation_x: 5.637376656633329
+          rotation_w: 7.061401241503109
           label_scale: 2.027123023002322
           link: link
           active: true
           rotation_z: 0.8008281904610115
-          label_type: 7
-          rotation_y: 5.637376656633329
+          label_type: automatic
+          rotation_y: 2.3021358869347655
           label: label
-          label_height: 3.616076749251911
-          label_width: 9.301444243932576
-          link_type: 4
-          position_x: 7.061401241503109
-          position_y: 6.027456183070403
+          label_height: 9.301444243932576
+          label_width: 6.027456183070403
+          link_type: none
+          position_x: 3.616076749251911
+          position_y: 1.4658129805029452
           layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-          position_z: 1.4658129805029452
+          position_z: 5.962133916683182
           parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           name: name
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -1767,44 +1767,44 @@ components:
     CreateGraphResponse:
       example:
         nodes:
-        - rotation_x: 5.962133916683182
-          rotation_w: 2.3021358869347655
+        - rotation_x: 5.637376656633329
+          rotation_w: 7.061401241503109
           label_scale: 2.027123023002322
           link: link
           created_at: 2000-01-23T04:56:07.000+00:00
           active: true
           rotation_z: 0.8008281904610115
-          label_type: 7
-          rotation_y: 5.637376656633329
+          label_type: automatic
+          rotation_y: 2.3021358869347655
           label: label
-          label_height: 3.616076749251911
-          label_width: 9.301444243932576
-          link_type: 4
-          position_x: 7.061401241503109
-          position_y: 6.027456183070403
+          label_height: 9.301444243932576
+          label_width: 6.027456183070403
+          link_type: none
+          position_x: 3.616076749251911
+          position_y: 1.4658129805029452
           layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-          position_z: 1.4658129805029452
+          position_z: 5.962133916683182
           updated_at: 2000-01-23T04:56:07.000+00:00
           parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           name: name
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        - rotation_x: 5.962133916683182
-          rotation_w: 2.3021358869347655
+        - rotation_x: 5.637376656633329
+          rotation_w: 7.061401241503109
           label_scale: 2.027123023002322
           link: link
           created_at: 2000-01-23T04:56:07.000+00:00
           active: true
           rotation_z: 0.8008281904610115
-          label_type: 7
-          rotation_y: 5.637376656633329
+          label_type: automatic
+          rotation_y: 2.3021358869347655
           label: label
-          label_height: 3.616076749251911
-          label_width: 9.301444243932576
-          link_type: 4
-          position_x: 7.061401241503109
-          position_y: 6.027456183070403
+          label_height: 9.301444243932576
+          label_width: 6.027456183070403
+          link_type: none
+          position_x: 3.616076749251911
+          position_y: 1.4658129805029452
           layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-          position_z: 1.4658129805029452
+          position_z: 5.962133916683182
           updated_at: 2000-01-23T04:56:07.000+00:00
           parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           name: name
@@ -1988,6 +1988,13 @@ components:
       - updated_at
       title: GroupRead
       type: object
+    LabelType:
+      enum:
+      - automatic
+      - text
+      - image
+      title: LabelType
+      type: string
     LayerBatchUpdate:
       example:
         name: name
@@ -2071,6 +2078,14 @@ components:
       - reconstruction_id
       title: LeaseResponse
       type: object
+    LinkType:
+      enum:
+      - none
+      - address
+      - annotation
+      - image_list
+      title: LinkType
+      type: string
     LocalizationMapBatchUpdate:
       example:
         rotation_x: 5.637376656633329
@@ -2458,22 +2473,22 @@ components:
       type: object
     NodeBatchCreate:
       example:
-        rotation_x: 5.962133916683182
-        rotation_w: 2.3021358869347655
+        rotation_x: 5.637376656633329
+        rotation_w: 7.061401241503109
         label_scale: 2.027123023002322
         link: link
         active: true
         rotation_z: 0.8008281904610115
-        label_type: 7
-        rotation_y: 5.637376656633329
+        label_type: automatic
+        rotation_y: 2.3021358869347655
         label: label
-        label_height: 3.616076749251911
-        label_width: 9.301444243932576
-        link_type: 4
-        position_x: 7.061401241503109
-        position_y: 6.027456183070403
+        label_height: 9.301444243932576
+        label_width: 6.027456183070403
+        link_type: none
+        position_x: 3.616076749251911
+        position_y: 1.4658129805029452
         layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        position_z: 1.4658129805029452
+        position_z: 5.962133916683182
         parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         name: name
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -2484,6 +2499,9 @@ components:
           type: string
         rotation_z:
           title: Rotation Z
+          type: number
+        label_width:
+          title: Label Width
           type: number
         position_y:
           title: Position Y
@@ -2500,13 +2518,29 @@ components:
         rotation_w:
           title: Rotation W
           type: number
+        label_height:
+          title: Label Height
+          type: number
         position_x:
           title: Position X
           type: number
+        label_scale:
+          title: Label Scale
+          type: number
+        link_type:
+          $ref: "#/components/schemas/LinkType"
+        label_type:
+          $ref: "#/components/schemas/LabelType"
         active:
           nullable: true
           title: Active
           type: boolean
+        link:
+          title: Link
+          type: string
+        label:
+          title: Label
+          type: string
         name:
           title: Name
           type: string
@@ -2520,36 +2554,15 @@ components:
           nullable: true
           title: Parent Id
           type: string
-        label_width:
-          nullable: true
-          title: Label Width
-          type: number
-        label_height:
-          nullable: true
-          title: Label Height
-          type: number
-        label_scale:
-          nullable: true
-          title: Label Scale
-          type: number
-        link_type:
-          nullable: true
-          title: Link Type
-          type: integer
-        label_type:
-          nullable: true
-          title: Label Type
-          type: integer
-        link:
-          nullable: true
-          title: Link
-          type: string
-        label:
-          nullable: true
-          title: Label
-          type: string
       required:
       - id
+      - label
+      - label_height
+      - label_scale
+      - label_type
+      - label_width
+      - link
+      - link_type
       - name
       - position_x
       - position_y
@@ -2562,22 +2575,22 @@ components:
       type: object
     NodeBatchUpdate:
       example:
-        rotation_x: 5.962133916683182
-        rotation_w: 2.3021358869347655
+        rotation_x: 5.637376656633329
+        rotation_w: 7.061401241503109
         label_scale: 2.027123023002322
         link: link
         active: true
         rotation_z: 0.8008281904610115
-        label_type: 7
-        rotation_y: 5.637376656633329
+        label_type: automatic
+        rotation_y: 2.3021358869347655
         label: label
-        label_height: 3.616076749251911
-        label_width: 9.301444243932576
-        link_type: 4
-        position_x: 7.061401241503109
-        position_y: 6.027456183070403
+        label_height: 9.301444243932576
+        label_width: 6.027456183070403
+        link_type: none
+        position_x: 3.616076749251911
+        position_y: 1.4658129805029452
         layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        position_z: 1.4658129805029452
+        position_z: 5.962133916683182
         parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         name: name
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -2589,6 +2602,10 @@ components:
         rotation_z:
           nullable: true
           title: Rotation Z
+          type: number
+        label_width:
+          nullable: true
+          title: Label Width
           type: number
         position_y:
           nullable: true
@@ -2610,14 +2627,34 @@ components:
           nullable: true
           title: Rotation W
           type: number
+        label_height:
+          nullable: true
+          title: Label Height
+          type: number
         position_x:
           nullable: true
           title: Position X
           type: number
+        label_scale:
+          nullable: true
+          title: Label Scale
+          type: number
+        link_type:
+          $ref: "#/components/schemas/LinkType"
+        label_type:
+          $ref: "#/components/schemas/LabelType"
         active:
           nullable: true
           title: Active
           type: boolean
+        link:
+          nullable: true
+          title: Link
+          type: string
+        label:
+          nullable: true
+          title: Label
+          type: string
         name:
           nullable: true
           title: Name
@@ -2631,34 +2668,6 @@ components:
           format: uuid
           nullable: true
           title: Parent Id
-          type: string
-        label_width:
-          nullable: true
-          title: Label Width
-          type: number
-        label_height:
-          nullable: true
-          title: Label Height
-          type: number
-        label_scale:
-          nullable: true
-          title: Label Scale
-          type: number
-        link_type:
-          nullable: true
-          title: Link Type
-          type: integer
-        label_type:
-          nullable: true
-          title: Label Type
-          type: integer
-        link:
-          nullable: true
-          title: Link
-          type: string
-        label:
-          nullable: true
-          title: Label
           type: string
       required:
       - id
@@ -2666,22 +2675,22 @@ components:
       type: object
     NodeCreate:
       example:
-        rotation_x: 5.962133916683182
-        rotation_w: 2.3021358869347655
+        rotation_x: 5.637376656633329
+        rotation_w: 7.061401241503109
         label_scale: 2.027123023002322
         link: link
         active: true
         rotation_z: 0.8008281904610115
-        label_type: 7
-        rotation_y: 5.637376656633329
+        label_type: automatic
+        rotation_y: 2.3021358869347655
         label: label
-        label_height: 3.616076749251911
-        label_width: 9.301444243932576
-        link_type: 4
-        position_x: 7.061401241503109
-        position_y: 6.027456183070403
+        label_height: 9.301444243932576
+        label_width: 6.027456183070403
+        link_type: none
+        position_x: 3.616076749251911
+        position_y: 1.4658129805029452
         layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        position_z: 1.4658129805029452
+        position_z: 5.962133916683182
         parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         name: name
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -2693,6 +2702,9 @@ components:
           type: string
         rotation_z:
           title: Rotation Z
+          type: number
+        label_width:
+          title: Label Width
           type: number
         position_y:
           title: Position Y
@@ -2709,13 +2721,29 @@ components:
         rotation_w:
           title: Rotation W
           type: number
+        label_height:
+          title: Label Height
+          type: number
         position_x:
           title: Position X
           type: number
+        label_scale:
+          title: Label Scale
+          type: number
+        link_type:
+          $ref: "#/components/schemas/LinkType"
+        label_type:
+          $ref: "#/components/schemas/LabelType"
         active:
           nullable: true
           title: Active
           type: boolean
+        link:
+          title: Link
+          type: string
+        label:
+          title: Label
+          type: string
         name:
           title: Name
           type: string
@@ -2729,35 +2757,14 @@ components:
           nullable: true
           title: Parent Id
           type: string
-        label_width:
-          nullable: true
-          title: Label Width
-          type: number
-        label_height:
-          nullable: true
-          title: Label Height
-          type: number
-        label_scale:
-          nullable: true
-          title: Label Scale
-          type: number
-        link_type:
-          nullable: true
-          title: Link Type
-          type: integer
-        label_type:
-          nullable: true
-          title: Label Type
-          type: integer
-        link:
-          nullable: true
-          title: Link
-          type: string
-        label:
-          nullable: true
-          title: Label
-          type: string
       required:
+      - label
+      - label_height
+      - label_scale
+      - label_type
+      - label_width
+      - link
+      - link_type
       - name
       - position_x
       - position_y
@@ -2770,23 +2777,23 @@ components:
       type: object
     NodeRead:
       example:
-        rotation_x: 5.962133916683182
-        rotation_w: 2.3021358869347655
+        rotation_x: 5.637376656633329
+        rotation_w: 7.061401241503109
         label_scale: 2.027123023002322
         link: link
         created_at: 2000-01-23T04:56:07.000+00:00
         active: true
         rotation_z: 0.8008281904610115
-        label_type: 7
-        rotation_y: 5.637376656633329
+        label_type: automatic
+        rotation_y: 2.3021358869347655
         label: label
-        label_height: 3.616076749251911
-        label_width: 9.301444243932576
-        link_type: 4
-        position_x: 7.061401241503109
-        position_y: 6.027456183070403
+        label_height: 9.301444243932576
+        label_width: 6.027456183070403
+        link_type: none
+        position_x: 3.616076749251911
+        position_y: 1.4658129805029452
         layer_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        position_z: 1.4658129805029452
+        position_z: 5.962133916683182
         updated_at: 2000-01-23T04:56:07.000+00:00
         parent_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         name: name
@@ -2798,6 +2805,9 @@ components:
           type: string
         rotation_z:
           title: Rotation Z
+          type: number
+        label_width:
+          title: Label Width
           type: number
         position_y:
           title: Position Y
@@ -2826,12 +2836,28 @@ components:
           format: date-time
           title: Created At
           type: string
+        label_height:
+          title: Label Height
+          type: number
         position_x:
           title: Position X
           type: number
+        label_scale:
+          title: Label Scale
+          type: number
+        link_type:
+          $ref: "#/components/schemas/LinkType"
+        label_type:
+          $ref: "#/components/schemas/LabelType"
         active:
           title: Active
           type: boolean
+        link:
+          title: Link
+          type: string
+        label:
+          title: Label
+          type: string
         name:
           title: Name
           type: string
@@ -2845,38 +2871,17 @@ components:
           nullable: true
           title: Parent Id
           type: string
-        label_width:
-          nullable: true
-          title: Label Width
-          type: number
-        label_height:
-          nullable: true
-          title: Label Height
-          type: number
-        label_scale:
-          nullable: true
-          title: Label Scale
-          type: number
-        link_type:
-          nullable: true
-          title: Link Type
-          type: integer
-        label_type:
-          nullable: true
-          title: Label Type
-          type: integer
-        link:
-          nullable: true
-          title: Link
-          type: string
-        label:
-          nullable: true
-          title: Label
-          type: string
       required:
       - active
       - created_at
       - id
+      - label
+      - label_height
+      - label_scale
+      - label_type
+      - label_width
+      - link
+      - link_type
       - name
       - position_x
       - position_y

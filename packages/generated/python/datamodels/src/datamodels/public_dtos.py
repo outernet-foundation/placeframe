@@ -9,7 +9,9 @@ from .public_tables import (
     CaptureSession,
     DeviceType,
     Group,
+    LabelType,
     Layer,
+    LinkType,
     LocalizationMap,
     LocalizationSession,
     Node,
@@ -184,117 +186,6 @@ class LocalizationSessionRead(BaseModel):
     container_url: str = Field(..., title="Container Url")
 
 
-class NodeCreate(BaseModel):
-    id: UUID | None = Field(None, title="Id")
-    rotation_z: float = Field(..., title="Rotation Z")
-    position_y: float = Field(..., title="Position Y")
-    position_z: float = Field(..., title="Position Z")
-    rotation_x: float = Field(..., title="Rotation X")
-    rotation_y: float = Field(..., title="Rotation Y")
-    rotation_w: float = Field(..., title="Rotation W")
-    position_x: float = Field(..., title="Position X")
-    active: bool | None = Field(None, title="Active")
-    name: str = Field(..., title="Name")
-    layer_id: UUID | None = Field(None, title="Layer Id")
-    parent_id: UUID | None = Field(None, title="Parent Id")
-    label_width: float | None = Field(None, title="Label Width")
-    label_height: float | None = Field(None, title="Label Height")
-    label_scale: float | None = Field(None, title="Label Scale")
-    link_type: int | None = Field(None, title="Link Type")
-    label_type: int | None = Field(None, title="Label Type")
-    link: str | None = Field(None, title="Link")
-    label: str | None = Field(None, title="Label")
-
-
-class NodeBatchCreate(BaseModel):
-    id: UUID = Field(..., title="Id")
-    rotation_z: float = Field(..., title="Rotation Z")
-    position_y: float = Field(..., title="Position Y")
-    position_z: float = Field(..., title="Position Z")
-    rotation_x: float = Field(..., title="Rotation X")
-    rotation_y: float = Field(..., title="Rotation Y")
-    rotation_w: float = Field(..., title="Rotation W")
-    position_x: float = Field(..., title="Position X")
-    active: bool | None = Field(None, title="Active")
-    name: str = Field(..., title="Name")
-    layer_id: UUID | None = Field(None, title="Layer Id")
-    parent_id: UUID | None = Field(None, title="Parent Id")
-    label_width: float | None = Field(None, title="Label Width")
-    label_height: float | None = Field(None, title="Label Height")
-    label_scale: float | None = Field(None, title="Label Scale")
-    link_type: int | None = Field(None, title="Link Type")
-    label_type: int | None = Field(None, title="Label Type")
-    link: str | None = Field(None, title="Link")
-    label: str | None = Field(None, title="Label")
-
-
-class NodeUpdate(BaseModel):
-    rotation_z: float | None = Field(None, title="Rotation Z")
-    position_y: float | None = Field(None, title="Position Y")
-    position_z: float | None = Field(None, title="Position Z")
-    rotation_x: float | None = Field(None, title="Rotation X")
-    rotation_y: float | None = Field(None, title="Rotation Y")
-    rotation_w: float | None = Field(None, title="Rotation W")
-    position_x: float | None = Field(None, title="Position X")
-    active: bool | None = Field(None, title="Active")
-    name: str | None = Field(None, title="Name")
-    layer_id: UUID | None = Field(None, title="Layer Id")
-    parent_id: UUID | None = Field(None, title="Parent Id")
-    label_width: float | None = Field(None, title="Label Width")
-    label_height: float | None = Field(None, title="Label Height")
-    label_scale: float | None = Field(None, title="Label Scale")
-    link_type: int | None = Field(None, title="Link Type")
-    label_type: int | None = Field(None, title="Label Type")
-    link: str | None = Field(None, title="Link")
-    label: str | None = Field(None, title="Label")
-
-
-class NodeBatchUpdate(BaseModel):
-    id: UUID = Field(..., title="Id")
-    rotation_z: float | None = Field(None, title="Rotation Z")
-    position_y: float | None = Field(None, title="Position Y")
-    position_z: float | None = Field(None, title="Position Z")
-    rotation_x: float | None = Field(None, title="Rotation X")
-    rotation_y: float | None = Field(None, title="Rotation Y")
-    rotation_w: float | None = Field(None, title="Rotation W")
-    position_x: float | None = Field(None, title="Position X")
-    active: bool | None = Field(None, title="Active")
-    name: str | None = Field(None, title="Name")
-    layer_id: UUID | None = Field(None, title="Layer Id")
-    parent_id: UUID | None = Field(None, title="Parent Id")
-    label_width: float | None = Field(None, title="Label Width")
-    label_height: float | None = Field(None, title="Label Height")
-    label_scale: float | None = Field(None, title="Label Scale")
-    link_type: int | None = Field(None, title="Link Type")
-    label_type: int | None = Field(None, title="Label Type")
-    link: str | None = Field(None, title="Link")
-    label: str | None = Field(None, title="Label")
-
-
-class NodeRead(BaseModel):
-    id: UUID = Field(..., title="Id")
-    rotation_z: float = Field(..., title="Rotation Z")
-    position_y: float = Field(..., title="Position Y")
-    position_z: float = Field(..., title="Position Z")
-    rotation_x: float = Field(..., title="Rotation X")
-    rotation_y: float = Field(..., title="Rotation Y")
-    created_at: AwareDatetime = Field(..., title="Created At")
-    rotation_w: float = Field(..., title="Rotation W")
-    updated_at: AwareDatetime = Field(..., title="Updated At")
-    position_x: float = Field(..., title="Position X")
-    active: bool = Field(..., title="Active")
-    name: str = Field(..., title="Name")
-    layer_id: UUID | None = Field(None, title="Layer Id")
-    parent_id: UUID | None = Field(None, title="Parent Id")
-    label_width: float | None = Field(None, title="Label Width")
-    label_height: float | None = Field(None, title="Label Height")
-    label_scale: float | None = Field(None, title="Label Scale")
-    link_type: int | None = Field(None, title="Link Type")
-    label_type: int | None = Field(None, title="Label Type")
-    link: str | None = Field(None, title="Link")
-    label: str | None = Field(None, title="Label")
-
-
 class TenantCreate(BaseModel):
     id: UUID | None = Field(None, title="Id")
 
@@ -345,6 +236,117 @@ class CaptureSessionRead(BaseModel):
     updated_at: AwareDatetime = Field(..., title="Updated At")
     device_type: DeviceType
     name: str = Field(..., title="Name")
+
+
+class NodeCreate(BaseModel):
+    id: UUID | None = Field(None, title="Id")
+    rotation_z: float = Field(..., title="Rotation Z")
+    label_width: float = Field(..., title="Label Width")
+    position_y: float = Field(..., title="Position Y")
+    position_z: float = Field(..., title="Position Z")
+    rotation_x: float = Field(..., title="Rotation X")
+    rotation_y: float = Field(..., title="Rotation Y")
+    rotation_w: float = Field(..., title="Rotation W")
+    label_height: float = Field(..., title="Label Height")
+    position_x: float = Field(..., title="Position X")
+    label_scale: float = Field(..., title="Label Scale")
+    link_type: LinkType
+    label_type: LabelType
+    active: bool | None = Field(None, title="Active")
+    link: str = Field(..., title="Link")
+    label: str = Field(..., title="Label")
+    name: str = Field(..., title="Name")
+    layer_id: UUID | None = Field(None, title="Layer Id")
+    parent_id: UUID | None = Field(None, title="Parent Id")
+
+
+class NodeBatchCreate(BaseModel):
+    id: UUID = Field(..., title="Id")
+    rotation_z: float = Field(..., title="Rotation Z")
+    label_width: float = Field(..., title="Label Width")
+    position_y: float = Field(..., title="Position Y")
+    position_z: float = Field(..., title="Position Z")
+    rotation_x: float = Field(..., title="Rotation X")
+    rotation_y: float = Field(..., title="Rotation Y")
+    rotation_w: float = Field(..., title="Rotation W")
+    label_height: float = Field(..., title="Label Height")
+    position_x: float = Field(..., title="Position X")
+    label_scale: float = Field(..., title="Label Scale")
+    link_type: LinkType
+    label_type: LabelType
+    active: bool | None = Field(None, title="Active")
+    link: str = Field(..., title="Link")
+    label: str = Field(..., title="Label")
+    name: str = Field(..., title="Name")
+    layer_id: UUID | None = Field(None, title="Layer Id")
+    parent_id: UUID | None = Field(None, title="Parent Id")
+
+
+class NodeUpdate(BaseModel):
+    rotation_z: float | None = Field(None, title="Rotation Z")
+    label_width: float | None = Field(None, title="Label Width")
+    position_y: float | None = Field(None, title="Position Y")
+    position_z: float | None = Field(None, title="Position Z")
+    rotation_x: float | None = Field(None, title="Rotation X")
+    rotation_y: float | None = Field(None, title="Rotation Y")
+    rotation_w: float | None = Field(None, title="Rotation W")
+    label_height: float | None = Field(None, title="Label Height")
+    position_x: float | None = Field(None, title="Position X")
+    label_scale: float | None = Field(None, title="Label Scale")
+    link_type: LinkType | None = None
+    label_type: LabelType | None = None
+    active: bool | None = Field(None, title="Active")
+    link: str | None = Field(None, title="Link")
+    label: str | None = Field(None, title="Label")
+    name: str | None = Field(None, title="Name")
+    layer_id: UUID | None = Field(None, title="Layer Id")
+    parent_id: UUID | None = Field(None, title="Parent Id")
+
+
+class NodeBatchUpdate(BaseModel):
+    id: UUID = Field(..., title="Id")
+    rotation_z: float | None = Field(None, title="Rotation Z")
+    label_width: float | None = Field(None, title="Label Width")
+    position_y: float | None = Field(None, title="Position Y")
+    position_z: float | None = Field(None, title="Position Z")
+    rotation_x: float | None = Field(None, title="Rotation X")
+    rotation_y: float | None = Field(None, title="Rotation Y")
+    rotation_w: float | None = Field(None, title="Rotation W")
+    label_height: float | None = Field(None, title="Label Height")
+    position_x: float | None = Field(None, title="Position X")
+    label_scale: float | None = Field(None, title="Label Scale")
+    link_type: LinkType | None = None
+    label_type: LabelType | None = None
+    active: bool | None = Field(None, title="Active")
+    link: str | None = Field(None, title="Link")
+    label: str | None = Field(None, title="Label")
+    name: str | None = Field(None, title="Name")
+    layer_id: UUID | None = Field(None, title="Layer Id")
+    parent_id: UUID | None = Field(None, title="Parent Id")
+
+
+class NodeRead(BaseModel):
+    id: UUID = Field(..., title="Id")
+    rotation_z: float = Field(..., title="Rotation Z")
+    label_width: float = Field(..., title="Label Width")
+    position_y: float = Field(..., title="Position Y")
+    position_z: float = Field(..., title="Position Z")
+    rotation_x: float = Field(..., title="Rotation X")
+    rotation_y: float = Field(..., title="Rotation Y")
+    created_at: AwareDatetime = Field(..., title="Created At")
+    rotation_w: float = Field(..., title="Rotation W")
+    updated_at: AwareDatetime = Field(..., title="Updated At")
+    label_height: float = Field(..., title="Label Height")
+    position_x: float = Field(..., title="Position X")
+    label_scale: float = Field(..., title="Label Scale")
+    link_type: LinkType
+    label_type: LabelType
+    active: bool = Field(..., title="Active")
+    link: str = Field(..., title="Link")
+    label: str = Field(..., title="Label")
+    name: str = Field(..., title="Name")
+    layer_id: UUID | None = Field(None, title="Layer Id")
+    parent_id: UUID | None = Field(None, title="Parent Id")
 
 
 class ReconstructionCreate(BaseModel):
