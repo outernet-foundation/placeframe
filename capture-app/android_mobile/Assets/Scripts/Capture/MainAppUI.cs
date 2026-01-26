@@ -18,6 +18,7 @@ using PlerionApiClient.Model;
 using Cysharp.Threading.Tasks;
 using Plerion.Core;
 using UnityEngine.Events;
+using Plerion.Core.ARFoundation;
 
 namespace PlerionClient.Client
 {
@@ -657,7 +658,7 @@ namespace PlerionClient.Client
                                                             {
                                                                 if (capture.type.value == DeviceType.ARFoundation)
                                                                 {
-                                                                    LocalCaptureController.DeleteCapture(capture.id);
+                                                                    CaptureManager.DeleteCapture(capture.id);
                                                                 }
                                                                 else
                                                                 {

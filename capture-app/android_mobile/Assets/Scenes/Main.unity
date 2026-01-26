@@ -149,6 +149,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _arCameraManager: {fileID: 2062099215}
+  _arAnchorManager: {fileID: 600290475}
 --- !u!4 &131364964
 Transform:
   m_ObjectHideFlags: 0

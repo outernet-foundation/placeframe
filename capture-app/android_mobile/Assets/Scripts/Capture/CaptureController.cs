@@ -276,7 +276,7 @@ namespace PlerionClient.Client
             switch (deviceType)
             {
                 case DeviceType.ARFoundation:
-                    await LocalCaptureController.StopCapture();
+                    CaptureManager.StopCapture();
                     break;
                 case DeviceType.Zed:
                     await ZedCaptureController.StopCapture(cancellationToken);
@@ -291,7 +291,7 @@ namespace PlerionClient.Client
             switch (deviceType)
             {
                 case DeviceType.ARFoundation:
-                    await LocalCaptureController.StartCapture(captureIntervalSeconds, cancellationToken);
+                    CaptureManager.StartCapture(captureIntervalSeconds);
                     break;
                 case DeviceType.Zed:
                     await ZedCaptureController.StartCapture(captureIntervalSeconds, cancellationToken);
@@ -349,7 +349,7 @@ namespace PlerionClient.Client
                 // Handle the exception if ZedCaptureController.GetCaptures() fails
             }
 
-            List<Guid> arFoundationCaptures = LocalCaptureController.GetCaptures().ToList();
+            List<Guid> arFoundationCaptures = CaptureManager.GetCaptures().ToList();
 
             var captureData = remoteCaptureList.ToDictionary(
                 x => x.Id,
@@ -538,7 +538,7 @@ namespace PlerionClient.Client
             {
                 try
                 {
-                    captureData = await LocalCaptureController.GetCapture(id);
+                    captureData = await CaptureManager.GetCaptureTar(id);
                 }
                 catch (Exception e)
                 {
@@ -624,7 +624,7 @@ namespace PlerionClient.Client
                     throw new Exception("Capture reconstruction failed.");
                 }
 
-                await UniTask.WaitForSeconds(10, cancellationToken: cancellationToken);
+                await UniTask.WaitForSeconds(3, cancellationToken: cancellationToken);
             }
 
             progress?.Report(CaptureUploadStatus.Uploaded);

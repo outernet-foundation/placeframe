@@ -1,5 +1,5 @@
 using System;
-
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
@@ -48,6 +48,8 @@ namespace FofX
                 {
                     status = UniTaskStatus.Faulted;
                     _completionSource.TrySetException(exc);
+
+                    UnityEngine.Debug.LogException(exc);
                 }
             }
             finally

@@ -73,23 +73,12 @@ public static class Log
             UnityEngine.Debug.LogError($"[{group}] {message}");
     }
 
-    public static void Error(
-        LogGroup group,
-        Exception exception,
-        string messageTemplate,
-        params object[] propertyValues
-    )
+    public static void Exception(Exception exception)
     {
         if (Level <= LogLevel.Error)
         {
-            UnityEngine.Debug.LogError($"[{group}] {messageTemplate} {propertyValues}\nException: {exception}");
+            UnityEngine.Debug.LogException(exception);
         }
-    }
-
-    public static void Error(LogGroup group, Exception exception)
-    {
-        if (Level <= LogLevel.Error)
-            UnityEngine.Debug.LogError($"[{group}] {exception}");
     }
 
     public static void Fatal(LogGroup group, string message)

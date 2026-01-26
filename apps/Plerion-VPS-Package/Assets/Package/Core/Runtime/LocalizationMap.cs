@@ -2,12 +2,11 @@ using System;
 using System.Buffers;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Unity.Mathematics;
 using UnityEngine;
 using Color = UnityEngine.Color;
 using Quaternion = UnityEngine.Quaternion;
 using Vector3 = UnityEngine.Vector3;
-
-using Unity.Mathematics;
 
 namespace Plerion.Core
 {
@@ -20,20 +19,30 @@ namespace Plerion.Core
         public Mesh cylinderMesh;
         public Material material;
 
-        private readonly AsyncLifecycleGuard _loadGuard = new AsyncLifecycleGuard();
+        private CancellationTokenSource _loadCancellationTokenSource;
         private Anchor _anchor;
         private ParticleSystem _particleSystem;
+        private ParticleSystemRenderer _particleSystemRenderer;
         private Vector3[] _framePositions = null;
+        private bool _isVisible = true;
 
         private void Awake()
         {
             _anchor = GetComponent<Anchor>();
             _particleSystem = GetComponent<ParticleSystem>();
+            _particleSystemRenderer = GetComponent<ParticleSystemRenderer>();
+        }
+
+        protected virtual void OnDestroy()
+        {
+            _loadCancellationTokenSource.Cancel();
+            _loadCancellationTokenSource.Dispose();
+            _loadCancellationTokenSource = null;
         }
 
         private void Update()
         {
-            if (_framePositions == null)
+            if (_framePositions == null || !_isVisible)
                 return;
 
             for (int i = 0; i < _framePositions.Length - 1; i++)
@@ -68,40 +77,30 @@ namespace Plerion.Core
             }
         }
 
-        protected virtual void OnDestroy()
-        {
-            if (
-                _loadGuard.State == AsyncLifecycleGuard.LifecycleState.Starting
-                || _loadGuard.State == AsyncLifecycleGuard.LifecycleState.Running
-            )
-            {
-                _loadGuard.StopAsync(() => UniTask.CompletedTask).Forget();
-            }
-        }
-
         public void SetColor(Color color)
         {
             var m = _particleSystem.main;
             m.startColor = color;
         }
 
-        public async UniTask Load(Guid mapID, CancellationToken cancellationToken = default)
+        public void SetVisible(bool visible)
         {
-            if (
-                _loadGuard.State == AsyncLifecycleGuard.LifecycleState.Starting
-                || _loadGuard.State == AsyncLifecycleGuard.LifecycleState.Running
-            )
-            {
-                await _loadGuard.StopAsync(() => UniTask.CompletedTask);
-            }
-
-            await _loadGuard.StartAsync(
-                loadGuardCancellationToken => LoadInternal(mapID, loadGuardCancellationToken),
-                cancellationToken
-            );
+            _isVisible = visible;
+            _particleSystemRenderer.enabled = visible;
         }
 
-        private async UniTask LoadInternal(Guid mapID, CancellationToken cancellationToken = default)
+        public void Initialize(Guid mapId)
+        {
+            if (_loadCancellationTokenSource != null)
+            {
+                throw new InvalidOperationException("ReconstructionVisualizer is already initialized.");
+            }
+
+            _loadCancellationTokenSource = new CancellationTokenSource();
+            Load(mapId, _loadCancellationTokenSource.Token).Forget();
+        }
+
+        private async UniTask Load(Guid mapID, CancellationToken cancellationToken)
         {
             var mapData = await VisualPositioningSystem.GetMapData(mapID);
 
@@ -124,7 +123,7 @@ namespace Plerion.Core
             Load(pointPayload, framePayload);
         }
 
-        public void Load(VisualPositioningSystem.ReconstructionPoint[] points, Vector3[] framePositions)
+        private void Load(VisualPositioningSystem.ReconstructionPoint[] points, Vector3[] framePositions)
         {
             var particles = ArrayPool<ParticleSystem.Particle>.Shared.Rent(points.Length);
             try

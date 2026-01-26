@@ -1,28 +1,23 @@
 using System;
 using System.Collections.Generic;
-using Cysharp.Threading.Tasks;
 using FofX.Stateful;
 using Plerion.Core;
 using UnityEngine;
-#if !UNITY_EDITOR
-using Plerion.Core.ARFoundation;
-#endif
 
 namespace PlerionClient.Client
 {
     public class LocalizationManager : MonoBehaviour
     {
-        private void Awake()
+        public void Initialize(ICameraProvider cameraProvider)
         {
             VisualPositioningSystem.Initialize(
-                GetCameraProvider(),
+                cameraProvider,
                 App.state.plerionApiUrl.value,
                 App.state.plerionAuthTokenUrl.value,
                 App.state.plerionAuthAudience.value,
                 message => Log.Info(LogGroup.Localizer, message),
                 message => Log.Warn(LogGroup.Localizer, message),
-                message => Log.Error(LogGroup.Localizer, message),
-                (message, exception) => Log.Error(LogGroup.Localizer, exception, message)
+                message => Log.Error(LogGroup.Localizer, message)
             );
 
             App.RegisterObserver(HandleAppModeChanged, App.state.mode, App.state.localizing);
@@ -47,7 +42,7 @@ namespace PlerionClient.Client
 
             if (localizing && !previousLocalizing)
             {
-                VisualPositioningSystem.StartLocalizing();
+                VisualPositioningSystem.StartLocalizing(1.0f);
             }
         }
 
@@ -79,15 +74,6 @@ namespace PlerionClient.Client
             }
 
             return primitive.value;
-        }
-
-        private ICameraProvider GetCameraProvider()
-        {
-#if UNITY_EDITOR
-            return new NoOpCameraProvider();
-#else
-            return new ARFoundationCameraProvider(SceneReferences.ARCameraManager);
-#endif
         }
     }
 }

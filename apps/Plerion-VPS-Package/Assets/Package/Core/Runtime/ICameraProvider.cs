@@ -1,43 +1,28 @@
 using System;
-using System.Threading;
-using Cysharp.Threading.Tasks;
+using R3;
 using UnityEngine;
 using PinholeCameraConfig = PlerionApiClient.Model.PinholeCameraConfig;
 
 namespace Plerion.Core
 {
+    public struct CameraFrame
+    {
+        public byte[] ImageBytes;
+        public Vector3 CameraTranslationUnityWorldFromCamera;
+        public Quaternion CameraRotationUnityWorldFromCamera;
+    }
+
     public interface ICameraProvider
     {
-        UniTask<PinholeCameraConfig> Start(
-            float intervalSeconds,
-            Func<(Vector3 position, Quaternion rotation)?> cameraPoseProvider,
-            Func<byte[], PinholeCameraConfig, Vector3, Quaternion, UniTask> onFrameReceived,
-            CancellationToken cancellationToken
-        );
-
-        UniTask Stop();
+        Observable<PinholeCameraConfig> CameraConfig();
+        Observable<CameraFrame> Frames(float intervalSeconds, bool useCameraPoseAnchoring = false);
     }
 
     public class NoOpCameraProvider : ICameraProvider
     {
-        public UniTask<PinholeCameraConfig> Start(
-            float intervalSeconds,
-            Func<(Vector3 position, Quaternion rotation)?> cameraPoseProvider,
-            Func<byte[], PinholeCameraConfig, Vector3, Quaternion, UniTask> onFrameReceived,
-            CancellationToken cancellationToken
-        ) =>
-            UniTask.FromResult(
-                new PinholeCameraConfig(
-                    orientation: PinholeCameraConfig.OrientationEnum.TOPLEFT,
-                    width: 0,
-                    height: 0,
-                    fx: 0,
-                    fy: 0,
-                    cx: 0,
-                    cy: 0
-                )
-            );
+        public Observable<PinholeCameraConfig> CameraConfig() => Observable.Empty<PinholeCameraConfig>();
 
-        public UniTask Stop() => UniTask.CompletedTask;
+        public Observable<CameraFrame> Frames(float intervalSeconds, bool useCameraPoseAnchoring = false) =>
+            Observable.Empty<CameraFrame>();
     }
 }
