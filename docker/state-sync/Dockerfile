@@ -1,34 +1,39 @@
-# Vibe code: Gemini 3
 # Stage 1: Build
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /
+WORKDIR /src
 
-# Copy csproj files first to leverage Docker caching for restore
-# We assume the build context is the repository root
+# Copy project files and local packages
 COPY ["client/Outernet.Server/Outernet.Server.csproj", "client/Outernet.Server/"]
 COPY ["client/Outernet.Shared/Outernet.Shared.csproj", "client/Outernet.Shared/"]
-COPY ["packages/generated/csharp/api-client", "packages/generated/csharp/api-client"]
+COPY ["packages/generated/csharp/api-client/", "packages/generated/csharp/api-client/"]
 
-# Restore dependencies
 RUN dotnet restore "client/Outernet.Server/Outernet.Server.csproj"
 
-# Copy the rest of the source code
+# Copy source
 COPY ["client/Outernet.Server/", "client/Outernet.Server/"]
 COPY ["client/Outernet.Shared/", "client/Outernet.Shared/"]
 
-# Build and Publish
-WORKDIR "/client/Outernet.Server"
-RUN dotnet publish "Outernet.Server.csproj" -c Release -o /app/publish /p:UseAppHost=false
+# Publish in DEBUG mode for full symbol support
+WORKDIR "/src/client/Outernet.Server"
+RUN dotnet publish "Outernet.Server.csproj" -c Debug -o /app/publish /p:UseAppHost=false
 
 # Stage 2: Runtime
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 EXPOSE 8080
-EXPOSE 8081
 
-# Create a non-root user for security (optional but recommended)
+# Switch to root to install debugger
+USER root
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends unzip curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -sSL https://aka.ms/getvsdbgsh | bash /dev/stdin -v latest -l /app/vsdbg \
+    && chown -R app:app /app/vsdbg
+
+# Switch to the non-root user for execution
 USER app
-
 COPY --from=build /app/publish .
 
+# The binary name must match your project output
 ENTRYPOINT ["dotnet", "Outernet.Server.dll"]

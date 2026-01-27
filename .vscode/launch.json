@@ -40,6 +40,21 @@
       "request": "attach",
       "endPoint": "127.0.0.1:56000",
       "preLaunchTask": "Prelaunch: Attach to Unity - Android"
+    },
+    {
+      "name": "Attach to .NET State-Sync (Docker)",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "1",
+      "pipeTransport": {
+        "pipeCwd": "${workspaceFolder}",
+        "pipeProgram": "docker",
+        "pipeArgs": ["exec", "-i", "plerion-state-sync-1", "sh", "-c"],
+        "debuggerPath": "/app/vsdbg/vsdbg"
+      },
+      "sourceFileMap": {
+        "/src": "${workspaceFolder}"
+      }
     }
   ],
   "inputs": [
