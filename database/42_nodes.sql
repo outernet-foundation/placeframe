@@ -78,6 +78,12 @@ CREATE POLICY nodes_rls_policy ON nodes
     USING (tenant_id = current_tenant())
     WITH CHECK (tenant_id = current_tenant());
 
+CREATE POLICY nodes_orchestrator_rls_policy ON nodes
+  FOR ALL
+    TO plerion_orchestration_user
+    USING (true)
+    WITH CHECK (true);
+
 CREATE TRIGGER nodes_touch_updated_at_trigger
   BEFORE UPDATE ON nodes
   FOR EACH ROW
