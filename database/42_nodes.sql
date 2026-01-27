@@ -78,6 +78,7 @@ CREATE POLICY nodes_rls_policy ON nodes
     USING (tenant_id = current_tenant())
     WITH CHECK (tenant_id = current_tenant());
 
+-- Allow orchestrator role to bypass RLS for all operations
 CREATE POLICY nodes_orchestrator_rls_policy ON nodes
   FOR ALL
     TO plerion_orchestration_user

@@ -58,6 +58,12 @@ else:
 
     async def get_session(request: Request[str, dict[str, Any], Any]) -> AsyncGenerator[AsyncSession]:
         claims = request.auth
+
+        if claims and claims.get("azp") == "plerion-worker":
+            async with OrchestrationSessionLocal() as session, session.begin():
+                yield session
+            return
+
         user_id = cast(str | None, claims.get("sub"))
 
         if not user_id:
@@ -75,7 +81,7 @@ else:
         claims = request.auth
 
         if not claims or claims.get("azp") != "plerion-worker":
-            raise PermissionDeniedException("Only workers are authorized to access this scope")
+            raise PermissionDeniedException("Internal use only")
 
-        async with OrchestrationSessionLocal() as session, session.begin():
+        async for session in get_session(request):
             yield session
