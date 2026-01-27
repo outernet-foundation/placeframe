@@ -36,10 +36,8 @@ namespace Outernet.MapRegistrationTool
             Application.wantsToQuit += WantsToQuit;
         }
 
-        protected override void Update()
+        private void Update()
         {
-            base.Update();
-
             UnityMainThreadDispatcher.Flush();
         }
 
@@ -82,20 +80,20 @@ namespace Outernet.MapRegistrationTool
 
         private async UniTask SaveWithPopup()
         {
-            var popup = Dialogs.Show(
-                title: "Saving",
-                allowCancel: false,
-                minimumWidth: 200,
-                constructControls: props =>
-                    UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
-            );
+            // var popup = Dialogs.Show(
+            //     title: "Saving",
+            //     allowCancel: false,
+            //     minimumWidth: 200,
+            //     constructControls: props =>
+            //         UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
+            // );
 
-            App.state.saveRequested.ExecuteSetOrDelay(true);
+            // App.state.saveRequested.ExecuteSetOrDelay(true);
 
-            await UniTask.WaitUntil(() => !App.state.hasUnsavedChanges.value);
+            // await UniTask.WaitUntil(() => !App.state.hasUnsavedChanges.value);
 
-            Destroy(popup.gameObject);
-            Application.Quit();
+            // Destroy(popup.gameObject);
+            // Application.Quit();
         }
 
         public static void SetSelectedObjects(params System.Guid[] sceneObjects)

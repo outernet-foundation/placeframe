@@ -109,26 +109,26 @@ namespace Outernet.MapRegistrationTool
 
                 if (dialogProps.saveRequested.value)
                 {
-                    var loadingDialog = Dialogs.Show(
-                        title: "Saving",
-                        allowCancel: false,
-                        minimumWidth: 200,
-                        constructControls: props =>
-                            UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
-                    );
+                    // var loadingDialog = Dialogs.Show(
+                    //     title: "Saving",
+                    //     allowCancel: false,
+                    //     minimumWidth: 200,
+                    //     constructControls: props =>
+                    //         UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
+                    // );
 
-                    cancellationToken.Register(() =>
-                    {
-                        if (loadingDialog == null)
-                            return;
+                    // cancellationToken.Register(() =>
+                    // {
+                    //     if (loadingDialog == null)
+                    //         return;
 
-                        Destroy(loadingDialog.gameObject);
-                    });
+                    //     Destroy(loadingDialog.gameObject);
+                    // });
 
-                    App.state.saveRequested.ExecuteSetOrDelay(true);
-                    await UniTask.WaitUntil(() => !App.state.hasUnsavedChanges.value);
+                    // App.state.saveRequested.ExecuteSetOrDelay(true);
+                    // await UniTask.WaitUntil(() => !App.state.hasUnsavedChanges.value);
 
-                    Destroy(loadingDialog.gameObject);
+                    // Destroy(loadingDialog.gameObject);
                 }
             }
 
@@ -145,71 +145,71 @@ namespace Outernet.MapRegistrationTool
             CancellationToken cancellationToken = default
         )
         {
-            App.ExecuteActionOrDelay(new SetLocationContentLoadedAction(false));
+            // App.ExecuteActionOrDelay(new SetLocationContentLoadedAction(false));
 
-            var dialog = Dialogs.Show(
-                title: "Loading Content",
-                allowCancel: false,
-                minimumWidth: 250,
-                constructControls: props =>
-                    UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
-            );
+            // var dialog = Dialogs.Show(
+            //     title: "Loading Content",
+            //     allowCancel: false,
+            //     minimumWidth: 250,
+            //     constructControls: props =>
+            //         UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
+            // );
 
-            cancellationToken.Register(() =>
-            {
-                if (dialog == null)
-                    return;
+            // cancellationToken.Register(() =>
+            // {
+            //     if (dialog == null)
+            //         return;
 
-                Destroy(dialog.gameObject);
-            });
+            //     Destroy(dialog.gameObject);
+            // });
 
-            // Determine ground level (height above WGS84 ellipsoid) at the specified latitude and longitude
-            SceneReferences.GroundTileset.suspendUpdate = false;
-            var heightSamplingResult = await SceneReferences.GroundTileset.SampleHeightMostDetailed(
-                new double3(longitude, latitude, 0)
-            );
-            var groundLevelHeightAboveWGS84Ellipsoid = heightSamplingResult.longitudeLatitudeHeightPositions[0].z;
-            SceneReferences.GroundTileset.suspendUpdate = true;
+            // // Determine ground level (height above WGS84 ellipsoid) at the specified latitude and longitude
+            // SceneReferences.GroundTileset.suspendUpdate = false;
+            // var heightSamplingResult = await SceneReferences.GroundTileset.SampleHeightMostDetailed(
+            //     new double3(longitude, latitude, 0)
+            // );
+            // var groundLevelHeightAboveWGS84Ellipsoid = heightSamplingResult.longitudeLatitudeHeightPositions[0].z;
+            // SceneReferences.GroundTileset.suspendUpdate = true;
 
-            // Convert cartographic coordinates to ECEF coordinates, and use the ENU frame at that location for orientation
-            var ecefPosition = WGS84.CartographicToEcef(
-                CartographicCoordinates.FromLongitudeLatitudeHeight(
-                    longitude,
-                    latitude,
-                    groundLevelHeightAboveWGS84Ellipsoid
-                )
-            );
-            var ecefRotation = WGS84.GetEastNorthUpFrameInEcef(ecefPosition);
+            // // Convert cartographic coordinates to ECEF coordinates, and use the ENU frame at that location for orientation
+            // var ecefPosition = WGS84.CartographicToEcef(
+            //     CartographicCoordinates.FromLongitudeLatitudeHeight(
+            //         longitude,
+            //         latitude,
+            //         groundLevelHeightAboveWGS84Ellipsoid
+            //     )
+            // );
+            // var ecefRotation = WGS84.GetEastNorthUpFrameInEcef(ecefPosition);
 
-            // Set Cesium georeference to that position and orientation
-            SceneReferences.CesiumGeoreference.SetOriginEarthCenteredEarthFixed(
-                ecefPosition.x,
-                ecefPosition.y,
-                ecefPosition.z
-            );
-            // SceneReferences.CesiumGeoreference.transform.rotation = math.inverse(ecefRotation.ToQuaternion());
+            // // Set Cesium georeference to that position and orientation
+            // SceneReferences.CesiumGeoreference.SetOriginEarthCenteredEarthFixed(
+            //     ecefPosition.x,
+            //     ecefPosition.y,
+            //     ecefPosition.z
+            // );
+            // // SceneReferences.CesiumGeoreference.transform.rotation = math.inverse(ecefRotation.ToQuaternion());
 
             // Update the application's ECEF to Unity world matrix.
-            var (ecefPositionUnityBasis, ecefRotationUnityBasis) = ChangeBasisUnityFromEcef(ecefPosition, ecefRotation);
-            var ecefFromUnityTransformUnityBasis = Double4x4.FromTranslationRotation(
-                ecefPositionUnityBasis,
-                ecefRotationUnityBasis
-            );
+            // var (ecefPositionUnityBasis, ecefRotationUnityBasis) = ChangeBasisUnityFromEcef(ecefPosition, ecefRotation);
+            // var ecefFromUnityTransformUnityBasis = Double4x4.FromTranslationRotation(
+            //     ecefPositionUnityBasis,
+            //     ecefRotationUnityBasis
+            // );
 
-            var unityFromEcefTransformUnityBasis = math.inverse(ecefFromUnityTransformUnityBasis);
-            App.state.ecefToUnityWorldMatrix.ExecuteSetOrDelay(unityFromEcefTransformUnityBasis);
+            // var unityFromEcefTransformUnityBasis = math.inverse(ecefFromUnityTransformUnityBasis);
+            // App.state.ecefToUnityWorldMatrix.ExecuteSetOrDelay(unityFromEcefTransformUnityBasis);
 
-            List<LocalizationMapRead> maps = default;
+            // List<LocalizationMapRead> maps = default;
 
-            maps = await App.API.GetLocalizationMapsAsync();
+            // maps = await App.API.GetLocalizationMapsAsync();
 
-            await UniTask.SwitchToMainThread(cancellationToken);
+            // await UniTask.SwitchToMainThread(cancellationToken);
 
-            App.ExecuteActionOrDelay(new SetMapsAction(maps.ToArray()));
+            // App.ExecuteActionOrDelay(new SetMapsAction(maps.ToArray()));
 
-            Destroy(dialog.gameObject);
+            // Destroy(dialog.gameObject);
 
-            App.ExecuteActionOrDelay(new SetLocationContentLoadedAction(true));
+            // App.ExecuteActionOrDelay(new SetLocationContentLoadedAction(true));
         }
 
         private async UniTask<List<GroupRead>> GetNodeGroupsRecursive(

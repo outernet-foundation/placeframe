@@ -24,20 +24,21 @@ namespace Outernet.MapRegistrationTool
 
         public static Dialog BugReportDialog(string reporter = default, string bugDescription = default, string title = "Bug Report", DialogStatus status = default, bool allowCancel = true, Func<BugReportProps, IDisposable> binding = null)
         {
-            return Show(
-                new BugReportProps(reporter, bugDescription, title, status, allowCancel),
-                props => UIBuilder.VerticalLayout(
-                    UIBuilder.PropertyLabel("Reporter", UIBuilder.InputField(props.reporter)),
-                    UIBuilder.Header("Description", UIBuilder.InputRegion(props.bugDescription)),
-                    UIBuilder.HorizontalLayout()
-                        .Alignment(TextAnchor.MiddleRight)
-                        .WithChildren(
-                            UIBuilder.Button("Cancel", () => props.status.ExecuteSet(DialogStatus.Canceled)),
-                            UIBuilder.Button("Send", () => props.status.ExecuteSet(DialogStatus.Complete))
-                        )
-                ),
-                binding
-            );
+            return default;
+            // return Show(
+            //     new BugReportProps(reporter, bugDescription, title, status, allowCancel),
+            //     props => UIBuilder.VerticalLayout(
+            //         UIBuilder.PropertyLabel("Reporter", UIBuilder.InputField(props.reporter)),
+            //         UIBuilder.Header("Description", UIBuilder.InputRegion(props.bugDescription)),
+            //         UIBuilder.HorizontalLayout()
+            //             .Alignment(TextAnchor.MiddleRight)
+            //             .WithChildren(
+            //                 UIBuilder.Button("Cancel", () => props.status.ExecuteSet(DialogStatus.Canceled)),
+            //                 UIBuilder.Button("Send", () => props.status.ExecuteSet(DialogStatus.Complete))
+            //             )
+            //     ),
+            //     binding
+            // );
         }
 
         public class UnsavedChangesDialogProps : Dialog.Props
@@ -56,32 +57,33 @@ namespace Outernet.MapRegistrationTool
 
         public static Dialog UnsavedChangesDialog(string text = default, bool saveRequested = default, string title = default, DialogStatus status = default, bool allowCancel = default, Func<UnsavedChangesDialogProps, IDisposable> binding = null)
         {
-            return Show(
-                new UnsavedChangesDialogProps(text, saveRequested, title, status, allowCancel),
-                constructControls: props =>
-                {
-                    var cancelButton = UIBuilder.Button("Cancel", () => props.status.ExecuteSet(DialogStatus.Canceled));
-                    cancelButton.AddBinding(cancelButton.gameObject.BindActive(props.allowCancel));
+            return default;
+            // return Show(
+            //     new UnsavedChangesDialogProps(text, saveRequested, title, status, allowCancel),
+            //     constructControls: props =>
+            //     {
+            //         var cancelButton = UIBuilder.Button("Cancel", () => props.status.ExecuteSet(DialogStatus.Canceled));
+            //         cancelButton.AddBinding(cancelButton.gameObject.BindActive(props.allowCancel));
 
-                    return UIBuilder.VerticalLayout()
-                        .Spacing(15)
-                        .WithChildren(
-                            UIBuilder.Text(props.text),
-                            UIBuilder.HorizontalLayout()
-                                .Alignment(TextAnchor.LowerRight)
-                                .WithChildren(
-                                    UIBuilder.Button("Save", () => props.ExecuteAction(x =>
-                                    {
-                                        x.status.value = DialogStatus.Complete;
-                                        x.saveRequested.value = true;
-                                    })),
-                                    UIBuilder.Button("Don't Save", () => props.status.ExecuteSet(DialogStatus.Complete)),
-                                    cancelButton
-                                )
-                        );
-                },
-                binding
-            );
+            //         return UIBuilder.VerticalLayout()
+            //             .Spacing(15)
+            //             .WithChildren(
+            //                 UIBuilder.Text(props.text),
+            //                 UIBuilder.HorizontalLayout()
+            //                     .Alignment(TextAnchor.LowerRight)
+            //                     .WithChildren(
+            //                         UIBuilder.Button("Save", () => props.ExecuteAction(x =>
+            //                         {
+            //                             x.status.value = DialogStatus.Complete;
+            //                             x.saveRequested.value = true;
+            //                         })),
+            //                         UIBuilder.Button("Don't Save", () => props.status.ExecuteSet(DialogStatus.Complete)),
+            //                         cancelButton
+            //                     )
+            //             );
+            //     },
+            //     binding
+            // );
         }
 
         public static Dialog Show(string title = default, DialogStatus status = default, bool allowCancel = true, float minimumWidth = 500, Func<Dialog.Props, Component> constructControls = null, Func<Dialog.Props, IDisposable> binding = null)

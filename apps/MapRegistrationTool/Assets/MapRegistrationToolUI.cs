@@ -144,27 +144,29 @@ namespace Outernet.MapRegistrationTool
 
         private IDisposable SetupMapView(MapState mapState)
         {
-            var view = UIBuilder.VerticalLayout(UIBuilder.Text(mapState.name));
-            view.component.padding.left = 10;
-            view.component.padding.top = 3;
-            view.component.padding.bottom = 3;
+            // var view = UIBuilder.VerticalLayout(UIBuilder.Text(mapState.name));
+            // view.component.padding.left = 10;
+            // view.component.padding.top = 3;
+            // view.component.padding.bottom = 3;
 
-            var toHighlight = view.gameObject.AddComponent<Image>();
-            toHighlight.color = Color.clear;
+            // var toHighlight = view.gameObject.AddComponent<Image>();
+            // toHighlight.color = Color.clear;
 
-            view.AddBinding(
-                BindHierarchyElement(
-                    mapState.uuid,
-                    view.gameObject,
-                    toHighlight,
-                    Prefabs.SelectedColor
-                ),
-                view.gameObject.DestroyOnRelease()
-            );
+            // view.AddBinding(
+            //     BindHierarchyElement(
+            //         mapState.uuid,
+            //         view.gameObject,
+            //         toHighlight,
+            //         Prefabs.SelectedColor
+            //     ),
+            //     view.gameObject.DestroyOnRelease()
+            // );
 
-            view.transform.SetParent(scansList, false);
+            // view.transform.SetParent(scansList, false);
 
-            return view;
+            // return view;
+
+            return default;
         }
 
         private void OpenSetLocationDialog(bool allowCancel)
@@ -203,20 +205,22 @@ namespace Outernet.MapRegistrationTool
 
         private IDisposable BindInspector(Guid sceneObjectID)
         {
-            var binding = new Bindings.CompositeDisposable();
+            // var binding = new Bindings.CompositeDisposable();
 
-            foreach (var componentDict in App.state.componentDictionaries.Where(x => !x.HasAttribute<HideInInspectorUIAttribute>()))
-            {
-                if (componentDict.TryGetValue(sceneObjectID, out var component))
-                {
-                    var inspector = UIBuilder.NodeInspector(component.GetType().Name, component, LabelType.None);
-                    inspector.transform.SetParent(inspectorContent, false);
-                    binding.Add(inspector);
-                    binding.Add(inspector.gameObject.DestroyOnRelease());
-                }
-            }
+            // foreach (var componentDict in App.state.componentDictionaries.Where(x => !x.HasAttribute<HideInInspectorUIAttribute>()))
+            // {
+            //     if (componentDict.TryGetValue(sceneObjectID, out var component))
+            //     {
+            //         var inspector = UIBuilder.NodeInspector(component.GetType().Name, component, LabelType.None);
+            //         inspector.transform.SetParent(inspectorContent, false);
+            //         binding.Add(inspector);
+            //         binding.Add(inspector.gameObject.DestroyOnRelease());
+            //     }
+            // }
 
-            return binding;
+            // return binding;
+
+            return default;
         }
 
         private IDisposable BindHierarchyElement(Guid id, GameObject viewRoot, Image toHighlight, Color highlightColor)
@@ -343,39 +347,39 @@ namespace Outernet.MapRegistrationTool
 
         private void OpenAddScanDialog()
         {
-            Dialogs.Show(
-                props: new AddScanDialogProps(title: "Add Scan", allowCancel: true),
-                constructControls: props => UIBuilder.VerticalLayout(
-                    UIBuilder.AdaptivePropertyLabel("Scan Name", UIBuilder.InputField(props.scanName)),
-                    UIBuilder.Text(props.error).Color(Color.red).WithBinding(x => Bindings.Observer(
-                        _ => x.gameObject.SetActive(!string.IsNullOrEmpty(props.error.value)),
-                        ObservationScope.Self,
-                        props.error
-                    )),
-                    UIBuilder.HorizontalLayout()
-                        .Alignment(TextAnchor.LowerRight)
-                        .WithChildren(
-                            UIBuilder.Button("Cancel", () => props.status.ExecuteSet(DialogStatus.Canceled)),
-                            UIBuilder.Button("Add Scan", async () =>
-                            {
-                                try
-                                {
-                                    await ImportScan(props.scanName.value);
-                                    props.status.ScheduleSet(DialogStatus.Complete);
-                                }
-                                catch (Exception exc)
-                                {
-                                    props.error.ScheduleSet(exc.Message);
-                                }
-                            })
-                            .WithBinding(x => Bindings.Observer(
-                                _ => x.button.interactable = props.scanName.value != null,
-                                ObservationScope.Self,
-                                props.scanName
-                            ))
-                        )
-                )
-            );
+            // Dialogs.Show(
+            //     props: new AddScanDialogProps(title: "Add Scan", allowCancel: true),
+            //     constructControls: props => UIBuilder.VerticalLayout(
+            //         UIBuilder.AdaptivePropertyLabel("Scan Name", UIBuilder.InputField(props.scanName)),
+            //         UIBuilder.Text(props.error).Color(Color.red).WithBinding(x => Bindings.Observer(
+            //             _ => x.gameObject.SetActive(!string.IsNullOrEmpty(props.error.value)),
+            //             ObservationScope.Self,
+            //             props.error
+            //         )),
+            //         UIBuilder.HorizontalLayout()
+            //             .Alignment(TextAnchor.LowerRight)
+            //             .WithChildren(
+            //                 UIBuilder.Button("Cancel", () => props.status.ExecuteSet(DialogStatus.Canceled)),
+            //                 UIBuilder.Button("Add Scan", async () =>
+            //                 {
+            //                     try
+            //                     {
+            //                         await ImportScan(props.scanName.value);
+            //                         props.status.ScheduleSet(DialogStatus.Complete);
+            //                     }
+            //                     catch (Exception exc)
+            //                     {
+            //                         props.error.ScheduleSet(exc.Message);
+            //                     }
+            //                 })
+            //                 .WithBinding(x => Bindings.Observer(
+            //                     _ => x.button.interactable = props.scanName.value != null,
+            //                     ObservationScope.Self,
+            //                     props.scanName
+            //                 ))
+            //             )
+            //     )
+            // );
         }
 
         public async UniTask ImportScan(string scanName)
@@ -417,17 +421,17 @@ namespace Outernet.MapRegistrationTool
 
         private void OpenUserSettings()
         {
-            Dialogs.Show(
-                title: "Settings",
-                constructControls: props => UIBuilder.VerticalLayout(
-                    UIBuilder.AdaptivePropertyLabel("Content Radius", UIBuilder.FloatField(App.state.settings.nodeFetchRadius)),
-                    UIBuilder.HorizontalLayout()
-                        .Alignment(TextAnchor.LowerRight)
-                        .WithChildren(
-                            UIBuilder.Button("Close", () => props.status.ExecuteSet(DialogStatus.Complete))
-                        )
-                )
-            );
+            // Dialogs.Show(
+            //     title: "Settings",
+            //     constructControls: props => UIBuilder.VerticalLayout(
+            //         UIBuilder.AdaptivePropertyLabel("Content Radius", UIBuilder.FloatField(App.state.settings.nodeFetchRadius)),
+            //         UIBuilder.HorizontalLayout()
+            //             .Alignment(TextAnchor.LowerRight)
+            //             .WithChildren(
+            //                 UIBuilder.Button("Close", () => props.status.ExecuteSet(DialogStatus.Complete))
+            //             )
+            //     )
+            // );
         }
 
         private void OpenBugReportWindow()
@@ -444,14 +448,14 @@ namespace Outernet.MapRegistrationTool
 
         private void OpenAboutWindow()
         {
-            Dialogs.Show(
-                title: "About",
-                allowCancel: true,
-                constructControls: props => UIBuilder.VerticalLayout(
-                    UIBuilder.PropertyLabel("Channel", UIBuilder.Text("Beta", VerticalAlignmentOptions.Middle, HorizontalAlignmentOptions.Right)),
-                    UIBuilder.PropertyLabel("Version", UIBuilder.Text(Application.version, VerticalAlignmentOptions.Middle, HorizontalAlignmentOptions.Right))
-                )
-            );
+            // Dialogs.Show(
+            //     title: "About",
+            //     allowCancel: true,
+            //     constructControls: props => UIBuilder.VerticalLayout(
+            //         UIBuilder.PropertyLabel("Channel", UIBuilder.Text("Beta", VerticalAlignmentOptions.Middle, HorizontalAlignmentOptions.Right)),
+            //         UIBuilder.PropertyLabel("Version", UIBuilder.Text(Application.version, VerticalAlignmentOptions.Middle, HorizontalAlignmentOptions.Right))
+            //     )
+            // );
         }
     }
 }

@@ -35,6 +35,39 @@
       "dependencies": {},
       "hash": "ceb2f24f343c93d66c8a784a283be65b9627efe1"
     },
+    "com.fofx.nessle": {
+      "version": "https://github.com/outernet-foundation/Nessle.git?path=Assets/Package/Core",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.fofx.observething": "1.0.0"
+      },
+      "hash": "eeb7e1b7223020d1d2a1dc26391740cdeeb8cb9c"
+    },
+    "com.fofx.observething": {
+      "version": "https://github.com/outernet-foundation/ObserveThing.git?path=Assets/Package/Core",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "7838359e5caf359987fabca6e7281483f1e059f6"
+    },
+    "com.fofx.observething.statefulextensions": {
+      "version": "https://github.com/outernet-foundation/ObserveThing.git?path=Assets/Package/StatefulExtensions",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.fofx.stateful": "1.0.0",
+        "com.fofx.observething": "1.0.0"
+      },
+      "hash": "7838359e5caf359987fabca6e7281483f1e059f6"
+    },
+    "com.fofx.stateful": {
+      "version": "https://github.com/epjecha/StatefulUnity.git?path=Assets/Package",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "a2e93f494774213a7f44cf8e101854219ea0032f"
+    },
     "com.github-glitchenzo.nugetforunity": {
       "version": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
       "depth": 0,

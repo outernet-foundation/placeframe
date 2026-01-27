@@ -3,12 +3,16 @@
     {
       "name": "Magic Leap",
       "url": "https://registry.npmjs.org",
-      "scopes": ["com.magicleap"]
+      "scopes": [
+        "com.magicleap"
+      ]
     },
     {
       "name": "Cesium",
       "url": "https://unity.pkg.cesium.com",
-      "scopes": ["com.cesium.unity"]
+      "scopes": [
+        "com.cesium.unity"
+      ]
     }
   ],
   "dependencies": {
@@ -16,6 +20,10 @@
     "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
     "com.cysharp.r3": "https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity",
     "com.cysharp.yetanotherhttphandler": "https://github.com/Cysharp/YetAnotherHttpHandler.git?path=src/YetAnotherHttpHandler#1.5.3",
+    "com.fofx.nessle": "https://github.com/outernet-foundation/Nessle.git?path=Assets/Package/Core",
+    "com.fofx.observething": "https://github.com/outernet-foundation/ObserveThing.git?path=Assets/Package/Core",
+    "com.fofx.observething.statefulextensions": "https://github.com/outernet-foundation/ObserveThing.git?path=Assets/Package/StatefulExtensions",
+    "com.fofx.stateful": "https://github.com/epjecha/StatefulUnity.git?path=Assets/Package",
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
     "com.placeframe.vps": "file:../../../packages/unity/Placeframe/Assets/Package/Core",
     "com.placeframe.api-client": "file:../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",

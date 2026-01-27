@@ -76,10 +76,10 @@ namespace Outernet.MapRegistrationTool
     {
         public Guid id { get; private set; }
 
-        [InspectorType(typeof(ECEFPositionInspector), LabelType.Adaptive)]
+        [InspectorType(typeof(UIElements.ECEFPositionInspector), LabelType.Adaptive)]
         public ObservablePrimitive<double3> position { get; private set; }
 
-        [InspectorType(typeof(ECEFRotationInspector), LabelType.Adaptive)]
+        [InspectorType(typeof(UIElements.ECEFRotationInspector), LabelType.Adaptive)]
         public ObservablePrimitive<Quaternion> rotation { get; private set; }
 
         void IKeyedObservableNode<Guid>.AssignKey(Guid key)
