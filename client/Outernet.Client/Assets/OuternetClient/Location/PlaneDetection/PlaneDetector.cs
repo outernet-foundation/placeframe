@@ -39,7 +39,7 @@ namespace Outernet.Client
                 }
             });
 
-#if OUTERNET_MAGIC_LEAP
+#if MAGIC_LEAP
             Permissions.RequestPermission(
                 Permissions.SpatialMapping,
                 OnPermissionGranted,
@@ -50,7 +50,7 @@ namespace Outernet.Client
 
         static public void Update()
         {
-#if OUTERNET_MAGIC_LEAP
+#if MAGIC_LEAP
             if (planeManager != null && planeManager.enabled)
             {
                 var newQuery = new MLXrPlaneSubsystem.PlanesQuery
@@ -68,7 +68,7 @@ namespace Outernet.Client
 #endif
         }
 
-#if OUTERNET_MAGIC_LEAP
+#if MAGIC_LEAP
         static private void OnPermissionGranted(string permission)
         {
             planeManager.enabled = true;

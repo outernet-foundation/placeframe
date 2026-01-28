@@ -20,7 +20,7 @@ namespace Outernet.Client.Location
         {
 #if UNITY_EDITOR
             return;
-#elif UNITY_LUMIN
+#elif MAGIC_LEAP
             _gpsTask = TaskHandle.Execute(token => WifiGeolocalization(token));
 #else   
             _gpsTask = TaskHandle.Execute(token => LocationService(5, 5, token));

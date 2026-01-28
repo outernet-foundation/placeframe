@@ -25,9 +25,9 @@ namespace Outernet.Client
             logger = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
                 .Enrich.With<Enricher>()
-#if UNITY_EDITOR
+                // #if UNITY_EDITOR
                 .WriteTo.Unity()
-#endif
+                // #endif
                 .WriteTo.Loki()
                 .CreateLogger();
 

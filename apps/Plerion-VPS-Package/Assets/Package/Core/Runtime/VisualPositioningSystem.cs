@@ -112,6 +112,30 @@ namespace Plerion.Core
                 .SelectMany(cameraConfig =>
                     _cameraProvider.Frames(intervalSeconds).Select(frame => (cameraConfig, frame))
                 )
+                // .Subscribe(x =>
+                // {
+                //     try
+                //     {
+                //         Debug.Log("EP: Loading frame bytes! " + x.frame.ImageBytes.Length);
+                //         bool succeeded = outputTexture.LoadImage(x.frame.ImageBytes, false);
+                //         outputTexture.Apply();
+
+                //         if (succeeded)
+                //         {
+                //             Debug.Log("EP: Load image succeeded");
+                //         }
+                //         else
+                //         {
+                //             Debug.LogError("EP: Load image failed!");
+                //         }
+                //     }
+                //     catch (Exception exc)
+                //     {
+                //         Debug.LogError(exc.Message + "\n" + exc.StackTrace);
+                //     }
+
+                //     Debug.Log("EP: Attempting to load finished");
+                // });
                 // Localize this client using each new CameraFrame
                 .SubscribeAwait(
                     async (data, cancellationToken) => await Localize(data.cameraConfig, data.frame, cancellationToken),

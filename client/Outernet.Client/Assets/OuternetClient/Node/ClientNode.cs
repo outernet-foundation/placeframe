@@ -1,4 +1,5 @@
 using System;
+using Plerion.Core;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
@@ -15,6 +16,7 @@ namespace Outernet.Client
         protected override void Bind()
         {
             base.Bind();
+
             AddBinding(
                 interactable.firstHoverEntered.OnRaised(_ => props.hoveredLocally.ExecuteSetOrDelay(true)),
                 interactable.lastHoverExited.OnRaised(_ => props.hoveredLocally.ExecuteSetOrDelay(false)),

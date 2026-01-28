@@ -1,4 +1,4 @@
-#if UNITY_LUMIN
+#if MAGIC_LEAP
 #pragma warning disable CS0618
 using System;
 using System.Collections.Generic;
@@ -13,6 +13,12 @@ using static Plerion.Core.MagicLeap.NativeBindings;
 
 namespace Plerion.Core.MagicLeap
 {
+    public struct MLFrameData
+    {
+        public byte[] imageBytes;
+        public MLCameraIntrinsicCalibrationParameters intrinsics;
+    }
+
     public static class MagicLeapCamera
     {
         public static bool initialized { get; private set; }
@@ -78,14 +84,14 @@ namespace Plerion.Core.MagicLeap
                     CaptureType = CaptureType.Video,
                     Width = 3840,
                     Height = 2160,
-                    OutputFormat = OutputFormat.YUV_420_888,
+                    OutputFormat = OutputFormat.RGBA_8888,
                     MediaRecorderSurfaceHandle = ulong.MaxValue,
                 },
                 default,
             },
         };
 
-        public static event Action<byte[]> onFrameReceived;
+        public static event Action<MLFrameData> onFrameReceived;
 
         public static void Initialize()
         {
@@ -96,12 +102,14 @@ namespace Plerion.Core.MagicLeap
 
                 if (MLPermissions.CheckPermission(MLPermission.Camera).IsOk)
                 {
-                    Log.Info(LogGroup.Permissions, "Magic Leap Camera Permission Granted");
+                    // Log.Info(LogGroup.Permissions, "Magic Leap Camera Permission Granted");
+                    Debug.Log("Magic Leap Camera Permission Granted");
                     permissionGranted = true;
                 }
                 else
                 {
-                    Log.Warn(LogGroup.Permissions, "Magic Leap Camera Permission Denied");
+                    // Log.Warn(LogGroup.Permissions, "Magic Leap Camera Permission Denied");
+                    Debug.LogWarning("Magic Leap Camera Permission Denied");
                     permissionGranted = false;
                 }
             };
@@ -113,7 +121,8 @@ namespace Plerion.Core.MagicLeap
         {
             if (!permissionGranted)
             {
-                Log.Warn(LogGroup.MagicLeapCamera, "Magic Leap Camera Permission not granted yet?");
+                Debug.LogWarning("Magic Leap Camera Permmission not granted yet?");
+                // Log.Warn(LogGroup.MagicLeapCamera, "Magic Leap Camera Permission not granted yet?");
             }
 
             await UniTask.WaitUntil(() => permissionGranted);
@@ -175,7 +184,7 @@ namespace Plerion.Core.MagicLeap
 
             Marshal.Copy(data, pixelBuffer, 0, size);
 
-            onFrameReceived.Invoke(pixelBuffer);
+            onFrameReceived?.Invoke(new MLFrameData() { imageBytes = pixelBuffer, intrinsics = mLCameraIntrinsicCalibrationParameters });
         }
 
         static void Check(MLResult.Code code, string functionName)
@@ -187,31 +196,36 @@ namespace Plerion.Core.MagicLeap
         [MonoPInvokeCallback(typeof(MLCameraDeviceAvailabilityStatusCallbacks.DeviceAvailabilityStatusDelegate))]
         public static void OnDeviceAvailable(ref MLCameraDeviceAvailabilityInfo _)
         {
-            Log.Info(LogGroup.MagicLeapCamera, "Magic Leap Camera Device Available");
+            Debug.Log("Magic Leap Camera Device Available");
+            // Log.Info(LogGroup.MagicLeapCamera, "Magic Leap Camera Device Available");
         }
 
         [MonoPInvokeCallback(typeof(MLCameraDeviceAvailabilityStatusCallbacks.DeviceAvailabilityStatusDelegate))]
         public static void OnDeviceUnavailable(ref MLCameraDeviceAvailabilityInfo _)
         {
-            Log.Warn(LogGroup.MagicLeapCamera, "Magic Leap Camera Device Unavailable");
+            Debug.LogWarning("Magic Leap Camera Device Unavailable");
+            // Log.Warn(LogGroup.MagicLeapCamera, "Magic Leap Camera Device Unavailable");
         }
 
         [MonoPInvokeCallback(typeof(MLCameraCaptureCallbacks.OnCaptureFailedDelegate))]
         public static void OnCaptureFailedCallback(ref MLCameraResultExtras _, IntPtr __)
         {
-            Log.Error(LogGroup.MagicLeapCamera, "Magic Leap Camera Capture Failed");
+            Debug.LogError("Magic Leap Camera Capture Failed");
+            // Log.Error(LogGroup.MagicLeapCamera, "Magic Leap Camera Capture Failed");
         }
 
         [MonoPInvokeCallback(typeof(MLCameraCaptureCallbacks.OnCaptureAbortedDelegate))]
         public static void OnCaptureAbortedCallback(IntPtr _)
         {
-            Log.Error(LogGroup.MagicLeapCamera, "Magic Leap Camera Capture Aborted");
+            Debug.LogError("Magic Leap Camera Capture Aborted");
+            // Log.Error(LogGroup.MagicLeapCamera, "Magic Leap Camera Capture Aborted");
         }
 
         [MonoPInvokeCallback(typeof(MLCameraCaptureCallbacks.OnCaptureCompletedDelegate))]
         public static void OnCaptureCompletedCallback(ulong _, ref MLCameraResultExtras __, IntPtr ___)
         {
-            Log.Trace(LogGroup.MagicLeapCamera, "Magic Leap Camera Capture Completed");
+            Debug.Log("Magic Leap Camera Capture Completed");
+            // Log.Trace(LogGroup.MagicLeapCamera, "Magic Leap Camera Capture Completed");
         }
 
         [MonoPInvokeCallback(typeof(MLCameraCaptureCallbacks.OnImageBufferAvailableDelegate))]
@@ -222,7 +236,8 @@ namespace Plerion.Core.MagicLeap
             IntPtr ____
         )
         {
-            Log.Error(LogGroup.MagicLeapCamera, "Magic Leap Camera Image Buffer Available");
+            Debug.LogError("Magic Leap Camera Image Buffer Available");
+            // Log.Error(LogGroup.MagicLeapCamera, "Magic Leap Camera Image Buffer Available");
         }
 
         [MonoPInvokeCallback(typeof(MLCameraCaptureCallbacks.OnPreviewBufferAvailableDelegate))]
@@ -233,25 +248,29 @@ namespace Plerion.Core.MagicLeap
             IntPtr ____
         )
         {
-            Log.Error(LogGroup.MagicLeapCamera, "Magic Leap Camera Preview Buffer Available");
+            Debug.LogError("Magic Leap Camera Preview Buffer Available");
+            // Log.Error(LogGroup.MagicLeapCamera, "Magic Leap Camera Preview Buffer Available");
         }
 
         [MonoPInvokeCallback(typeof(MLCameraDeviceStatusCallbacks.OnDeviceStreamingDelegate))]
         public static void OnDeviceStreamingCallback(IntPtr _)
         {
-            Log.Info(LogGroup.MagicLeapCamera, "Magic Leap Camera Device Streaming");
+            Debug.Log("Magic Leap Camera Device Streaming");
+            // Log.Info(LogGroup.MagicLeapCamera, "Magic Leap Camera Device Streaming");
         }
 
         [MonoPInvokeCallback(typeof(MLCameraDeviceStatusCallbacks.OnDeviceIdleDelegate))]
         public static void OnDeviceIdleCallback(IntPtr _)
         {
-            Log.Info(LogGroup.MagicLeapCamera, "Magic Leap Camera Device Idle");
+            Debug.Log("Magic Leap Camera Device Idle");
+            // Log.Info(LogGroup.MagicLeapCamera, "Magic Leap Camera Device Idle");
         }
 
         [MonoPInvokeCallback(typeof(MLCameraDeviceStatusCallbacks.OnDeviceDisconnectedDelegate))]
         public static void OnDeviceDisconnectedCallback(DisconnectReason disconnectReason, IntPtr __)
         {
-            Log.Warn(LogGroup.MagicLeapCamera, $"Magic Leap Camera Device Disconnected: {disconnectReason}");
+            Debug.LogWarning($"Magic Leap Camera Device Disconnected: {disconnectReason}");
+            // Log.Warn(LogGroup.MagicLeapCamera, $"Magic Leap Camera Device Disconnected: {disconnectReason}");
 
             // async UniTask Reconnect()
             // {
@@ -270,7 +289,8 @@ namespace Plerion.Core.MagicLeap
         [MonoPInvokeCallback(typeof(MLCameraDeviceStatusCallbacks.OnDeviceErrorDelegate))]
         public static void OnDeviceErrorCallback(ErrorType errorType, IntPtr __)
         {
-            Log.Warn(LogGroup.MagicLeapCamera, $"Magic Leap Camera Device Error: {errorType}");
+            Debug.LogWarning($"Magic Leap Camera Device Error: {errorType}");
+            // Log.Warn(LogGroup.MagicLeapCamera, $"Magic Leap Camera Device Error: {errorType}");
         }
     }
 }

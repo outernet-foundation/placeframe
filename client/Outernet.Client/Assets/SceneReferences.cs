@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit.UI;
+using UnityEngine.XR.ARFoundation;
 
 namespace Outernet.Client
 {
@@ -20,6 +21,7 @@ namespace Outernet.Client
         public static XRUIInputModule InputModule => _instance._inputModule;
         public static GameObject XrOrigin => _instance._xrOrigin;
         public static GameObject ArSession => _instance._arSession;
+        public static ARAnchorManager AnchorManager => _instance._anchorManager;
 
         [SerializeField]
         private CesiumForUnity.CesiumGeoreference _cesiumGeoreference;
@@ -32,6 +34,9 @@ namespace Outernet.Client
 
         [SerializeField]
         private GameObject _arSession;
+
+        [SerializeField]
+        private ARAnchorManager _anchorManager;
 
         [SerializeField]
         private TilesetReference[] _tilesets;

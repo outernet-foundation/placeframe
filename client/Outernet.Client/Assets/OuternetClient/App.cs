@@ -17,10 +17,6 @@ using Cysharp.Threading.Tasks;
 using PlerionApiClient.Api;
 using Plerion.Core;
 
-#if UNITY_LUMIN
-using Plerion.VPS.MagicLeap;
-#endif
-
 namespace Outernet.Client
 {
     public class App : FofX.AppBase<ClientState>
@@ -47,6 +43,8 @@ namespace Outernet.Client
         private static bool internetReachable = false;
         private bool initialized = false;
 
+        private Texture2D outputTexture;
+
         protected override void InitializeState(ClientState state)
             => state.Initialize("root", new ObservableNodeContext(new ChannelLogger() { logGroup = LogGroup.Stateful }));
 
@@ -65,6 +63,36 @@ namespace Outernet.Client
             Application.wantsToQuit += WantsToQuit;
             ConnectionManager.HubConnectionRequested.EnqueueSet(true);
             ConnectionManager.RoomConnectionRequested.EnqueueSet("test");
+        }
+
+        private IEnumerable<TextureFormat> SupportedFormats()
+        {
+            foreach (var formatRaw in Enum.GetValues(typeof(TextureFormat)))
+            {
+                if ((int)formatRaw < 0)
+                    continue;
+
+                var format = (TextureFormat)(int)formatRaw;
+                if (SystemInfo.SupportsTextureFormat(format))
+                    yield return format;
+            }
+        }
+
+        private Texture2D GetOrCreateOutputTexture()
+        {
+            return null;
+            // if (outputTexture != null)
+            //     return outputTexture;
+
+            // // Debug.Log("Supported Texture Formats: \n" + string.Join('\n', SupportedFormats()));
+
+            // outputTexture = new Texture2D(3840, 2160);
+            // var output = (GameObject)Instantiate(Resources.Load("Output"));
+            // output.transform.parent = Camera.main.transform;
+            // output.transform.localPosition = new Vector3(0, 0, 1);
+            // output.GetComponent<MeshRenderer>().material.mainTexture = outputTexture;
+
+            // return outputTexture;
         }
 
         private void Start()

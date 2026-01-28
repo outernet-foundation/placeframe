@@ -1,4 +1,4 @@
-#if !UNITY_EDITOR && OUTERNET_MAGIC_LEAP
+#if !UNITY_EDITOR && MAGIC_LEAP
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR;

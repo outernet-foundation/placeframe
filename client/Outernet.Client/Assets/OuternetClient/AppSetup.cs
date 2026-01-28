@@ -203,10 +203,10 @@ namespace Outernet.Client
         {
 #if UNITY_EDITOR
             return new NoOpCameraProvider();
-#elif UNITY_LUMIN
-            return new MagicLeapCameraProvider();
+#elif MAGIC_LEAP
+            return new Plerion.Core.MagicLeap.MagicLeapCameraProvider();
 #elif UNITY_ANDROID
-            return new ARFoundationCameraProvider(Camera.main.GetComponent<UnityEngine.XR.ARFoundation.ARCameraManager>());
+            return new Plerion.Core.ARFoundation.CameraProvider(Camera.main.GetComponent<UnityEngine.XR.ARFoundation.ARCameraManager>(), SceneReferences.AnchorManager);
 #else
             return new NoOpCameraProvider();
 #endif

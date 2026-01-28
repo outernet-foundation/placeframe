@@ -99,15 +99,6 @@ namespace Outernet.Client
             _collider = GetComponent<BoxCollider>();
         }
 
-        private void LateUpdate()
-        {
-            if (props.position.value != transform.position)
-                props.position.ExecuteSet(transform.position, logLevel: FofX.LogLevel.None);
-
-            if (props.rotation.value != transform.rotation)
-                props.rotation.ExecuteSet(transform.rotation, logLevel: FofX.LogLevel.None);
-        }
-
         protected override void Bind()
         {
             AddBinding(
@@ -293,7 +284,11 @@ namespace Outernet.Client
 
             return Bindings.OnRelease(() => exhibit
                 .Close(props.position.value, props.rotation.value)
-                .ContinueWith(exhibit.Dispose)
+                .ContinueWith(() =>
+                {
+                    exhibit.Dispose();
+                    Destroy(exhibit.gameObject);
+                }).Forget()
             );
         }
     }

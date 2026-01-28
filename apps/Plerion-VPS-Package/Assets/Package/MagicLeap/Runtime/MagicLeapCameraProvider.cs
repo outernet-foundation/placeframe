@@ -1,56 +1,81 @@
-#if UNITY_LUMIN
+#if MAGIC_LEAP
+using System;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Plerion.Core;
+using PlerionApiClient.Model;
+using R3;
+using UnityEngine;
 
 namespace Plerion.Core.MagicLeap
 {
     public class MagicLeapCameraProvider : ICameraProvider
     {
-        public bool manageCameraEnabledState;
-        private TaskCompletionSource<byte[]> _taskCompletionSource;
+        private TaskCompletionSource<PinholeCameraConfig> _configTaskCompletionSource =
+            new TaskCompletionSource<PinholeCameraConfig>();
 
-        public MagicLeapCameraProvider(bool manageCameraEnabledState = true)
-        {
-            this.manageCameraEnabledState = manageCameraEnabledState;
-        }
-
-        private void HandleFrameReceived(byte[] cameraImage)
-        {
-            _taskCompletionSource?.TrySetResult(cameraImage);
-            _taskCompletionSource = null;
-            MagicLeapCamera.onFrameReceived -= HandleFrameReceived;
-        }
-
-        public void Start()
+        public MagicLeapCameraProvider()
         {
             if (!MagicLeapCamera.initialized)
                 MagicLeapCamera.Initialize();
 
-            if (manageCameraEnabledState)
-                MagicLeapCamera.Start().Forget();
+            MagicLeapCamera.Start()
+                .ContinueWith(() => MagicLeapCamera.onFrameReceived += CompleteCameraConfigTask)
+                .Forget();
         }
 
-        public void Stop()
+        private void CompleteCameraConfigTask(MLFrameData data)
         {
-            MagicLeapCamera.onFrameReceived -= HandleFrameReceived;
-
-            if (manageCameraEnabledState)
-                MagicLeapCamera.Stop();
-
-            _taskCompletionSource?.TrySetCanceled();
-            _taskCompletionSource = null;
+            MagicLeapCamera.onFrameReceived -= CompleteCameraConfigTask;
+            _configTaskCompletionSource.SetResult(
+                new PinholeCameraConfig(
+                    (int)data.intrinsics.Width,
+                    (int)data.intrinsics.Height,
+                    PinholeCameraConfig.OrientationEnum.BOTTOMLEFT,
+                    data.intrinsics.FocalLength.X,
+                    data.intrinsics.FocalLength.Y,
+                    data.intrinsics.PrincipalPoint.X,
+                    data.intrinsics.PrincipalPoint.Y
+                )
+            );
         }
 
-        public UniTask<byte[]> GetFrame()
+        public Observable<PinholeCameraConfig> CameraConfig()
         {
-            if (_taskCompletionSource == null)
-            {
-                _taskCompletionSource = new TaskCompletionSource<byte[]>();
-                MagicLeapCamera.onFrameReceived += HandleFrameReceived;
-            }
+            return Observable.FromAsync(
+                async cancellationToken =>
+                {
+                    cancellationToken.Register(() => _configTaskCompletionSource.TrySetCanceled(cancellationToken));
+                    return await _configTaskCompletionSource.Task;
+                }
+            );
+        }
 
-            return _taskCompletionSource.Task.AsUniTask();
+        public Observable<CameraFrame> Frames(float intervalSeconds, bool useCameraPoseAnchoring = false)
+        {
+            return Observable
+                .FromEvent<MLFrameData>(
+                    x => MagicLeapCamera.onFrameReceived += x,
+                    x => MagicLeapCamera.onFrameReceived -= x
+                )
+                .ThrottleLast(TimeSpan.FromSeconds(intervalSeconds))
+                .SelectAwait(async (frame, cancellationToken) => await UniTask.RunOnThreadPool(
+                    () => ImageConversion.EncodeArrayToJPG(
+                        frame.imageBytes,
+                        UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_UNorm,
+                        frame.intrinsics.Width,
+                        frame.intrinsics.Height,
+                        0,
+                        75
+                    ),
+                    cancellationToken: cancellationToken
+                ))
+                .Select(jpgBytes => new CameraFrame()
+                {
+                    ImageBytes = jpgBytes,
+                    CameraTranslationUnityWorldFromCamera = Camera.main.transform.position,
+                    CameraRotationUnityWorldFromCamera = Camera.main.transform.rotation
+                });
         }
     }
 }

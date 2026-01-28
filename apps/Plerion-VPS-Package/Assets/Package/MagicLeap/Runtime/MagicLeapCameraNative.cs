@@ -1,4 +1,4 @@
-#if UNITY_LUMIN
+#if MAGIC_LEAP
 using System;
 using System.Runtime.InteropServices;
 using UnityEngine.XR.MagicLeap;

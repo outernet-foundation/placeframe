@@ -3,7 +3,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-#if OUTERNET_MAGIC_LEAP && !UNITY_EDITOR
+#if MAGIC_LEAP && !UNITY_EDITOR
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit.UI;
 #endif
@@ -16,7 +16,7 @@ namespace Outernet.Client
         bool isDragging = false;
         BaseRaycaster raycaster;
 
-#if OUTERNET_MAGIC_LEAP && !UNITY_EDITOR
+#if MAGIC_LEAP && !UNITY_EDITOR
         TrackedDeviceModel trackedDeviceModel;
 #endif
 
@@ -27,7 +27,7 @@ namespace Outernet.Client
             isDragging = true;
             raycaster = eventData.pointerPressRaycast.module;
 
-#if OUTERNET_MAGIC_LEAP && !UNITY_EDITOR
+#if MAGIC_LEAP && !UNITY_EDITOR
             var inputModule = EventSystem.current.currentInputModule as XRUIInputModule;
             inputModule.GetTrackedDeviceModel(inputModule.GetInteractor(eventData.pointerId), out trackedDeviceModel);
 #endif
@@ -46,7 +46,7 @@ namespace Outernet.Client
         {
             if (!isDragging) return;
 
-#if OUTERNET_MAGIC_LEAP && !UNITY_EDITOR
+#if MAGIC_LEAP && !UNITY_EDITOR
             if (!trackedDeviceModel.select)
 #else
             if (Pointer.current == null || !Pointer.current.press.isPressed)
@@ -59,7 +59,7 @@ namespace Outernet.Client
                 return;
             }
 
-#if OUTERNET_MAGIC_LEAP && !UNITY_EDITOR
+#if MAGIC_LEAP && !UNITY_EDITOR
             if (trackedDeviceModel.raycastPoints.Count < 2) return;
 
             // Raycast from the tracked device to the plane defined by the scroll rect

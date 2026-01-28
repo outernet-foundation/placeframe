@@ -74,7 +74,7 @@ namespace Outernet.MapRegistrationTool
                         Key = "platform",
 #if UNITY_EDITOR
                         Value = "editor"
-#elif OUTERNET_MAGIC_LEAP
+#elif MAGIC_LEAP
                         Value = "magic-leap"
 #elif OUTERNET_ANDROID_MOBILE
                         Value = "android-mobile"
