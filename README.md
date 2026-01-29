@@ -8,17 +8,17 @@ Inspired by (and heavily borrowing from) the extremely useful [Hierarchical-Loca
 
 # About
 
-**Plerion** is an MIT-licensed fullstack solution for creating, serving, and accurately localizing against
+**Placeframe** is an MIT-licensed fullstack solution for creating, serving, and accurately localizing against
 **visual localization maps** of real-world environments.
 
 Localization is the process used by Augmented and Virtual Reality (AR/VR)
 systems to determine their precise position and orientation in space, with respect to a "map" that the system has
-of its environment. Using Plerion, arbitrary AR applications can create and share these maps,
+of its environment. Using Placeframe, arbitrary AR applications can create and share these maps,
 and therefore agree upon
 a shared reference frame, such that a piece of AR content that appears in a certain place in the real world for one user,
 appears there for every user.
 
-Plerion targets the same class of problems as products like Niantic’s visual positioning system (VPS), but is fully open-source, and was built from the ground up to be self-hostable.
+Placeframe targets the same class of problems as products like Niantic’s visual positioning system (VPS), but is fully open-source, and was built from the ground up to be self-hostable.
 
 ## Notable features:
 
@@ -83,7 +83,7 @@ Visiting your public url should now take you to a Swagger UI for the API.
 
 - In order to use the API, including via the Swagger UI, you will need to authorize yourself.
   - In the Swagger UI, click the "Authorize" button and then click the next "Authorize" button for the option called "oauth2 (OAuth2, authorizationCode with PKCE)"
-  - This repo's docker-compose uses a built in Keycloak container for OAuth2, with a minimal default realm configuration defined at `./docker/keycloak/plerion.json`
+  - This repo's docker-compose uses a built in Keycloak container for OAuth2, with a minimal default realm configuration defined at `./docker/keycloak/placeframe.json`
   - This realm define two static users that you can login as; these two users are treated as separate tenants, enforced by Postgres RLS, and cannot see each others data via the API
     - Default username 1: user
     - Default password 1: password
@@ -170,7 +170,7 @@ uv run generate-clients \
 - Configure API url
   - Open `Assets/Scenes/Main.unity`
   - Open **App** object in scene hierarchy
-  - Fill in "Plerion Base URL" in the inspector to match your public URL from earlier
+  - Fill in "Placeframe Base URL" in the inspector to match your public URL from earlier
   - (Optional) Tick the "Login Automatically" checkbox and fill in the Username and Passowrd (see **Verify** section above for where those credentials come from)
 - Switch platorm to Android Mobile
 - Build `Assets/Scenes/Main.unity`

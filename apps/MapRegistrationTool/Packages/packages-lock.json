@@ -42,14 +42,14 @@
       "dependencies": {},
       "hash": "34432703a177c97631a4eb1d908f086037c67969"
     },
-    "com.plerion.api-client": {
-      "version": "file:../../../packages/generated/csharp/api-client/src/PlerionApiClient",
+    "com.placeframe.api-client": {
+      "version": "file:../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
       "depth": 0,
       "source": "local",
       "dependencies": {}
     },
-    "com.plerion.vps": {
-      "version": "file:../../../apps/Plerion-VPS-Package/Assets/Package/Core",
+    "com.placeframe.vps": {
+      "version": "file:../../../packages/unity/Placeframe/Assets/Package/Core",
       "depth": 0,
       "source": "local",
       "dependencies": {

@@ -1,0 +1,22 @@
+{
+  "name": "Placeframe.Core.MagicLeap",
+  "rootNamespace": "",
+  "references": [
+    "MagicLeap.SDK",
+    "Placeframe.Core",
+    "UniTask",
+    "PlaceframeApiClient"
+  ],
+  "includePlatforms": [
+    "Android",
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

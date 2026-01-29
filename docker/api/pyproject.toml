@@ -1,5 +1,5 @@
 [project]
-name = "plerion-api"
+name = "placeframe-api"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -8,7 +8,7 @@ dependencies = [
     "common",
     "datamodels",
     "core",
-    "plerion-localizer-client",
+    "placeframe-localizer-client",
     "fastapi>=0.116.1",
     "uvicorn[standard]>=0.35.0",
     "psycopg[binary]>=3.2.10",

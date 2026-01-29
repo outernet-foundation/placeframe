@@ -1,4 +1,4 @@
-name: plerion
+name: placeframe
 
 volumes:
   uv_cache:
@@ -129,7 +129,7 @@ services:
     environment:
       DOCKER_HOST: unix:///var/run/docker.sock
       BACKEND: docker
-      CLOUDBEAVER_SERVICE_ID: plerion-cloudbeaver-1
+      CLOUDBEAVER_SERVICE_ID: placeframe-cloudbeaver-1
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_ADMIN_USER: ${POSTGRES_ADMIN_USER}
       POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
@@ -316,7 +316,7 @@ services:
         - type=local,src=${HOME}/.buildx-cache/reconstructor-${TORCH_DEVICE}
       cache_to:
         - type=local,dest=${HOME}/.buildx-cache/reconstructor-${TORCH_DEVICE},mode=max
-    image: plerion-reconstructor-cuda
+    image: placeframe-reconstructor-cuda
     volumes:
       - auth_data:/run/secrets:ro
     gpus: all
@@ -348,7 +348,7 @@ services:
         - type=local,src=${HOME}/.buildx-cache/reconstructor-${TORCH_DEVICE}
       cache_to:
         - type=local,dest=${HOME}/.buildx-cache/reconstructor-${TORCH_DEVICE},mode=max
-    image: plerion-reconstructor-rocm
+    image: placeframe-reconstructor-rocm
     volumes:
       - auth_data:/run/secrets:ro
     devices:
@@ -385,7 +385,7 @@ services:
         - type=local,src=${HOME}/.buildx-cache/localizer-cuda
       cache_to:
         - type=local,dest=${HOME}/.buildx-cache/localizer-cuda,mode=max
-    image: plerion-localizer-cuda
+    image: placeframe-localizer-cuda
     gpus: all
     expose:
       - "8000"
@@ -410,7 +410,7 @@ services:
         - type=local,src=${HOME}/.buildx-cache/localizer-rocm
       cache_to:
         - type=local,dest=${HOME}/.buildx-cache/localizer-rocm,mode=max
-    image: plerion-localizer-rocm
+    image: placeframe-localizer-rocm
     devices:
       - /dev/kfd:/dev/kfd
       - /dev/dri:/dev/dri

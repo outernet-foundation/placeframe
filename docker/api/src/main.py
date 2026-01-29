@@ -21,7 +21,7 @@ from .settings import get_settings
 if environ.get("CODEGEN"):
     middleware: list[partial[AuthMiddleware]] = []
 
-    openapi_config = OpenAPIConfig("Plerion", "0.1.0", servers=[Server(url="http://localhost:8000")])
+    openapi_config = OpenAPIConfig("Placeframe", "0.1.0", servers=[Server(url="http://localhost:8000")])
 
 else:
     settings = get_settings()
@@ -29,7 +29,7 @@ else:
     middleware = [partial(AuthMiddleware, exclude=[r"^/$", r"^/health/?$", r"^/schema(?:/.*)?$"])]
 
     openapi_config = OpenAPIConfig(
-        "Plerion",
+        "Placeframe",
         "0.1.0",
         servers=[Server(url=str(settings.public_url))],
         security=[{"oauth2": ["openid"]}, {"bearerAuth": []}],

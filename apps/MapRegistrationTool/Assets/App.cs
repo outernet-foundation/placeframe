@@ -3,8 +3,8 @@ using System.Linq;
 using System.Net.Http;
 using Cysharp.Threading.Tasks;
 using FofX.Stateful;
-using Plerion.Core;
-using PlerionApiClient.Api;
+using Placeframe.Core;
+using PlaceframeApiClient.Api;
 using UnityEngine;
 
 namespace Outernet.MapRegistrationTool
@@ -13,9 +13,9 @@ namespace Outernet.MapRegistrationTool
     {
         public static DefaultApi API { get; private set; }
 
-        public static string plerionApiUrl;
-        public static string plerionAuthTokenUrl;
-        public static string plerionAuthAudience;
+        public static string placeframeApiUrl;
+        public static string placeframeAuthTokenUrl;
+        public static string placeframeAuthAudience;
         public static string serverPrefix;
 
         private bool _unsavedChangesIgnored = false;
@@ -28,9 +28,9 @@ namespace Outernet.MapRegistrationTool
             API = new DefaultApi(
                 new HttpClient(new AuthHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
-                    BaseAddress = new Uri(plerionApiUrl),
+                    BaseAddress = new Uri(placeframeApiUrl),
                 },
-                plerionApiUrl
+                placeframeApiUrl
             );
 
             Application.wantsToQuit += WantsToQuit;

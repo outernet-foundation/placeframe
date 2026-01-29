@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 using FofX.Stateful;
-using Plerion.Core;
+using Placeframe.Core;
 namespace Outernet.MapRegistrationTool
 {
     public class SceneTransformGizmoManager : Control<SceneTransformGizmoManager.Props>

@@ -15,9 +15,9 @@ namespace Outernet.MapRegistrationTool
         public LogLevel logLevel = LogLevel.Info;
         public LogLevel stackTraceLevel = LogLevel.Warn;
         public string dotEnvPath;
-        public string plerionApiUrl;
-        public string plerionAuthTokenUrl;
-        public string plerionAuthAudience;
+        public string placeframeApiUrl;
+        public string placeframeAuthTokenUrl;
+        public string placeframeAuthAudience;
         public string username;
         public string password;
         public bool loginAutomatically;
@@ -86,9 +86,9 @@ namespace Outernet.MapRegistrationTool
                         )
                     );
 
-                    ApplyEnvironmentVariable("PUBLIC_URL", ref _instance.plerionApiUrl);
-                    ApplyEnvironmentVariable("AUTH_TOKEN_URL", ref _instance.plerionAuthTokenUrl);
-                    ApplyEnvironmentVariable("AUTH_AUDIENCE", ref _instance.plerionAuthAudience);
+                    ApplyEnvironmentVariable("PUBLIC_URL", ref _instance.placeframeApiUrl);
+                    ApplyEnvironmentVariable("AUTH_TOKEN_URL", ref _instance.placeframeAuthTokenUrl);
+                    ApplyEnvironmentVariable("AUTH_AUDIENCE", ref _instance.placeframeAuthAudience);
                 }
                 catch (Exception exception)
                 {

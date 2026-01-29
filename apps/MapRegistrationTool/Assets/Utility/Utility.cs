@@ -12,12 +12,12 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using Cysharp.Threading.Tasks;
-using PlerionApiClient.Model;
+using PlaceframeApiClient.Model;
 
 using Vector3 = UnityEngine.Vector3;
 using Quaternion = UnityEngine.Quaternion;
 using Color = UnityEngine.Color;
-using Plerion.Core;
+using Placeframe.Core;
 
 namespace Outernet.MapRegistrationTool
 {

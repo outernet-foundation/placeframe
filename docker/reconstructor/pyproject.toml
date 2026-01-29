@@ -1,5 +1,5 @@
 [project]
-name = "reconstructor"
+name = "placeframe-reconstructor"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "core",
     "common",
-    "plerion-api-client",
+    "placeframe-api-client",
     "numpy>=2.0",
     "scipy>=1.7",
     "pycolmap>=3.13.0",

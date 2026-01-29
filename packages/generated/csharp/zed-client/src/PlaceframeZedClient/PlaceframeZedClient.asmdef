@@ -1,0 +1,17 @@
+{
+  "name": "PlaceframeZedClient",
+  "references": [
+    "Newtonsoft.Json",
+    "Polly",
+    "JsonSubTypes"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

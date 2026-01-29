@@ -18,7 +18,7 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql.sqltypes import Enum as SAEnum
 from typer import run
 
-DATABASE = "plerion"
+DATABASE = "placeframe"
 DATAMODELS_PATH = Path(__file__).parents[3] / "packages" / "generated" / "python" / "datamodels"
 
 

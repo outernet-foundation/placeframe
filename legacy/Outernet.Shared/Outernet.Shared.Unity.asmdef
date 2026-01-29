@@ -1,0 +1,17 @@
+{
+  "name": "Outernet.Shared.Unity",
+  "references": [
+    "MessagePack",
+    "MessagePack.Annotations",
+    "MagicOnion.Abstractions",
+    "PlaceframeApiClient"
+  ],
+  "optionalUnityReferences": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": []
+}

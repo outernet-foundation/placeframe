@@ -1,0 +1,20 @@
+{
+  "name": "Placeframe.Core",
+  "rootNamespace": "",
+  "references": [
+    "Unity.Mathematics",
+    "UniTask",
+    "R3.Unity",
+    "PlaceframeApiClient",
+    "SharpZipLib"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

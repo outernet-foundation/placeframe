@@ -1,0 +1,14 @@
+{
+  "name": "com.placeframe.vps.magicleap",
+  "version": "1.0.0",
+  "displayName": "Placeframe - Magic Leap",
+  "description": "Magic Leap camera support for Placeframe",
+  "unity": "6000.0",
+  "author": {
+    "name": "Elliot Pjecha",
+    "email": "epjecha@gmail.com"
+  },
+  "dependencies": {
+    "com.cysharp.unitask": "2.5.10"
+  }
+}

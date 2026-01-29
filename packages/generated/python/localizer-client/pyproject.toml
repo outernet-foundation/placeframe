@@ -1,5 +1,5 @@
 [project]
-name = "plerion_localizer_client"
+name = "placeframe_localizer_client"
 version = "0.1.0"
 description = "Localizer"
 authors = [
@@ -40,7 +40,7 @@ extension-pkg-whitelist = "pydantic"
 
 [tool.mypy]
 files = [
-  "plerion_localizer_client",
+  "placeframe_localizer_client",
   #"test",  # auto-generated tests
   "tests", # hand-written tests
 ]
@@ -78,7 +78,7 @@ disallow_any_generics = true
 
 [[tool.mypy.overrides]]
 module = [
-  "plerion_localizer_client.configuration",
+  "placeframe_localizer_client.configuration",
 ]
 warn_unused_ignores = true
 strict_equality = true

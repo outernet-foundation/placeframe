@@ -4,11 +4,11 @@ from __future__ import annotations
 import json
 from typing import Any, Sequence, cast
 
-from plerion_api_client.models.pinhole_camera_config import PinholeCameraConfig
-from plerion_api_client.models.point_cloud_point import PointCloudPoint
-from plerion_api_client.models.quaternion import Quaternion
-from plerion_api_client.models.transform import Transform
-from plerion_api_client.models.vector3 import Vector3
+from placeframe_api_client.models.pinhole_camera_config import PinholeCameraConfig
+from placeframe_api_client.models.point_cloud_point import PointCloudPoint
+from placeframe_api_client.models.quaternion import Quaternion
+from placeframe_api_client.models.transform import Transform
+from placeframe_api_client.models.vector3 import Vector3
 from scipy.spatial.transform import Rotation
 
 
@@ -337,12 +337,8 @@ def _frustum_coords(pose: Transform, intrinsics: PinholeCameraConfig, size: floa
 
     R = cast(
         list[list[float]],
-        Rotation.from_quat([
-            float(pose.rotation.x),
-            float(pose.rotation.y),
-            float(pose.rotation.z),
-            float(pose.rotation.w),
-        ])
+        Rotation
+        .from_quat([float(pose.rotation.x), float(pose.rotation.y), float(pose.rotation.z), float(pose.rotation.w)])
         .as_matrix()
         .tolist(),
     )
@@ -395,12 +391,8 @@ def _axes_gizmo_coords(
 
     R = cast(
         list[list[float]],
-        Rotation.from_quat([
-            float(pose.rotation.x),
-            float(pose.rotation.y),
-            float(pose.rotation.z),
-            float(pose.rotation.w),
-        ])
+        Rotation
+        .from_quat([float(pose.rotation.x), float(pose.rotation.y), float(pose.rotation.z), float(pose.rotation.w)])
         .as_matrix()
         .tolist(),
     )

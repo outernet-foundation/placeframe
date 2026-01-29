@@ -42,7 +42,7 @@ CREATE POLICY reconstructions_rls_policy ON reconstructions
 -- Allow orchestrator role to bypass RLS for all operations
 CREATE POLICY reconstructions_orchestrator_rls_policy ON reconstructions
   FOR ALL
-    TO plerion_orchestration_user
+    TO placeframe_orchestration_user
     USING (true)
     WITH CHECK (true);
 
