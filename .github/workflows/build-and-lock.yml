@@ -24,6 +24,19 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+        # --- ADD THIS BLOCK ---
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+      # ----------------------
+
       # 1. Setup Python & UV
       - name: Setup UV
         uses: astral-sh/setup-uv@v5
