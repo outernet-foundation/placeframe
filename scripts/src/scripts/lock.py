@@ -287,9 +287,20 @@ def lock(
 
         # Priority 3: Must resolve remotely (First run or Upgrade)
         # We HAVE to do this or 'docker compose up' will crash on missing variable.
-        digest = _get_remote_digest(image_ref)
-        current_state[lock_var] = f"{image_ref}@{digest}"
-        print(f"  + {name} (remote) -> {digest[:12]}")
+        try:
+            digest = _get_remote_digest(image_ref)
+            current_state[lock_var] = f"{image_ref}@{digest}"
+            print(f"  + {name} (remote) -> {digest[:12]}")
+        except RuntimeError:
+            # Fallback for Bootstrap Scenario:
+            # If the image doesn't exist remotely (e.g. rename) and we aren't building it
+            # (e.g. wrong hardware profile), we must set SOMETHING or Compose crashes.
+            if name not in target_images:
+                print(f"  [WARN] Could not resolve {name} (remote). Using insecure tag to satisfy Compose.")
+                current_state[lock_var] = image_ref
+            else:
+                # If we targeted it (tried to build it) and it failed, we shouldn't mask the error.
+                raise
 
     # 5. Write Final Lock
     if mode == "ci":

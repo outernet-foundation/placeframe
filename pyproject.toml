@@ -50,8 +50,8 @@ pybind11-stubgen = { git = "https://github.com/sarlinpe/pybind11-stubgen", rev =
 [tool.basedpyright]
 typeCheckingMode = "strict"
 include = [
-    "capture-app/**/src/**/*.py",
-    "capture-app/**/src/**/*.pyi",
+    "zed/**/src/**/*.py",
+    "zed/**/src/**/*.pyi",
     "docker/**/src/**/*.py",
     "docker/**/src/**/*.pyi",
     "infrastructure/**/src/**/*.py",

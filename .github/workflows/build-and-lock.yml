@@ -1,0 +1,75 @@
+name: Build and Lock
+
+on:
+  push:
+    branches:
+      - main
+      - feature/compose-dev-yml # Included for your current testing
+    paths-ignore:
+      - ".env.lock" # Prevent infinite CI loops
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write # Required to commit the lockfile
+  packages: write # Required to push to GHCR
+  pull-requests: write # Required to open/update the PR
+
+jobs:
+  build-and-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. Setup Python & UV
+      - name: Setup UV
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            **/pyproject.toml
+            **/uv.lock
+
+      # 2. Setup Docker & BuildKit
+      # We need the 'docker-container' driver to use the GHA cache backend
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 3. Execute the "Compiler"
+      # This builds all images, pushes them to GHCR, and updates .env.lock
+      - name: Build and Lock
+        run: uv run lock --mode ci
+        env:
+          # GITHUB_TOKEN is implicitly required by buildx for GHA cache authentication
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 4. GitOps: Open the "Release Candidate" PR
+      - name: Create/Update Lockfile PR
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update shared contract (.env.lock) [skip ci]"
+          title: "🚀 Deploy: Update Lockfile"
+          body: |
+            ### 🤖 Automated Deployment Artifact
+
+            This PR updates the shared contract `.env.lock` with new image digests built from `main`.
+
+            **To Deploy:** Merge this PR.
+            **To Test:** Pull this branch and run `uv run up --official`.
+          branch: bot/update-lock
+          base: main
+          delete-branch: true
+          signoff: true
