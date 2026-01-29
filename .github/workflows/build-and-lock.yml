@@ -63,10 +63,25 @@ jobs:
       # 3. Execute the "Compiler"
       # This builds all images, pushes them to GHCR, and updates .env.lock
       - name: Build and Lock
-        run: uv run lock --mode ci
         env:
-          # GITHUB_TOKEN is implicitly required by buildx for GHA cache authentication
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "::group::Phase 1: Base & CUDA Images"
+          # Build Base + CUDA images. Pushes to registry. Updates lockfile.
+          uv run lock --mode ci --gpu cuda
+          echo "::endgroup::"
+
+          echo "::group::Cleanup"
+          # AGGRESSIVE CLEANUP: Remove build cache mounts (where UV stores wheels)
+          # This frees the ~10GB used by the CUDA wheels before we download ROCm wheels
+          docker buildx prune --all --force --filter "type=exec.cachemount"
+          docker system prune --all --force 
+          echo "::endgroup::"
+
+          echo "::group::Phase 2: ROCm Images"
+          # Build ROCm images. Reads existing lockfile, adds ROCm digests, pushes.
+          uv run lock --mode ci --gpu rocm
+          echo "::endgroup::"
 
       # 4. GitOps: Open the "Release Candidate" PR
       - name: Create/Update Lockfile PR

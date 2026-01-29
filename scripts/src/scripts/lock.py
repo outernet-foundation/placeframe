@@ -113,7 +113,7 @@ def _resolve_targets(targets: list[str] | None, group: str | None, mode: Mode, g
 
     if group and group != "base":
         profile = group
-    elif mode == "ci":
+    elif mode == "ci" and gpu == "auto":
         profile = "all"
     elif gpu != "auto":
         profile = gpu
