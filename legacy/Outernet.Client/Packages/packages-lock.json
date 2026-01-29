@@ -78,7 +78,7 @@
       "dependencies": {}
     },
     "com.plerion.vps": {
-      "version": "file:../../../apps/Plerion-VPS-Package/Assets/Package/Core",
+      "version": "file:../../../packages/unity/Placeframe/Assets/Package/Core",
       "depth": 0,
       "source": "local",
       "dependencies": {
@@ -90,7 +90,7 @@
       }
     },
     "com.plerion.vps.arfoundation": {
-      "version": "file:../../../apps/Plerion-VPS-Package/Assets/Package/ARFoundation",
+      "version": "file:../../../packages/unity/Placeframe/Assets/Package/ARFoundation",
       "depth": 0,
       "source": "local",
       "dependencies": {
@@ -100,7 +100,7 @@
       }
     },
     "com.plerion.vps.magicleap": {
-      "version": "file:../../../apps/Plerion-VPS-Package/Assets/Package/MagicLeap",
+      "version": "file:../../../packages/unity/Placeframe/Assets/Package/MagicLeap",
       "depth": 0,
       "source": "local",
       "dependencies": {
