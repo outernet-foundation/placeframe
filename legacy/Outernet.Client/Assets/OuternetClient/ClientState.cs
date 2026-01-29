@@ -1,13 +1,10 @@
 using System;
 using System.Linq;
-
+using FofX.Stateful;
+using Outernet.Client.AuthoringTools;
+using Placeframe.Core;
 using Unity.Mathematics;
 using UnityEngine;
-
-using FofX.Stateful;
-
-using Outernet.Client.AuthoringTools;
-using Plerion.Core;
 
 namespace Outernet.Client
 {
@@ -18,7 +15,8 @@ namespace Outernet.Client
         public ObservableDictionary<Guid, TransformState> transforms { get; private set; }
         public ObservableDictionary<Guid, LayerState> layers { get; private set; }
 
-        public ObservablePrimitive<double4x4> ecefToLocalMatrix { get; private set; } = new ObservablePrimitive<double4x4>(double4x4.identity);
+        public ObservablePrimitive<double4x4> ecefToLocalMatrix { get; private set; } =
+            new ObservablePrimitive<double4x4>(double4x4.identity);
         public ObservablePrimitive<double4x4> localToEcefMatrix { get; private set; }
 
         public AuthoringToolsState authoringTools { get; private set; }
@@ -64,25 +62,29 @@ namespace Outernet.Client
         // This is "instance" stuff? maybe it should be somewhere else?
         [HideInInspectorUI]
         public ObservableSet<Guid> hoveringUsers { get; private set; }
+
         [HideInInspectorUI]
         public ObservablePrimitive<Guid> interactingUser { get; private set; }
 
         [HideInInspectorUI]
         public ObservablePrimitive<bool> exhibitOpen { get; private set; }
+
         [HideInInspectorUI]
         public ObservablePrimitive<double3> exhibitPosition { get; private set; }
+
         [HideInInspectorUI]
         public ObservablePrimitive<Quaternion> exhibitRotation { get; private set; }
+
         [HideInInspectorUI]
         public ObservablePrimitive<Vector2> exhibitPanelDimensions { get; private set; }
+
         [HideInInspectorUI]
         public ObservablePrimitive<float> exhibitPanelScrollPosition { get; private set; }
 
         [HideInInspectorUI]
         public ObservablePrimitive<bool> visible { get; private set; }
 
-        void IKeyedObservableNode<Guid>.AssignKey(Guid key)
-            => id = key;
+        void IKeyedObservableNode<Guid>.AssignKey(Guid key) => id = key;
 
         private ClientState _clientState => root as ClientState;
 
@@ -109,8 +111,7 @@ namespace Outernet.Client
         public ObservablePrimitive<string> name { get; private set; }
         public ObservablePrimitive<int?> lighting { get; private set; }
 
-        void IKeyedObservableNode<Guid>.AssignKey(Guid key)
-            => uuid = key;
+        void IKeyedObservableNode<Guid>.AssignKey(Guid key) => uuid = key;
     }
 
     public class TransformState : ObservableObject, IKeyedObservableNode<Guid>
@@ -123,8 +124,7 @@ namespace Outernet.Client
         [InspectorType(typeof(ECEFRotationInspector), LabelType.Adaptive)]
         public ObservablePrimitive<Quaternion> rotation { get; private set; }
 
-        void IKeyedObservableNode<Guid>.AssignKey(Guid key)
-            => id = key;
+        void IKeyedObservableNode<Guid>.AssignKey(Guid key) => id = key;
     }
 
     public class LayerState : ObservableObject, IKeyedObservableNode<Guid>
@@ -132,7 +132,6 @@ namespace Outernet.Client
         public Guid id { get; private set; }
         public ObservablePrimitive<string> layerName { get; private set; }
 
-        void IKeyedObservableNode<Guid>.AssignKey(Guid key)
-            => id = key;
+        void IKeyedObservableNode<Guid>.AssignKey(Guid key) => id = key;
     }
 }

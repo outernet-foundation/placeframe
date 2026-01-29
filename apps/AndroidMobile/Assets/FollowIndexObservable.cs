@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using ObserveThing;
 
-namespace PlerionClient.Client
+namespace Placeframe.Client
 {
     public class FollowIndexObservable<T> : IValueObservable<int>
     {
@@ -14,8 +14,8 @@ namespace PlerionClient.Client
             this.index = index;
         }
 
-        public System.IDisposable Subscribe(IObserver<IValueEventArgs<int>> observer)
-            => new Instance(this, list, index, observer);
+        public System.IDisposable Subscribe(IObserver<IValueEventArgs<int>> observer) =>
+            new Instance(this, list, index, observer);
 
         private class Instance : System.IDisposable
         {
@@ -25,7 +25,12 @@ namespace PlerionClient.Client
             private ValueEventArgs<int> _args = new ValueEventArgs<int>();
             private bool _disposed = false;
 
-            public Instance(IObservable source, IListObservable<T> list, int index, IObserver<IValueEventArgs<int>> observer)
+            public Instance(
+                IObservable source,
+                IListObservable<T> list,
+                int index,
+                IObserver<IValueEventArgs<int>> observer
+            )
             {
                 _index = index;
                 _observer = observer;

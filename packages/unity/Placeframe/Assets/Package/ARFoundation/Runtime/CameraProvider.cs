@@ -2,7 +2,7 @@ using System;
 using System.Buffers;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using PlerionApiClient.Model;
+using PlaceframeApiClient.Model;
 using R3;
 using Unity.Collections;
 using UnityEngine;
@@ -12,7 +12,7 @@ using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
 using TrackingState = UnityEngine.XR.ARSubsystems.TrackingState;
 
-namespace Plerion.Core.ARFoundation
+namespace Placeframe.Core.ARFoundation
 {
     public class CameraProvider : ICameraProvider
     {

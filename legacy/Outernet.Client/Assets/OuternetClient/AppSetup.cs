@@ -1,11 +1,10 @@
-using UnityEngine;
-using Outernet.Client.Location;
 using Cysharp.Threading.Tasks;
 using FofX.Serialization;
-using Unity.Mathematics;
+using Outernet.Client.Location;
+using Placeframe.Core;
 using SimpleJSON;
-using Plerion.Core;
-
+using Unity.Mathematics;
+using UnityEngine;
 #if AUTHORING_TOOLS_ENABLED
 using UnityEngine.InputSystem.UI;
 #endif
@@ -46,11 +45,11 @@ namespace Outernet.Client
 #endif
 
             UnityEnv env = UnityEnv.GetOrCreateInstance();
-            App.apiUrl = env.plerionApiUrl;
+            App.apiUrl = env.placeframeApiUrl;
 
             Auth.Initialize(
-                env.plerionAuthTokenUrl,
-                env.plerionAuthAudience,
+                env.placeframeAuthTokenUrl,
+                env.placeframeAuthAudience,
                 x => Log.Debug(LogGroup.Default, x),
                 x => Log.Warn(LogGroup.Default, x),
                 x => Log.Error(LogGroup.Default, x)
@@ -103,9 +102,9 @@ namespace Outernet.Client
 
             VisualPositioningSystem.Initialize(
                 GetProvider(),
-                env.plerionApiUrl,
-                env.plerionAuthTokenUrl,
-                env.plerionAuthAudience,
+                env.placeframeApiUrl,
+                env.placeframeAuthTokenUrl,
+                env.placeframeAuthAudience,
                 x => Log.Debug(LogGroup.Default, x),
                 x => Log.Warn(LogGroup.Default, x),
                 x => Log.Error(LogGroup.Default, x)
@@ -204,9 +203,12 @@ namespace Outernet.Client
 #if UNITY_EDITOR
             return new NoOpCameraProvider();
 #elif MAGIC_LEAP
-            return new Plerion.Core.MagicLeap.MagicLeapCameraProvider();
+            return new Placeframe.Core.MagicLeap.MagicLeapCameraProvider();
 #elif UNITY_ANDROID
-            return new Plerion.Core.ARFoundation.CameraProvider(Camera.main.GetComponent<UnityEngine.XR.ARFoundation.ARCameraManager>(), SceneReferences.AnchorManager);
+            return new Placeframe.Core.ARFoundation.CameraProvider(
+                Camera.main.GetComponent<UnityEngine.XR.ARFoundation.ARCameraManager>(),
+                SceneReferences.AnchorManager
+            );
 #else
             return new NoOpCameraProvider();
 #endif

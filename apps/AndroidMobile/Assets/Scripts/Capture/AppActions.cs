@@ -2,16 +2,19 @@ using System;
 using System.Collections.Generic;
 using FofX.Stateful;
 
-namespace PlerionClient.Client
+namespace Placeframe.Client
 {
     public class SetCaptureStatusAction : ObservableNodeAction<AppState>
     {
-        private static Dictionary<CaptureStatus, CaptureStatus> _validTransitions = new Dictionary<CaptureStatus, CaptureStatus>()
+        private static Dictionary<CaptureStatus, CaptureStatus> _validTransitions = new Dictionary<
+            CaptureStatus,
+            CaptureStatus
+        >()
         {
-            { CaptureStatus.Idle,  CaptureStatus.Starting  },
-            { CaptureStatus.Starting,  CaptureStatus.Capturing  },
-            { CaptureStatus.Capturing,  CaptureStatus.Stopping  },
-            { CaptureStatus.Stopping,  CaptureStatus.Idle  }
+            { CaptureStatus.Idle, CaptureStatus.Starting },
+            { CaptureStatus.Starting, CaptureStatus.Capturing },
+            { CaptureStatus.Capturing, CaptureStatus.Stopping },
+            { CaptureStatus.Stopping, CaptureStatus.Idle },
         };
 
         private CaptureStatus _status;

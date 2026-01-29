@@ -9,6 +9,7 @@ from typer import Option, Typer
 
 from .downgrade_openapi_schema import downgrade_openapi_3_1_to_3_0
 
+ROOT_NAME = "placeframe"
 REPO_ROOT = Path(__file__).parents[3]
 OPENAPI_GENERATOR_PATH = Path(__file__).parents[2] / "openapi-generator"
 CONFIGS_PATH = OPENAPI_GENERATOR_PATH / "configs"
@@ -89,9 +90,11 @@ def _generate_client(openapi_spec: str, project: str, client: str):
     client_config_json = json.loads((CONFIGS_PATH / f"{client}.json").read_text(encoding="utf-8"))
     client_package_base_name = f"{project.split('/')[-1]}-client"
     client_path = Path("packages/generated") / client / f"{client_package_base_name}"
-    client_package_name_dashed = f"plerion-{client_package_base_name}"
+    client_package_name_dashed = f"{ROOT_NAME}-{client_package_base_name}"
     client_package_name_underscored = client_package_name_dashed.replace("-", "_")
-    client_package_name_camel = f"Plerion{''.join(part.capitalize() for part in client_package_base_name.split('-'))}"
+    client_package_name_camel = (
+        f"{ROOT_NAME.capitalize()}{''.join(part.capitalize() for part in client_package_base_name.split('-'))}"
+    )
 
     if client == "csharp":
         client_config_json["additionalProperties"]["packageName"] = client_package_name_camel
@@ -141,7 +144,7 @@ def _generate_client(openapi_spec: str, project: str, client: str):
             (temporary_directory / "src" / client_package_name_camel / "package.json").write_text(
                 json.dumps(
                     {
-                        "name": f"com.plerion.{client_package_base_name}",
+                        "name": f"com.{ROOT_NAME}.{client_package_base_name}",
                         "displayName": client_package_name_camel,
                         "version": "0.0.1",
                     },

@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace Plerion.Core
+namespace Placeframe.Core
 {
     [CustomEditor(typeof(Anchor))]
     public class AnchorInspector : Editor

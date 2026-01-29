@@ -1,6 +1,6 @@
 using Unity.Mathematics;
 
-namespace Plerion.Core
+namespace Placeframe.Core
 {
     public static class Double4x4
     {
@@ -48,10 +48,10 @@ namespace Plerion.Core
         public static double3x3 RotationMatrix(this double4x4 matrix) =>
             new double3x3(matrix.c0.xyz, matrix.c1.xyz, matrix.c2.xyz);
 
-        public static double3 ToDouble3(this PlerionApiClient.Model.Float3 vector3) =>
+        public static double3 ToDouble3(this PlaceframeApiClient.Model.Float3 vector3) =>
             new double3(vector3.X, vector3.Y, vector3.Z);
 
-        public static quaternion ToMathematicsQuaternion(this PlerionApiClient.Model.Float4 quaternion) =>
+        public static quaternion ToMathematicsQuaternion(this PlaceframeApiClient.Model.Float4 quaternion) =>
             new quaternion((float)quaternion.X, (float)quaternion.Y, (float)quaternion.Z, (float)quaternion.W);
     }
 

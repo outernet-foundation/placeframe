@@ -1,11 +1,11 @@
 using System.Buffers;
 using MessagePack;
 using Outernet.Shared;
-using PlerionApiClient.Model;
+using PlaceframeApiClient.Model;
 
 namespace Outernet.Server
 {
-    class Room(SyncedStateSystem syncedStateSystem, string roomID, PlerionAPI plerionApi)
+    class Room(SyncedStateSystem syncedStateSystem, string roomID, PlaceframeAPI placeframeApi)
     {
         public string roomID = roomID;
         public Dictionary<Guid, Client> clients = [];
@@ -91,7 +91,7 @@ namespace Outernet.Server
             {
                 fetchNodesTaskCompletionSource = new TaskCompletionSource<List<NodeRead>>();
 
-                plerionApi
+                placeframeApi
                     .GetNodes(
                         roomState
                             .users.Values.Select(user => user.geoPose.ecefPosition.Value)
@@ -99,7 +99,8 @@ namespace Outernet.Server
                         roomState.settingsNodeFetchRadius.Value,
                         roomState.settingsNodeFetchLimit.Value
                     )
-                    .ContinueWith(task => {
+                    .ContinueWith(task =>
+                    {
                         fetchNodesTaskCompletionSource.SetResult(task.Result);
                     });
             }

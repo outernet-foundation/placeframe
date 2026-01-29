@@ -1,5 +1,5 @@
 [project]
-name = "plerion_workspace"
+name = "placeframe"
 version = "0.0.1"
 requires-python = ">=3.13"
 dependencies = []
@@ -10,7 +10,7 @@ dev = ["scripts", "deptry>=0.24.0", "ruff>=0.14.11"]
 
 [tool.uv.workspace]
 members = [
-    "capture-app/zed",
+
     "docker/database-manager",
     "docker/api",
     "docker/auth-initializer",
@@ -26,21 +26,22 @@ members = [
     "packages/generated/python/api-client",
     "packages/generated/python/localizer-client",
     "scripts",
+    "zed",
     # "test",
 ]
 
 
 [tool.uv]
-config-settings-package.plerion-api-client = { editable_mode = "compat" }
-config-settings-package.plerion-localizer-client = { editable_mode = "compat" }
+config-settings-package.placeframe-api-client = { editable_mode = "compat" }
+config-settings-package.placeframe-localizer-client = { editable_mode = "compat" }
 
 [tool.uv.sources]
 common = { workspace = true }
 core = { workspace = true }
 neural-networks = { workspace = true }
 datamodels = { workspace = true }
-plerion-localizer-client = { workspace = true }
-plerion_api_client = { workspace = true }
+placeframe-localizer-client = { workspace = true }
+placeframe_api_client = { workspace = true }
 dirtorch = { workspace = true }
 scripts = { workspace = true }
 lightglue = { git = "https://github.com/cvg/LightGlue.git" }

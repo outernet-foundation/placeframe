@@ -7,18 +7,18 @@ from pathlib import Path
 from typing import MutableMapping, cast
 from uuid import UUID
 
-from plerion_api_client import ApiClient, Configuration
-from plerion_api_client.api.default_api import DefaultApi
-from plerion_api_client.models.camera import Camera
-from plerion_api_client.models.load_state import LoadState
-from plerion_api_client.models.localization_map_create import LocalizationMapCreate
-from plerion_api_client.models.map_localization import MapLocalization
-from plerion_api_client.models.pinhole_camera_config import PinholeCameraConfig
-from plerion_api_client.models.point_cloud_point import PointCloudPoint
-from plerion_api_client.models.reconstruction_create import ReconstructionCreate
-from plerion_api_client.models.reconstruction_create_with_options import ReconstructionCreateWithOptions
-from plerion_api_client.models.reconstruction_options import ReconstructionOptions
-from plerion_api_client.models.transform import Transform
+from placeframe_api_client import ApiClient, Configuration
+from placeframe_api_client.api.default_api import DefaultApi
+from placeframe_api_client.models.camera import Camera
+from placeframe_api_client.models.load_state import LoadState
+from placeframe_api_client.models.localization_map_create import LocalizationMapCreate
+from placeframe_api_client.models.map_localization import MapLocalization
+from placeframe_api_client.models.pinhole_camera_config import PinholeCameraConfig
+from placeframe_api_client.models.point_cloud_point import PointCloudPoint
+from placeframe_api_client.models.reconstruction_create import ReconstructionCreate
+from placeframe_api_client.models.reconstruction_create_with_options import ReconstructionCreateWithOptions
+from placeframe_api_client.models.reconstruction_options import ReconstructionOptions
+from placeframe_api_client.models.transform import Transform
 
 from .auth import password_login
 from .visualize import generate_visualization

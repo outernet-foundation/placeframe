@@ -3,18 +3,18 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy project files and local packages
-COPY ["client/Outernet.Server/Outernet.Server.csproj", "client/Outernet.Server/"]
-COPY ["client/Outernet.Shared/Outernet.Shared.csproj", "client/Outernet.Shared/"]
+COPY ["legacy/Outernet.Server/Outernet.Server.csproj", "legacy/Outernet.Server/"]
+COPY ["legacy/Outernet.Shared/Outernet.Shared.csproj", "legacy/Outernet.Shared/"]
 COPY ["packages/generated/csharp/api-client/", "packages/generated/csharp/api-client/"]
 
-RUN dotnet restore "client/Outernet.Server/Outernet.Server.csproj"
+RUN dotnet restore "legacy/Outernet.Server/Outernet.Server.csproj"
 
 # Copy source
-COPY ["client/Outernet.Server/", "client/Outernet.Server/"]
-COPY ["client/Outernet.Shared/", "client/Outernet.Shared/"]
+COPY ["legacy/Outernet.Server/", "legacy/Outernet.Server/"]
+COPY ["legacy/Outernet.Shared/", "legacy/Outernet.Shared/"]
 
 # Publish in DEBUG mode for full symbol support
-WORKDIR "/src/client/Outernet.Server"
+WORKDIR "/src/legacy/Outernet.Server"
 RUN dotnet publish "Outernet.Server.csproj" -c Debug -o /app/publish /p:UseAppHost=false
 
 # Stage 2: Runtime

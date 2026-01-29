@@ -40,7 +40,7 @@ namespace Outernet.Server
             builder.Services.AddHostedService<SyncedStateService>();
             builder.Services.AddHttpClient<TokenManager>();
             builder.Services.AddSingleton<TokenManager>();
-            builder.Services.AddSingleton<PlerionAPI>();
+            builder.Services.AddSingleton<PlaceframeAPI>();
 
             var app = builder.Build();
 

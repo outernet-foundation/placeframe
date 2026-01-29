@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Outernet.Shared;
-using PlerionApiClient.Api;
-using PlerionApiClient.Model;
+using PlaceframeApiClient.Api;
+using PlaceframeApiClient.Model;
 
 namespace Outernet.Server
 {
@@ -32,11 +32,11 @@ namespace Outernet.Server
         }
     }
 
-    public class PlerionAPI
+    public class PlaceframeAPI
     {
         public DefaultApi _api;
 
-        public PlerionAPI(TokenManager tokenManager, IConfiguration config)
+        public PlaceframeAPI(TokenManager tokenManager, IConfiguration config)
         {
             var apiUrl = config["API_INTERNAL_URL"] ?? "http://api:8000";
             _api = new DefaultApi(

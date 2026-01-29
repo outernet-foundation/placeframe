@@ -1,22 +1,22 @@
 {
-    "name": "Plerion.Core.MagicLeap",
-    "rootNamespace": "",
-    "references": [
-        "MagicLeap.SDK",
-        "Plerion.Core",
-        "UniTask",
-        "PlerionApiClient"
-    ],
-    "includePlatforms": [
-        "Android",
-        "Editor"
-    ],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": false
+  "name": "Placeframe.Core.MagicLeap",
+  "rootNamespace": "",
+  "references": [
+    "MagicLeap.SDK",
+    "Placeframe.Core",
+    "UniTask",
+    "PlaceframeApiClient"
+  ],
+  "includePlatforms": [
+    "Android",
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }

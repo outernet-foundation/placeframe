@@ -2,12 +2,12 @@
 using System;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
-using Plerion.Core;
-using PlerionApiClient.Model;
+using Placeframe.Core;
+using PlaceframeApiClient.Model;
 using R3;
 using UnityEngine;
 
-namespace Plerion.Core.MagicLeap
+namespace Placeframe.Core.MagicLeap
 {
     public class MagicLeapCameraProvider : ICameraProvider
     {
@@ -19,7 +19,8 @@ namespace Plerion.Core.MagicLeap
             if (!MagicLeapCamera.initialized)
                 MagicLeapCamera.Initialize();
 
-            MagicLeapCamera.Start()
+            MagicLeapCamera
+                .Start()
                 .ContinueWith(() => MagicLeapCamera.onFrameReceived += CompleteCameraConfigTask)
                 .Forget();
         }
@@ -42,13 +43,11 @@ namespace Plerion.Core.MagicLeap
 
         public Observable<PinholeCameraConfig> CameraConfig()
         {
-            return Observable.FromAsync(
-                async cancellationToken =>
-                {
-                    cancellationToken.Register(() => _configTaskCompletionSource.TrySetCanceled(cancellationToken));
-                    return await _configTaskCompletionSource.Task;
-                }
-            );
+            return Observable.FromAsync(async cancellationToken =>
+            {
+                cancellationToken.Register(() => _configTaskCompletionSource.TrySetCanceled(cancellationToken));
+                return await _configTaskCompletionSource.Task;
+            });
         }
 
         public Observable<CameraFrame> Frames(float intervalSeconds, bool useCameraPoseAnchoring = false)
@@ -59,22 +58,26 @@ namespace Plerion.Core.MagicLeap
                     x => MagicLeapCamera.onFrameReceived -= x
                 )
                 .ThrottleLast(TimeSpan.FromSeconds(intervalSeconds))
-                .SelectAwait(async (frame, cancellationToken) => await UniTask.RunOnThreadPool(
-                    () => ImageConversion.EncodeArrayToJPG(
-                        frame.imageBytes,
-                        UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_UNorm,
-                        frame.intrinsics.Width,
-                        frame.intrinsics.Height,
-                        0,
-                        75
-                    ),
-                    cancellationToken: cancellationToken
-                ))
+                .SelectAwait(
+                    async (frame, cancellationToken) =>
+                        await UniTask.RunOnThreadPool(
+                            () =>
+                                ImageConversion.EncodeArrayToJPG(
+                                    frame.imageBytes,
+                                    UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_UNorm,
+                                    frame.intrinsics.Width,
+                                    frame.intrinsics.Height,
+                                    0,
+                                    75
+                                ),
+                            cancellationToken: cancellationToken
+                        )
+                )
                 .Select(jpgBytes => new CameraFrame()
                 {
                     ImageBytes = jpgBytes,
                     CameraTranslationUnityWorldFromCamera = Camera.main.transform.position,
-                    CameraRotationUnityWorldFromCamera = Camera.main.transform.rotation
+                    CameraRotationUnityWorldFromCamera = Camera.main.transform.rotation,
                 });
         }
     }

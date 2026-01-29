@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using UnityEngine.XR.MagicLeap;
 using UnityEngine.XR.MagicLeap.Native;
 
-namespace Plerion.Core.MagicLeap
+namespace Placeframe.Core.MagicLeap
 {
     public class NativeBindings : MagicLeapNativeBindings
     {

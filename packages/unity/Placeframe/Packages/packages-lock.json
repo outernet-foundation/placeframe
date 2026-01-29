@@ -39,8 +39,8 @@
       },
       "url": "https://registry.npmjs.org"
     },
-    "com.plerion.api-client": {
-      "version": "file:../../../../packages/generated/csharp/api-client/src/PlerionApiClient",
+    "com.placeframe.api-client": {
+      "version": "file:../../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
       "depth": 0,
       "source": "local",
       "dependencies": {}

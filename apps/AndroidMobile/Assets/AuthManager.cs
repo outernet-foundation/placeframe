@@ -3,10 +3,10 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using FofX;
 using FofX.Stateful;
-using Plerion.Core;
+using Placeframe.Core;
 using UnityEngine;
 
-namespace PlerionClient.Client
+namespace Placeframe.Client
 {
     public class AuthManager : MonoBehaviour
     {

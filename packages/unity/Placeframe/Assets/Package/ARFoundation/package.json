@@ -1,8 +1,8 @@
 {
-  "name": "com.plerion.vps.arfoundation",
+  "name": "com.placeframe.vps.arfoundation",
   "version": "1.0.0",
-  "displayName": "Plerion VPS - AR Foundation",
-  "description": "AR Foundation camera support for Plerion VPS.",
+  "displayName": "Placeframe - AR Foundation",
+  "description": "AR Foundation camera support for Placeframe",
   "unity": "6000.0",
   "author": {
     "name": "Elliot Pjecha",

@@ -1,18 +1,14 @@
 using System;
-using System.Linq;
-
-using UnityEngine;
-using FofX.Stateful;
-
-using Unity.Mathematics;
 using System.Collections.Generic;
-
-using Plerion.Core;
-using PlerionApiClient.Model;
-
-using Vector3 = UnityEngine.Vector3;
-using Quaternion = UnityEngine.Quaternion;
+using System.Linq;
+using FofX.Stateful;
 using Outernet.Shared;
+using Placeframe.Core;
+using PlaceframeApiClient.Model;
+using Unity.Mathematics;
+using UnityEngine;
+using Quaternion = UnityEngine.Quaternion;
+using Vector3 = UnityEngine.Vector3;
 
 namespace Outernet.Client
 {
@@ -130,8 +126,18 @@ namespace Outernet.Client
                 new AddOrUpdateMapAction(
                     uuid: toUpdate.Id,
                     name: toUpdate.Name,
-                    position: new double3() { x = toUpdate.PositionX, y = toUpdate.PositionY, z = toUpdate.PositionZ },
-                    rotation: new Quaternion((float)toUpdate.RotationX, (float)toUpdate.RotationY, (float)toUpdate.RotationZ, (float)toUpdate.RotationW),
+                    position: new double3()
+                    {
+                        x = toUpdate.PositionX,
+                        y = toUpdate.PositionY,
+                        z = toUpdate.PositionZ,
+                    },
+                    rotation: new Quaternion(
+                        (float)toUpdate.RotationX,
+                        (float)toUpdate.RotationY,
+                        (float)toUpdate.RotationZ,
+                        (float)toUpdate.RotationW
+                    ),
                     lighting: toUpdate.Lighting,
                     reconstructionID: toUpdate.ReconstructionId
                 ).Execute(target);
@@ -154,7 +160,8 @@ namespace Outernet.Client
             double3 position = default,
             Quaternion rotation = default,
             int? lighting = default,
-            Guid reconstructionID = default)
+            Guid reconstructionID = default
+        )
         {
             _uuid = uuid;
             _name = name;
@@ -208,8 +215,18 @@ namespace Outernet.Client
                     labelHeight: (float)toUpdate.LabelHeight,
                     layer: toUpdate.LayerId.HasValue ? toUpdate.LayerId.Value : Guid.Empty,
                     parentID: toUpdate.ParentId,
-                    position: new double3() { x = toUpdate.PositionX, y = toUpdate.PositionY, z = toUpdate.PositionZ },
-                    rotation: new Quaternion((float)toUpdate.RotationX, (float)toUpdate.RotationY, (float)toUpdate.RotationZ, (float)toUpdate.RotationW)
+                    position: new double3()
+                    {
+                        x = toUpdate.PositionX,
+                        y = toUpdate.PositionY,
+                        z = toUpdate.PositionZ,
+                    },
+                    rotation: new Quaternion(
+                        (float)toUpdate.RotationX,
+                        (float)toUpdate.RotationY,
+                        (float)toUpdate.RotationZ,
+                        (float)toUpdate.RotationW
+                    )
                 ).Execute(target);
             }
         }
@@ -451,9 +468,9 @@ namespace Outernet.Client
 
     public class SetLayersAction : ObservableNodeAction<ClientState>
     {
-        private PlerionApiClient.Model.LayerRead[] _layers;
+        private PlaceframeApiClient.Model.LayerRead[] _layers;
 
-        public SetLayersAction(PlerionApiClient.Model.LayerRead[] layers)
+        public SetLayersAction(PlaceframeApiClient.Model.LayerRead[] layers)
         {
             _layers = layers;
         }
@@ -468,10 +485,7 @@ namespace Outernet.Client
 
             foreach (var toUpdate in newLayersByID.Select(x => x.Value))
             {
-                new AddOrUpdateLayerAction(
-                    id: toUpdate.Id,
-                    name: toUpdate.Name
-                ).Execute(target);
+                new AddOrUpdateLayerAction(id: toUpdate.Id, name: toUpdate.Name).Execute(target);
             }
         }
     }
@@ -481,10 +495,7 @@ namespace Outernet.Client
         private Guid _id;
         private string _name;
 
-        public AddOrUpdateLayerAction(
-            Guid id,
-            string name = default
-        )
+        public AddOrUpdateLayerAction(Guid id, string name = default)
         {
             _id = id;
             _name = name;

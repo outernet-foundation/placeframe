@@ -1,10 +1,10 @@
+using System;
 using Outernet.Client.Location;
 using Outernet.Shared;
+using Placeframe.Core;
+using R3;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using R3;
-using System;
-using Plerion.Core;
 
 namespace Outernet.Client
 {
@@ -13,7 +13,7 @@ namespace Outernet.Client
     {
         const float settingsPanelSpawnTilt = 30f;
         const float settingsPanelSpawnDistance = 1f;
-        static private SettingsPanel settingsPanel;
+        private static SettingsPanel settingsPanel;
 
         private UserRecord userRecord;
         private InputAction spaceAction;
@@ -30,19 +30,20 @@ namespace Outernet.Client
             spaceAction = new InputAction(type: InputActionType.Button, binding: "<Keyboard>/space");
             spaceAction.Enable();
 
-            var ecefTransform =
-                VisualPositioningSystem.UnityWorldToEcef(transform.position, transform.rotation);
+            var ecefTransform = VisualPositioningSystem.UnityWorldToEcef(transform.position, transform.rotation);
             userRecord.geoPose.ecefPosition.EnqueueSet(ecefTransform.position.ToDouble3());
             userRecord.geoPose.ecefRotation.EnqueueSet(ecefTransform.rotation);
             userRecord.hasGeoPose.EnqueueSet(true);
 
             subscriptions = Disposable.Combine(
-                userRecord.settingsMenuOpen
-                    .SkipWhile(open => open.Value == SettingsMenuState.ClosedLeftPalm)
+                userRecord
+                    .settingsMenuOpen.SkipWhile(open => open.Value == SettingsMenuState.ClosedLeftPalm)
                     .Subscribe(open =>
                     {
-                        if (open.Value == SettingsMenuState.OpenLeftPalm ||
-                            open.Value == SettingsMenuState.OpenRightPalm)
+                        if (
+                            open.Value == SettingsMenuState.OpenLeftPalm
+                            || open.Value == SettingsMenuState.OpenRightPalm
+                        )
                         {
                             settingsPanel = PrefabSystem.Create(PrefabSystem.systemUIView);
                             settingsPanel.chrome.dimensions = userRecord.settingsMenuDimensions.Value;
@@ -72,12 +73,12 @@ namespace Outernet.Client
 
         public void RealUpdate()
         {
-            // TODO EP: Reference this staticly 
+            // TODO EP: Reference this staticly
             // MapManager.renderVisualizations = Settings.showPointCloud;
 
             Settings.menuOpen =
-                userRecord.settingsMenuOpen.Value == SettingsMenuState.OpenLeftPalm ||
-                userRecord.settingsMenuOpen.Value == SettingsMenuState.OpenRightPalm;
+                userRecord.settingsMenuOpen.Value == SettingsMenuState.OpenLeftPalm
+                || userRecord.settingsMenuOpen.Value == SettingsMenuState.OpenRightPalm;
             Settings.menuPanelDimensions = userRecord.settingsMenuDimensions.Value;
             Settings.localize = App.State_Old.settingsLocalize.Value;
             Settings.showPointCloud = App.State_Old.settingsShowPointCloud.Value;
@@ -88,7 +89,7 @@ namespace Outernet.Client
             // Settings.compression.Value = userRecord.settingsCompression.Value;
             // Settings.localizationReducer = App.State.settingsLocalizationReducer.Value;
             Settings.thresholding = App.State_Old.settingsEnableLocalizationThreshold.Value;
-            Settings.fallbackToMostRecent = true;//App.State_Old.settingsFallbackToMostRecent.Value;
+            Settings.fallbackToMostRecent = true; //App.State_Old.settingsFallbackToMostRecent.Value;
             // Settings.lightingCondition = userRecord.settingsLightingCondition.Value;
             Settings.positionThreshold = App.State_Old.settingsPositionThreshold.Value;
             Settings.rotationThreshold = App.State_Old.settingsRotationThreshold.Value;
@@ -106,25 +107,33 @@ namespace Outernet.Client
 
             if (spaceAction.triggered)
             {
-                ChangeSettingsMenuState(SettingsOpen() ? SettingsMenuState.ClosedLeftPalm : SettingsMenuState.OpenLeftPalm);
+                ChangeSettingsMenuState(
+                    SettingsOpen() ? SettingsMenuState.ClosedLeftPalm : SettingsMenuState.OpenLeftPalm
+                );
             }
         }
 
         public static void ChangeSettingsMenuState(SettingsMenuState settingsMenuState)
         {
-            if (App.ClientID == null) return;
+            if (App.ClientID == null)
+                return;
 
             var userRecord = App.State_Old.users.Get(App.ClientID.Value);
 
-            if (settingsMenuState == SettingsMenuState.ClosedLeftPalm ||
-                settingsMenuState == SettingsMenuState.ClosedRightPalm)
+            if (
+                settingsMenuState == SettingsMenuState.ClosedLeftPalm
+                || settingsMenuState == SettingsMenuState.ClosedRightPalm
+            )
             {
                 userRecord.settingsMenuOpen.EnqueueSet(settingsMenuState);
                 return;
             }
 
-            var settingsPanelPosition = Camera.main.transform.position + (Camera.main.transform.forward * settingsPanelSpawnDistance);
-            var settingsPanelRotation = Quaternion.LookRotation(Camera.main.transform.forward.Flatten(), Vector3.up) * Quaternion.Euler(settingsPanelSpawnTilt, 0, 0);
+            var settingsPanelPosition =
+                Camera.main.transform.position + (Camera.main.transform.forward * settingsPanelSpawnDistance);
+            var settingsPanelRotation =
+                Quaternion.LookRotation(Camera.main.transform.forward.Flatten(), Vector3.up)
+                * Quaternion.Euler(settingsPanelSpawnTilt, 0, 0);
 
             var geoPose = VisualPositioningSystem.UnityWorldToEcef(settingsPanelPosition, settingsPanelRotation);
 
@@ -138,10 +147,12 @@ namespace Outernet.Client
 
         public static bool SettingsOpen()
         {
-            if (App.ClientID == null) return false;
+            if (App.ClientID == null)
+                return false;
 
             var userRecord = App.State_Old.users.Get(App.ClientID.Value);
-            return userRecord.settingsMenuOpen.Value == SettingsMenuState.OpenLeftPalm || userRecord.settingsMenuOpen.Value == SettingsMenuState.OpenRightPalm;
+            return userRecord.settingsMenuOpen.Value == SettingsMenuState.OpenLeftPalm
+                || userRecord.settingsMenuOpen.Value == SettingsMenuState.OpenRightPalm;
         }
     }
 }

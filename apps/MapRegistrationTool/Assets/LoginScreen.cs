@@ -1,6 +1,6 @@
 using System;
 using Cysharp.Threading.Tasks;
-using Plerion.Core;
+using Placeframe.Core;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -18,9 +18,9 @@ namespace Outernet.MapRegistrationTool
         {
             VisualPositioningSystem.Initialize(
                 null,
-                App.plerionApiUrl,
-                App.plerionAuthTokenUrl,
-                App.plerionAuthAudience,
+                App.placeframeApiUrl,
+                App.placeframeAuthTokenUrl,
+                App.placeframeAuthAudience,
                 message => Debug.Log(message),
                 message => Debug.LogWarning(message),
                 message => Debug.LogError(message)

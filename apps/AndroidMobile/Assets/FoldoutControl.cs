@@ -2,7 +2,7 @@ using Nessle;
 using ObserveThing;
 using UnityEngine.Events;
 
-namespace PlerionClient.Client
+namespace Placeframe.Client
 {
     public struct FoldoutProps
     {
@@ -23,16 +23,18 @@ namespace PlerionClient.Client
         {
             label.Setup(props.label);
             layout.Setup(props.childrenLayout);
-            toggle.Setup(new ToggleProps()
-            {
-                value = props.isOpen,
-                interactable = props.interactable,
-                onValueChanged = x =>
+            toggle.Setup(
+                new ToggleProps()
                 {
-                    layout.gameObject.SetActive(x);
-                    props.isOpenChanged?.Invoke(x);
+                    value = props.isOpen,
+                    interactable = props.interactable,
+                    onValueChanged = x =>
+                    {
+                        layout.gameObject.SetActive(x);
+                        props.isOpenChanged?.Invoke(x);
+                    },
                 }
-            });
+            );
         }
     }
 }

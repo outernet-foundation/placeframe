@@ -1,9 +1,9 @@
 using System;
 using R3;
 using UnityEngine;
-using PinholeCameraConfig = PlerionApiClient.Model.PinholeCameraConfig;
+using PinholeCameraConfig = PlaceframeApiClient.Model.PinholeCameraConfig;
 
-namespace Plerion.Core
+namespace Placeframe.Core
 {
     public struct CameraFrame
     {

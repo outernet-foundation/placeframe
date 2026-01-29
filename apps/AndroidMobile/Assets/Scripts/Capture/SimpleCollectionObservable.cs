@@ -2,7 +2,7 @@
 // using System.Collections.Generic;
 // using ObserveThing;
 
-// namespace PlerionClient.Client
+// namespace PlaceframeClient.Client
 // {
 //     public class CollectionObservable<T> : ICollectionObservable<T>, IEnumerable<T>, System.IDisposable
 //     {

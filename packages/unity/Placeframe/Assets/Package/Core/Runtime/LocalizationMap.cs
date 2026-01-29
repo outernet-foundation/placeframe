@@ -8,7 +8,7 @@ using Color = UnityEngine.Color;
 using Quaternion = UnityEngine.Quaternion;
 using Vector3 = UnityEngine.Vector3;
 
-namespace Plerion.Core
+namespace Placeframe.Core
 {
     [RequireComponent(typeof(ParticleSystem), typeof(Anchor))]
     public class LocalizationMap : MonoBehaviour

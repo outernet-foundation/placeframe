@@ -1,16 +1,16 @@
-using UnityEngine.UI;
-using TMPro;
-using UnityEngine;
-using Outernet.Shared;
-using R3;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CesiumForUnity;
-using Outernet.Client.Location;
 using Cysharp.Threading.Tasks;
-using System;
+using Outernet.Client.Location;
+using Outernet.Shared;
+using Placeframe.Core;
+using R3;
+using TMPro;
 using Unity.Mathematics;
-using Plerion.Core;
+using UnityEngine;
+using UnityEngine.UI;
 
 namespace Outernet.Client
 {
@@ -87,217 +87,235 @@ namespace Outernet.Client
             lightingConditionDropdown.AddOptions(new List<string> { "None", "Day", "Dusk", "Night" });
 
             subscriptions = Disposable.Combine(
-                dynamicFocusDistance.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsDynamicFocusDistance.EnqueueSet(value)),
-
-                App.State_Old.settingsDynamicFocusDistance.Subscribe(value =>
-                    dynamicFocusDistance.isOn = value.Value),
-
-                showEyeDebug.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsShowEyeDebug.EnqueueSet(value)),
-
-                App.State_Old.settingsShowEyeDebug.Subscribe(value =>
-                    showEyeDebug.isOn = value.Value),
-
-                localize.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsLocalize.EnqueueSet(value)),
-
+                dynamicFocusDistance
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value => App.State_Old.settingsDynamicFocusDistance.EnqueueSet(value)),
+                App.State_Old.settingsDynamicFocusDistance.Subscribe(value => dynamicFocusDistance.isOn = value.Value),
+                showEyeDebug
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value => App.State_Old.settingsShowEyeDebug.EnqueueSet(value)),
+                App.State_Old.settingsShowEyeDebug.Subscribe(value => showEyeDebug.isOn = value.Value),
+                localize
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value => App.State_Old.settingsLocalize.EnqueueSet(value)),
                 // ConnectionManager.RoomConnectionRequested.Subscribe(name => roomName.SetText(name)),
-                ConnectionManager.HubConnectionStatusStream.Subscribe(status => hubConnectionStatus.SetText(status.ToString())),
-                ConnectionManager.RoomConnectionStatusStream.Subscribe(status => roomConnectionStatus.SetText(status.ToString())),
-
-                lightingConditionDropdown.onValueChanged.AsObservable().Subscribe(value =>
-                {
-                    value -= 1;
-                    Settings.lightingConditionOverride = value == -1 ? null : value;
-                }),
-
-                terrainTilesetMode.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsTerrainTilesetMode.EnqueueSet((TilesetMode)Enum.Parse(
-                        typeof(TilesetMode), terrainTilesetMode.options[value].text))),
-
-                OSMTilesetMode.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsOSMTilesetMode.EnqueueSet((TilesetMode)Enum.Parse(
-                        typeof(TilesetMode), OSMTilesetMode.options[value].text))),
-
-                nycTilesetMode.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsNYCTilesetMode.EnqueueSet((TilesetMode)Enum.Parse(
-                        typeof(TilesetMode), nycTilesetMode.options[value].text))),
-
-                googleTilesetMode.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsGoogleTilesetMode.EnqueueSet((TilesetMode)Enum.Parse(
-                        typeof(TilesetMode), googleTilesetMode.options[value].text))),
-
+                ConnectionManager.HubConnectionStatusStream.Subscribe(status =>
+                    hubConnectionStatus.SetText(status.ToString())
+                ),
+                ConnectionManager.RoomConnectionStatusStream.Subscribe(status =>
+                    roomConnectionStatus.SetText(status.ToString())
+                ),
+                lightingConditionDropdown
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value =>
+                    {
+                        value -= 1;
+                        Settings.lightingConditionOverride = value == -1 ? null : value;
+                    }),
+                terrainTilesetMode
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value =>
+                        App.State_Old.settingsTerrainTilesetMode.EnqueueSet(
+                            (TilesetMode)Enum.Parse(typeof(TilesetMode), terrainTilesetMode.options[value].text)
+                        )
+                    ),
+                OSMTilesetMode
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value =>
+                        App.State_Old.settingsOSMTilesetMode.EnqueueSet(
+                            (TilesetMode)Enum.Parse(typeof(TilesetMode), OSMTilesetMode.options[value].text)
+                        )
+                    ),
+                nycTilesetMode
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value =>
+                        App.State_Old.settingsNYCTilesetMode.EnqueueSet(
+                            (TilesetMode)Enum.Parse(typeof(TilesetMode), nycTilesetMode.options[value].text)
+                        )
+                    ),
+                googleTilesetMode
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value =>
+                        App.State_Old.settingsGoogleTilesetMode.EnqueueSet(
+                            (TilesetMode)Enum.Parse(typeof(TilesetMode), googleTilesetMode.options[value].text)
+                        )
+                    ),
                 visibleLayers.BindLayersDropdown(App.state.layers, App.state.settings.visibleLayers),
-
                 App.State_Old.settingsTerrainTilesetMode.Subscribe(settingsTerrainTilesetMode =>
                     terrainTilesetMode.value = terrainTilesetMode.options.FindIndex(option =>
-                        option.text == settingsTerrainTilesetMode.Value.ToString())),
-
+                        option.text == settingsTerrainTilesetMode.Value.ToString()
+                    )
+                ),
                 App.State_Old.settingsOSMTilesetMode.Subscribe(settingsOSMTilesetMode =>
                     OSMTilesetMode.value = OSMTilesetMode.options.FindIndex(option =>
-                        option.text == settingsOSMTilesetMode.Value.ToString())),
-
+                        option.text == settingsOSMTilesetMode.Value.ToString()
+                    )
+                ),
                 App.State_Old.settingsNYCTilesetMode.Subscribe(settingsNYCTilesetMode =>
                     nycTilesetMode.value = nycTilesetMode.options.FindIndex(option =>
-                        option.text == settingsNYCTilesetMode.Value.ToString())),
-
+                        option.text == settingsNYCTilesetMode.Value.ToString()
+                    )
+                ),
                 App.State_Old.settingsGoogleTilesetMode.Subscribe(settingsGoogleTilesetMode =>
                     googleTilesetMode.value = googleTilesetMode.options.FindIndex(option =>
-                        option.text == settingsGoogleTilesetMode.Value.ToString())),
-
-                nodeFetchRadius.onValueChanged.AsObservable().Subscribe(value =>
-                {
-                    App.State_Old.settingsNodeFetchRadius.EnqueueSet(SliderToRadius(value));
-                    nodeFetchRadiusText.SetText(SliderToRadius(value).ToString());
-                }),
-
-                nodeFetchLimit.onValueChanged.AsObservable().Subscribe(value =>
-                {
-                    App.State_Old.settingsNodeFetchLimit.EnqueueSet(SliderToLimit(value));
-                    nodeFetchLimitText.SetText(SliderToLimit(value).ToString());
-                }),
-
+                        option.text == settingsGoogleTilesetMode.Value.ToString()
+                    )
+                ),
+                nodeFetchRadius
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value =>
+                    {
+                        App.State_Old.settingsNodeFetchRadius.EnqueueSet(SliderToRadius(value));
+                        nodeFetchRadiusText.SetText(SliderToRadius(value).ToString());
+                    }),
+                nodeFetchLimit
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value =>
+                    {
+                        App.State_Old.settingsNodeFetchLimit.EnqueueSet(SliderToLimit(value));
+                        nodeFetchLimitText.SetText(SliderToLimit(value).ToString());
+                    }),
                 App.State_Old.settingsNodeFetchRadius.Subscribe(settingsNodeFetchRadius =>
-                    nodeFetchRadius.value = radiusToSlider(settingsNodeFetchRadius.Value)),
-
+                    nodeFetchRadius.value = radiusToSlider(settingsNodeFetchRadius.Value)
+                ),
                 App.State_Old.settingsNodeFetchLimit.Subscribe(settingsNodeFetchLimit =>
-                    nodeFetchLimit.value = limitToSlider(settingsNodeFetchLimit.Value)),
-
-                showPointCloud.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsShowPointCloud.EnqueueSet(value)),
-
-                showIndicators.onValueChanged.AsObservable().Subscribe(value =>
-                    App.state.settings.showIndicators.ExecuteSetOrDelay(value)
+                    nodeFetchLimit.value = limitToSlider(settingsNodeFetchLimit.Value)
                 ),
+                showPointCloud
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value => App.State_Old.settingsShowPointCloud.EnqueueSet(value)),
+                showIndicators
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value => App.state.settings.showIndicators.ExecuteSetOrDelay(value)),
+                App.state.settings.showIndicators.OnChange(show => showIndicators.isOn = show),
+                animateNodeIndicators
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value => App.State_Old.settingsAnimateNodeIndicators.EnqueueSet(value)),
+                animateUserIndicators
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value => App.State_Old.settingsAnimateUserIndicators.EnqueueSet(value)),
+                enableThresholding
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value => App.State_Old.settingsEnableLocalizationThreshold.EnqueueSet(value)),
+                fallbackToMostRecent
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value => App.State_Old.settingsFallbackToMostRecent.EnqueueSet(value)),
+                useFloorPlaneDetection
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value => App.State_Old.settingsUseFloorPlaneDetection.EnqueueSet(value)),
+                localizationReducer
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value =>
+                    {
+                        LocalizationReducer parsedValue = (LocalizationReducer)
+                            Enum.Parse(typeof(LocalizationReducer), localizationReducer.options[value].text);
 
-                App.state.settings.showIndicators.OnChange(show =>
-                    showIndicators.isOn = show
-                ),
-
-                animateNodeIndicators.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsAnimateNodeIndicators.EnqueueSet(value)),
-
-                animateUserIndicators.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsAnimateUserIndicators.EnqueueSet(value)),
-
-                enableThresholding.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsEnableLocalizationThreshold.EnqueueSet(value)),
-
-                fallbackToMostRecent.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsFallbackToMostRecent.EnqueueSet(value)),
-
-                useFloorPlaneDetection.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsUseFloorPlaneDetection.EnqueueSet(value)),
-
-                localizationReducer.onValueChanged.AsObservable().Subscribe(value =>
-                {
-                    LocalizationReducer parsedValue = (LocalizationReducer)Enum.Parse(
-                        typeof(LocalizationReducer), localizationReducer.options[value].text);
-
-                    App.State_Old.settingsLocalizationReducer.EnqueueSet(parsedValue);
-                }),
-
-                positionThreshold.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsPositionThreshold.EnqueueSet(SliderToPositionThreshold(value))),
-
-                rotationThreshold.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsRotationThreshold.EnqueueSet(SliderToRotationThreshold(value))),
-
-                positionInlierThreshold.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsPositionInlierThreshold.EnqueueSet(SliderToPositionThreshold(value))),
-
-                rotationInlierThreshold.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsRotationInlierThreshold.EnqueueSet(SliderToRotationThreshold(value))),
-
-                discardBottomHalf.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsDiscardBottomHalf.EnqueueSet(value)),
-
-                confidenceFactor.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsConfidenceFactor.EnqueueSet(value)),
-
-                ransacHistorySize.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsRansacHistorySize.EnqueueSet(SliderToHistorySize(value))),
-
-                favHistorySize.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsFavHistorySize.EnqueueSet(SliderToHistorySize(value))),
-
-                favStandardDeviationsThreshold.onValueChanged.AsObservable().Subscribe(value =>
-                    App.State_Old.settingsFavThreshold.EnqueueSet(value)),
-
+                        App.State_Old.settingsLocalizationReducer.EnqueueSet(parsedValue);
+                    }),
+                positionThreshold
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value =>
+                        App.State_Old.settingsPositionThreshold.EnqueueSet(SliderToPositionThreshold(value))
+                    ),
+                rotationThreshold
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value =>
+                        App.State_Old.settingsRotationThreshold.EnqueueSet(SliderToRotationThreshold(value))
+                    ),
+                positionInlierThreshold
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value =>
+                        App.State_Old.settingsPositionInlierThreshold.EnqueueSet(SliderToPositionThreshold(value))
+                    ),
+                rotationInlierThreshold
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value =>
+                        App.State_Old.settingsRotationInlierThreshold.EnqueueSet(SliderToRotationThreshold(value))
+                    ),
+                discardBottomHalf
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value => App.State_Old.settingsDiscardBottomHalf.EnqueueSet(value)),
+                confidenceFactor
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value => App.State_Old.settingsConfidenceFactor.EnqueueSet(value)),
+                ransacHistorySize
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value => App.State_Old.settingsRansacHistorySize.EnqueueSet(SliderToHistorySize(value))),
+                favHistorySize
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value => App.State_Old.settingsFavHistorySize.EnqueueSet(SliderToHistorySize(value))),
+                favStandardDeviationsThreshold
+                    .onValueChanged.AsObservable()
+                    .Subscribe(value => App.State_Old.settingsFavThreshold.EnqueueSet(value)),
                 App.State_Old.settingsShowPointCloud.Subscribe(settingsShowPointCloud =>
-                    showPointCloud.isOn = settingsShowPointCloud.Value),
-
+                    showPointCloud.isOn = settingsShowPointCloud.Value
+                ),
                 App.State_Old.settingsAnimateNodeIndicators.Subscribe(settingsAnimateIndicators =>
-                    animateNodeIndicators.isOn = settingsAnimateIndicators.Value),
-
+                    animateNodeIndicators.isOn = settingsAnimateIndicators.Value
+                ),
                 App.State_Old.settingsAnimateUserIndicators.Subscribe(settingsAnimateIndicators =>
-                    animateUserIndicators.isOn = settingsAnimateIndicators.Value),
-
-                App.State_Old.settingsEnableLocalizationThreshold.Subscribe(
-                    settingsEnableLocalizationThreshold =>
-                        enableThresholding.isOn = settingsEnableLocalizationThreshold.Value),
-
+                    animateUserIndicators.isOn = settingsAnimateIndicators.Value
+                ),
+                App.State_Old.settingsEnableLocalizationThreshold.Subscribe(settingsEnableLocalizationThreshold =>
+                    enableThresholding.isOn = settingsEnableLocalizationThreshold.Value
+                ),
                 App.State_Old.settingsFallbackToMostRecent.Subscribe(settingsFallbackToMostRecent =>
-                    fallbackToMostRecent.isOn = settingsFallbackToMostRecent.Value),
-
+                    fallbackToMostRecent.isOn = settingsFallbackToMostRecent.Value
+                ),
                 App.State_Old.settingsUseFloorPlaneDetection.Subscribe(settingsUseFloorPlaneDetection =>
-                    useFloorPlaneDetection.isOn = settingsUseFloorPlaneDetection.Value),
-
+                    useFloorPlaneDetection.isOn = settingsUseFloorPlaneDetection.Value
+                ),
                 App.State_Old.settingsLocalizationReducer.Subscribe(settingsLocalizationReducer =>
                 {
                     localizationReducer.value = localizationReducer.options.FindIndex(option =>
-                        option.text == settingsLocalizationReducer.Value.ToString());
+                        option.text == settingsLocalizationReducer.Value.ToString()
+                    );
 
-                    ransacSettings.ForEach(setting => setting.SetActive(settingsLocalizationReducer.Value == LocalizationReducer.RANSAC));
-                    favSettings.ForEach(setting => setting.SetActive(settingsLocalizationReducer.Value == LocalizationReducer.FAV));
+                    ransacSettings.ForEach(setting =>
+                        setting.SetActive(settingsLocalizationReducer.Value == LocalizationReducer.RANSAC)
+                    );
+                    favSettings.ForEach(setting =>
+                        setting.SetActive(settingsLocalizationReducer.Value == LocalizationReducer.FAV)
+                    );
                 }),
-
                 App.State_Old.settingsPositionThreshold.Subscribe(settingsPositionThreshold =>
                 {
                     positionThreshold.value = positionThresholdToSlider(settingsPositionThreshold.Value);
                     positionThresholdText.SetText(settingsPositionThreshold.Value.ToString());
                 }),
-
                 App.State_Old.settingsRotationThreshold.Subscribe(settingsRotationThreshold =>
                 {
                     rotationThreshold.value = rotationThresholdToSlider(settingsRotationThreshold.Value);
                     rotationThresholdText.SetText(settingsRotationThreshold.Value.ToString());
                 }),
-
                 App.State_Old.settingsPositionInlierThreshold.Subscribe(settingsPositionInlierThreshold =>
                 {
                     positionInlierThreshold.value = positionThresholdToSlider(settingsPositionInlierThreshold.Value);
                     positionInlierThresholdText.SetText(settingsPositionInlierThreshold.Value.ToString());
                 }),
-
                 App.State_Old.settingsRotationInlierThreshold.Subscribe(settingsRotationInlierThreshold =>
                 {
                     rotationInlierThreshold.value = rotationThresholdToSlider(settingsRotationInlierThreshold.Value);
                     rotationInlierThresholdText.SetText(settingsRotationInlierThreshold.Value.ToString());
                 }),
-
                 App.State_Old.settingsDiscardBottomHalf.Subscribe(settingsDiscardBottomHalf =>
-                    discardBottomHalf.isOn = settingsDiscardBottomHalf.Value),
-
+                    discardBottomHalf.isOn = settingsDiscardBottomHalf.Value
+                ),
                 App.State_Old.settingsConfidenceFactor.Subscribe(settingsConfidenceFactor =>
                 {
                     confidenceFactor.value = settingsConfidenceFactor.Value;
                     confidenceFactorText.SetText(settingsConfidenceFactor.Value.ToString());
                 }),
-
                 App.State_Old.settingsRansacHistorySize.Subscribe(settingsRansacHistorySize =>
                 {
                     ransacHistorySize.value = historySizeToSlider(settingsRansacHistorySize.Value);
                     ransacHistorySizeText.SetText(settingsRansacHistorySize.Value.ToString());
                 }),
-
                 App.State_Old.settingsFavHistorySize.Subscribe(settingsFavHistorySize =>
                 {
                     favHistorySize.value = historySizeToSlider(settingsFavHistorySize.Value);
                     favHistorySizeText.SetText(settingsFavHistorySize.Value.ToString());
                 }),
-
                 App.State_Old.settingsFavThreshold.Subscribe(settingsFavThreshold =>
                 {
                     favStandardDeviationsThreshold.value = settingsFavThreshold.Value;
@@ -430,8 +448,13 @@ namespace Outernet.Client
 
             // ransacScore.SetText(string.Format("{0:0.00}", RANSAC.Score));
 
-            var cameraEcefTransform = VisualPositioningSystem.UnityWorldToEcef(Camera.main.transform.position, Camera.main.transform.rotation);
-            var longitudeLatitudeHeight = CesiumWgs84Ellipsoid.EarthCenteredEarthFixedToLongitudeLatitudeHeight(cameraEcefTransform.position);
+            var cameraEcefTransform = VisualPositioningSystem.UnityWorldToEcef(
+                Camera.main.transform.position,
+                Camera.main.transform.rotation
+            );
+            var longitudeLatitudeHeight = CesiumWgs84Ellipsoid.EarthCenteredEarthFixedToLongitudeLatitudeHeight(
+                cameraEcefTransform.position
+            );
             preciseLatitude.SetText(string.Format("{0:0.000000}", longitudeLatitudeHeight.y));
             preciseLongitude.SetText(string.Format("{0:0.000000}", longitudeLatitudeHeight.x));
 
@@ -442,7 +465,12 @@ namespace Outernet.Client
 
             // Negatives here are to account for handedness difference
             var eunRotation = Quaternion.LookRotation(-north.ToFloats(), -up.ToFloats());
-            var ecefRotation = new Quaternion((float)cameraEcefTransform.rotation.value.x, (float)cameraEcefTransform.rotation.value.y, (float)cameraEcefTransform.rotation.value.z, (float)cameraEcefTransform.rotation.value.w);
+            var ecefRotation = new Quaternion(
+                (float)cameraEcefTransform.rotation.value.x,
+                (float)cameraEcefTransform.rotation.value.y,
+                (float)cameraEcefTransform.rotation.value.z,
+                (float)cameraEcefTransform.rotation.value.w
+            );
             var relativeRotation = Quaternion.Inverse(eunRotation) * ecefRotation;
             var heading = relativeRotation.eulerAngles.y; // degrees
 

@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 
-namespace PlerionClient.Client
+namespace Placeframe.Client
 {
     public class SceneReferences : MonoBehaviour
     {

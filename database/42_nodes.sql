@@ -81,7 +81,7 @@ CREATE POLICY nodes_rls_policy ON nodes
 -- Allow orchestrator role to bypass RLS for all operations
 CREATE POLICY nodes_orchestrator_rls_policy ON nodes
   FOR ALL
-    TO plerion_orchestration_user
+    TO placeframe_orchestration_user
     USING (true)
     WITH CHECK (true);
 

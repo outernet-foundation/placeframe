@@ -4,7 +4,7 @@
     "MessagePack",
     "MessagePack.Annotations",
     "MagicOnion.Abstractions",
-    "PlerionApiClient"
+    "PlaceframeApiClient"
   ],
   "optionalUnityReferences": [],
   "includePlatforms": [],

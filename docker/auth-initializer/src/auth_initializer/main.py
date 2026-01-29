@@ -7,8 +7,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 # Paths match the volume mounts defined in the proposed compose.yml
 PRIVATE_KEY_PATH = Path("/auth_data/worker-private-key.pem")
-TEMPLATE_PATH = Path("/templates/plerion.json")
-OUTPUT_PATH = Path("/keycloak_import/plerion.json")
+TEMPLATE_PATH = Path("/templates/placeframe.json")
+OUTPUT_PATH = Path("/keycloak_import/placeframe.json")
 PLACEHOLDER = "${WORKER_PUBLIC_KEY_PLACEHOLDER}"
 
 

@@ -59,7 +59,7 @@ else:
     async def get_session(request: Request[str, dict[str, Any], Any]) -> AsyncGenerator[AsyncSession]:
         claims = request.auth
 
-        if claims and claims.get("azp") == "plerion-worker":
+        if claims and claims.get("azp") == "placeframe-worker":
             async with OrchestrationSessionLocal() as session, session.begin():
                 yield session
             return
@@ -80,7 +80,7 @@ else:
     async def get_worker_session(request: Request[str, dict[str, Any], Any]) -> AsyncGenerator[AsyncSession]:
         claims = request.auth
 
-        if not claims or claims.get("azp") != "plerion-worker":
+        if not claims or claims.get("azp") != "placeframe-worker":
             raise PermissionDeniedException("Internal use only")
 
         async for session in get_session(request):

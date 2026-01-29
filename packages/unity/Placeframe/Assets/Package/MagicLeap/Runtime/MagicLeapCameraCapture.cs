@@ -9,9 +9,9 @@ using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.XR.MagicLeap;
 using UnityEngine.XR.MagicLeap.Native;
-using static Plerion.Core.MagicLeap.NativeBindings;
+using static Placeframe.Core.MagicLeap.NativeBindings;
 
-namespace Plerion.Core.MagicLeap
+namespace Placeframe.Core.MagicLeap
 {
     public struct MLFrameData
     {
@@ -184,7 +184,9 @@ namespace Plerion.Core.MagicLeap
 
             Marshal.Copy(data, pixelBuffer, 0, size);
 
-            onFrameReceived?.Invoke(new MLFrameData() { imageBytes = pixelBuffer, intrinsics = mLCameraIntrinsicCalibrationParameters });
+            onFrameReceived?.Invoke(
+                new MLFrameData() { imageBytes = pixelBuffer, intrinsics = mLCameraIntrinsicCalibrationParameters }
+            );
         }
 
         static void Check(MLResult.Code code, string functionName)

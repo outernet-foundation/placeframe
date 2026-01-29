@@ -2,22 +2,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-
-using UnityEngine;
-using Unity.Mathematics;
-
+using System.Threading.Tasks;
+using CesiumForUnity;
 using Cysharp.Threading.Tasks;
-
 using FofX;
 using FofX.Stateful;
-
 using Outernet.Client.Location;
-using CesiumForUnity;
-using PlerionApiClient.Model;
-using PlerionApiClient.Api;
-using PlerionApiClient.Client;
-using Plerion.Core;
-using System.Threading.Tasks;
+using Placeframe.Core;
+using PlaceframeApiClient.Api;
+using PlaceframeApiClient.Client;
+using PlaceframeApiClient.Model;
+using Unity.Mathematics;
+using UnityEngine;
 
 namespace Outernet.Client.AuthoringTools
 {
@@ -45,8 +41,10 @@ namespace Outernet.Client.AuthoringTools
         {
             _updateLocationAndContentTask.Cancel();
 
-            if (_loadedLocation.Equals(App.state.authoringTools.location.value) &&
-                _loadedDrawDistance == App.state.authoringTools.settings.nodeFetchRadius.value)
+            if (
+                _loadedLocation.Equals(App.state.authoringTools.location.value)
+                && _loadedDrawDistance == App.state.authoringTools.settings.nodeFetchRadius.value
+            )
             {
                 return;
             }
@@ -59,16 +57,24 @@ namespace Outernet.Client.AuthoringTools
                 return;
             }
 
-            _updateLocationAndContentTask = TaskHandle.Execute(token => HandleUnsavedChangesAndLoadContent(
-                App.state.authoringTools.location.value.Value,
-                App.state.authoringTools.settings.nodeFetchRadius.value,
-                Utility.GetPreviousValue(App.state.authoringTools.location, args.changes),
-                Utility.GetPreviousValue(App.state.authoringTools.settings.nodeFetchRadius, args.changes),
-                token
-            ));
+            _updateLocationAndContentTask = TaskHandle.Execute(token =>
+                HandleUnsavedChangesAndLoadContent(
+                    App.state.authoringTools.location.value.Value,
+                    App.state.authoringTools.settings.nodeFetchRadius.value,
+                    Utility.GetPreviousValue(App.state.authoringTools.location, args.changes),
+                    Utility.GetPreviousValue(App.state.authoringTools.settings.nodeFetchRadius, args.changes),
+                    token
+                )
+            );
         }
 
-        private async UniTask HandleUnsavedChangesAndLoadContent(double2 location, float drawDistance, double2? previousLocation, float previousDrawDistance, CancellationToken cancellationToken = default)
+        private async UniTask HandleUnsavedChangesAndLoadContent(
+            double2 location,
+            float drawDistance,
+            double2? previousLocation,
+            float previousDrawDistance,
+            CancellationToken cancellationToken = default
+        )
         {
             if (App.state.authoringTools.hasUnsavedChanges.value)
             {
@@ -88,7 +94,10 @@ namespace Outernet.Client.AuthoringTools
                     Destroy(dialog.gameObject);
                 });
 
-                await UniTask.WaitUntil(() => dialogProps.status.value != DialogStatus.Pending, cancellationToken: cancellationToken);
+                await UniTask.WaitUntil(
+                    () => dialogProps.status.value != DialogStatus.Pending,
+                    cancellationToken: cancellationToken
+                );
 
                 if (dialogProps.status.value == DialogStatus.Canceled)
                 {
@@ -103,7 +112,8 @@ namespace Outernet.Client.AuthoringTools
                         title: "Saving",
                         allowCancel: false,
                         minimumWidth: 200,
-                        constructControls: props => UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
+                        constructControls: props =>
+                            UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
                     );
 
                     cancellationToken.Register(() =>
@@ -127,7 +137,12 @@ namespace Outernet.Client.AuthoringTools
             await LoadContent(location.x, location.y, drawDistance, cancellationToken);
         }
 
-        private async UniTask LoadContent(double latitude, double longitude, double radius, CancellationToken cancellationToken = default)
+        private async UniTask LoadContent(
+            double latitude,
+            double longitude,
+            double radius,
+            CancellationToken cancellationToken = default
+        )
         {
             App.ExecuteActionOrDelay(new SetLocationContentLoadedAction(false));
 
@@ -135,7 +150,8 @@ namespace Outernet.Client.AuthoringTools
                 title: "Loading Content",
                 allowCancel: false,
                 minimumWidth: 250,
-                constructControls: props => UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
+                constructControls: props =>
+                    UIBuilder.Text("Please wait", horizontalAlignment: TMPro.HorizontalAlignmentOptions.Center)
             );
 
             cancellationToken.Register(() =>
@@ -146,20 +162,26 @@ namespace Outernet.Client.AuthoringTools
                 Destroy(dialog.gameObject);
             });
 
-            var heights = await CesiumAPI.GetHeights(new List<(double latitude, double longitude)> { (latitude, longitude) });
+            var heights = await CesiumAPI.GetHeights(
+                new List<(double latitude, double longitude)> { (latitude, longitude) }
+            );
             cancellationToken.ThrowIfCancellationRequested();
 
             if (heights == null || heights.Count == 0)
                 throw new Exception("No heights found.");
 
             var height = heights[0];
-            var ecefCoordinates = CesiumWgs84Ellipsoid.LongitudeLatitudeHeightToEarthCenteredEarthFixed(new double3(longitude, latitude, height));
+            var ecefCoordinates = CesiumWgs84Ellipsoid.LongitudeLatitudeHeightToEarthCenteredEarthFixed(
+                new double3(longitude, latitude, height)
+            );
 
             App.state.ecefToLocalMatrix.ScheduleSet(
-                math.inverse(Double4x4.FromTranslationRotation(
-                    ecefCoordinates,
-                    Client.Utility.GetEUNRotationFromECEFPosition(ecefCoordinates)
-                ))
+                math.inverse(
+                    Double4x4.FromTranslationRotation(
+                        ecefCoordinates,
+                        Client.Utility.GetEUNRotationFromECEFPosition(ecefCoordinates)
+                    )
+                )
             );
 
             List<LocalizationMapRead> maps = default;
@@ -167,23 +189,21 @@ namespace Outernet.Client.AuthoringTools
             List<GroupRead> nodeGroups = null;
 
             await UniTask.WhenAll(
-
                 App.API.GetLocalizationMapsAsync().AsUniTask().ContinueWith(x => maps = x),
-
                 // TODO EP: Re-enable this when we get this endpoint
                 // await App.API.GetMapsWithinRadiusAsync(latitude, longitude, height, radius, Settings.lightingCondition)
                 //     .ContinueWith(x => maps = x);
 
-                App.API.GetNodesAsync().AsUniTask()
+                App.API.GetNodesAsync()
+                    .AsUniTask()
                     .ContinueWith(x =>
                     {
                         nodes = x;
                         return GetNodeGroupsRecursive(x);
                     })
                     .ContinueWith(x => nodeGroups = x)
-
             // TODO EP: Re-enable this when we get this endpoint
-            // PlerionAPI.GetNodesNearPositionsAsync(new double3[] { ecefCoordinates }, radius, 9999)
+            // PlaceframeAPI.GetNodesNearPositionsAsync(new double3[] { ecefCoordinates }, radius, 9999)
             //     .ContinueWith(x =>
             //     {
             //         nodes = x;
@@ -205,15 +225,15 @@ namespace Outernet.Client.AuthoringTools
             App.ExecuteActionOrDelay(new SetLocationContentLoadedAction(true));
         }
 
-        private async UniTask<List<GroupRead>> GetNodeGroupsRecursive(List<NodeRead> nodes, CancellationToken cancellationToken = default)
+        private async UniTask<List<GroupRead>> GetNodeGroupsRecursive(
+            List<NodeRead> nodes,
+            CancellationToken cancellationToken = default
+        )
         {
             var groups = new List<GroupRead>();
 
             var directGroups = await App.API.GetGroupsAsync(
-                nodes.Where(x => x.ParentId.HasValue)
-                    .Select(x => x.ParentId.Value)
-                    .Distinct()
-                    .ToList()
+                nodes.Where(x => x.ParentId.HasValue).Select(x => x.ParentId.Value).Distinct().ToList()
             );
 
             groups.AddRange(directGroups);
@@ -223,7 +243,8 @@ namespace Outernet.Client.AuthoringTools
             while (groups.Any(x => x.ParentId.HasValue && !groups.Any(y => y.Id == x.ParentId)))
             {
                 var recursiveGroups = await App.API.GetGroupsAsync(
-                    groups.Where(x => x.ParentId.HasValue && !groups.Any(y => y.Id == x.ParentId))
+                    groups
+                        .Where(x => x.ParentId.HasValue && !groups.Any(y => y.Id == x.ParentId))
                         .Select(x => x.ParentId.Value)
                         .Distinct()
                         .ToList()

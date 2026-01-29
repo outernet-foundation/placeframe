@@ -1,6 +1,6 @@
 using FofX.Stateful;
 
-namespace PlerionClient.Client
+namespace Placeframe.Client
 {
     public class LogInAction : ObservableNodeAction<AppState>
     {

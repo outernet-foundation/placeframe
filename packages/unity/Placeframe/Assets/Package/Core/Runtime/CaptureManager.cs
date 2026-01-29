@@ -7,11 +7,11 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using ICSharpCode.SharpZipLib.Tar;
-using PlerionApiClient.Model;
+using PlaceframeApiClient.Model;
 using R3;
 using UnityEngine;
 
-namespace Plerion.Core
+namespace Placeframe.Core
 {
     public static class CaptureManager
     {

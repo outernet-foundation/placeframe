@@ -5,7 +5,7 @@ from shutil import which
 from common.run_command import run_command
 from typer import Option, run
 
-DATABASE = "plerion"
+DATABASE = "placeframe"
 DDL_PATH = "database"
 
 

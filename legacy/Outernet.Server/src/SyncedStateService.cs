@@ -10,7 +10,7 @@ namespace Outernet.Server
     {
         private static SyncedStateService? singleton;
 
-        private readonly PlerionAPI _plerionApi;
+        private readonly PlaceframeAPI _placeframeApi;
 
         public const int targetFps = 60;
         private const int shutdownDelay = 0;
@@ -29,11 +29,11 @@ namespace Outernet.Server
 
         public static Dictionary<string, RoomRecord.InitializationData> roomSettings { get; } = new();
 
-        public SyncedStateService(PlerionAPI plerionApi)
+        public SyncedStateService(PlaceframeAPI placeframeApi)
         {
             singleton = this;
 
-            _plerionApi = plerionApi;
+            _placeframeApi = placeframeApi;
 
             logicLooper = new LogicLooper(targetFps);
         }
@@ -108,7 +108,7 @@ namespace Outernet.Server
                     // Create the room if it does not exist
                     if (!singleton.rooms.ContainsKey(roomID))
                     {
-                        singleton.rooms.Add(roomID, new Room(singleton, roomID, singleton._plerionApi));
+                        singleton.rooms.Add(roomID, new Room(singleton, roomID, singleton._placeframeApi));
                         roomSettings.TryGetValue(roomID, out RoomRecord.InitializationData? value);
                         Log.Info("dafuq");
                         if (value != null)

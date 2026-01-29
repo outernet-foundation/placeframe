@@ -13,10 +13,10 @@ from litestar.enums import RequestEncodingType
 from litestar.exceptions import HTTPException
 from litestar.params import Body
 from litestar.status_codes import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_502_BAD_GATEWAY
-from plerion_localizer_client import ApiClient, ApiException, Configuration
-from plerion_localizer_client.api.default_api import DefaultApi
-from plerion_localizer_client.models.axis_convention import AxisConvention as LocalizerAxisConvention
-from plerion_localizer_client.models.pinhole_camera_config import PinholeCameraConfig as LocalizerPinholeCameraConfig
+from placeframe_localizer_client import ApiClient, ApiException, Configuration
+from placeframe_localizer_client.api.default_api import DefaultApi
+from placeframe_localizer_client.models.axis_convention import AxisConvention as LocalizerAxisConvention
+from placeframe_localizer_client.models.pinhole_camera_config import PinholeCameraConfig as LocalizerPinholeCameraConfig
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 

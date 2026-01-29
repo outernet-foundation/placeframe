@@ -1,8 +1,8 @@
 {
-  "name": "Plerion.Core.Editor",
+  "name": "Placeframe.Core.Editor",
   "rootNamespace": "",
   "references": [
-    "Plerion.Core",
+    "Placeframe.Core",
     "Unity.Mathematics"
   ],
   "includePlatforms": [

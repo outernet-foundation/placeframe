@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using FofX.Stateful;
-using Plerion.Core;
+using Placeframe.Core;
 using UnityEngine;
 
-namespace PlerionClient.Client
+namespace Placeframe.Client
 {
     public class LocalizationManager : MonoBehaviour
     {
@@ -12,9 +12,9 @@ namespace PlerionClient.Client
         {
             VisualPositioningSystem.Initialize(
                 cameraProvider,
-                App.state.plerionApiUrl.value,
-                App.state.plerionAuthTokenUrl.value,
-                App.state.plerionAuthAudience.value,
+                App.state.placeframeApiUrl.value,
+                App.state.placeframeAuthTokenUrl.value,
+                App.state.placeframeAuthAudience.value,
                 message => Log.Info(LogGroup.Localizer, message),
                 message => Log.Warn(LogGroup.Localizer, message),
                 message => Log.Error(LogGroup.Localizer, message)

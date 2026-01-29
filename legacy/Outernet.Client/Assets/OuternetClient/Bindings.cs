@@ -1,18 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
-using UnityEngine.Events;
-using UnityEngine;
-using Unity.Mathematics;
-
-using FofX.Stateful;
-
-using Outernet.Client.Location;
 using FofX;
+using FofX.Stateful;
+using Outernet.Client.Location;
+using Placeframe.Core;
 using TMPro;
-
-using Plerion.Core;
+using Unity.Mathematics;
+using UnityEngine;
+using UnityEngine.Events;
 
 namespace Outernet.Client
 {
@@ -75,36 +71,49 @@ namespace Outernet.Client
             }
         }
 
-        public static IDisposable OnRelease(Action onRelease)
-            => new ActionDisposable(onRelease);
+        public static IDisposable OnRelease(Action onRelease) => new ActionDisposable(onRelease);
 
-        public static IDisposable DestroyOnRelease(this UnityEngine.Object obj)
-            => OnRelease(() => UnityEngine.Object.Destroy(obj));
+        public static IDisposable DestroyOnRelease(this UnityEngine.Object obj) =>
+            OnRelease(() => UnityEngine.Object.Destroy(obj));
 
-        public static IDisposable Compose(IEnumerable<IDisposable> bindings)
-            => new CompositeDisposable(bindings);
+        public static IDisposable Compose(IEnumerable<IDisposable> bindings) => new CompositeDisposable(bindings);
 
-        public static IDisposable Compose(params IDisposable[] bindings)
-            => new CompositeDisposable(bindings);
+        public static IDisposable Compose(params IDisposable[] bindings) => new CompositeDisposable(bindings);
 
-        public static IDisposable Observer(ObserverDelegate observer, ObservationScope scope, params IObservableNode[] nodes)
-            => Observer(observer, new ObserverParameters() { scope = scope }, nodes);
+        public static IDisposable Observer(
+            ObserverDelegate observer,
+            ObservationScope scope,
+            params IObservableNode[] nodes
+        ) => Observer(observer, new ObserverParameters() { scope = scope }, nodes);
 
-        public static IDisposable Observer(ObserverDelegate observer, ObserverParameters parameters, params IObservableNode[] nodes)
+        public static IDisposable Observer(
+            ObserverDelegate observer,
+            ObserverParameters parameters,
+            params IObservableNode[] nodes
+        )
         {
             var context = nodes[0].context;
             context.RegisterObserver(observer, parameters, nodes);
             return OnRelease(() => context.DeregisterObserver(observer));
         }
 
-        public static IDisposable Derive<T>(this T derived, ObserverDelegate observer, ObservationScope scope, params IObservableNode[] nodes)
+        public static IDisposable Derive<T>(
+            this T derived,
+            ObserverDelegate observer,
+            ObservationScope scope,
+            params IObservableNode[] nodes
+        )
             where T : IObservableNode
         {
             derived.RegisterDerived(observer, scope, nodes);
             return OnRelease(derived.DeregisterDerived);
         }
 
-        public static IDisposable DynamicBind(Func<NodeChangeEventArgs, IDisposable> bind, ObservationScope scope, params IObservableNode[] nodes)
+        public static IDisposable DynamicBind(
+            Func<NodeChangeEventArgs, IDisposable> bind,
+            ObservationScope scope,
+            params IObservableNode[] nodes
+        )
         {
             IDisposable binding = Empty();
             return Compose(
@@ -127,15 +136,15 @@ namespace Outernet.Client
 
         public static IDisposable DynamicBind<T>(this ObservablePrimitive<T> primitive, Func<T, IDisposable> onChange)
         {
-            return DynamicBind
-            (
-                args => onChange(primitive.value),
-                ObservationScope.Self,
-                primitive
-            );
+            return DynamicBind(args => onChange(primitive.value), ObservationScope.Self, primitive);
         }
 
-        public static IDisposable Track<T>(Func<NodeChangeEventArgs, T> track, Action<T> onChange, ObserverParameters parameters, params IObservableNode[] nodes)
+        public static IDisposable Track<T>(
+            Func<NodeChangeEventArgs, T> track,
+            Action<T> onChange,
+            ObserverParameters parameters,
+            params IObservableNode[] nodes
+        )
         {
             T currentValue = default;
             IDisposable binding = default;
@@ -166,7 +175,12 @@ namespace Outernet.Client
             return binding;
         }
 
-        public static IDisposable Track<T>(Func<NodeChangeEventArgs, T> track, Func<T, IDisposable> bind, ObserverParameters parameters, params IObservableNode[] nodes)
+        public static IDisposable Track<T>(
+            Func<NodeChangeEventArgs, T> track,
+            Func<T, IDisposable> bind,
+            ObserverParameters parameters,
+            params IObservableNode[] nodes
+        )
         {
             IDisposable subBinding = null;
             return Compose(
@@ -184,48 +198,72 @@ namespace Outernet.Client
             );
         }
 
-        public static IDisposable Track<TKey, TValue>(this ObservableDictionary<TKey, TValue> dictionary, TKey key, Action<KVP<TKey, TValue>> onChanged)
+        public static IDisposable Track<TKey, TValue>(
+            this ObservableDictionary<TKey, TValue> dictionary,
+            TKey key,
+            Action<KVP<TKey, TValue>> onChanged
+        )
             where TValue : IObservableNode, new() => dictionary.Track(key, false, onChanged);
 
-        public static IDisposable Track<TKey, TValue>(this ObservableDictionary<TKey, TValue> dictionary, TKey key, bool isDerived, Action<KVP<TKey, TValue>> onChanged)
+        public static IDisposable Track<TKey, TValue>(
+            this ObservableDictionary<TKey, TValue> dictionary,
+            TKey key,
+            bool isDerived,
+            Action<KVP<TKey, TValue>> onChanged
+        )
             where TValue : IObservableNode, new()
         {
             return Track(
-                args => dictionary.TryGetValue(key, out var value) ?
-                    new KVP<TKey, TValue>(key, value) :
-                    default,
+                args => dictionary.TryGetValue(key, out var value) ? new KVP<TKey, TValue>(key, value) : default,
                 onChanged,
                 new ObserverParameters() { scope = ObservationScope.Self, isDerived = isDerived },
                 dictionary
             );
         }
 
-        public static IDisposable Track<TKey, TValue>(this ObservableDictionary<TKey, TValue> dictionary, TKey key, Func<KVP<TKey, TValue>, IDisposable> bind)
+        public static IDisposable Track<TKey, TValue>(
+            this ObservableDictionary<TKey, TValue> dictionary,
+            TKey key,
+            Func<KVP<TKey, TValue>, IDisposable> bind
+        )
             where TValue : IObservableNode, new() => dictionary.Track(key, false, bind);
 
-        public static IDisposable Track<TKey, TValue>(this ObservableDictionary<TKey, TValue> dictionary, TKey key, bool isDerived, Func<KVP<TKey, TValue>, IDisposable> bind)
+        public static IDisposable Track<TKey, TValue>(
+            this ObservableDictionary<TKey, TValue> dictionary,
+            TKey key,
+            bool isDerived,
+            Func<KVP<TKey, TValue>, IDisposable> bind
+        )
             where TValue : IObservableNode, new()
         {
             return Track(
-                args => dictionary.TryGetValue(key, out var value) ?
-                    new KVP<TKey, TValue>(key, value) :
-                    default,
+                args => dictionary.TryGetValue(key, out var value) ? new KVP<TKey, TValue>(key, value) : default,
                 bind,
                 new ObserverParameters() { scope = ObservationScope.Self, isDerived = isDerived },
                 dictionary
             );
         }
 
-        public static IDisposable Track<TKey, TValue>(this ObservableDictionary<TKey, TValue> dictionary, ObservablePrimitive<TKey> key, Action<KVP<TKey, TValue>> onChanged)
+        public static IDisposable Track<TKey, TValue>(
+            this ObservableDictionary<TKey, TValue> dictionary,
+            ObservablePrimitive<TKey> key,
+            Action<KVP<TKey, TValue>> onChanged
+        )
             where TValue : IObservableNode, new() => dictionary.Track(key, false, onChanged);
 
-        public static IDisposable Track<TKey, TValue>(this ObservableDictionary<TKey, TValue> dictionary, ObservablePrimitive<TKey> key, bool isDerived, Action<KVP<TKey, TValue>> onChanged)
+        public static IDisposable Track<TKey, TValue>(
+            this ObservableDictionary<TKey, TValue> dictionary,
+            ObservablePrimitive<TKey> key,
+            bool isDerived,
+            Action<KVP<TKey, TValue>> onChanged
+        )
             where TValue : IObservableNode, new()
         {
             return Track(
-                args => dictionary.TryGetValue(key.value, out var value) ?
-                    new KVP<TKey, TValue>(key.value, value) :
-                    default,
+                args =>
+                    dictionary.TryGetValue(key.value, out var value)
+                        ? new KVP<TKey, TValue>(key.value, value)
+                        : default,
                 onChanged,
                 new ObserverParameters() { scope = ObservationScope.Self, isDerived = isDerived },
                 dictionary,
@@ -233,16 +271,26 @@ namespace Outernet.Client
             );
         }
 
-        public static IDisposable Track<TKey, TValue>(this ObservableDictionary<TKey, TValue> dictionary, ObservablePrimitive<TKey> key, Func<KVP<TKey, TValue>, IDisposable> bind)
+        public static IDisposable Track<TKey, TValue>(
+            this ObservableDictionary<TKey, TValue> dictionary,
+            ObservablePrimitive<TKey> key,
+            Func<KVP<TKey, TValue>, IDisposable> bind
+        )
             where TValue : IObservableNode, new() => dictionary.Track(key, false, bind);
 
-        public static IDisposable Track<TKey, TValue>(this ObservableDictionary<TKey, TValue> dictionary, ObservablePrimitive<TKey> key, bool isDerived, Func<KVP<TKey, TValue>, IDisposable> bind)
+        public static IDisposable Track<TKey, TValue>(
+            this ObservableDictionary<TKey, TValue> dictionary,
+            ObservablePrimitive<TKey> key,
+            bool isDerived,
+            Func<KVP<TKey, TValue>, IDisposable> bind
+        )
             where TValue : IObservableNode, new()
         {
             return Track(
-                args => dictionary.TryGetValue(key.value, out var value) ?
-                    new KVP<TKey, TValue>(key.value, value) :
-                    default,
+                args =>
+                    dictionary.TryGetValue(key.value, out var value)
+                        ? new KVP<TKey, TValue>(key.value, value)
+                        : default,
                 bind,
                 new ObserverParameters() { scope = ObservationScope.Self, isDerived = isDerived },
                 dictionary,
@@ -250,26 +298,37 @@ namespace Outernet.Client
             );
         }
 
-        public static IDisposable List<TElement, TView>(this IObservableCollection<TElement> collection, Transform parent, Func<TElement, TView> getView)
+        public static IDisposable List<TElement, TView>(
+            this IObservableCollection<TElement> collection,
+            Transform parent,
+            Func<TElement, TView> getView
+        )
             where TView : Component, IDisposable
         {
-            return collection.Each(
-                x =>
-                {
-                    var view = getView(x);
-                    view.transform.SetParent(parent, false);
-                    return view;
-                }
-            );
+            return collection.Each(x =>
+            {
+                var view = getView(x);
+                view.transform.SetParent(parent, false);
+                return view;
+            });
         }
 
-        public static IDisposable Each<T>(this IObservableCollection<T> collection, Action<T> onAdd)
-            => collection.Each(value => { if (collection.Contains(value)) onAdd(value); return Empty(); });
+        public static IDisposable Each<T>(this IObservableCollection<T> collection, Action<T> onAdd) =>
+            collection.Each(value =>
+            {
+                if (collection.Contains(value))
+                    onAdd(value);
+                return Empty();
+            });
 
-        public static IDisposable Each<T>(this IObservableCollection<T> collection, Func<T, IDisposable> bind)
-            => collection.Each(default, bind);
+        public static IDisposable Each<T>(this IObservableCollection<T> collection, Func<T, IDisposable> bind) =>
+            collection.Each(default, bind);
 
-        public static IDisposable Each<T>(this IObservableCollection<T> collection, bool isDerived, Func<T, IDisposable> bind)
+        public static IDisposable Each<T>(
+            this IObservableCollection<T> collection,
+            bool isDerived,
+            Func<T, IDisposable> bind
+        )
         {
             Dictionary<T, IDisposable> bindingByElement = new Dictionary<T, IDisposable>();
             return Compose(
@@ -288,10 +347,7 @@ namespace Outernet.Client
                         {
                             if (change.changeType == ChangeType.Add)
                             {
-                                bindingByElement.Add(
-                                    (T)change.collectionElement,
-                                    bind((T)change.collectionElement)
-                                );
+                                bindingByElement.Add((T)change.collectionElement, bind((T)change.collectionElement));
                             }
                             else if (change.changeType == ChangeType.Remove)
                             {
@@ -312,8 +368,12 @@ namespace Outernet.Client
             );
         }
 
-        public static IDisposable EachRaw(this IObservableCollection collection, Action<object> onAdd)
-            => collection.EachRaw(value => { onAdd(value); return Empty(); });
+        public static IDisposable EachRaw(this IObservableCollection collection, Action<object> onAdd) =>
+            collection.EachRaw(value =>
+            {
+                onAdd(value);
+                return Empty();
+            });
 
         public static IDisposable EachRaw(this IObservableCollection collection, Func<object, IDisposable> bind)
         {
@@ -334,10 +394,7 @@ namespace Outernet.Client
                         {
                             if (change.changeType == ChangeType.Add)
                             {
-                                bindingByElement.Add(
-                                    change.collectionElement,
-                                    bind(change.collectionElement)
-                                );
+                                bindingByElement.Add(change.collectionElement, bind(change.collectionElement));
                             }
                             else if (change.changeType == ChangeType.Remove)
                             {
@@ -358,11 +415,11 @@ namespace Outernet.Client
             );
         }
 
-        public static IDisposable BindText<T>(this TMPro.TextMeshProUGUI label, ObservablePrimitive<T> bindTo)
-            => bindTo.OnChange(x => label.text = x?.ToString());
+        public static IDisposable BindText<T>(this TMPro.TextMeshProUGUI label, ObservablePrimitive<T> bindTo) =>
+            bindTo.OnChange(x => label.text = x?.ToString());
 
-        public static IDisposable BindValue(this UnityEngine.UI.Slider slider, ObservablePrimitive<float> bindTo)
-            => bindTo.OnChange(x => slider.value = x);
+        public static IDisposable BindValue(this UnityEngine.UI.Slider slider, ObservablePrimitive<float> bindTo) =>
+            bindTo.OnChange(x => slider.value = x);
 
         public static IDisposable OnRaised(this UnityEvent bindTo, UnityAction listener)
         {
@@ -376,8 +433,8 @@ namespace Outernet.Client
             return OnRelease(() => bindTo.RemoveListener(listener));
         }
 
-        public static IDisposable OnChange<T>(this ObservablePrimitive<T> primitive, Action<T> onChange)
-            => primitive.OnChange(false, onChange);
+        public static IDisposable OnChange<T>(this ObservablePrimitive<T> primitive, Action<T> onChange) =>
+            primitive.OnChange(false, onChange);
 
         public static IDisposable OnChange<T>(this ObservablePrimitive<T> primitive, bool isDerived, Action<T> onChange)
         {
@@ -404,8 +461,8 @@ namespace Outernet.Client
             );
         }
 
-        public static IDisposable OnChange(this IObservablePrimitive primitive, Action<object> onChange)
-            => primitive.OnChange(false, onChange);
+        public static IDisposable OnChange(this IObservablePrimitive primitive, Action<object> onChange) =>
+            primitive.OnChange(false, onChange);
 
         public static IDisposable OnChange(this IObservablePrimitive primitive, bool isDerived, Action<object> onChange)
         {
@@ -420,24 +477,25 @@ namespace Outernet.Client
             );
         }
 
-        public static IDisposable Empty()
-            => OnRelease(() => { });
+        public static IDisposable Empty() => OnRelease(() => { });
 
         public delegate bool TryParseDelegate<T>(string input, out T result);
 
-        private static IDisposable BindInput<T>(this TMPro.TMP_InputField inputField, ObservablePrimitive<T> bindTo, TryParseDelegate<T> tryParse)
+        private static IDisposable BindInput<T>(
+            this TMPro.TMP_InputField inputField,
+            ObservablePrimitive<T> bindTo,
+            TryParseDelegate<T> tryParse
+        )
         {
             bool applyingFromState = false;
 
             return Compose(
-                bindTo.OnChange(
-                    value =>
-                    {
-                        applyingFromState = true;
-                        inputField.text = bindTo.value.ToString();
-                        applyingFromState = false;
-                    }
-                ),
+                bindTo.OnChange(value =>
+                {
+                    applyingFromState = true;
+                    inputField.text = bindTo.value.ToString();
+                    applyingFromState = false;
+                }),
                 inputField.onEndEdit.OnRaised(x =>
                 {
                     if (applyingFromState)
@@ -453,53 +511,53 @@ namespace Outernet.Client
             );
         }
 
-        public static IDisposable BindInput(this TMPro.TMP_InputField inputField, ObservablePrimitive<double> bindTo)
-            => inputField.BindInput(bindTo, double.TryParse);
+        public static IDisposable BindInput(this TMPro.TMP_InputField inputField, ObservablePrimitive<double> bindTo) =>
+            inputField.BindInput(bindTo, double.TryParse);
 
-        public static IDisposable BindInput(this TMPro.TMP_InputField inputField, ObservablePrimitive<float> bindTo)
-            => inputField.BindInput(bindTo, float.TryParse);
+        public static IDisposable BindInput(this TMPro.TMP_InputField inputField, ObservablePrimitive<float> bindTo) =>
+            inputField.BindInput(bindTo, float.TryParse);
 
-        public static IDisposable BindInput(this TMPro.TMP_InputField inputField, ObservablePrimitive<int> bindTo)
-            => inputField.BindInput(bindTo, int.TryParse);
+        public static IDisposable BindInput(this TMPro.TMP_InputField inputField, ObservablePrimitive<int> bindTo) =>
+            inputField.BindInput(bindTo, int.TryParse);
 
         public static IDisposable BindInput(this TMPro.TMP_InputField inputField, ObservablePrimitive<string> bindTo)
         {
             bool applyingFromState = false;
             return Compose(
-                bindTo.OnChange(
-                    value =>
-                    {
-                        applyingFromState = true;
-                        inputField.text = bindTo.value;
-                        applyingFromState = false;
-                    }
-                ),
-                inputField.onEndEdit.OnRaised(
-                    x =>
-                    {
-                        if (applyingFromState)
-                            return;
+                bindTo.OnChange(value =>
+                {
+                    applyingFromState = true;
+                    inputField.text = bindTo.value;
+                    applyingFromState = false;
+                }),
+                inputField.onEndEdit.OnRaised(x =>
+                {
+                    if (applyingFromState)
+                        return;
 
-                        bindTo.context.ExecuteActionOrDelay(
-                            bindTo,
-                            new SetPrimitiveValueAction<string>(inputField.text)
-                        );
-                    }
-                )
+                    bindTo.context.ExecuteActionOrDelay(bindTo, new SetPrimitiveValueAction<string>(inputField.text));
+                })
             );
         }
 
-        public static IDisposable BindActive(this GameObject gameObject, ObservablePrimitive<bool> bindTo, bool invert = false)
-            => bindTo.OnChange(x => gameObject.SetActive(invert ? !x : x));
+        public static IDisposable BindActive(
+            this GameObject gameObject,
+            ObservablePrimitive<bool> bindTo,
+            bool invert = false
+        ) => bindTo.OnChange(x => gameObject.SetActive(invert ? !x : x));
 
-        public static IDisposable BindBounds(this BoxCollider collider, ObservablePrimitive<Bounds> bindTo)
-            => bindTo.OnChange(x =>
+        public static IDisposable BindBounds(this BoxCollider collider, ObservablePrimitive<Bounds> bindTo) =>
+            bindTo.OnChange(x =>
             {
                 collider.center = x.center;
                 collider.size = x.size;
             });
 
-        public static IDisposable From<T, U>(this ObservablePrimitive<U> node, ObservablePrimitive<T> fromNode, Func<T, U> convert)
+        public static IDisposable From<T, U>(
+            this ObservablePrimitive<U> node,
+            ObservablePrimitive<T> fromNode,
+            Func<T, U> convert
+        )
         {
             return node.Derive(
                 args =>
@@ -535,16 +593,18 @@ namespace Outernet.Client
             );
         }
 
-        public static IDisposable From<T>(this ObservablePrimitive<T> primitive, Func<NodeChangeEventArgs, T> evaluate, ObservationScope scope, params IObservableNode[] nodes)
+        public static IDisposable From<T>(
+            this ObservablePrimitive<T> primitive,
+            Func<NodeChangeEventArgs, T> evaluate,
+            ObservationScope scope,
+            params IObservableNode[] nodes
+        )
         {
-            return primitive.Derive(
-                args => primitive.value = evaluate(args),
-                scope,
-                nodes
-            );
+            return primitive.Derive(args => primitive.value = evaluate(args), scope, nodes);
         }
 
-        public static IDisposable BindTo<T>(this T downstream, T upstream) where T : IObservableNode
+        public static IDisposable BindTo<T>(this T downstream, T upstream)
+            where T : IObservableNode
         {
             return downstream.BindTo(
                 upstream,
@@ -557,7 +617,9 @@ namespace Outernet.Client
                     }
 
                     foreach (var change in args.changes)
-                        downstream.GetChild(change.source.nodePath.Substring(upstream.nodePath.Length)).ApplyChange(change);
+                        downstream
+                            .GetChild(change.source.nodePath.Substring(upstream.nodePath.Length))
+                            .ApplyChange(change);
                 },
                 (upstream, args) =>
                 {
@@ -565,7 +627,9 @@ namespace Outernet.Client
                         return;
 
                     foreach (var change in args.changes)
-                        upstream.GetChild(change.source.nodePath.Substring(downstream.nodePath.Length)).ApplyChange(change);
+                        upstream
+                            .GetChild(change.source.nodePath.Substring(downstream.nodePath.Length))
+                            .ApplyChange(change);
                 }
             );
         }
@@ -574,17 +638,26 @@ namespace Outernet.Client
             this TDown downstream,
             TUp upstream,
             Action<TDown, NodeChangeEventArgs> pushChangeDownstream,
-            Action<TUp, NodeChangeEventArgs> pushChangeUpstream)
+            Action<TUp, NodeChangeEventArgs> pushChangeUpstream
+        )
             where TUp : IObservableNode
             where TDown : IObservableNode
         {
             return Relationship(
-                args => pushChangeDownstream(downstream, args), ObservationScope.All, new IObservableNode[] { upstream },
-                args => pushChangeUpstream(upstream, args), ObservationScope.All, new IObservableNode[] { downstream }
+                args => pushChangeDownstream(downstream, args),
+                ObservationScope.All,
+                new IObservableNode[] { upstream },
+                args => pushChangeUpstream(upstream, args),
+                ObservationScope.All,
+                new IObservableNode[] { downstream }
             );
         }
 
-        public static IDisposable BindContains<T>(this ObservableSet<T> collection, T value, ObservablePrimitive<bool> shouldContain)
+        public static IDisposable BindContains<T>(
+            this ObservableSet<T> collection,
+            T value,
+            ObservablePrimitive<bool> shouldContain
+        )
         {
             return Relationship(
                 args => shouldContain.value = collection.Contains(value),
@@ -607,11 +680,20 @@ namespace Outernet.Client
         }
 
         public static IDisposable Relationship(
-            ObserverDelegate observer1, ObservationScope scope1, IObservableNode[] nodes1,
-            ObserverDelegate observer2, ObservationScope scope2, IObservableNode[] nodes2
+            ObserverDelegate observer1,
+            ObservationScope scope1,
+            IObservableNode[] nodes1,
+            ObserverDelegate observer2,
+            ObservationScope scope2,
+            IObservableNode[] nodes2
         ) => new RelationshipBinding(App.state.context, observer1, scope1, nodes1, observer2, scope2, nodes2);
 
-        public static IDisposable BindTo<T, U>(this ObservablePrimitive<U> downstream, ObservablePrimitive<T> upstream, Func<T, U> toDownstream, Func<U, T> toUpstream)
+        public static IDisposable BindTo<T, U>(
+            this ObservablePrimitive<U> downstream,
+            ObservablePrimitive<T> upstream,
+            Func<T, U> toDownstream,
+            Func<U, T> toUpstream
+        )
         {
             return downstream.BindTo(
                 upstream,
@@ -620,7 +702,11 @@ namespace Outernet.Client
             );
         }
 
-        public static IDisposable BindTo<T>(this ObservablePrimitive<string> downstream, ObservablePrimitive<T> upstream, TryParseDelegate<T> tryParseDelegate)
+        public static IDisposable BindTo<T>(
+            this ObservablePrimitive<string> downstream,
+            ObservablePrimitive<T> upstream,
+            TryParseDelegate<T> tryParseDelegate
+        )
         {
             return downstream.BindTo(
                 upstream,
@@ -629,14 +715,20 @@ namespace Outernet.Client
             );
         }
 
-        public static IDisposable BindTo(this ObservablePrimitive<string> downstream, ObservablePrimitive<float> upstream)
-            => downstream.BindTo(upstream, float.TryParse);
+        public static IDisposable BindTo(
+            this ObservablePrimitive<string> downstream,
+            ObservablePrimitive<float> upstream
+        ) => downstream.BindTo(upstream, float.TryParse);
 
-        public static IDisposable BindTo(this ObservablePrimitive<string> downstream, ObservablePrimitive<int> upstream)
-            => downstream.BindTo(upstream, int.TryParse);
+        public static IDisposable BindTo(
+            this ObservablePrimitive<string> downstream,
+            ObservablePrimitive<int> upstream
+        ) => downstream.BindTo(upstream, int.TryParse);
 
-        public static IDisposable BindTo(this ObservablePrimitive<string> downstream, ObservablePrimitive<double> upstream)
-            => downstream.BindTo(upstream, double.TryParse);
+        public static IDisposable BindTo(
+            this ObservablePrimitive<string> downstream,
+            ObservablePrimitive<double> upstream
+        ) => downstream.BindTo(upstream, double.TryParse);
 
         public static IDisposable Observe<T>(this T source, ObserverDelegate onChange)
             where T : IObservableNode => Observer(onChange, ObservationScope.All, source);
@@ -644,7 +736,12 @@ namespace Outernet.Client
         public static IDisposable Observe<T>(this T source, ObserverParameters parameters, ObserverDelegate onChange)
             where T : IObservableNode => Observer(onChange, parameters, source);
 
-        public static IDisposable BindECEFTransform(ObservablePrimitive<double3> ecefPosition, ObservablePrimitive<Quaternion> ecefRotation, ObservablePrimitive<Vector3> localPosition, ObservablePrimitive<Quaternion> localRotation)
+        public static IDisposable BindECEFTransform(
+            ObservablePrimitive<double3> ecefPosition,
+            ObservablePrimitive<Quaternion> ecefRotation,
+            ObservablePrimitive<Vector3> localPosition,
+            ObservablePrimitive<Quaternion> localRotation
+        )
         {
             return Relationship(
                 _ =>
@@ -666,7 +763,11 @@ namespace Outernet.Client
             );
         }
 
-        public static IDisposable BindLayersDropdown(this TMP_Dropdown layersDropdown, ObservableDictionary<Guid, LayerState> layers, ObservableSet<Guid> visibleLayers)
+        public static IDisposable BindLayersDropdown(
+            this TMP_Dropdown layersDropdown,
+            ObservableDictionary<Guid, LayerState> layers,
+            ObservableSet<Guid> visibleLayers
+        )
         {
             var layersInOrder = new List<Guid>();
             return Compose(
@@ -678,20 +779,22 @@ namespace Outernet.Client
                         return;
 
                     layersInOrder.Clear();
-                    layersInOrder.AddRange(layers
-                        .Where(x => x.key != Guid.Empty)
-                        .OrderBy(x => x.value.layerName.value)
-                        .Select(x => x.key)
-                        .Prepend(Guid.Empty)
+                    layersInOrder.AddRange(
+                        layers
+                            .Where(x => x.key != Guid.Empty)
+                            .OrderBy(x => x.value.layerName.value)
+                            .Select(x => x.key)
+                            .Prepend(Guid.Empty)
                     );
 
                     layersDropdown.ClearOptions();
-                    layersDropdown.AddOptions(layers
-                        .Where(x => x.key != Guid.Empty)
-                        .Select(x => x.value.layerName.value)
-                        .OrderBy(x => x)
-                        .Prepend("Default")
-                        .ToList()
+                    layersDropdown.AddOptions(
+                        layers
+                            .Where(x => x.key != Guid.Empty)
+                            .Select(x => x.value.layerName.value)
+                            .OrderBy(x => x)
+                            .Prepend("Default")
+                            .ToList()
                     );
 
                     int selection = 0;
@@ -707,7 +810,6 @@ namespace Outernet.Client
 
                     layersDropdown.value = selection;
                 }),
-
                 visibleLayers.Observe(_ =>
                 {
                     // there's always at least one layer, so if we have no layers,
@@ -728,7 +830,6 @@ namespace Outernet.Client
 
                     layersDropdown.value = selection;
                 }),
-
                 layersDropdown.onValueChanged.OnRaised(mask =>
                 {
                     // there's always at least one layer, so if we have no layers,

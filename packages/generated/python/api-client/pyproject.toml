@@ -1,12 +1,12 @@
 [project]
-name = "plerion_api_client"
+name = "placeframe_api_client"
 version = "0.1.0"
-description = "Plerion"
+description = "Placeframe"
 authors = [
   {name = "OpenAPI Generator Community",email = "team@openapitools.org"},
 ]
 readme = "README.md"
-keywords = ["OpenAPI", "OpenAPI-Generator", "Plerion"]
+keywords = ["OpenAPI", "OpenAPI-Generator", "Placeframe"]
 requires-python = ">=3.9"
 
 dependencies = [
@@ -40,7 +40,7 @@ extension-pkg-whitelist = "pydantic"
 
 [tool.mypy]
 files = [
-  "plerion_api_client",
+  "placeframe_api_client",
   #"test",  # auto-generated tests
   "tests", # hand-written tests
 ]
@@ -78,7 +78,7 @@ disallow_any_generics = true
 
 [[tool.mypy.overrides]]
 module = [
-  "plerion_api_client.configuration",
+  "placeframe_api_client.configuration",
 ]
 warn_unused_ignores = true
 strict_equality = true

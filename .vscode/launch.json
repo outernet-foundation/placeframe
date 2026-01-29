@@ -49,7 +49,7 @@
       "pipeTransport": {
         "pipeCwd": "${workspaceFolder}",
         "pipeProgram": "docker",
-        "pipeArgs": ["exec", "-i", "plerion-state-sync-1", "sh", "-c"],
+        "pipeArgs": ["exec", "-i", "placeframe-state-sync-1", "sh", "-c"],
         "debuggerPath": "/app/vsdbg/vsdbg"
       },
       "sourceFileMap": {

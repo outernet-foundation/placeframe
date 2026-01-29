@@ -56,13 +56,13 @@
       "dependencies": {},
       "hash": "34432703a177c97631a4eb1d908f086037c67969"
     },
-    "com.plerion.api-client": {
-      "version": "file:../../../packages/generated/csharp/api-client/src/PlerionApiClient",
+    "com.placeframe.api-client": {
+      "version": "file:../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
       "depth": 0,
       "source": "local",
       "dependencies": {}
     },
-    "com.plerion.vps": {
+    "com.placeframe.vps": {
       "version": "file:../../../packages/unity/Placeframe/Assets/Package/Core",
       "depth": 0,
       "source": "local",
@@ -74,7 +74,7 @@
         "com.unity.cloud.gltfast": "6.15.1"
       }
     },
-    "com.plerion.vps.arfoundation": {
+    "com.placeframe.vps.arfoundation": {
       "version": "file:../../../packages/unity/Placeframe/Assets/Package/ARFoundation",
       "depth": 0,
       "source": "local",
@@ -84,8 +84,8 @@
         "com.unity.xr.arfoundation": "6.0.6"
       }
     },
-    "com.plerion.zed-client": {
-      "version": "file:../../../packages/generated/csharp/zed-client/src/PlerionZedClient",
+    "com.placeframe.zed-client": {
+      "version": "file:../../../packages/generated/csharp/zed-client/src/PlaceframeZedClient",
       "depth": 0,
       "source": "local",
       "dependencies": {}

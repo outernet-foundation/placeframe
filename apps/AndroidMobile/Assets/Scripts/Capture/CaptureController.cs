@@ -10,15 +10,15 @@ using FofX.Stateful;
 using Nessle;
 using ObserveThing;
 using ObserveThing.StatefulExtensions;
-using Plerion.Core;
-using PlerionApiClient.Api;
-using PlerionApiClient.Client;
-using PlerionApiClient.Model;
+using Placeframe.Core;
+using PlaceframeApiClient.Api;
+using PlaceframeApiClient.Client;
+using PlaceframeApiClient.Model;
 using UnityEngine;
-using static PlerionClient.Client.UIElements;
-using DeviceType = PlerionApiClient.Model.DeviceType;
+using static Placeframe.Client.UIElements;
+using DeviceType = PlaceframeApiClient.Model.DeviceType;
 
-namespace PlerionClient.Client
+namespace Placeframe.Client
 {
     public class CaptureController : MonoBehaviour
     {
@@ -41,10 +41,10 @@ namespace PlerionClient.Client
             capturesApi = new DefaultApi(
                 new HttpClient(new AuthHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
-                    BaseAddress = new Uri(App.state.plerionApiUrl.value),
+                    BaseAddress = new Uri(App.state.placeframeApiUrl.value),
                     Timeout = TimeSpan.FromSeconds(600),
                 },
-                new Configuration() { BasePath = App.state.plerionApiUrl.value, Timeout = TimeSpan.FromSeconds(600) }
+                new Configuration() { BasePath = App.state.placeframeApiUrl.value, Timeout = TimeSpan.FromSeconds(600) }
             );
 
             ui = OrderedCanvas(

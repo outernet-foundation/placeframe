@@ -1,8 +1,8 @@
 using System;
 using FofX.Stateful;
-using PlerionApiClient.Model;
+using PlaceframeApiClient.Model;
 
-namespace PlerionClient.Client
+namespace Placeframe.Client
 {
     public enum CaptureStatus
     {
@@ -37,9 +37,9 @@ namespace PlerionClient.Client
 
     public class AppState : ObservableObject
     {
-        public ObservablePrimitive<string> plerionApiUrl { get; private set; }
-        public ObservablePrimitive<string> plerionAuthTokenUrl { get; private set; }
-        public ObservablePrimitive<string> plerionAuthAudience { get; private set; }
+        public ObservablePrimitive<string> placeframeApiUrl { get; private set; }
+        public ObservablePrimitive<string> placeframeAuthTokenUrl { get; private set; }
+        public ObservablePrimitive<string> placeframeAuthAudience { get; private set; }
         public ObservablePrimitive<string> username { get; private set; }
         public ObservablePrimitive<string> password { get; private set; }
         public ObservablePrimitive<bool> loginRequested { get; private set; }

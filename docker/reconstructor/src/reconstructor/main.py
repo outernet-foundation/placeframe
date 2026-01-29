@@ -4,7 +4,7 @@ from signal import SIGTERM, signal
 from typing import Any, NoReturn, cast
 
 from common.token_manager import TokenManager
-from plerion_api_client import ApiClient, ApiException, Configuration, DefaultApi, OrchestrationStatus
+from placeframe_api_client import ApiClient, ApiException, Configuration, DefaultApi, OrchestrationStatus
 
 from .run_reconstruction import load_models, run_reconstruction
 from .settings import get_settings

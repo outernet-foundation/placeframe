@@ -1,11 +1,9 @@
 using System.Collections.Generic;
-
-using UnityEngine;
-using UnityEditor;
-
 using FofX.Stateful;
+using UnityEditor;
+using UnityEngine;
 
-namespace PlerionClient.Client
+namespace Placeframe.Client
 {
     [CustomEditor(typeof(App))]
     public class AppInspector : Editor

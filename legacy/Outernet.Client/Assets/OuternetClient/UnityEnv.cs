@@ -1,8 +1,7 @@
 using System;
 using System.IO;
-using UnityEngine;
 using dotenv.net;
-
+using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -18,9 +17,9 @@ namespace Outernet.Client
         public LogLevel stackTraceLevel = LogLevel.Warn;
 
         public string dotEnvPath;
-        public string plerionApiUrl;
-        public string plerionAuthTokenUrl;
-        public string plerionAuthAudience;
+        public string placeframeApiUrl;
+        public string placeframeAuthTokenUrl;
+        public string placeframeAuthAudience;
 
         public static UnityEnv GetOrCreateInstance()
         {
@@ -40,7 +39,9 @@ namespace Outernet.Client
                 if (!System.IO.Directory.Exists($"{Application.dataPath}/_LocalWorkspace/Resources"))
                     AssetDatabase.CreateFolder("Assets/_LocalWorkspace", "Resources");
 
-                string name = AssetDatabase.GenerateUniqueAssetPath($"Assets/_LocalWorkspace/Resources/{nameof(UnityEnv)}.asset");
+                string name = AssetDatabase.GenerateUniqueAssetPath(
+                    $"Assets/_LocalWorkspace/Resources/{nameof(UnityEnv)}.asset"
+                );
                 AssetDatabase.CreateAsset(_instance, name);
                 AssetDatabase.SaveAssets();
 #endif
@@ -60,7 +61,6 @@ namespace Outernet.Client
             }
         }
 #endif
-
 
         private static void ReloadFromDotEnv()
         {
@@ -83,9 +83,9 @@ namespace Outernet.Client
                         )
                     );
 
-                    ApplyEnvironmentVariable("PUBLIC_URL", ref _instance.plerionApiUrl);
-                    ApplyEnvironmentVariable("AUTH_TOKEN_URL", ref _instance.plerionAuthTokenUrl);
-                    ApplyEnvironmentVariable("AUTH_AUDIENCE", ref _instance.plerionAuthAudience);
+                    ApplyEnvironmentVariable("PUBLIC_URL", ref _instance.placeframeApiUrl);
+                    ApplyEnvironmentVariable("AUTH_TOKEN_URL", ref _instance.placeframeAuthTokenUrl);
+                    ApplyEnvironmentVariable("AUTH_AUDIENCE", ref _instance.placeframeAuthAudience);
                 }
                 catch (Exception exception)
                 {

@@ -2,14 +2,14 @@ using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using FofX.Stateful;
 using Nessle;
-using Plerion.Core;
+using Placeframe.Core;
 using R3;
 using UnityEngine;
 #if !UNITY_EDITOR
-using Plerion.Core.ARFoundation;
+using Placeframe.Core.ARFoundation;
 #endif
 
-namespace PlerionClient.Client
+namespace Placeframe.Client
 {
     public class AppSetup : MonoBehaviour
     {
@@ -41,9 +41,9 @@ namespace PlerionClient.Client
 
             var env = UnityEnv.GetOrCreateInstance();
 
-            App.state.plerionApiUrl.ExecuteSet(env.plerionApiUrl);
-            App.state.plerionAuthTokenUrl.ExecuteSet(env.plerionAuthTokenUrl);
-            App.state.plerionAuthAudience.ExecuteSet(env.plerionAuthAudience);
+            App.state.placeframeApiUrl.ExecuteSet(env.placeframeApiUrl);
+            App.state.placeframeAuthTokenUrl.ExecuteSet(env.placeframeAuthTokenUrl);
+            App.state.placeframeAuthAudience.ExecuteSet(env.placeframeAuthAudience);
 
             if (env.loginAutomatically)
                 App.ExecuteAction(new LogInAction(env.username, env.password));

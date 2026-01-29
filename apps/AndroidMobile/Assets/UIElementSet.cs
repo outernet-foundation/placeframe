@@ -2,7 +2,7 @@ using Nessle;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace PlerionClient.Client
+namespace Placeframe.Client
 {
     [CreateAssetMenu(fileName = "UIElementSet", menuName = "Scriptable Objects/UIElementSet")]
     public class UIElementSet : ScriptableObject

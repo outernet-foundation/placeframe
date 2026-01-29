@@ -6,16 +6,16 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-namespace PlerionClient.Client
+namespace Placeframe.Client
 {
     [CreateAssetMenu(fileName = "EditorSettings", menuName = "Scriptable Objects/EditorSettings")]
     public class UnityEnv : ScriptableObject
     {
         private static UnityEnv _instance;
         public string dotEnvPath;
-        public string plerionApiUrl;
-        public string plerionAuthTokenUrl;
-        public string plerionAuthAudience;
+        public string placeframeApiUrl;
+        public string placeframeAuthTokenUrl;
+        public string placeframeAuthAudience;
         public string username;
         public string password;
         public bool loginAutomatically;
@@ -84,9 +84,9 @@ namespace PlerionClient.Client
                         )
                     );
 
-                    ApplyEnvironmentVariable("PUBLIC_URL", ref _instance.plerionApiUrl);
-                    ApplyEnvironmentVariable("AUTH_TOKEN_URL", ref _instance.plerionAuthTokenUrl);
-                    ApplyEnvironmentVariable("AUTH_AUDIENCE", ref _instance.plerionAuthAudience);
+                    ApplyEnvironmentVariable("PUBLIC_URL", ref _instance.placeframeApiUrl);
+                    ApplyEnvironmentVariable("AUTH_TOKEN_URL", ref _instance.placeframeAuthTokenUrl);
+                    ApplyEnvironmentVariable("AUTH_AUDIENCE", ref _instance.placeframeAuthAudience);
                 }
                 catch (Exception exception)
                 {

@@ -1,11 +1,11 @@
 {
-  "name": "Plerion.Core",
+  "name": "Placeframe.Core",
   "rootNamespace": "",
   "references": [
     "Unity.Mathematics",
     "UniTask",
     "R3.Unity",
-    "PlerionApiClient",
+    "PlaceframeApiClient",
     "SharpZipLib"
   ],
   "includePlatforms": [],

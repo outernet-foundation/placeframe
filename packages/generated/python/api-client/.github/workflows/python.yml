@@ -3,7 +3,7 @@
 #
 # ref: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
-name: plerion_api_client Python package
+name: placeframe_api_client Python package
 
 on: [push, pull_request]
 
@@ -31,4 +31,4 @@ jobs:
           pip install -r test-requirements.txt
       - name: Test with pytest
         run: |
-          pytest --cov=plerion_api_client
+          pytest --cov=placeframe_api_client

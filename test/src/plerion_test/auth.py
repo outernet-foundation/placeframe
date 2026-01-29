@@ -7,11 +7,11 @@ from typing import Any, Dict, Optional
 
 import requests  # used only for the token endpoint
 
-KEYCLOAK_REALM = "plerion-dev"
+KEYCLOAK_REALM = "placeframe-dev"
 OIDC_TOKEN_URL = (
-    "https://unshared-shawana-hypereutectic.ngrok-free.dev//auth//realms/plerion-dev/protocol/openid-connect/token"
+    "https://unshared-shawana-hypereutectic.ngrok-free.dev//auth//realms/placeframe-dev/protocol/openid-connect/token"
 )
-OIDC_CLIENT_ID = "plerion-api"
+OIDC_CLIENT_ID = "placeframe-api"
 OIDC_USERNAME = "user"
 OIDC_PASSWORD = "password"
 

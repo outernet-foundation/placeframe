@@ -8,16 +8,16 @@ using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using PlerionApiClient.Api;
-using PlerionApiClient.Client;
-using PlerionApiClient.Model;
+using PlaceframeApiClient.Api;
+using PlaceframeApiClient.Client;
+using PlaceframeApiClient.Model;
 using R3;
 using Unity.Mathematics;
 using UnityEngine;
 using Quaternion = UnityEngine.Quaternion;
 using Vector3 = UnityEngine.Vector3;
 
-namespace Plerion.Core
+namespace Placeframe.Core
 {
     public static class VisualPositioningSystem
     {

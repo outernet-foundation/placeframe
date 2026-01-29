@@ -1,6 +1,6 @@
 using Unity.Mathematics;
 
-namespace Plerion.Core
+namespace Placeframe.Core
 {
     // Simple container for WGS84 cartographic coordinates, intended to make lat/long vs long/lat mistakes harder to make
     public readonly struct CartographicCoordinates

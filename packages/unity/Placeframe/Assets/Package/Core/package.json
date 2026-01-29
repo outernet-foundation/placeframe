@@ -1,8 +1,8 @@
 {
-  "name": "com.plerion.vps",
+  "name": "com.placeframe.vps",
   "version": "1.0.0",
-  "displayName": "Plerion VPS - Core",
-  "description": "Visual Positioning System for Unity.",
+  "displayName": "Placeframe",
+  "description": "Visual Localization System for Unity",
   "unity": "6000.0",
   "author": {
     "name": "Elliot Pjecha",

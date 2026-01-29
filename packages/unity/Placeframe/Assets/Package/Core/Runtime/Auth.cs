@@ -5,7 +5,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace Plerion.Core
+namespace Placeframe.Core
 {
     public class AuthHttpHandler : DelegatingHandler
     {

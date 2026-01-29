@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace PlerionClient.Client
+namespace Placeframe.Client
 {
     [RequireComponent(typeof(Toggle))]
     public class ObjectSwapToggle : MonoBehaviour

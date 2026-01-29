@@ -9,7 +9,7 @@ using FofX.Stateful;
 
 using Cysharp.Threading.Tasks;
 using UnityEditor;
-using PlerionApiClient.Model;
+using PlaceframeApiClient.Model;
 
 namespace Outernet.MapRegistrationTool
 {

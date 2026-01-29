@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Plerion.Core
+namespace Placeframe.Core
 {
     public class LocalizationMapManager : MonoBehaviour
     {

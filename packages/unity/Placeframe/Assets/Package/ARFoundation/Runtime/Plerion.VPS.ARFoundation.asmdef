@@ -1,21 +1,21 @@
 {
-    "name": "Plerion.Core.ARFoundation",
-    "rootNamespace": "",
-    "references": [
-        "Unity.XR.ARFoundation",
-        "Unity.XR.ARSubsystems",
-        "UniTask",
-        "R3.Unity",
-        "Plerion.Core",
-        "PlerionApiClient"
-    ],
-    "includePlatforms": [],
-    "excludePlatforms": [],
-    "allowUnsafeCode": false,
-    "overrideReferences": false,
-    "precompiledReferences": [],
-    "autoReferenced": true,
-    "defineConstraints": [],
-    "versionDefines": [],
-    "noEngineReferences": false
+  "name": "Placeframe.Core.ARFoundation",
+  "rootNamespace": "",
+  "references": [
+    "Unity.XR.ARFoundation",
+    "Unity.XR.ARSubsystems",
+    "UniTask",
+    "R3.Unity",
+    "Placeframe.Core",
+    "PlaceframeApiClient"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
 }
