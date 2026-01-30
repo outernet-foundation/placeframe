@@ -146,19 +146,45 @@ def _bake_targets(
         return
 
     is_ci = mode == "ci"
-    c_from, c_to = (["type=gha,scope=plerion"], "type=gha,mode=max,scope=plerion") if is_ci else ([], "")
+    c_from: list[str] = []
 
-    if not is_ci:
-        if builder != "default":
-            Path(".buildkit-cache").mkdir(exist_ok=True)
-            c_from.append("type=local,src=.buildkit-cache")
-            c_to = "type=local,dest=.buildkit-cache,mode=max"
+    # FIX 2: Enable GHA cache in CI
+    if is_ci:
+        c_from.append("type=gha,scope=plerion")
 
-        for section in ["x-cache-cuda", "x-cache-rocm"]:
-            for entry in bake_data.get(section, {}).get("cache_from", []):
-                ctype, ref = _parse_cache_entry(entry)
-                if ctype == "registry" and ref and _inspect_image(ref):
+    # FIX 3: Enable Local file cache in Local mode
+    if not is_ci and builder != "default":
+        Path(".buildkit-cache").mkdir(exist_ok=True)
+        c_from.append("type=local,src=.buildkit-cache")
+
+    # FIX 4: ALWAYS try to read Registry cache (CI + Local)
+    # This acts as the fallback "warehouse"
+    for section in ["x-cache-cuda", "x-cache-rocm"]:
+        for entry in bake_data.get(section, {}).get("cache_from", []):
+            ctype, ref = _parse_cache_entry(entry)
+            if ctype == "registry" and ref:
+                # In Local mode, verify existence to avoid timeouts.
+                # In CI, let BuildKit handle it (it handles 404s gracefully usually).
+                if is_ci or _inspect_image(ref):
                     c_from.append(f"type=registry,ref={ref}")
+
+    # --- Setup Cache Destinations (Writes) ---
+    c_to_list: list[str] = []
+    if is_ci:
+        c_to_list.append("type=gha,mode=max,scope=plerion")
+
+    if not is_ci and builder != "default":
+        c_to_list.append("type=local,dest=.buildkit-cache,mode=max")
+
+    # FIX 5: Write to Registry Cache in CI too!
+    if is_ci:
+        for section in ["x-cache-cuda", "x-cache-rocm"]:
+            for entry in bake_data.get(section, {}).get("cache_to", []):
+                ctype, ref = _parse_cache_entry(entry)
+                if ctype == "registry" and ref:
+                    c_to_list.append(f"type=registry,ref={ref},mode=max,image-manifest=true,oci-mediatypes=true")
+
+    c_to = ",".join(c_to_list)
 
     cmd = [
         "docker buildx bake",
