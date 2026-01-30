@@ -144,7 +144,7 @@ def _bake_targets(
     progress: str,
     mode: Mode,
     builder: str,
-    gpu: Gpu,  # Must be passed in from lock()
+    gpu: Gpu,
 ) -> None:
     METADATA_PATH.unlink(missing_ok=True)
     bake_targets = [n for n in target_images if n in bake_data.get("services", {})]
@@ -153,50 +153,50 @@ def _bake_targets(
 
     is_ci = mode == "ci"
 
-    # LOGICAL FIX 1: Namespace the GHA scope by GPU type.
-    # Without this, ROCm build overwrites CUDA's cache on every run.
-    scope_name = f"plerion-{gpu}"
-
+    # --- Setup Cache Sources (READ) ---
     c_from: list[str] = []
 
+    # 1. GHA Cache (Priority 1 in CI - READ ONLY)
+    # We still READ from GHA just in case, but we won't write to it anymore
     if is_ci:
-        c_from.append(f"type=gha,scope={scope_name}")
+        c_from.append(f"type=gha,scope=plerion-{gpu}")
 
+    # 2. Local File Cache (Priority 1 in Local)
     if not is_ci and builder != "default":
         Path(".buildkit-cache").mkdir(exist_ok=True)
         c_from.append("type=local,src=.buildkit-cache")
 
-    # Reading from all registry caches is safe (fallback warehouse)
+    # 3. Registry Cache (Fallback for everyone)
     for section in ["x-cache-cuda", "x-cache-rocm"]:
         for entry in bake_data.get(section, {}).get("cache_from", []):
             ctype, ref = _parse_cache_entry(entry)
             if ctype == "registry" and ref:
+                # In Local mode, prevent 404 delays. In CI, let BuildKit handle it.
                 if is_ci or _inspect_image(ref):
                     c_from.append(f"type=registry,ref={ref}")
 
-    # --- Setup Cache Destinations (Writes) ---
+    # --- Setup Cache Destinations (WRITE) ---
     c_to_list: list[str] = []
 
-    if is_ci:
-        c_to_list.append(f"type=gha,mode=max,scope={scope_name}")
-
+    # 1. Local Cache (Local Only)
     if not is_ci and builder != "default":
         c_to_list.append("type=local,dest=.buildkit-cache,mode=max")
 
-    # LOGICAL FIX 2: Only write to the registry matching the current GPU build.
-    # Without this, CUDA builds corrupt the ROCm cache and vice versa.
+    # 2. Registry Cache (CI Only - Primary Persistence)
+    # We EXPLICITLY check is_ci here to prevent local pushes
     if is_ci:
+        # Determine relevant cache section based on current build target
+        relevant_sections = []
         if gpu == "cuda":
             relevant_sections = ["x-cache-cuda"]
         elif gpu == "rocm":
             relevant_sections = ["x-cache-rocm"]
-        else:
-            relevant_sections = []
 
         for section in relevant_sections:
             for entry in bake_data.get(section, {}).get("cache_to", []):
                 ctype, ref = _parse_cache_entry(entry)
                 if ctype == "registry" and ref:
+                    # Registry cache is strictly better than GHA for large projects
                     c_to_list.append(f"type=registry,ref={ref},mode=max,image-manifest=true,oci-mediatypes=true")
 
     cmd = [
@@ -208,8 +208,6 @@ def _bake_targets(
         "--sbom=false",
     ]
 
-    # SYNTAX FIX: Each cache entry needs its own --set flag.
-    # Joining with commas creates malformed entries.
     for cf in c_from:
         cmd.append(f"--set *.cache-from+={cf}")
     for ct in c_to_list:
@@ -223,7 +221,7 @@ def _bake_targets(
         cmd.append("--load")
     cmd.extend(bake_targets)
 
-    print(f"\nBaking images (Targets: {len(bake_targets)} | GPU: {gpu} | Scope: {scope_name})...")
+    print(f"\nBaking images (Targets: {len(bake_targets)} | GPU: {gpu})...")
     run_command(" ".join(cmd), stream_log=True)
 
 
