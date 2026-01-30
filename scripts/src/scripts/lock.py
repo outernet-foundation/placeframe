@@ -138,7 +138,13 @@ def _resolve_targets(targets: list[str] | None, group: str | None, mode: Mode, g
 
 
 def _bake_targets(
-    target_images: dict[str, Any], bake_data: dict[str, Any], no_cache: bool, progress: str, mode: Mode, builder: str
+    target_images: dict[str, Any],
+    bake_data: dict[str, Any],
+    no_cache: bool,
+    progress: str,
+    mode: Mode,
+    builder: str,
+    gpu: Gpu,  # Must be passed in from lock()
 ) -> None:
     METADATA_PATH.unlink(missing_ok=True)
     bake_targets = [n for n in target_images if n in bake_data.get("services", {})]
@@ -146,45 +152,52 @@ def _bake_targets(
         return
 
     is_ci = mode == "ci"
+
+    # LOGICAL FIX 1: Namespace the GHA scope by GPU type.
+    # Without this, ROCm build overwrites CUDA's cache on every run.
+    scope_name = f"plerion-{gpu}"
+
     c_from: list[str] = []
 
-    # FIX 2: Enable GHA cache in CI
     if is_ci:
-        c_from.append("type=gha,scope=plerion")
+        c_from.append(f"type=gha,scope={scope_name}")
 
-    # FIX 3: Enable Local file cache in Local mode
     if not is_ci and builder != "default":
         Path(".buildkit-cache").mkdir(exist_ok=True)
         c_from.append("type=local,src=.buildkit-cache")
 
-    # FIX 4: ALWAYS try to read Registry cache (CI + Local)
-    # This acts as the fallback "warehouse"
+    # Reading from all registry caches is safe (fallback warehouse)
     for section in ["x-cache-cuda", "x-cache-rocm"]:
         for entry in bake_data.get(section, {}).get("cache_from", []):
             ctype, ref = _parse_cache_entry(entry)
             if ctype == "registry" and ref:
-                # In Local mode, verify existence to avoid timeouts.
-                # In CI, let BuildKit handle it (it handles 404s gracefully usually).
                 if is_ci or _inspect_image(ref):
                     c_from.append(f"type=registry,ref={ref}")
 
     # --- Setup Cache Destinations (Writes) ---
     c_to_list: list[str] = []
+
     if is_ci:
-        c_to_list.append("type=gha,mode=max,scope=plerion")
+        c_to_list.append(f"type=gha,mode=max,scope={scope_name}")
 
     if not is_ci and builder != "default":
         c_to_list.append("type=local,dest=.buildkit-cache,mode=max")
 
-    # FIX 5: Write to Registry Cache in CI too!
+    # LOGICAL FIX 2: Only write to the registry matching the current GPU build.
+    # Without this, CUDA builds corrupt the ROCm cache and vice versa.
     if is_ci:
-        for section in ["x-cache-cuda", "x-cache-rocm"]:
+        if gpu == "cuda":
+            relevant_sections = ["x-cache-cuda"]
+        elif gpu == "rocm":
+            relevant_sections = ["x-cache-rocm"]
+        else:
+            relevant_sections = []
+
+        for section in relevant_sections:
             for entry in bake_data.get(section, {}).get("cache_to", []):
                 ctype, ref = _parse_cache_entry(entry)
                 if ctype == "registry" and ref:
                     c_to_list.append(f"type=registry,ref={ref},mode=max,image-manifest=true,oci-mediatypes=true")
-
-    c_to = ",".join(c_to_list)
 
     cmd = [
         "docker buildx bake",
@@ -193,9 +206,15 @@ def _bake_targets(
         f"--progress {progress}",
         "--provenance=false",
         "--sbom=false",
-        f"--set *.cache-from={','.join(c_from)}",
-        f"--set *.cache-to={c_to}",
     ]
+
+    # SYNTAX FIX: Each cache entry needs its own --set flag.
+    # Joining with commas creates malformed entries.
+    for cf in c_from:
+        cmd.append(f"--set *.cache-from={cf}")
+    for ct in c_to_list:
+        cmd.append(f"--set *.cache-to={ct}")
+
     if no_cache:
         cmd.append("--no-cache")
     if mode == "ci":
@@ -204,7 +223,7 @@ def _bake_targets(
         cmd.append("--load")
     cmd.extend(bake_targets)
 
-    print(f"\nBaking images (Targets: {len(bake_targets)})...")
+    print(f"\nBaking images (Targets: {len(bake_targets)} | GPU: {gpu} | Scope: {scope_name})...")
     run_command(" ".join(cmd), stream_log=True)
 
 
@@ -282,7 +301,7 @@ def lock(
     # 3. Bake (Only builds what we asked for)
     os.environ.update(current_state)
     target_images = _resolve_targets(targets, group, mode, gpu)
-    _bake_targets(target_images, bake_data, no_cache, progress, mode, "default")
+    _bake_targets(target_images, bake_data, no_cache, progress, mode, "default", gpu)
 
     # 4. Resolve Runtime Digests (Must resolve EVERYTHING in compose.yml)
     print("\nResolving runtime images...")
