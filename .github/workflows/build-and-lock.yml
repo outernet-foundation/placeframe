@@ -98,6 +98,6 @@ jobs:
             **To Deploy:** Merge this PR.
             **To Test:** Pull this branch and run `uv run up --official`.
           branch: bot/update-lock
-          base: main
+          base: ${{ github.ref_name }}
           delete-branch: true
           signoff: true
