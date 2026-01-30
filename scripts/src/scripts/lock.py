@@ -156,36 +156,37 @@ def _bake_targets(
     # --- Setup Cache Sources (READ) ---
     c_from: list[str] = []
 
-    # 1. GHA Cache (Priority 1 in CI - READ ONLY)
-    # We still READ from GHA just in case, but we won't write to it anymore
+    # 1. First Priority: Local Cache (Local) OR GHA Cache (CI)
     if is_ci:
         c_from.append(f"type=gha,scope=plerion-{gpu}")
-
-    # 2. Local File Cache (Priority 1 in Local)
-    if not is_ci and builder != "default":
+    elif builder != "default":
         Path(".buildkit-cache").mkdir(exist_ok=True)
         c_from.append("type=local,src=.buildkit-cache")
 
-    # 3. Registry Cache (Fallback for everyone)
+    # 2. Second Priority: Registry Cache (Fallback for everyone)
     for section in ["x-cache-cuda", "x-cache-rocm"]:
         for entry in bake_data.get(section, {}).get("cache_from", []):
             ctype, ref = _parse_cache_entry(entry)
             if ctype == "registry" and ref:
-                # In Local mode, prevent 404 delays. In CI, let BuildKit handle it.
+                # In Local mode, check existence to prevent 404 delays.
+                # In CI, let BuildKit handle the lookup (it handles missing cache gracefully).
                 if is_ci or _inspect_image(ref):
                     c_from.append(f"type=registry,ref={ref}")
 
     # --- Setup Cache Destinations (WRITE) ---
     c_to_list: list[str] = []
 
-    # 1. Local Cache (Local Only)
+    # 1. Local Write (Local Only)
     if not is_ci and builder != "default":
         c_to_list.append("type=local,dest=.buildkit-cache,mode=max")
 
-    # 2. Registry Cache (CI Only - Primary Persistence)
-    # We EXPLICITLY check is_ci here to prevent local pushes
+    # 2. CI Writes (GHA + Registry)
     if is_ci:
-        # Determine relevant cache section based on current build target
+        # A. GHA Cache (for fast inter-job reuse)
+        c_to_list.append(f"type=gha,mode=max,scope=plerion-{gpu}")
+
+        # B. Registry Cache (for persistence and sharing with local)
+        # Only write to the registry cache corresponding to the current GPU build
         relevant_sections = []
         if gpu == "cuda":
             relevant_sections = ["x-cache-cuda"]
@@ -196,9 +197,9 @@ def _bake_targets(
             for entry in bake_data.get(section, {}).get("cache_to", []):
                 ctype, ref = _parse_cache_entry(entry)
                 if ctype == "registry" and ref:
-                    # Registry cache is strictly better than GHA for large projects
                     c_to_list.append(f"type=registry,ref={ref},mode=max,image-manifest=true,oci-mediatypes=true")
 
+    # --- Construct Command ---
     cmd = [
         "docker buildx bake",
         f"-f {BAKE_FILE}",
@@ -219,6 +220,7 @@ def _bake_targets(
         cmd.append("--push")
     if mode == "local":
         cmd.append("--load")
+
     cmd.extend(bake_targets)
 
     print(f"\nBaking images (Targets: {len(bake_targets)} | GPU: {gpu})...")
