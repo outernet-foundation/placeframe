@@ -7,7 +7,7 @@ on:
       - feature/compose-dev-yml # Included for your current testing
     paths-ignore:
       - ".env.lock" # Prevent infinite CI loops
-#
+##
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

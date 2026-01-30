@@ -211,9 +211,9 @@ def _bake_targets(
     # SYNTAX FIX: Each cache entry needs its own --set flag.
     # Joining with commas creates malformed entries.
     for cf in c_from:
-        cmd.append(f"--set *.cache-from={cf}")
+        cmd.append(f"--set *.cache-from+={cf}")
     for ct in c_to_list:
-        cmd.append(f"--set *.cache-to={ct}")
+        cmd.append(f"--set *.cache-to+={ct}")
 
     if no_cache:
         cmd.append("--no-cache")
