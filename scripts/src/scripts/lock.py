@@ -137,70 +137,89 @@ def _resolve_targets(targets: list[str] | None, group: str | None, mode: Mode, g
     return selected
 
 
+def get_entries(bake_data: dict[str, Any], section_names: tuple[str, ...], key: str) -> list[tuple[str, str]]:
+    out: list[tuple[str, str]] = []
+    for section in section_names:
+        for entry in bake_data.get(section, {}).get(key, []):
+            ctype: str | None = None
+            ref: str | None = None
+
+            if isinstance(entry, dict):
+                ctype = entry.get("type")
+                ref = entry.get("ref")
+            elif isinstance(entry, str):
+                parts: dict[str, str] = {}
+                for part in entry.split(","):
+                    if "=" not in part:
+                        continue
+                    k, v = part.split("=", 1)
+                    parts[k.strip()] = v.strip()
+                ctype = parts.get("type")
+                ref = parts.get("ref")
+
+            if ctype and ref:
+                out.append((ctype, ref))
+
+    return out
+
+
+def is_graphics_profile(target_images: dict[str, Any], name: str) -> bool:
+    profiles = target_images.get(name, {}).get("profiles") or []
+    return any(p in ("cuda", "rocm") for p in profiles)
+
+
 def _bake_targets(
-    target_images: dict[str, Any],
-    bake_data: dict[str, Any],
-    no_cache: bool,
-    progress: str,
-    mode: Mode,
-    builder: str,
-    gpu: Gpu,
+    target_images: dict[str, Any], bake_data: dict[str, Any], no_cache: bool, progress: str, mode: Mode, gpu: Gpu
 ) -> None:
     METADATA_PATH.unlink(missing_ok=True)
-    bake_targets = [n for n in target_images if n in bake_data.get("services", {})]
+
+    services = bake_data.get("services", {})
+    bake_targets = [n for n in target_images if n in services]
     if not bake_targets:
         return
 
-    is_ci = mode == "ci"
+    cache_from_flags: list[str] = []
+    cache_to_flags: list[str] = []
 
-    # --- Setup Cache Sources (READ) ---
-    c_from: list[str] = []
+    sections = {"cuda": ("x-cache-cuda",), "rocm": ("x-cache-rocm",), "all": ("x-cache-cuda", "x-cache-rocm")}.get(
+        gpu, ()
+    )
 
-    # 1. First Priority: Local Cache (Local) OR GHA Cache (CI)
-    if is_ci:
-        c_from.append(f"type=gha,scope=plerion-{gpu}")
-    elif builder != "default":
+    if mode == "ci":
+        # In CI: non-graphics targets use GHA + registry; graphics targets use registry only.
+        gha_targets = [t for t in bake_targets if not is_graphics_profile(target_images, t)]
+        # scope = f"plerion-{gpu}"
+        # gha_from = f"type=gha,scope={scope}"
+        # gha_to = f"type=gha,mode=max,scope={scope}"
+
+        # cache_from_flags.extend(f"--set {t}.cache-from+={gha_from}" for t in gha_targets)
+        # cache_to_flags.extend(f"--set {t}.cache-to+={gha_to}" for t in gha_targets)
+
+        cache_from_flags.extend(f"--set {t}.cache-from+=type=gha,scope=plerion-{gpu}
+
+        for cache_type, ref in get_entries(bake_data, sections, "cache_to"):
+            if cache_type == "registry":
+                cache_to_flags.append(
+                    f"--set *.cache-to+=type=registry,ref={ref},mode=max,image-manifest=true,oci-mediatypes=true"
+                )
+    else:
+        # Local: read/write local cache; registry is fallback read.
         Path(".buildkit-cache").mkdir(exist_ok=True)
-        c_from.append("type=local,src=.buildkit-cache")
+        cache_from_flags.append("--set *.cache-from+=type=local,src=.buildkit-cache")
+        cache_to_flags.append("--set *.cache-to+=type=local,dest=.buildkit-cache,mode=max")
 
-    # 2. Second Priority: Registry Cache (Fallback for everyone)
-    for section in ["x-cache-cuda", "x-cache-rocm"]:
-        for entry in bake_data.get(section, {}).get("cache_from", []):
-            ctype, ref = _parse_cache_entry(entry)
-            if ctype == "registry" and ref:
-                # In Local mode, check existence to prevent 404 delays.
-                # In CI, let BuildKit handle the lookup (it handles missing cache gracefully).
-                if is_ci or _inspect_image(ref):
-                    c_from.append(f"type=registry,ref={ref}")
+    # ---- Registry cache-from (shared fallback for everyone)
+    registry_from: list[str] = []
+    for cache_type, ref in get_entries(bake_data, sections, "cache_from"):
+        if cache_type != "registry":
+            continue
+        if mode == "ci" or _inspect_image(ref):
+            registry_from.append(f"type=registry,ref={ref}")
 
-    # --- Setup Cache Destinations (WRITE) ---
-    c_to_list: list[str] = []
+    # Registry cache-from applies to everyone (after primary cache, so it’s lower priority)
+    cache_from_flags.extend(f"--set *.cache-from+={cf}" for cf in registry_from)
 
-    # 1. Local Write (Local Only)
-    if not is_ci and builder != "default":
-        c_to_list.append("type=local,dest=.buildkit-cache,mode=max")
-
-    # 2. CI Writes (GHA + Registry)
-    if is_ci:
-        # A. GHA Cache (for fast inter-job reuse)
-        c_to_list.append(f"type=gha,mode=max,scope=plerion-{gpu}")
-
-        # B. Registry Cache (for persistence and sharing with local)
-        # Only write to the registry cache corresponding to the current GPU build
-        relevant_sections = []
-        if gpu == "cuda":
-            relevant_sections = ["x-cache-cuda"]
-        elif gpu == "rocm":
-            relevant_sections = ["x-cache-rocm"]
-
-        for section in relevant_sections:
-            for entry in bake_data.get(section, {}).get("cache_to", []):
-                ctype, ref = _parse_cache_entry(entry)
-                if ctype == "registry" and ref:
-                    c_to_list.append(f"type=registry,ref={ref},mode=max,image-manifest=true,oci-mediatypes=true")
-
-    # --- Construct Command ---
-    cmd = [
+    cmd: list[str] = [
         "docker buildx bake",
         f"-f {BAKE_FILE}",
         f"--metadata-file {METADATA_PATH}",
@@ -209,10 +228,8 @@ def _bake_targets(
         "--sbom=false",
     ]
 
-    for cf in c_from:
-        cmd.append(f"--set *.cache-from+={cf}")
-    for ct in c_to_list:
-        cmd.append(f"--set *.cache-to+={ct}")
+    cmd.extend(cache_from_flags)
+    cmd.extend(cache_to_flags)
 
     if no_cache:
         cmd.append("--no-cache")
@@ -225,23 +242,6 @@ def _bake_targets(
 
     print(f"\nBaking images (Targets: {len(bake_targets)} | GPU: {gpu})...")
     run_command(" ".join(cmd), stream_log=True)
-
-
-def _parse_cache_entry(entry: str | dict[str, str]) -> tuple[str | None, str | None]:
-    ctype: str | None = None
-    ref: str | None = None
-    if isinstance(entry, dict):
-        ctype = entry.get("type")
-        ref = entry.get("ref")
-    else:
-        parts: dict[str, str] = {}
-        for part in entry.split(","):
-            if "=" in part:
-                k, v = part.split("=", 1)
-                parts[k.strip()] = v.strip()
-        ctype = parts.get("type")
-        ref = parts.get("ref")
-    return ctype, ref
 
 
 @app.command()
@@ -301,7 +301,7 @@ def lock(
     # 3. Bake (Only builds what we asked for)
     os.environ.update(current_state)
     target_images = _resolve_targets(targets, group, mode, gpu)
-    _bake_targets(target_images, bake_data, no_cache, progress, mode, "default", gpu)
+    _bake_targets(target_images, bake_data, no_cache, progress, mode, gpu)
 
     # 4. Resolve Runtime Digests (Must resolve EVERYTHING in compose.yml)
     print("\nResolving runtime images...")
