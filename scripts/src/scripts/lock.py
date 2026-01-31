@@ -184,7 +184,6 @@ def lock(
     mode: Mode = typer.Option("local", "--mode", help="local: updates .env.lock.local; ci: updates .env.lock."),
     gpu: Gpu = typer.Option("auto", "--gpu", help="auto|cpu|cuda|rocm"),
     no_cache: bool = typer.Option(False, "--no-cache", help="Force rebuild by disabling cache usage."),
-    targets: list[str] = typer.Option(None, "--target", help="Bake target(s) to build. Overrides --group."),
 ) -> None:
     if mode not in ["local", "ci"]:
         raise typer.BadParameter("Mode must be 'local' or 'ci'.")
@@ -210,18 +209,11 @@ def lock(
     lock_data = _load_lock_file(LOCK_FILE) if LOCK_FILE.exists() else {}
 
     # Determine target images to bake
-    first_party_images: dict[str, Any] = bake_data["services"]
-    if targets:
-        invalid = [t for t in targets if t not in first_party_images]
-        if invalid:
-            raise typer.BadParameter(f"Targets not found or not first-party: {', '.join(invalid)}")
-        target_images = {name: first_party_images[name] for name in targets}
-    else:
-        target_images = {
-            name: config
-            for name, config in first_party_images.items()
-            if not config.get("profiles") or (gpu in config.get("profiles", []))
-        }
+    target_images = {
+        name: config
+        for name, config in bake_data["services"].items()
+        if not config.get("profiles") or (gpu in config.get("profiles", []))
+    }
 
     # Resolve base image external dependencies
     base_images: dict[str, str] = bake_data["x-base-images"]
