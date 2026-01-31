@@ -6,14 +6,14 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import typer
 import yaml
 from common.run_command import run_command
 
-SHARED_LOCK = Path(".env.lock")
-LOCAL_LOCK = Path(".env.local.lock")
+LOCK_FILE = Path(".env.lock")
+LOCAL_LOCK_FILE = Path(".env.local.lock")
 COMPOSE_FILE = Path("compose.yml")
 BAKE_FILE = Path("compose.bake.yml")
 METADATA_PATH = Path("metadata.json")
@@ -22,21 +22,6 @@ Mode = Literal["local", "ci"]
 Gpu = Literal["auto", "cpu", "cuda", "rocm", "all"]
 
 app = typer.Typer(add_completion=False)
-
-
-def _load_lock_file(path: Path) -> dict[str, str]:
-    if not path.exists():
-        return {}
-    return {
-        (p := line.split("=", 1))[0].strip(): p[1].strip()
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if "=" in line and not line.startswith("#")
-    }
-
-
-def _write_lock_file(path: Path, variables: dict[str, str], header: str = "Generated") -> None:
-    content = f"# {header} by lock.py\n" + "\n".join(f"{k}={v}" for k, v in sorted(variables.items())) + "\n"
-    path.write_text(content, encoding="utf-8")
 
 
 def _inspect_image(image_ref: str, log_error: bool = False) -> str | None:
@@ -101,7 +86,7 @@ def _check_gc_limits(min_gb: int = 60) -> None:
     print(f"    [OK] Docker GC Limit verified: {val:.1f}GB")
 
 
-def _resolve_targets(targets: list[str] | None, group: str | None, mode: Mode, gpu: Gpu):
+def _resolve_targets(targets: list[str] | None, mode: Mode, gpu: Gpu):
     all_images = yaml.safe_load(COMPOSE_FILE.read_text(encoding="utf-8")).get("services", {})
     first_party_images = {name: config for name, config in all_images.items() if config.get("x-image-ref")}
 
@@ -111,9 +96,7 @@ def _resolve_targets(targets: list[str] | None, group: str | None, mode: Mode, g
             raise typer.BadParameter(f"Targets not found or not first-party: {', '.join(invalid)}")
         return {name: first_party_images[name] for name in targets}
 
-    if group and group != "base":
-        profile = group
-    elif mode == "ci" and gpu == "auto":
+    if mode == "ci" and gpu == "auto":
         profile = "all"
     elif gpu != "auto":
         profile = gpu
@@ -137,111 +120,80 @@ def _resolve_targets(targets: list[str] | None, group: str | None, mode: Mode, g
     return selected
 
 
-def get_entries(bake_data: dict[str, Any], section_names: tuple[str, ...], key: str) -> list[tuple[str, str]]:
-    out: list[tuple[str, str]] = []
-    for section in section_names:
-        for entry in bake_data.get(section, {}).get(key, []):
-            ctype: str | None = None
-            ref: str | None = None
-
-            if isinstance(entry, dict):
-                ctype = entry.get("type")
-                ref = entry.get("ref")
-            elif isinstance(entry, str):
-                parts: dict[str, str] = {}
-                for part in entry.split(","):
-                    if "=" not in part:
-                        continue
-                    k, v = part.split("=", 1)
-                    parts[k.strip()] = v.strip()
-                ctype = parts.get("type")
-                ref = parts.get("ref")
-
-            if ctype and ref:
-                out.append((ctype, ref))
-
-    return out
-
-
-def is_graphics_profile(target_images: dict[str, Any], name: str) -> bool:
-    profiles = target_images.get(name, {}).get("profiles") or []
-    return any(p in ("cuda", "rocm") for p in profiles)
-
-
 def _bake_targets(
-    target_images: dict[str, Any], bake_data: dict[str, Any], no_cache: bool, progress: str, mode: Mode, gpu: Gpu
+    target_images: dict[str, Any], bake_data: dict[str, Any], no_cache: bool, mode: Mode, gpu: Gpu
 ) -> None:
     METADATA_PATH.unlink(missing_ok=True)
-
-    services = bake_data.get("services", {})
-    bake_targets = [n for n in target_images if n in services]
+    bake_targets = [n for n in target_images if n in bake_data.get("services", {})]
     if not bake_targets:
         return
 
-    cache_from_flags: list[str] = []
-    cache_to_flags: list[str] = []
-
-    sections = {"cuda": ("x-cache-cuda",), "rocm": ("x-cache-rocm",), "all": ("x-cache-cuda", "x-cache-rocm")}.get(
-        gpu, ()
-    )
-
-    if mode == "ci":
-        # In CI: non-graphics targets use GHA + registry; graphics targets use registry only.
-        gha_targets = [t for t in bake_targets if not is_graphics_profile(target_images, t)]
-        # scope = f"plerion-{gpu}"
-        # gha_from = f"type=gha,scope={scope}"
-        # gha_to = f"type=gha,mode=max,scope={scope}"
-
-        # cache_from_flags.extend(f"--set {t}.cache-from+={gha_from}" for t in gha_targets)
-        # cache_to_flags.extend(f"--set {t}.cache-to+={gha_to}" for t in gha_targets)
-
-        cache_from_flags.extend(f"--set {t}.cache-from+=type=gha,scope=plerion-{gpu}
-
-        for cache_type, ref in get_entries(bake_data, sections, "cache_to"):
-            if cache_type == "registry":
-                cache_to_flags.append(
-                    f"--set *.cache-to+=type=registry,ref={ref},mode=max,image-manifest=true,oci-mediatypes=true"
-                )
-    else:
-        # Local: read/write local cache; registry is fallback read.
-        Path(".buildkit-cache").mkdir(exist_ok=True)
-        cache_from_flags.append("--set *.cache-from+=type=local,src=.buildkit-cache")
-        cache_to_flags.append("--set *.cache-to+=type=local,dest=.buildkit-cache,mode=max")
-
-    # ---- Registry cache-from (shared fallback for everyone)
-    registry_from: list[str] = []
-    for cache_type, ref in get_entries(bake_data, sections, "cache_from"):
-        if cache_type != "registry":
-            continue
-        if mode == "ci" or _inspect_image(ref):
-            registry_from.append(f"type=registry,ref={ref}")
-
-    # Registry cache-from applies to everyone (after primary cache, so it’s lower priority)
-    cache_from_flags.extend(f"--set *.cache-from+={cf}" for cf in registry_from)
-
-    cmd: list[str] = [
+    cmd = [
         "docker buildx bake",
         f"-f {BAKE_FILE}",
         f"--metadata-file {METADATA_PATH}",
-        f"--progress {progress}",
+        "--progress auto",
         "--provenance=false",
         "--sbom=false",
     ]
 
-    cmd.extend(cache_from_flags)
-    cmd.extend(cache_to_flags)
-
     if no_cache:
         cmd.append("--no-cache")
-    if mode == "ci":
-        cmd.append("--push")
-    if mode == "local":
-        cmd.append("--load")
 
+    registry_cache_ref = (
+        bake_data.get(f"x-cache-{gpu}", {}).get("x-registry-cache") if gpu in ["cuda", "rocm"] else None
+    )
+
+    if mode == "ci":
+        # Only push in CI mode
+        cmd.append("--push")
+
+        # Alway trying pulling from the GitHub Actions cache for CI builds
+        cmd.append(f"--set *.cache-from+=type=gha,scope={gpu}")
+
+        if registry_cache_ref:
+            # If this is a GPU build, push only to the registry cache (the GHA cache is too small for GPU builds, and
+            # that size cannot be configured, so pushing to it will always cause cache evictions)
+            cmd.append(
+                f"--set *.cache-to+=type=registry,ref={registry_cache_ref},mode=max,image-manifest=true,oci-mediatypes=true"
+            )
+        else:
+            # Otherwise, push only to the GHA cache
+            cmd.append(f"--set *.cache-to+=type=gha,mode=max,scope={gpu}")
+
+    else:
+        # Ensure we actually have a local cache directory
+        Path(".buildkit-cache").mkdir(exist_ok=True)
+
+        # Pull from and push to the local cache for all local builds
+        cmd.append("--load")
+        cmd.append("--set *.cache-from+=type=local,src=.buildkit-cache")
+        cmd.append("--set *.cache-to+=type=local,dest=.buildkit-cache,mode=max")
+
+    # For both CI and local builds, if this is a GPU build, also pull from the registry cache
+    if registry_cache_ref:
+        cmd.append(f"--set *.cache-from+=type=registry,ref={registry_cache_ref}")
+
+    # Add targets
     cmd.extend(bake_targets)
 
-    print(f"\nBaking images (Targets: {len(bake_targets)} | GPU: {gpu})...")
+    # Bake
     run_command(" ".join(cmd), stream_log=True)
+
+
+def _load_lock_file(path: Path) -> dict[str, str]:
+    return {
+        (p := line.split("=", 1))[0].strip(): p[1].strip()
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if "=" in line and not line.startswith("#")
+    }
+
+
+def _write_lock_file(path: Path, variables: dict[str, str]) -> None:
+    path.write_text(
+        "# Generated by lock.py\n" + "\n".join(f"{k}={v}" for k, v in sorted(variables.items())) + "\n",
+        encoding="utf-8",
+    )
 
 
 @app.command()
@@ -251,7 +203,6 @@ def lock(
     gpu: Gpu = typer.Option("auto", "--gpu", help="auto|cpu|cuda|rocm|all"),
     progress: str = typer.Option("auto", "--progress", help="Buildx progress mode."),
     no_cache: bool = typer.Option(False, "--no-cache", help="Force rebuild by disabling cache usage."),
-    group: str | None = typer.Option(None, "--group", help="Bake group/profile to build."),
     targets: list[str] = typer.Option(None, "--target", help="Bake target(s) to build. Overrides --group."),
 ) -> None:
     if not COMPOSE_FILE.exists():
@@ -259,102 +210,56 @@ def lock(
     if not BAKE_FILE.exists():
         raise RuntimeError(f"Build definition file not found at: {BAKE_FILE}")
 
+    # For local builds, ensure Docker GC limits are high enough that GPU builds don't cause cache evictions
     if mode == "local":
         _check_gc_limits(min_gb=60)
 
-    # 1. Load State
-    shared_locks = _load_lock_file(SHARED_LOCK)
+    # Read bake, compose, and lock files
+    bake_data: dict[str, Any] = yaml.safe_load(BAKE_FILE.read_text(encoding="utf-8"))
+    compose_data: dict[str, Any] = yaml.safe_load(COMPOSE_FILE.read_text(encoding="utf-8"))
+    lock_data = _load_lock_file(LOCK_FILE) if LOCK_FILE.exists() else {}
 
-    # Init current state
-    if mode == "local":
-        current_state = _load_lock_file(LOCAL_LOCK)
-        if not current_state:
-            current_state = dict(shared_locks)
-        # Ensure we haven't lost keys if the shared lock was updated
-        for k, v in shared_locks.items():
-            if k not in current_state:
-                current_state[k] = v
-    else:
-        current_state = dict(shared_locks)
+    # Resolve base image external dependencies
+    base_images: dict[str, str] = bake_data["x-base-images"]
+    for image, ref in {image: ref for image, ref in base_images.items() if upgrade or image not in lock_data}:
+        lock_data[image] = f"@{_get_remote_digest(ref)}"
 
-    # 2. Resolve Base Images (Always from Shared Contract)
-    print("Resolving base image dependencies...")
-    bake_data = yaml.safe_load(BAKE_FILE.read_text(encoding="utf-8"))
-    bases_updated = False
+    # Resolve third-party image external dependencies
+    third_party_images: dict[str, str] = {
+        name.upper().replace("-", "_") + "_IMAGE": config["x-image-ref"]
+        for name, config in cast(dict[str, Any], compose_data["services"]).items()
+        if name not in bake_data["services"]
+    }
+    for image, ref in {image: ref for image, ref in third_party_images.items() if upgrade or image not in lock_data}:
+        lock_data[image] = f"{ref}@{_get_remote_digest(ref)}"
 
-    for var, ref in bake_data["x-base-images"].items():
-        if upgrade or var not in shared_locks:
-            digest = _get_remote_digest(ref)
-            digest_val = f"@{digest}"
-            shared_locks[var] = digest_val
-            current_state[var] = digest_val
-            bases_updated = True
-            print(f"  + {var} -> {digest[:12]}")
-        else:
-            current_state[var] = shared_locks[var]
-            print(f"  [kept] {var}")
+    # Update main lock file
+    _write_lock_file(LOCK_FILE, lock_data)
 
-    if bases_updated:
-        print(f"  [INFO] Updating shared {SHARED_LOCK} with new base digests...")
-        _write_lock_file(SHARED_LOCK, shared_locks, "Shared Contract")
+    # Load local lock file and merge in updated base/third-party image digests from main lock file
+    local_lock_data = _load_lock_file(LOCAL_LOCK_FILE) if (mode == "local" and LOCAL_LOCK_FILE.exists()) else {}
+    for image, ref in lock_data.items():
+        if image not in local_lock_data or image in base_images or image in third_party_images:
+            local_lock_data[image] = ref
 
-    # 3. Bake (Only builds what we asked for)
-    os.environ.update(current_state)
-    target_images = _resolve_targets(targets, group, mode, gpu)
-    _bake_targets(target_images, bake_data, no_cache, progress, mode, gpu)
+    # Resolve and bake target images
+    os.environ.update(local_lock_data)
+    target_images = _resolve_targets(targets, mode, gpu)
+    _bake_targets(target_images, bake_data, no_cache, mode, gpu)
 
-    # 4. Resolve Runtime Digests (Must resolve EVERYTHING in compose.yml)
-    print("\nResolving runtime images...")
-    build_images_metadata: dict[str, Any] = json.loads(METADATA_PATH.read_text()) if METADATA_PATH.exists() else {}
+    # Sanity check
+    baked_images: dict[str, Any] = json.loads(METADATA_PATH.read_text()) if METADATA_PATH.exists() else {}
+    if baked_images.keys() != target_images.keys():
+        raise RuntimeError("Baked images do not match target images; something went wrong during the bake.")
 
-    # Load ALL services, not just targets, to ensure the lockfile is complete
-    all_compose_services = yaml.safe_load(COMPOSE_FILE.read_text(encoding="utf-8")).get("services", {})
-    all_first_party = {name: config for name, config in all_compose_services.items() if config.get("x-image-ref")}
+    # Lock digests for baked images
+    for name in baked_images:
+        local_lock_data[name.upper().replace("-", "_") + "_IMAGE"] = (
+            f"{baked_images[name]['image.name']}@{baked_images[name]['containerimage.digest']}"
+        )
 
-    for name, config in all_first_party.items():
-        image_ref = config["x-image-ref"]
-        lock_var = f"{name.upper().replace('-', '_')}_IMAGE"
-
-        # Priority 1: Use the freshly built digest
-        if name in build_images_metadata:
-            digest = build_images_metadata[name]["containerimage.digest"]
-            current_state[lock_var] = f"{image_ref}@{digest}"
-            print(f"  + {name} (local build) -> {digest[:12]}")
-            continue
-
-        # Priority 2: Use existing local/shared lock value (Skip network check)
-        # Only strict skip if we are NOT upgrading.
-        if not upgrade and lock_var in current_state:
-            # If it's a target we *tried* to build but failed/skipped? No, bake would have failed.
-            # This handles "ignored" profiles (like ROCm on a CUDA machine).
-            print(f"  [kept] {name}")
-            continue
-
-        # Priority 3: Must resolve remotely (First run or Upgrade)
-        # We HAVE to do this or 'docker compose up' will crash on missing variable.
-        try:
-            digest = _get_remote_digest(image_ref)
-            current_state[lock_var] = f"{image_ref}@{digest}"
-            print(f"  + {name} (remote) -> {digest[:12]}")
-        except RuntimeError:
-            # Fallback for Bootstrap Scenario:
-            # If the image doesn't exist remotely (e.g. rename) and we aren't building it
-            # (e.g. wrong hardware profile), we must set SOMETHING or Compose crashes.
-            if name not in target_images:
-                print(f"  [WARN] Could not resolve {name} (remote). Using insecure tag to satisfy Compose.")
-                current_state[lock_var] = image_ref
-            else:
-                # If we targeted it (tried to build it) and it failed, we shouldn't mask the error.
-                raise
-
-    # 5. Write Final Lock
-    if mode == "ci":
-        print(f"\n[CI MODE] Updating shared {SHARED_LOCK} with official digests...")
-        _write_lock_file(SHARED_LOCK, current_state, "Shared Contract")
-    else:
-        print(f"\n[LOCAL MODE] Writing digests to {LOCAL_LOCK}...")
-        _write_lock_file(LOCAL_LOCK, current_state, "Local Build State")
-        print("  Run 'uv run up' to use this lockfile.")
+    # Write lock
+    _write_lock_file(LOCK_FILE if mode == "ci" else LOCAL_LOCK_FILE, local_lock_data)
 
 
 def main() -> None:

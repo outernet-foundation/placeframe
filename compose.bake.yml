@@ -1,6 +1,3 @@
-# -----------------------------------------------------------------------------
-# BASE IMAGE DEFINITIONS (Metadata for lock.py)
-# -----------------------------------------------------------------------------
 x-base-images:
   UV_BASE_DIGEST: "ghcr.io/astral-sh/uv:python3.13-bookworm-slim"
   DOTNET_SDK_DIGEST: "mcr.microsoft.com/dotnet/sdk:8.0"
@@ -10,9 +7,6 @@ x-base-images:
   CADDY_DIGEST: "docker.io/library/caddy:2.8.4-alpine"
   POSTGRES_BOOKWORM_DIGEST: "docker.io/library/postgres:16-bookworm"
 
-# -----------------------------------------------------------------------------
-# BUILD ARG INJECTION (Consumed by Docker Bake)
-# -----------------------------------------------------------------------------
 x-base-args: &base-args
   UV_BASE_DIGEST: "${UV_BASE_DIGEST:-}"
   DOTNET_SDK_DIGEST: "${DOTNET_SDK_DIGEST:-}"
@@ -22,26 +16,13 @@ x-base-args: &base-args
   CADDY_DIGEST: "${CADDY_DIGEST:-}"
   POSTGRES_BOOKWORM_DIGEST: "${POSTGRES_BOOKWORM_DIGEST:-}"
 
-# -----------------------------------------------------------------------------
-# CACHE DEFINITIONS
-# -----------------------------------------------------------------------------
 x-cache-cuda: &cache-cuda
-  cache_from:
-    - type=registry,ref=ghcr.io/outernet-foundation/placeframe/build-cache:cuda
-  cache_to:
-    - type=registry,ref=ghcr.io/outernet-foundation/placeframe/build-cache:cuda,mode=max,image-manifest=true,oci-mediatypes=true
+  x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache:cuda
 
 x-cache-rocm: &cache-rocm
-  cache_from:
-    - type=registry,ref=ghcr.io/outernet-foundation/placeframe/build-cache:rocm
-  cache_to:
-    - type=registry,ref=ghcr.io/outernet-foundation/placeframe/build-cache:rocm,mode=max,image-manifest=true,oci-mediatypes=true
+  x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache:rocm
 
-# -----------------------------------------------------------------------------
-# SERVICES
-# -----------------------------------------------------------------------------
 services:
-  # --- BASE SERVICES ---
   initialize-cloudbeaver:
     build:
       context: .
@@ -92,7 +73,6 @@ services:
       args: *base-args
       tags: [ "ghcr.io/outernet-foundation/placeframe/state-sync:latest" ]
 
-  # --- CUDA SERVICES ---
   reconstructor-cuda:
     build:
       context: .
@@ -113,7 +93,6 @@ services:
       tags: [ "ghcr.io/outernet-foundation/placeframe/localizer-cuda:latest" ]
       <<: *cache-cuda
 
-  # --- ROCM SERVICES ---
   reconstructor-rocm:
     build:
       context: .
