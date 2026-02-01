@@ -1,11 +1,9 @@
 import sys
-from os import environ, remove
+from os import environ
 from pathlib import Path
 from typing import Any, Mapping, Protocol, cast
-from zipfile import ZipFile
 
 import torch
-from gdown import download  # type: ignore
 from lightglue import LightGlue, SuperPoint  # type: ignore
 from numpy import float32
 from numpy.typing import NDArray
@@ -27,7 +25,7 @@ from dirtorch.utils.common import whiten_features  # type: ignore
 sys.modules["sklearn.decomposition.pca"] = _pca
 
 MODEL_NAME = "Resnet-101-AP-GeM"
-MODEL_URL = "https://docs.google.com/uc?export=download&id=1UWJGDuHtzaQdFhSMojoYVQjmCXhIwVvy"
+MODEL_URL = "https://github.com/outernet-foundation/placeframe/releases/download/assets-v1/Resnet-101-AP-GeM.pt"
 WHITEN_NAME = "Landmarks_clean"
 WHITENP = 0.25
 WHITENV = None
@@ -48,11 +46,8 @@ class DIR(Module):
         checkpoint = Path(get_dir(), "dirtorch", MODEL_NAME + ".pt")
         if not checkpoint.exists():
             checkpoint.parent.mkdir(exist_ok=True, parents=True)
-            download(MODEL_URL, str(checkpoint) + ".zip", quiet=False)
-            zf = ZipFile(str(checkpoint) + ".zip", "r")
-            zf.extractall(checkpoint.parent)
-            zf.close()
-            remove(str(checkpoint) + ".zip")
+            print(f"Downloading DIR model from {MODEL_URL}")
+            torch.hub.download_url_to_file(MODEL_URL, str(checkpoint))
 
         self.net = cast(_DIRNet, load_model(checkpoint, False))  # first load on CPU
         assert WHITEN_NAME in self.net.pca
