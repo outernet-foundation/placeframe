@@ -35,3 +35,5 @@ client/**/[Bb]uild/
 client/**/[Bb]uilds/
 client/**/Logs/
 client/**/[Uu]ser[Ss]ettings/
+.env.lock
+.env.local.lock
