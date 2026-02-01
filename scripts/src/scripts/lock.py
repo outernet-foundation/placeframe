@@ -21,7 +21,7 @@ METADATA_PATH = Path("metadata.json")
 Mode = Literal["local", "ci"]
 Gpu = Literal["auto", "cpu", "cuda", "rocm"]
 
-app = typer.Typer(add_completion=False)
+app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 
 def _load_lock_file(path: Path) -> dict[str, str]:
@@ -190,11 +190,6 @@ def lock(
     if mode == "ci" and gpu == "auto":
         raise typer.BadParameter("In CI mode, --gpu cannot be 'auto'; specify 'cpu', 'cuda', or 'rocm'.")
 
-    if not COMPOSE_FILE.exists():
-        raise RuntimeError(f"Compose file not found: {COMPOSE_FILE}")
-    if not BAKE_FILE.exists():
-        raise RuntimeError(f"Build definition file not found at: {BAKE_FILE}")
-
     # For local builds, ensure Docker GC limits are high enough that GPU builds don't cause cache evictions
     if mode == "local":
         _check_gc_limits(min_gb=60)
@@ -202,6 +197,11 @@ def lock(
     # Resolve gpu
     if gpu == "auto":
         gpu = _detect_gpu()
+
+    if not COMPOSE_FILE.exists():
+        raise RuntimeError(f"Compose file not found: {COMPOSE_FILE}")
+    if not BAKE_FILE.exists():
+        raise RuntimeError(f"Build definition file not found at: {BAKE_FILE}")
 
     # Read bake, compose, and lock files
     bake_data: dict[str, Any] = yaml.safe_load(BAKE_FILE.read_text(encoding="utf-8"))
