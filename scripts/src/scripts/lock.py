@@ -201,7 +201,7 @@ def lock(
         or (gpu in compose_data["services"][service]["profiles"])
     ]
 
-    # Configure cache settings per target
+    # Configure registry cache for each target
     for target in targets:
         target_cache = f"{registry_cache}:{target}"
 
