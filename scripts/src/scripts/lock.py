@@ -19,7 +19,7 @@ BAKE_FILE = Path("compose.bake.yml")
 METADATA_PATH = Path("metadata.json")
 
 Mode = Literal["local", "ci"]
-Gpu = Literal["auto", "cpu", "cuda", "rocm"]
+Gpu = Literal["auto", "cuda", "rocm"]
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
@@ -137,39 +137,19 @@ def _bake_targets(
     if no_cache:
         cmd.append("--no-cache")
 
-    registry_cache_ref = (
-        bake_data.get(f"x-cache-{gpu}", {}).get("x-registry-cache") if gpu in ["cuda", "rocm"] else None
-    )
+    registry_cache_ref = cast(dict[str, str], bake_data.get(f"x-cache-{gpu}", {}))["x-registry-cache"]
+    cmd.append(f"--set *.cache-from+=type=registry,ref={registry_cache_ref}")
 
-    if mode == "ci":
-        # Only push in CI mode
-        cmd.append("--push")
-
-        # Alway trying pulling from the GitHub Actions cache for CI builds
-        cmd.append(f"--set *.cache-from+=type=gha,scope={gpu}")
-
-        if registry_cache_ref:
-            # If this is a GPU build, push only to the registry cache (the GHA cache is too small for GPU builds, and
-            # that size cannot be configured, so pushing to it will always cause cache evictions)
-            cmd.append(
-                f"--set *.cache-to+=type=registry,ref={registry_cache_ref},mode=max,image-manifest=true,oci-mediatypes=true"
-            )
-        else:
-            # Otherwise, push only to the GHA cache
-            cmd.append(f"--set *.cache-to+=type=gha,mode=max,scope={gpu}")
-
-    else:
-        # Pull from and push to the local cache for all local builds
+    if mode == "local":
         cmd.append("--load")
+    else:
+        cmd.append("--push")
+        cmd.append(
+            f"--set *.cache-to+=type=registry,ref={registry_cache_ref},mode=max,image-manifest=true,oci-mediatypes=true"
+        )
 
-    # Always also pull from the registry cache if available, for big GPU image layers
-    if registry_cache_ref:
-        cmd.append(f"--set *.cache-from+=type=registry,ref={registry_cache_ref}")
-
-    # Add targets
     cmd.extend(bake_targets)
 
-    # Bake
     run_command(" ".join(cmd), stream_log=True)
 
 
@@ -177,13 +157,12 @@ def _bake_targets(
 def lock(
     upgrade: bool = typer.Option(False, "--upgrade", "-u", help="Re-resolve and rewrite base digests."),
     mode: Mode = typer.Option("local", "--mode", help="local: updates .env.lock.local; ci: updates .env.lock."),
-    gpu: Gpu = typer.Option("auto", "--gpu", help="auto|cpu|cuda|rocm"),
+    gpu: Gpu = typer.Option("auto", "--gpu", help="auto|cuda|rocm"),
     no_cache: bool = typer.Option(False, "--no-cache", help="Force rebuild by disabling cache usage."),
 ) -> None:
-    if mode not in ["local", "ci"]:
-        raise typer.BadParameter("Mode must be 'local' or 'ci'.")
+    # TOOD: Create separate commands for ci and local modes so typer can do this validation instead of us
     if mode == "ci" and gpu == "auto":
-        raise typer.BadParameter("In CI mode, --gpu cannot be 'auto'; specify 'cpu', 'cuda', or 'rocm'.")
+        raise typer.BadParameter("In CI mode, --gpu cannot be 'auto'; specify 'cuda' or 'rocm'.")
 
     # For local builds, ensure Docker GC limits are high enough that GPU builds don't cause cache evictions
     if mode == "local":
