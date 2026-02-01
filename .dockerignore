@@ -11,7 +11,6 @@
 **/bin.meta
 **/obj.meta
 .ruff_cache
-.buildkit-cache
 .vs
 .act
 .env

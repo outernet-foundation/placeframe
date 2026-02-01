@@ -159,15 +159,10 @@ def _bake_targets(
             cmd.append(f"--set *.cache-to+=type=gha,mode=max,scope={gpu}")
 
     else:
-        # Ensure we actually have a local cache directory
-        Path(".buildkit-cache").mkdir(exist_ok=True)
-
         # Pull from and push to the local cache for all local builds
         cmd.append("--load")
-        cmd.append("--set *.cache-from+=type=local,src=.buildkit-cache")
-        cmd.append("--set *.cache-to+=type=local,dest=.buildkit-cache,mode=max")
 
-    # For both CI and local builds, if this is a GPU build, also pull from the registry cache
+    # Always also pull from the registry cache if available, for big GPU image layers
     if registry_cache_ref:
         cmd.append(f"--set *.cache-from+=type=registry,ref={registry_cache_ref}")
 
