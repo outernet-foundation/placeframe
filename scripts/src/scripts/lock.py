@@ -117,40 +117,40 @@ def _detect_gpu() -> Gpu:
     raise RuntimeError("Could not detect GPU type.")
 
 
-def _bake(targets: list[str], registry_cache: str, no_cache: bool, mode: Mode, gpu: Gpu):
-    command = [
-        "docker buildx bake",
-        f"-f {BAKE_FILE}",
-        f"--metadata-file {METADATA_PATH}",
-        "--progress auto",
-        "--provenance=false",
-        "--sbom=false",
-    ]
+# def _bake(targets: list[str], registry_cache: str, no_cache: bool, mode: Mode, gpu: Gpu):
+#     command = [
+#         "docker buildx bake",
+#         f"-f {BAKE_FILE}",
+#         f"--metadata-file {METADATA_PATH}",
+#         "--progress auto",
+#         "--provenance=false",
+#         "--sbom=false",
+#     ]
 
-    if no_cache:
-        command.append("--no-cache")
+#     if no_cache:
+#         command.append("--no-cache")
 
-    command.append(f"--set *.cache-from+=type=registry,ref={registry_cache}")
+#     command.append(f"--set *.cache-from+=type=registry,ref={registry_cache}")
 
-    if mode == "local":
-        command.append("--load")
-    else:
-        command.append("--push")
-        command.append(
-            f"--set *.cache-to+=type=registry,ref={registry_cache},mode=max,image-manifest=true,oci-mediatypes=true"
-        )
+#     if mode == "local":
+#         command.append("--load")
+#     else:
+#         command.append("--push")
+#         command.append(
+#             f"--set *.cache-to+=type=registry,ref={registry_cache},mode=max,image-manifest=true,oci-mediatypes=true"
+#         )
 
-    command.extend(targets)
+#     command.extend(targets)
 
-    METADATA_PATH.unlink(missing_ok=True)
-    run_command(" ".join(command), stream_log=True)
-    baked_images: dict[str, Any] = json.loads(METADATA_PATH.read_text()) if METADATA_PATH.exists() else {}
+#     METADATA_PATH.unlink(missing_ok=True)
+#     run_command(" ".join(command), stream_log=True)
+#     baked_images: dict[str, Any] = json.loads(METADATA_PATH.read_text()) if METADATA_PATH.exists() else {}
 
-    # Sanity check
-    if baked_images.keys() != set(targets):
-        raise RuntimeError("Baked images do not match target images; something went wrong during the bake.")
+#     # Sanity check
+#     if baked_images.keys() != set(targets):
+#         raise RuntimeError("Baked images do not match target images; something went wrong during the bake.")
 
-    return baked_images
+#     return baked_images
 
 
 @app.command()
@@ -205,16 +205,50 @@ def lock(
     # Update environment with updated external dependency image digests
     os.environ.update(local_lock_data)
 
-    registry_cache_ref = cast(dict[str, str], bake_data.get(f"x-cache-{gpu}", {}))["x-registry-cache"]
-    target_images = [
+    # Determine the registry cache location for this GPU type
+    registry_cache = cast(dict[str, str], bake_data.get(f"x-cache-{gpu}", {}))["x-registry-cache"]
+
+    # Build the bake command
+    command = [
+        "docker buildx bake",
+        f"-f {BAKE_FILE}",
+        f"--metadata-file {METADATA_PATH}",
+        "--progress auto",
+        "--provenance=false",
+        "--sbom=false",
+    ]
+
+    # Add no-cache flag if requested
+    if no_cache:
+        command.append("--no-cache")
+
+    # Configure cache sources and destinations
+    command.append(f"--set *.cache-from+=type=registry,ref={registry_cache}")
+    if mode == "local":
+        command.append("--load")
+    else:
+        command.append("--push")
+        command.append(
+            f"--set *.cache-to+=type=registry,ref={registry_cache},mode=max,image-manifest=true,oci-mediatypes=true"
+        )
+
+    # Determine bake targets
+    targets = [
         service
         for service in bake_data["services"]
         if not compose_data["services"][service].get("profiles")
         or (gpu in compose_data["services"][service]["profiles"])
     ]
+    command.extend(targets)
 
-    # Bake target images
-    baked_images = _bake(target_images, registry_cache_ref, no_cache, mode, gpu)
+    # Bake images
+    METADATA_PATH.unlink(missing_ok=True)
+    run_command(" ".join(command), stream_log=True)
+    baked_images: dict[str, Any] = json.loads(METADATA_PATH.read_text()) if METADATA_PATH.exists() else {}
+
+    # Sanity check
+    if baked_images.keys() != set(targets):
+        raise RuntimeError("Baked images do not match target images; something went wrong during the bake.")
 
     # Lock digests for baked images
     for name in baked_images:
