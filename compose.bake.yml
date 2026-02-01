@@ -16,6 +16,8 @@ x-base-args: &base-args
   CADDY_DIGEST: "${CADDY_DIGEST:-}"
   POSTGRES_BOOKWORM_DIGEST: "${POSTGRES_BOOKWORM_DIGEST:-}"
 
+x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache
+
 services:
   initialize-cloudbeaver:
     build:
@@ -102,5 +104,3 @@ services:
         <<: *base-args
         TORCH_DEVICE: "rocm"
       tags: [ "ghcr.io/outernet-foundation/placeframe/localizer-rocm:latest" ]
-
-x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache

@@ -203,19 +203,17 @@ def lock(
 
     # Configure cache settings per target
     for target in targets:
-        # If the remote cache tag doesn't exist yet (i.e. this is a new target that CI has not built yet), skip it
         target_cache = f"{registry_cache}:{target}"
-        if not _remote_tag_exists(target_cache):
-            continue
-
-        # Always add the registry cache as a pull source
-        command.append(f"--set {target}.cache-from+=type=registry,ref={target_cache}")
 
         # Only push to the registry cache in CI mode
         if mode == "ci":
             command.append(
                 f"--set {target}.cache-to+=type=registry,ref={target_cache},mode=max,image-manifest=true,oci-mediatypes=true"
             )
+
+        # Add the remote cache as a pull source if it exists (it might not, if this is a new target that has never been built by CI before)
+        if _remote_tag_exists(target_cache):
+            command.append(f"--set {target}.cache-from+=type=registry,ref={target_cache}")
 
     # Load or push images based on mode
     command.append("--load" if mode == "local" else "--push")
