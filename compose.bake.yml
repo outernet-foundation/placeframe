@@ -16,12 +16,6 @@ x-base-args: &base-args
   CADDY_DIGEST: "${CADDY_DIGEST:-}"
   POSTGRES_BOOKWORM_DIGEST: "${POSTGRES_BOOKWORM_DIGEST:-}"
 
-x-cache-cuda: &cache-cuda
-  x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache:cuda
-
-x-cache-rocm: &cache-rocm
-  x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache:rocm
-
 services:
   initialize-cloudbeaver:
     build:
@@ -81,7 +75,6 @@ services:
         <<: *base-args
         TORCH_DEVICE: "cuda"
       tags: [ "ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:latest" ]
-      <<: *cache-cuda
 
   localizer-cuda:
     build:
@@ -91,7 +84,6 @@ services:
         <<: *base-args
         TORCH_DEVICE: "cuda"
       tags: [ "ghcr.io/outernet-foundation/placeframe/localizer-cuda:latest" ]
-      <<: *cache-cuda
 
   reconstructor-rocm:
     build:
@@ -101,7 +93,6 @@ services:
         <<: *base-args
         TORCH_DEVICE: "rocm"
       tags: [ "ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:latest" ]
-      <<: *cache-rocm
 
   localizer-rocm:
     build:
@@ -111,4 +102,5 @@ services:
         <<: *base-args
         TORCH_DEVICE: "rocm"
       tags: [ "ghcr.io/outernet-foundation/placeframe/localizer-rocm:latest" ]
-      <<: *cache-rocm
+
+x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache

@@ -33,10 +33,9 @@
   "yaml-compose-sorter.topLevelKeyOrder": [
     "version",
     "name",
-    "x-base-images", // <--- Add this
-    "x-base-args", // <--- Add this
-    "x-cache-cuda", // <--- Add this
-    "x-cache-rocm", // <--- Add this
+    "x-base-images",
+    "x-base-args",
+    "x-registry-cache",
     "services",
     "networks",
     "volumes",

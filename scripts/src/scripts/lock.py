@@ -66,6 +66,18 @@ def _get_remote_digest(image_ref: str):
     return digest
 
 
+def _remote_tag_exists(tag: str) -> bool:
+    print(f"    [CHECK] Probing cache: {tag}...")
+    try:
+        # We use subprocess.run directly to suppress output and capture exit code
+        result = subprocess.run(
+            ["docker", "manifest", "inspect", tag], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
 def _check_gc_limits(min_gb: int = 60):
     candidates = [Path("/etc/docker/daemon.json"), Path(os.path.expanduser("~/.docker/daemon.json"))]
     if "WSL_DISTRO_NAME" in os.environ:
@@ -115,42 +127,6 @@ def _detect_gpu() -> Gpu:
         except subprocess.CalledProcessError:
             pass
     raise RuntimeError("Could not detect GPU type.")
-
-
-# def _bake(targets: list[str], registry_cache: str, no_cache: bool, mode: Mode, gpu: Gpu):
-#     command = [
-#         "docker buildx bake",
-#         f"-f {BAKE_FILE}",
-#         f"--metadata-file {METADATA_PATH}",
-#         "--progress auto",
-#         "--provenance=false",
-#         "--sbom=false",
-#     ]
-
-#     if no_cache:
-#         command.append("--no-cache")
-
-#     command.append(f"--set *.cache-from+=type=registry,ref={registry_cache}")
-
-#     if mode == "local":
-#         command.append("--load")
-#     else:
-#         command.append("--push")
-#         command.append(
-#             f"--set *.cache-to+=type=registry,ref={registry_cache},mode=max,image-manifest=true,oci-mediatypes=true"
-#         )
-
-#     command.extend(targets)
-
-#     METADATA_PATH.unlink(missing_ok=True)
-#     run_command(" ".join(command), stream_log=True)
-#     baked_images: dict[str, Any] = json.loads(METADATA_PATH.read_text()) if METADATA_PATH.exists() else {}
-
-#     # Sanity check
-#     if baked_images.keys() != set(targets):
-#         raise RuntimeError("Baked images do not match target images; something went wrong during the bake.")
-
-#     return baked_images
 
 
 @app.command()
@@ -205,8 +181,7 @@ def lock(
     # Update environment with updated external dependency image digests
     os.environ.update(local_lock_data)
 
-    # Determine the registry cache location for this GPU type
-    registry_cache = cast(dict[str, str], bake_data.get(f"x-cache-{gpu}", {}))["x-registry-cache"]
+    registry_cache = bake_data["x-registry-cache"]
 
     # Build the bake command
     command = [
@@ -218,20 +193,6 @@ def lock(
         "--sbom=false",
     ]
 
-    # Add no-cache flag if requested
-    if no_cache:
-        command.append("--no-cache")
-
-    # Configure cache sources and destinations
-    command.append(f"--set *.cache-from+=type=registry,ref={registry_cache}")
-    if mode == "local":
-        command.append("--load")
-    else:
-        command.append("--push")
-        command.append(
-            f"--set *.cache-to+=type=registry,ref={registry_cache},mode=max,image-manifest=true,oci-mediatypes=true"
-        )
-
     # Determine bake targets
     targets = [
         service
@@ -239,6 +200,31 @@ def lock(
         if not compose_data["services"][service].get("profiles")
         or (gpu in compose_data["services"][service]["profiles"])
     ]
+
+    # Configure cache settings per target
+    for target in targets:
+        # If the remote cache tag doesn't exist yet (i.e. this is a new target that CI has not built yet), skip it
+        target_cache = f"{registry_cache}:{target}"
+        if not _remote_tag_exists(target_cache):
+            continue
+
+        # Always add the registry cache as a pull source
+        command.append(f"--set {target}.cache-from+=type=registry,ref={target_cache}")
+
+        # Only push to the registry cache in CI mode
+        if mode == "ci":
+            command.append(
+                f"--set {target}.cache-to+=type=registry,ref={target_cache},mode=max,image-manifest=true,oci-mediatypes=true"
+            )
+
+    # Load or push images based on mode
+    command.append("--load" if mode == "local" else "--push")
+
+    # Handle no-cache option
+    if no_cache:
+        command.append("--no-cache")
+
+    # Append targets
     command.extend(targets)
 
     # Bake images
