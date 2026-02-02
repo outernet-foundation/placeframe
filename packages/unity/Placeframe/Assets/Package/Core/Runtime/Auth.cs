@@ -65,14 +65,12 @@ namespace Placeframe.Core
         }
 
         public static void Initialize(
-            string authTokenUrl,
             string authAudience,
             Action<string> logInfo,
             Action<string> logWarning,
             Action<string> logError
         )
         {
-            AuthTokenURL = authTokenUrl;
             AuthAudience = authAudience;
             LogInfo = logInfo;
             LogWarning = logWarning;
@@ -80,11 +78,12 @@ namespace Placeframe.Core
             Initialized = true;
         }
 
-        public static async UniTask Login(string username, string password)
+        public static async UniTask Login(string authTokenUrl, string username, string password)
         {
             if (!Initialized)
                 throw new InvalidOperationException("Auth.Initialize() must be called before calling Login()");
 
+            AuthTokenURL = authTokenUrl;
             Username = username;
             Password = password;
             await LoginInternal();

@@ -40,9 +40,6 @@ namespace Placeframe.Client
             gameObject.AddComponent<App>();
 
             var env = UnityEnv.GetOrCreateInstance();
-
-            App.state.placeframeApiUrl.ExecuteSet(env.placeframeApiUrl);
-            App.state.placeframeAuthTokenUrl.ExecuteSet(env.placeframeAuthTokenUrl);
             App.state.placeframeAuthAudience.ExecuteSet(env.placeframeAuthAudience);
 
             if (env.loginAutomatically)

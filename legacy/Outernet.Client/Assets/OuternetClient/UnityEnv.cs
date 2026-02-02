@@ -18,8 +18,7 @@ namespace Outernet.Client
         public LogLevel stackTraceLevel = LogLevel.Warn;
 
         public string dotEnvPath;
-        public string placeframeApiUrl;
-        public string placeframeAuthTokenUrl;
+        public string placeframeDomain;
         public string placeframeAuthAudience;
 
         public static UnityEnv GetOrCreateInstance()
@@ -97,9 +96,7 @@ namespace Outernet.Client
                         throw new Exception("AUTH_AUDIENCE is not set in the .env file.");
                     }
 
-                    _instance.placeframeApiUrl = $"https://{publicDomain}";
-                    _instance.placeframeAuthTokenUrl =
-                        $"{_instance.placeframeApiUrl}/auth/realms/placeframe-dev/protocol/openid-connect/token";
+                    _instance.placeframeDomain = publicDomain;
                     _instance.placeframeAuthAudience = authAudience;
                 }
                 catch (Exception exception)

@@ -25,13 +25,13 @@ namespace Placeframe.Core
         private static Action<string> _warnCallback;
         private static Action<string> _errorCallback;
         private static IDisposable _localizationSubscription;
-        private static DefaultApi _api;
         private static HashSet<Guid> _maps = new HashSet<Guid>();
         private static LocalizationMapManager _localizationMapManager;
         private static ICameraProvider _cameraProvider;
         private static double4x4 _unityFromEcefTransform = double4x4.identity;
         private static double4x4 _ecefFromUnityTransform = math.inverse(_unityFromEcefTransform);
 
+        public static DefaultApi Api { get; private set; }
         public static LocalizationMetrics MostRecentMetrics { get; private set; }
         public static double4x4 EcefToUnityWorldTransform => _unityFromEcefTransform;
         public static double4x4 UnityWorldToEcefTransform => _ecefFromUnityTransform;
@@ -45,8 +45,6 @@ namespace Placeframe.Core
 
         public static void Initialize(
             ICameraProvider cameraProvider,
-            string apiUrl,
-            string authTokenUrl,
             string authAudience,
             Action<string> logCallback,
             Action<string> warnCallback,
@@ -60,10 +58,19 @@ namespace Placeframe.Core
             _warnCallback = warnCallback;
             _errorCallback = errorCallback;
 
-            Auth.Initialize(authTokenUrl, authAudience, logCallback, warnCallback, errorCallback);
+            Auth.Initialize(authAudience, logCallback, warnCallback, errorCallback);
 
             _cameraProvider = cameraProvider;
-            _api = new DefaultApi(
+        }
+
+        public static async UniTask Login(string domain, string username, string password)
+        {
+            var apiUrl = $"https://{domain}";
+            var authTokenUrl = $"{apiUrl}/auth/realms/placeframe-dev/protocol/openid-connect/token";
+
+            await Auth.Login(authTokenUrl, username, password);
+
+            Api = new DefaultApi(
                 new HttpClient(new AuthHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
                     BaseAddress = new Uri(apiUrl),
@@ -71,8 +78,6 @@ namespace Placeframe.Core
                 apiUrl
             );
         }
-
-        public static async UniTask Login(string username, string password) => await Auth.Login(username, password);
 
         public static void SetLocalizationMapManager(LocalizationMapManager localizationMapManager)
         {
@@ -195,7 +200,7 @@ namespace Placeframe.Core
             using var memoryStream = new MemoryStream(frame.ImageBytes);
 
             // Localize
-            var localizationResults = await _api.LocalizeImageAsync(
+            var localizationResults = await Api.LocalizeImageAsync(
                 _maps.ToList(),
                 cameraConfig,
                 AxisConvention.UNITY,
@@ -275,7 +280,7 @@ namespace Placeframe.Core
 
         public static UniTask<LocalizationMapRead> GetMapData(Guid mapID)
         {
-            return _api.GetLocalizationMapAsync(mapID).AsUniTask();
+            return Api.GetLocalizationMapAsync(mapID).AsUniTask();
         }
 
         public static async UniTask<ReconstructionPoint[]> GetReconstructionPoints(
@@ -284,7 +289,7 @@ namespace Placeframe.Core
         )
         {
             var pointPayload = await FetchPayloadAsync(
-                _api.GetReconstructionPointsAsync(reconstructionID, AxisConvention.UNITY).AsUniTask(),
+                Api.GetReconstructionPointsAsync(reconstructionID, AxisConvention.UNITY).AsUniTask(),
                 bytesPerElement: (3 * sizeof(float)) + 3,
                 cancellationToken
             );
@@ -319,7 +324,7 @@ namespace Placeframe.Core
         )
         {
             var framePayload = await FetchPayloadAsync(
-                _api.GetReconstructionFramePosesAsync(reconstructionID, AxisConvention.UNITY).AsUniTask(),
+                Api.GetReconstructionFramePosesAsync(reconstructionID, AxisConvention.UNITY).AsUniTask(),
                 bytesPerElement: (3 * sizeof(float)) + (4 * sizeof(float)),
                 cancellationToken
             );

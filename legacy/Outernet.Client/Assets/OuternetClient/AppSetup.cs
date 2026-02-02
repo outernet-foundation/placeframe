@@ -46,17 +46,20 @@ namespace Outernet.Client
 #endif
 
             UnityEnv env = UnityEnv.GetOrCreateInstance();
-            App.apiUrl = env.placeframeApiUrl;
+            App.apiUrl = $"https://{env.placeframeDomain}";
 
             Auth.Initialize(
-                env.placeframeAuthTokenUrl,
                 env.placeframeAuthAudience,
                 x => Log.Debug(LogGroup.Default, x),
                 x => Log.Warn(LogGroup.Default, x),
                 x => Log.Error(LogGroup.Default, x)
             );
 
-            Auth.Login("user", "password").Forget();
+            Auth.Login(
+                $"https://{env.placeframeDomain}/auth/realms/placeframe-dev/protocol/openid-connect/token", 
+                "user", 
+                "password"
+            ).Forget();
 
             Instantiate(prefabSystem, transform);
 
@@ -103,8 +106,6 @@ namespace Outernet.Client
 
             VisualPositioningSystem.Initialize(
                 GetProvider(),
-                env.placeframeApiUrl,
-                env.placeframeAuthTokenUrl,
                 env.placeframeAuthAudience,
                 x => Log.Debug(LogGroup.Default, x),
                 x => Log.Warn(LogGroup.Default, x),

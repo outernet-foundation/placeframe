@@ -36,6 +36,17 @@ namespace Placeframe.Client
                         children = Props.List(
                             LabeledControl(new LabeledControlProps()
                             {
+                                label = Props.Value("Domain"),
+                                labelWidth = Props.Value(225f),
+                                control = InputField(new InputFieldProps()
+                                {
+                                    layout = new() { flexibleWidth = Props.Value(true) },
+                                    value = App.state.domain.AsObservable(),
+                                    onValueChanged = x => App.state.domain.ExecuteSetOrDelay(x)
+                                })
+                            }),
+                            LabeledControl(new LabeledControlProps()
+                            {
                                 label = Props.Value("Username"),
                                 labelWidth = Props.Value(225f),
                                 control = InputField(new InputFieldProps()
