@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import fnmatch
+import http.server
 import json
 import os
 import re
 import shutil
+import socketserver
 import subprocess
+import sys
+import tarfile
+import threading
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -22,6 +28,11 @@ Mode = Literal["local", "ci"]
 Gpu = Literal["auto", "cuda", "rocm"]
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
+
+
+class SilentHandler(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, format: str, *args: Any) -> None:
+        pass  # Keep console clean
 
 
 def _load_lock_file(path: Path):
@@ -129,6 +140,67 @@ def _detect_gpu() -> Gpu:
     raise RuntimeError("Could not detect GPU type.")
 
 
+def _create_deterministic_info(tar: tarfile.TarFile, path: Path, archive_name: str, mode: int) -> tarfile.TarInfo:
+    info = tar.gettarinfo(str(path), arcname=archive_name)
+    info.mode = mode
+    info.mtime = 0
+    info.uid = 0
+    info.gid = 0
+    info.uname = "root"
+    info.gname = "root"
+    return info
+
+
+def _create_deterministic_context(root: Path, output_tar: Path):
+    MODE_DIR = 0o755  # rwxr-xr-x
+    MODE_FILE = 0o644  # rw-r--r--
+
+    ignore_patterns = [".git", output_tar.name] + [
+        line.strip()
+        for line in (root / ".dockerignore").read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.startswith("#")
+    ]
+
+    print(f"    [CONTEXT] Packing deterministic build context to {output_tar}...")
+
+    with tarfile.open(output_tar, "w") as tar:
+        for path, directories, files in os.walk(root):
+            directories.sort()
+            files.sort()
+
+            relative_path = Path(path).relative_to(root)
+
+            def is_ignored(name: str) -> bool:
+                path_string = str(relative_path / name).replace("\\", "/")
+                return any(
+                    fnmatch.fnmatch(path_string, pattern) or fnmatch.fnmatch(path_string + "/", pattern)
+                    for pattern in ignore_patterns
+                )
+
+            # Prune ignored directories in place
+            directories[:] = [d for d in directories if not is_ignored(d)]
+
+            # Add files
+            for name in files:
+                if is_ignored(name):
+                    continue
+
+                file_path = Path(path) / name
+
+                info = _create_deterministic_info(
+                    tar, file_path, str(relative_path / name).replace("\\", "/"), MODE_FILE
+                )
+
+                with file_path.open("rb") as f:
+                    tar.addfile(info, f)
+
+            # Add directory
+            if str(relative_path) != ".":
+                tar.addfile(
+                    _create_deterministic_info(tar, Path(path), str(relative_path).replace("\\", "/"), MODE_DIR)
+                )
+
+
 @app.command()
 def lock(
     upgrade: bool = typer.Option(False, "--upgrade", "-u", help="Re-resolve and rewrite base digests."),
@@ -181,17 +253,8 @@ def lock(
     # Update environment with updated external dependency image digests
     os.environ.update(local_lock_data)
 
-    registry_cache = bake_data["x-registry-cache"]
-
-    # Build the bake command
-    command = [
-        "docker buildx bake",
-        f"-f {BAKE_FILE}",
-        f"--metadata-file {METADATA_PATH}",
-        "--progress auto",
-        "--provenance=false",
-        "--sbom=false",
-    ]
+    # Build command arguments
+    command_arguments: list[str] = []
 
     # Determine bake targets
     targets = [
@@ -203,34 +266,65 @@ def lock(
 
     # Configure registry cache for each target
     for target in targets:
-        target_cache = f"{registry_cache}:{target}"
+        target_cache = f"{bake_data['x-registry-cache']}:{target}"
 
         # Only push to the registry cache in CI mode
         if mode == "ci":
-            command.append(
+            command_arguments.append(
                 f"--set {target}.cache-to+=type=registry,ref={target_cache},mode=max,image-manifest=true,oci-mediatypes=true"
             )
 
         # Add the remote cache as a pull source if it exists (it might not, if this is a new target that has never been built by CI before)
         if _remote_tag_exists(target_cache):
-            command.append(f"--set {target}.cache-from+=type=registry,ref={target_cache}")
+            command_arguments.append(f"--set {target}.cache-from+=type=registry,ref={target_cache}")
 
     # Load or push images based on mode
-    command.append("--load" if mode == "local" else "--push")
+    command_arguments.append("--load" if mode == "local" else "--push")
 
     # Handle no-cache option
     if no_cache:
-        command.append("--no-cache")
+        command_arguments.append("--no-cache")
 
     # Append targets
-    command.extend(targets)
+    command_arguments.extend(targets)
+
+    # Clean up any existing metadata file
+    METADATA_PATH.unlink(missing_ok=True)
 
     # Bake images
-    METADATA_PATH.unlink(missing_ok=True)
-    run_command(" ".join(command), stream_log=True)
-    baked_images: dict[str, Any] = json.loads(METADATA_PATH.read_text()) if METADATA_PATH.exists() else {}
+    context_archive = Path("build_context.tar")
+    try:
+        # Create deterministic build context
+        _create_deterministic_context(Path.cwd(), context_archive)
+
+        is_vm = sys.platform in ("win32", "darwin")
+
+        # Serve context via temporary HTTP server (only way to pass custom context with buildx bake)
+        with socketserver.TCPServer(("0.0.0.0" if is_vm else "127.0.0.1", 0), SilentHandler) as httpd:
+            server_thread = threading.Thread(target=httpd.serve_forever)
+            server_thread.daemon = True
+            server_thread.start()
+
+            hostname = "host.docker.internal" if is_vm else "127.0.0.1"
+            context_url = f"http://{hostname}:{httpd.server_address[1]}/{context_archive.name}"
+
+            # Bake
+            command = [
+                "docker buildx bake",
+                f"-f {BAKE_FILE}",
+                f"--metadata-file {METADATA_PATH}",
+                f"--set *.context={context_url}",
+                "--progress auto",
+                "--provenance=false",
+                "--sbom=false",
+            ] + command_arguments
+            run_command(" ".join(command), stream_log=True)
+    finally:
+        # Ensure we always clean up the context archive
+        context_archive.unlink(missing_ok=True)
 
     # Sanity check
+    baked_images: dict[str, Any] = json.loads(METADATA_PATH.read_text()) if METADATA_PATH.exists() else {}
     if baked_images.keys() != set(targets):
         raise RuntimeError("Baked images do not match target images; something went wrong during the bake.")
 
