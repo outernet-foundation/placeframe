@@ -86,9 +86,23 @@ namespace Outernet.MapRegistrationTool
                         )
                     );
 
-                    ApplyEnvironmentVariable("PUBLIC_URL", ref _instance.placeframeApiUrl);
-                    ApplyEnvironmentVariable("AUTH_TOKEN_URL", ref _instance.placeframeAuthTokenUrl);
-                    ApplyEnvironmentVariable("AUTH_AUDIENCE", ref _instance.placeframeAuthAudience);
+                    var publicDomain = Environment.GetEnvironmentVariable("PUBLIC_DOMAIN");
+
+                    if (string.IsNullOrEmpty(publicDomain))
+                    {
+                        throw new Exception("PUBLIC_DOMAIN is not set in the .env file.");
+                    }
+
+                    var authAudience = Environment.GetEnvironmentVariable("AUTH_AUDIENCE");
+
+                    if (string.IsNullOrEmpty(authAudience))
+                    {
+                        throw new Exception("AUTH_AUDIENCE is not set in the .env file.");
+                    }
+
+                    _instance.placeframeApiUrl = $"https://{publicDomain}";
+                    _instance.placeframeAuthTokenUrl = $"{_instance.placeframeApiUrl}/auth/realms/placeframe-dev/protocol/openid-connect/token";
+                    _instance.placeframeAuthAudience = authAudience;
                 }
                 catch (Exception exception)
                 {

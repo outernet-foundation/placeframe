@@ -1,7 +1,8 @@
 using System;
 using System.IO;
-using dotenv.net;
 using UnityEngine;
+using dotenv.net;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -17,8 +18,7 @@ namespace Outernet.Client
         public LogLevel stackTraceLevel = LogLevel.Warn;
 
         public string dotEnvPath;
-        public string placeframeApiUrl;
-        public string placeframeAuthTokenUrl;
+        public string placeframeDomain;
         public string placeframeAuthAudience;
 
         public static UnityEnv GetOrCreateInstance()
@@ -39,9 +39,7 @@ namespace Outernet.Client
                 if (!System.IO.Directory.Exists($"{Application.dataPath}/_LocalWorkspace/Resources"))
                     AssetDatabase.CreateFolder("Assets/_LocalWorkspace", "Resources");
 
-                string name = AssetDatabase.GenerateUniqueAssetPath(
-                    $"Assets/_LocalWorkspace/Resources/{nameof(UnityEnv)}.asset"
-                );
+                string name = AssetDatabase.GenerateUniqueAssetPath($"Assets/_LocalWorkspace/Resources/{nameof(UnityEnv)}.asset");
                 AssetDatabase.CreateAsset(_instance, name);
                 AssetDatabase.SaveAssets();
 #endif
@@ -61,6 +59,7 @@ namespace Outernet.Client
             }
         }
 #endif
+
 
         private static void ReloadFromDotEnv()
         {
@@ -83,9 +82,22 @@ namespace Outernet.Client
                         )
                     );
 
-                    ApplyEnvironmentVariable("PUBLIC_URL", ref _instance.placeframeApiUrl);
-                    ApplyEnvironmentVariable("AUTH_TOKEN_URL", ref _instance.placeframeAuthTokenUrl);
-                    ApplyEnvironmentVariable("AUTH_AUDIENCE", ref _instance.placeframeAuthAudience);
+                    var publicDomain = Environment.GetEnvironmentVariable("PUBLIC_DOMAIN");
+
+                    if (string.IsNullOrEmpty(publicDomain))
+                    {
+                        throw new Exception("PUBLIC_DOMAIN is not set in the .env file.");
+                    }
+
+                    var authAudience = Environment.GetEnvironmentVariable("AUTH_AUDIENCE");
+
+                    if (string.IsNullOrEmpty(authAudience))
+                    {
+                        throw new Exception("AUTH_AUDIENCE is not set in the .env file.");
+                    }
+
+                    _instance.placeframeDomain = publicDomain;
+                    _instance.placeframeAuthAudience = authAudience;
                 }
                 catch (Exception exception)
                 {

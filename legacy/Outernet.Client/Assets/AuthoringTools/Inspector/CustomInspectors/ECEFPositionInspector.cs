@@ -1,8 +1,10 @@
-using System;
-using CesiumForUnity;
-using FofX.Stateful;
-using Placeframe.Core;
 using Unity.Mathematics;
+
+using FofX.Stateful;
+
+using CesiumForUnity;
+using System;
+using Placeframe.Core;
 
 namespace Outernet.Client.AuthoringTools
 {
@@ -36,9 +38,7 @@ namespace Outernet.Client.AuthoringTools
                     return;
 
                 UndoRedoManager.RegisterUndo("Set Position");
-                ecefPosition.ExecuteSet(
-                    CesiumWgs84Ellipsoid.LongitudeLatitudeHeightToEarthCenteredEarthFixed(gpsInput.value)
-                );
+                ecefPosition.ExecuteSet(CesiumWgs84Ellipsoid.LongitudeLatitudeHeightToEarthCenteredEarthFixed(gpsInput.value));
             };
 
             localInput.onValueChanged += () =>

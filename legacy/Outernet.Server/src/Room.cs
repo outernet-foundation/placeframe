@@ -99,8 +99,7 @@ namespace Outernet.Server
                         roomState.settingsNodeFetchRadius.Value,
                         roomState.settingsNodeFetchLimit.Value
                     )
-                    .ContinueWith(task =>
-                    {
+                    .ContinueWith(task => {
                         fetchNodesTaskCompletionSource.SetResult(task.Result);
                     });
             }

@@ -1,9 +1,13 @@
-using System;
-using System.Linq;
-using FofX.Stateful;
-using Outernet.Client.Location;
-using Placeframe.Core;
 using UnityEngine;
+
+using FofX.Stateful;
+
+using Outernet.Client.Location;
+
+using System.Linq;
+using System;
+
+using Placeframe.Core;
 
 namespace Outernet.Client.AuthoringTools
 {
@@ -12,10 +16,7 @@ namespace Outernet.Client.AuthoringTools
         protected override IDisposable BindTarget(IObservableNode target)
         {
             var ecefRotation = (ObservablePrimitive<Quaternion>)target;
-            var localInput = UIBuilder.QuaternionControl(
-                interactable: props.interactable.value,
-                attributes: props.attributes.ToArray()
-            );
+            var localInput = UIBuilder.QuaternionControl(interactable: props.interactable.value, attributes: props.attributes.ToArray());
             localInput.transform.SetParent(rect, false);
 
             bool pushingChanges = false;

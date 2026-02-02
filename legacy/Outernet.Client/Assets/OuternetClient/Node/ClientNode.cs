@@ -23,10 +23,7 @@ namespace Outernet.Client
                 interactable.selectExited.OnRaised(_ =>
                 {
                     var cameraToPOI = (transform.position - Camera.main.transform.position).normalized;
-                    var position =
-                        Camera.main.transform.position
-                        + (cameraToPOI * exhibitSpawnDistanceFromCamera)
-                        + (Vector3.down * exhibitOffsetDown);
+                    var position = Camera.main.transform.position + (cameraToPOI * exhibitSpawnDistanceFromCamera) + (Vector3.down * exhibitOffsetDown);
                     var rotation = Quaternion.LookRotation(cameraToPOI) * Quaternion.Euler(exhibitSpawnTilt, 0, 0);
                     props.ExecuteAction(
                         (position, rotation),
@@ -95,30 +92,27 @@ namespace Outernet.Client
             Vector2 exhibitPanelDimensions = default,
             float exhibitPanelScrollPosition = default,
             Transform parent = default,
-            Func<NodeProps, IDisposable> bind = default
-        )
+            Func<NodeProps, IDisposable> bind = default)
         {
             ClientNode instance = PrefabSystem.Create(PrefabSystem.clientNode, parent);
-            instance.InitializeAndBind(
-                new NodeProps(
-                    nodeID,
-                    uuid,
-                    link,
-                    linkType,
-                    label,
-                    labelType,
-                    labelScale,
-                    labelDimensions,
-                    position,
-                    rotation,
-                    visible,
-                    exhibitOpen,
-                    exhibitPosition,
-                    exhibitRotation,
-                    exhibitPanelDimensions,
-                    exhibitPanelScrollPosition
-                )
-            );
+            instance.InitializeAndBind(new NodeProps(
+                nodeID,
+                uuid,
+                link,
+                linkType,
+                label,
+                labelType,
+                labelScale,
+                labelDimensions,
+                position,
+                rotation,
+                visible,
+                exhibitOpen,
+                exhibitPosition,
+                exhibitRotation,
+                exhibitPanelDimensions,
+                exhibitPanelScrollPosition
+            ));
 
             instance.AddBinding(Bindings.OnRelease(() => PrefabSystem.Destroy(instance)));
 

@@ -37,9 +37,10 @@ namespace Placeframe.Client
 
     public class AppState : ObservableObject
     {
-        public ObservablePrimitive<string> placeframeApiUrl { get; private set; }
-        public ObservablePrimitive<string> placeframeAuthTokenUrl { get; private set; }
+        // public ObservablePrimitive<string> placeframeApiUrl { get; private set; }
+        // public ObservablePrimitive<string> placeframeAuthTokenUrl { get; private set; }
         public ObservablePrimitive<string> placeframeAuthAudience { get; private set; }
+        public ObservablePrimitive<string> domain { get; private set; }
         public ObservablePrimitive<string> username { get; private set; }
         public ObservablePrimitive<string> password { get; private set; }
         public ObservablePrimitive<bool> loginRequested { get; private set; }

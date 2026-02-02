@@ -1,83 +1,103 @@
+# Vibe code - Opus 4.5
 import os
 import shlex
+import subprocess
+import sys
 from pathlib import Path
-from subprocess import PIPE, STDOUT, CalledProcessError, Popen, run
+from subprocess import CalledProcessError, Popen, TimeoutExpired
+
+
+def _parse_command(command: str | list[str]) -> list[str]:
+    """Parse a command string into an args list."""
+    if isinstance(command, list):
+        return command
+    return shlex.split(command, posix=(os.name != "nt"))
+
+
+def exec_command(command: str | list[str], cwd: Path | None = None, env: dict[str, str] | None = None) -> None:
+    """Replace the current process with the given command (Unix) or run it (Windows).
+
+    This function only returns on Windows. On Unix, the current process is replaced entirely.
+    """
+    args = _parse_command(command)
+
+    full_env = {**os.environ, **(env or {})}
+
+    if cwd:
+        os.chdir(cwd)
+
+    if sys.platform != "win32":
+        os.execvpe(args[0], args, full_env)
+    else:
+        # Windows fallback - no execvp equivalent
+        try:
+            subprocess.run(args, env=full_env, check=True)
+        except subprocess.CalledProcessError as e:
+            sys.exit(e.returncode)
 
 
 def run_command(
-    command: str,
+    command: str | list[str],
     cwd: Path | None = None,
     env: dict[str, str] | None = None,
     log: bool = False,
     stream_log: bool = False,
     stdin_text: str | None = None,
+    verbose_errors: bool = True,
 ) -> str:
+    args = _parse_command(command)
+
+    # Windows needs shell=True for string commands to handle quoting properly
+    shell_mode = isinstance(command, str) and os.name == "nt"
+    if shell_mode:
+        args = command  # Pass original string to shell
+
     if stream_log:
         print(f"Running (streaming): {command}")
-        proc = Popen(
-            shlex.split(command, posix=True),
-            cwd=str(cwd) if cwd else None,
-            stdout=PIPE,
-            stderr=STDOUT,
-            text=True,
-            bufsize=1,
-            env=env,
-            stdin=PIPE if stdin_text is not None else None,
-        )
-        if stdin_text is not None and proc.stdin is not None:
-            proc.stdin.write(stdin_text + "\n" if not stdin_text.endswith("\n") else "")
-            proc.stdin.close()
-        assert proc.stdout is not None
-        try:
-            for line in proc.stdout:
-                print(line, end="", flush=True)
-        finally:
-            rc = proc.wait()
-            if rc != 0:
-                raise CalledProcessError(rc, command)
-        return ""
+        stdout_target = sys.stdout
+        stderr_target = sys.stderr
     else:
-        try:
-            if log:
-                print(f"Running command: {command}")
+        if log:
+            print(f"Running command: {command}")
+        stdout_target = subprocess.PIPE
+        stderr_target = subprocess.PIPE
 
-            if os.name == "nt":
-                # Let cmd.exe remove the grouping quotes
-                process = run(command, shell=True, cwd=cwd, env=env, check=True, text=True, capture_output=True)
-            else:
-                argv = shlex.split(command, posix=True)
-                process = run(argv, cwd=cwd, env=env, check=True, text=True, capture_output=True)
+    try:
+        with Popen(
+            args,
+            cwd=str(cwd) if cwd else None,
+            env=env,
+            stdout=stdout_target,
+            stderr=stderr_target,
+            stdin=subprocess.PIPE if stdin_text else None,
+            text=True,
+            shell=shell_mode,
+        ) as process:
+            try:
+                stdout, stderr = process.communicate(input=stdin_text)
+            except KeyboardInterrupt:
+                print("\n[User Interrupted] Waiting for build to stop gracefully...")
+                try:
+                    process.wait(timeout=5)
+                except TimeoutExpired:
+                    print("[Timeout] Forcing exit...")
+                    process.kill()
+                raise
 
-            if process.stdout and log:
-                print(process.stdout)
-            if process.stderr and log:
-                print(process.stderr)
-            return process.stdout
-        except CalledProcessError as e:
+            if process.returncode != 0:
+                err = CalledProcessError(process.returncode, command)
+                err.stdout = stdout
+                err.stderr = stderr
+                raise err
+
+            return stdout if stdout else ""
+
+    except CalledProcessError as e:
+        if verbose_errors:
             print(f"Command failed with exit code {e.returncode}")
-            if e.output:
-                print(e.output)
-            if e.stderr:
-                print(e.stderr)
-            raise
-
-
-# def run_streaming(command: str, cwd: Path | None = None, env: dict[str, str] | None = None) -> None:
-#     print(f"Running (streaming): {command}")
-#     proc = Popen(
-#         shlex.split(command, posix=True),
-#         cwd=str(cwd) if cwd else None,
-#         stdout=PIPE,
-#         stderr=STDOUT,
-#         text=True,
-#         bufsize=1,
-#         env=env,
-#     )
-#     assert proc.stdout is not None
-#     try:
-#         for line in proc.stdout:
-#             print(line, end="", flush=True)
-#     finally:
-#         rc = proc.wait()
-#         if rc != 0:
-#             raise CalledProcessError(rc, command)
+            if not stream_log:
+                if e.stdout:
+                    print(e.stdout)
+                if e.stderr:
+                    print(e.stderr)
+        raise

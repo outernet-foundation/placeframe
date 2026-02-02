@@ -1,5 +1,274 @@
 name: placeframe
 
+services:
+  minio:
+    x-image-ref: docker.io/minio/minio:latest
+    image: "${MINIO_IMAGE:?err}"
+    ports:
+      - "${MINIO_CONSOLE_PORT:?err}:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/ready" ]
+      interval: 1s
+      retries: 60
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ACCESS_KEY:?err}"
+      MINIO_ROOT_PASSWORD: "${MINIO_SECRET_KEY:?err}"
+
+  initialize-minio:
+    x-image-ref: docker.io/minio/mc:latest
+    image: "${INITIALIZE_MINIO_IMAGE:?err}"
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 '${MINIO_ACCESS_KEY:?err}' '${MINIO_SECRET_KEY:?err}' && \
+        mc mb --ignore-existing local/dev-captures && \
+        mc mb --ignore-existing local/dev-reconstructions
+      "
+    environment:
+      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
+      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
+
+  minio-logger:
+    x-image-ref: docker.io/minio/mc:latest
+    image: "${MINIO_LOGGER_IMAGE:?err}"
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        set -e
+        mc alias set local http://minio:9000 '${MINIO_ACCESS_KEY:?err}' '${MINIO_SECRET_KEY:?err}'
+        mc admin trace --verbose --all local
+      "
+    environment:
+      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
+      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
+
+  postgres:
+    x-image-ref: docker.io/library/postgres:16-alpine
+    image: "${POSTGRES_IMAGE:?err}"
+    ports:
+      - "55432:5432"
+    expose:
+      - "5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -q -h localhost -p 5432 -U $${POSTGRES_USER} -d postgres" ]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+    environment:
+      POSTGRES_USER: "${POSTGRES_ADMIN_USER:?err}"
+      POSTGRES_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
+
+  initialize-cloudbeaver:
+    x-image-ref: ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:latest
+    image: "${INITIALIZE_CLOUDBEAVER_IMAGE:?err}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    volumes:
+      - cloudbeaver_data:/opt/cloudbeaver/workspace
+    environment:
+      POSTGRES_HOST: "${POSTGRES_HOST:?err}"
+      POSTGRES_ADMIN_USER: "${POSTGRES_ADMIN_USER:?err}"
+      POSTGRES_ADMIN_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
+      CB_ADMIN_NAME: "${CLOUDBEAVER_ADMIN_USER:?err}"
+      CB_ADMIN_PASSWORD: "${CLOUDBEAVER_ADMIN_PASSWORD:?err}"
+
+  cloudbeaver:
+    x-image-ref: docker.io/dbeaver/cloudbeaver:latest
+    image: "${CLOUDBEAVER_IMAGE:?err}"
+    depends_on:
+      initialize-cloudbeaver:
+        condition: service_completed_successfully
+    ports:
+      - "${CLOUDBEAVER_PORT:?err}:8978"
+    volumes:
+      - cloudbeaver_data:/opt/cloudbeaver/workspace
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8978" ]
+      interval: 1s
+      timeout: 1s
+      retries: 90
+
+  create-database:
+    x-image-ref: ghcr.io/outernet-foundation/placeframe/database-manager:latest
+    image: "${CREATE_DATABASE_IMAGE:?err}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      cloudbeaver:
+        condition: service_healthy
+    restart: "no"
+    volumes:
+      - cloudbeaver_data:/mnt/efs
+      - /var/run/docker.sock:/var/run/docker.sock
+    entrypoint: >-
+      uv run --no-sync python -m src.main --op create --name "${DATABASE_NAME:?err}" --owner-password "${DATABASE_OWNER_PASSWORD:?err}" --api-user-password "${DATABASE_API_USER_PASSWORD:?err}" --auth-user-password "${DATABASE_AUTH_USER_PASSWORD:?err}" --orchestration-user-password "${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}"
+    environment:
+      DOCKER_HOST: unix:///var/run/docker.sock
+      BACKEND: docker
+      CLOUDBEAVER_SERVICE_ID: placeframe-cloudbeaver-1
+      POSTGRES_HOST: "${POSTGRES_HOST:?err}"
+      POSTGRES_ADMIN_USER: "${POSTGRES_ADMIN_USER:?err}"
+      POSTGRES_ADMIN_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
+
+  auth-initializer:
+    x-image-ref: ghcr.io/outernet-foundation/placeframe/auth-initializer:latest
+    image: "${AUTH_INITIALIZER_IMAGE:?err}"
+    restart: "no"
+    volumes:
+      - auth_data:/auth_data
+      - keycloak_import:/keycloak_import
+      - ./docker/keycloak/realm-export:/templates:ro
+
+  keycloak:
+    x-image-ref: quay.io/keycloak/keycloak:26.3.5
+    image: "${KEYCLOAK_IMAGE:?err}"
+    depends_on:
+      auth-initializer:
+        condition: service_completed_successfully
+    volumes:
+      - keycloak_import:/opt/keycloak/data/import:ro
+      - keycloak_data:/opt/keycloak/data
+    command:
+      - start-dev
+      - --import-realm
+      - --health-enabled=true
+    healthcheck:
+      test: [ "CMD", "/bin/bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000; echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; cat <&3 | grep -q '200 OK'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    environment:
+      PUBLIC_URL: "https://${PUBLIC_DOMAIN:?err}"
+      KEYCLOAK_ACCESS_TOKEN_LIFESPAN: "${KEYCLOAK_ACCESS_TOKEN_LIFESPAN:?err}"
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: "https://${PUBLIC_DOMAIN:?err}/auth"
+      KC_HOSTNAME_ADMIN: "https://${PUBLIC_DOMAIN:?err}/auth"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HOSTNAME_STRICT_HTTPS: "true"
+      KC_HOSTNAME_DEBUG: "true"
+
+  gateway:
+    x-image-ref: ghcr.io/outernet-foundation/placeframe/gateway:latest
+    image: "${GATEWAY_IMAGE:?err}"
+    depends_on:
+      - keycloak
+      - api
+    ports:
+      - "${GATEWAY_PORT:?err}:8443"
+    volumes:
+      - ./docker/certs:/certs:ro
+
+  ngrok:
+    x-image-ref: ngrok/ngrok:alpine
+    image: "${NGROK_IMAGE:?err}"
+    depends_on:
+      - gateway
+    restart: unless-stopped
+    ports:
+      - "4040:4040"
+    command:
+      - "http"
+      - "--domain=${PUBLIC_DOMAIN:?err}"
+      - "--upstream-protocol=http2"
+      - "http://gateway:8080"
+    environment:
+      NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN:?err}"
+
+  migrate-database:
+    x-image-ref: ghcr.io/outernet-foundation/placeframe/database-migrator:latest
+    image: "${MIGRATE_DATABASE_IMAGE:?err}"
+    depends_on:
+      create-database:
+        condition: service_completed_successfully
+    restart: "no"
+    volumes:
+      - ./:/app
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: "${DATABASE_NAME:?err}"
+      DB_USER: "${DATABASE_NAME:?err}_owner"
+      DB_PASSWORD: "${DATABASE_OWNER_PASSWORD:?err}"
+      DATABASE_SCHEMA_DIR: database
+      ALLOWED_HAZARDS: "HAS_UNTRACKABLE_DEPENDENCIES"
+
+  api:
+    x-image-ref: ghcr.io/outernet-foundation/placeframe/api:latest
+    image: "${API_IMAGE:?err}"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      initialize-minio:
+        condition: service_completed_successfully
+      migrate-database:
+        condition: service_completed_successfully
+    ports:
+      - "5679:5678"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./compose.yml:/compose.yml:ro
+      - ./.env:/.env:ro
+      - ./:/app:ro
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
+      interval: 5s
+      start_period: 5s
+      timeout: 5s
+      retries: 3
+    environment:
+      DOCKER_HOST: unix:///var/run/docker.sock
+      PUBLIC_URL: "https://${PUBLIC_DOMAIN:?err}"
+      AUTH_AUDIENCE: "${AUTH_AUDIENCE:?err}"
+      AUTH_ISSUER_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev"
+      AUTH_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth"
+      AUTH_TOKEN_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
+      AUTH_CERTS_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/certs"
+      POSTGRES_HOST: "${POSTGRES_HOST:?err}"
+      DATABASE_NAME: "${DATABASE_NAME:?err}"
+      DATABASE_API_USER: "${DATABASE_NAME:?err}_api_user"
+      DATABASE_AUTH_USER: "${DATABASE_NAME:?err}_auth_user"
+      DATABASE_API_USER_PASSWORD: "${DATABASE_API_USER_PASSWORD:?err}"
+      DATABASE_AUTH_USER_PASSWORD: "${DATABASE_AUTH_USER_PASSWORD:?err}"
+      DATABASE_ORCHESTRATION_USER: "${DATABASE_NAME:?err}_orchestration_user"
+      DATABASE_ORCHESTRATION_USER_PASSWORD: "${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}"
+      MINIO_ENDPOINT_URL: "http://minio:9000"
+      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
+      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
+      RECONSTRUCTIONS_BUCKET: dev-reconstructions
+      LOCALIZER_CONTAINER_URL: http://localizer:8000
+      RELOAD: "true"
+      DEBUG: "${DEBUG_API:?err}"
+      DEBUG_WAIT: "${DEBUG_WAIT_API:?err}"
+
+  state-sync:
+    x-image-ref: ghcr.io/outernet-foundation/placeframe/state-sync:latest
+    image: "${STATE_SYNC_IMAGE:?err}"
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - auth_data:/run/secrets:ro
+    environment:
+      AUTH_TOKEN_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
+      AUTH_CLIENT_ID: "${AUTH_WORKER_CLIENT_ID:?err}"
+      PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
+
 volumes:
   uv_cache:
   minio_data:
@@ -9,419 +278,3 @@ volumes:
   keycloak_import:
   keycloak_data:
 
-x-uv-digest-arg: &uv-digest-arg
-  UV_BASE_DIGEST: "@sha256:b6617231e5b985e887de048bf9100dfb66554d8b3ab07582d852aa59cc932825"
-
-services:
-  minio:
-    image: docker.io/minio/minio:latest
-    ports:
-      - "${MINIO_CONSOLE_PORT}:9001"
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio_data:/data
-    environment:
-      MINIO_ROOT_USER: "${MINIO_ACCESS_KEY}"
-      MINIO_ROOT_PASSWORD: "${MINIO_SECRET_KEY}"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/ready"]
-      interval: 1s
-      retries: 60
-
-  initialize-minio:
-    image: docker.io/minio/mc:latest
-    restart: "no"
-    depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-        mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY} && \
-        mc mb --ignore-existing local/dev-captures && \
-        mc mb --ignore-existing local/dev-reconstructions
-      "
-    environment:
-      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY}"
-      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY}"
-
-  minio-logger:
-    image: docker.io/minio/mc:latest
-    depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-        set -e
-        mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY}
-        mc admin trace --verbose --all local
-      "
-    environment:
-      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY}"
-      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY}"
-
-  postgres:
-    image: docker.io/library/postgres:16-alpine
-    expose:
-      - "5432"
-    ports:
-      - "55432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: ${POSTGRES_ADMIN_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -q -h localhost -p 5432 -U $${POSTGRES_USER} -d postgres",
-        ]
-      interval: 1s
-      timeout: 1s
-      retries: 30
-
-  initialize-cloudbeaver:
-    build:
-      dockerfile: docker/cloudbeaver-initializer/Dockerfile
-    restart: "no"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    volumes:
-      - cloudbeaver_data:/opt/cloudbeaver/workspace
-    environment:
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      POSTGRES_ADMIN_USER: ${POSTGRES_ADMIN_USER}
-      POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
-      CB_ADMIN_NAME: ${CLOUDBEAVER_ADMIN_USER}
-      CB_ADMIN_PASSWORD: ${CLOUDBEAVER_ADMIN_PASSWORD}
-
-  cloudbeaver:
-    image: docker.io/dbeaver/cloudbeaver:latest
-    depends_on:
-      initialize-cloudbeaver:
-        condition: service_completed_successfully
-    ports:
-      - "${CLOUDBEAVER_PORT}:8978"
-    volumes:
-      - cloudbeaver_data:/opt/cloudbeaver/workspace
-    extra_hosts:
-      - "host.docker.internal:host-gateway" # speeds up start up a little
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8978"]
-      interval: 1s
-      timeout: 1s
-      retries: 90
-
-  create-database:
-    build:
-      dockerfile: docker/database-manager/Dockerfile
-      args: *uv-digest-arg
-    restart: "no"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      cloudbeaver:
-        condition: service_healthy
-    volumes:
-      - cloudbeaver_data:/mnt/efs
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      DOCKER_HOST: unix:///var/run/docker.sock
-      BACKEND: docker
-      CLOUDBEAVER_SERVICE_ID: placeframe-cloudbeaver-1
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      POSTGRES_ADMIN_USER: ${POSTGRES_ADMIN_USER}
-      POSTGRES_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
-    entrypoint: >-
-      uv run --no-sync python -m src.main
-      --op create
-      --name ${DATABASE_NAME}
-      --owner-password ${DATABASE_OWNER_PASSWORD}
-      --api-user-password ${DATABASE_API_USER_PASSWORD}
-      --auth-user-password ${DATABASE_AUTH_USER_PASSWORD}
-      --orchestration-user-password ${DATABASE_ORCHESTRATION_USER_PASSWORD}
-
-  auth-initializer:
-    build:
-      dockerfile: docker/auth-initializer/Dockerfile
-      args: *uv-digest-arg
-    restart: "no"
-    volumes:
-      - auth_data:/auth_data
-      - keycloak_import:/keycloak_import
-      - ./docker/keycloak/realm-export:/templates:ro
-
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.3.5
-    command:
-      - start-dev
-      - --import-realm
-      - --health-enabled=true
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "/bin/bash",
-          "-c",
-          "exec 3<>/dev/tcp/127.0.0.1/9000; echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; cat <&3 | grep -q '200 OK'",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 20
-      start_period: 30s
-    depends_on:
-      auth-initializer:
-        condition: service_completed_successfully
-    environment:
-      PUBLIC_URL: ${PUBLIC_URL}
-      KEYCLOAK_ACCESS_TOKEN_LIFESPAN: ${KEYCLOAK_ACCESS_TOKEN_LIFESPAN}
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_HOSTNAME: ${PUBLIC_URL}/auth
-      KC_HOSTNAME_ADMIN: ${PUBLIC_URL}/auth
-      KC_PROXY_HEADERS: xforwarded
-      KC_HOSTNAME_STRICT_HTTPS: true
-      KC_HOSTNAME_DEBUG: true
-    volumes:
-      - keycloak_import:/opt/keycloak/data/import:ro
-      - keycloak_data:/opt/keycloak/data
-
-  gateway:
-    build:
-      dockerfile: docker/gateway/Dockerfile
-    depends_on:
-      - keycloak
-      - api
-    ports:
-      - "${GATEWAY_PORT}:8443"
-    volumes:
-      - ./docker/certs:/certs:ro
-
-  ngrok:
-    image: ngrok/ngrok:alpine
-    depends_on:
-      - gateway
-    restart: unless-stopped
-    environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
-    ports:
-      - "4040:4040"
-    command:
-      - "http"
-      - "--domain=${DOMAIN}"
-      - "--upstream-protocol=http2" # Forces HTTP/2 (Prior Knowledge) upstream
-      - "http://gateway:8080" # Connects to the h2c listener
-
-  migrate-database:
-    build:
-      dockerfile: docker/database-migrator/Dockerfile
-    depends_on:
-      create-database:
-        condition: service_completed_successfully
-    volumes:
-      - ./:/app # needed so /app/<SCHEMA_DIR> exists in the container
-    environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${DATABASE_NAME}
-      DB_USER: ${DATABASE_NAME}_owner
-      DB_PASSWORD: ${DATABASE_OWNER_PASSWORD}
-      DATABASE_SCHEMA_DIR: database
-      # ALLOWED_HAZARDS: "DELETES_DATA,AUTHZ_UPDATE,INDEX_BUILD,INDEX_DROPPED,HAS_UNTRACKABLE_DEPENDENCIES,ACQUIRES_ACCESS_EXCLUSIVE_LOCK"
-      ALLOWED_HAZARDS: "HAS_UNTRACKABLE_DEPENDENCIES"
-    restart: "no"
-
-  api:
-    build:
-      dockerfile: docker/api/Dockerfile
-      target: dev
-      args: *uv-digest-arg
-    depends_on:
-      keycloak:
-        condition: service_healthy
-      initialize-minio:
-        condition: service_completed_successfully
-      migrate-database:
-        condition: service_completed_successfully
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "python",
-          "-c",
-          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
-        ]
-      interval: 5s
-      start_period: 5s
-      timeout: 5s
-      retries: 3
-    ports:
-      - "5679:5678" # debug port
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./compose.yml:/compose.yml:ro
-      - ./.env:/.env:ro
-      - ./:/app:ro
-    environment:
-      DOCKER_HOST: unix:///var/run/docker.sock
-      PUBLIC_URL: ${PUBLIC_URL}
-      AUTH_AUDIENCE: ${AUTH_AUDIENCE}
-      AUTH_ISSUER_URL: ${AUTH_ISSUER_URL}
-      AUTH_URL: ${AUTH_URL}
-      AUTH_TOKEN_URL: ${AUTH_TOKEN_URL}
-      AUTH_CERTS_URL: ${AUTH_CERTS_URL}
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      DATABASE_NAME: ${DATABASE_NAME}
-      DATABASE_API_USER: ${DATABASE_NAME}_api_user
-      DATABASE_AUTH_USER: ${DATABASE_NAME}_auth_user
-      DATABASE_API_USER_PASSWORD: ${DATABASE_API_USER_PASSWORD}
-      DATABASE_AUTH_USER_PASSWORD: ${DATABASE_AUTH_USER_PASSWORD}
-      DATABASE_ORCHESTRATION_USER: ${DATABASE_NAME}_orchestration_user
-      DATABASE_ORCHESTRATION_USER_PASSWORD: ${DATABASE_ORCHESTRATION_USER_PASSWORD}
-      MINIO_ENDPOINT_URL: "http://minio:9000"
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
-      RECONSTRUCTIONS_BUCKET: dev-reconstructions
-      LOCALIZER_CONTAINER_URL: http://localizer:8000
-      RELOAD: true
-      DEBUG: ${DEBUG_API}
-      DEBUG_WAIT: ${DEBUG_WAIT_API}
-
-  state-sync:
-    build:
-      context: .
-      dockerfile: docker/state-sync/Dockerfile
-    depends_on:
-      api:
-        condition: service_healthy
-    environment:
-      AUTH_TOKEN_URL: ${AUTH_TOKEN_URL}
-      AUTH_CLIENT_ID: ${AUTH_WORKER_CLIENT_ID}
-      PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
-    volumes:
-      - auth_data:/run/secrets:ro
-
-  reconstructor-cuda:
-    profiles: ["cuda"]
-    depends_on:
-      api:
-        condition: service_healthy
-    build:
-      dockerfile: docker/reconstructor/Dockerfile
-      args:
-        <<: *uv-digest-arg
-        TORCH_DEVICE: "cuda"
-      cache_from:
-        - type=local,src=${HOME}/.buildx-cache/reconstructor-${TORCH_DEVICE}
-      cache_to:
-        - type=local,dest=${HOME}/.buildx-cache/reconstructor-${TORCH_DEVICE},mode=max
-    image: placeframe-reconstructor-cuda
-    volumes:
-      - auth_data:/run/secrets:ro
-    gpus: all
-    expose:
-      - "5678" # debug port
-    environment:
-      API_INTERNAL_URL: http://api:8000
-      AUTH_TOKEN_URL: ${AUTH_TOKEN_URL}
-      AUTH_CLIENT_ID: ${AUTH_WORKER_CLIENT_ID}
-      PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
-      MINIO_ENDPOINT_URL: "http://minio:9000"
-      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY}"
-      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY}"
-      RECONSTRUCTIONS_BUCKET: dev-reconstructions
-      CAPTURES_BUCKET: dev-captures
-      MAX_KEYPOINTS_PER_IMAGE: ${MAX_KEYPOINTS_PER_IMAGE}
-
-  reconstructor-rocm:
-    profiles: ["rocm"]
-    depends_on:
-      api:
-        condition: service_healthy
-    build:
-      dockerfile: docker/reconstructor/Dockerfile
-      args:
-        <<: *uv-digest-arg
-        TORCH_DEVICE: "rocm"
-      cache_from:
-        - type=local,src=${HOME}/.buildx-cache/reconstructor-${TORCH_DEVICE}
-      cache_to:
-        - type=local,dest=${HOME}/.buildx-cache/reconstructor-${TORCH_DEVICE},mode=max
-    image: placeframe-reconstructor-rocm
-    volumes:
-      - auth_data:/run/secrets:ro
-    devices:
-      - /dev/kfd:/dev/kfd
-      - /dev/dri:/dev/dri
-    group_add:
-      - 44
-      - 110
-    expose:
-      - "5678" # debug port
-    environment:
-      API_INTERNAL_URL: http://api:8000
-      AUTH_TOKEN_URL: ${AUTH_TOKEN_URL}
-      AUTH_CLIENT_ID: ${AUTH_WORKER_CLIENT_ID}
-      PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
-      MINIO_ENDPOINT_URL: "http://minio:9000"
-      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY}"
-      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY}"
-      RECONSTRUCTIONS_BUCKET: dev-reconstructions
-      CAPTURES_BUCKET: dev-captures
-      MAX_KEYPOINTS_PER_IMAGE: ${MAX_KEYPOINTS_PER_IMAGE}
-
-  localizer-cuda:
-    profiles: ["cuda"]
-    networks:
-      default:
-        aliases: ["localizer"]
-    build:
-      dockerfile: docker/localizer/Dockerfile
-      args:
-        <<: *uv-digest-arg
-        TORCH_DEVICE: "cuda"
-      cache_from:
-        - type=local,src=${HOME}/.buildx-cache/localizer-cuda
-      cache_to:
-        - type=local,dest=${HOME}/.buildx-cache/localizer-cuda,mode=max
-    image: placeframe-localizer-cuda
-    gpus: all
-    expose:
-      - "8000"
-    environment:
-      MINIO_ENDPOINT_URL: "http://minio:9000"
-      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY}"
-      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY}"
-      RECONSTRUCTIONS_BUCKET: dev-reconstructions
-      MAX_KEYPOINTS_PER_IMAGE: ${MAX_KEYPOINTS_PER_IMAGE}
-
-  localizer-rocm:
-    profiles: ["rocm"]
-    networks:
-      default:
-        aliases: ["localizer"]
-    build:
-      dockerfile: docker/localizer/Dockerfile
-      args:
-        <<: *uv-digest-arg
-        TORCH_DEVICE: "rocm"
-      cache_from:
-        - type=local,src=${HOME}/.buildx-cache/localizer-rocm
-      cache_to:
-        - type=local,dest=${HOME}/.buildx-cache/localizer-rocm,mode=max
-    image: placeframe-localizer-rocm
-    devices:
-      - /dev/kfd:/dev/kfd
-      - /dev/dri:/dev/dri
-    group_add:
-      - 44
-      - 110
-    expose:
-      - "8000"
-    environment:
-      MINIO_ENDPOINT_URL: "http://minio:9000"
-      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY}"
-      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY}"
-      RECONSTRUCTIONS_BUCKET: dev-reconstructions
-      MAX_KEYPOINTS_PER_IMAGE: ${MAX_KEYPOINTS_PER_IMAGE}

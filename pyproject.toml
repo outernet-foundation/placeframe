@@ -17,7 +17,6 @@ members = [
     "docker/localizer",
     "docker/orchestrator",
     "docker/reconstructor",
-    "infrastructure",
     "packages/python/core",
     "packages/python/common",
     "packages/python/neural-networks",
@@ -27,7 +26,6 @@ members = [
     "packages/generated/python/localizer-client",
     "scripts",
     "zed",
-    # "test",
 ]
 
 
@@ -50,18 +48,14 @@ pybind11-stubgen = { git = "https://github.com/sarlinpe/pybind11-stubgen", rev =
 [tool.basedpyright]
 typeCheckingMode = "strict"
 include = [
-    "capture-app/**/src/**/*.py",
-    "capture-app/**/src/**/*.pyi",
+    "zed/**/src/**/*.py",
+    "zed/**/src/**/*.pyi",
     "docker/**/src/**/*.py",
     "docker/**/src/**/*.pyi",
-    "infrastructure/**/src/**/*.py",
-    "infrastructure/**/src/**/*.pyi",
     "packages/**/src/**/*.py",
     "packages/**/src/**/*.pyi",
     "scripts/**/src/**/*.py",
     "scripts/**/src/**/*.pyi",
-    "test/**/src/**/*.py",
-    "test/**/src/**/*.pyi",
 ]
 
 [tool.ruff]

@@ -1,0 +1,39 @@
+services:
+  reconstructor-cuda:
+    x-image-ref: ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:latest
+    image: "${RECONSTRUCTOR_CUDA_IMAGE:?err}"
+    depends_on:
+      api:
+        condition: service_healthy
+    expose:
+      - "5678"
+    volumes:
+      - auth_data:/run/secrets:ro
+    gpus: all
+    environment:
+      API_INTERNAL_URL: http://api:8000
+      AUTH_TOKEN_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
+      AUTH_CLIENT_ID: "${AUTH_WORKER_CLIENT_ID:?err}"
+      PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
+      MINIO_ENDPOINT_URL: "http://minio:9000"
+      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
+      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
+      RECONSTRUCTIONS_BUCKET: dev-reconstructions
+      CAPTURES_BUCKET: dev-captures
+      MAX_KEYPOINTS_PER_IMAGE: "${MAX_KEYPOINTS_PER_IMAGE:?err}"
+
+  localizer-cuda:
+    x-image-ref: ghcr.io/outernet-foundation/placeframe/localizer-cuda:latest
+    image: "${LOCALIZER_CUDA_IMAGE:?err}"
+    expose:
+      - "8000"
+    networks:
+      default:
+        aliases: [ "localizer" ]
+    gpus: all
+    environment:
+      MINIO_ENDPOINT_URL: "http://minio:9000"
+      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
+      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
+      RECONSTRUCTIONS_BUCKET: dev-reconstructions
+      MAX_KEYPOINTS_PER_IMAGE: "${MAX_KEYPOINTS_PER_IMAGE:?err}"

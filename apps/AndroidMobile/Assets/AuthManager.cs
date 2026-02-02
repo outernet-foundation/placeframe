@@ -30,16 +30,16 @@ namespace Placeframe.Client
             if (!App.state.loginRequested.value)
                 return;
 
-            _loginTask = TaskHandle.Execute(token => LogIn(App.state.username.value, App.state.password.value, token));
+            _loginTask = TaskHandle.Execute(token => LogIn(App.state.domain.value, App.state.username.value, App.state.password.value, token));
         }
 
-        private async UniTask LogIn(string username, string password, CancellationToken cancellationToken = default)
+        private async UniTask LogIn(string domain, string username, string password, CancellationToken cancellationToken = default)
         {
             App.ExecuteActionOrDelay(new SetAuthStatusAction(AuthStatus.LoggingIn));
 
             try
             {
-                await VisualPositioningSystem.Login(username, password);
+                await VisualPositioningSystem.Login(domain, username, password);
             }
             catch (Exception exc)
             {

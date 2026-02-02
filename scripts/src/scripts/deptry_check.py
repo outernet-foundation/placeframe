@@ -9,7 +9,7 @@ from pathlib import Path
 
 def main():
     SKIP_PROJECTS = {}
-    SKIP_DIRS = {"generated", "third-party", "infrastructure", "test"}
+    SKIP_DIRS = {"generated", "third-party"}
     # Capture groups: (1) Filename, (2) Line, (3) Col, (4) Message
     ERROR_PATTERN = re.compile(r"^(.*):(\d+):(\d+):(.+)$")
     ANSI_ESCAPE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")

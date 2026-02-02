@@ -1,14 +1,18 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using Cysharp.Threading.Tasks;
-using FofX;
-using FofX.Stateful;
-using Placeframe.Core;
-using Unity.Mathematics;
+
 using UnityEngine;
 using UnityEngine.EventSystems;
+
+using Cysharp.Threading.Tasks;
+
+using FofX.Stateful;
+using Placeframe.Core;
+using FofX;
+using System.Collections.Generic;
+
+using Unity.Mathematics;
+using System.Threading;
 
 namespace Outernet.Client.AuthoringTools
 {
@@ -22,16 +26,9 @@ namespace Outernet.Client.AuthoringTools
             public ObservablePrimitive<Quaternion> rotation { get; private set; }
             public ObservablePrimitive<Guid> reconstructionID { get; private set; }
 
-            public Props()
-                : base() { }
+            public Props() : base() { }
 
-            public Props(
-                Guid sceneObjectID = default,
-                string name = default,
-                Vector3 position = default,
-                Quaternion? rotation = default,
-                Guid reconstructionID = default
-            )
+            public Props(Guid sceneObjectID = default, string name = default, Vector3 position = default, Quaternion? rotation = default, Guid reconstructionID = default)
             {
                 this.sceneObjectID = new ObservablePrimitive<Guid>(sceneObjectID);
                 this.name = new ObservablePrimitive<string>(name);
@@ -53,15 +50,11 @@ namespace Outernet.Client.AuthoringTools
                 props.rotation.ExecuteSet(transform.rotation);
         }
 
-        public override void Setup() => InitializeAndBind(new Props());
+        public override void Setup()
+            => InitializeAndBind(new Props());
 
-        public void Setup(
-            Guid sceneObjectID = default,
-            string name = default,
-            Vector3 position = default,
-            Quaternion? rotation = default,
-            Guid reconstructionID = default
-        ) => InitializeAndBind(new Props(sceneObjectID, name, position, rotation, reconstructionID));
+        public void Setup(Guid sceneObjectID = default, string name = default, Vector3 position = default, Quaternion? rotation = default, Guid reconstructionID = default)
+            => InitializeAndBind(new Props(sceneObjectID, name, position, rotation, reconstructionID));
 
         protected override void Bind()
         {
@@ -104,11 +97,16 @@ namespace Outernet.Client.AuthoringTools
             Quaternion? rotation = default,
             Guid reconstructionID = default,
             Transform parent = default,
-            Func<Props, IDisposable> bind = default
-        )
+            Func<Props, IDisposable> bind = default)
         {
             AuthoringToolsMap instance = Instantiate(AuthoringToolsPrefabs.SceneMap, parent);
-            instance.InitializeAndBind(new Props(sceneObjectID, name, position, rotation, reconstructionID));
+            instance.InitializeAndBind(new Props(
+                sceneObjectID,
+                name,
+                position,
+                rotation,
+                reconstructionID
+            ));
 
             instance.AddBinding(Bindings.OnRelease(() => PrefabSystem.Destroy(instance)));
 

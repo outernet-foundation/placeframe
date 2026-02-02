@@ -24,7 +24,6 @@ build-backend = "hatchling.build"
 packages = ["src/scripts"]
 
 [project.scripts]
-build = "scripts.build:main"
 generate-lock-files = "scripts.generate_lock_files:main"
 generate-clients = "scripts.generate_clients:main"
 generate-datamodels = "scripts.generate_datamodels:main"
@@ -32,3 +31,6 @@ forward-unity-android-debug-port = "scripts.forward_unity_android_debug_port:mai
 list-debug-targets = "scripts.list_debug_targets:main"
 migrate-database = "scripts.migrate_database:main"
 deptry-check = "scripts.deptry_check:main"
+build = "scripts.build:main"
+up = "scripts.up:main"
+down = "scripts.down:main"

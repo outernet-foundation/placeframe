@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Cysharp.Threading.Tasks;
+
+using UnityEngine;
+
 using FofX;
 using FofX.Stateful;
-using PlaceframeApiClient.Model;
+
+using Cysharp.Threading.Tasks;
 using UnityEditor;
-using UnityEngine;
+using PlaceframeApiClient.Model;
 
 namespace Outernet.Client.AuthoringTools
 {
@@ -62,14 +65,17 @@ namespace Outernet.Client.AuthoringTools
             }
         }
 
-        private PersistedChangeTrackingHelper<Guid> _nodePersistenceHelper = new PersistedChangeTrackingHelper<Guid>();
+        private PersistedChangeTrackingHelper<Guid> _nodePersistenceHelper =
+            new PersistedChangeTrackingHelper<Guid>();
 
         private PersistedChangeTrackingHelper<Guid> _nodeGroupPersistenceHelper =
             new PersistedChangeTrackingHelper<Guid>();
 
-        private PersistedChangeTrackingHelper<Guid> _mapPersistenceHelper = new PersistedChangeTrackingHelper<Guid>();
+        private PersistedChangeTrackingHelper<Guid> _mapPersistenceHelper =
+            new PersistedChangeTrackingHelper<Guid>();
 
-        private PersistedChangeTrackingHelper<Guid> _layerPersistenceHelper = new PersistedChangeTrackingHelper<Guid>();
+        private PersistedChangeTrackingHelper<Guid> _layerPersistenceHelper =
+            new PersistedChangeTrackingHelper<Guid>();
 
         private IDisposable _persistenceChangeTrackingBinding = Bindings.Empty();
         private bool _bindingsInitialized = false;
@@ -80,15 +86,18 @@ namespace Outernet.Client.AuthoringTools
         private bool _settingHasPendingChanges = false;
 
         private bool _hasPendingChanges =>
-            _nodePersistenceHelper.hasPendingChanges
-            || _nodeGroupPersistenceHelper.hasPendingChanges
-            || _mapPersistenceHelper.hasPendingChanges
-            || _layerPersistenceHelper.hasPendingChanges
-            || _persistingChanges;
+            _nodePersistenceHelper.hasPendingChanges ||
+            _nodeGroupPersistenceHelper.hasPendingChanges ||
+            _mapPersistenceHelper.hasPendingChanges ||
+            _layerPersistenceHelper.hasPendingChanges ||
+            _persistingChanges;
 
         private void Awake()
         {
-            App.RegisterObserver(HandleLocationContentLoadedChanged, App.state.authoringTools.locationContentLoaded);
+            App.RegisterObserver(
+                HandleLocationContentLoadedChanged,
+                App.state.authoringTools.locationContentLoaded
+            );
 
             SystemMenu.AddMenuItem(
                 "File/Save",
@@ -97,11 +106,14 @@ namespace Outernet.Client.AuthoringTools
                 commandKeys: new UnityEngine.InputSystem.Key[]
                 {
                     Utility.GetPlatformCommandKey(),
-                    UnityEngine.InputSystem.Key.S,
+                    UnityEngine.InputSystem.Key.S
                 }
             );
 
-            App.RegisterObserver(HandleSaveRequestedChanged, App.state.authoringTools.saveRequested);
+            App.RegisterObserver(
+                HandleSaveRequestedChanged,
+                App.state.authoringTools.saveRequested
+            );
         }
 
         private void OnDestroy()
@@ -125,21 +137,29 @@ namespace Outernet.Client.AuthoringTools
             }
 
             _persistenceChangeTrackingBinding = Bindings.Compose(
-                App.state.nodes.Each(x =>
-                    SetupPersistedObjectObserver(_nodePersistenceHelper, x.key, x.value, App.state.transforms[x.key])
-                ),
-                App.state.authoringTools.nodeGroups.Each(x =>
-                    SetupPersistedObjectObserver(
-                        _nodeGroupPersistenceHelper,
-                        x.key,
-                        x.value,
-                        App.state.authoringTools.nodeGroups[x.key]
-                    )
-                ),
-                App.state.authoringTools.maps.Each(x =>
-                    SetupPersistedObjectObserver(_mapPersistenceHelper, x.key, x.value, App.state.transforms[x.key])
-                ),
-                App.state.layers.Each(x => SetupPersistedObjectObserver(_layerPersistenceHelper, x.key, x.value))
+                App.state.nodes.Each(x => SetupPersistedObjectObserver(
+                    _nodePersistenceHelper,
+                    x.key,
+                    x.value,
+                    App.state.transforms[x.key]
+                )),
+                App.state.authoringTools.nodeGroups.Each(x => SetupPersistedObjectObserver(
+                    _nodeGroupPersistenceHelper,
+                    x.key,
+                    x.value,
+                    App.state.authoringTools.nodeGroups[x.key]
+                )),
+                App.state.authoringTools.maps.Each(x => SetupPersistedObjectObserver(
+                    _mapPersistenceHelper,
+                    x.key,
+                    x.value,
+                    App.state.transforms[x.key]
+                )),
+                App.state.layers.Each(x => SetupPersistedObjectObserver(
+                    _layerPersistenceHelper,
+                    x.key,
+                    x.value
+                ))
             );
 
             _bindingsInitialized = true;
@@ -154,11 +174,7 @@ namespace Outernet.Client.AuthoringTools
             PersistChanges();
         }
 
-        private IDisposable SetupPersistedObjectObserver<T>(
-            PersistedChangeTrackingHelper<T> trackingHelper,
-            T entryData,
-            params IObservableNode[] componentState
-        )
+        private IDisposable SetupPersistedObjectObserver<T>(PersistedChangeTrackingHelper<T> trackingHelper, T entryData, params IObservableNode[] componentState)
         {
             if (_bindingsInitialized)
             {
@@ -195,35 +211,31 @@ namespace Outernet.Client.AuthoringTools
 
         private void PersistChanges()
         {
-            if (
-                !_nodePersistenceHelper.hasPendingChanges
-                && !_nodeGroupPersistenceHelper.hasPendingChanges
-                && !_mapPersistenceHelper.hasPendingChanges
-                && !_layerPersistenceHelper.hasPendingChanges
-            )
+            if (!_nodePersistenceHelper.hasPendingChanges &&
+                !_nodeGroupPersistenceHelper.hasPendingChanges &&
+                !_mapPersistenceHelper.hasPendingChanges &&
+                !_layerPersistenceHelper.hasPendingChanges)
             {
                 return;
             }
 
-            _pendingPersists.Enqueue(
-                new PersistenceData()
-                {
-                    insertedNodes = _nodePersistenceHelper.inserts.Select(Utility.ToNodeBatchCreate).ToList(),
-                    insertedGroups = _nodeGroupPersistenceHelper.inserts.Select(Utility.ToGroupBatchCreate).ToList(),
-                    insertedMaps = _mapPersistenceHelper.inserts.Select(Utility.ToMapCreate).ToList(),
-                    insertedLayers = _layerPersistenceHelper.inserts.Select(Utility.ToLayerCreate).ToList(),
+            _pendingPersists.Enqueue(new PersistenceData()
+            {
+                insertedNodes = _nodePersistenceHelper.inserts.Select(Utility.ToNodeBatchCreate).ToList(),
+                insertedGroups = _nodeGroupPersistenceHelper.inserts.Select(Utility.ToGroupBatchCreate).ToList(),
+                insertedMaps = _mapPersistenceHelper.inserts.Select(Utility.ToMapCreate).ToList(),
+                insertedLayers = _layerPersistenceHelper.inserts.Select(Utility.ToLayerCreate).ToList(),
 
-                    updatedNodes = _nodePersistenceHelper.updates.Select(Utility.ToNodeUpdate).ToList(),
-                    updatedGroups = _nodeGroupPersistenceHelper.updates.Select(Utility.ToGroupUpdate).ToList(),
-                    updatedMaps = _mapPersistenceHelper.updates.Select(Utility.ToMapUpdate).ToList(),
-                    updatedLayers = _layerPersistenceHelper.updates.Select(Utility.ToLayerUpdate).ToList(),
+                updatedNodes = _nodePersistenceHelper.updates.Select(Utility.ToNodeUpdate).ToList(),
+                updatedGroups = _nodeGroupPersistenceHelper.updates.Select(Utility.ToGroupUpdate).ToList(),
+                updatedMaps = _mapPersistenceHelper.updates.Select(Utility.ToMapUpdate).ToList(),
+                updatedLayers = _layerPersistenceHelper.updates.Select(Utility.ToLayerUpdate).ToList(),
 
-                    deletedNodes = _nodePersistenceHelper.deletes.ToList(),
-                    deletedGroups = _nodeGroupPersistenceHelper.deletes.ToList(),
-                    deletedMaps = _mapPersistenceHelper.deletes.ToList(),
-                    deletedLayers = _layerPersistenceHelper.deletes.ToList(),
-                }
-            );
+                deletedNodes = _nodePersistenceHelper.deletes.ToList(),
+                deletedGroups = _nodeGroupPersistenceHelper.deletes.ToList(),
+                deletedMaps = _mapPersistenceHelper.deletes.ToList(),
+                deletedLayers = _layerPersistenceHelper.deletes.ToList()
+            });
 
             _nodePersistenceHelper.ClearChanges();
             _nodeGroupPersistenceHelper.ClearChanges();
@@ -241,55 +253,21 @@ namespace Outernet.Client.AuthoringTools
             while (_pendingPersists.TryDequeue(out var toPersist))
             {
                 await UniTask.WhenAll(
-                    toPersist.insertedMaps.Count != 0
-                        ? CreateLocalizationMapsAsync(toPersist.insertedMaps)
-                        : UniTask.CompletedTask,
-                    toPersist.updatedMaps.Count != 0
-                        ? App.API.UpdateLocalizationMapsAsync(toPersist.updatedMaps).AsUniTask()
-                        : UniTask.CompletedTask,
-                    toPersist.deletedMaps.Count != 0
-                        ? App.API.DeleteLocalizationMapsAsync(toPersist.deletedMaps).AsUniTask()
-                        : UniTask.CompletedTask,
-                    toPersist.deletedGroups.Count != 0
-                        ? App.API.DeleteGroupsAsync(toPersist.deletedGroups, cascade: true).AsUniTask()
-                        : UniTask.CompletedTask,
-                    toPersist.deletedLayers.Count != 0
-                        ? App.API.DeleteLayersAsync(toPersist.deletedLayers).AsUniTask()
-                        : UniTask.CompletedTask,
-                    toPersist.deletedNodes.Count != 0
-                        ? App.API.DeleteNodesAsync(toPersist.deletedNodes).AsUniTask()
-                        : UniTask.CompletedTask,
-                    (
-                        toPersist.insertedLayers.Count != 0
-                            ? CreateLayersAsync(toPersist.insertedLayers)
-                            : UniTask.CompletedTask
-                    )
-                        .ContinueWith(() =>
-                            toPersist.insertedGroups.Count != 0 || toPersist.insertedNodes.Count != 0
-                                ? App
-                                    .API.CreateGraphAsync(
-                                        new CreateGraphRequest()
-                                        {
-                                            Groups = toPersist.insertedGroups,
-                                            Nodes = toPersist.insertedNodes,
-                                        }
-                                    )
-                                    .AsUniTask()
-                                : UniTask.CompletedTask
+                    toPersist.insertedMaps.Count != 0 ? CreateLocalizationMapsAsync(toPersist.insertedMaps) : UniTask.CompletedTask,
+                    toPersist.updatedMaps.Count != 0 ? App.API.UpdateLocalizationMapsAsync(toPersist.updatedMaps).AsUniTask() : UniTask.CompletedTask,
+                    toPersist.deletedMaps.Count != 0 ? App.API.DeleteLocalizationMapsAsync(toPersist.deletedMaps).AsUniTask() : UniTask.CompletedTask,
+                    toPersist.deletedGroups.Count != 0 ? App.API.DeleteGroupsAsync(toPersist.deletedGroups, cascade: true).AsUniTask() : UniTask.CompletedTask,
+                    toPersist.deletedLayers.Count != 0 ? App.API.DeleteLayersAsync(toPersist.deletedLayers).AsUniTask() : UniTask.CompletedTask,
+                    toPersist.deletedNodes.Count != 0 ? App.API.DeleteNodesAsync(toPersist.deletedNodes).AsUniTask() : UniTask.CompletedTask,
+                    (toPersist.insertedLayers.Count != 0 ? CreateLayersAsync(toPersist.insertedLayers) : UniTask.CompletedTask)
+                        .ContinueWith(() => toPersist.insertedGroups.Count != 0 || toPersist.insertedNodes.Count != 0 ?
+                            App.API.CreateGraphAsync(new CreateGraphRequest() { Groups = toPersist.insertedGroups, Nodes = toPersist.insertedNodes }).AsUniTask() : UniTask.CompletedTask
                         )
-                        .ContinueWith(() =>
-                            UniTask.WhenAll(
-                                toPersist.updatedLayers.Count != 0
-                                    ? App.API.UpdateLayersAsync(toPersist.updatedLayers).AsUniTask()
-                                    : UniTask.CompletedTask,
-                                toPersist.updatedGroups.Count != 0
-                                    ? App.API.UpdateGroupsAsync(toPersist.updatedGroups).AsUniTask()
-                                    : UniTask.CompletedTask,
-                                toPersist.updatedNodes.Count != 0
-                                    ? App.API.UpdateNodesAsync(toPersist.updatedNodes).AsUniTask()
-                                    : UniTask.CompletedTask
-                            )
-                        )
+                        .ContinueWith(() => UniTask.WhenAll(
+                            toPersist.updatedLayers.Count != 0 ? App.API.UpdateLayersAsync(toPersist.updatedLayers).AsUniTask() : UniTask.CompletedTask,
+                            toPersist.updatedGroups.Count != 0 ? App.API.UpdateGroupsAsync(toPersist.updatedGroups).AsUniTask() : UniTask.CompletedTask,
+                            toPersist.updatedNodes.Count != 0 ? App.API.UpdateNodesAsync(toPersist.updatedNodes).AsUniTask() : UniTask.CompletedTask
+                        ))
                 );
             }
 
@@ -299,8 +277,8 @@ namespace Outernet.Client.AuthoringTools
             UpdateHasUnsavedChangesIfNecessary();
         }
 
-        private UniTask CreateNodesAsync(List<NodeCreate> nodes) =>
-            UniTask.WhenAll(nodes.Select(x => App.API.CreateNodeAsync(x).AsUniTask()));
+        private UniTask CreateNodesAsync(List<NodeCreate> nodes)
+            => UniTask.WhenAll(nodes.Select(x => App.API.CreateNodeAsync(x).AsUniTask()));
 
         private async UniTask CreateGroupsAsync(List<GroupCreate> groups)
         {
@@ -308,16 +286,17 @@ namespace Outernet.Client.AuthoringTools
                 await App.API.CreateGroupAsync(group).AsUniTask();
         }
 
-        private UniTask CreateLocalizationMapsAsync(List<LocalizationMapCreate> localizationMaps) =>
-            UniTask.WhenAll(localizationMaps.Select(x => App.API.CreateLocalizationMapAsync(x).AsUniTask()));
+        private UniTask CreateLocalizationMapsAsync(List<LocalizationMapCreate> localizationMaps)
+            => UniTask.WhenAll(localizationMaps.Select(x => App.API.CreateLocalizationMapAsync(x).AsUniTask()));
 
-        private UniTask CreateLayersAsync(List<LayerCreate> layers) =>
-            UniTask.WhenAll(layers.Select(x => App.API.CreateLayerAsync(x).AsUniTask()));
+        private UniTask CreateLayersAsync(List<LayerCreate> layers)
+            => UniTask.WhenAll(layers.Select(x => App.API.CreateLayerAsync(x).AsUniTask()));
 
         private void UpdateHasUnsavedChangesIfNecessary()
         {
             bool hasPendingChanges = _hasPendingChanges;
-            if (App.state.authoringTools.hasUnsavedChanges.value != _hasPendingChanges && !_settingHasPendingChanges)
+            if (App.state.authoringTools.hasUnsavedChanges.value != _hasPendingChanges &&
+                !_settingHasPendingChanges)
             {
                 _settingHasPendingChanges = true;
                 App.state.authoringTools.hasUnsavedChanges.ExecuteSetOrDelay(

@@ -26,6 +26,46 @@
   "[jsonc]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "[dockercompose]": {
+    "editor.defaultFormatter": "SashaBusinaro.yaml-compose-sorter",
+    "editor.formatOnSave": true
+  },
+  "yaml-compose-sorter.topLevelKeyOrder": [
+    "version",
+    "name",
+    "x-base-images",
+    "x-base-args",
+    "x-registry-cache",
+    "services",
+    "networks",
+    "volumes",
+    "secrets",
+    "configs"
+  ],
+  "yaml-compose-sorter.serviceKeyOrder": [
+    "profiles",
+    "container_name",
+    "x-image-ref",
+    "image",
+    "build",
+    "depends_on",
+    "user",
+    "restart",
+    "ports",
+    "expose",
+    "volumes",
+    "networks",
+    "devices",
+    "group_add",
+    "gpus",
+    "extra_hosts",
+    "logging",
+    "command",
+    "entrypoint",
+    "healthcheck",
+    "env_file",
+    "environment"
+  ],
   "workbench.iconTheme": "material-icon-theme",
   "material-icon-theme.folders.theme": "classic",
   "editor.formatOnSave": true,

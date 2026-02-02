@@ -38,7 +38,6 @@ members = [
     "placeframe",
     "placeframe-api",
     "placeframe-api-client",
-    "placeframe-infrastructure",
     "placeframe-localizer",
     "placeframe-localizer-client",
     "placeframe-reconstructor",
@@ -83,24 +82,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/38/61/0b9ae6399dd4a58d8c1b1dc5a27d6f2808023d0b5dd3104bb99f45a33ff6/argcomplete-3.6.3.tar.gz", hash = "sha256:62e8ed4fd6a45864acc8235409461b72c9a28ee785a2011cc5eb78318786c89c", size = 73754, upload-time = "2025-10-20T03:33:34.741Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/74/f5/9373290775639cb67a2fce7f629a1c240dce9f12fe927bc32b2736e16dfc/argcomplete-3.6.3-py3-none-any.whl", hash = "sha256:f5007b3a600ccac5d25bbce33089211dfd49eab4a7718da3f10e3082525a92ce", size = 43846, upload-time = "2025-10-20T03:33:33.021Z" },
-]
-
-[[package]]
-name = "arpeggio"
-version = "2.0.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3b/58/ba011f3cf8291804ce80f9d81289ac15f0319a27f9d7e3c124aa5e4981cc/Arpeggio-2.0.3.tar.gz", hash = "sha256:9e85ad35cfc6c938676817c7ae9a1000a7c72a34c71db0c687136c460d12b85e", size = 766566, upload-time = "2025-09-12T12:45:20.594Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/84/4d/53b8186b41842f7a5e971b1d1c28e678364dcf841e4170f5d14d38ac1e2a/Arpeggio-2.0.3-py2.py3-none-any.whl", hash = "sha256:9374d9c531b62018b787635f37fd81c9a6ee69ef2d28c5db3cd18791b1f7db2f", size = 54656, upload-time = "2025-09-12T12:45:17.971Z" },
-]
-
-[[package]]
-name = "attrs"
-version = "25.4.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/6b/5c/685e6633917e101e5dcb62b9dd76946cbb57c26e133bae9e0cd36033c0a9/attrs-25.4.0.tar.gz", hash = "sha256:16d5969b87f0859ef33a48b35d55ac1be6e42ae49d5e853b597db70c35c57e11", size = 934251, upload-time = "2025-10-06T13:54:44.725Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3a/2a/7cc015f5b9f5db42b7d48157e23356022889fc354a2813c15934b7cb5c0e/attrs-25.4.0-py3-none-any.whl", hash = "sha256:adcf7e2a1fb3b36ac48d97835bb6d8ade15b8dcce26aba8bf1d14847b57a3373", size = 67615, upload-time = "2025-10-06T13:54:43.17Z" },
 ]
 
 [[package]]
@@ -594,15 +575,6 @@ wheels = [
 ]
 
 [[package]]
-name = "dill"
-version = "0.4.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/81/e1/56027a71e31b02ddc53c7d65b01e68edf64dea2932122fe7746a516f75d5/dill-0.4.1.tar.gz", hash = "sha256:423092df4182177d4d8ba8290c8a5b640c66ab35ec7da59ccfa00f6fa3eea5fa", size = 187315, upload-time = "2026-01-19T02:36:56.85Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1e/77/dc8c558f7593132cf8fefec57c4f60c83b16941c574ac5f619abb3ae7933/dill-0.4.1-py3-none-any.whl", hash = "sha256:1e1ce33e978ae97fcfcff5638477032b801c46c7c65cf717f95fbc2248f79a9d", size = 120019, upload-time = "2026-01-19T02:36:55.663Z" },
-]
-
-[[package]]
 name = "dirtorch"
 version = "0.0.0"
 source = { editable = "packages/python/neural-networks/third-party/deep-image-retrieval" }
@@ -750,27 +722,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/8d/6e/d73c94d13b6465e9f7cd6231c68abde838bb22408596c05d9059830b7872/greenlet-3.3.1-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:4b065d3284be43728dd280f6f9a13990b56470b81be20375a207cdc814a983f2", size = 1636549, upload-time = "2026-01-23T15:33:48.643Z" },
     { url = "https://files.pythonhosted.org/packages/5e/b3/c9c23a6478b3bcc91f979ce4ca50879e4d0b2bd7b9a53d8ecded719b92e2/greenlet-3.3.1-cp313-cp313-win_amd64.whl", hash = "sha256:27289986f4e5b0edec7b5a91063c109f0276abb09a7e9bdab08437525977c946", size = 227042, upload-time = "2026-01-23T15:33:58.216Z" },
     { url = "https://files.pythonhosted.org/packages/90/e7/824beda656097edee36ab15809fd063447b200cc03a7f6a24c34d520bc88/greenlet-3.3.1-cp313-cp313-win_arm64.whl", hash = "sha256:2f080e028001c5273e0b42690eaf359aeef9cb1389da0f171ea51a5dc3c7608d", size = 226294, upload-time = "2026-01-23T15:30:52.73Z" },
-]
-
-[[package]]
-name = "grpcio"
-version = "1.76.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b6/e0/318c1ce3ae5a17894d5791e87aea147587c9e702f24122cc7a5c8bbaeeb1/grpcio-1.76.0.tar.gz", hash = "sha256:7be78388d6da1a25c0d5ec506523db58b18be22d9c37d8d3a32c08be4987bd73", size = 12785182, upload-time = "2025-10-21T16:23:12.106Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/fc/ed/71467ab770effc9e8cef5f2e7388beb2be26ed642d567697bb103a790c72/grpcio-1.76.0-cp313-cp313-linux_armv7l.whl", hash = "sha256:26ef06c73eb53267c2b319f43e6634c7556ea37672029241a056629af27c10e2", size = 5807716, upload-time = "2025-10-21T16:21:48.475Z" },
-    { url = "https://files.pythonhosted.org/packages/2c/85/c6ed56f9817fab03fa8a111ca91469941fb514e3e3ce6d793cb8f1e1347b/grpcio-1.76.0-cp313-cp313-macosx_11_0_universal2.whl", hash = "sha256:45e0111e73f43f735d70786557dc38141185072d7ff8dc1829d6a77ac1471468", size = 11821522, upload-time = "2025-10-21T16:21:51.142Z" },
-    { url = "https://files.pythonhosted.org/packages/ac/31/2b8a235ab40c39cbc141ef647f8a6eb7b0028f023015a4842933bc0d6831/grpcio-1.76.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:83d57312a58dcfe2a3a0f9d1389b299438909a02db60e2f2ea2ae2d8034909d3", size = 6362558, upload-time = "2025-10-21T16:21:54.213Z" },
-    { url = "https://files.pythonhosted.org/packages/bd/64/9784eab483358e08847498ee56faf8ff6ea8e0a4592568d9f68edc97e9e9/grpcio-1.76.0-cp313-cp313-manylinux2014_i686.manylinux_2_17_i686.whl", hash = "sha256:3e2a27c89eb9ac3d81ec8835e12414d73536c6e620355d65102503064a4ed6eb", size = 7049990, upload-time = "2025-10-21T16:21:56.476Z" },
-    { url = "https://files.pythonhosted.org/packages/2b/94/8c12319a6369434e7a184b987e8e9f3b49a114c489b8315f029e24de4837/grpcio-1.76.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:61f69297cba3950a524f61c7c8ee12e55c486cb5f7db47ff9dcee33da6f0d3ae", size = 6575387, upload-time = "2025-10-21T16:21:59.051Z" },
-    { url = "https://files.pythonhosted.org/packages/15/0f/f12c32b03f731f4a6242f771f63039df182c8b8e2cf8075b245b409259d4/grpcio-1.76.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:6a15c17af8839b6801d554263c546c69c4d7718ad4321e3166175b37eaacca77", size = 7166668, upload-time = "2025-10-21T16:22:02.049Z" },
-    { url = "https://files.pythonhosted.org/packages/ff/2d/3ec9ce0c2b1d92dd59d1c3264aaec9f0f7c817d6e8ac683b97198a36ed5a/grpcio-1.76.0-cp313-cp313-musllinux_1_2_i686.whl", hash = "sha256:25a18e9810fbc7e7f03ec2516addc116a957f8cbb8cbc95ccc80faa072743d03", size = 8124928, upload-time = "2025-10-21T16:22:04.984Z" },
-    { url = "https://files.pythonhosted.org/packages/1a/74/fd3317be5672f4856bcdd1a9e7b5e17554692d3db9a3b273879dc02d657d/grpcio-1.76.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:931091142fd8cc14edccc0845a79248bc155425eee9a98b2db2ea4f00a235a42", size = 7589983, upload-time = "2025-10-21T16:22:07.881Z" },
-    { url = "https://files.pythonhosted.org/packages/45/bb/ca038cf420f405971f19821c8c15bcbc875505f6ffadafe9ffd77871dc4c/grpcio-1.76.0-cp313-cp313-win32.whl", hash = "sha256:5e8571632780e08526f118f74170ad8d50fb0a48c23a746bef2a6ebade3abd6f", size = 3984727, upload-time = "2025-10-21T16:22:10.032Z" },
-    { url = "https://files.pythonhosted.org/packages/41/80/84087dc56437ced7cdd4b13d7875e7439a52a261e3ab4e06488ba6173b0a/grpcio-1.76.0-cp313-cp313-win_amd64.whl", hash = "sha256:f9f7bd5faab55f47231ad8dba7787866b69f5e93bc306e3915606779bbfb4ba8", size = 4702799, upload-time = "2025-10-21T16:22:12.709Z" },
 ]
 
 [[package]]
@@ -1577,19 +1528,6 @@ wheels = [
 ]
 
 [[package]]
-name = "parver"
-version = "0.5"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "arpeggio" },
-    { name = "attrs" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/cc/e5/1c774688a90f0b76e872e30f6f1ba3f5e14056cd0d96a684047d4a986226/parver-0.5.tar.gz", hash = "sha256:b9fde1e6bb9ce9f07e08e9c4bea8d8825c5e78e18a0052d02e02bf9517eb4777", size = 26908, upload-time = "2023-10-03T21:06:54.506Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0f/4c/f98024021bef4d44dce3613feebd702c7ad8883f777ff8488384c59e9774/parver-0.5-py3-none-any.whl", hash = "sha256:2281b187276c8e8e3c15634f62287b2fb6fe0efe3010f739a6bd1e45fa2bf2b2", size = 15172, upload-time = "2023-10-03T21:06:52.796Z" },
-]
-
-[[package]]
 name = "pathspec"
 version = "1.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1629,15 +1567,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/86/77/eacc62356b4cf81abe99ff9dbc7402750044aed02cfd6a503f7c6fc11f3e/pillow-12.1.0-cp313-cp313t-win32.whl", hash = "sha256:7315f9137087c4e0ee73a761b163fc9aa3b19f5f606a7fc08d83fd3e4379af65", size = 6336445, upload-time = "2026-01-02T09:12:14.775Z" },
     { url = "https://files.pythonhosted.org/packages/e7/3c/57d81d0b74d218706dafccb87a87ea44262c43eef98eb3b164fd000e0491/pillow-12.1.0-cp313-cp313t-win_amd64.whl", hash = "sha256:0ddedfaa8b5f0b4ffbc2fa87b556dc59f6bb4ecb14a53b33f9189713ae8053c0", size = 7045354, upload-time = "2026-01-02T09:12:16.599Z" },
     { url = "https://files.pythonhosted.org/packages/ac/82/8b9b97bba2e3576a340f93b044a3a3a09841170ab4c1eb0d5c93469fd32f/pillow-12.1.0-cp313-cp313t-win_arm64.whl", hash = "sha256:80941e6d573197a0c28f394753de529bb436b1ca990ed6e765cf42426abc39f8", size = 2454547, upload-time = "2026-01-02T09:12:18.704Z" },
-]
-
-[[package]]
-name = "pip"
-version = "25.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fe/6e/74a3f0179a4a73a53d66ce57fdb4de0080a8baa1de0063de206d6167acc2/pip-25.3.tar.gz", hash = "sha256:8d0538dbbd7babbd207f261ed969c65de439f6bc9e5dbd3b3b9a77f25d95f343", size = 1803014, upload-time = "2025-10-25T00:55:41.394Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/44/3c/d717024885424591d5376220b5e836c2d5293ce2011523c9de23ff7bf068/pip-25.3-py3-none-any.whl", hash = "sha256:9655943313a94722b7774661c21049070f6bbb0a1516bf02f7c8d5d9201514cd", size = 1778622, upload-time = "2025-10-25T00:55:39.247Z" },
 ]
 
 [[package]]
@@ -1741,47 +1670,6 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2" },
     { name = "python-dateutil", specifier = ">=2.8.2" },
     { name = "typing-extensions", specifier = ">=4.7.1" },
-]
-
-[[package]]
-name = "placeframe-infrastructure"
-version = "0.1.0"
-source = { virtual = "infrastructure" }
-dependencies = [
-    { name = "boto3" },
-    { name = "pulumi" },
-    { name = "pulumi-aws" },
-    { name = "pulumi-awsx" },
-    { name = "pulumi-command" },
-    { name = "pulumi-docker" },
-    { name = "pulumi-github" },
-    { name = "pulumi-postgresql" },
-    { name = "pydantic" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "boto3-stubs", extra = ["batch", "ecs", "lambda", "s3", "secretsmanager"] },
-    { name = "botocore-stubs" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "boto3", specifier = ">=1.39.10" },
-    { name = "pulumi", specifier = ">=3.183.0" },
-    { name = "pulumi-aws", specifier = ">=7.3.1" },
-    { name = "pulumi-awsx", specifier = ">=3.0.0" },
-    { name = "pulumi-command", specifier = ">=1.1.0" },
-    { name = "pulumi-docker", specifier = ">=4.8.0" },
-    { name = "pulumi-github", specifier = ">=6.7.3" },
-    { name = "pulumi-postgresql", specifier = ">=3.15.2" },
-    { name = "pydantic", specifier = ">=2.11.7" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "boto3-stubs", extras = ["batch", "ecs", "secretsmanager", "s3", "lambda"], specifier = ">=1.40.29" },
-    { name = "botocore-stubs", specifier = ">=1.38.46" },
 ]
 
 [[package]]
@@ -1946,20 +1834,6 @@ wheels = [
 ]
 
 [[package]]
-name = "protobuf"
-version = "5.29.5"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/43/29/d09e70352e4e88c9c7a198d5645d7277811448d76c23b00345670f7c8a38/protobuf-5.29.5.tar.gz", hash = "sha256:bc1463bafd4b0929216c35f437a8e28731a2b7fe3d98bb77a600efced5a15c84", size = 425226, upload-time = "2025-05-28T23:51:59.82Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5f/11/6e40e9fc5bba02988a214c07cf324595789ca7820160bfd1f8be96e48539/protobuf-5.29.5-cp310-abi3-win32.whl", hash = "sha256:3f1c6468a2cfd102ff4703976138844f78ebd1fb45f49011afc5139e9e283079", size = 422963, upload-time = "2025-05-28T23:51:41.204Z" },
-    { url = "https://files.pythonhosted.org/packages/81/7f/73cefb093e1a2a7c3ffd839e6f9fcafb7a427d300c7f8aef9c64405d8ac6/protobuf-5.29.5-cp310-abi3-win_amd64.whl", hash = "sha256:3f76e3a3675b4a4d867b52e4a5f5b78a2ef9565549d4037e06cf7b0942b1d3fc", size = 434818, upload-time = "2025-05-28T23:51:44.297Z" },
-    { url = "https://files.pythonhosted.org/packages/dd/73/10e1661c21f139f2c6ad9b23040ff36fee624310dc28fba20d33fdae124c/protobuf-5.29.5-cp38-abi3-macosx_10_9_universal2.whl", hash = "sha256:e38c5add5a311f2a6eb0340716ef9b039c1dfa428b28f25a7838ac329204a671", size = 418091, upload-time = "2025-05-28T23:51:45.907Z" },
-    { url = "https://files.pythonhosted.org/packages/6c/04/98f6f8cf5b07ab1294c13f34b4e69b3722bb609c5b701d6c169828f9f8aa/protobuf-5.29.5-cp38-abi3-manylinux2014_aarch64.whl", hash = "sha256:fa18533a299d7ab6c55a238bf8629311439995f2e7eca5caaff08663606e9015", size = 319824, upload-time = "2025-05-28T23:51:47.545Z" },
-    { url = "https://files.pythonhosted.org/packages/85/e4/07c80521879c2d15f321465ac24c70efe2381378c00bf5e56a0f4fbac8cd/protobuf-5.29.5-cp38-abi3-manylinux2014_x86_64.whl", hash = "sha256:63848923da3325e1bf7e9003d680ce6e14b07e55d0473253a690c3a8b8fd6e61", size = 319942, upload-time = "2025-05-28T23:51:49.11Z" },
-    { url = "https://files.pythonhosted.org/packages/7e/cc/7e77861000a0691aeea8f4566e5d3aa716f2b1dece4a24439437e41d3d25/protobuf-5.29.5-py3-none-any.whl", hash = "sha256:6cf42630262c59b2d8de33954443d94b746c952b01434fc58a417fdbd2e84bd5", size = 172823, upload-time = "2025-05-28T23:51:58.157Z" },
-]
-
-[[package]]
 name = "psycopg"
 version = "3.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1992,124 +1866,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/2a/0d45e4f4da2bd78c3237ffa03475ef3751f69a81919c54a6e610eb1a7c96/psycopg_binary-3.3.2-cp313-cp313-musllinux_1_2_riscv64.whl", hash = "sha256:e22bf6b54df994aff37ab52695d635f1ef73155e781eee1f5fa75bc08b58c8da", size = 3910544, upload-time = "2025-12-06T17:34:08.251Z" },
     { url = "https://files.pythonhosted.org/packages/3a/62/a8e0f092f4dbef9a94b032fb71e214cf0a375010692fbe7493a766339e47/psycopg_binary-3.3.2-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:8db9034cde3bcdafc66980f0130813f5c5d19e74b3f2a19fb3cfbc25ad113121", size = 4220070, upload-time = "2025-12-06T17:34:11.392Z" },
     { url = "https://files.pythonhosted.org/packages/09/e6/5fc8d8aff8afa114bb4a94a0341b9309311e8bf3ab32d816032f8b984d4e/psycopg_binary-3.3.2-cp313-cp313-win_amd64.whl", hash = "sha256:df65174c7cf6b05ea273ce955927d3270b3a6e27b0b12762b009ce6082b8d3fc", size = 3540922, upload-time = "2025-12-06T17:34:14.88Z" },
-]
-
-[[package]]
-name = "pulumi"
-version = "3.218.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "debugpy" },
-    { name = "dill" },
-    { name = "grpcio" },
-    { name = "pip" },
-    { name = "protobuf" },
-    { name = "pyyaml" },
-    { name = "semver" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/4a/ed/54f724e2ed465c7caaa2e32552a8d3ac65f719c7e7d66097e79d7cbfb4b4/pulumi-3.218.0-py3-none-any.whl", hash = "sha256:eaf14bffed85995a2754760b1da36999ed43b1062edbab11541d90fc6743a86c", size = 388429, upload-time = "2026-01-29T16:07:27.411Z" },
-]
-
-[[package]]
-name = "pulumi-aws"
-version = "7.16.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "parver" },
-    { name = "pulumi" },
-    { name = "semver" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/09/c1/2fec860deea1e8d393907167556ec20bfce10e5430f55c9f1bbc6e8ea43a/pulumi_aws-7.16.0.tar.gz", hash = "sha256:dd80a11865c1a9146d41633a45f5ef5c6af544c19eb573f785472ae630338c09", size = 8617783, upload-time = "2026-01-09T19:28:26.681Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/72/44/75bbdbca7b86d6f8c9e1b950bf5e906ca0b72f67eca15d9e2cc3a923ff3c/pulumi_aws-7.16.0-py3-none-any.whl", hash = "sha256:69944c4211c990be32a825d99139cfba7186b5ca27269f307dc24a7dd840ad5f", size = 11629591, upload-time = "2026-01-09T19:28:23.923Z" },
-]
-
-[[package]]
-name = "pulumi-awsx"
-version = "3.1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "parver" },
-    { name = "pulumi" },
-    { name = "pulumi-aws" },
-    { name = "pulumi-docker" },
-    { name = "pulumi-docker-build" },
-    { name = "semver" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/1c/1425dee6ee1dafae55e6b77f79bcf0d404f21202a7fca3334a7a916cbba6/pulumi_awsx-3.1.0.tar.gz", hash = "sha256:7fb5042a2f1d4f291a596e8d4928cea914f6d43429b2588180c1d63e41b217d1", size = 136956, upload-time = "2025-11-10T17:12:01.772Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/29/a0/1a6fe823991b8aba55b384e80d65e761f39199f2d4a0b9b6f223728b82d6/pulumi_awsx-3.1.0-py3-none-any.whl", hash = "sha256:56138f805d982fa408cdd302052223533efbab9aa03c76ad5884792c3a8f07b9", size = 153805, upload-time = "2025-11-10T17:12:00.353Z" },
-]
-
-[[package]]
-name = "pulumi-command"
-version = "1.1.3"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "parver" },
-    { name = "pulumi" },
-    { name = "semver" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/05/b3/195cac7358abfe93d56f3e2a8d35a73747fc3d66fdfa1193a564fd700603/pulumi_command-1.1.3.tar.gz", hash = "sha256:6cd18d0270cdcb9fd4db66fca9403c3d2855483959730332dd15f97bc088670f", size = 33054, upload-time = "2025-10-01T17:17:43.044Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/18/5c/fad8af4c8355c8893ca075c94c99a4119d201737e63491d1a7553d55054a/pulumi_command-1.1.3-py3-none-any.whl", hash = "sha256:0708a009079470dfe76fed401ba00bc3c8bfa355ebad0e1a3a70c0ccce20e209", size = 36880, upload-time = "2025-10-01T17:17:40.69Z" },
-]
-
-[[package]]
-name = "pulumi-docker"
-version = "4.11.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "parver" },
-    { name = "pulumi" },
-    { name = "semver" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/7d/00/a3f80e12ce4ab4dece01195e631a854f8910b533787b71d4ecd7669ae70f/pulumi_docker-4.11.0.tar.gz", hash = "sha256:b18fc208531ce2a64d2a898f69c11ff2b792078abde1d9ac3a4625c564467a50", size = 115726, upload-time = "2025-12-24T13:12:14.62Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/de/d7/3c3cd6b6ec53d1b6914b83ed461da8e86e82208675da43e8cd0a8e45a2c7/pulumi_docker-4.11.0-py3-none-any.whl", hash = "sha256:b421fdee90257ffd65a091b65638d00b8b6827887ccbb62772148d0d563d13d5", size = 137300, upload-time = "2025-12-24T13:12:12.873Z" },
-]
-
-[[package]]
-name = "pulumi-docker-build"
-version = "0.0.15"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "parver" },
-    { name = "pulumi" },
-    { name = "semver" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/76/31/9b9e9fe7c4fea6f0f5fcfa37110888b9c772cfb15ef1740ba6338a936378/pulumi_docker_build-0.0.15.tar.gz", hash = "sha256:a6301d9c1bfc749a3bce37280ef60c3f9a3dc767f89b62e99edf24ec46de0a6e", size = 38723, upload-time = "2025-10-17T11:03:54.948Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/77/2a/cbbd2bf07f2082e6187d52c463166a522f1960aaf7d34bf59a57e7a51327/pulumi_docker_build-0.0.15-py3-none-any.whl", hash = "sha256:6121e09e6ccdbc8c60695631e7f3d7da22a6188a9ccba16ec3b37dc449d6c45e", size = 43384, upload-time = "2025-10-17T11:03:52.891Z" },
-]
-
-[[package]]
-name = "pulumi-github"
-version = "6.11.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "parver" },
-    { name = "pulumi" },
-    { name = "semver" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/4d/20/031c29a7db286fafe35198582548c0cecf23264295194500af33b6ed587a/pulumi_github-6.11.0.tar.gz", hash = "sha256:58f3538b27f28d95046ffdb3ee7915265f7ce15c8960b7c6b3ce10eb1ccdf591", size = 236046, upload-time = "2026-01-21T03:58:13.219Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3d/f9/b24a76b125816e1108a59bd9174415d4e49d08569beaa48866ae449f9f38/pulumi_github-6.11.0-py3-none-any.whl", hash = "sha256:dfcb7e11681d0c3a22b652af3ba7ccdc8eff0a6dbd7adc5f6c82d956a6142883", size = 430485, upload-time = "2026-01-21T03:58:12.05Z" },
-]
-
-[[package]]
-name = "pulumi-postgresql"
-version = "3.16.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "parver" },
-    { name = "pulumi" },
-    { name = "semver" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/e7/55/e13e5be209eaa25c10389b33f293e8d822c67fda445476f388de954a083b/pulumi_postgresql-3.16.1.tar.gz", hash = "sha256:2926580f09b703da6f90c4d358820b0785a8d815bd2ee86d8ab3f48fb9724ef1", size = 48341, upload-time = "2025-11-13T22:34:31.987Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2e/e7/516c74617ed5fa3c3454565426b1ff2bf3fce6b3335e5dfa72759b9dd86d/pulumi_postgresql-3.16.1-py3-none-any.whl", hash = "sha256:1886d0ee72d1a1965eefb6dd35aad17f898f9a70546d221817c38521c1c86403", size = 74190, upload-time = "2025-11-13T22:34:30.271Z" },
 ]
 
 [[package]]
@@ -2590,15 +2346,6 @@ requires-dist = [
     { name = "pyhumps", specifier = ">=3.8.0" },
     { name = "sqlalchemy", specifier = ">=2.0.45" },
     { name = "typer", specifier = ">=0.17.4" },
-]
-
-[[package]]
-name = "semver"
-version = "3.0.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/72/d1/d3159231aec234a59dd7d601e9dd9fe96f3afff15efd33c1070019b26132/semver-3.0.4.tar.gz", hash = "sha256:afc7d8c584a5ed0a11033af086e8af226a9c0b206f313e0301f8dd7b6b589602", size = 269730, upload-time = "2025-01-24T13:19:27.617Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a6/24/4d91e05817e92e3a61c8a21e08fd0f390f5301f1c448b137c57c4bc6e543/semver-3.0.4-py3-none-any.whl", hash = "sha256:9c824d87ba7f7ab4a1890799cec8596f15c1241cb473404ea1cb0c55e4b04746", size = 17912, upload-time = "2025-01-24T13:19:24.949Z" },
 ]
 
 [[package]]

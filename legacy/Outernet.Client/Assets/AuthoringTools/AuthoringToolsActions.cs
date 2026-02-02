@@ -1,9 +1,12 @@
 using System;
 using System.Linq;
+
 using FofX.Stateful;
-using PlaceframeApiClient.Model;
-using SimpleJSON;
+
 using Unity.Mathematics;
+
+using SimpleJSON;
+using PlaceframeApiClient.Model;
 
 namespace Outernet.Client.AuthoringTools
 {
@@ -77,9 +80,11 @@ namespace Outernet.Client.AuthoringTools
 
             foreach (var toUpdate in newMapsByID.Select(x => x.Value))
             {
-                new AddOrUpdateNodeGroupAction(id: toUpdate.Id, name: toUpdate.Name, parent: toUpdate.ParentId).Execute(
-                    target
-                );
+                new AddOrUpdateNodeGroupAction(
+                    id: toUpdate.Id,
+                    name: toUpdate.Name,
+                    parent: toUpdate.ParentId
+                ).Execute(target);
             }
         }
     }
@@ -190,7 +195,6 @@ namespace Outernet.Client.AuthoringTools
     public class SetLastLocationAction : ObservableNodeAction<ClientState>
     {
         private double2? _lastLocation;
-
         public SetLastLocationAction(double2? lastLocation)
         {
             _lastLocation = lastLocation;

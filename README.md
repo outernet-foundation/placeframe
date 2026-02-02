@@ -1,3 +1,27 @@
+# Placeframe
+
+Placeframe is tool for connecting physical places to shared XR reference frames, using any XR device that provides developer access to a color camera. It is free, open source, and designed to be easily self-hosted.
+
+## Why This Tool Exists
+
+**Placeframe** solves the same sort of problem as products like:
+
+- Niantic Spatial's **Localize** Visual Positioning System (formerly **Lightship VPS**)
+- Microsoft's **Azure Spatial Anchors** (now defunct)
+- Apples's **Shared World Anchors** (visionOS) or **Collaborative Sessions** (iOS)
+- Google's ARCore **Cloud Anchors**
+- Snap's **Connected Lenses**
+
+However, all of these comparable products restrict developer freedom in crippling ways.
+
+Most of these solutions are incompatible with each other (Apple's own two products aren't even compatible with each other, at time of writing). Most of them require that users stream their camera feeds to private servers, sometimes with the express intention of harvesting monetizable data from those camera feeds. Most of them make it expensive or impossible to maintain complete data sovereignty while using them. One of them (Azure Spatial Anchors) vendor-locked whole companies into their ecosystem and then sunsetted the entire product, leaving those companies stranded without recourse.
+
+And none of them let you get your hands dirty. If you want to expand support to a novel device, or if you hit a weird edge case limitation that only matters to your application, all you can do is complain and cross your fingers.
+
+The XR industry, and particularly the AR industry, is already a risky one. And most interesting AR applications fundamentally require the ability to establish shared reference frames between AR devices, a requirement that has historically had nothing but risky, restrictive solutions. The lack of a permissive alternative has immeasurably hampered the growth of the AR industry.
+
+Placeframe fixes that.
+
 # Acknowledgements
 
 Built in association with [The Outernet](https://outernet.nyc), and made possible by a generous donation from The Robert Halper Foundation.
@@ -6,175 +30,42 @@ Powered by [epjecha](https://github.com/epjecha)’s awesome [Stateful](https://
 
 Inspired by (and heavily borrowing from) the extremely useful [Hierarchical-Localization](https://github.com/cvg/Hierarchical-Localization) repo.
 
-# About
+# Quick Start
 
-**Placeframe** is an MIT-licensed fullstack solution for creating, serving, and accurately localizing against
-**visual localization maps** of real-world environments.
+## Requirements
 
-Localization is the process used by Augmented and Virtual Reality (AR/VR)
-systems to determine their precise position and orientation in space, with respect to a "map" that the system has
-of its environment. Using Placeframe, arbitrary AR applications can create and share these maps,
-and therefore agree upon
-a shared reference frame, such that a piece of AR content that appears in a certain place in the real world for one user,
-appears there for every user.
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)
+- [Docker Engine](https://docs.docker.com/engine/install/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+- [NVIDIA CUDA](https://developer.nvidia.com/cuda-downloads) (experimental [ROCm](https://rocm.docs.amd.com/) support also available)
+- An free [ngrok](https://ngrok.com/) account with:
+  - An auth token
+  - A static domain (your "dev domain")
 
-Placeframe targets the same class of problems as products like Niantic’s visual positioning system (VPS), but is fully open-source, and was built from the ground up to be self-hostable.
+## Backend
 
-## Notable features:
-
-- **Unity localization package**
-- **Android Mobile application**
-  - Data capture client for capturing map construction inputs
-  - Basic map management functionality
-  - Reference implementation for using the Unity localization package
-- **Learned local and global visual features**
-  - [Superpoint/Lightglue](https://github.com/cvg/LightGlue) for feature point extraction and matching
-  - [Deep Image Retrieval (DIR)](https://github.com/naver/deep-image-retrieval) for global descriptor extraction
-  - FAISS OPQ for compressing feature point descriptors
-- **Map construction based on [COLMAP 3.13](https://github.com/colmap/colmap/releases/tag/3.13.0)**
-  - Rig-aware geometric verification
-  - Support for deterministic map reconstructions
-- **Typed REST API clients**
-  - Generated clients for Python and C# using openapi-generator-cli
-- **Infrastructure and security**
-  - PostgreSQL with row-level-security (RLS)
-  - Reference OAuth2 implemenation using Keycloak
-
-## Work-in-progress features:
-
-- Localization support for Magic Leap 2
-- Zed data capture app for large environments
-- Tooling for georeferencing maps by visually registering them against Cesium tilesets
-- AWS IaaC using Pulumi
-- CI/CD using Github actions
-
-## Possible future features:
-
-- On-device localization (e.g. running an Onnx module using Unity Sentis)
-- AnyLoc-VLAD-DINOv2 instead of DIR for image retrieval
-- Image segmentation to sanitize reconstruction inputs
-- Other localization clients (Unreal, Godot, WebXR)
-
-# Building and deploying the server
-
-### Prerequisites
-
-- CUDA recommended
-- [Docker Engine](https://docs.docker.com/engine/)
-- [ngrok](https://ngrok.com/) (optional)
-  - Simple way to get a static domain name
-  - Sign up for a free account and follow their instructions to start a tunnel on port 58080 (or whatever your GATEWAY_PORT is in you .env) from
-    your machine to your ngrok "dev domain"
-
-### Create env file
-
-Copy `./.env.sample` to `.env` and change PUBLIC_URL in that file to your domain url (e.g. from ngrok).
-
-### Build images and serve
+To bring up the backend, first copy `.env.sample` to `.env` and configure `PUBLIC_DOMAIN` and `NGROK_AUTHTOKEN` in that file, for your specific ngrok account. Then run:
 
 ```
-docker compose --profile ephemeral build
-docker compose up -d
+uv run up
 ```
 
-### Verify
+You can pass `--attached` to this command in order to stream interlaced server container logs, but this is very difficult to read. The VS Code extension [ms-azuretools.vscode-docker](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-docker) is a better alternative for easily viewing individual container logs.
 
-Visiting your public url should now take you to a Swagger UI for the API.
-
-- In order to use the API, including via the Swagger UI, you will need to authorize yourself.
-  - In the Swagger UI, click the "Authorize" button and then click the next "Authorize" button for the option called "oauth2 (OAuth2, authorizationCode with PKCE)"
-  - This repo's docker-compose uses a built in Keycloak container for OAuth2, with a minimal default realm configuration defined at `./docker/keycloak/placeframe.json`
-  - This realm define two static users that you can login as; these two users are treated as separate tenants, enforced by Postgres RLS, and cannot see each others data via the API
-    - Default username 1: user
-    - Default password 1: password
-    - Default username 2: user2
-    - Default password 2: password
-- You can inspect the database via Cloudbeaver by visiting http://localhost:8978
-  - Admin username is found in your `.env` file
-  - Default username: cbadmin (DO NOT change this to just 'admin', or Cloudbeaver will break. Any other username besides 'admin' is fine.)
-  - Default password: password
-- You can inspect the object store via the Minio console by visiting http://localhost:9001
-  - Admin username is found in your `.env` file
-  - Default username: user
-  - Defualt password: password
-
-# Development commands for the server
-
-### Sync python packages
-
-Ensure you have [uv](https://docs.astral.sh/uv/) installed, then run this command. Once synced, use the excellent [basedpyright](https://marketplace.visualstudio.com/items?itemName=detachhead.basedpyright) vscode extension to get static analysis in the vscode editor.
+To bring down the backend, run:
 
 ```
-uv sync --all-packages
+uv run down
 ```
 
-### (Re)generate lock files
+While the server is running, you can visit you ngrok static domain in a web browser to browse the OpenAPI schema and test requests.
 
-This is a monorepo using a uv workspace, but the dockerfiles that are used to build images all rely on per-project lock files, and some dockerfiles also rely on per-dependency-group lock files (in order to separate heavy image build steps into their own layers, such as pre-caching neural network weights into the image's torch cache).
+The backend provides a reference [Keycloak](https://www.keycloak.org/) implementation for authentication and authorization, so you will need to authorize yourself in order to test requests. By default, you can use the username "user", and the password "password". This is configured in the file `docker\keycloak\realm-export\placeframe.json`
 
-If you change any dependencies for any projects, use this command to regenerate all lock files.
+## Frontend
 
-```
-uv run generate-lock-files
-```
+Placeframe has a complete Unity reference application for Android Mobile in `apps\AndroidMobile`, which can be used to capture data for an environment, submit it to the backend for map construction, and then localize against that constructed map, with a point cloud visualization that conveys the localized alignment between the real world and the localization map. **TODO finish**
 
-### Migrate the database
+Placeframe also has a tool build in Unity for "registering" maps against Cesium Tilesets in `apps\MapRegistrationTool`, by visually aligning a maps point cloud visualization with Open Street Map (OSM) building geometry, or Google Photorealistic Tiles. This can be use to georeference localization maps, allowing Placeframe applications to anchor AR content using GPS coordinates. **TODO finish**
 
-The docker-compose comes with a database migration container that works well for the initial database migration, so if you want to migrate a database schema change and are ok with fully resetting your local deployment, you can migrate the schema by just tearing down and redeploying the docker-compose.
-
-**_Warning: This will delete your entire server deployment, including all maps you have constructed._**
-
-```
-docker compose down -v
-docker compose up -d
-```
-
-If instead you want to migrate your existing database without resetting everything, you can do so by installing [pg-schema-diff](https://github.com/stripe/pg-schema-diff) locally and running the below command. This will introspect your existing database to determine its current schema, compare that against the schema defined by SQL DDL files in the `./database` folder, generate a SQL migration, and then apply that migration.
-
-```
-uv run migrate-database
-```
-
-If the generated migration has hazards, such as dropping data from the database or updating authorization, you can also pass a list of allowed hazards to the command.
-
-**_Warning: Hazards are called hazards for a reason. Make sure you know what you're doing._**
-
-```
-uv run migrate-database --allow-hazards DELETES_DATA,AUTHZ_UPDATE
-```
-
-### (Re)generate datamodels
-
-If you migrate the database schema using either of the above methods, use this command to regenerate python datamodels from the schema. This command directly introspects a locally running database, so the database container must be running locally for this command to work (such as via the docker earlier `docker compose up -d` command)
-
-```
-uv run generate-datamodels
-```
-
-### (Re)generate clients
-
-If you change the signature any of the APIs, run this command to regenerate the typed API clients.
-
-NOTE: This command uses [openapi-generator-cli](https://github.com/OpenAPITools/openapi-generator-cli), which requires that Java to be installed on your system and available on your PATH.
-
-```
-uv run generate-clients \
-  --config openapi-projects.json \
-  [--no-cache (optional)]
-```
-
-# Building the Android Mobile app
-
-- Install Unity 6000.0.56f1 with Android Build Support
-- Open `capture-app/android_mobile` in Unity
-- Configure API url
-  - Open `Assets/Scenes/Main.unity`
-  - Open **App** object in scene hierarchy
-  - Fill in "Placeframe Base URL" in the inspector to match your public URL from earlier
-  - (Optional) Tick the "Login Automatically" checkbox and fill in the Username and Passowrd (see **Verify** section above for where those credentials come from)
-- Switch platorm to Android Mobile
-- Build `Assets/Scenes/Main.unity`
-
-# Building, installing, and running the Zed capture app
-
-TODO
+Finally, Placeframe has a Unity package (currently supporting ARFoundation) for communicating between an Unity app and a Placeframe backend deployment. It can be included in your own project by using a git link. **TODO finish**

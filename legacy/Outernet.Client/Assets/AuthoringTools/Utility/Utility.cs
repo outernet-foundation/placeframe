@@ -1,49 +1,52 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using Cysharp.Threading.Tasks;
-using FofX.Stateful;
-using Outernet.Client.Location;
-using Outernet.Shared;
-using Placeframe.Core;
-using PlaceframeApiClient.Model;
+
 using Unity.Mathematics;
 using UnityEngine;
+
+using Outernet.Client.Location;
+
+using FofX.Stateful;
+
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using Color = UnityEngine.Color;
-using Quaternion = UnityEngine.Quaternion;
+using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
+using PlaceframeApiClient.Model;
+using Placeframe.Core;
+
 using Vector3 = UnityEngine.Vector3;
+using Quaternion = UnityEngine.Quaternion;
+using Color = UnityEngine.Color;
+using Outernet.Shared;
 
 namespace Outernet.Client.AuthoringTools
 {
     public static class Utility
     {
-        public static void DisplayDialog(Component dialog) => DisplayDialog(dialog.gameObject);
+        public static void DisplayDialog(Component dialog)
+            => DisplayDialog(dialog.gameObject);
 
         public static void DisplayDialog(GameObject dialog)
         {
             var scrim = UnityEngine.Object.Instantiate(AuthoringToolsPrefabs.Scrim);
             scrim.transform.SetAsLastSibling();
             dialog.transform.SetParent(scrim.transform, false);
-            dialog
-                .GetMonoBehaviourEventHelper()
-                .onDestroyed.AddListener(_ => UnityEngine.Object.Destroy(scrim.gameObject));
+            dialog.GetMonoBehaviourEventHelper().onDestroyed.AddListener(_ => UnityEngine.Object.Destroy(scrim.gameObject));
         }
 
-        public static MonoBehaviourEventHelper GetMonoBehaviourEventHelper(this Component component) =>
-            component.gameObject.GetMonoBehaviourEventHelper();
+        public static MonoBehaviourEventHelper GetMonoBehaviourEventHelper(this Component component)
+            => component.gameObject.GetMonoBehaviourEventHelper();
 
-        public static MonoBehaviourEventHelper GetMonoBehaviourEventHelper(this GameObject gameObject) =>
-            gameObject.GetOrAddComponent<MonoBehaviourEventHelper>();
+        public static MonoBehaviourEventHelper GetMonoBehaviourEventHelper(this GameObject gameObject)
+            => gameObject.GetOrAddComponent<MonoBehaviourEventHelper>();
 
-        public static T GetOrAddComponent<T>(this GameObject gameObject)
-            where T : Component =>
-            gameObject.TryGetComponent<T>(out var result) ? result : gameObject.AddComponent<T>();
+        public static T GetOrAddComponent<T>(this GameObject gameObject) where T : Component
+            => gameObject.TryGetComponent<T>(out var result) ? result : gameObject.AddComponent<T>();
 
-        public static Component GetOrAddComponent(this GameObject gameObject, Type type) =>
-            gameObject.TryGetComponent(type, out var result) ? result : gameObject.AddComponent(type);
+        public static Component GetOrAddComponent(this GameObject gameObject, Type type)
+            => gameObject.TryGetComponent(type, out var result) ? result : gameObject.AddComponent(type);
 
         public static void CalcSelectedGroupTransform(out Vector3 position, out Quaternion rotation)
         {
@@ -78,12 +81,7 @@ namespace Outernet.Client.AuthoringTools
                 list[i].value = array[i];
         }
 
-        public static void SetFrom<TKey, TValue, TSource>(
-            this ObservableDictionary<TKey, TValue> dictionary,
-            TSource[] values,
-            Func<TSource, TKey> keySelector,
-            Action<TSource, TValue> copyTo
-        )
+        public static void SetFrom<TKey, TValue, TSource>(this ObservableDictionary<TKey, TValue> dictionary, TSource[] values, Func<TSource, TKey> keySelector, Action<TSource, TValue> copyTo)
             where TValue : IObservableNode, new()
         {
             var toRemove = dictionary.keys.Except(values.Select(keySelector)).ToArray();
@@ -100,11 +98,10 @@ namespace Outernet.Client.AuthoringTools
                 copyTo(value, dictionary[keySelector(value)]);
         }
 
-        public static bool HasAttribute<T>(this IObservableNode node)
-            where T : Attribute => node.TryGetAttribute(out T _);
+        public static bool HasAttribute<T>(this IObservableNode node) where T : Attribute
+            => node.TryGetAttribute(out T _);
 
-        public static bool TryGetAttribute<T>(this IObservableNode node, out T attribute)
-            where T : Attribute
+        public static bool TryGetAttribute<T>(this IObservableNode node, out T attribute) where T : Attribute
         {
             foreach (var att in node.attributes)
             {
@@ -119,11 +116,7 @@ namespace Outernet.Client.AuthoringTools
             return false;
         }
 
-        public static void AddListener(
-            this UnityEngine.EventSystems.EventTrigger eventTrigger,
-            EventTriggerType id,
-            UnityAction<BaseEventData> callback
-        )
+        public static void AddListener(this UnityEngine.EventSystems.EventTrigger eventTrigger, EventTriggerType id, UnityAction<BaseEventData> callback)
         {
             var entry = new UnityEngine.EventSystems.EventTrigger.Entry();
             entry.eventID = id;
@@ -133,9 +126,9 @@ namespace Outernet.Client.AuthoringTools
 
         public static bool KeyboardIsFocused()
         {
-            return EventSystem.current.currentSelectedGameObject != null
-                && EventSystem.current.currentSelectedGameObject.TryGetComponent(out TMPro.TMP_InputField inputField)
-                && inputField.isFocused;
+            return EventSystem.current.currentSelectedGameObject != null &&
+                EventSystem.current.currentSelectedGameObject.TryGetComponent(out TMPro.TMP_InputField inputField) &&
+                inputField.isFocused;
         }
 
         public static Key GetPlatformCommandKey()
@@ -153,7 +146,8 @@ namespace Outernet.Client.AuthoringTools
             }
         }
 
-        public static Color WithAlpha(this Color color, float alpha) => new Color(color.r, color.g, color.b, alpha);
+        public static Color WithAlpha(this Color color, float alpha)
+            => new Color(color.r, color.g, color.b, alpha);
 
         public static T GetPreviousValue<T>(this ObservablePrimitive<T> primitive, List<NodeChangeData> changes)
         {
@@ -173,14 +167,21 @@ namespace Outernet.Client.AuthoringTools
         {
             var group = App.state.authoringTools.nodeGroups[sceneObjectID];
 
-            return new GroupBatchCreate(group.id, group.name.value) { ParentId = group.parentID.value };
+            return new GroupBatchCreate(group.id, group.name.value)
+            {
+                ParentId = group.parentID.value
+            };
         }
 
         public static GroupBatchUpdate ToGroupUpdate(Guid sceneObjectID)
         {
             var group = App.state.authoringTools.nodeGroups[sceneObjectID];
 
-            return new GroupBatchUpdate(id: group.id) { Name = group.name.value, ParentId = group.parentID.value };
+            return new GroupBatchUpdate(id: group.id)
+            {
+                Name = group.name.value,
+                ParentId = group.parentID.value
+            };
         }
 
         public static LocalizationMapCreate ToMapCreate(Guid sceneObjectID)
@@ -222,7 +223,7 @@ namespace Outernet.Client.AuthoringTools
                 RotationX = transform.rotation.value.x,
                 RotationY = transform.rotation.value.y,
                 RotationZ = transform.rotation.value.z,
-                RotationW = transform.rotation.value.w,
+                RotationW = transform.rotation.value.w
             };
         }
 
@@ -252,7 +253,7 @@ namespace Outernet.Client.AuthoringTools
             {
                 Active = true,
                 LayerId = node.layer.value,
-                ParentId = node.parentID.value,
+                ParentId = node.parentID.value
             };
         }
 
@@ -280,7 +281,7 @@ namespace Outernet.Client.AuthoringTools
                 LabelWidth = node.labelWidth.value,
                 LabelHeight = node.labelHeight.value,
                 LayerId = node.layer.value,
-                ParentId = node.parentID.value,
+                ParentId = node.parentID.value
             };
         }
 
@@ -293,7 +294,10 @@ namespace Outernet.Client.AuthoringTools
         public static LayerBatchUpdate ToLayerUpdate(Guid sceneObjectID)
         {
             var layer = App.state.layers[sceneObjectID];
-            return new LayerBatchUpdate(layer.id) { Name = layer.layerName.value };
+            return new LayerBatchUpdate(layer.id)
+            {
+                Name = layer.layerName.value
+            };
         }
     }
 }

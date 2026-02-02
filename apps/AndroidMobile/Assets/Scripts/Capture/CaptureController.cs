@@ -24,7 +24,7 @@ namespace Placeframe.Client
     {
         private float captureIntervalSeconds = 0.2f;
 
-        private DefaultApi capturesApi;
+        // private DefaultApi capturesApi;
         private IControl ui;
         private TaskHandle currentCaptureTask = TaskHandle.Complete;
         private bool capturesLoaded;
@@ -38,14 +38,15 @@ namespace Placeframe.Client
         {
             localCaptureNamePath = $"{Application.persistentDataPath}/LocalCaptureNames.json";
 
-            capturesApi = new DefaultApi(
-                new HttpClient(new AuthHttpHandler() { InnerHandler = new HttpClientHandler() })
-                {
-                    BaseAddress = new Uri(App.state.placeframeApiUrl.value),
-                    Timeout = TimeSpan.FromSeconds(600),
-                },
-                new Configuration() { BasePath = App.state.placeframeApiUrl.value, Timeout = TimeSpan.FromSeconds(600) }
-            );
+            // var placeframeApiUrl = $"https://{App.state.domain.value}";
+            // capturesApi = new DefaultApi(
+            //     new HttpClient(new AuthHttpHandler() { InnerHandler = new HttpClientHandler() })
+            //     {
+            //         BaseAddress = new Uri(placeframeApiUrl),
+            //         Timeout = TimeSpan.FromSeconds(600),
+            //     },
+            //     new Configuration() { BasePath = placeframeApiUrl, Timeout = TimeSpan.FromSeconds(600) }
+            // );
 
             ui = OrderedCanvas(
                 new()
@@ -147,7 +148,7 @@ namespace Placeframe.Client
                             }
                             else if (x.currentValue == CaptureUploadStatus.CreateMapRequested)
                             {
-                                capturesApi
+                                VisualPositioningSystem.Api
                                     .CreateLocalizationMapAsync(
                                         new LocalizationMapCreate(
                                             capture.reconstructionId.value,
@@ -314,7 +315,7 @@ namespace Placeframe.Client
                     captureNames.Add(Guid.Parse(kvp.Key), kvp.Value);
             }
 
-            var remoteCaptureList = await capturesApi.GetCaptureSessionsAsync();
+            var remoteCaptureList = await VisualPositioningSystem.Api.GetCaptureSessionsAsync();
             var remoteCaptureReconstructions = await GetReconstructionsForCaptures(
                 remoteCaptureList.Select(x => x.Id).ToList()
             );
@@ -325,7 +326,7 @@ namespace Placeframe.Client
             await UniTask.WhenAll(
                 GetReconstructionManifests(remoteCaptureReconstructions.Select(x => x.Id).ToList())
                     .ContinueWith(x => remoteCaptureReconstructionManifests = x),
-                capturesApi
+                VisualPositioningSystem.Api
                     .GetLocalizationMapsAsync(
                         reconstructionIds: remoteCaptureReconstructions
                             .Where(x => x.OrchestrationStatus == OrchestrationStatus.Succeeded)
@@ -485,7 +486,7 @@ namespace Placeframe.Client
 
             await UniTask.WhenAll(
                 captures.Select(x =>
-                    capturesApi
+                    VisualPositioningSystem.Api
                         .GetReconstructionsAsync(captureSessionId: x)
                         .AsUniTask()
                         .ContinueWith(x => result.AddRange(x))
@@ -501,7 +502,7 @@ namespace Placeframe.Client
 
             await UniTask.WhenAll(
                 reconstructions.Select(x =>
-                    capturesApi
+                    VisualPositioningSystem.Api
                         .GetReconstructionManifestAsync(x)
                         .AsUniTask()
                         .ContinueWith(manifest => result.Add(manifest))
@@ -530,7 +531,7 @@ namespace Placeframe.Client
             if (type == DeviceType.Zed)
             {
                 captureData = await ZedCaptureController.GetCapture(id, cancellationToken);
-                captureSession = await capturesApi
+                captureSession = await VisualPositioningSystem.Api
                     .CreateCaptureSessionAsync(new CaptureSessionCreate(DeviceType.Zed, name) { Id = id })
                     .AsUniTask();
             }
@@ -549,7 +550,7 @@ namespace Placeframe.Client
                 try
                 {
                     await UniTask.SwitchToMainThread();
-                    captureSession = await capturesApi
+                    captureSession = await VisualPositioningSystem.Api
                         .CreateCaptureSessionAsync(new CaptureSessionCreate(DeviceType.ARFoundation, name) { Id = id })
                         .AsUniTask();
                 }
@@ -564,7 +565,7 @@ namespace Placeframe.Client
 
             try
             {
-                await capturesApi
+                await VisualPositioningSystem.Api
                     .UploadCaptureSessionTarAsync(captureSession.Id, captureData, cancellationToken: cancellationToken)
                     .AsUniTask();
             }
@@ -588,7 +589,7 @@ namespace Placeframe.Client
         {
             while (true)
             {
-                var reconstructions = await capturesApi.GetCaptureSessionReconstructionsAsync(captureSessionId);
+                var reconstructions = await VisualPositioningSystem.Api.GetCaptureSessionReconstructionsAsync(captureSessionId);
                 if (reconstructions.Count > 0)
                 {
                     return reconstructions[0];
@@ -613,7 +614,7 @@ namespace Placeframe.Client
 
             while (true)
             {
-                var status = await capturesApi.GetReconstructionStatusAsync(reconstructionId, cancellationToken);
+                var status = await VisualPositioningSystem.Api.GetReconstructionStatusAsync(reconstructionId, cancellationToken);
 
                 if (status == OrchestrationStatus.Succeeded)
                     break;
@@ -634,7 +635,7 @@ namespace Placeframe.Client
 
         private async UniTask CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions)
         {
-            await capturesApi
+            await VisualPositioningSystem.Api
                 .CreateReconstructionAsync(
                     new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId))
                     {

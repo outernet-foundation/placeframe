@@ -1,9 +1,9 @@
-using System;
-using Outernet.Client.Location;
-using Outernet.Shared;
-using Placeframe.Core;
-using R3;
 using UnityEngine;
+using Outernet.Shared;
+using Outernet.Client.Location;
+using System;
+using R3;
+using Placeframe.Core;
 
 namespace Outernet.Client
 {
@@ -14,7 +14,7 @@ namespace Outernet.Client
         {
             Opening,
             Open,
-            Closing,
+            Closing
         }
 
         private const float upwardOffset = 0.5f;
@@ -40,16 +40,18 @@ namespace Outernet.Client
         public bool opening => animationState == AnimationState.Opening;
 
         bool rightPalm =>
-            userRecord.settingsMenuOpen.Value == SettingsMenuState.OpenRightPalm
-            || userRecord.settingsMenuOpen.Value == SettingsMenuState.ClosedRightPalm;
+            userRecord.settingsMenuOpen.Value == SettingsMenuState.OpenRightPalm ||
+            userRecord.settingsMenuOpen.Value == SettingsMenuState.ClosedRightPalm;
 
-        Vector3 palmLocalPosition =>
-            rightPalm ? userRecord.rightPalmLocalPosition.Value : userRecord.leftPalmLocalPosition.Value;
-        Quaternion palmLocalRotation =>
-            rightPalm ? userRecord.rightPalmLocalRotation.Value : userRecord.leftPalmLocalRotation.Value;
+        Vector3 palmLocalPosition => rightPalm ?
+            userRecord.rightPalmLocalPosition.Value : userRecord.leftPalmLocalPosition.Value;
+        Quaternion palmLocalRotation => rightPalm ?
+            userRecord.rightPalmLocalRotation.Value : userRecord.leftPalmLocalRotation.Value;
 
-        Quaternion settingsPanelLocalRotationWhenClosed =>
-            Quaternion.LookRotation(Vector3.down, palmLocalRotation * Vector3.forward);
+        Quaternion settingsPanelLocalRotationWhenClosed => Quaternion.LookRotation(
+            Vector3.down,
+            palmLocalRotation * Vector3.forward
+        );
 
         public void Open(Guid userID, Transform parent)
         {
@@ -68,8 +70,8 @@ namespace Outernet.Client
             syncedAnchor.Initialize(userRecord.settingsMenuGeoPose);
             settingsMenu.Initialize();
 
-            subscriptions = userRecord
-                .settingsMenuOpen.AsObservable()
+            subscriptions = userRecord.settingsMenuOpen
+                .AsObservable()
                 .SkipWhile(open => open.Value == SettingsMenuState.ClosedLeftPalm)
                 .Subscribe(open =>
                 {
@@ -128,27 +130,26 @@ namespace Outernet.Client
                     new Unity.Mathematics.double3(
                         userRecord.settingsMenuGeoPose.ecefPosition.Value.x,
                         userRecord.settingsMenuGeoPose.ecefPosition.Value.y,
-                        userRecord.settingsMenuGeoPose.ecefPosition.Value.z
-                    ),
-                    userRecord.settingsMenuGeoPose.ecefRotation.Value
-                );
+                        userRecord.settingsMenuGeoPose.ecefPosition.Value.z),
+                    userRecord.settingsMenuGeoPose.ecefRotation.Value);
 
                 transform.localScale = Vector3.Lerp(vector3ZeroWidthHeight, Vector3.one, t * t);
                 transform.position = Vector3.Lerp(
                     Vector3.Lerp(animationStartPosition, animationControlPoint, t),
                     Vector3.Lerp(animationControlPoint, settingsMenuTransform.position, t),
-                    t * t
-                );
-                transform.rotation = Quaternion.Slerp(animationStartRotation, settingsMenuTransform.rotation, t);
+                    t * t);
+                transform.rotation = Quaternion.Slerp(
+                    animationStartRotation,
+                    settingsMenuTransform.rotation,
+                    t);
 
                 if (t >= 1f)
                 {
                     animationState = AnimationState.Open;
 
-                    syncedAnchor.State =
-                        userID == App.ClientID
-                            ? SyncedAnchor.SyncState.LocallyControlled
-                            : SyncedAnchor.SyncState.Synced;
+                    syncedAnchor.State = userID == App.ClientID ?
+                        SyncedAnchor.SyncState.LocallyControlled :
+                        SyncedAnchor.SyncState.Synced;
                 }
             }
             else if (animationState == AnimationState.Closing)
@@ -160,13 +161,11 @@ namespace Outernet.Client
                 transform.position = Vector3.Lerp(
                     Vector3.Lerp(animationStartPosition, animationControlPoint, t),
                     Vector3.Lerp(animationControlPoint, parent.TransformPoint(palmLocalPosition), t),
-                    t
-                );
+                    t);
                 transform.rotation = Quaternion.Slerp(
                     animationStartRotation,
                     parent.rotation * settingsPanelLocalRotationWhenClosed,
-                    Mathf.Sqrt(t)
-                );
+                    Mathf.Sqrt(t));
 
                 if (t >= 1f)
                 {
@@ -179,8 +178,7 @@ namespace Outernet.Client
         {
             settingsMenu.RealUpdate();
 
-            if (userRecord.settingsMenuDimensions.Value == chrome.dimensions)
-                return;
+            if (userRecord.settingsMenuDimensions.Value == chrome.dimensions) return;
 
             if (userID == App.ClientID)
             {
