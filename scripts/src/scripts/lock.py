@@ -1,16 +1,11 @@
 from __future__ import annotations
 
-import fnmatch
 import http.server
 import json
 import os
 import re
 import shutil
-import socketserver
 import subprocess
-import sys
-import tarfile
-import threading
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -77,18 +72,6 @@ def _get_remote_digest(image_ref: str):
     return digest
 
 
-def _remote_tag_exists(tag: str) -> bool:
-    print(f"    [CHECK] Probing cache: {tag}...")
-    try:
-        # We use subprocess.run directly to suppress output and capture exit code
-        result = subprocess.run(
-            ["docker", "manifest", "inspect", tag], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False
-        )
-        return result.returncode == 0
-    except Exception:
-        return False
-
-
 def _check_gc_limits(min_gb: int = 60):
     candidates = [Path("/etc/docker/daemon.json"), Path(os.path.expanduser("~/.docker/daemon.json"))]
     if "WSL_DISTRO_NAME" in os.environ:
@@ -138,67 +121,6 @@ def _detect_gpu() -> Gpu:
         except subprocess.CalledProcessError:
             pass
     raise RuntimeError("Could not detect GPU type.")
-
-
-def _create_deterministic_info(tar: tarfile.TarFile, path: Path, archive_name: str, mode: int) -> tarfile.TarInfo:
-    info = tar.gettarinfo(str(path), arcname=archive_name)
-    info.mode = mode
-    info.mtime = 0
-    info.uid = 0
-    info.gid = 0
-    info.uname = "root"
-    info.gname = "root"
-    return info
-
-
-def _create_deterministic_context(root: Path, output_tar: Path):
-    MODE_DIR = 0o755  # rwxr-xr-x
-    MODE_FILE = 0o644  # rw-r--r--
-
-    ignore_patterns = [".git", output_tar.name] + [
-        line.strip()
-        for line in (root / ".dockerignore").read_text(encoding="utf-8").splitlines()
-        if line.strip() and not line.startswith("#")
-    ]
-
-    print(f"    [CONTEXT] Packing deterministic build context to {output_tar}...")
-
-    with tarfile.open(output_tar, "w") as tar:
-        for path, directories, files in os.walk(root):
-            directories.sort()
-            files.sort()
-
-            relative_path = Path(path).relative_to(root)
-
-            def is_ignored(name: str) -> bool:
-                path_string = str(relative_path / name).replace("\\", "/")
-                return any(
-                    fnmatch.fnmatch(path_string, pattern) or fnmatch.fnmatch(path_string + "/", pattern)
-                    for pattern in ignore_patterns
-                )
-
-            # Prune ignored directories in place
-            directories[:] = [d for d in directories if not is_ignored(d)]
-
-            # Add files
-            for name in files:
-                if is_ignored(name):
-                    continue
-
-                file_path = Path(path) / name
-
-                info = _create_deterministic_info(
-                    tar, file_path, str(relative_path / name).replace("\\", "/"), MODE_FILE
-                )
-
-                with file_path.open("rb") as f:
-                    tar.addfile(info, f)
-
-            # Add directory
-            if str(relative_path) != ".":
-                tar.addfile(
-                    _create_deterministic_info(tar, Path(path), str(relative_path).replace("\\", "/"), MODE_DIR)
-                )
 
 
 @app.command()
@@ -264,18 +186,13 @@ def lock(
         or (gpu in compose_data["services"][service]["profiles"])
     ]
 
-    # Configure registry cache for each target
-    for target in targets:
-        target_cache = f"{bake_data['x-registry-cache']}:{target}"
-
-        # Only push to the registry cache in CI mode
-        if mode == "ci":
+    # Configure registry caches in CI mode
+    if mode == "ci":
+        for target in targets:
+            target_cache = f"{bake_data['x-registry-cache']}:{target}"
             command_arguments.append(
                 f"--set {target}.cache-to+=type=registry,ref={target_cache},mode=max,image-manifest=true,oci-mediatypes=true"
             )
-
-        # Add the remote cache as a pull source if it exists (it might not, if this is a new target that has never been built by CI before)
-        if _remote_tag_exists(target_cache):
             command_arguments.append(f"--set {target}.cache-from+=type=registry,ref={target_cache}")
 
     # Load or push images based on mode
@@ -292,36 +209,15 @@ def lock(
     METADATA_PATH.unlink(missing_ok=True)
 
     # Bake images
-    context_archive = Path("build_context.tar")
-    try:
-        # Create deterministic build context
-        _create_deterministic_context(Path.cwd(), context_archive)
-
-        is_vm = sys.platform in ("win32", "darwin")
-
-        # Serve context via temporary HTTP server (only way to pass custom context with buildx bake)
-        with socketserver.TCPServer(("0.0.0.0" if is_vm else "127.0.0.1", 0), SilentHandler) as httpd:
-            server_thread = threading.Thread(target=httpd.serve_forever)
-            server_thread.daemon = True
-            server_thread.start()
-
-            hostname = "host.docker.internal" if is_vm else "127.0.0.1"
-            context_url = f"http://{hostname}:{httpd.server_address[1]}/{context_archive.name}"
-
-            # Bake
-            command = [
-                "docker buildx bake",
-                f"-f {BAKE_FILE}",
-                f"--metadata-file {METADATA_PATH}",
-                f"--set *.context={context_url}",
-                "--progress auto",
-                "--provenance=false",
-                "--sbom=false",
-            ] + command_arguments
-            run_command(" ".join(command), stream_log=True)
-    finally:
-        # Ensure we always clean up the context archive
-        context_archive.unlink(missing_ok=True)
+    command = [
+        "docker buildx bake",
+        f"-f {BAKE_FILE}",
+        f"--metadata-file {METADATA_PATH}",
+        "--progress auto",
+        "--provenance=false",
+        "--sbom=false",
+    ] + command_arguments
+    run_command(" ".join(command), stream_log=True)
 
     # Sanity check
     baked_images: dict[str, Any] = json.loads(METADATA_PATH.read_text()) if METADATA_PATH.exists() else {}
