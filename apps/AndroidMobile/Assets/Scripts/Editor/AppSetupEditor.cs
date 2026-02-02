@@ -1,5 +1,5 @@
-using UnityEditor;
 using UnityEngine;
+using UnityEditor;
 
 namespace Placeframe.Client
 {
@@ -7,7 +7,6 @@ namespace Placeframe.Client
     public class AppSetupEditor : Editor
     {
         private static bool foldoutOpen = true;
-
         public override void OnInspectorGUI()
         {
             DrawDefaultInspector();
@@ -20,12 +19,7 @@ namespace Placeframe.Client
                 var editorSettings = UnityEnv.GetOrCreateInstance();
                 bool wasEnabled = GUI.enabled;
                 GUI.enabled = false;
-                EditorGUILayout.ObjectField(
-                    "Instance",
-                    editorSettings,
-                    typeof(EditorSettings),
-                    allowSceneObjects: false
-                );
+                EditorGUILayout.ObjectField("Instance", editorSettings, typeof(EditorSettings), allowSceneObjects: false);
                 GUI.enabled = wasEnabled;
                 CreateEditor(editorSettings).DrawDefaultInspector();
                 EditorGUI.indentLevel--;

@@ -5,17 +5,17 @@
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
     "com.magicleap.unitysdk": "2.6.0",
     "com.placeframe.api-client": "file:../../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
-    "com.unity.ai.navigation": "2.0.8",
+    "com.unity.ai.navigation": "2.0.9",
     "com.unity.cloud.gltfast": "6.15.1",
-    "com.unity.collab-proxy": "2.9.3",
-    "com.unity.ide.rider": "3.0.36",
-    "com.unity.ide.visualstudio": "2.0.23",
-    "com.unity.inputsystem": "1.14.2",
+    "com.unity.collab-proxy": "2.11.2",
+    "com.unity.ide.rider": "3.0.38",
+    "com.unity.ide.visualstudio": "2.0.26",
+    "com.unity.inputsystem": "1.17.0",
     "com.unity.multiplayer.center": "1.0.0",
     "com.unity.nuget.newtonsoft-json": "3.2.1",
     "com.unity.render-pipelines.universal": "17.0.4",
-    "com.unity.test-framework": "1.5.1",
-    "com.unity.timeline": "1.8.9",
+    "com.unity.test-framework": "1.6.0",
+    "com.unity.timeline": "1.8.10",
     "com.unity.ugui": "2.0.0",
     "com.unity.visualscripting": "1.9.7",
     "com.unity.modules.accessibility": "1.0.0",
@@ -55,7 +55,9 @@
     {
       "name": "Magic Leap",
       "url": "https://registry.npmjs.org",
-      "scopes": ["com.magicleap"]
+      "scopes": [
+        "com.magicleap"
+      ]
     }
   ]
 }

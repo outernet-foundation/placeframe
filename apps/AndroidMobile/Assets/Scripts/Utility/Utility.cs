@@ -1,11 +1,13 @@
-using System;
-using System.Collections.Generic;
 using Nessle;
 using ObserveThing;
 using UnityEngine;
+
 using static Nessle.UIBuilder;
-using ImageFillMethod = UnityEngine.UI.Image.FillMethod;
+
 using ImageType = UnityEngine.UI.Image.Type;
+using ImageFillMethod = UnityEngine.UI.Image.FillMethod;
+using System;
+using System.Collections.Generic;
 
 namespace Placeframe.Client
 {
@@ -20,10 +22,7 @@ namespace Placeframe.Client
             return props;
         }
 
-        public static IDisposable SubscribeEach<T>(
-            this ICollectionObservable<T> collection,
-            Func<T, IDisposable> subscribe
-        )
+        public static IDisposable SubscribeEach<T>(this ICollectionObservable<T> collection, Func<T, IDisposable> subscribe)
         {
             Dictionary<T, IDisposable> subscriptions = new Dictionary<T, IDisposable>();
             return collection.Subscribe(
@@ -49,8 +48,8 @@ namespace Placeframe.Client
             );
         }
 
-        public static IValueObservable<int> FollowIndexDynamic<T>(this IListObservable<T> list, int index) =>
-            new FollowIndexObservable<T>(list, index);
+        public static IValueObservable<int> FollowIndexDynamic<T>(this IListObservable<T> list, int index)
+            => new FollowIndexObservable<T>(list, index);
 
         public static void AddRange<T>(this ListObservable<T> list, params T[] elements)
         {

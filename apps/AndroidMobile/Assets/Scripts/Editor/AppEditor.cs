@@ -1,7 +1,9 @@
 using System.Collections.Generic;
-using FofX.Stateful;
-using UnityEditor;
+
 using UnityEngine;
+using UnityEditor;
+
+using FofX.Stateful;
 
 namespace Placeframe.Client
 {

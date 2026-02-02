@@ -1,7 +1,8 @@
 using System;
 using System.IO;
-using dotenv.net;
 using UnityEngine;
+using dotenv.net;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -39,9 +40,7 @@ namespace Outernet.Client
                 if (!System.IO.Directory.Exists($"{Application.dataPath}/_LocalWorkspace/Resources"))
                     AssetDatabase.CreateFolder("Assets/_LocalWorkspace", "Resources");
 
-                string name = AssetDatabase.GenerateUniqueAssetPath(
-                    $"Assets/_LocalWorkspace/Resources/{nameof(UnityEnv)}.asset"
-                );
+                string name = AssetDatabase.GenerateUniqueAssetPath($"Assets/_LocalWorkspace/Resources/{nameof(UnityEnv)}.asset");
                 AssetDatabase.CreateAsset(_instance, name);
                 AssetDatabase.SaveAssets();
 #endif
@@ -61,6 +60,7 @@ namespace Outernet.Client
             }
         }
 #endif
+
 
         private static void ReloadFromDotEnv()
         {

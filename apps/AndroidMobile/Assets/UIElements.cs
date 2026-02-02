@@ -1,12 +1,13 @@
+using UnityEngine;
+using Nessle;
+
+using static Nessle.UIBuilder;
+using ObserveThing;
 using System;
+using TMPro;
+using UnityEngine.Events;
 using System.Collections.Generic;
 using System.Security.Cryptography;
-using Nessle;
-using ObserveThing;
-using TMPro;
-using UnityEngine;
-using UnityEngine.Events;
-using static Nessle.UIBuilder;
 
 namespace Placeframe.Client
 {
@@ -27,22 +28,24 @@ namespace Placeframe.Client
 
         public static IControl LabeledButton(LabeledButtonProps props = default)
         {
-            props.labelStyle.horizontalAlignment =
-                props.labelStyle.horizontalAlignment ?? Props.Value(HorizontalAlignmentOptions.Center);
-            props.labelStyle.verticalAlignment =
-                props.labelStyle.verticalAlignment ?? Props.Value(VerticalAlignmentOptions.Capline);
+            props.labelStyle.horizontalAlignment = props.labelStyle.horizontalAlignment ?? Props.Value(HorizontalAlignmentOptions.Center);
+            props.labelStyle.verticalAlignment = props.labelStyle.verticalAlignment ?? Props.Value(VerticalAlignmentOptions.Capline);
 
-            return Button(
-                new ButtonProps()
-                {
-                    interactable = props.interactable,
-                    background = props.background,
-                    onClick = props.onClick,
-                    element = props.element,
-                    layout = props.layout,
-                    content = Props.List(Text(new TextProps() { style = props.labelStyle, value = props.label })),
-                }
-            );
+            return Button(new ButtonProps()
+            {
+                interactable = props.interactable,
+                background = props.background,
+                onClick = props.onClick,
+                element = props.element,
+                layout = props.layout,
+                content = Props.List(
+                    Text(new TextProps()
+                    {
+                        style = props.labelStyle,
+                        value = props.label
+                    })
+                )
+            });
         }
 
         public static IControl Row(LayoutGroupProps props = default, Control<LayoutGroupProps> prefab = default)
@@ -68,26 +71,26 @@ namespace Placeframe.Client
         public static IControl Dialog(DialogProps props)
         {
             var children = new ListObservable<IControl>(
-                Image(
-                    new()
-                    {
-                        layout = Utility.FillParentProps(),
-                        style = { color = props.backgroundColor },
-                        element = { active = props.useBackground },
-                    }
-                )
+                Image(new()
+                {
+                    layout = Utility.FillParentProps(),
+                    style = { color = props.backgroundColor },
+                    element = { active = props.useBackground }
+                })
             );
 
-            var control = OrderedCanvas(new() { element = props.element, children = children });
+            var control = OrderedCanvas(new()
+            {
+                element = props.element,
+                children = children
+            });
 
             control.AddBinding(
-                props
-                    .contentConstructor?.Invoke(control)
-                    .Subscribe(x =>
-                    {
-                        children.Remove(x.currentValue);
-                        children.Add(x.currentValue);
-                    })
+                props.contentConstructor?.Invoke(control).Subscribe(x =>
+                {
+                    children.Remove(x.currentValue);
+                    children.Add(x.currentValue);
+                })
             );
 
             return control;
@@ -99,11 +102,8 @@ namespace Placeframe.Client
             public IListObservable<IControl> children;
         }
 
-        public static IControl SafeArea(SafeAreaProps props) =>
-            Control(
-                new GameObject("Safe Area", typeof(SafeArea)),
-                new() { element = props.element, children = props.children }
-            );
+        public static IControl SafeArea(SafeAreaProps props)
+            => Control(new GameObject("Safe Area", typeof(SafeArea)), new() { element = props.element, children = props.children });
 
         public class EditableLabelProps
         {
@@ -123,21 +123,20 @@ namespace Placeframe.Client
         //     }).Children(label, control.FlexibleWidth(true));
         // }
 
-        public static IControl Title(TextProps props) => Title(primitives.text, props);
+        public static IControl Title(TextProps props)
+            => Title(primitives.text, props);
 
         public static IControl Title(Control<TextProps> prefab, TextProps props)
         {
-            props.style.horizontalAlignment =
-                props.style.horizontalAlignment ?? Props.Value(HorizontalAlignmentOptions.Center);
-            props.style.verticalAlignment =
-                props.style.verticalAlignment ?? Props.Value(VerticalAlignmentOptions.Capline);
+            props.style.horizontalAlignment = props.style.horizontalAlignment ?? Props.Value(HorizontalAlignmentOptions.Center);
+            props.style.verticalAlignment = props.style.verticalAlignment ?? Props.Value(VerticalAlignmentOptions.Capline);
             props.style.fontSize = props.style.fontSize ?? Props.Value(48f);
 
             return Text(prefab, props);
         }
 
-        public static IControl TightRowsWideColumns(LayoutGroupProps props) =>
-            TightRowsWideColumns(primitives.verticalLayout, props);
+        public static IControl TightRowsWideColumns(LayoutGroupProps props)
+            => TightRowsWideColumns(primitives.verticalLayout, props);
 
         public static IControl TightRowsWideColumns(Control<LayoutGroupProps> prefab, LayoutGroupProps props)
         {
@@ -159,33 +158,31 @@ namespace Placeframe.Client
 
         public static IControl LabeledControl(LabeledControlProps props = default)
         {
-            props.labelStyle.verticalAlignment =
-                props.labelStyle.verticalAlignment ?? Props.Value(VerticalAlignmentOptions.Capline);
+            props.labelStyle.verticalAlignment = props.labelStyle.verticalAlignment ?? Props.Value(VerticalAlignmentOptions.Capline);
             props.labelStyle.overflowMode = props.labelStyle.overflowMode ?? Props.Value(TextOverflowModes.Ellipsis);
-            props.labelStyle.textWrappingMode =
-                props.labelStyle.textWrappingMode ?? Props.Value(TextWrappingModes.NoWrap);
+            props.labelStyle.textWrappingMode = props.labelStyle.textWrappingMode ?? Props.Value(TextWrappingModes.NoWrap);
 
             props.labelWidth = props.labelWidth ?? Props.Value(200f);
 
-            var control = HorizontalLayout(
-                new()
-                {
-                    childAlignment = Props.Value(TextAnchor.MiddleLeft),
-                    childControlWidth = Props.Value(true),
-                    childControlHeight = Props.Value(true),
-                    children = Props.List(
-                        Text(
-                            new()
-                            {
-                                value = props.label,
-                                style = props.labelStyle,
-                                layout = new() { minWidth = props.labelWidth, preferredWidth = props.labelWidth },
-                            }
-                        ),
-                        props.control
-                    ),
-                }
-            );
+            var control = HorizontalLayout(new()
+            {
+                childAlignment = Props.Value(TextAnchor.MiddleLeft),
+                childControlWidth = Props.Value(true),
+                childControlHeight = Props.Value(true),
+                children = Props.List(
+                    Text(new()
+                    {
+                        value = props.label,
+                        style = props.labelStyle,
+                        layout = new()
+                        {
+                            minWidth = props.labelWidth,
+                            preferredWidth = props.labelWidth
+                        }
+                    }),
+                    props.control
+                )
+            });
 
             return control;
         }
@@ -200,20 +197,20 @@ namespace Placeframe.Client
 
         public static IControl RoundIconButton(RoundIconButtonProps props = default)
         {
-            return RoundButton(
-                new ButtonProps()
-                {
-                    background = props.background,
-                    interactable = props.interactable,
-                    onClick = props.onClick,
-                    content = Props.List(Image(props.icon)),
-                }
-            );
+            return RoundButton(new ButtonProps()
+            {
+                background = props.background,
+                interactable = props.interactable,
+                onClick = props.onClick,
+                content = Props.List(Image(props.icon))
+            });
         }
 
-        public static IControl RoundButton(ButtonProps props = default) => Control(elements.roundButton, props);
+        public static IControl RoundButton(ButtonProps props = default)
+            => Control(elements.roundButton, props);
 
-        public static IControl Foldout(FoldoutProps props = default) => Control(elements.foldout, props);
+        public static IControl Foldout(FoldoutProps props = default)
+            => Control(elements.foldout, props);
 
         // public static IControl AdaptiveLabel(IControl label, IControl content)
         // {
@@ -273,53 +270,45 @@ namespace Placeframe.Client
             List<IControl> columns = new List<IControl>();
             float spacingValue = 0;
 
-            var control = Control(
-                "Columns",
-                new()
-                {
-                    element = props.element,
-                    layout = props.layout,
-                    children = props.columns,
-                }
-            );
+            var control = Control("Columns", new()
+            {
+                element = props.element,
+                layout = props.layout,
+                children = props.columns
+            });
 
             control.AddBinding(
-                Observables
-                    .Any(props.columns, props.spacing)
-                    .Subscribe(x =>
+                Observables.Any(props.columns, props.spacing).Subscribe(x =>
+                {
+                    if (x.source == props.spacing)
                     {
-                        if (x.source == props.spacing)
+                        spacingValue = ((IValueEventArgs<float>)x).currentValue;
+                    }
+                    else
+                    {
+                        var args = (IListEventArgs<IControl>)x;
+                        if (args.operationType == OpType.Add)
                         {
-                            spacingValue = ((IValueEventArgs<float>)x).currentValue;
+                            columns.Insert(args.index, args.element);
                         }
-                        else
+                        else if (args.operationType == OpType.Remove)
                         {
-                            var args = (IListEventArgs<IControl>)x;
-                            if (args.operationType == OpType.Add)
-                            {
-                                columns.Insert(args.index, args.element);
-                            }
-                            else if (args.operationType == OpType.Remove)
-                            {
-                                columns.RemoveAt(args.index);
-                            }
+                            columns.RemoveAt(args.index);
                         }
+                    }
 
-                        float step = 1f / columns.Count;
+                    float step = 1f / columns.Count;
 
-                        for (int i = 0; i < columns.Count; i++)
-                        {
-                            var child = columns[i];
-                            child.rectTransform.anchorMin = new Vector2(step * i, 0);
-                            child.rectTransform.anchorMax = new Vector2(step * (i + 1), 1);
+                    for (int i = 0; i < columns.Count; i++)
+                    {
+                        var child = columns[i];
+                        child.rectTransform.anchorMin = new Vector2(step * i, 0);
+                        child.rectTransform.anchorMax = new Vector2(step * (i + 1), 1);
 
-                            child.rectTransform.offsetMin = new Vector2(Mathf.Lerp(0f, spacingValue, i * step), 0);
-                            child.rectTransform.offsetMax = new Vector2(
-                                Mathf.Lerp(-spacingValue, 0f, (i + 1) * step),
-                                0
-                            );
-                        }
-                    })
+                        child.rectTransform.offsetMin = new Vector2(Mathf.Lerp(0f, spacingValue, i * step), 0);
+                        child.rectTransform.offsetMax = new Vector2(Mathf.Lerp(-spacingValue, 0f, (i + 1) * step), 0);
+                    }
+                })
             );
 
             return control;
@@ -327,7 +316,8 @@ namespace Placeframe.Client
 
         private static int _lastCanvasSortOrder = -1;
 
-        public static IControl OrderedCanvas(CanvasProps props) => OrderedCanvas(primitives.canvas, props);
+        public static IControl OrderedCanvas(CanvasProps props)
+            => OrderedCanvas(primitives.canvas, props);
 
         public static IControl OrderedCanvas(Control<CanvasProps> prefab, CanvasProps props)
         {

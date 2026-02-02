@@ -1,15 +1,21 @@
 using System;
 using System.Collections.Generic;
-using System.Net.Http;
 using System.Threading;
-using Cysharp.Threading.Tasks;
-using FofX.Stateful;
-using ObservableCollections;
-using Outernet.Shared;
-using Placeframe.Core;
-using PlaceframeApiClient.Api;
-using R3;
+using System.Net.Http;
+
 using UnityEngine;
+
+using Outernet.Shared;
+
+using FofX.Stateful;
+
+using R3;
+using ObservableCollections;
+
+using Cysharp.Threading.Tasks;
+
+using PlaceframeApiClient.Api;
+using Placeframe.Core;
 
 namespace Outernet.Client
 {
@@ -18,9 +24,7 @@ namespace Outernet.Client
         private class KeycloakHttpHandler : DelegatingHandler
         {
             protected override async System.Threading.Tasks.Task<HttpResponseMessage> SendAsync(
-                HttpRequestMessage request,
-                CancellationToken cancellationToken
-            )
+                HttpRequestMessage request, CancellationToken cancellationToken)
             {
                 var token = await Auth.GetOrRefreshToken();
                 request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
@@ -41,8 +45,8 @@ namespace Outernet.Client
 
         private Texture2D outputTexture;
 
-        protected override void InitializeState(ClientState state) =>
-            state.Initialize("root", new ObservableNodeContext(new ChannelLogger() { logGroup = LogGroup.Stateful }));
+        protected override void InitializeState(ClientState state)
+            => state.Initialize("root", new ObservableNodeContext(new ChannelLogger() { logGroup = LogGroup.Stateful }));
 
         protected override void Awake()
         {
@@ -51,7 +55,7 @@ namespace Outernet.Client
             API = new DefaultApi(
                 new HttpClient(new KeycloakHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
-                    BaseAddress = new Uri(apiUrl),
+                    BaseAddress = new Uri(apiUrl)
                 },
                 apiUrl
             );
@@ -125,21 +129,11 @@ namespace Outernet.Client
                     var transform = state.transforms[kvp.Key];
 
                     return Bindings.Compose(
-                        PropertyBinding(
-                            kvp.Value.geoPose.ecefPosition,
-                            transform.position,
-                            x => x.ToMathematicsDouble3(),
-                            x => x.ToDouble3()
-                        ),
+                        PropertyBinding(kvp.Value.geoPose.ecefPosition, transform.position, x => x.ToMathematicsDouble3(), x => x.ToDouble3()),
                         PropertyBinding(kvp.Value.geoPose.ecefRotation, transform.rotation),
                         SetBinding(kvp.Value.hoveringUsers, node.hoveringUsers),
                         PropertyBinding(kvp.Value.interactingUser, node.interactingUser),
-                        PropertyBinding(
-                            kvp.Value.exhibitGeoPose.ecefPosition,
-                            node.exhibitPosition,
-                            x => x.ToMathematicsDouble3(),
-                            x => x.ToDouble3()
-                        ),
+                        PropertyBinding(kvp.Value.exhibitGeoPose.ecefPosition, node.exhibitPosition, x => x.ToMathematicsDouble3(), x => x.ToDouble3()),
                         PropertyBinding(kvp.Value.exhibitGeoPose.ecefRotation, node.exhibitRotation),
                         PropertyBinding(kvp.Value.exhibitPanelDimensions, node.exhibitPanelDimensions),
                         PropertyBinding(kvp.Value.exhibitPanelScrollPosition, node.exhibitPanelScrollPosition),
@@ -173,32 +167,23 @@ namespace Outernet.Client
             App.ExecuteActionOrDelay(new SetLayersAction(layers.ToArray()));
         }
 
-        private IDisposable SetBinding<T, U>(
-            SyncedSet<T> remote,
-            ObservableSet<U> local,
-            Func<T, U> toLocal,
-            Func<U, T> toRemote
-        )
+        private IDisposable SetBinding<T, U>(SyncedSet<T> remote, ObservableSet<U> local, Func<T, U> toLocal, Func<U, T> toRemote)
         {
             bool applyingRemote = false;
 
             return Bindings.Compose(
-                remote
-                    .ObserveAdd()
-                    .Subscribe(x =>
-                    {
-                        applyingRemote = true;
-                        local.ExecuteAdd(toLocal(x.Value));
-                        applyingRemote = false;
-                    }),
-                remote
-                    .ObserveRemove()
-                    .Subscribe(x =>
-                    {
-                        applyingRemote = true;
-                        local.ExecuteRemove(toLocal(x.Value));
-                        applyingRemote = false;
-                    }),
+                remote.ObserveAdd().Subscribe(x =>
+                {
+                    applyingRemote = true;
+                    local.ExecuteAdd(toLocal(x.Value));
+                    applyingRemote = false;
+                }),
+                remote.ObserveRemove().Subscribe(x =>
+                {
+                    applyingRemote = true;
+                    local.ExecuteRemove(toLocal(x.Value));
+                    applyingRemote = false;
+                }),
                 local.Each(x =>
                 {
                     if (!applyingRemote)
@@ -218,22 +203,18 @@ namespace Outernet.Client
             bool applyingRemote = false;
 
             return Bindings.Compose(
-                remote
-                    .ObserveAdd()
-                    .Subscribe(x =>
-                    {
-                        applyingRemote = true;
-                        local.ExecuteAdd(x.Value);
-                        applyingRemote = false;
-                    }),
-                remote
-                    .ObserveRemove()
-                    .Subscribe(x =>
-                    {
-                        applyingRemote = true;
-                        local.ExecuteRemove(x.Value);
-                        applyingRemote = false;
-                    }),
+                remote.ObserveAdd().Subscribe(x =>
+                {
+                    applyingRemote = true;
+                    local.ExecuteAdd(x.Value);
+                    applyingRemote = false;
+                }),
+                remote.ObserveRemove().Subscribe(x =>
+                {
+                    applyingRemote = true;
+                    local.ExecuteRemove(x.Value);
+                    applyingRemote = false;
+                }),
                 local.Each(x =>
                 {
                     if (!applyingRemote)
@@ -267,12 +248,7 @@ namespace Outernet.Client
             );
         }
 
-        private IDisposable PropertyBinding<T, U>(
-            SyncedProperty<T> remote,
-            ObservablePrimitive<U> local,
-            Func<T, U> toLocal,
-            Func<U, T> toRemote
-        )
+        private IDisposable PropertyBinding<T, U>(SyncedProperty<T> remote, ObservablePrimitive<U> local, Func<T, U> toLocal, Func<U, T> toRemote)
         {
             bool applyingRemote = false;
 
@@ -291,10 +267,7 @@ namespace Outernet.Client
             );
         }
 
-        private IDisposable ObserveEach<TElement>(
-            ObservableCollections.IObservableCollection<TElement> source,
-            Func<TElement, IDisposable> observe
-        )
+        private IDisposable ObserveEach<TElement>(ObservableCollections.IObservableCollection<TElement> source, Func<TElement, IDisposable> observe)
         {
             Dictionary<TElement, IDisposable> observers = new Dictionary<TElement, IDisposable>();
 
@@ -303,16 +276,14 @@ namespace Outernet.Client
 
             return Bindings.Compose(
                 source.ObserveAdd().Subscribe(addEvent => observers.Add(addEvent.Value, observe(addEvent.Value))),
-                source
-                    .ObserveRemove()
-                    .Subscribe(removeEvent =>
+                source.ObserveRemove().Subscribe(removeEvent =>
+                {
+                    if (observers.TryGetValue(removeEvent.Value, out var observer))
                     {
-                        if (observers.TryGetValue(removeEvent.Value, out var observer))
-                        {
-                            observer.Dispose();
-                            observers.Remove(removeEvent.Value);
-                        }
-                    }),
+                        observer.Dispose();
+                        observers.Remove(removeEvent.Value);
+                    }
+                }),
                 Bindings.OnRelease(() =>
                 {
                     foreach (var observer in observers.Values)

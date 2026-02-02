@@ -5,8 +5,10 @@ using System.Linq;
 using System.Reflection;
 using Nessle;
 using ObserveThing;
-using TMPro;
 using UnityEngine;
+
+using TMPro;
+
 using static Nessle.UIBuilder;
 
 namespace Placeframe.Client
@@ -22,31 +24,20 @@ namespace Placeframe.Client
 
         public static IControl ObjectInspector(ObjectInspectorProps props = default)
         {
-            props.foldout.childrenLayout.childControlHeight =
-                props.foldout.childrenLayout.childControlHeight ?? Props.Value(true);
-            props.foldout.childrenLayout.childControlWidth =
-                props.foldout.childrenLayout.childControlWidth ?? Props.Value(true);
-            props.foldout.childrenLayout.childForceExpandHeight =
-                props.foldout.childrenLayout.childForceExpandHeight ?? Props.Value(false);
-            props.foldout.childrenLayout.childForceExpandWidth =
-                props.foldout.childrenLayout.childForceExpandWidth ?? Props.Value(false);
+            props.foldout.childrenLayout.childControlHeight = props.foldout.childrenLayout.childControlHeight ?? Props.Value(true);
+            props.foldout.childrenLayout.childControlWidth = props.foldout.childrenLayout.childControlWidth ?? Props.Value(true);
+            props.foldout.childrenLayout.childForceExpandHeight = props.foldout.childrenLayout.childForceExpandHeight ?? Props.Value(false);
+            props.foldout.childrenLayout.childForceExpandWidth = props.foldout.childrenLayout.childForceExpandWidth ?? Props.Value(false);
             props.foldout.childrenLayout.spacing = props.foldout.childrenLayout.spacing ?? Props.Value(10f);
-            props.foldout.childrenLayout.padding =
-                props.foldout.childrenLayout.padding ?? Props.Value(new RectOffset(50, 0, 0, 0));
-            props.foldout.childrenLayout.children = Props.List(
-                ObjectFieldInspectors(props.target, props.isReadonly.SelectDynamic(x => !x))
-            );
+            props.foldout.childrenLayout.padding = props.foldout.childrenLayout.padding ?? Props.Value(new RectOffset(50, 0, 0, 0));
+            props.foldout.childrenLayout.children = Props.List(ObjectFieldInspectors(props.target, props.isReadonly.SelectDynamic(x => !x)));
 
             return Foldout(props.foldout);
         }
 
-        public static IEnumerable<IControl> ObjectFieldInspectors(
-            object target,
-            IValueObservable<bool> interactable = default
-        )
+        public static IEnumerable<IControl> ObjectFieldInspectors(object target, IValueObservable<bool> interactable = default)
         {
-            return target
-                .GetType()
+            return target.GetType()
                 .GetMembers(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public)
                 .Where(x => x is FieldInfo || x is PropertyInfo)
                 .Select(memberInfo =>
@@ -75,23 +66,21 @@ namespace Placeframe.Client
                     if (type.IsEnum || type.IsValueType || type == typeof(string))
                     {
                         return PrimitiveInspector(
-                            Props.Value(name),
-                            type,
-                            Props.Value(getter(target)),
-                            x => setter(target, x),
-                            interactable
+                           Props.Value(name),
+                           type,
+                           Props.Value(getter(target)),
+                           x => setter(target, x),
+                           interactable
                         );
                     }
                     else
                     {
                         Log.Warn(LogGroup.Default, $"Unhandled field or property type {type.Name}");
-                        return Text(
-                            new TextProps()
-                            {
-                                value = Props.Value($"Unhandled Field: {name}"),
-                                style = new TextStyleProps() { color = Props.Value(Color.yellow) },
-                            }
-                        );
+                        return Text(new TextProps()
+                        {
+                            value = Props.Value($"Unhandled Field: {name}"),
+                            style = new TextStyleProps() { color = Props.Value(Color.yellow) }
+                        });
                     }
                     //    else if (type.IsArray || type is IList)
                     //    {
@@ -209,128 +198,106 @@ namespace Placeframe.Client
         //     );
         // }
 
-        public static IControl PrimitiveInspector(
-            IValueObservable<string> label,
-            Type type,
-            IValueObservable<object> value,
-            Action<object> onValueChanged,
-            IValueObservable<bool> interactable = default
-        )
+        public static IControl PrimitiveInspector(IValueObservable<string> label, Type type, IValueObservable<object> value, Action<object> onValueChanged, IValueObservable<bool> interactable = default)
         {
             var nullableUnderlyingType = Nullable.GetUnderlyingType(type);
             if (nullableUnderlyingType != null)
             {
                 var initValue = value.Peek();
-                var selectedValue = new ValueObservable<object>(
-                    initValue ?? Activator.CreateInstance(nullableUnderlyingType)
-                );
+                var selectedValue = new ValueObservable<object>(initValue ?? Activator.CreateInstance(nullableUnderlyingType));
                 var isNull = new ValueObservable<bool>(initValue == null);
 
-                return HorizontalLayout(
-                    new()
+                return HorizontalLayout(new()
+                {
+                    childControlWidth = Props.Value(true),
+                    childControlHeight = Props.Value(true),
+                    spacing = Props.Value(30f),
+                    element = new()
                     {
-                        childControlWidth = Props.Value(true),
-                        childControlHeight = Props.Value(true),
-                        spacing = Props.Value(30f),
-                        element = new()
-                        {
-                            bindings = Props.List(
-                                value.Subscribe(x =>
-                                {
-                                    isNull.value = x.currentValue == null;
+                        bindings = Props.List(
+                            value.Subscribe(x =>
+                            {
+                                isNull.value = x.currentValue == null;
 
-                                    if (x.currentValue != null)
-                                        selectedValue.value = x.currentValue;
+                                if (x.currentValue != null)
+                                    selectedValue.value = x.currentValue;
+                            }),
+                            Observables.Combine(
+                                selectedValue,
+                                isNull,
+                                (selected, isNull) => isNull ? null : selected
+                            ).Subscribe(x => onValueChanged?.Invoke(ConstructNullable(type, x.currentValue)))
+                        )
+                    },
+                    children = Props.List(
+                        Toggle(new()
+                        {
+                            value = isNull.SelectDynamic(x => !x),
+                            onValueChanged = x => isNull.value = !x,
+                            interactable = interactable
+                        }),
+                        VerticalLayout(new()
+                        {
+                            childControlWidth = Props.Value(true),
+                            childControlHeight = Props.Value(true),
+                            spacing = Props.Value(10f),
+                            children = Props.List(
+                                Text(new()
+                                {
+                                    value = label,
+                                    layout = new() { flexibleWidth = Props.Value(true) },
+                                    style = new()
+                                    {
+                                        verticalAlignment = Props.Value(VerticalAlignmentOptions.Capline),
+                                        overflowMode = Props.Value(TextOverflowModes.Ellipsis),
+                                        textWrappingMode = Props.Value(TextWrappingModes.NoWrap)
+                                    }
                                 }),
-                                Observables
-                                    .Combine(selectedValue, isNull, (selected, isNull) => isNull ? null : selected)
-                                    .Subscribe(x => onValueChanged?.Invoke(ConstructNullable(type, x.currentValue)))
-                            ),
-                        },
-                        children = Props.List(
-                            Toggle(
-                                new()
+                                PrimitiveControl(new()
                                 {
-                                    value = isNull.SelectDynamic(x => !x),
-                                    onValueChanged = x => isNull.value = !x,
+                                    type = nullableUnderlyingType,
+                                    value = selectedValue,
+                                    onValueChanged = x => selectedValue.value = x,
                                     interactable = interactable,
-                                }
-                            ),
-                            VerticalLayout(
-                                new()
-                                {
-                                    childControlWidth = Props.Value(true),
-                                    childControlHeight = Props.Value(true),
-                                    spacing = Props.Value(10f),
-                                    children = Props.List(
-                                        Text(
-                                            new()
-                                            {
-                                                value = label,
-                                                layout = new() { flexibleWidth = Props.Value(true) },
-                                                style = new()
-                                                {
-                                                    verticalAlignment = Props.Value(VerticalAlignmentOptions.Capline),
-                                                    overflowMode = Props.Value(TextOverflowModes.Ellipsis),
-                                                    textWrappingMode = Props.Value(TextWrappingModes.NoWrap),
-                                                },
-                                            }
-                                        ),
-                                        PrimitiveControl(
-                                            new()
-                                            {
-                                                type = nullableUnderlyingType,
-                                                value = selectedValue,
-                                                onValueChanged = x => selectedValue.value = x,
-                                                interactable = interactable,
-                                                layout = new() { flexibleWidth = Props.Value(true) },
-                                            }
-                                        )
-                                    ),
-                                }
+                                    layout = new() { flexibleWidth = Props.Value(true) }
+                                })
                             )
-                        ),
-                    }
-                );
+                        })
+                    )
+                });
             }
 
-            return VerticalLayout(
-                new()
-                {
-                    children = Props.List(
-                        Text(
-                            new()
-                            {
-                                value = label,
-                                layout = new() { flexibleWidth = Props.Value(true) },
-                                style = new()
-                                {
-                                    verticalAlignment = Props.Value(VerticalAlignmentOptions.Capline),
-                                    overflowMode = Props.Value(TextOverflowModes.Ellipsis),
-                                    textWrappingMode = Props.Value(TextWrappingModes.NoWrap),
-                                },
-                            }
-                        ),
-                        PrimitiveControl(
-                            new()
-                            {
-                                type = nullableUnderlyingType,
-                                value = value,
-                                onValueChanged = onValueChanged,
-                                interactable = interactable,
-                                layout = new() { flexibleWidth = Props.Value(true) },
-                            }
-                        )
-                    ),
-                }
-            );
+            return VerticalLayout(new()
+            {
+                children = Props.List(
+                    Text(new()
+                    {
+                        value = label,
+                        layout = new() { flexibleWidth = Props.Value(true) },
+                        style = new()
+                        {
+                            verticalAlignment = Props.Value(VerticalAlignmentOptions.Capline),
+                            overflowMode = Props.Value(TextOverflowModes.Ellipsis),
+                            textWrappingMode = Props.Value(TextWrappingModes.NoWrap)
+                        }
+                    }),
+                    PrimitiveControl(new()
+                    {
+                        type = nullableUnderlyingType,
+                        value = value,
+                        onValueChanged = onValueChanged,
+                        interactable = interactable,
+                        layout = new() { flexibleWidth = Props.Value(true) }
+                    })
+                )
+            });
         }
 
         private static object ConstructNullable(Type nullableType, object value)
         {
-            return value == null
-                ? Activator.CreateInstance(nullableType)
-                : Activator.CreateInstance(nullableType, value);
+            return value == null ?
+                Activator.CreateInstance(nullableType) :
+                Activator.CreateInstance(nullableType, value);
         }
 
         public struct PrimitiveControlProps
@@ -347,101 +314,87 @@ namespace Placeframe.Client
         {
             if (props.type.IsEnum)
             {
-                return Dropdown(
-                    new DropdownProps()
-                    {
-                        element = props.element,
-                        layout = props.layout,
-                        options = Props.List(Enum.GetNames(props.type)),
-                        value = props.value.SelectDynamic(x => x == null ? default : Convert.ToInt32(x)),
-                        onValueChanged = x => props.onValueChanged?.Invoke(Enum.ToObject(props.type, x)),
-                        interactable = props.interactable,
-                    }
-                );
+                return Dropdown(new DropdownProps()
+                {
+                    element = props.element,
+                    layout = props.layout,
+                    options = Props.List(Enum.GetNames(props.type)),
+                    value = props.value.SelectDynamic(x => x == null ? default : Convert.ToInt32(x)),
+                    onValueChanged = x => props.onValueChanged?.Invoke(Enum.ToObject(props.type, x)),
+                    interactable = props.interactable
+                });
             }
             else if (props.type == typeof(bool))
             {
-                return Toggle(
-                    new ToggleProps()
-                    {
-                        element = props.element,
-                        layout = props.layout,
-                        value = props.value.SelectDynamic(x => x == null ? default : (bool)x),
-                        onValueChanged = x => props.onValueChanged?.Invoke(x),
-                        interactable = props.interactable,
-                    }
-                );
+                return Toggle(new ToggleProps()
+                {
+                    element = props.element,
+                    layout = props.layout,
+                    value = props.value.SelectDynamic(x => x == null ? default : (bool)x),
+                    onValueChanged = x => props.onValueChanged?.Invoke(x),
+                    interactable = props.interactable
+                });
             }
             else if (props.type == typeof(int))
             {
-                return IntField(
-                    new InputFieldProps<int>()
-                    {
-                        element = props.element,
-                        layout = props.layout,
-                        value = props.value.SelectDynamic(x => x == null ? default : (int)x),
-                        onValueChanged = x => props.onValueChanged?.Invoke(x),
-                        interactable = props.interactable,
-                    }
-                );
+                return IntField(new InputFieldProps<int>()
+                {
+                    element = props.element,
+                    layout = props.layout,
+                    value = props.value.SelectDynamic(x => x == null ? default : (int)x),
+                    onValueChanged = x => props.onValueChanged?.Invoke(x),
+                    interactable = props.interactable
+                });
             }
             else if (props.type == typeof(float))
             {
-                return FloatField(
-                    new InputFieldProps<float>()
-                    {
-                        element = props.element,
-                        layout = props.layout,
-                        value = props.value.SelectDynamic(x => x == null ? default : (float)x),
-                        onValueChanged = x => props.onValueChanged?.Invoke(x),
-                        interactable = props.interactable,
-                    }
-                );
+                return FloatField(new InputFieldProps<float>()
+                {
+                    element = props.element,
+                    layout = props.layout,
+                    value = props.value.SelectDynamic(x => x == null ? default : (float)x),
+                    onValueChanged = x => props.onValueChanged?.Invoke(x),
+                    interactable = props.interactable
+                });
             }
             else if (props.type == typeof(double))
             {
-                return DoubleField(
-                    new InputFieldProps<double>()
-                    {
-                        element = props.element,
-                        layout = props.layout,
-                        value = props.value.SelectDynamic(x => x == null ? default : (double)x),
-                        onValueChanged = x => props.onValueChanged?.Invoke(x),
-                        interactable = props.interactable,
-                    }
-                );
+                return DoubleField(new InputFieldProps<double>()
+                {
+                    element = props.element,
+                    layout = props.layout,
+                    value = props.value.SelectDynamic(x => x == null ? default : (double)x),
+                    onValueChanged = x => props.onValueChanged?.Invoke(x),
+                    interactable = props.interactable
+                });
             }
             else if (props.type == typeof(string))
             {
-                return InputField(
-                    new InputFieldProps()
-                    {
-                        element = props.element,
-                        layout = props.layout,
-                        value = props.value.SelectDynamic(x => x == null ? default : (string)x),
-                        onValueChanged = x => props.onValueChanged?.Invoke(x),
-                        interactable = props.interactable,
-                    }
-                );
+                return InputField(new InputFieldProps()
+                {
+                    element = props.element,
+                    layout = props.layout,
+                    value = props.value.SelectDynamic(x => x == null ? default : (string)x),
+                    onValueChanged = x => props.onValueChanged?.Invoke(x),
+                    interactable = props.interactable
+                });
             }
             else
             {
                 Log.Warn(LogGroup.Default, $"Unhandled primitive type {props.type.Name}");
-                return Text(
-                    new TextProps()
+                return Text(new TextProps()
+                {
+                    element = props.element,
+                    layout = props.layout,
+                    value = props.value.SelectDynamic(x => x == null ? "NULL" : x.ToString()),
+                    style = new TextStyleProps()
                     {
-                        element = props.element,
-                        layout = props.layout,
-                        value = props.value.SelectDynamic(x => x == null ? "NULL" : x.ToString()),
-                        style = new TextStyleProps()
-                        {
-                            color = Props.Value(Color.yellow),
-                            textWrappingMode = Props.Value(TextWrappingModes.NoWrap),
-                            overflowMode = Props.Value(TextOverflowModes.Ellipsis),
-                            verticalAlignment = Props.Value(VerticalAlignmentOptions.Capline),
-                        },
+                        color = Props.Value(Color.yellow),
+                        textWrappingMode = Props.Value(TextWrappingModes.NoWrap),
+                        overflowMode = Props.Value(TextOverflowModes.Ellipsis),
+                        verticalAlignment = Props.Value(VerticalAlignmentOptions.Capline)
                     }
-                );
+                });
             }
         }
     }

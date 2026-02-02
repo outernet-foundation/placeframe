@@ -1,7 +1,7 @@
 using Outernet.Shared;
-using Placeframe.Core;
 using R3;
 using UnityEngine;
+using Placeframe.Core;
 
 namespace Outernet.Client
 {
@@ -13,7 +13,6 @@ namespace Outernet.Client
         public static bool animateNodeIndicators = false;
         public static bool animateUserIndicators = true;
         public static bool localize = true;
-
         // public static ReactiveProperty<int> numThreads = new ReactiveProperty<int>(1);
         // public static int solverType = 0;
         // public static ReactiveProperty<int> compression = new ReactiveProperty<int>(0);

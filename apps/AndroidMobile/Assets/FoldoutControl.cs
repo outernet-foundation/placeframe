@@ -23,18 +23,16 @@ namespace Placeframe.Client
         {
             label.Setup(props.label);
             layout.Setup(props.childrenLayout);
-            toggle.Setup(
-                new ToggleProps()
+            toggle.Setup(new ToggleProps()
+            {
+                value = props.isOpen,
+                interactable = props.interactable,
+                onValueChanged = x =>
                 {
-                    value = props.isOpen,
-                    interactable = props.interactable,
-                    onValueChanged = x =>
-                    {
-                        layout.gameObject.SetActive(x);
-                        props.isOpenChanged?.Invoke(x);
-                    },
+                    layout.gameObject.SetActive(x);
+                    props.isOpenChanged?.Invoke(x);
                 }
-            );
+            });
         }
     }
 }

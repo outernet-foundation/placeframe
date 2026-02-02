@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using FofX.Stateful;
-using Outernet.Client.Location;
-using Placeframe.Core;
+
 using UnityEngine;
 using UnityEngine.InputSystem;
+
+using Outernet.Client.Location;
+using FofX.Stateful;
+using Placeframe.Core;
 
 namespace Outernet.Client.AuthoringTools
 {
@@ -22,7 +24,7 @@ namespace Outernet.Client.AuthoringTools
         public enum TransformToolMode
         {
             Translate,
-            Rotate,
+            Rotate
         }
 
         private IDisposable _controlBinding = Bindings.Empty();
@@ -32,23 +34,21 @@ namespace Outernet.Client.AuthoringTools
         {
             SystemMenu.AddMenuItem(
                 "Edit/Translate Tool",
-                () =>
-                    props.ExecuteAction(x =>
-                    {
-                        x.mode.value = TransformToolMode.Translate;
-                        x.selectedHandle.value = 0;
-                    }),
+                () => props.ExecuteAction(x =>
+                {
+                    x.mode.value = TransformToolMode.Translate;
+                    x.selectedHandle.value = 0;
+                }),
                 commandKeys: new Key[] { Key.W }
             );
 
             SystemMenu.AddMenuItem(
                 "Edit/Rotate Tool",
-                () =>
-                    props.ExecuteAction(x =>
-                    {
-                        x.mode.value = TransformToolMode.Rotate;
-                        x.selectedHandle.value = 0;
-                    }),
+                () => props.ExecuteAction(x =>
+                {
+                    x.mode.value = TransformToolMode.Rotate;
+                    x.selectedHandle.value = 0;
+                }),
                 commandKeys: new Key[] { Key.E }
             );
 
@@ -79,7 +79,8 @@ namespace Outernet.Client.AuthoringTools
             }
         }
 
-        public override void Setup() => InitializeAndBind(new Props());
+        public override void Setup()
+            => InitializeAndBind(new Props());
 
         protected override void Bind()
         {
@@ -116,37 +117,32 @@ namespace Outernet.Client.AuthoringTools
                             Vector3.one
                         );
 
-                        var curMatrix = Matrix4x4.TRS(props.position.value, props.rotation.value, Vector3.one);
+                        var curMatrix = Matrix4x4.TRS(
+                            props.position.value,
+                            props.rotation.value,
+                            Vector3.one
+                        );
 
                         App.ExecuteActionOrDelay(
                             logLevel: FofX.LogLevel.Trace,
-                            App.state.authoringTools.SelectedTransforms()
-                                .Select(transform =>
-                                {
-                                    var objTransform = VisualPositioningSystem.EcefToUnityWorld(
-                                        transform.position.value,
-                                        transform.rotation.value
-                                    );
+                            App.state.authoringTools.SelectedTransforms().Select(transform =>
+                            {
+                                var objTransform = VisualPositioningSystem.EcefToUnityWorld(
+                                    transform.position.value,
+                                    transform.rotation.value
+                                );
 
-                                    objTransform.position = prevMatrix.inverse.MultiplyPoint(objTransform.position);
-                                    objTransform.rotation = Quaternion.Inverse(prevRotation) * objTransform.rotation;
+                                objTransform.position = prevMatrix.inverse.MultiplyPoint(objTransform.position);
+                                objTransform.rotation = Quaternion.Inverse(prevRotation) * objTransform.rotation;
 
-                                    objTransform.position = curMatrix.MultiplyPoint(objTransform.position);
-                                    objTransform.rotation = props.rotation.value * objTransform.rotation;
+                                objTransform.position = curMatrix.MultiplyPoint(objTransform.position);
+                                objTransform.rotation = props.rotation.value * objTransform.rotation;
 
-                                    var ecefTransform = VisualPositioningSystem.UnityWorldToEcef(
-                                        objTransform.position,
-                                        objTransform.rotation
-                                    );
+                                var ecefTransform = VisualPositioningSystem.UnityWorldToEcef(objTransform.position, objTransform.rotation);
 
-                                    return new SetSceneObjectTransformAction(
-                                        transform.id,
-                                        ecefTransform.position,
-                                        ecefTransform.rotation
-                                    );
-                                })
-                                .ToArray()
-                        );
+                                return new SetSceneObjectTransformAction(transform.id, ecefTransform.position, ecefTransform.rotation);
+                            }
+                        ).ToArray());
                     },
                     ObservationScope.All,
                     props.rotation,
@@ -181,67 +177,58 @@ namespace Outernet.Client.AuthoringTools
                     length: 1.333f,
                     direction: Vector3.right,
                     color: Color.red,
-                    binding: handleProps =>
-                        Bindings.Compose(
-                            handleProps.position.BindTo(props.position),
-                            handleProps.rotation.From(props.rotation),
-                            BindGroupedHandle(handleProps, 1)
-                        )
+                    binding: handleProps => Bindings.Compose(
+                        handleProps.position.BindTo(props.position),
+                        handleProps.rotation.From(props.rotation),
+                        BindGroupedHandle(handleProps, 1)
+                    )
                 ),
                 RuntimeHandles.SliderHandle(
                     length: 1.333f,
                     direction: Vector3.up,
                     color: Color.green,
-                    binding: handleProps =>
-                        Bindings.Compose(
-                            handleProps.position.BindTo(props.position),
-                            handleProps.rotation.From(props.rotation),
-                            BindGroupedHandle(handleProps, 2)
-                        )
+                    binding: handleProps => Bindings.Compose(
+                        handleProps.position.BindTo(props.position),
+                        handleProps.rotation.From(props.rotation),
+                        BindGroupedHandle(handleProps, 2)
+                    )
                 ),
                 RuntimeHandles.SliderHandle(
                     length: 1.333f,
                     direction: Vector3.forward,
                     color: Color.blue,
-                    binding: handleProps =>
-                        Bindings.Compose(
-                            handleProps.position.BindTo(props.position),
-                            handleProps.rotation.From(props.rotation),
-                            BindGroupedHandle(handleProps, 3)
-                        )
+                    binding: handleProps => Bindings.Compose(
+                        handleProps.position.BindTo(props.position),
+                        handleProps.rotation.From(props.rotation),
+                        BindGroupedHandle(handleProps, 3)
+                    )
                 ),
                 RuntimeHandles.PlaneHandle(
                     rect: new Rect(Vector2.zero, Vector2.one * 0.33325f),
                     color: Color.red,
-                    binding: handleProps =>
-                        Bindings.Compose(
-                            handleProps.position.BindTo(props.position),
-                            handleProps.rotation.From(props.rotation, x => x * Quaternion.AngleAxis(-90f, Vector3.up)),
-                            BindGroupedHandle(handleProps, 4)
-                        )
+                    binding: handleProps => Bindings.Compose(
+                        handleProps.position.BindTo(props.position),
+                        handleProps.rotation.From(props.rotation, x => x * Quaternion.AngleAxis(-90f, Vector3.up)),
+                        BindGroupedHandle(handleProps, 4)
+                    )
                 ),
                 RuntimeHandles.PlaneHandle(
                     rect: new Rect(Vector2.zero, Vector2.one * 0.33325f),
                     color: Color.green,
-                    binding: handleProps =>
-                        Bindings.Compose(
-                            handleProps.position.BindTo(props.position),
-                            handleProps.rotation.From(
-                                props.rotation,
-                                x => x * Quaternion.AngleAxis(90f, Vector3.right)
-                            ),
-                            BindGroupedHandle(handleProps, 5)
-                        )
+                    binding: handleProps => Bindings.Compose(
+                        handleProps.position.BindTo(props.position),
+                        handleProps.rotation.From(props.rotation, x => x * Quaternion.AngleAxis(90f, Vector3.right)),
+                        BindGroupedHandle(handleProps, 5)
+                    )
                 ),
                 RuntimeHandles.PlaneHandle(
                     rect: new Rect(Vector2.zero, Vector2.one * 0.33325f),
                     color: Color.blue,
-                    binding: handleProps =>
-                        Bindings.Compose(
-                            handleProps.position.BindTo(props.position),
-                            handleProps.rotation.From(props.rotation),
-                            BindGroupedHandle(handleProps, 6)
-                        )
+                    binding: handleProps => Bindings.Compose(
+                        handleProps.position.BindTo(props.position),
+                        handleProps.rotation.From(props.rotation),
+                        BindGroupedHandle(handleProps, 6)
+                    )
                 )
             );
         }
@@ -253,34 +240,31 @@ namespace Outernet.Client.AuthoringTools
                     radius: 1.333f,
                     normal: Vector3.right,
                     color: Color.red,
-                    binding: handleProps =>
-                        Bindings.Compose(
-                            handleProps.rotation.BindTo(props.rotation),
-                            handleProps.position.From(props.position),
-                            BindGroupedHandle(handleProps, 1)
-                        )
+                    binding: handleProps => Bindings.Compose(
+                        handleProps.rotation.BindTo(props.rotation),
+                        handleProps.position.From(props.position),
+                        BindGroupedHandle(handleProps, 1)
+                    )
                 ),
                 RuntimeHandles.RotateHandle(
                     radius: 1.333f,
                     normal: Vector3.up,
                     color: Color.green,
-                    binding: handleProps =>
-                        Bindings.Compose(
-                            handleProps.rotation.BindTo(props.rotation),
-                            handleProps.position.From(props.position),
-                            BindGroupedHandle(handleProps, 2)
-                        )
+                    binding: handleProps => Bindings.Compose(
+                        handleProps.rotation.BindTo(props.rotation),
+                        handleProps.position.From(props.position),
+                        BindGroupedHandle(handleProps, 2)
+                    )
                 ),
                 RuntimeHandles.RotateHandle(
                     radius: 1.333f,
                     normal: Vector3.forward,
                     color: Color.blue,
-                    binding: handleProps =>
-                        Bindings.Compose(
-                            handleProps.rotation.BindTo(props.rotation),
-                            handleProps.position.From(props.position),
-                            BindGroupedHandle(handleProps, 3)
-                        )
+                    binding: handleProps => Bindings.Compose(
+                        handleProps.rotation.BindTo(props.rotation),
+                        handleProps.position.From(props.position),
+                        BindGroupedHandle(handleProps, 3)
+                    )
                 )
             );
         }

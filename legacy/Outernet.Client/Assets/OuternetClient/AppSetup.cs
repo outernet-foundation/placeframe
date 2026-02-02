@@ -1,10 +1,11 @@
+using UnityEngine;
+using Outernet.Client.Location;
 using Cysharp.Threading.Tasks;
 using FofX.Serialization;
-using Outernet.Client.Location;
-using Placeframe.Core;
-using SimpleJSON;
 using Unity.Mathematics;
-using UnityEngine;
+using SimpleJSON;
+using Placeframe.Core;
+
 #if AUTHORING_TOOLS_ENABLED
 using UnityEngine.InputSystem.UI;
 #endif
@@ -205,10 +206,7 @@ namespace Outernet.Client
 #elif MAGIC_LEAP
             return new Placeframe.Core.MagicLeap.MagicLeapCameraProvider();
 #elif UNITY_ANDROID
-            return new Placeframe.Core.ARFoundation.CameraProvider(
-                Camera.main.GetComponent<UnityEngine.XR.ARFoundation.ARCameraManager>(),
-                SceneReferences.AnchorManager
-            );
+            return new Placeframe.Core.ARFoundation.CameraProvider(Camera.main.GetComponent<UnityEngine.XR.ARFoundation.ARCameraManager>(), SceneReferences.AnchorManager);
 #else
             return new NoOpCameraProvider();
 #endif
