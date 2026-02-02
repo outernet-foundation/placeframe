@@ -132,8 +132,8 @@ MonoBehaviour:
         - {fileID: 2800000, guid: d18a24d7b4ed50f4387993566d9d3ae2, type: 3}
         - {fileID: 2800000, guid: c989e1ed85cf7154caa922fec53e6af6, type: 3}
         - {fileID: 2800000, guid: ff47e5a0f105eb34883b973e51f4db62, type: 3}
-        - {fileID: 2800000, guid: fa042edbfc40fbd4bad0ab9d505b1223, type: 3}
-        - {fileID: 2800000, guid: 896d9004736809c4fb5973b7c12eb8b9, type: 3}
+        - {fileID: -3581297997062639961, guid: 0000000000000000d000000000000000, type: 0}
+        - {fileID: 2578505128784497995, guid: 0000000000000000d000000000000000, type: 0}
         - {fileID: 2800000, guid: 179f794063d2a66478e6e726f84a65bc, type: 3}
         filmGrainTex:
         - {fileID: 2800000, guid: 654c582f7f8a5a14dbd7d119cbde215d, type: 3}

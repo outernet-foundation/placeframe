@@ -84,31 +84,30 @@ namespace Placeframe.Client
                         )
                     );
 
-                    ApplyEnvironmentVariable("PUBLIC_URL", ref _instance.placeframeApiUrl);
-                    ApplyEnvironmentVariable("AUTH_TOKEN_URL", ref _instance.placeframeAuthTokenUrl);
-                    ApplyEnvironmentVariable("AUTH_AUDIENCE", ref _instance.placeframeAuthAudience);
+                    var publicDomain = Environment.GetEnvironmentVariable("PUBLIC_DOMAIN");
+
+                    if (string.IsNullOrEmpty(publicDomain))
+                    {
+                        throw new Exception("PUBLIC_DOMAIN is not set in the .env file.");
+                    }
+
+                    var authAudience = Environment.GetEnvironmentVariable("AUTH_AUDIENCE");
+
+                    if (string.IsNullOrEmpty(authAudience))
+                    {
+                        throw new Exception("AUTH_AUDIENCE is not set in the .env file.");
+                    }
+
+                    _instance.placeframeApiUrl = $"https://{publicDomain}";
+                    _instance.placeframeAuthTokenUrl =
+                        $"{_instance.placeframeApiUrl}/auth/realms/placeframe-dev/protocol/openid-connect/token";
+                    _instance.placeframeAuthAudience = authAudience;
                 }
                 catch (Exception exception)
                 {
                     Debug.LogError($"Failed to load .env file at {_instance.dotEnvPath}: {exception.Message}");
                 }
             }
-        }
-
-        private static void ApplyEnvironmentVariable(string key, ref string field)
-        {
-            string value = Environment.GetEnvironmentVariable(key);
-
-            if (string.IsNullOrEmpty(value))
-            {
-                Debug.LogError(
-                    $"UnityEnv: required environment variable '{key}' is missing or empty. "
-                        + $"Keeping existing value '{field ?? "<null>"}'."
-                );
-                return;
-            }
-
-            field = value;
         }
     }
 }
