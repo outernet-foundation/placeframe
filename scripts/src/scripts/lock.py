@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import http.server
 import json
 import os
 import re
@@ -25,11 +24,6 @@ Gpu = Literal["auto", "cuda", "rocm"]
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 
-class SilentHandler(http.server.SimpleHTTPRequestHandler):
-    def log_message(self, format: str, *args: Any) -> None:
-        pass  # Keep console clean
-
-
 def _load_lock_file(path: Path):
     return {
         (p := line.split("=", 1))[0].strip(): p[1].strip()
@@ -45,7 +39,12 @@ def _write_lock_file(path: Path, variables: dict[str, str]):
     )
 
 
-def _inspect_image(image_ref: str, log_error: bool = False):
+def _get_remote_digest(image_ref: str):
+    print(f"Resolving digest for: {image_ref}...")
+
+    if "$" in image_ref:
+        return ""
+
     try:
         output = run_command(
             f"docker buildx imagetools inspect {image_ref}", stream_log=False, log=False, verbose_errors=False
@@ -53,25 +52,12 @@ def _inspect_image(image_ref: str, log_error: bool = False):
         match = re.search(r"^Digest:\s+(sha256:[a-f0-9]+)", output, re.MULTILINE)
         if match:
             return match.group(1)
-    except subprocess.CalledProcessError as e:
-        if log_error:
-            print(f"    [ERROR] Failed to resolve {image_ref}. Check network/permissions.")
-            if e.stderr:
-                print(f"    Details: {e.stderr.strip()}")
+    except Exception:
+        raise RuntimeError(f"Digest resolution failed for: {image_ref}")
     return None
 
 
-def _get_remote_digest(image_ref: str):
-    if "$" in image_ref:
-        return ""
-
-    print(f"    Querying registry for {image_ref}...")
-    digest = _inspect_image(image_ref, log_error=True)
-    if not digest:
-        raise RuntimeError(f"Could not resolve digest for required image: {image_ref}")
-    return digest
-
-
+# Vibe code - Gemini 3
 def _check_gc_limits(min_gb: int = 60):
     candidates = [Path("/etc/docker/daemon.json"), Path(os.path.expanduser("~/.docker/daemon.json"))]
     if "WSL_DISTRO_NAME" in os.environ:
