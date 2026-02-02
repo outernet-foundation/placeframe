@@ -18,9 +18,9 @@ Most of them are incompatible with each other (Apple's own two products aren't e
 
 And none of them let you get your hands dirty. If you want to expand support to a novel device, or if you hit a weird edge case limitation that only matters to your application, all you can do is complain and cross your fingers.
 
-The XR industry, and particularly the AR industry, is already a risky one. And most interesting AR applications fundamentally require the ability to establish shared reference frames between AR devices, a requirement that has historically had nothing but risky, restrictive solutions. The lack of a permissive alternative has immeasurably hampered the growth of the AR industry.
+The XR industry, and particularly the AR industry, is already a risky one. And most interesting AR applications fundamentally require the ability to establish shared reference frames between AR devices, a requirement that has historically had nothing but risky, restrictive solutions. 
 
-Placeframe fixes that.
+The lack of a permissive alternative has immeasurably hampered the growth of the AR industry. Placeframe fixes that.
 
 # Acknowledgements
 
