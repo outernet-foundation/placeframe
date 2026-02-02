@@ -1,7 +1,0 @@
-environment:
-  - plerion/core
-  - plerion/dev
-
-config:
-  aws:region: us-east-1
-  plerion_infra:github-branch: main
