@@ -17,7 +17,7 @@
     "editor.inlayHints.enabled": "off"
   },
   "[csharp]": {
-    "editor.defaultFormatter": "csharpier.csharpier-vscode"
+    "editor.defaultFormatter": "ms-dotnettools.csharp"
   },
   "[postgres]": { "editor.defaultFormatter": "bradymholt.pgformatter" },
   "[json]": {

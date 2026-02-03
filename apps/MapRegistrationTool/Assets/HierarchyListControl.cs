@@ -10,6 +10,8 @@ using static Outernet.MapRegistrationTool.UIElements;
 using System.Collections.Generic;
 
 using System;
+using System.Linq;
+using UnityEngine.EventSystems;
 
 namespace Outernet.MapRegistrationTool
 {
@@ -19,108 +21,203 @@ namespace Outernet.MapRegistrationTool
         public IValueObservable<string> label;
         public IValueObservable<bool> open;
         public IValueObservable<bool> selected;
-        public IListObservable<HierarchyElementProps> children;
+        public IValueObservable<object> parent;
 
         public Action<string> onLabelChanged;
         public Action<bool> onOpenChanged;
         public Action<bool> onSelectedChanged;
+        public Action<object> onParentChanged;
     }
 
     public struct HierarchyListProps
     {
         public ICollectionObservable<HierarchyElementProps> elements;
         public IValueObservable<float> indentSize;
-        public Action<object, object> onParentChanged;
     }
 
-    public class HierarchyListControl : Nessle.Control<HierarchyListProps>
+    public delegate void ParentChangedDelegate(object target, object parent);
+
+    public class HierarchyListControl : Nessle.Control<HierarchyListProps>, IPointerEnterHandler, IPointerExitHandler
     {
-        private DictionaryObservable<object, IControl> _valueToControl = new DictionaryObservable<object, IControl>();
-        private Dictionary<IControl, object> _controlToValue = new Dictionary<IControl, object>();
+        private HashSet<ElementData> _selectedElements = new HashSet<ElementData>();
+        private DictionaryObservable<object, ElementData> _elementByValue = new DictionaryObservable<object, ElementData>();
+        private Dictionary<ElementData, object> _valueByElement = new Dictionary<ElementData, object>();
 
-        private object _dropTargetKey = null;
-        private List<object> _selectedKeys = new List<object>();
+        private bool _reparentInProgress = false;
+        private ElementData _dropTarget = null;
+        private bool _dropIsTargetingList = false;
+        private ElementData _mostRecentSelection = null;
 
-        // private class ListElement
-        // {
-        //     public IControl control;
-        //     public HierarchyElementProps<T> props;
-        //     public ICollectionObservable<IDisposable> bindings;
+        public HierarchyListElement elementPrefab;
 
-        //     public ValueObservable<ListElement> parent = new ValueObservable<ListElement>();
-        //     public ListObservable<ListElement> children = new ListObservable<ListElement>();
-
-        //     public IValueObservable<int> indent;
-        //     public Func<GameObject, bool> validatePotentialDrop;
-        //     public Action<GameObject> onDropReceived;
-        // }
-
-        public IHierarchyListElement elementPrefab;
+        private class ElementData
+        {
+            public HierarchyElementProps props;
+            public HierarchyListElement view;
+            public IDisposable disposable;
+        }
 
         protected override void SetupInternal()
         {
             AddBinding(
                 props.elements
                     .OrderByDynamic(x => x.key)
-                    .CreateDynamic(element =>
+                    .SelectDynamic(elementProps =>
                     {
-                        return (Nessle.Control<HierarchyListElementProps>)Control(
-                            elementPrefab,
-                            new()
+                        var element = new ElementData();
+                        element.props = elementProps;
+                        element.view = Instantiate(elementPrefab, transform);
+                        element.disposable = new ComposedDisposable(
+                            element.props.label?.Subscribe(x => element.view.label.text = x.currentValue),
+                            element.props.open?.Subscribe(x => element.view.foldout.isOn = x.currentValue),
+                            element.props.parent == null ? null : _elementByValue.TrackDynamic(element.props.parent).Subscribe(x =>
                             {
-                                key = element.key,
-                                hierarchyListControl = this,
-                                label = element.label,
-                                indentSize = props.indentSize,
-                                children = element.children.SelectDynamic(x => _valueToControl.TrackDynamic(x.key).SelectDynamic(x => x.keyPresent ? x.value : null)),
-                                onPointerEntered = () => _dropTargetKey = element.key,
-                                onPointerExited = () =>
-                                {
-                                    if (_dropTargetKey == element.key)
-                                        _dropTargetKey = null;
-                                },
-                                onDragStarted = () => _dropTargetKey = null,
-                                onDropped = () =>
-                                {
-                                    if (_dropTargetKey == null)
-                                        return;
+                                element.view.transform.SetParent(x.currentValue.keyPresent ?
+                                    x.currentValue.value.view.contentParent : transform);
+                            })
+                        );
 
-                                    foreach (var selected in _selectedKeys)
-                                        props.onParentChanged?.Invoke(selected, _dropTargetKey);
+                        element.view.onBeginDrag += () => _reparentInProgress = true;
 
-                                    _dropTargetKey = null;
-                                },
-                                onLabelChanged = element.onLabelChanged,
-                                onOpenChanged = element.onOpenChanged,
-                                onSelectedChanged = x =>
+                        element.view.onEndDrag += () =>
+                        {
+                            if (_reparentInProgress && _dropTarget != null)
+                                HandleDrop(_dropIsTargetingList, _dropTarget, _selectedElements.ToArray());
+
+                            _dropIsTargetingList = false;
+                            _reparentInProgress = false;
+                            _dropTarget = null;
+                        };
+
+                        element.view.onPointerEnter += () =>
+                        {
+                            if (_reparentInProgress)
+                                _dropTarget = element;
+                        };
+
+                        element.view.onPointerExit += () =>
+                        {
+                            if (_dropTarget == element.props.key)
+                                _dropTarget = null;
+                        };
+
+                        element.view.onClick += () =>
+                        {
+                            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                            {
+                                if (_selectedElements.Contains(element))
                                 {
-                                    if (x)
+                                    if (_mostRecentSelection != null)
                                     {
-                                        _selectedKeys.Add(element.key);
+                                        SelectBetween(_mostRecentSelection, element);
                                     }
                                     else
                                     {
-                                        _selectedKeys.Remove(element.key);
+                                        Select(element);
                                     }
-
-                                    element.onSelectedChanged?.Invoke(x);
+                                }
+                                else
+                                {
+                                    Deselect(element);
                                 }
                             }
-                        );
+                            else if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+                            {
+                                SelectAdditive(element);
+                            }
+                            else
+                            {
+                                Select(element);
+                            }
+                        };
+
+                        element.view.onIsOpenChanged += x => element.props.onOpenChanged?.Invoke(x);
+
+                        return element;
+
                     }).Subscribe(x =>
                     {
                         if (x.operationType == OpType.Add)
                         {
-                            _controlToValue.Add(x.element, x.element.props.key);
-                            _valueToControl.Add(x.element.props.key, x.element);
+                            _elementByValue.Add(x.element.props.key, x.element);
+                            _valueByElement.Add(x.element, x.element.props.key);
                         }
                         else if (x.operationType == OpType.Remove)
                         {
-                            _controlToValue.Remove(x.element);
-                            _valueToControl.Remove(x.element.props.key);
+                            x.element.disposable.Dispose();
+                            _elementByValue.Remove(x.element.props.key);
+                            _elementByValue.Remove(x.element);
                         }
                     })
             );
+        }
+
+        private void Select(ElementData element)
+        {
+            foreach (var toDeselect in _selectedElements.ToArray())
+            {
+                _selectedElements.Remove(toDeselect);
+                toDeselect.props.onSelectedChanged?.Invoke(false);
+            }
+
+            _mostRecentSelection = element;
+            _selectedElements.Add(element);
+            element.props.onSelectedChanged?.Invoke(true);
+        }
+
+        private void SelectAdditive(ElementData element)
+        {
+            _mostRecentSelection = element;
+            _selectedElements.Add(element);
+            element.props.onSelectedChanged?.Invoke(true);
+        }
+
+        private void SelectBetween(ElementData element1, ElementData element2)
+        {
+
+        }
+
+        private void Deselect(ElementData element)
+        {
+            _mostRecentSelection = null;
+            _selectedElements.Remove(element);
+            element.props.onSelectedChanged?.Invoke(false);
+        }
+
+        private void HandleDrop(bool dropIsTargetingList, ElementData dropTarget, ElementData[] selectedElements)
+        {
+            if (dropIsTargetingList)
+            {
+                foreach (var element in selectedElements)
+                {
+                    element.view.transform.SetParent(transform);
+                    element.props.onParentChanged?.Invoke(null);
+                }
+            }
+
+            dropTarget.view.foldout.isOn = true;
+            foreach (var element in selectedElements)
+            {
+                element.view.transform.SetParent(dropTarget.view.contentParent);
+                element.props.onParentChanged?.Invoke(dropTarget);
+            }
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (!_reparentInProgress)
+                return;
+
+            _dropTarget = null;
+            _dropIsTargetingList = true;
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            if (!_reparentInProgress)
+                return;
+
+            _dropIsTargetingList = false;
         }
 
         // private IControl ElementControl(ListElement element)
