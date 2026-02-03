@@ -263,38 +263,38 @@ namespace Outernet.Client
             return new double3(source.x, source.y, source.z);
         }
 
-        public static (Vector3 position, Quaternion rotation) EcefToLocal(double4x4 ecefToLocalTransform, double3 position, quaternion rotation)
-        {
-            var ecefTransformMatrix = Double4x4.FromTranslationRotation(position, rotation);
-            var localTransformMatrix = math.mul(ecefToLocalTransform, ecefTransformMatrix);
-            return (
-                // Also see Localizer.cs 
-                //
-                // I never worked out why this position inversion (and the one in
-                // SetEcefTransformFromLocalTransform, and the two other ones in Localizer.cs) are
-                // required. I just brute-force guess-and-checked until I found something that worked.
-                // The ecef rotations for localization maps comes from Cesium, and I searched
-                // CesiumForUnity and Cesium-Native for answers, but there are many layers of
-                // indirection, and at time of of writing, all origin modes go through a EUN (East-Up-North)
-                // coordinate system that I believe gets "undone" by the local Unity transform of the
-                // CesiumGeoreference itself. When I realized that, I gave up. But the ultimate
-                // result, apparently, is that the required transform to go from ecef space to unity
-                // space happens to be a position inversion. ¯\_(ツ)_/¯ 
-                //
-                // Apologies to the poor soul (probably me) who has to maintain this code in the future.
-                -localTransformMatrix.Position().ToFloats(),
-                localTransformMatrix.Rotation()
-            );
-        }
+        // public static (Vector3 position, Quaternion rotation) EcefToLocal(double4x4 ecefToLocalTransform, double3 position, quaternion rotation)
+        // {
+        //     var ecefTransformMatrix = Double4x4.FromTranslationRotation(position, rotation);
+        //     var localTransformMatrix = math.mul(ecefToLocalTransform, ecefTransformMatrix);
+        //     return (
+        //         // Also see Localizer.cs 
+        //         //
+        //         // I never worked out why this position inversion (and the one in
+        //         // SetEcefTransformFromLocalTransform, and the two other ones in Localizer.cs) are
+        //         // required. I just brute-force guess-and-checked until I found something that worked.
+        //         // The ecef rotations for localization maps comes from Cesium, and I searched
+        //         // CesiumForUnity and Cesium-Native for answers, but there are many layers of
+        //         // indirection, and at time of of writing, all origin modes go through a EUN (East-Up-North)
+        //         // coordinate system that I believe gets "undone" by the local Unity transform of the
+        //         // CesiumGeoreference itself. When I realized that, I gave up. But the ultimate
+        //         // result, apparently, is that the required transform to go from ecef space to unity
+        //         // space happens to be a position inversion. ¯\_(ツ)_/¯ 
+        //         //
+        //         // Apologies to the poor soul (probably me) who has to maintain this code in the future.
+        //         -localTransformMatrix.Position().ToFloats(),
+        //         localTransformMatrix.Rotation()
+        //     );
+        // }
 
-        public static (double3 position, quaternion rotation) LocalToEcef(double4x4 localToEcefTransform, Vector3 position, Quaternion rotation)
-        {
-            var localTransformMatrix = Double4x4.FromTranslationRotation(
-                // See above
-                -position.ToDoubles(),
-                rotation);
-            var ecefTransformMatrix = math.mul(localToEcefTransform, localTransformMatrix);
-            return (ecefTransformMatrix.Position(), ecefTransformMatrix.Rotation());
-        }
+        // public static (double3 position, quaternion rotation) LocalToEcef(double4x4 localToEcefTransform, Vector3 position, Quaternion rotation)
+        // {
+        //     var localTransformMatrix = Double4x4.FromTranslationRotation(
+        //         // See above
+        //         -position.ToDoubles(),
+        //         rotation);
+        //     var ecefTransformMatrix = math.mul(localToEcefTransform, localTransformMatrix);
+        //     return (ecefTransformMatrix.Position(), ecefTransformMatrix.Rotation());
+        // }
     }
 }

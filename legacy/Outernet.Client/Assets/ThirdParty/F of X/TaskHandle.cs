@@ -48,6 +48,7 @@ namespace FofX
                 {
                     status = UniTaskStatus.Faulted;
                     _completionSource.TrySetException(exc);
+                    throw;
                 }
             }
             finally

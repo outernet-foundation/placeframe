@@ -44,4 +44,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ddd63694b16b8e04391a715bcb5d8abb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  localizationMapPrefab: {fileID: 8410913971276956591, guid: 71e76bd837007124692892981041302d, type: 3}
+  localizationMapPrefab: {fileID: 8410913971276956591, guid: c64e86049e771d245973715075b1d693, type: 3}

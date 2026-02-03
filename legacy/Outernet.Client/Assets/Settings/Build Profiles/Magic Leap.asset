@@ -167,10 +167,6 @@ MonoBehaviour:
     - line: '|   preloadedAssets:'
     - line: '|   - {instanceID: 0}'
     - line: '|   - {instanceID: 0}'
-    - line: '|   - {fileID: 4800000, guid: c9f956787b1d945e7b36e0516201fc76, type:
-        3}'
-    - line: '|   - {fileID: 4800000, guid: 0945859e5a1034c2cb6dce53cb4fb899, type:
-        3}'
     - line: '|   - {fileID: -2992693128229873174, guid: 31fd9240f6c394a42ac366d7d327ff1b,
         type: 2}'
     - line: '|   - {fileID: -8220245182445680818, guid: 5a515d19e298d4c42b0b8286dcb874f0,
