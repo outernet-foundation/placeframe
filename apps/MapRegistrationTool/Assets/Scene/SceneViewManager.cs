@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using FofX.Stateful;
+using Placeframe.Core;
 using UnityEngine;
 
 namespace Placeframe.MapRegistrationTool
@@ -31,7 +32,7 @@ namespace Placeframe.MapRegistrationTool
 
         private void HandleEcefToUnityWorldChanged(NodeChangeEventArgs args)
         {
-            App.ExecuteActionOrDelay(new UpdateMapLocationsAction(_maps.Values.Select(x => x.props).ToArray()));
+            App.ExecuteActionOrDelay(new UpdateMapLocationsAction(VisualPositioningSystem.EcefToUnityWorldTransform, _maps.Values.Select(x => x.props).ToArray()));
         }
 
         private IDisposable SetupMap(MapState map)

@@ -295,7 +295,7 @@ namespace Placeframe.MapRegistrationTool
 
             pos /= count;
 
-            var localTransform = LocationUtilities.UnityFromEcef(pos, rot);
+            var localTransform = VisualPositioningSystem.EcefToUnityWorld(pos, rot);
 
             position = localTransform.position;
             rotation = count == 1 ? localTransform.rotation : Quaternion.identity;

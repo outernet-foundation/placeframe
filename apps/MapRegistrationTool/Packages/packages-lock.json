@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "com.cesium.unity": {
-      "version": "1.20.0",
+      "version": "1.22.0",
       "depth": 0,
       "source": "registry",
       "dependencies": {

@@ -14,6 +14,7 @@ using FofX;
 using FofX.Stateful;
 
 using TMPro;
+using Placeframe.Core;
 
 namespace Placeframe.MapRegistrationTool
 {
@@ -380,7 +381,7 @@ namespace Placeframe.MapRegistrationTool
 
         public async UniTask ImportScan(string scanName)
         {
-            var newMapTransform = LocationUtilities.EcefFromUnity(
+            var newMapTransform = VisualPositioningSystem.UnityWorldToEcef(
                 Camera.main.transform.position + (Camera.main.transform.forward * 3f),
                 Camera.main.transform.rotation.Flatten()
             );
