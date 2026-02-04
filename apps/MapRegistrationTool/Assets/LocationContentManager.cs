@@ -12,7 +12,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using static Placeframe.Core.LocationUtilities;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class LocationContentManager : MonoBehaviour
     {

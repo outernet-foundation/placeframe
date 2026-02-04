@@ -5,7 +5,7 @@ using UnityEditor;
 
 using FofX.Stateful;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     [CustomEditor(typeof(Control), true)]
     public class ControlBaseInspector : Editor

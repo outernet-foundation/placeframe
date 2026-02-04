@@ -3,12 +3,16 @@
     {
       "name": "Magic Leap",
       "url": "https://registry.npmjs.org",
-      "scopes": ["com.magicleap"]
+      "scopes": [
+        "com.magicleap"
+      ]
     },
     {
       "name": "Cesium",
       "url": "https://unity.pkg.cesium.com",
-      "scopes": ["com.cesium.unity"]
+      "scopes": [
+        "com.cesium.unity"
+      ]
     }
   ],
   "dependencies": {
@@ -25,21 +29,21 @@
     "com.placeframe.vps.arfoundation": "file:../../../packages/unity/Placeframe/Assets/Package/ARFoundation",
     "com.placeframe.vps.magicleap": "file:../../../packages/unity/Placeframe/Assets/Package/MagicLeap",
     "com.unity.2d.sprite": "1.0.0",
-    "com.unity.cloud.gltfast": "6.7.0",
-    "com.unity.collab-proxy": "2.8.2",
+    "com.unity.cloud.gltfast": "6.14.1",
+    "com.unity.collab-proxy": "2.11.2",
     "com.unity.feature.development": "1.0.2",
-    "com.unity.mobile.android-logcat": "1.4.5",
+    "com.unity.mobile.android-logcat": "1.4.6",
     "com.unity.multiplayer.center": "1.0.0",
     "com.unity.render-pipelines.universal": "17.0.4",
     "com.unity.shadergraph": "17.0.4",
-    "com.unity.timeline": "1.8.9",
+    "com.unity.timeline": "1.8.10",
     "com.unity.ugui": "2.0.0",
     "com.unity.visualscripting": "1.9.7",
     "com.unity.xr.arcore": "6.0.6",
-    "com.unity.xr.hands": "1.5.0",
-    "com.unity.xr.interaction.toolkit": "3.0.8",
-    "com.unity.xr.management": "4.5.1",
-    "com.unity.xr.openxr": "1.15.1",
+    "com.unity.xr.hands": "1.7.2",
+    "com.unity.xr.interaction.toolkit": "3.0.10",
+    "com.unity.xr.management": "4.5.3",
+    "com.unity.xr.openxr": "1.16.1",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",

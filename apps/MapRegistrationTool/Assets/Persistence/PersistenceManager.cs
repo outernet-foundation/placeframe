@@ -11,7 +11,7 @@ using Cysharp.Threading.Tasks;
 using UnityEditor;
 using PlaceframeApiClient.Model;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class DontPersistAttribute : Attribute { }
 

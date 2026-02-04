@@ -3,7 +3,7 @@ using FofX.Stateful;
 using UnityEngine;
 using SimpleJSON;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class SettingsManager : MonoBehaviour
     {
@@ -12,17 +12,6 @@ namespace Outernet.MapRegistrationTool
 
         private void Awake()
         {
-            App.RegisterObserver(HandleLoggedInChanged, App.state.loggedIn);
-            App.RegisterObserver(HandleSettingsLoadedChanged, App.state.settings.loaded);
-            App.RegisterObserver(HandleSettingsChanged, App.state.settings);
-            App.RegisterObserver(HandleLocationChanged, App.state.location);
-        }
-
-        private void HandleLoggedInChanged(NodeChangeEventArgs args)
-        {
-            if (!App.state.loggedIn.value)
-                return;
-
             if (File.Exists(USER_SETTINGS_PATH))
             {
                 var settingsJSON = JSONNode.Parse(File.ReadAllText(USER_SETTINGS_PATH));
@@ -35,6 +24,10 @@ namespace Outernet.MapRegistrationTool
                     new SetupDefaultSettingsAction()
                 );
             }
+
+            App.RegisterObserver(HandleSettingsLoadedChanged, App.state.settings.loaded);
+            App.RegisterObserver(HandleSettingsChanged, App.state.settings);
+            App.RegisterObserver(HandleLocationChanged, App.state.location);
         }
 
         private void HandleLocationChanged(NodeChangeEventArgs args)

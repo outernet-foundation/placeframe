@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using CesiumForUnity;
 using UnityEngine;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class SceneReferences : MonoBehaviour
     {

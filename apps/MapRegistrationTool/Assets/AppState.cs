@@ -7,11 +7,24 @@ using UnityEngine;
 
 using FofX.Stateful;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
+    public enum AuthStatus
+    {
+        LoggedOut,
+        LoggingIn,
+        LoggedIn,
+        Error,
+    }
+
     public class AppState : ObservableObject
     {
+        public ObservablePrimitive<string> placeframeAuthAudience;
+        public ObservablePrimitive<bool> loginRequested { get; private set; }
+        public ObservablePrimitive<AuthStatus> authStatus { get; private set; }
+        public ObservablePrimitive<string> authError { get; private set; }
         public ObservablePrimitive<bool> loggedIn { get; private set; }
+
         public ObservablePrimitive<double2> roughGrainedLocation { get; private set; }
         public ObservableDictionary<Guid, TransformState> transforms { get; private set; }
         public ObservableDictionary<Guid, MapState> maps { get; private set; }
@@ -39,6 +52,12 @@ namespace Outernet.MapRegistrationTool
 
         protected override void PostInitializeInternal()
         {
+            loggedIn.RegisterDerived(
+                _ => loggedIn.value = authStatus.value == AuthStatus.LoggedIn,
+                ObservationScope.Self,
+                authStatus
+            );
+
             unityWorldToEcefMatrix.RegisterDerived(
                 _ => unityWorldToEcefMatrix.value = math.inverse(ecefToUnityWorldMatrix.value),
                 ObservationScope.Self,
@@ -88,6 +107,9 @@ namespace Outernet.MapRegistrationTool
 
     public class UserSettings : ObservableObject
     {
+        public ObservablePrimitive<string> domain { get; private set; }
+        public ObservablePrimitive<string> username { get; private set; }
+        public ObservablePrimitive<string> password { get; private set; }
         public ObservablePrimitive<bool> loaded { get; private set; }
         public ObservablePrimitive<double2?> lastLocation { get; private set; }
         public ObservablePrimitive<bool> restoreLocationAutomatically { get; private set; }

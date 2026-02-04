@@ -16,7 +16,7 @@ using Serilog.Sinks.Grafana.Loki;
 using Serilog.Sinks.Grafana.Loki.HttpClients;
 using UnityEngine.Networking;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     static public class UnityMainThreadDispatcher
     {

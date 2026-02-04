@@ -4,7 +4,7 @@ using System.Linq;
 using FofX.Stateful;
 using UnityEngine;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class SceneViewManager : MonoBehaviour
     {

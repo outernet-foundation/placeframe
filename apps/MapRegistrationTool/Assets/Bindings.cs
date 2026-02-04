@@ -9,7 +9,7 @@ using Unity.Mathematics;
 using FofX;
 using FofX.Stateful;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public static class Bindings
     {

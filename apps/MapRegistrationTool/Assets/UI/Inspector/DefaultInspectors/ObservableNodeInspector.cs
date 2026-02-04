@@ -2,7 +2,7 @@ using System;
 using FofX.Stateful;
 using UnityEngine;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public abstract class ObservableNodeInspector<T> : Control<ObservableNodeInspector<T>.Props> where T : IObservableNode
     {

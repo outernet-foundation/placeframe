@@ -56,8 +56,8 @@ namespace Outernet.Client
             );
 
             Auth.Login(
-                $"https://{env.placeframeDomain}/auth/realms/placeframe-dev/protocol/openid-connect/token", 
-                "user", 
+                $"https://{env.placeframeDomain}/auth/realms/placeframe-dev/protocol/openid-connect/token",
+                "user",
                 "password"
             ).Forget();
 
@@ -111,6 +111,12 @@ namespace Outernet.Client
                 x => Log.Warn(LogGroup.Default, x),
                 x => Log.Error(LogGroup.Default, x)
             );
+
+            VisualPositioningSystem.Login(
+                env.placeframeDomain,
+                "user",
+                "password"
+            ).Forget();
 
             gameObject.AddComponent<LocalizationManager>();
 

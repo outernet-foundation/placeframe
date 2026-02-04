@@ -15,7 +15,7 @@ using FofX.Stateful;
 
 using TMPro;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class MapRegistrationToolUI : MonoBehaviour
     {
@@ -93,9 +93,9 @@ namespace Outernet.MapRegistrationTool
             // Restore when we have scan upload functionality in place
             addScanButton.onClick.AddListener(OpenAddScanDialog);
 
-            App.state.settings.loaded.OnChange(loaded =>
+            App.state.loggedIn.OnChange(loggedIn =>
             {
-                if (!loaded)
+                if (!loggedIn)
                     return;
 
                 if (!App.state.settings.restoreLocationAutomatically.value ||

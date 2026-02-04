@@ -4,7 +4,7 @@ using FofX.Stateful;
 using System;
 using Placeframe.Core;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class ECEFPositionInspector : CustomObservableNodeInspector
     {

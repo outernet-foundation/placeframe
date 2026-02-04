@@ -1,6 +1,6 @@
 using System;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class ChannelLogger : FofX.ILogger
     {

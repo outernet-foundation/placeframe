@@ -6,7 +6,7 @@ using Serilog.Core;
 using Serilog.Events;
 using UnityEngine;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     static class UnityLoggerConfiguration
     {

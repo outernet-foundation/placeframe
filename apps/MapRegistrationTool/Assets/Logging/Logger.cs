@@ -5,7 +5,7 @@ using Cysharp.Threading.Tasks;
 using Serilog;
 using UnityEngine;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     static class Logger
     {

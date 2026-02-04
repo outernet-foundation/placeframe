@@ -42,9 +42,6 @@ namespace Placeframe.Client
             var env = UnityEnv.GetOrCreateInstance();
             App.state.placeframeAuthAudience.ExecuteSet(env.placeframeAuthAudience);
 
-            if (env.loginAutomatically)
-                App.ExecuteAction(new LogInAction(env.username, env.password));
-
             Instantiate(localizationManager);
             Instantiate(localizationMapManager);
 
@@ -59,6 +56,7 @@ namespace Placeframe.Client
             ZedCaptureController.Initialize();
 
             gameObject.AddComponent<AuthManager>();
+            gameObject.AddComponent<SettingsManager>();
             gameObject.AddComponent<CaptureController>();
 
             Destroy(this);

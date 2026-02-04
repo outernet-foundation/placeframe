@@ -6,7 +6,7 @@ using TMPro;
 using Toggle = UnityEngine.UI.Toggle;
 using Image = UnityEngine.UI.Image;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     [CreateAssetMenu]
     public class Prefabs : ScriptableObject

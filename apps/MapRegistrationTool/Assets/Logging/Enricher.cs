@@ -10,7 +10,7 @@ using Serilog.Events;
 using Serilog.Parsing;
 using UnityEngine;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class Enricher : ILogEventEnricher
     {

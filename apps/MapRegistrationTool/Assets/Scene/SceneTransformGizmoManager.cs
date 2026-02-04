@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 
 using FofX.Stateful;
 using Placeframe.Core;
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class SceneTransformGizmoManager : Control<SceneTransformGizmoManager.Props>
     {

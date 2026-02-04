@@ -4,7 +4,7 @@ using UnityEngine.UI;
 using TMPro;
 using Unity.Mathematics;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public enum DialogStatus
     {

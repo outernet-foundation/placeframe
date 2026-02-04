@@ -5,7 +5,7 @@ using UnityEngine;
 
 using FofX.Stateful;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class UndoRedoManager : MonoBehaviour
     {

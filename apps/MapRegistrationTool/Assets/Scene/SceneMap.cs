@@ -7,7 +7,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     [RequireComponent(typeof(LocalizationMap))]
     public class SceneMap : Control<SceneMap.Props>, IPointerClickHandler

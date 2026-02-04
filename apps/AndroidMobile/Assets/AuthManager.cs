@@ -30,7 +30,7 @@ namespace Placeframe.Client
             if (!App.state.loginRequested.value)
                 return;
 
-            _loginTask = TaskHandle.Execute(token => LogIn(App.state.domain.value, App.state.username.value, App.state.password.value, token));
+            _loginTask = TaskHandle.Execute(token => LogIn(App.state.settings.domain.value, App.state.settings.username.value, App.state.settings.password.value, token));
         }
 
         private async UniTask LogIn(string domain, string username, string password, CancellationToken cancellationToken = default)

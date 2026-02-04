@@ -5,7 +5,7 @@ using FofX.Stateful;
 using System.Linq;
 using System;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class ECEFRotationInspector : CustomObservableNodeInspector
     {

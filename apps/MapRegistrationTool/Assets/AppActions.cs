@@ -10,7 +10,7 @@ using Quaternion = UnityEngine.Quaternion;
 
 using SimpleJSON;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class SetPrimitiveValueAction<T> : ObservableNodeAction<ObservablePrimitive<T>>
     {
@@ -101,6 +101,24 @@ namespace Outernet.MapRegistrationTool
         public override void Execute(ObservableDictionary<TKey, TValue> target)
         {
             target.Remove(_key);
+        }
+    }
+
+    public class SetAuthStatusAction : ObservableNodeAction<AppState>
+    {
+        private AuthStatus _status;
+        private string _error;
+
+        public SetAuthStatusAction(AuthStatus status, string error = null)
+        {
+            _status = status;
+            _error = error;
+        }
+
+        public override void Execute(AppState target)
+        {
+            target.authStatus.value = _status;
+            target.authError.value = _status == AuthStatus.Error ? _error : null;
         }
     }
 
@@ -290,9 +308,11 @@ namespace Outernet.MapRegistrationTool
     {
         public override void Execute(AppState target)
         {
+            target.settings.username.value = "user";
+            target.settings.password.value = "password";
             target.settings.restoreLocationAutomatically.value = true;
-            target.settings.loaded.value = true;
             target.settings.nodeFetchRadius.value = 25f;
+            target.settings.loaded.value = true;
         }
     }
 
