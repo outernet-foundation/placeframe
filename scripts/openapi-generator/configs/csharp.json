@@ -8,7 +8,8 @@
   },
   "additionalProperties": {
     "library": "httpclient",
-    "packageVersion": "0.1.0",
+    "licenseId": "Apache-2.0",
+    "packageVersion": "0.1.1",
     "targetFramework": "netstandard2.1",
     "validatable": false,
     "conditionalSerialization": true,

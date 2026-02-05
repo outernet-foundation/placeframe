@@ -1,6 +1,6 @@
 [project]
 name = "placeframe_localizer_client"
-version = "0.1.0"
+version = "0.1.1"
 description = "Localizer"
 authors = [
   {name = "OpenAPI Generator Community",email = "team@openapitools.org"},
