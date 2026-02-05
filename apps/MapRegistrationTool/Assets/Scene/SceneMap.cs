@@ -88,7 +88,7 @@ namespace Placeframe.MapRegistrationTool
             instance._localizationMapVisualizer.Initialize(mapId);
             instance.InitializeAndBind(new Props(sceneObjectID, name, position, rotation));
 
-            instance.AddBinding(Bindings.OnRelease(() => Destroy(instance)));
+            instance.AddBinding(Bindings.OnRelease(() => Destroy(instance.gameObject)));
 
             if (bind != null)
                 instance.AddBinding(bind(instance.props));
