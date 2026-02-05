@@ -34,8 +34,6 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="CreateGraphRequest" /> class.
         /// </summary>
-        /// <param name="groups">groups.</param>
-        /// <param name="nodes">nodes.</param>
         public CreateGraphRequest()
         {
         }

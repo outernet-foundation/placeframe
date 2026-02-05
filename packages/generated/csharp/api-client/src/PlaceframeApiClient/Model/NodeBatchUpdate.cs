@@ -92,24 +92,6 @@ namespace PlaceframeApiClient.Model
         /// Initializes a new instance of the <see cref="NodeBatchUpdate" /> class.
         /// </summary>
         /// <param name="id">id (required).</param>
-        /// <param name="rotationZ">rotationZ.</param>
-        /// <param name="labelWidth">labelWidth.</param>
-        /// <param name="positionY">positionY.</param>
-        /// <param name="positionZ">positionZ.</param>
-        /// <param name="rotationX">rotationX.</param>
-        /// <param name="rotationY">rotationY.</param>
-        /// <param name="rotationW">rotationW.</param>
-        /// <param name="labelHeight">labelHeight.</param>
-        /// <param name="positionX">positionX.</param>
-        /// <param name="labelScale">labelScale.</param>
-        /// <param name="linkType">linkType.</param>
-        /// <param name="labelType">labelType.</param>
-        /// <param name="active">active.</param>
-        /// <param name="link">link.</param>
-        /// <param name="label">label.</param>
-        /// <param name="name">name.</param>
-        /// <param name="layerId">layerId.</param>
-        /// <param name="parentId">parentId.</param>
         public NodeBatchUpdate(Guid id)
         {
             this.Id = id;

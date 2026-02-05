@@ -34,31 +34,6 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionMetrics" /> class.
         /// </summary>
-        /// <param name="totalImages">Total number of input images considered for this reconstruction run..</param>
-        /// <param name="registeredImages">Number of images successfully registered into the final model..</param>
-        /// <param name="registrationRate">Registration rate in percent: 100 × (registered_images / total_images). Computed after selecting the best reconstruction (max registered images)..</param>
-        /// <param name="num3dPoints">Count of 3D points in the selected &#39;best&#39; reconstruction..</param>
-        /// <param name="averageKeypointsPerImage">Average number of detected keypoints per image (after SuperPoint extraction), computed across all images..</param>
-        /// <param name="reprojectionPixelError50thPercentile">Median (50th percentile) reprojection error in pixels across all valid 2D observations in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint..</param>
-        /// <param name="reprojectionPixelError90thPercentile">90th percentile reprojection error in pixels across all valid 2D observations, computed the same way as the median..</param>
-        /// <param name="trackLength50thPercentile">Median (50th percentile) track length across 3D points in the selected model. Track length &#x3D; number of distinct images observing the point..</param>
-        /// <param name="percentTracksWithLengthGreaterThanOrEqualTo3">Percentage of 3D points whose track length is ≥ 3 (a common robustness threshold). Computed as 100 × (#points with length≥3 / #points)..</param>
-        /// <param name="allVerifiedMatches">Total number of verified matches across all image pairs..</param>
-        /// <param name="allVerifiedMatchRate">Percentage of verified matches across all image pairs..</param>
-        /// <param name="allVerifiedMatchInliersMean">Mean number of inliers for all verified matches..</param>
-        /// <param name="allVerifiedMatchInliersMedian">Median number of inliers for all verified matches..</param>
-        /// <param name="stereoVerifiedMatches">Number of verified matches for stereo pairs (same frame, different sensors)..</param>
-        /// <param name="stereoVerifiedMatchRate">Percentage of verified matches for stereo pairs..</param>
-        /// <param name="stereoVerifiedMatchInliersMean">Mean number of inliers for verified matches for stereo pairs..</param>
-        /// <param name="stereoVerifiedMatchInliersMedian">Median number of inliers for verified matches for stereo pairs..</param>
-        /// <param name="sameSensorVerifiedMatches">Number of verified matches for same-sensor pairs (across frames)..</param>
-        /// <param name="sameSensorVerifiedMatchRate">Percentage of verified matches for same-sensor pairs..</param>
-        /// <param name="sameSensorVerifiedMatchInliersMean">Mean number of inliers for verified matches for same-sensor pairs..</param>
-        /// <param name="sameSensorVerifiedMatchInliersMedian">Median number of inliers for verified matches for same-sensor pairs..</param>
-        /// <param name="crossSensorVerifiedMatches">Number of verified matches for cross-sensor pairs (across frames)..</param>
-        /// <param name="crossSensorVerifiedMatchRate">Percentage of verified matches for cross-sensor pairs..</param>
-        /// <param name="crossSensorVerifiedMatchInliersMean">Mean number of inliers for verified matches for cross-sensor pairs..</param>
-        /// <param name="crossSensorVerifiedMatchInliersMedian">Median number of inliers for verified matches for cross-sensor pairs..</param>
         public ReconstructionMetrics()
         {
         }

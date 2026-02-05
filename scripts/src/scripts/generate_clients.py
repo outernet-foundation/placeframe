@@ -82,7 +82,7 @@ def _generate_templates():
     )
 
     # 'git apply' directory is always relative to the repo root
-    for patch_file in (TEMPLATE_PATCHES_PATH / "csharp").iterdir():
+    for patch_file in sorted((TEMPLATE_PATCHES_PATH / "csharp").iterdir()):
         run_command(f"git apply --ignore-space-change --ignore-whitespace {str(patch_file)}", log=True)
 
 
@@ -137,44 +137,7 @@ def _generate_client(openapi_spec: str, project: str, client: str):
 
         run_command(command, log=True)
 
-        print(f"Generated {client} client (temp) at {temporary_directory}")
-
-        # Add Unity-specific package files for C#
-        if client == "csharp":
-            (temporary_directory / "src" / client_package_name_camel / "package.json").write_text(
-                json.dumps(
-                    {
-                        "name": f"com.{ROOT_NAME}.{client_package_base_name}",
-                        "displayName": client_package_name_camel,
-                        "version": "0.0.1",
-                    },
-                    indent=2,
-                )
-            )
-            (
-                temporary_directory / "src" / client_package_name_camel / f"{client_package_name_camel}.asmdef"
-            ).write_text(
-                json.dumps(
-                    {
-                        "name": client_package_name_camel,
-                        "references": ["Newtonsoft.Json", "Polly", "JsonSubTypes"],
-                        "includePlatforms": [],
-                        "excludePlatforms": [],
-                        "allowUnsafeCode": False,
-                        "overrideReferences": False,
-                        "precompiledReferences": [],
-                        "autoReferenced": True,
-                        "defineConstraints": [],
-                        "versionDefines": [],
-                        "noEngineReferences": False,
-                    },
-                    indent=2,
-                )
-            )
-            # Tell the C# compiler to enable nullable annotations
-            (temporary_directory / "src" / client_package_name_camel / "csc.rsp").write_text("-nullable:annotations")
-
-        print(f"Syncing to {client_path}...")
+        print(f"Generated {client} client (temp) at {temporary_directory}, syncing to {client_path}")
 
         client_path.mkdir(parents=True, exist_ok=True)
 

@@ -34,27 +34,6 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionOptions" /> class.
         /// </summary>
-        /// <param name="randomSeed">Random seed to use (for deterministic behavior)..</param>
-        /// <param name="singleThreaded">If true, run reconstruction in single-threaded mode (for deterministic behavior)..</param>
-        /// <param name="neighborsCount">How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). If None, a sensible default is used (currently 12). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage..</param>
-        /// <param name="rotationThreshold">Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. Smaller values reduce weak overlaps and speed up matching at the cost of some coverage..</param>
-        /// <param name="lightglueBatchSize">Batch size to use when running LightGlue for feature matching. Larger batch sizes can improve GPU utilization but require more memory..</param>
-        /// <param name="ransacMaxError">Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower &#x3D; stricter inlier test; removes borderline correspondences before SfM..</param>
-        /// <param name="ransacMinInlierRatio">Two-view RANSAC minimum inlier ratio to accept the model. Higher &#x3D; reject more weak pairs; typically 0.10–0.20 for stricter matching..</param>
-        /// <param name="usePriorPosition">If true, use position priors during registration. This leverages PosePrior(position&#x3D;...) written into the database to guide image registration..</param>
-        /// <param name="rigVerification">If true, perform rig-based verification during feature matching and two-view geometry verification. Requires images to be tagged with rig/camera IDs..</param>
-        /// <param name="triangulationMinimumAngle">Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points..</param>
-        /// <param name="triangulationCompleteMaxReprojectionError">Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points (triangulation.complete_max_reproj_error). Lower → fewer borderline new points..</param>
-        /// <param name="triangulationMergeMaxReprojectionError">Triangulation-time gate (pixels) for MERGING near-duplicate 3D points (triangulation.merge_max_reproj_error). Lower → fewer merges; higher → more aggressive deduplication..</param>
-        /// <param name="mapperFilterMaxReprojectionError">Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). Points exceeding this after local/global BA are culled. This is NOT a triangulation accept threshold..</param>
-        /// <param name="bundleAdjustmentRefineSensorFromRig">If true, refine per-camera extrinsics within the rig during BA (ba_refine_sensor_from_rig). Useful when rig calibration is approximate..</param>
-        /// <param name="bundleAdjustmentRefineFocalLength">If true, refine the camera focal length during BA (ba_refine_focal_length)..</param>
-        /// <param name="bundleAdjustmentRefinePrincipalPoint">If true, refine the camera principal point during BA (ba_refine_principal_point)..</param>
-        /// <param name="bundleAdjustmentRefineAdditionalParams">If true, refine model-specific additional parameters during BA (ba_refine_extra_params), e.g., radial/tangential distortion where applicable..</param>
-        /// <param name="compressionOpqNumberOfSubvectors">Number of subvectors for OPQ compression..</param>
-        /// <param name="compressionOpqNumberOfBitsPerSubvector">Number of bits per subvector for OPQ compression..</param>
-        /// <param name="compressionOpqNumberOfTrainingIterations">Number of training iterations for OPQ compression..</param>
-        /// <param name="posePriorPositionSigmaM">Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values &#x3D; stronger priors..</param>
         public ReconstructionOptions()
         {
         }

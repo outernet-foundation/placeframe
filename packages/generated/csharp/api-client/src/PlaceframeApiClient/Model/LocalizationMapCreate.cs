@@ -40,7 +40,6 @@ namespace PlaceframeApiClient.Model
         /// Initializes a new instance of the <see cref="LocalizationMapCreate" /> class.
         /// </summary>
         /// <param name="reconstructionId">reconstructionId (required).</param>
-        /// <param name="id">id.</param>
         /// <param name="rotationY">rotationY (required).</param>
         /// <param name="positionX">positionX (required).</param>
         /// <param name="positionY">positionY (required).</param>
@@ -49,9 +48,6 @@ namespace PlaceframeApiClient.Model
         /// <param name="rotationZ">rotationZ (required).</param>
         /// <param name="rotationW">rotationW (required).</param>
         /// <param name="color">color (required).</param>
-        /// <param name="active">active.</param>
-        /// <param name="lighting">lighting.</param>
-        /// <param name="name">name.</param>
         public LocalizationMapCreate(Guid reconstructionId, double rotationY, double positionX, double positionY, double positionZ, double rotationX, double rotationZ, double rotationW, int color)
         {
             this.ReconstructionId = reconstructionId;

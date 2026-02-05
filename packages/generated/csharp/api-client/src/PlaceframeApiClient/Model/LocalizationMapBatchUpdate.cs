@@ -39,19 +39,7 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="LocalizationMapBatchUpdate" /> class.
         /// </summary>
-        /// <param name="reconstructionId">reconstructionId.</param>
         /// <param name="id">id (required).</param>
-        /// <param name="rotationY">rotationY.</param>
-        /// <param name="positionX">positionX.</param>
-        /// <param name="positionY">positionY.</param>
-        /// <param name="positionZ">positionZ.</param>
-        /// <param name="rotationX">rotationX.</param>
-        /// <param name="rotationZ">rotationZ.</param>
-        /// <param name="rotationW">rotationW.</param>
-        /// <param name="color">color.</param>
-        /// <param name="active">active.</param>
-        /// <param name="lighting">lighting.</param>
-        /// <param name="name">name.</param>
         public LocalizationMapBatchUpdate(Guid id)
         {
             this.Id = id;

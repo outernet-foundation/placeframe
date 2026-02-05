@@ -110,8 +110,6 @@ namespace PlaceframeApiClient.Model
         /// <param name="link">link (required).</param>
         /// <param name="label">label (required).</param>
         /// <param name="name">name (required).</param>
-        /// <param name="layerId">layerId.</param>
-        /// <param name="parentId">parentId.</param>
         public NodeRead(Guid id, double rotationZ, double labelWidth, double positionY, double positionZ, double rotationX, double rotationY, DateTime createdAt, double rotationW, DateTime updatedAt, double labelHeight, double positionX, double labelScale, LinkType linkType, LabelType labelType, bool active, string link, string label, string name)
         {
             this.Id = id;
