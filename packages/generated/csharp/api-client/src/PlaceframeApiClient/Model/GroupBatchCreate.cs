@@ -41,7 +41,6 @@ namespace PlaceframeApiClient.Model
         /// </summary>
         /// <param name="id">id (required).</param>
         /// <param name="name">name (required).</param>
-        /// <param name="parentId">parentId.</param>
         public GroupBatchCreate(Guid id, string name)
         {
             this.Id = id;

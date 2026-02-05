@@ -40,7 +40,6 @@ namespace PlaceframeApiClient.Model
         /// Initializes a new instance of the <see cref="ReconstructionCreateWithOptions" /> class.
         /// </summary>
         /// <param name="create">create (required).</param>
-        /// <param name="options">options.</param>
         public ReconstructionCreateWithOptions(ReconstructionCreate create)
         {
             // to ensure "create" is required (not null)

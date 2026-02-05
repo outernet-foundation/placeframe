@@ -43,7 +43,6 @@ namespace PlaceframeApiClient.Model
         /// <param name="createdAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="name">name (required).</param>
-        /// <param name="parentId">parentId.</param>
         public GroupRead(Guid id, DateTime createdAt, DateTime updatedAt, string name)
         {
             this.Id = id;

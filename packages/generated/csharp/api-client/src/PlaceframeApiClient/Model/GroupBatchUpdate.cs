@@ -40,8 +40,6 @@ namespace PlaceframeApiClient.Model
         /// Initializes a new instance of the <see cref="GroupBatchUpdate" /> class.
         /// </summary>
         /// <param name="id">id (required).</param>
-        /// <param name="name">name.</param>
-        /// <param name="parentId">parentId.</param>
         public GroupBatchUpdate(Guid id)
         {
             this.Id = id;

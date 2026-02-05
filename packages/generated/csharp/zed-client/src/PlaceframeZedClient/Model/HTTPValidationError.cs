@@ -34,7 +34,6 @@ namespace PlaceframeZedClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="HTTPValidationError" /> class.
         /// </summary>
-        /// <param name="detail">detail.</param>
         public HTTPValidationError()
         {
         }

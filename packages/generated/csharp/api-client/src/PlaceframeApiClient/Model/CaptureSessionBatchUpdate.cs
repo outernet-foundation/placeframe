@@ -66,8 +66,6 @@ namespace PlaceframeApiClient.Model
         /// Initializes a new instance of the <see cref="CaptureSessionBatchUpdate" /> class.
         /// </summary>
         /// <param name="id">id (required).</param>
-        /// <param name="deviceType">deviceType.</param>
-        /// <param name="name">name.</param>
         public CaptureSessionBatchUpdate(Guid id)
         {
             this.Id = id;
