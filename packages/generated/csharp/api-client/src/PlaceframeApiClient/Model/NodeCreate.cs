@@ -91,7 +91,6 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="NodeCreate" /> class.
         /// </summary>
-        /// <param name="id">id.</param>
         /// <param name="rotationZ">rotationZ (required).</param>
         /// <param name="labelWidth">labelWidth (required).</param>
         /// <param name="positionY">positionY (required).</param>
@@ -104,12 +103,9 @@ namespace PlaceframeApiClient.Model
         /// <param name="labelScale">labelScale (required).</param>
         /// <param name="linkType">linkType (required).</param>
         /// <param name="labelType">labelType (required).</param>
-        /// <param name="active">active.</param>
         /// <param name="link">link (required).</param>
         /// <param name="label">label (required).</param>
         /// <param name="name">name (required).</param>
-        /// <param name="layerId">layerId.</param>
-        /// <param name="parentId">parentId.</param>
         public NodeCreate(double rotationZ, double labelWidth, double positionY, double positionZ, double rotationX, double rotationY, double rotationW, double labelHeight, double positionX, double labelScale, LinkType linkType, LabelType labelType, string link, string label, string name)
         {
             this.RotationZ = rotationZ;

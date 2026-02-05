@@ -46,9 +46,6 @@
     {{/net80OrLater}}
     {{^net60OrLater}}
     <PackageReference Include="System.Threading.Channels" Version="8.0.0" />
-    {{#net47OrLater}}
-    <Reference Include="System.Web" />
-    {{/net47OrLater}}
     {{/net60OrLater}}
     {{/useGenericHost}}
     {{^useGenericHost}}
@@ -65,17 +62,11 @@
 
 {{^useGenericHost}}
   <ItemGroup>
-    {{^net60OrLater}}
-    <None Remove="System.Web" />
-    {{/net60OrLater}}
     {{#net48}}
     <None Remove="System.Net.Http" />
     {{/net48}}
   </ItemGroup>
   <ItemGroup>
-    {{^net60OrLater}}
-    <Reference Include="System.Web" />
-    {{/net60OrLater}}
     {{#net48}}
     <Reference Include="System.Net.Http" />
     {{/net48}}

@@ -52,8 +52,6 @@ namespace PlaceframeApiClient.Model
         /// <param name="color">color (required).</param>
         /// <param name="createdAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="active">active (required).</param>
-        /// <param name="lighting">lighting.</param>
-        /// <param name="name">name.</param>
         public LocalizationMapRead(Guid reconstructionId, Guid id, double rotationY, double positionX, double positionY, double positionZ, double rotationX, DateTime updatedAt, double rotationZ, double rotationW, int color, DateTime createdAt, bool active)
         {
             this.ReconstructionId = reconstructionId;

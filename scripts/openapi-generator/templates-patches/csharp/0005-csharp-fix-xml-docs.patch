@@ -1,0 +1,16 @@
+diff --git a/scripts/openapi-generator/templates-generated/csharp/modelGeneric.mustache b/scripts/openapi-generator/templates-generated/csharp/modelGeneric.mustache
+index 2dac2d4..6d44550 100644
+--- a/scripts/openapi-generator/templates-generated/csharp/modelGeneric.mustache
++++ b/scripts/openapi-generator/templates-generated/csharp/modelGeneric.mustache
+@@ -134,9 +134,9 @@
+         /// <summary>
+         /// Initializes a new instance of the <see cref="{{classname}}" /> class.
+         /// </summary>
+-        {{#readWriteVars}}
++        {{#requiredVars}}
+         /// <param name="{{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}}">{{description}}{{^description}}{{#lambda.camelcase_sanitize_param}}{{name}}{{/lambda.camelcase_sanitize_param}}{{/description}}{{#required}} (required){{/required}}{{#defaultValue}} (default to {{.}}){{/defaultValue}}.</param>
+-        {{/readWriteVars}}
++        {{/requiredVars}}
+     {{#hasOnlyReadOnly}}
+         [JsonConstructorAttribute]
+     {{/hasOnlyReadOnly}}

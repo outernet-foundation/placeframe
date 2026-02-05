@@ -39,9 +39,7 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="GroupCreate" /> class.
         /// </summary>
-        /// <param name="id">id.</param>
         /// <param name="name">name (required).</param>
-        /// <param name="parentId">parentId.</param>
         public GroupCreate(string name)
         {
             // to ensure "name" is required (not null)

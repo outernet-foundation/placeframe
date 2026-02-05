@@ -60,8 +60,6 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="CaptureSessionUpdate" /> class.
         /// </summary>
-        /// <param name="deviceType">deviceType.</param>
-        /// <param name="name">name.</param>
         public CaptureSessionUpdate()
         {
         }

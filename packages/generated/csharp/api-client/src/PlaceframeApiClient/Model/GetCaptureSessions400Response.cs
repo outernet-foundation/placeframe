@@ -41,7 +41,6 @@ namespace PlaceframeApiClient.Model
         /// </summary>
         /// <param name="statusCode">statusCode (required).</param>
         /// <param name="detail">detail (required).</param>
-        /// <param name="extra">extra.</param>
         public GetCaptureSessions400Response(int statusCode, string detail)
         {
             this.StatusCode = statusCode;

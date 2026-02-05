@@ -140,7 +140,6 @@ namespace PlaceframeApiClient.Model
         /// </summary>
         /// <param name="captureId">captureId (required).</param>
         /// <param name="status">status (required).</param>
-        /// <param name="error">error.</param>
         /// <param name="options">options (required).</param>
         /// <param name="metrics">metrics (required).</param>
         public ReconstructionManifest(string captureId, StatusEnum status, ReconstructionOptions options, ReconstructionMetrics metrics)

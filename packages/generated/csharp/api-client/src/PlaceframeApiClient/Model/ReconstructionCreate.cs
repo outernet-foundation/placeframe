@@ -66,8 +66,6 @@ namespace PlaceframeApiClient.Model
         /// Initializes a new instance of the <see cref="ReconstructionCreate" /> class.
         /// </summary>
         /// <param name="captureSessionId">captureSessionId (required).</param>
-        /// <param name="id">id.</param>
-        /// <param name="orchestrationStatus">orchestrationStatus.</param>
         public ReconstructionCreate(Guid captureSessionId)
         {
             this.CaptureSessionId = captureSessionId;
