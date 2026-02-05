@@ -1,0 +1,24 @@
+<Project>
+    <PropertyGroup>
+        <Authors>Tyler</Authors>
+        <Company>Outernet Foundation</Company>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)LICENSE" Pack="true" PackagePath="" />
+        <None
+            Include="$(MSBuildProjectDirectory)\..\..\README.md"
+            Pack="true"
+            PackagePath=""
+            Condition="Exists('$(MSBuildProjectDirectory)\..\..\README.md')"
+        />
+
+        <PackageReference Include="PolySharp" Version="1.14.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+</Project>

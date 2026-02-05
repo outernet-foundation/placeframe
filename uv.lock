@@ -1655,7 +1655,7 @@ dev = [
 
 [[package]]
 name = "placeframe-api-client"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "packages/generated/python/api-client" }
 dependencies = [
     { name = "httpx" },
@@ -1734,7 +1734,7 @@ neural-networks-rocm = [{ name = "neural-networks", extras = ["rocm"], editable 
 
 [[package]]
 name = "placeframe-localizer-client"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "packages/generated/python/localizer-client" }
 dependencies = [
     { name = "httpx" },
