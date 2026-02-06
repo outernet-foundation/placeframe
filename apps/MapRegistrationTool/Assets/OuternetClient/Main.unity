@@ -182,7 +182,6 @@ MonoBehaviour:
   _culledScreenSpaceError: 64
   _opaqueMaterial: {fileID: 0}
   _generateSmoothNormals: 0
-  _ignoreKhrMaterialsUnlit: 0
   _pointCloudShading:
     _attenuation: 0
     _geometricErrorScale: 1
@@ -256,7 +255,6 @@ MonoBehaviour:
   _culledScreenSpaceError: 64
   _opaqueMaterial: {fileID: 2100000, guid: b5a097fa462ce9749a494ca920bdbde0, type: 2}
   _generateSmoothNormals: 0
-  _ignoreKhrMaterialsUnlit: 0
   _pointCloudShading:
     _attenuation: 0
     _geometricErrorScale: 1
@@ -496,7 +494,6 @@ MonoBehaviour:
   _culledScreenSpaceError: 64
   _opaqueMaterial: {fileID: 2100000, guid: d2032d88bf6556a459f397ec48ec5573, type: 2}
   _generateSmoothNormals: 0
-  _ignoreKhrMaterialsUnlit: 0
   _pointCloudShading:
     _attenuation: 0
     _geometricErrorScale: 1
@@ -678,8 +675,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_FirstSelected: {fileID: 0}
-  m_sendNavigationEvents: 1
-  m_DragThreshold: 10
+  m_sendNavigationEvents: 0
+  m_DragThreshold: 0
 --- !u!4 &1458826279
 Transform:
   m_ObjectHideFlags: 0
@@ -789,7 +786,6 @@ MonoBehaviour:
   _culledScreenSpaceError: 64
   _opaqueMaterial: {fileID: 2100000, guid: b5a097fa462ce9749a494ca920bdbde0, type: 2}
   _generateSmoothNormals: 0
-  _ignoreKhrMaterialsUnlit: 0
   _pointCloudShading:
     _attenuation: 0
     _geometricErrorScale: 1
@@ -903,7 +899,6 @@ MonoBehaviour:
   _culledScreenSpaceError: 64
   _opaqueMaterial: {fileID: 0}
   _generateSmoothNormals: 0
-  _ignoreKhrMaterialsUnlit: 0
   _pointCloudShading:
     _attenuation: 0
     _geometricErrorScale: 1

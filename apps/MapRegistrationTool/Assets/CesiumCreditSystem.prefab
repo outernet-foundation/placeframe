@@ -8,9 +8,13 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 4747555983806020061, guid: 06810f89bf31657478c3c2c3443be94f, type: 3}
+      propertyPath: m_PanelSettings
+      value: 
+      objectReference: {fileID: 11400000, guid: d6be6a08cde94a640b62ef7921dd14f1, type: 2}
     - target: {fileID: 6773500804347934950, guid: 06810f89bf31657478c3c2c3443be94f, type: 3}
       propertyPath: m_Name
-      value: CesiumCreditSystemDefault
+      value: CesiumCreditSystem
       objectReference: {fileID: 0}
     - target: {fileID: 6773500804347934950, guid: 06810f89bf31657478c3c2c3443be94f, type: 3}
       propertyPath: m_IsActive

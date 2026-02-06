@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using FofX.Stateful;
 using Placeframe.Core;
 using UnityEngine;
 
@@ -10,15 +9,12 @@ namespace Placeframe.MapRegistrationTool
     public class SceneViewManager : MonoBehaviour
     {
         public static Transform sceneRoot => _instance.transform;
-
         private static SceneViewManager _instance;
 
         private Dictionary<Guid, SceneMap> _maps = new Dictionary<Guid, SceneMap>();
 
         private void Awake()
         {
-            App.RegisterObserver(HandleEcefToUnityWorldChanged, App.state.ecefToUnityWorldMatrix);
-
             if (_instance != null)
             {
                 Destroy(this);
@@ -27,12 +23,21 @@ namespace Placeframe.MapRegistrationTool
 
             _instance = this;
 
+            VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated += HandleEcefToUnityWorldChanged;
             App.state.maps.Each(kvp => SetupMap(kvp.value));
         }
 
-        private void HandleEcefToUnityWorldChanged(NodeChangeEventArgs args)
+        private void HandleEcefToUnityWorldChanged()
         {
-            App.ExecuteActionOrDelay(new UpdateMapLocationsAction(VisualPositioningSystem.EcefToUnityWorldTransform, _maps.Values.Select(x => x.props).ToArray()));
+            App.ExecuteActionOrDelay(
+                // Use one action to update all loaded maps when our reference frame changes.
+                // This is more efficient and removes the need for a duplicate ecefToUnityWorldTransform
+                // value in App.state.
+                new UpdateMapLocationsAction(
+                    VisualPositioningSystem.EcefToUnityWorldTransform,
+                    _maps.Values.Select(x => x.props).ToArray()
+                )
+            );
         }
 
         private IDisposable SetupMap(MapState map)

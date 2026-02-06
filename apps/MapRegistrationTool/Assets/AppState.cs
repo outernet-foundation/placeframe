@@ -29,9 +29,6 @@ namespace Placeframe.MapRegistrationTool
         public ObservableDictionary<Guid, TransformState> transforms { get; private set; }
         public ObservableDictionary<Guid, MapState> maps { get; private set; }
 
-        public ObservablePrimitive<double4x4> ecefToUnityWorldMatrix { get; private set; } = new ObservablePrimitive<double4x4>(double4x4.identity);
-        public ObservablePrimitive<double4x4> unityWorldToEcefMatrix { get; private set; }
-
         public UserSettings settings { get; private set; }
         public ObservablePrimitive<double2?> location { get; private set; }
         public ObservablePrimitive<bool> locationContentLoaded { get; private set; }
@@ -56,12 +53,6 @@ namespace Placeframe.MapRegistrationTool
                 _ => loggedIn.value = authStatus.value == AuthStatus.LoggedIn,
                 ObservationScope.Self,
                 authStatus
-            );
-
-            unityWorldToEcefMatrix.RegisterDerived(
-                _ => unityWorldToEcefMatrix.value = math.inverse(ecefToUnityWorldMatrix.value),
-                ObservationScope.Self,
-                ecefToUnityWorldMatrix
             );
         }
 
@@ -115,6 +106,7 @@ namespace Placeframe.MapRegistrationTool
         public ObservablePrimitive<bool> restoreLocationAutomatically { get; private set; }
         public ObservableList<LocationHistoryData> locationHistory { get; private set; }
         public ObservablePrimitive<float> nodeFetchRadius { get; private set; }
+        public ObservableSet<string> activeTilesets { get; private set; }
     }
 
     public class LocationHistoryData : ObservableObject

@@ -51,7 +51,7 @@ MonoBehaviour:
   m_Padding:
     m_Left: 15
     m_Right: 15
-    m_Top: 0
+    m_Top: 15
     m_Bottom: 15
   m_ChildAlignment: 0
   m_Spacing: 15
@@ -468,7 +468,7 @@ MonoBehaviour:
     m_Top: 0
     m_Bottom: 0
   m_ChildAlignment: 0
-  m_Spacing: 15
+  m_Spacing: 0
   m_ChildForceExpandWidth: 1
   m_ChildForceExpandHeight: 0
   m_ChildControlWidth: 1
@@ -629,7 +629,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3485664136682213477, guid: c120934f614607c4f9a20cd98e924d7b, type: 3}
       propertyPath: m_VerticalAlignment
-      value: 8192
+      value: 1024
       objectReference: {fileID: 0}
     - target: {fileID: 3485664136682213477, guid: c120934f614607c4f9a20cd98e924d7b, type: 3}
       propertyPath: m_HorizontalAlignment

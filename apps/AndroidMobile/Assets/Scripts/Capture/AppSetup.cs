@@ -49,8 +49,9 @@ namespace Placeframe.Client
             var cameraProvider = new NoOpCameraProvider();
 #else
             var cameraProvider = new CameraProvider(SceneReferences.ARCameraManager, SceneReferences.ARAnchorManager);
-            CaptureManager.Initialize(cameraProvider);
 #endif
+
+            CaptureManager.Initialize(cameraProvider);
 
             localizationManager.Initialize(cameraProvider);
             ZedCaptureController.Initialize();

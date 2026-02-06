@@ -10,7 +10,6 @@ using Placeframe.Core;
 using PlaceframeApiClient.Model;
 using Unity.Mathematics;
 using UnityEngine;
-using static Placeframe.Core.LocationUtilities;
 
 namespace Placeframe.MapRegistrationTool
 {
@@ -190,14 +189,14 @@ namespace Placeframe.MapRegistrationTool
             // SceneReferences.CesiumGeoreference.transform.rotation = math.inverse(ecefRotation.ToQuaternion());
 
             // Update the application's ECEF to Unity world matrix.
-            var (ecefPositionUnityBasis, ecefRotationUnityBasis) = ChangeBasisUnityFromEcef(ecefPosition, ecefRotation);
+            var (ecefPositionUnityBasis, ecefRotationUnityBasis) = LocationUtilities.ChangeBasisUnityFromEcef(ecefPosition, ecefRotation);
             var ecefFromUnityTransformUnityBasis = Double4x4.FromTranslationRotation(
                 ecefPositionUnityBasis,
                 ecefRotationUnityBasis
             );
 
             var unityFromEcefTransformUnityBasis = math.inverse(ecefFromUnityTransformUnityBasis);
-            App.state.ecefToUnityWorldMatrix.ExecuteSetOrDelay(unityFromEcefTransformUnityBasis);
+            VisualPositioningSystem.SetEcefToUnityTransform(unityFromEcefTransformUnityBasis);
 
             List<LocalizationMapRead> maps = default;
 
@@ -205,7 +204,18 @@ namespace Placeframe.MapRegistrationTool
 
             await UniTask.SwitchToMainThread(cancellationToken);
 
-            App.ExecuteActionOrDelay(new SetMapsAction(maps.ToArray()));
+            float maxDistance = App.state.settings.nodeFetchRadius.value * App.state.settings.nodeFetchRadius.value;
+
+            App.ExecuteActionOrDelay(new SetMapsAction(maps.Where(x =>
+            {
+                var local = VisualPositioningSystem.EcefToUnityWorld(
+                    new double3(x.PositionX, x.PositionY, x.PositionZ),
+                    new quaternion((float)x.RotationX, (float)x.RotationY, (float)x.RotationZ, (float)x.RotationW)
+                );
+
+                return local.position.sqrMagnitude < maxDistance;
+
+            }).ToArray()));
 
             Destroy(dialog.gameObject);
 

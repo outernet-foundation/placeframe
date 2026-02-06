@@ -41,7 +41,10 @@ namespace Placeframe.MapRegistrationTool
 
             gameObject.AddComponent<App>();
 
-            Instantiate(Prefabs.CesiumCreditSystemUI);
+            var creditSystem = Instantiate(Prefabs.CesiumCreditSystem);
+
+            // if this is not the only object loaded into unity with this name (including it's source prefab), the credit system will error
+            creditSystem.name = "CesiumCreditSystemDefault";
 
             var canvas = Instantiate(Prefabs.Canvas);
             var systemUI = Instantiate(Prefabs.SystemMenu, canvas.transform); // system menu must exist first because map registration ui because staticly references it

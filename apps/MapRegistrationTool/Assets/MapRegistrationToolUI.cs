@@ -32,6 +32,8 @@ namespace Placeframe.MapRegistrationTool
         private Dictionary<Guid, Transform> _viewByID = new Dictionary<Guid, Transform>();
         private Dictionary<Transform, Guid> _idByView = new Dictionary<Transform, Guid>();
 
+        private Dictionary<string, (LabelToggle menuItem, GameObject tileset)> _tilesets = new Dictionary<string, (LabelToggle menuItem, GameObject tileset)>();
+
         private Guid _lastSelectedElement;
 
         private void Awake()
@@ -108,11 +110,24 @@ namespace Placeframe.MapRegistrationTool
 
             foreach (var tileset in SceneReferences.Tilesets)
             {
-                var instance = Instantiate(tilesetToggleTemplate, tilesetToggleTemplate.transform.parent);
-                instance.label.text = tileset.name;
-                instance.toggle.onValueChanged.AddListener(isOn => tileset.reference.SetActive(isOn));
-                instance.toggle.isOn = tileset.reference.activeSelf;
+                var toggle = Instantiate(tilesetToggleTemplate, tilesetToggleTemplate.transform.parent);
+                toggle.label.text = tileset.name;
+                toggle.toggle.onValueChanged.AddListener(isOn =>
+                {
+                    if (isOn)
+                    {
+                        App.state.settings.activeTilesets.ExecuteAddOrDelay(tileset.name);
+                    }
+                    else
+                    {
+                        App.state.settings.activeTilesets.ExecuteRemoveOrDelay(tileset.name);
+                    }
+                });
+
+                _tilesets.Add(tileset.name, new(toggle, tileset.reference));
             }
+
+            App.RegisterObserver(HandleActiveTilesetsChanged, App.state.settings.activeTilesets, App.state.loggedIn);
 
             tilesetToggleTemplate.gameObject.SetActive(false);
             App.state.maps.Each(x => SetupMapView(x.value));
@@ -141,6 +156,19 @@ namespace Placeframe.MapRegistrationTool
                         _lastSelectedElement = Guid.Empty;
                 }
             );
+        }
+
+        private void HandleActiveTilesetsChanged(NodeChangeEventArgs args)
+        {
+            if (!App.state.loggedIn.value)
+                return;
+
+            foreach (var tileset in _tilesets)
+            {
+                bool active = App.state.settings.activeTilesets.Contains(tileset.Key);
+                tileset.Value.tileset.SetActive(active);
+                tileset.Value.menuItem.toggle.isOn = active;
+            }
         }
 
         private IDisposable SetupMapView(MapState mapState)

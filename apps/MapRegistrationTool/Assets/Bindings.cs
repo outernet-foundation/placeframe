@@ -663,7 +663,7 @@ namespace Placeframe.MapRegistrationTool
                     localRotation.value = transform.rotation;
                 },
                 ObservationScope.Self,
-                new IObservableNode[] { ecefPosition, ecefRotation, App.state.ecefToUnityWorldMatrix },
+                new IObservableNode[] { ecefPosition, ecefRotation },
                 _ =>
                 {
                     var transform = VisualPositioningSystem.UnityWorldToEcef(localPosition.value, localRotation.value);
@@ -671,7 +671,7 @@ namespace Placeframe.MapRegistrationTool
                     ecefRotation.value = transform.rotation;
                 },
                 ObservationScope.Self,
-                new IObservableNode[] { localPosition, localRotation, App.state.unityWorldToEcefMatrix }
+                new IObservableNode[] { localPosition, localRotation }
             );
         }
 
