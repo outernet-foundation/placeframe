@@ -60,11 +60,11 @@ uv run down
 
 While the server is running, you can visit you ngrok static domain in a web browser to browse the OpenAPI schema and test requests.
 
-The backend provides a reference [Keycloak](https://www.keycloak.org/) implementation for authentication and authorization, so you will need to authorize yourself in order to test requests. By default, you can use the username "user", and the password "password". This is configured in the file: `docker\keycloak\realm-export\placeframe.json`
+The backend provides a reference [Keycloak](https://www.keycloak.org/) implementation for authentication and authorization, so you will need to authorize yourself in order to test requests. By default, you can use the username "user", and the password "password". This is configured in the [Keycloack realm configuration file](docker/keycloak/realm-export/placeframe.json).
 
 ## Capture Tool
 
-Placeframe has a tool build in Unity for capturing and submitting map data, as well validating reconstructed maps by localizing aginst them. It can be dowloaded on the [releases page](https://github.com/outernet-foundation/placeframe/releases/download/alpha/AndroidMobile.apk).
+Placeframe has a tool build in Unity for capturing and submitting map data, as well validating reconstructed maps by localizing aginst them. Currently there is an Android Mobile build for this app, which can be dowloaded on the [releases page](https://github.com/outernet-foundation/placeframe/releases). A future release will include support for iOS.
 
 With this application, you can login into your Placeframe backend, capture data of your environment (we recommend walking the perimeter of the envrionment with camera facing inwards), submit that data to the backend for localization map reconstruction, and finally validate that map by localizing against it. A few moments after starting relocalization, you will see a point cloud in your environment, tracking your environment.
 
@@ -72,10 +72,10 @@ With this application, you can login into your Placeframe backend, capture data 
 
 ## Map Registration Tool
 
-Placeframe also has a tool built in Unity for **registering** maps against Cesium Tilesets. Currently, this tool can be explored directly in the Unity editor using play mode; a future release will include downloadable builds of this tool. You can find it in this folder: `apps\MapRegistrationTool`.
+Placeframe also has a tool built in Unity for **registering** maps against Cesium Tilesets. Currently, there are Windows and MacOS standalone builds available for this tool, which can be downloaded on the [releases page](https://github.com/outernet-foundation/placeframe/releases). A future release will include support for Linux standalone.
 
 Using this tool, previously constructed localization maps can be visualized using their point clouds and visually aligned with Open Street Map (OSM) building geometry, or Google Photorealistic Tiles. This can be used to georeference localization maps, allowing Placeframe applications to anchor AR content using GPS coordinates.
 
 ## Unity Package
 
-Finally, Placeframe has Unity packages (currently supporting ARFoundation, with Magic Leap 2 support coming in a future release) for communicating between an Unity app and a Placeframe backend deployment. It can currently be included using git URLs; a future release will add a scope package registry. You can find it in this folder: `packages\unity\Placeframe`.
+Finally, Placeframe has Unity packages (currently supporting ARFoundation, with Magic Leap 2 support coming in a future release) for communicating between an Unity app and a Placeframe backend deployment. It can currently be included using git URLs; a future release will add a scope package registry. You can find it in this folder: [packages/unity/Placeframe](packages/unity/Placeframe).
