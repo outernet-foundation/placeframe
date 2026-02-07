@@ -36,9 +36,9 @@
     "x-base-images",
     "x-base-args",
     "x-registry-cache",
-    "services",
     "networks",
     "volumes",
+    "services",
     "secrets",
     "configs"
   ],
@@ -77,5 +77,7 @@
   "basedpyright.analysis.diagnosticMode": "workspace",
   "pgFormatter.configFile": "${workspaceFolder}/pg_format.conf",
   "ruff.nativeServer": "on",
-  "ruff.importStrategy": "useBundled"
+  "ruff.importStrategy": "useBundled",
+  "Devdb.enableMcpServer": false,
+  "Devdb.colorTheme": "dark"
 }

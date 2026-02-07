@@ -13,9 +13,9 @@
     "detachhead.basedpyright",
     "supabase.postgrestools",
     "bradymholt.pgformatter",
-    "ckolkman.vscode-postgres",
     "pkief.material-icon-theme",
     "csharpier.csharpier-vscode",
-    "sashabusinaro.yaml-compose-sorter"
+    "sashabusinaro.yaml-compose-sorter",
+    "damms005.devdb"
   ]
 }

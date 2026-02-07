@@ -1,5 +1,15 @@
 name: placeframe
 
+volumes:
+  uv_cache:
+  minio_data:
+  postgres_data:
+  cloudbeaver_data:
+  auth_data:
+  keycloak_import:
+  keycloak_data:
+
+
 services:
   minio:
     x-image-ref: docker.io/minio/minio:latest
@@ -68,51 +78,14 @@ services:
       POSTGRES_USER: "${POSTGRES_ADMIN_USER:?err}"
       POSTGRES_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
 
-  initialize-cloudbeaver:
-    x-image-ref: ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:latest
-    image: "${INITIALIZE_CLOUDBEAVER_IMAGE:?err}"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: "no"
-    volumes:
-      - cloudbeaver_data:/opt/cloudbeaver/workspace
-    environment:
-      POSTGRES_HOST: "${POSTGRES_HOST:?err}"
-      POSTGRES_ADMIN_USER: "${POSTGRES_ADMIN_USER:?err}"
-      POSTGRES_ADMIN_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
-      CB_ADMIN_NAME: "${CLOUDBEAVER_ADMIN_USER:?err}"
-      CB_ADMIN_PASSWORD: "${CLOUDBEAVER_ADMIN_PASSWORD:?err}"
-
-  cloudbeaver:
-    x-image-ref: docker.io/dbeaver/cloudbeaver:latest
-    image: "${CLOUDBEAVER_IMAGE:?err}"
-    depends_on:
-      initialize-cloudbeaver:
-        condition: service_completed_successfully
-    ports:
-      - "${CLOUDBEAVER_PORT:?err}:8978"
-    volumes:
-      - cloudbeaver_data:/opt/cloudbeaver/workspace
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8978" ]
-      interval: 1s
-      timeout: 1s
-      retries: 90
-
   create-database:
     x-image-ref: ghcr.io/outernet-foundation/placeframe/database-manager:latest
     image: "${CREATE_DATABASE_IMAGE:?err}"
     depends_on:
       postgres:
         condition: service_healthy
-      cloudbeaver:
-        condition: service_healthy
     restart: "no"
     volumes:
-      - cloudbeaver_data:/mnt/efs
       - /var/run/docker.sock:/var/run/docker.sock
     entrypoint: >-
       uv run --no-sync python -m src.main --op create --name "${DATABASE_NAME:?err}" --owner-password "${DATABASE_OWNER_PASSWORD:?err}" --api-user-password "${DATABASE_API_USER_PASSWORD:?err}" --auth-user-password "${DATABASE_AUTH_USER_PASSWORD:?err}" --orchestration-user-password "${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}"
@@ -268,13 +241,3 @@ services:
       AUTH_TOKEN_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
       AUTH_CLIENT_ID: "${AUTH_WORKER_CLIENT_ID:?err}"
       PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
-
-volumes:
-  uv_cache:
-  minio_data:
-  postgres_data:
-  cloudbeaver_data:
-  auth_data:
-  keycloak_import:
-  keycloak_data:
-
