@@ -8,8 +8,9 @@ using Unity.Mathematics;
 
 using FofX;
 using FofX.Stateful;
+using Placeframe.Core;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public static class Bindings
     {
@@ -657,20 +658,20 @@ namespace Outernet.MapRegistrationTool
             return Relationship(
                 _ =>
                 {
-                    var transform = LocationUtilities.UnityFromEcef(ecefPosition.value, ecefRotation.value);
+                    var transform = VisualPositioningSystem.EcefToUnityWorld(ecefPosition.value, ecefRotation.value);
                     localPosition.value = transform.position;
                     localRotation.value = transform.rotation;
                 },
                 ObservationScope.Self,
-                new IObservableNode[] { ecefPosition, ecefRotation, App.state.ecefToUnityWorldMatrix },
+                new IObservableNode[] { ecefPosition, ecefRotation },
                 _ =>
                 {
-                    var transform = LocationUtilities.EcefFromUnity(localPosition.value, localRotation.value);
+                    var transform = VisualPositioningSystem.UnityWorldToEcef(localPosition.value, localRotation.value);
                     ecefPosition.value = transform.position;
                     ecefRotation.value = transform.rotation;
                 },
                 ObservationScope.Self,
-                new IObservableNode[] { localPosition, localRotation, App.state.unityWorldToEcefMatrix }
+                new IObservableNode[] { localPosition, localRotation }
             );
         }
 

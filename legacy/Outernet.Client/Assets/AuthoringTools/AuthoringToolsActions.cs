@@ -2,7 +2,9 @@ using System;
 using System.Linq;
 
 using FofX.Stateful;
-
+using Placeframe.Core;
+using PlaceframeApiClient.Model;
+using SimpleJSON;
 using Unity.Mathematics;
 
 using SimpleJSON;
@@ -270,13 +272,13 @@ namespace Outernet.Client.AuthoringTools
             foreach (var map in _toUpdate)
             {
                 var transform = target.transforms[map.sceneObjectID.value];
-                var localNodeTransform = Client.Utility.EcefToLocal(
+                var localNodeTransform = LocationUtilities.UnityFromEcef(
                     _ecefToLocalMatrix,
                     transform.position.value,
                     transform.rotation.value
                 );
 
-                map.position.value = localNodeTransform.position;
+                map.position.value = new UnityEngine.Vector3((float)localNodeTransform.position.x, (float)localNodeTransform.position.y, (float)localNodeTransform.position.z);
                 map.rotation.value = localNodeTransform.rotation;
             }
         }

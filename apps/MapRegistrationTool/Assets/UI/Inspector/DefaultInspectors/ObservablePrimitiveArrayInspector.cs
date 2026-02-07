@@ -8,7 +8,7 @@ using UnityEngine.UI;
 using FofX.Stateful;
 using TMPro;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class ObservablePrimitiveArrayInspector : ObservableNodeInspector<IObservablePrimitiveArray>
     {

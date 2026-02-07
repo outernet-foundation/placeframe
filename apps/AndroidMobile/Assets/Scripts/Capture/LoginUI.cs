@@ -41,8 +41,8 @@ namespace Placeframe.Client
                                 control = InputField(new InputFieldProps()
                                 {
                                     layout = new() { flexibleWidth = Props.Value(true) },
-                                    value = App.state.domain.AsObservable(),
-                                    onValueChanged = x => App.state.domain.ExecuteSetOrDelay(x)
+                                    value = App.state.settings.domain.AsObservable(),
+                                    onValueChanged = x => App.state.settings.domain.ExecuteSetOrDelay(x)
                                 })
                             }),
                             LabeledControl(new LabeledControlProps()
@@ -52,8 +52,8 @@ namespace Placeframe.Client
                                 control = InputField(new InputFieldProps()
                                 {
                                     layout = new() { flexibleWidth = Props.Value(true) },
-                                    value = App.state.username.AsObservable(),
-                                    onValueChanged = x => App.state.username.ExecuteSetOrDelay(x)
+                                    value = App.state.settings.username.AsObservable(),
+                                    onValueChanged = x => App.state.settings.username.ExecuteSetOrDelay(x)
                                 })
                             }),
                             LabeledControl(new LabeledControlProps()
@@ -63,9 +63,9 @@ namespace Placeframe.Client
                                 control = InputField(new InputFieldProps()
                                 {
                                     layout = new() { flexibleWidth = Props.Value(true) },
-                                    value = App.state.password.AsObservable(),
+                                    value = App.state.settings.password.AsObservable(),
                                     contentType = Props.Value(TMP_InputField.ContentType.Password),
-                                    onValueChanged = x => App.state.password.ExecuteSetOrDelay(x)
+                                    onValueChanged = x => App.state.settings.password.ExecuteSetOrDelay(x)
                                 })
                             }),
                             HorizontalLayout(new LayoutGroupProps()

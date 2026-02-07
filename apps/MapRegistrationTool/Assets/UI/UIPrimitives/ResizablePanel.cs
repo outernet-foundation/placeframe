@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     [RequireComponent(typeof(RectTransform))]
     public class ResizablePanel : MonoBehaviour, IBeginDragHandler, IEndDragHandler, IDragHandler

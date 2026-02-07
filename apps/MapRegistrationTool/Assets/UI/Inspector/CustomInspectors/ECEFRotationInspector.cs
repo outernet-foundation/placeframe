@@ -4,8 +4,9 @@ using FofX.Stateful;
 
 using System.Linq;
 using System;
+using Placeframe.Core;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class ECEFRotationInspector : CustomObservableNodeInspector
     {
@@ -23,7 +24,7 @@ namespace Outernet.MapRegistrationTool
                     return;
 
                 UndoRedoManager.RegisterUndo("Set Rotation");
-                ecefRotation.ExecuteSet(LocationUtilities.EcefFromUnity(default, localInput.value).rotation);
+                ecefRotation.ExecuteSet(VisualPositioningSystem.UnityWorldToEcef(default, localInput.value).rotation);
             };
 
             return Bindings.Compose(
@@ -31,7 +32,7 @@ namespace Outernet.MapRegistrationTool
                 ecefRotation.OnChange(x =>
                 {
                     pushingChanges = true;
-                    localInput.value = LocationUtilities.UnityFromEcef(default, x).rotation;
+                    localInput.value = VisualPositioningSystem.EcefToUnityWorld(default, x).rotation;
                     pushingChanges = false;
                 })
             );

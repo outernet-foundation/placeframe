@@ -389,13 +389,13 @@ namespace Outernet.Client
             foreach (var clientNode in _toUpdate)
             {
                 var transform = target.transforms[clientNode.uuid.value];
-                var localNodeTransform = Utility.EcefToLocal(
+                var localNodeTransform = LocationUtilities.UnityFromEcef(
                     _ecefToLocalMatrix,
                     transform.position.value,
                     transform.rotation.value
                 );
 
-                clientNode.position.value = localNodeTransform.position;
+                clientNode.position.value = new Vector3((float)localNodeTransform.position.x, (float)localNodeTransform.position.y, (float)localNodeTransform.position.z);
                 clientNode.rotation.value = localNodeTransform.rotation;
 
                 if (clientNode.exhibitOpen.value)
@@ -404,9 +404,9 @@ namespace Outernet.Client
 
                     if (clientNode.interacting.value)
                     {
-                        var ecefExhibitTransform = Utility.LocalToEcef(
+                        var ecefExhibitTransform = LocationUtilities.UnityFromEcef(
                             _localToEcefMatrix,
-                            clientNode.exhibitPosition.value,
+                            clientNode.exhibitPosition.value.ToDoubles(),
                             clientNode.exhibitRotation.value
                         );
 
@@ -415,13 +415,13 @@ namespace Outernet.Client
                     }
                     else
                     {
-                        var localExhibitTransform = Utility.EcefToLocal(
+                        var localExhibitTransform = LocationUtilities.EcefFromUnity(
                             _ecefToLocalMatrix,
                             nodeState.exhibitPosition.value,
                             nodeState.exhibitRotation.value
                         );
 
-                        clientNode.exhibitPosition.value = localExhibitTransform.position;
+                        clientNode.exhibitPosition.value = new Vector3((float)localExhibitTransform.position.x, (float)localExhibitTransform.position.y, (float)localExhibitTransform.position.z);
                         clientNode.exhibitRotation.value = localExhibitTransform.rotation;
                     }
                 }

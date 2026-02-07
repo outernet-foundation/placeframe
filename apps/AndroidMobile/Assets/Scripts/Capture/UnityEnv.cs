@@ -13,12 +13,7 @@ namespace Placeframe.Client
     {
         private static UnityEnv _instance;
         public string dotEnvPath;
-        public string placeframeApiUrl;
-        public string placeframeAuthTokenUrl;
         public string placeframeAuthAudience;
-        public string username;
-        public string password;
-        public bool loginAutomatically;
 
         public static UnityEnv GetOrCreateInstance()
         {
@@ -98,9 +93,6 @@ namespace Placeframe.Client
                         throw new Exception("AUTH_AUDIENCE is not set in the .env file.");
                     }
 
-                    _instance.placeframeApiUrl = $"https://{publicDomain}";
-                    _instance.placeframeAuthTokenUrl =
-                        $"{_instance.placeframeApiUrl}/auth/realms/placeframe-dev/protocol/openid-connect/token";
                     _instance.placeframeAuthAudience = authAudience;
                 }
                 catch (Exception exception)

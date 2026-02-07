@@ -7,7 +7,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     [RequireComponent(typeof(LocalizationMap))]
     public class SceneMap : Control<SceneMap.Props>, IPointerClickHandler
@@ -88,7 +88,7 @@ namespace Outernet.MapRegistrationTool
             instance._localizationMapVisualizer.Initialize(mapId);
             instance.InitializeAndBind(new Props(sceneObjectID, name, position, rotation));
 
-            instance.AddBinding(Bindings.OnRelease(() => Destroy(instance)));
+            instance.AddBinding(Bindings.OnRelease(() => Destroy(instance.gameObject)));
 
             if (bind != null)
                 instance.AddBinding(bind(instance.props));

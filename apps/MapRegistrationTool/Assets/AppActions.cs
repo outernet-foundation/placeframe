@@ -9,8 +9,9 @@ using PlaceframeApiClient.Model;
 using Quaternion = UnityEngine.Quaternion;
 
 using SimpleJSON;
+using Placeframe.Core;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class SetPrimitiveValueAction<T> : ObservableNodeAction<ObservablePrimitive<T>>
     {
@@ -101,6 +102,24 @@ namespace Outernet.MapRegistrationTool
         public override void Execute(ObservableDictionary<TKey, TValue> target)
         {
             target.Remove(_key);
+        }
+    }
+
+    public class SetAuthStatusAction : ObservableNodeAction<AppState>
+    {
+        private AuthStatus _status;
+        private string _error;
+
+        public SetAuthStatusAction(AuthStatus status, string error = null)
+        {
+            _status = status;
+            _error = error;
+        }
+
+        public override void Execute(AppState target)
+        {
+            target.authStatus.value = _status;
+            target.authError.value = _status == AuthStatus.Error ? _error : null;
         }
     }
 
@@ -290,9 +309,11 @@ namespace Outernet.MapRegistrationTool
     {
         public override void Execute(AppState target)
         {
+            target.settings.username.value = "user";
+            target.settings.password.value = "password";
             target.settings.restoreLocationAutomatically.value = true;
-            target.settings.loaded.value = true;
             target.settings.nodeFetchRadius.value = 25f;
+            target.settings.loaded.value = true;
         }
     }
 
@@ -336,10 +357,12 @@ namespace Outernet.MapRegistrationTool
 
     public class UpdateMapLocationsAction : ObservableNodeAction<AppState>
     {
+        private double4x4 _ecefToLocalMatrix;
         private SceneMap.Props[] _toUpdate;
 
-        public UpdateMapLocationsAction(SceneMap.Props[] toUpdate)
+        public UpdateMapLocationsAction(double4x4 ecefToLocalMatrix, SceneMap.Props[] toUpdate)
         {
+            _ecefToLocalMatrix = ecefToLocalMatrix;
             _toUpdate = toUpdate;
         }
 
@@ -348,13 +371,13 @@ namespace Outernet.MapRegistrationTool
             foreach (var map in _toUpdate)
             {
                 var transform = target.transforms[map.sceneObjectID.value];
-                var localNodeTransform = MapRegistrationTool.Utility.EcefToLocal(
-                    target.ecefToUnityWorldMatrix.value,
+                var localNodeTransform = LocationUtilities.UnityFromEcef(
+                    _ecefToLocalMatrix,
                     transform.position.value,
                     transform.rotation.value
                 );
 
-                map.position.value = localNodeTransform.position;
+                map.position.value = new UnityEngine.Vector3((float)localNodeTransform.position.x, (float)localNodeTransform.position.y, (float)localNodeTransform.position.z);
                 map.rotation.value = localNodeTransform.rotation;
             }
         }

@@ -69,7 +69,12 @@ namespace Placeframe.Core.ARFoundation
         {
             // Ensure we have camera permission (this should be requested at the app level)
             if (!Permission.HasUserAuthorizedPermission(Permission.Camera))
+            {
+                Debug.LogError("EP: Camera permission not granted");
                 throw new Exception("Camera permission not granted");
+            }
+
+            Debug.Log("EP: " + _cameraManager.currentConfiguration);
 
             // Select the best available camera configuration (highest resolution)
             XRCameraConfiguration? bestConfig = null;
@@ -85,21 +90,42 @@ namespace Placeframe.Core.ARFoundation
                 }
             }
 
-            if (!bestConfig.HasValue)
-                throw new Exception("No camera configurations available");
-
-            if (_cameraManager.currentConfiguration != bestConfig)
-                _cameraManager.currentConfiguration = bestConfig;
-
-            // Wait until intrinsics are available and match the selected configuration
             XRCameraIntrinsics intrinsics = default;
-            await UniTask.WaitUntil(
-                () =>
-                    _cameraManager.TryGetIntrinsics(out intrinsics)
-                    && intrinsics.resolution.x == bestConfig.Value.width
-                    && intrinsics.resolution.y == bestConfig.Value.height,
-                cancellationToken: cancellationToken
-            );
+
+            if (bestConfig.HasValue)
+            {
+                if (_cameraManager.currentConfiguration != bestConfig)
+                {
+                    Debug.LogError("EP: Setting camera config!");
+                    try
+                    {
+                        _cameraManager.currentConfiguration = bestConfig;
+                    }
+                    catch (Exception exc)
+                    {
+                        // no-op, platform doesn't support setting config
+                    }
+                }
+
+                // Wait until intrinsics are available and match the selected configuration
+                await UniTask.WaitUntil(
+                    () =>
+                        _cameraManager.TryGetIntrinsics(out intrinsics)
+                        && intrinsics.resolution.x == bestConfig.Value.width
+                        && intrinsics.resolution.y == bestConfig.Value.height,
+                    cancellationToken: cancellationToken
+                );
+            }
+            else
+            {
+                // Wait until intrinsics are available
+                await UniTask.WaitUntil(
+                    () => _cameraManager.TryGetIntrinsics(out intrinsics),
+                    cancellationToken: cancellationToken
+                );
+            }
+
+            Debug.LogError("EP: Got intrinsics!");
 
             return new PinholeCameraConfig(
                 // Our orientation conventions mirrors EXIF's orientation tag

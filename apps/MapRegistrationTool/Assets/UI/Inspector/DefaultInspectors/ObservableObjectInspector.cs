@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using FofX.Stateful;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class ObservableObjectInspector : ObservableNodeInspector<ObservableObject>
     {

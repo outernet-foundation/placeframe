@@ -13,7 +13,7 @@ using FofX.Stateful;
 using TMPro;
 using Placeframe.Core;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public enum LabelType
     {

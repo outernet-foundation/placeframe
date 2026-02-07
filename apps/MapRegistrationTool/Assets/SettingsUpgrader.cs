@@ -2,7 +2,7 @@ using System;
 using FofX.Stateful;
 using SimpleJSON;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public static class SettingsUpgrader
     {

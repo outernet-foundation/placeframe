@@ -10,7 +10,7 @@ using Vector3 = UnityEngine.Vector3;
 
 namespace Placeframe.Core
 {
-    [RequireComponent(typeof(ParticleSystem), typeof(Anchor))]
+    [RequireComponent(typeof(ParticleSystem))]
     public class LocalizationMap : MonoBehaviour
     {
         private static readonly Color DefaultColor = Color.white;
@@ -20,7 +20,6 @@ namespace Placeframe.Core
         public Material material;
 
         private CancellationTokenSource _loadCancellationTokenSource;
-        private Anchor _anchor;
         private ParticleSystem _particleSystem;
         private ParticleSystemRenderer _particleSystemRenderer;
         private Vector3[] _framePositions = null;
@@ -28,7 +27,6 @@ namespace Placeframe.Core
 
         private void Awake()
         {
-            _anchor = GetComponent<Anchor>();
             _particleSystem = GetComponent<ParticleSystem>();
             _particleSystemRenderer = GetComponent<ParticleSystemRenderer>();
         }
@@ -103,8 +101,7 @@ namespace Placeframe.Core
         private async UniTask Load(Guid mapID, CancellationToken cancellationToken)
         {
             var mapData = await VisualPositioningSystem.GetMapData(mapID);
-
-            SetEcefAnchor(
+            var local = VisualPositioningSystem.EcefToUnityWorld(
                 new double3(mapData.PositionX, mapData.PositionY, mapData.PositionZ),
                 new quaternion(
                     (float)mapData.RotationX,
@@ -113,6 +110,9 @@ namespace Placeframe.Core
                     (float)mapData.RotationW
                 )
             );
+
+            transform.position = local.position;
+            transform.rotation = local.rotation;
 
             (var pointPayload, var framePayload) = await UniTask.WhenAll(
                 VisualPositioningSystem.GetReconstructionPoints(mapData.ReconstructionId),
@@ -146,11 +146,6 @@ namespace Placeframe.Core
             }
 
             _framePositions = framePositions;
-        }
-
-        public void SetEcefAnchor(double3 ecefPosition, quaternion ecefRotation)
-        {
-            _anchor.SetEcefTransform(ecefPosition, ecefRotation);
         }
     }
 }

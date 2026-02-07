@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     [RequireComponent(typeof(Camera))]
     public class RuntimeHandlesRaycaster : BaseRaycaster

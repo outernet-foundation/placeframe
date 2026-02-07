@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using FofX.Stateful;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public abstract class ViewBase : MonoBehaviour, IDisposable
     {

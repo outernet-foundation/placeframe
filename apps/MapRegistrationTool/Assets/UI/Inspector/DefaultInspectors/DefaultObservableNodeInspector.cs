@@ -2,7 +2,7 @@ using System;
 using FofX.Stateful;
 using TMPro;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class DefaultObservableNodeInspector : ObservableNodeInspector<IObservableNode>
     {

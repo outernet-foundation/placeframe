@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 
 using FofX.Stateful;
 using Placeframe.Core;
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class SceneTransformGizmoManager : Control<SceneTransformGizmoManager.Props>
     {
@@ -125,7 +125,7 @@ namespace Outernet.MapRegistrationTool
                             logLevel: FofX.LogLevel.Trace,
                             App.state.SelectedTransforms().Select(transform =>
                             {
-                                var objTransform = LocationUtilities.UnityFromEcef(
+                                var objTransform = VisualPositioningSystem.EcefToUnityWorld(
                                     transform.position.value,
                                     transform.rotation.value
                                 );
@@ -136,7 +136,7 @@ namespace Outernet.MapRegistrationTool
                                 objTransform.position = curMatrix.MultiplyPoint(objTransform.position);
                                 objTransform.rotation = props.rotation.value * objTransform.rotation;
 
-                                var ecefTransform = LocationUtilities.EcefFromUnity(objTransform.position, objTransform.rotation);
+                                var ecefTransform = VisualPositioningSystem.UnityWorldToEcef(objTransform.position, objTransform.rotation);
 
                                 return new SetSceneObjectTransformAction(transform.id, ecefTransform.position, ecefTransform.rotation);
                             }

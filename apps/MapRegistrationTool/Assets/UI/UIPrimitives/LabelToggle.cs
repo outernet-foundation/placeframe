@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 using TMPro;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class LabelToggle : MonoBehaviour
     {

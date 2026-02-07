@@ -2,7 +2,7 @@ using FofX.Stateful;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class PlaneHandle : RuntimeHandle<PlaneHandle.Props>, IBeginDragHandler, IDragHandler
     {

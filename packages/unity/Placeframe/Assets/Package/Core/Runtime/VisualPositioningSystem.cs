@@ -270,6 +270,13 @@ namespace Placeframe.Core
             return Unit.Default;
         }
 
+        public static void SetEcefToUnityTransform(double4x4 ecefToUnityTransform)
+        {
+            _unityFromEcefTransform = ecefToUnityTransform;
+            _ecefFromUnityTransform = math.inverse(_unityFromEcefTransform);
+            OnEcefToUnityWorldTransformUpdated?.Invoke();
+        }
+
         // public static double3x3 RemovePitchAndRoll(this double3x3 rotation)
         // {
         //     float3 up = new float3(0f, 1f, 0f);

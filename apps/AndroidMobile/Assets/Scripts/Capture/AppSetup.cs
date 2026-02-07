@@ -42,9 +42,6 @@ namespace Placeframe.Client
             var env = UnityEnv.GetOrCreateInstance();
             App.state.placeframeAuthAudience.ExecuteSet(env.placeframeAuthAudience);
 
-            if (env.loginAutomatically)
-                App.ExecuteAction(new LogInAction(env.username, env.password));
-
             Instantiate(localizationManager);
             Instantiate(localizationMapManager);
 
@@ -52,13 +49,15 @@ namespace Placeframe.Client
             var cameraProvider = new NoOpCameraProvider();
 #else
             var cameraProvider = new CameraProvider(SceneReferences.ARCameraManager, SceneReferences.ARAnchorManager);
-            CaptureManager.Initialize(cameraProvider);
 #endif
+
+            CaptureManager.Initialize(cameraProvider);
 
             localizationManager.Initialize(cameraProvider);
             ZedCaptureController.Initialize();
 
             gameObject.AddComponent<AuthManager>();
+            gameObject.AddComponent<SettingsManager>();
             gameObject.AddComponent<CaptureController>();
 
             Destroy(this);

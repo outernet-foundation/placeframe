@@ -1,7 +1,7 @@
 using System;
 using UnityEngine.Networking;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class WebRequestException : Exception
     {

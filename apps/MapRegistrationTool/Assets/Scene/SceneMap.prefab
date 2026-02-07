@@ -120,6 +120,7 @@ GameObject:
   - component: {fileID: 5102312161174278584}
   - component: {fileID: 4496651037760254868}
   - component: {fileID: 6092939517894580522}
+  - component: {fileID: 6997560431055953139}
   m_Layer: 0
   m_Name: SceneMap
   m_TagString: Untagged
@@ -4955,3 +4956,17 @@ ParticleSystemRenderer:
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
   m_MaskInteraction: 0
+--- !u!114 &6997560431055953139
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2433134721555860517}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f53727c2dfb59b14a9928ae568e596ac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cylinderMesh: {fileID: 546404529894870380, guid: 2531532d450bc2f43a6a2ae4e0218a8b, type: 3}
+  material: {fileID: 2100000, guid: 708a5f2e1bb305c489e3190839eeab49, type: 2}

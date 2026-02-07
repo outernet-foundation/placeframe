@@ -668,6 +668,7 @@ namespace Placeframe.Client
                                                                 if (capture.status.value == CaptureUploadStatus.NotUploaded)
                                                                 {
                                                                     App.state.captures.ExecuteRemoveOrDelay(capture.id);
+                                                                    dialog.Dispose();
                                                                 }
                                                                 else
                                                                 {

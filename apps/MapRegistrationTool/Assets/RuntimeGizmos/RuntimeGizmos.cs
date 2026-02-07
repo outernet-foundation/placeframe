@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public static class RuntimeGizmos
     {
@@ -9,7 +9,7 @@ namespace Outernet.MapRegistrationTool
         private static void DrawGizmo(Mesh mesh, Vector3 position, Quaternion rotation, Vector3 scale, Color color, bool zTest = true)
         {
             var properties = new MaterialPropertyBlock();
-            properties.SetColor("_Color", color);
+            properties.SetColor("_BaseColor", color);
 
             Graphics.DrawMesh(
                 mesh: mesh,

@@ -5,8 +5,9 @@ using TMPro;
 
 using Toggle = UnityEngine.UI.Toggle;
 using Image = UnityEngine.UI.Image;
+using CesiumForUnity;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     [CreateAssetMenu]
     public class Prefabs : ScriptableObject
@@ -15,9 +16,9 @@ namespace Outernet.MapRegistrationTool
         public static SystemMenu SystemMenu => _instance._systemMenu;
         public static MapRegistrationToolUI MapRegistrationUI => _instance._mapRegistrationUI;
         public static SceneViewManager SceneViewManager => _instance._sceneViewManager;
+        public static CesiumCreditSystem CesiumCreditSystem => _instance._cesiumCreditSystem;
         public static Scrim Scrim => _instance._scrim;
         public static LoginScreen LoginScreen => _instance._loginScreen;
-        public static UIDocument CesiumCreditSystemUI => _instance._cesiumCreditSystemUI;
         public static SceneMap Map => _instance._map;
         public static Color SelectedColor => _instance._selectedColor;
         public static TextMeshProUGUI Text => _instance._text;
@@ -64,13 +65,13 @@ namespace Outernet.MapRegistrationTool
         private SceneViewManager _sceneViewManager;
 
         [SerializeField]
+        private CesiumCreditSystem _cesiumCreditSystem;
+
+        [SerializeField]
         private Scrim _scrim;
 
         [SerializeField]
         private LoginScreen _loginScreen;
-
-        [SerializeField]
-        private UIDocument _cesiumCreditSystemUI;
 
         [Header("Scene")]
         [SerializeField]

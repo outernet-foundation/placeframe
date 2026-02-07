@@ -1,7 +1,7 @@
 using System;
 using FofX.Stateful;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class ObservableSetInspector : ObservableNodeInspector<IObservableSet>
     {

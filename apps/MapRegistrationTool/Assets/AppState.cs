@@ -7,17 +7,27 @@ using UnityEngine;
 
 using FofX.Stateful;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
+    public enum AuthStatus
+    {
+        LoggedOut,
+        LoggingIn,
+        LoggedIn,
+        Error,
+    }
+
     public class AppState : ObservableObject
     {
+        public ObservablePrimitive<string> placeframeAuthAudience;
+        public ObservablePrimitive<bool> loginRequested { get; private set; }
+        public ObservablePrimitive<AuthStatus> authStatus { get; private set; }
+        public ObservablePrimitive<string> authError { get; private set; }
         public ObservablePrimitive<bool> loggedIn { get; private set; }
+
         public ObservablePrimitive<double2> roughGrainedLocation { get; private set; }
         public ObservableDictionary<Guid, TransformState> transforms { get; private set; }
         public ObservableDictionary<Guid, MapState> maps { get; private set; }
-
-        public ObservablePrimitive<double4x4> ecefToUnityWorldMatrix { get; private set; } = new ObservablePrimitive<double4x4>(double4x4.identity);
-        public ObservablePrimitive<double4x4> unityWorldToEcefMatrix { get; private set; }
 
         public UserSettings settings { get; private set; }
         public ObservablePrimitive<double2?> location { get; private set; }
@@ -39,10 +49,10 @@ namespace Outernet.MapRegistrationTool
 
         protected override void PostInitializeInternal()
         {
-            unityWorldToEcefMatrix.RegisterDerived(
-                _ => unityWorldToEcefMatrix.value = math.inverse(ecefToUnityWorldMatrix.value),
+            loggedIn.RegisterDerived(
+                _ => loggedIn.value = authStatus.value == AuthStatus.LoggedIn,
                 ObservationScope.Self,
-                ecefToUnityWorldMatrix
+                authStatus
             );
         }
 
@@ -88,11 +98,15 @@ namespace Outernet.MapRegistrationTool
 
     public class UserSettings : ObservableObject
     {
+        public ObservablePrimitive<string> domain { get; private set; }
+        public ObservablePrimitive<string> username { get; private set; }
+        public ObservablePrimitive<string> password { get; private set; }
         public ObservablePrimitive<bool> loaded { get; private set; }
         public ObservablePrimitive<double2?> lastLocation { get; private set; }
         public ObservablePrimitive<bool> restoreLocationAutomatically { get; private set; }
         public ObservableList<LocationHistoryData> locationHistory { get; private set; }
         public ObservablePrimitive<float> nodeFetchRadius { get; private set; }
+        public ObservableSet<string> activeTilesets { get; private set; }
     }
 
     public class LocationHistoryData : ObservableObject

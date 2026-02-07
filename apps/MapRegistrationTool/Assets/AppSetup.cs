@@ -1,9 +1,10 @@
 using FofX.Serialization;
+using Placeframe.Core;
 using SimpleJSON;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class AppSetup : MonoBehaviour
     {
@@ -30,16 +31,23 @@ namespace Outernet.MapRegistrationTool
             var defaultRaycaster = Camera.main.gameObject.AddComponent<DefaultRaycaster>();
 
             UnityEnv env = UnityEnv.GetOrCreateInstance();
-            App.placeframeApiUrl = env.placeframeApiUrl;
-            App.placeframeAuthTokenUrl = env.placeframeAuthTokenUrl;
-            App.placeframeAuthAudience = env.placeframeAuthAudience;
+            VisualPositioningSystem.Initialize(
+                null,
+                env.placeframeAuthAudience,
+                message => Debug.Log(message),
+                message => Debug.LogWarning(message),
+                message => Debug.LogError(message)
+            );
 
             gameObject.AddComponent<App>();
 
-            Instantiate(Prefabs.CesiumCreditSystemUI);
+            var creditSystem = Instantiate(Prefabs.CesiumCreditSystem);
+
+            // if this is not the only object loaded into unity with this name (including it's source prefab), the credit system will error
+            creditSystem.name = "CesiumCreditSystemDefault";
 
             var canvas = Instantiate(Prefabs.Canvas);
-            var systemUI = Instantiate(Prefabs.SystemMenu, canvas.transform);
+            var systemUI = Instantiate(Prefabs.SystemMenu, canvas.transform); // system menu must exist first because map registration ui because staticly references it
             var mainUI = Instantiate(Prefabs.MapRegistrationUI, canvas.transform);
 
             systemUI.transform.SetAsLastSibling();

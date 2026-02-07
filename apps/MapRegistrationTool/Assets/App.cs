@@ -1,22 +1,19 @@
 using System;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using Cysharp.Threading.Tasks;
+using FofX;
 using FofX.Stateful;
 using Placeframe.Core;
 using PlaceframeApiClient.Api;
 using UnityEngine;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
-    public class App : FofX.AppBase<AppState>
+    public class App : AppBase<AppState>
     {
         public static DefaultApi API { get; private set; }
-
-        public static string placeframeApiUrl;
-        public static string placeframeAuthTokenUrl;
-        public static string placeframeAuthAudience;
-        public static string serverPrefix;
 
         private bool _unsavedChangesIgnored = false;
 
@@ -25,15 +22,25 @@ namespace Outernet.MapRegistrationTool
 
         private void Start()
         {
+            RegisterObserver(HandleLoggedInChanged, state.loggedIn);
+            Application.wantsToQuit += WantsToQuit;
+        }
+
+        private void HandleLoggedInChanged(NodeChangeEventArgs args)
+        {
+            if (!state.loggedIn.value)
+            {
+                API = null;
+                return;
+            }
+
             API = new DefaultApi(
                 new HttpClient(new AuthHttpHandler() { InnerHandler = new HttpClientHandler() })
                 {
-                    BaseAddress = new Uri(placeframeApiUrl),
+                    BaseAddress = new Uri($"https://{state.settings.domain.value}"),
                 },
-                placeframeApiUrl
+                $"https://{state.settings.domain.value}"
             );
-
-            Application.wantsToQuit += WantsToQuit;
         }
 
         protected override void Update()

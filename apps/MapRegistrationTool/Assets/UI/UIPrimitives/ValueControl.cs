@@ -4,7 +4,7 @@ using UnityEngine;
 
 using TMPro;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class ValueControl<T> : ValueControl
     {

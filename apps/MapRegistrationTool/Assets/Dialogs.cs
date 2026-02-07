@@ -3,7 +3,7 @@ using UnityEngine;
 using FofX.Stateful;
 using System;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public static class Dialogs
     {

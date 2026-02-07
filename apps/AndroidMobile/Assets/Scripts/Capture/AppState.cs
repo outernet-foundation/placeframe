@@ -35,18 +35,22 @@ namespace Placeframe.Client
         Error,
     }
 
-    public class AppState : ObservableObject
+    public class SettingsState : ObservableObject
     {
-        // public ObservablePrimitive<string> placeframeApiUrl { get; private set; }
-        // public ObservablePrimitive<string> placeframeAuthTokenUrl { get; private set; }
-        public ObservablePrimitive<string> placeframeAuthAudience { get; private set; }
         public ObservablePrimitive<string> domain { get; private set; }
         public ObservablePrimitive<string> username { get; private set; }
         public ObservablePrimitive<string> password { get; private set; }
+    }
+
+    public class AppState : ObservableObject
+    {
+        public ObservablePrimitive<string> placeframeAuthAudience { get; private set; }
         public ObservablePrimitive<bool> loginRequested { get; private set; }
         public ObservablePrimitive<AuthStatus> authStatus { get; private set; }
         public ObservablePrimitive<string> authError { get; private set; }
         public ObservablePrimitive<bool> loggedIn { get; private set; }
+
+        public SettingsState settings { get; private set; }
 
         public ObservablePrimitive<AppMode> mode { get; private set; }
 

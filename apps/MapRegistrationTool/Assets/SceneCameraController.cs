@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     public class SceneCameraController : MonoBehaviour, IScrollHandler, IPointerClickHandler, IPointerDownHandler, IPointerUpHandler, IDragHandler
     {

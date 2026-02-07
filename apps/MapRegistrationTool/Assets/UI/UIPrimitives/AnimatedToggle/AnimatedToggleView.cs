@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 using FofX;
 
-namespace Outernet.MapRegistrationTool
+namespace Placeframe.MapRegistrationTool
 {
     [RequireComponent(typeof(Toggle))]
     [RequireComponent(typeof(Animator))]
