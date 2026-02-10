@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 840ef76fa28f1674c99e685b35ed5705, type: 3}
+  m_Name: UIPrimitiveSet
+  m_EditorClassIdentifier: 
+  _text: {fileID: 635996366540802412, guid: 68b9373450801054fbe27715b00213b2, type: 3}
+  _image: {fileID: 2892459181240459259, guid: c60185af620ffb74bbba45a0a13ecc31, type: 3}
+  _inputField: {fileID: -8262356807324313591, guid: e2b26b42279d01140a62cb5b17b621da, type: 3}
+  _scrollbar: {fileID: 5093988568660047087, guid: 78dba41fb12304744acf3faf133fc4d2, type: 3}
+  _scrollRect: {fileID: -3516294295110649831, guid: 406dfb6f33cefb74c8f71359c8f44e2a, type: 3}
+  _dropdown: {fileID: 2301103223226427446, guid: eb279e45823eb9242896c7176bc48aeb, type: 3}
+  _button: {fileID: 6532568303154277515, guid: a32304f0195c43b4f880c4120381c145, type: 3}
+  _horizontalLayout: {fileID: -3547397689988140746, guid: 833b693ef70fb484ba80da5a13a8456a, type: 3}
+  _verticalLayout: {fileID: 7927537176307428804, guid: 48f401ea8579f4e448d56eccfe1043a3, type: 3}
+  _toggle: {fileID: 1892092277378279610, guid: 306499c1b0649b443bed890421dbd780, type: 3}
+  _slider: {fileID: 1815645580299293480, guid: b45c299b27bbced40a51a3f4f9873278, type: 3}
+  _canvas: {fileID: 1797365827774971887, guid: f0353bd1b1f06484d88b737d25cff434, type: 3}
