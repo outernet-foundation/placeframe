@@ -1,0 +1,16 @@
+services:
+  zed-capture:
+    build: .
+    restart: always
+    volumes:
+      # Pass through the USB and Video devices
+      - /dev/bus/usb:/dev/bus/usb
+      - /dev/video0:/dev/video0
+      # Optional: Bind mount code for development so you don't have to rebuild
+      # - ./capture-app/zed:/app/capture-app/zed
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    network_mode: host # Recommended for WebRTC/streaming performance, but bridging works too
+    privileged: true # Often needed for USB device access (Hotplugging)
+    runtime: nvidia # CRITICAL: Gives access to GPU/CUDA
