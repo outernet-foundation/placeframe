@@ -19,6 +19,12 @@ x-base-args: &base-args
 x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache
 
 services:
+  initialize-cloudbeaver:
+    build:
+      context: .
+      dockerfile: docker/cloudbeaver-initializer/Dockerfile
+      args: *base-args
+      tags: [ "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:latest" ]
 
   create-database:
     build:

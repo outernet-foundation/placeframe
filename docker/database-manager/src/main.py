@@ -1,13 +1,17 @@
 # main.py
 from __future__ import annotations
 
+import json
+import time
 from contextlib import contextmanager
+from copy import deepcopy
 
 # main.py
 from importlib.resources import files as pkg_files
+from pathlib import Path
 from typing import Any, LiteralString, cast
 
-from common.boto_clients import create_secretsmanager_client
+from common.boto_clients import create_ecs_client, create_secretsmanager_client
 from psycopg import Cursor
 from psycopg.sql import SQL, Identifier, Literal
 from typer import Exit, Option, run
@@ -19,6 +23,10 @@ from .settings import Settings, get_settings
 def _read_sql(name: str) -> str:
     # sql is a subpackage beside this module
     return pkg_files(f"{__package__}.sql").joinpath(name).read_text(encoding="utf-8")
+
+
+workspace_directory = Path("/mnt/efs")
+data_sources_path = workspace_directory / "GlobalConfiguration/.dbeaver/data-sources.json"
 
 
 def main(event: dict[str, Any], _context: Any):
@@ -127,6 +135,8 @@ def _update_database(
 
 
 def _delete_database(settings: Settings, database_name: str) -> None:
+    # Remove CloudBeaver entry first (no-op if already absent)
+    _update_cloudbeaver(settings, database_name)
 
     with postgres_cursor(
         "postgres", settings.postgres_host, settings.postgres_admin_user, settings.postgres_admin_password
@@ -142,6 +152,8 @@ def _delete_database(settings: Settings, database_name: str) -> None:
         cursor.execute(SQL("DROP ROLE IF EXISTS {};").format(Identifier(f"{database_name}_auth_user")))
         cursor.execute(SQL("DROP ROLE IF EXISTS {};").format(Identifier(f"{database_name}_api_user")))
         cursor.execute(SQL("DROP ROLE IF EXISTS {};").format(Identifier(f"{database_name}_owner")))
+
+    _update_cloudbeaver(settings, database_name)
 
 
 def _get_role_password(event: dict[str, Any], role_name: str):
@@ -237,6 +249,87 @@ def _put_roles(
                 auth_schema=Identifier("auth"),
             )
         )
+
+    _update_cloudbeaver(settings, database_name, owner, owner_password)
+
+
+def _update_cloudbeaver(settings: Settings, database_name: str, user: str | None = None, password: str | None = None):
+    if settings.cloudbeaver_service_id is None:
+        print("CLOUDBEAVER_SERVICE_ID not set, skipping CloudBeaver update")
+        return
+
+    # Load current state
+    with data_sources_path.open("r", encoding="utf-8") as fh:
+        current_data = json.load(fh)
+
+    new_data = deepcopy(current_data)
+    new_data.setdefault("connections", {})
+
+    if user is None:
+        new_data["connections"].pop(database_name, None)
+    else:
+        if password is None:
+            raise ValueError("password must be provided if user is provided")
+
+        new_data["connections"][database_name] = {
+            "provider": "postgresql",
+            "driver": "postgres-jdbc",
+            "name": database_name,
+            "save-password": True,
+            "configuration": {
+                "host": settings.postgres_host,
+                "port": "5432",
+                "database": database_name,
+                "user": user,
+                "password": password,
+                "url": f"jdbc:postgresql://{settings.postgres_host}:5432/{database_name}",
+            },
+        }
+
+    if new_data == current_data:
+        print("No changes to CloudBeaver data sources, skipping update.")
+        return
+
+    # Persist and restart CloudBeaver
+    with data_sources_path.open("w", encoding="utf-8") as fh:
+        json.dump(new_data, fh, indent=2)
+        fh.write("\n")
+
+    print("Updated CloudBeaver data sources, restarting service")
+
+    if settings.backend == "docker":
+        import docker  # local import
+
+        client = docker.from_env()  # type: ignore[call-arg]
+        container = client.containers.get(settings.cloudbeaver_service_id)  # type: ignore[call-arg]
+        container.restart()  # type: ignore[union-attr]
+
+        print("Waiting for CloudBeaver service to restart")
+        deadline = time.time() + 120
+        while time.time() < deadline:
+            container.reload()  # type: ignore[union-attr]
+            if getattr(container, "status", "") == "running":  # type: ignore[union-attr]
+                return
+            time.sleep(2)
+        raise RuntimeError("Timeout waiting for CloudBeaver service to restart")
+
+    else:
+        assert settings.backend == "aws"
+        assert settings.ecs_cluster_arn is not None
+        ecs = create_ecs_client()
+        ecs.update_service(
+            cluster=settings.ecs_cluster_arn, service=settings.cloudbeaver_service_id, forceNewDeployment=True
+        )
+
+        print("Waiting for CloudBeaver service to restart")
+        waiter = ecs.get_waiter("services_stable")
+        waiter.wait(
+            cluster=settings.ecs_cluster_arn,
+            services=[settings.cloudbeaver_service_id],
+            WaiterConfig={"Delay": 5, "MaxAttempts": 120},
+        )
+
+    print("Done")
 
 
 def cli(
