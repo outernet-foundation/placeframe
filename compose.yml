@@ -173,8 +173,13 @@ services:
       - "${GATEWAY_PORT:?err}:8443"
     volumes:
       - ./docker/certs:/certs:ro
+    environment:
+      PUBLIC_PORT: "${GATEWAY_PORT:?err}"
+      PUBLIC_DOMAIN: "${PUBLIC_DOMAIN:?err}"
 
   ngrok:
+    profiles:
+      - ngrok
     x-image-ref: ngrok/ngrok:alpine
     image: "${NGROK_IMAGE:?err}"
     depends_on:
