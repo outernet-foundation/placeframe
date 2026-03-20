@@ -1,0 +1,48 @@
+name: "Test: T2 SHA-based image refs"
+
+on:
+  push:
+    branches: [feature/ci-refactor]
+
+concurrency:
+  group: test-t2-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  build-docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: ./.github/actions/setup-uv
+
+      - name: Build (common only)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: uv run --no-sync build-docker --variant common
+
+  tag-built:
+    needs: [build-docker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.PLACEFRAME_CI_APP_ID }}
+          private-key: ${{ secrets.PLACEFRAME_CI_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: ./.github/actions/setup-uv
+
+      - name: Tag built images
+        run: uv run --no-sync commit-artifacts
