@@ -4,12 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths-ignore:
-      - ".env.lock"
   pull_request:
     branches: [main, dev]
-    paths-ignore:
-      - ".env.lock"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -98,13 +94,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: uv run --no-sync build-docker --variant ${{ matrix.variant }}
-
-      - name: Upload .env.lock
-        uses: actions/upload-artifact@v6
-        with:
-          name: env-lock-${{ matrix.variant }}
-          path: .env.lock
-          include-hidden-files: true
 
   build-unity:
     needs: [preflight, activate-license, matrix]
@@ -214,15 +203,9 @@ jobs:
           ref: ${{ github.head_ref || github.ref_name }}
           token: ${{ steps.app-token.outputs.token }}
 
-      - name: Download env-lock artifacts
-        uses: actions/download-artifact@v6
-        with:
-          pattern: env-lock-*
-          path: /tmp/env-locks
-
       - uses: ./.github/actions/setup-uv
 
-      - name: Commit and push
+      - name: Tag built images
         run: uv run --no-sync commit-artifacts
 
   release:

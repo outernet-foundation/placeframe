@@ -1,7 +1,7 @@
 ---
 id: T2
 title: Replace .env.lock built-image digests with SHA-based image tags
-status: plan-needed
+status: in-progress
 constraint: build/src/build_scripts/placeframe/ci/CLAUDE.md#ci-commit-free-invariant
 violators:
   - build/src/build_scripts/placeframe/build_docker.py

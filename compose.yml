@@ -63,8 +63,7 @@ services:
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
 
   initialize-cloudbeaver:
-    x-image-ref: ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:latest
-    image: "${INITIALIZE_CLOUDBEAVER_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:${GIT_SHA:?err}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -97,8 +96,7 @@ services:
       retries: 90
 
   create-database:
-    x-image-ref: ghcr.io/outernet-foundation/placeframe/database-manager:latest
-    image: "${CREATE_DATABASE_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/database-manager:${GIT_SHA:?err}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -119,8 +117,7 @@ services:
       POSTGRES_ADMIN_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
 
   auth-initializer:
-    x-image-ref: ghcr.io/outernet-foundation/placeframe/auth-initializer:latest
-    image: "${AUTH_INITIALIZER_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/auth-initializer:${GIT_SHA:?err}"
     restart: "no"
     volumes:
       - auth_data:/auth_data
@@ -158,8 +155,7 @@ services:
       KC_HOSTNAME_DEBUG: "true"
 
   gateway:
-    x-image-ref: ghcr.io/outernet-foundation/placeframe/gateway:latest
-    image: "${GATEWAY_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/gateway:${GIT_SHA:?err}"
     depends_on:
       - keycloak
       - api
@@ -190,8 +186,7 @@ services:
       NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN:?err}"
 
   migrate-database:
-    x-image-ref: ghcr.io/outernet-foundation/placeframe/database-migrator:latest
-    image: "${MIGRATE_DATABASE_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/database-migrator:${GIT_SHA:?err}"
     depends_on:
       create-database:
         condition: service_completed_successfully
@@ -208,8 +203,7 @@ services:
       ALLOWED_HAZARDS: "HAS_UNTRACKABLE_DEPENDENCIES"
 
   api:
-    x-image-ref: ghcr.io/outernet-foundation/placeframe/api:latest
-    image: "${API_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/api:${GIT_SHA:?err}"
     depends_on:
       keycloak:
         condition: service_healthy
@@ -256,8 +250,7 @@ services:
       DEBUG_WAIT: "${DEBUG_WAIT_API:?err}"
 
   state-sync:
-    x-image-ref: ghcr.io/outernet-foundation/placeframe/state-sync:latest
-    image: "${STATE_SYNC_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/state-sync:${GIT_SHA:?err}"
     depends_on:
       api:
         condition: service_healthy

@@ -24,35 +24,45 @@ services:
       context: .
       dockerfile: docker/cloudbeaver-initializer/Dockerfile
       args: *base-args
-      tags: [ "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:latest" ]
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:latest"
+        - "ghcr.io/outernet-foundation/placeframe/cloudbeaver-initializer:${GIT_SHA}"
 
   create-database:
     build:
       context: .
       dockerfile: docker/database-manager/Dockerfile
       args: *base-args
-      tags: [ "ghcr.io/outernet-foundation/placeframe/database-manager:latest" ]
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/database-manager:latest"
+        - "ghcr.io/outernet-foundation/placeframe/database-manager:${GIT_SHA}"
 
   auth-initializer:
     build:
       context: .
       dockerfile: docker/auth-initializer/Dockerfile
       args: *base-args
-      tags: [ "ghcr.io/outernet-foundation/placeframe/auth-initializer:latest" ]
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/auth-initializer:latest"
+        - "ghcr.io/outernet-foundation/placeframe/auth-initializer:${GIT_SHA}"
 
   gateway:
     build:
       context: .
       dockerfile: docker/gateway/Dockerfile
       args: *base-args
-      tags: [ "ghcr.io/outernet-foundation/placeframe/gateway:latest" ]
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/gateway:latest"
+        - "ghcr.io/outernet-foundation/placeframe/gateway:${GIT_SHA}"
 
   migrate-database:
     build:
       context: .
       dockerfile: docker/database-migrator/Dockerfile
       args: *base-args
-      tags: [ "ghcr.io/outernet-foundation/placeframe/database-migrator:latest" ]
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/database-migrator:latest"
+        - "ghcr.io/outernet-foundation/placeframe/database-migrator:${GIT_SHA}"
 
   api:
     build:
@@ -60,14 +70,18 @@ services:
       dockerfile: docker/api/Dockerfile
       target: dev
       args: *base-args
-      tags: [ "ghcr.io/outernet-foundation/placeframe/api:latest" ]
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/api:latest"
+        - "ghcr.io/outernet-foundation/placeframe/api:${GIT_SHA}"
 
   state-sync:
     build:
       context: .
       dockerfile: docker/state-sync/Dockerfile
       args: *base-args
-      tags: [ "ghcr.io/outernet-foundation/placeframe/state-sync:latest" ]
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/state-sync:latest"
+        - "ghcr.io/outernet-foundation/placeframe/state-sync:${GIT_SHA}"
 
   reconstructor-cuda:
     build:
@@ -76,7 +90,9 @@ services:
       args:
         <<: *base-args
         TORCH_DEVICE: "cuda"
-      tags: [ "ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:latest" ]
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:latest"
+        - "ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:${GIT_SHA}"
 
   localizer-cuda:
     build:
@@ -85,7 +101,9 @@ services:
       args:
         <<: *base-args
         TORCH_DEVICE: "cuda"
-      tags: [ "ghcr.io/outernet-foundation/placeframe/localizer-cuda:latest" ]
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/localizer-cuda:latest"
+        - "ghcr.io/outernet-foundation/placeframe/localizer-cuda:${GIT_SHA}"
 
   reconstructor-rocm:
     build:
@@ -94,7 +112,9 @@ services:
       args:
         <<: *base-args
         TORCH_DEVICE: "rocm"
-      tags: [ "ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:latest" ]
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:latest"
+        - "ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:${GIT_SHA}"
 
   localizer-rocm:
     build:
@@ -103,4 +123,6 @@ services:
       args:
         <<: *base-args
         TORCH_DEVICE: "rocm"
-      tags: [ "ghcr.io/outernet-foundation/placeframe/localizer-rocm:latest" ]
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/localizer-rocm:latest"
+        - "ghcr.io/outernet-foundation/placeframe/localizer-rocm:${GIT_SHA}"

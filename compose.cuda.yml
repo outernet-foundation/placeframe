@@ -1,7 +1,6 @@
 services:
   reconstructor-cuda:
-    x-image-ref: ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:latest
-    image: "${RECONSTRUCTOR_CUDA_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:${GIT_SHA:?err}"
     depends_on:
       api:
         condition: service_healthy
@@ -23,8 +22,7 @@ services:
       MAX_KEYPOINTS_PER_IMAGE: "${MAX_KEYPOINTS_PER_IMAGE:?err}"
 
   localizer-cuda:
-    x-image-ref: ghcr.io/outernet-foundation/placeframe/localizer-cuda:latest
-    image: "${LOCALIZER_CUDA_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/localizer-cuda:${GIT_SHA:?err}"
     expose:
       - "8000"
     networks:
