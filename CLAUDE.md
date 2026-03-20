@@ -92,6 +92,8 @@ All API endpoints require an OAuth2 Bearer token from Keycloak. The default dev 
 - All Python packages use `src/<package>/` layout with `py.typed` marker.
 - Pydantic v2 for data validation everywhere; async/await throughout all services.
 - The `deptry-check` command enforces that all imports match declared dependencies. Per-rule exceptions for platform-specific packages (CUDA/ROCm) are documented in each `pyproject.toml`.
+- **No shell scripts.** All scripting is Python. CI workflow steps should be one command (two at most). If there's a condition, a loop, or any real logic, it belongs in a Python script invoked via `uv run`, not inline shell in a workflow YAML.
+- **No docstrings.** Do not add docstrings to any function, class, or module — including new files. Comments are allowed only where the logic isn't self-evident.
 
 ## Initial Setup
 

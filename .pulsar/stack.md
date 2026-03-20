@@ -1,0 +1,2 @@
+- T2: Replace .env.lock built-image digests with SHA-based image tags
+  - T3: Split CI and release into separate workflows
