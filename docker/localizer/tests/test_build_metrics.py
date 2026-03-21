@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from localize.build_metrics import _compute_inlier_coverage
+from localize.build_metrics import _compute_inlier_coverage  # noqa: PLC2701 — testing private helper
 
 
 class TestComputeInlierCoverage:

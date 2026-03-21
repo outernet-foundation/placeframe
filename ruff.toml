@@ -1,0 +1,191 @@
+target-version = "py313"
+line-length = 120
+preview = true
+extend-exclude = [
+    "packages/generated/python/api-client",
+    "packages/generated/python/localizer-client",
+    "packages/python/neural-networks/third-party/deep-image-retrieval/vendored",
+    "typings",
+]
+
+[lint]
+select = ["ALL"]
+ignore = [
+    # ── Temporarily ignored (inline noqas exist for these rules but are redundant
+    # while the rules are globally ignored — RUF100 suppresses the "unused noqa" warning
+    # until we un-ignore each ticket's rules)
+    "RUF100",
+
+    # ── Permanently ignored ──────────────────────────────────────────────
+    # Type annotations — basedpyright strict mode handles this
+    "ANN",
+    # EM101 (string literal in exception) — the msg = ... indirection adds verbosity without benefit
+    "EM101",
+    # TRY003 (raise vanilla args) — requires custom exception class for every raise site;
+    # the real problem (interpolation) is caught by EM102/EM103
+    "TRY003",
+    # A003 (class attribute shadowing) — class attributes via self.x never conflict with builtins
+    "A003",
+    # Function complexity counting — C901 already covers structural complexity;
+    # these counting rules are largely redundant
+    "PLR0911",
+    "PLR0912",
+    "PLR0913",
+    "PLR0914",
+    "PLR0915",
+    "PLR0917",
+
+    # ── Temporarily ignored (will enable when conventions are established) ─
+    # Docstrings — project policy is "no docstrings" for now
+    "D",
+    # Copyright notices — not yet established
+    "CPY",
+    # Docstring formatting — blocked on D
+    "DOC",
+    # TODO/FIXME comment formatting
+    "TD",
+    "FIX",
+
+    # ── Ticket 1: Auto-fix formatting & type modernization ───────────────
+    # Zero risk. Purely mechanical, all auto-fixable via ruff --fix.
+    "COM812",   # missing trailing commas
+    "I001",     # import sorting
+    "ISC003",   # explicit string concatenation
+    "RUF031",   # parenthesized tuple in subscript
+    "TC001",    # move import into TYPE_CHECKING block
+    "TC002",    # move third-party import into TYPE_CHECKING block
+    "TC003",    # move stdlib import into TYPE_CHECKING block
+    "TC006",    # move typing import into TYPE_CHECKING block (PEP 695)
+    "TC008",    # move import into TYPE_CHECKING block (quoted annotation)
+    "UP006",    # use X instead of typing.X
+    "UP007",    # use X | Y instead of Union
+    "UP011",    # unnecessary parentheses to functools.lru_cache
+    "UP015",    # unnecessary open mode parameters
+    "UP017",    # use datetime.UTC alias
+    "UP034",    # extraneous parentheses
+    "UP035",    # deprecated import (use collections.abc, etc.)
+    "UP040",    # use PEP 695 type alias
+    "UP042",    # use PEP 695 type parameters
+    "UP045",    # use X | None instead of Optional
+
+    # ── Ticket 2: Auto-fix code simplifications ──────────────────────────
+    # Very low risk. Auto-fixable with trivial semantic changes.
+    "C401",     # unnecessary generator — use set/dict comprehension
+    "C416",     # unnecessary comprehension — use list/dict
+    "ERA001",   # commented-out code
+    "FURB101",  # read-text can replace open+read
+    "FURB103",  # write-text can replace open+write
+    "FURB110",  # use ternary instead of try/except for default
+    "FURB113",  # use list.extend instead of repeated append
+    "FURB118",  # use operator module instead of lambda
+    "LOG004",   # use __name__ as logger name
+    "PERF401",  # use list comprehension instead of manual append
+    "PIE810",   # unnecessary spread of single-element starred
+    "PLC0207",  # use a single __all__ definition
+    "PLC1901",  # compare to empty string using falsy check
+    "PLR1711",  # useless return at end of function
+    "PLR6104",  # use augmented assignment
+    "PLR6201",  # use a set literal for membership test
+    "PLW1510",  # subprocess.run without explicit check= argument
+    "PLW1514",  # open without explicit encoding
+    "PT001",    # use @pytest.fixture over @pytest.fixture()
+    "PT018",    # composite assertion — split into multiple asserts
+    "PTH101",   # os.chmod → Path.chmod
+    "PTH111",   # os.path.expanduser → Path.expanduser
+    "PTH112",   # os.path.isdir → Path.is_dir
+    "PTH118",   # os.path.join → Path /
+    "PTH123",   # open() → Path.open()
+    "PTH201",   # pathlib.Path(".")
+    "RET501",   # unnecessary explicit return None
+    "RET504",   # unnecessary assignment before return
+    "RET505",   # unnecessary else after return
+    "RET506",   # unnecessary else after raise
+    "RET507",   # unnecessary else after continue
+    "RSE102",   # unnecessary parentheses on raised exception
+    "RUF005",   # consider spread operator instead of concatenation
+    "RUF010",   # use explicit conversion flag in f-string
+    "RUF015",   # prefer next() over single-element slice
+    "RUF029",   # function is declared async but has no await
+    "RUF052",   # local variable is assigned but never used (underscore prefix)
+    "RUF056",   # unnecessary default value for keyword argument
+    "SIM102",   # collapsible if statements
+    "SIM105",   # use contextlib.suppress instead of try/except/pass
+    "SIM115",   # use context manager for opening files
+    "SIM117",   # use single with statement for multiple context managers
+    "SIM118",   # use key in dict instead of key in dict.keys()
+    "TID252",   # prefer absolute imports over relative
+
+    # ── Ticket 3: print → logging ────────────────────────────────────────
+    # All code should use logging, including CLI scripts.
+    "T201",     # print found
+
+    # ── Ticket 4: Exception message interpolation ────────────────────────
+    # Remove f-strings from exception messages — use string literals.
+    "EM102",    # f-string in exception message
+
+    # ── Ticket 5: Missing __init__.py + shebangs ─────────────────────────
+    # Add __init__.py to installable packages; remove vestigial shebangs.
+    "INP001",   # implicit namespace package — add __init__.py
+    "EXE001",   # shebang present but file not executable
+
+    # ── Ticket 6: Type ignore specificity ────────────────────────────────
+    # Replace blanket type: ignore with specific error codes.
+    "PGH003",   # blanket type: ignore
+
+    # ── Ticket 7: Boolean trap refactoring ───────────────────────────────
+    # Change function signatures — callers must update too.
+    "FBT001",   # boolean positional argument
+    "FBT002",   # boolean default value in function definition
+    "FBT003",   # boolean positional value in function call
+
+    # ── Ticket 8: Exception handling patterns ────────────────────────────
+    # Behavioral changes to error handling.
+    "B020",     # loop variable overwritten by except
+    "B903",     # generator should use yield from
+    "B904",     # raise without from inside except
+    "B905",     # zip() without strict= parameter
+    "BLE001",   # blind except Exception
+    "S101",     # assert outside tests
+    "TRY002",   # create custom exception class
+    "TRY300",   # try/except/return — move return into else
+
+    # ── Ticket 9: Complexity, naming & refactoring ───────────────────────
+    # Structural changes requiring judgment.
+    "A001",     # builtin shadowing (dir, bytes)
+    "ARG001",   # unused function argument
+    "ARG002",   # unused method argument
+    "C901",     # function too complex
+    "E501",     # line too long
+    "N802",     # function name should be lowercase
+    "N806",     # variable in function should be lowercase
+    "N815",     # mixed-case variable in class scope
+    "N818",     # exception name should end in Error
+    "PLC0415",  # import not at top level
+    "PLE0704",  # bare raise not inside except handler
+    "PLR1702",  # too many nested blocks
+    "PLR2004",  # magic value used in comparison
+    "PLR6301",  # method could be function or static method
+    "PLW0603",  # global statement
+    "PLW2901",  # loop variable overwritten
+    "RUF001",   # ambiguous unicode — replace with ASCII
+    "RUF003",   # ambiguous unicode in comment
+    "S106",     # possible hardcoded password
+    "S108",     # probable insecure temp file/dir usage
+    "S110",     # try/except/pass on broad exception
+    "S202",     # use of tarfile.extractall
+    # S404/S603: prerequisite — bash.py needs env, stderr=STDOUT merge, and no-raise-with-capture
+    # before context_sha.py, deptry_check.py, test_context_sha.py, list_debug_targets.py can migrate
+    "S404",     # suspicious subprocess import
+    "S603",     # subprocess call with non-literal
+    "S606",     # starting process without shell
+    "S607",     # starting process with partial path
+]
+
+[lint.per-file-ignores]
+# Tests use assert as the standard pytest mechanism
+"**/tests/**" = ["PLR6301"]
+
+[lint.flake8-builtins]
+ignorelist = ["id", "map"]
+
+[lint.isort]

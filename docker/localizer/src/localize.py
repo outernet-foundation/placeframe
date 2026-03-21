@@ -12,7 +12,7 @@ from core.transform import Float3, Float4, Transform
 from numpy import asarray, float32, vstack
 from pycolmap import AbsolutePoseEstimationOptions, RANSACOptions
 from pycolmap import Camera as ColmapCamera
-from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose  # type: ignore
+from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose  # type: ignore  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
 from torch import cuda, from_numpy, mv, topk  # type: ignore
 
@@ -97,7 +97,7 @@ def localize_image_against_reconstruction(
     point3d_indices: list[int] = []
     for image_id in matched_image_ids:
         for database_image_keypoint_index, query_image_keypoint_index in zip(*match_indices[(str(image_id), "query")]):
-            point2D = map.images[image_id].points2D[int(database_image_keypoint_index)]
+            point2D = map.images[image_id].points2D[int(database_image_keypoint_index)]  # noqa: N806 — pycolmap CV notation
 
             if not point2D.has_point3D():
                 continue
@@ -120,8 +120,8 @@ def localize_image_against_reconstruction(
     estimation_options.ransac = ransac_options
 
     # Estimate pose
-    points2D = keypoints["query"][query_keypoint_indices].cpu().numpy()
-    points3D = vstack([map.points3D[i].xyz for i in point3d_indices])
+    points2D = keypoints["query"][query_keypoint_indices].cpu().numpy()  # noqa: N806 — pycolmap CV notation
+    points3D = vstack([map.points3D[i].xyz for i in point3d_indices])  # noqa: N806 — pycolmap CV notation
     pnp_result = cast(
         dict[str, Any] | None,
         estimate_and_refine_absolute_pose(points2D, points3D, pycolmap_camera, estimation_options),

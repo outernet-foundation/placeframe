@@ -1,0 +1,8 @@
+extend = "../ruff.toml"
+
+# Docker services are loose source trees (not installable packages) — Docker
+# copies src/ and adds it to PYTHONPATH. These directories intentionally have
+# no __init__.py.
+
+[lint.extend-per-file-ignores]
+"**/src/**" = ["INP001"]

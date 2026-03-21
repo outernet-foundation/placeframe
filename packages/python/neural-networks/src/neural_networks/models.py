@@ -7,7 +7,7 @@ import torch
 from lightglue import LightGlue, SuperPoint  # type: ignore
 from numpy import float32
 from numpy.typing import NDArray
-from sklearn.decomposition import _pca  # type: ignore
+from sklearn.decomposition import _pca  # type: ignore  # noqa: PLC2701 — no public API for IncrementalPCA internals
 from torch import Tensor, from_numpy  # type: ignore
 from torch.hub import get_dir
 from torch.nn import Module

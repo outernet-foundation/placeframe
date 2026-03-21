@@ -1,0 +1,6 @@
+extend = "../ruff.toml"
+
+# Zed is a loose source tree (not an installable package).
+
+[lint.extend-per-file-ignores]
+"src/**" = ["INP001"]

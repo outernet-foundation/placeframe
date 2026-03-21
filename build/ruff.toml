@@ -1,0 +1,8 @@
+extend = "../ruff.toml"
+
+# B008 fires on typer.Option() defaults which is typer's standard API pattern.
+
+[lint.extend-per-file-ignores]
+"src/build_scripts/**/**.py" = ["B008"]
+# build/ is a loose source tree (not an installable package)
+"tests/**" = ["INP001"]

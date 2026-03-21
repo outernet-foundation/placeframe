@@ -55,7 +55,7 @@ def write_pairs(pairs: list[tuple[str, ...]], root_path: Path):
 
 def pairs_from_poses(images: dict[tuple[str, str], Transform], num_neighbors: int, rotation_thresh_deg: float):
     names = list(images.keys())
-    R_w_c = stack([images[name].rotation for name in names], axis=0)  # (N, 3, 3)
+    R_w_c = stack([images[name].rotation for name in names], axis=0)  # noqa: N806 — rotation matrix notation
     centers = stack([images[name].translation for name in names], axis=0)  # (N, 3)
 
     # Euclidean distances of camera centres

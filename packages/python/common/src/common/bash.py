@@ -1,3 +1,4 @@
+# ruff: noqa: S404, S603 — this module is the project's subprocess wrapper
 import os
 import shlex
 import subprocess

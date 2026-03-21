@@ -1,3 +1,4 @@
+# ruff: noqa: S404, S603 — tests for the subprocess wrapper
 import subprocess
 import sys
 import tempfile

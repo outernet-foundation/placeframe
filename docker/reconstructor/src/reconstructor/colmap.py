@@ -8,7 +8,7 @@ from numpy import concatenate, empty, eye, float32, float64, intp, savez_compres
 from numpy.typing import NDArray
 from pycolmap import Database, PosePrior, PosePriorCoordinateSystem
 from pycolmap import Image as pycolmapImage
-from pycolmap._core import Frame, Point3D, Rigid3d, Sim3d, apply_rig_config, incremental_mapping, match_spatial
+from pycolmap._core import Frame, Point3D, Rigid3d, Sim3d, apply_rig_config, incremental_mapping, match_spatial  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
 
 from .metrics_builder import MetricsBuilder

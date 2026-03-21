@@ -16,7 +16,7 @@ from core.reconstruction_manifest import ReconstructionManifest
 from neural_networks.models import load_DIR, load_lightglue, load_superpoint
 from numpy import asarray, ascontiguousarray, float32, random, vstack
 from numpy.typing import NDArray
-from pycolmap._core import set_random_seed
+from pycolmap._core import set_random_seed  # noqa: PLC2701 — no public API
 from torch import cuda, from_numpy, set_grad_enabled  # type: ignore
 
 from .colmap import run_colmap_reconstruction
@@ -94,7 +94,7 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
     metrics = MetricsBuilder()
 
     if manifest.options.random_seed is not None:
-        random.seed(manifest.options.random_seed)
+        random.seed(manifest.options.random_seed)  # noqa: NPY002 — pycolmap reads numpy's global random state; can't use default_rng()
         set_random_seed(manifest.options.random_seed)
 
     # Generate image pairs
