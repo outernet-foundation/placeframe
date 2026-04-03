@@ -17,7 +17,12 @@ settings = get_settings()
 async def worker_loop() -> None:
     print("Reconstructor Worker Started")
 
-    auth = TokenManager(str(settings.auth_token_url), settings.auth_client_id, Path(settings.private_key_path))
+    auth = TokenManager(
+        str(settings.auth_token_url),
+        settings.auth_client_id,
+        Path(settings.private_key_path),
+        audience=str(settings.auth_token_audience) if settings.auth_token_audience else None,
+    )
     configuration = Configuration(host=str(settings.api_internal_url))
 
     async with ApiClient(configuration) as api_client:

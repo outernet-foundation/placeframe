@@ -1,0 +1,543 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Golden Signals",
+      "type": "row"
+    },
+    {
+      "title": "Request Rate",
+      "description": "Total HTTP requests per second across all endpoints",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "decimals": 2,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "expr": "sum(rate(placeframe_requests_total[5m]))",
+        "legendFormat": "RPS"
+      }]
+    },
+    {
+      "title": "Error Rate",
+      "description": "Percentage of requests returning 4xx/5xx status codes",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0, "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 1 },
+            { "color": "red", "value": 5 }
+          ] }
+        },
+        "overrides": []
+      },
+      "targets": [{
+        "expr": "100 * sum(rate(placeframe_requests_total{status=~\"[45]..\"}[5m])) / sum(rate(placeframe_requests_total[5m]))",
+        "legendFormat": "Error %"
+      }]
+    },
+    {
+      "title": "P50 Latency",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 3,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 0.5 },
+            { "color": "red", "value": 2 }
+          ] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "expr": "histogram_quantile(0.5, sum(rate(placeframe_request_duration_seconds_bucket[5m])) by (le))",
+        "legendFormat": "p50"
+      }]
+    },
+    {
+      "title": "P95 Latency",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 3,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 1 },
+            { "color": "red", "value": 5 }
+          ] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum(rate(placeframe_request_duration_seconds_bucket[5m])) by (le))",
+        "legendFormat": "p95"
+      }]
+    },
+    {
+      "title": "P99 Latency",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 3,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 2 },
+            { "color": "red", "value": 10 }
+          ] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "expr": "histogram_quantile(0.99, sum(rate(placeframe_request_duration_seconds_bucket[5m])) by (le))",
+        "legendFormat": "p99"
+      }]
+    },
+    {
+      "title": "In-Flight (est.)",
+      "description": "Estimated concurrent requests (rate × avg duration)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 10 },
+            { "color": "red", "value": 50 }
+          ] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "expr": "sum(rate(placeframe_requests_total[5m])) * (sum(rate(placeframe_request_duration_seconds_sum[5m])) / sum(rate(placeframe_request_duration_seconds_count[5m])))",
+        "legendFormat": "concurrent"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "Request Rate by Endpoint",
+      "type": "row"
+    },
+    {
+      "title": "Request Rate by Endpoint",
+      "description": "HTTP requests/sec broken down by API path. group_path=True collapses dynamic segments.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "id": 10,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 15, "stacking": { "mode": "normal" } }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [{
+        "expr": "sum(rate(placeframe_requests_total[5m])) by (path)",
+        "legendFormat": "{{path}}"
+      }]
+    },
+    {
+      "title": "Request Rate by Method",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "id": 11,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 15, "stacking": { "mode": "normal" } }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "GET" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "POST" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "DELETE" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "PATCH" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "PUT" }, "properties": [{ "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [{
+        "expr": "sum(rate(placeframe_requests_total[5m])) by (method)",
+        "legendFormat": "{{method}}"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 102,
+      "title": "Latency",
+      "type": "row"
+    },
+    {
+      "title": "Latency Percentiles by Endpoint (P95)",
+      "description": "95th percentile response time per API path",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "id": 20,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 0, "spanNulls": true }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum(rate(placeframe_request_duration_seconds_bucket[5m])) by (le, path))",
+        "legendFormat": "{{path}}"
+      }]
+    },
+    {
+      "title": "Latency Distribution Heatmap",
+      "description": "Request duration heatmap across all endpoints — reveals multimodal latency patterns (fast CRUD vs slow ML inference)",
+      "type": "heatmap",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "id": 21,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "options": {
+        "calculate": false,
+        "cellGap": 1,
+        "color": { "mode": "scheme", "scheme": "Spectral", "steps": 64 },
+        "yAxis": { "unit": "s", "decimals": 2 }
+      },
+      "targets": [{
+        "expr": "sum(increase(placeframe_request_duration_seconds_bucket[5m])) by (le)",
+        "format": "heatmap",
+        "legendFormat": "{{le}}"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "id": 103,
+      "title": "Localization Endpoint Deep Dive",
+      "type": "row"
+    },
+    {
+      "title": "Localization Request Rate",
+      "description": "POST /localize/ — the core ML inference endpoint",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 24 },
+      "id": 30,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 30 },
+          "color": { "fixedColor": "blue", "mode": "fixed" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max", "sum"] },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(placeframe_requests_total{path=~\"/localize.*\"}[5m]))",
+          "legendFormat": "requests/s"
+        }
+      ]
+    },
+    {
+      "title": "Localization Latency Percentiles",
+      "description": "End-to-end latency: image upload → SuperPoint → DIR retrieval → LightGlue matching → RANSAC PnP → response",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 24 },
+      "id": 31,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 0 }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "p50" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p95" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p99" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.5, sum(rate(placeframe_request_duration_seconds_bucket{path=~\"/localize.*\"}[5m])) by (le))", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.95, sum(rate(placeframe_request_duration_seconds_bucket{path=~\"/localize.*\"}[5m])) by (le))", "legendFormat": "p95" },
+        { "expr": "histogram_quantile(0.99, sum(rate(placeframe_request_duration_seconds_bucket{path=~\"/localize.*\"}[5m])) by (le))", "legendFormat": "p99" }
+      ]
+    },
+    {
+      "title": "Localization Success vs Failure",
+      "description": "HTTP 200 (localized) vs 422 (insufficient features/matches) vs 502 (localizer backend error)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 24 },
+      "id": 32,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "200" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "422" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "502" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [{
+        "expr": "sum(rate(placeframe_requests_total{path=~\"/localize.*\"}[5m])) by (status)",
+        "legendFormat": "{{status}}"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
+      "id": 104,
+      "title": "Reconstruction Endpoint Deep Dive",
+      "type": "row"
+    },
+    {
+      "title": "Reconstruction API Rate by Method",
+      "description": "Traffic to the reconstruction CRUD endpoints",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 33 },
+      "id": 40,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 15, "stacking": { "mode": "normal" } }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "sum"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [{
+        "expr": "sum(rate(placeframe_requests_total{path=~\"/reconstructions.*\"}[5m])) by (method)",
+        "legendFormat": "{{method}}"
+      }]
+    },
+    {
+      "title": "Reconstruction Latency (P50 vs P95)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 33 },
+      "id": 41,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 0 }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.5, sum(rate(placeframe_request_duration_seconds_bucket{path=~\"/reconstructions.*\"}[5m])) by (le))", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.95, sum(rate(placeframe_request_duration_seconds_bucket{path=~\"/reconstructions.*\"}[5m])) by (le))", "legendFormat": "p95" }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 41 },
+      "id": 105,
+      "title": "Error Analysis",
+      "type": "row"
+    },
+    {
+      "title": "Error Rate by Endpoint",
+      "description": "4xx + 5xx error rate per API path — highlights which endpoints are failing",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 42 },
+      "id": 50,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10 },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [{
+        "expr": "sum(rate(placeframe_requests_total{status=~\"[45]..\"}[5m])) by (path)",
+        "legendFormat": "{{path}}"
+      }]
+    },
+    {
+      "title": "Error Breakdown by Status Code",
+      "description": "Which HTTP error codes are being returned",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 42 },
+      "id": 51,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "400" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "401" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "404" }, "properties": [{ "id": "color", "value": { "fixedColor": "light-blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "422" }, "properties": [{ "id": "color", "value": { "fixedColor": "dark-orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "500" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "502" }, "properties": [{ "id": "color", "value": { "fixedColor": "dark-red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["sum"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [{
+        "expr": "sum(rate(placeframe_requests_total{status=~\"[45]..\"}[5m])) by (status)",
+        "legendFormat": "{{status}}"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 50 },
+      "id": 106,
+      "title": "Capture Session & Content API",
+      "type": "row"
+    },
+    {
+      "title": "Capture Session Upload Rate",
+      "description": "PUT /capture_sessions/{id}/tar — image archive uploads",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 51 },
+      "id": 60,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "bars", "fillOpacity": 60 },
+          "color": { "fixedColor": "purple", "mode": "fixed" }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [{
+        "expr": "sum(rate(placeframe_requests_total{path=~\"/capture_sessions.*\", method=\"PUT\"}[5m]))",
+        "legendFormat": "uploads/s"
+      }]
+    },
+    {
+      "title": "Upload Latency (P50 / P95)",
+      "description": "Tar upload duration — dominated by network transfer of image archives",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 51 },
+      "id": 61,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 0 }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.5, sum(rate(placeframe_request_duration_seconds_bucket{path=~\"/capture_sessions.*\", method=\"PUT\"}[5m])) by (le))", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.95, sum(rate(placeframe_request_duration_seconds_bucket{path=~\"/capture_sessions.*\", method=\"PUT\"}[5m])) by (le))", "legendFormat": "p95" }
+      ]
+    },
+    {
+      "title": "Content CRUD Rate (nodes/groups/layers)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 51 },
+      "id": 62,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 15, "stacking": { "mode": "normal" } }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        { "expr": "sum(rate(placeframe_requests_total{path=~\"/nodes.*\"}[5m]))", "legendFormat": "nodes" },
+        { "expr": "sum(rate(placeframe_requests_total{path=~\"/groups.*\"}[5m]))", "legendFormat": "groups" },
+        { "expr": "sum(rate(placeframe_requests_total{path=~\"/layers.*\"}[5m]))", "legendFormat": "layers" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["placeframe", "api", "performance", "prometheus"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "title": "Placeframe: API Performance",
+  "uid": "placeframe-api-performance"
+}

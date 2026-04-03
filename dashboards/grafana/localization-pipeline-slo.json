@@ -1,0 +1,537 @@
+{
+  "annotations": { "list": [] },
+  "description": "Combines Prometheus HTTP metrics with Loki-extracted ML quality metrics. Academic quality bands from Sarlin et al. (hloc), Sattler et al. (Visual Localization Benchmark), and SuperGlue/LightGlue papers.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Localization Service Health",
+      "type": "row"
+    },
+    {
+      "title": "Localization Availability",
+      "description": "Fraction of localization requests returning 200. Target: >95% (remaining 5% budget for 422 insufficient-features which is expected for poor-quality queries)",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit", "min": 0, "max": 1, "decimals": 2,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "orange", "value": 0.9 },
+            { "color": "yellow", "value": 0.95 },
+            { "color": "green", "value": 0.99 }
+          ] }
+        },
+        "overrides": []
+      },
+      "targets": [{
+        "expr": "sum(rate(placeframe_requests_total{path=~\"/localize.*\", status=\"200\"}[1h])) / sum(rate(placeframe_requests_total{path=~\"/localize.*\"}[1h]))",
+        "legendFormat": "availability"
+      }]
+    },
+    {
+      "title": "Localizations (1h)",
+      "description": "Total successful localization responses in the last hour",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "expr": "sum(increase(placeframe_requests_total{path=~\"/localize.*\", status=\"200\"}[1h]))",
+        "legendFormat": "count"
+      }]
+    },
+    {
+      "title": "422 Rate (insufficient features)",
+      "description": "Rate of 422s — indicates query images with too few features or no matching keypoints. Expected for textureless scenes, motion blur, extreme viewpoint changes.",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit", "decimals": 1,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 0.05 },
+            { "color": "orange", "value": 0.15 },
+            { "color": "red", "value": 0.3 }
+          ] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "expr": "sum(rate(placeframe_requests_total{path=~\"/localize.*\", status=\"422\"}[1h])) / sum(rate(placeframe_requests_total{path=~\"/localize.*\"}[1h]))",
+        "legendFormat": "422 ratio"
+      }]
+    },
+    {
+      "title": "Localization Latency SLO",
+      "description": "End-to-end latency including image upload, SuperPoint feature extraction, DIR retrieval, LightGlue matching, and RANSAC PnP. Budget: p95 < 3s for real-time XR use.",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 1 },
+      "id": 4,
+      "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 0, "spanNulls": true }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "p50" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p95" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p99" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "SLO (3s)" }, "properties": [
+            { "id": "color", "value": { "fixedColor": "dark-red", "mode": "fixed" } },
+            { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } },
+            { "id": "custom.fillOpacity", "value": 0 }
+          ] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.5, sum(rate(placeframe_request_duration_seconds_bucket{path=~\"/localize.*\"}[5m])) by (le))", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.95, sum(rate(placeframe_request_duration_seconds_bucket{path=~\"/localize.*\"}[5m])) by (le))", "legendFormat": "p95" },
+        { "expr": "histogram_quantile(0.99, sum(rate(placeframe_request_duration_seconds_bucket{path=~\"/localize.*\"}[5m])) by (le))", "legendFormat": "p99" },
+        { "expr": "vector(3)", "legendFormat": "SLO (3s)" }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 },
+      "id": 101,
+      "title": "Feature Matching Funnel (from Loki)",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "title": "Matching Funnel: Matches → Correspondences → Inliers",
+      "description": "The feature matching pipeline narrows at each stage. LightGlue produces raw matches, filtering for 3D back-projection yields correspondences, and RANSAC PnP identifies inliers. Per Sarlin et al. (SuperGlue, 2020), a healthy pipeline retains >50% from correspondences to inliers.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 10,
+      "datasource": { "type": "loki", "uid": "placeframe-loki" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10, "spanNulls": true }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "matches" }, "properties": [{ "id": "color", "value": { "fixedColor": "light-blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "correspondences" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "inliers" }, "properties": [{ "id": "color", "value": { "fixedColor": "dark-blue", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "min", "max"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "expr": "{service=\"localizer\"} |= \"num_matches\" | json | unwrap num_matches [5m] | __error__=\"\"",
+          "legendFormat": "matches",
+          "queryType": "range",
+          "step": ""
+        },
+        {
+          "expr": "{service=\"localizer\"} |= \"num_correspondences\" | json | unwrap num_correspondences [5m] | __error__=\"\"",
+          "legendFormat": "correspondences",
+          "queryType": "range",
+          "step": ""
+        },
+        {
+          "expr": "{service=\"localizer\"} |= \"num_inliers\" | json | unwrap num_inliers [5m] | __error__=\"\"",
+          "legendFormat": "inliers",
+          "queryType": "range",
+          "step": ""
+        }
+      ]
+    },
+    {
+      "title": "Funnel Conversion Rates",
+      "description": "Matches→Correspondences: fraction of 2D matches with 3D back-projections (map completeness indicator). Correspondences→Inliers: RANSAC inlier ratio (pose estimation quality, per Sattler et al. benchmark).",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 11,
+      "datasource": { "type": "loki", "uid": "placeframe-loki" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 10, "spanNulls": true },
+          "min": 0, "max": 1
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "inlier_ratio" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "inlier_coverage" }, "properties": [{ "id": "color", "value": { "fixedColor": "purple", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "min"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "expr": "{service=\"localizer\"} |= \"inlier_ratio\" | json | unwrap inlier_ratio [5m] | __error__=\"\"",
+          "legendFormat": "inlier_ratio",
+          "queryType": "range"
+        },
+        {
+          "expr": "{service=\"localizer\"} |= \"inlier_coverage\" | json | unwrap inlier_coverage [5m] | __error__=\"\"",
+          "legendFormat": "inlier_coverage",
+          "queryType": "range"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 },
+      "id": 102,
+      "title": "Pose Estimation Quality (Academic Thresholds)",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "title": "Inlier Ratio Distribution",
+      "description": "Quality bands from visual localization literature:\n- >0.5: Excellent (Sarlin et al., SuperGlue)\n- 0.3–0.5: Acceptable (sufficient for sub-meter pose)\n- 0.2–0.3: Poor (pose likely degraded)\n- <0.2: Critical (PnP may fail or produce outlier poses)\n\nThe 12-inlier minimum for PnP stability corresponds to ~0.2 ratio with typical correspondence counts.",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 17 },
+      "id": 20,
+      "datasource": { "type": "loki", "uid": "placeframe-loki" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "points", "pointSize": 5, "spanNulls": false },
+          "min": 0, "max": 1,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "orange", "value": 0.2 },
+            { "color": "yellow", "value": 0.3 },
+            { "color": "green", "value": 0.5 }
+          ] },
+          "custom.thresholdsStyle": { "mode": "line+area" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [{
+        "expr": "{service=\"localizer\"} |= \"inlier_ratio\" | json | unwrap inlier_ratio [1m] | __error__=\"\"",
+        "legendFormat": "inlier_ratio",
+        "queryType": "range"
+      }]
+    },
+    {
+      "title": "Inlier Count Distribution",
+      "description": "Minimum inlier thresholds from PnP theory (Fischler & Bolles, 1981; Haralick et al., 1994):\n- ≥30: Robust pose, reliable for XR (Sattler et al., 2017)\n- 12–30: Marginal, pose may drift under noise\n- <12: Critical — fewer than minimum for stable PnP with 4+ DOF\n\nNote: pycolmap's estimate_and_refine_absolute_pose uses P3P+RANSAC internally, needing ≥4 inliers minimum, but statistical stability requires ≥12.",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 17 },
+      "id": 21,
+      "datasource": { "type": "loki", "uid": "placeframe-loki" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "points", "pointSize": 5, "spanNulls": false },
+          "min": 0,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "orange", "value": 12 },
+            { "color": "yellow", "value": 30 },
+            { "color": "green", "value": 50 }
+          ] },
+          "custom.thresholdsStyle": { "mode": "line+area" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [{
+        "expr": "{service=\"localizer\"} |= \"num_inliers\" | json | unwrap num_inliers [1m] | __error__=\"\"",
+        "legendFormat": "num_inliers",
+        "queryType": "range"
+      }]
+    },
+    {
+      "title": "Reprojection Error (median, px)",
+      "description": "Median reprojection error of inliers, in pixels. From COLMAP literature (Schönberger & Frahm, 2016):\n- <1px: Excellent (sub-pixel accuracy)\n- 1–3px: Good (typical for outdoor scenes)\n- 3–5px: Acceptable (motion blur, rolling shutter)\n- >5px: Poor (likely wrong correspondences surviving RANSAC)\n\nThis metric directly reflects pose accuracy — lower is better.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 27 },
+      "id": 22,
+      "datasource": { "type": "loki", "uid": "placeframe-loki" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "px",
+          "custom": { "drawStyle": "points", "pointSize": 5, "spanNulls": false },
+          "min": 0,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 3 },
+            { "color": "orange", "value": 5 },
+            { "color": "red", "value": 10 }
+          ] },
+          "custom.thresholdsStyle": { "mode": "line+area" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [{
+        "expr": "{service=\"localizer\"} |= \"reprojection_error_median\" | json | unwrap reprojection_error_median [1m] | __error__=\"\"",
+        "legendFormat": "reproj_error_px",
+        "queryType": "range"
+      }]
+    },
+    {
+      "title": "Inlier Spatial Coverage",
+      "description": "Fraction of the image area covered by the convex hull of inlier keypoints. From SuperGlue (Sarlin et al., 2020):\n- >0.3: Good coverage, pose well-constrained in all axes\n- 0.1–0.3: Moderate, depth axis may be poorly constrained\n- <0.1: Poor, inliers clustered in a small region → degenerate pose\n\nCoverage is computed as ConvexHull(inlier_2d_points).area / (width × height).",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 27 },
+      "id": 23,
+      "datasource": { "type": "loki", "uid": "placeframe-loki" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": { "drawStyle": "points", "pointSize": 5, "spanNulls": false },
+          "min": 0, "max": 1,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "orange", "value": 0.05 },
+            { "color": "yellow", "value": 0.1 },
+            { "color": "green", "value": 0.3 }
+          ] },
+          "custom.thresholdsStyle": { "mode": "line+area" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [{
+        "expr": "{service=\"localizer\"} |= \"inlier_coverage\" | json | unwrap inlier_coverage [1m] | __error__=\"\"",
+        "legendFormat": "coverage",
+        "queryType": "range"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 35 },
+      "id": 103,
+      "title": "Degradation Detection",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "title": "Quality Degradation Cascade (rolling p10)",
+      "description": "Tracks the 10th percentile (worst 10%) of each metric over time. When the bottom of the distribution drops, it's an early warning of systematic quality degradation — before the median moves. Inspired by Sattler et al. (2018) benchmark methodology of tracking recall at multiple thresholds.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+      "id": 30,
+      "datasource": { "type": "loki", "uid": "placeframe-loki" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 0, "spanNulls": true }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "matches_p10" }, "properties": [{ "id": "color", "value": { "fixedColor": "light-blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "correspondences_p10" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "inliers_p10" }, "properties": [{ "id": "color", "value": { "fixedColor": "dark-blue", "mode": "fixed" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "min"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "expr": "quantile_over_time(0.1, {service=\"localizer\"} |= \"num_matches\" | json | unwrap num_matches | __error__=\"\" [15m])",
+          "legendFormat": "matches_p10",
+          "queryType": "range"
+        },
+        {
+          "expr": "quantile_over_time(0.10, {service=\"localizer\"} |= \"num_correspondences\" | json | unwrap num_correspondences | __error__=\"\" [15m])",
+          "legendFormat": "correspondences_p10",
+          "queryType": "range"
+        },
+        {
+          "expr": "quantile_over_time(0.10, {service=\"localizer\"} |= \"num_inliers\" | json | unwrap num_inliers | __error__=\"\" [15m])",
+          "legendFormat": "inliers_p10",
+          "queryType": "range"
+        }
+      ]
+    },
+    {
+      "title": "Localization Failure Rate vs Quality",
+      "description": "Overlay: HTTP 422 rate (Prometheus) on top of quality percentiles (Loki). Spikes in 422s should correlate with drops in inlier counts — if they don't, the failure mode is upstream (image upload, map loading) not feature matching.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
+      "id": 31,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineInterpolation": "smooth", "fillOpacity": 0, "spanNulls": true }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "422 rate" }, "properties": [
+            { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } },
+            { "id": "custom.axisPlacement", "value": "right" },
+            { "id": "unit", "value": "reqps" }
+          ] },
+          { "matcher": { "id": "byName", "options": "inlier_ratio_p50" }, "properties": [
+            { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } },
+            { "id": "unit", "value": "percentunit" }
+          ] },
+          { "matcher": { "id": "byName", "options": "inlier_ratio_p10" }, "properties": [
+            { "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } },
+            { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 10] } },
+            { "id": "unit", "value": "percentunit" }
+          ] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+          "expr": "sum(rate(placeframe_requests_total{path=~\"/localize.*\", status=\"422\"}[5m]))",
+          "legendFormat": "422 rate"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "quantile_over_time(0.5, {service=\"localizer\"} |= \"inlier_ratio\" | json | unwrap inlier_ratio | __error__=\"\" [15m])",
+          "legendFormat": "inlier_ratio_p50",
+          "queryType": "range"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "quantile_over_time(0.1, {service=\"localizer\"} |= \"inlier_ratio\" | json | unwrap inlier_ratio | __error__=\"\" [15m])",
+          "legendFormat": "inlier_ratio_p10",
+          "queryType": "range"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 44 },
+      "id": 104,
+      "title": "Feature Extraction & Retrieval Health",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "title": "Raw Match Count Over Time",
+      "description": "Total LightGlue matches per query (before 3D filtering). LightGlue (Lindenberger et al., 2023) adaptively prunes matches — low counts indicate: (1) textureless query image, (2) large viewpoint change from map, or (3) model degradation. Typical healthy range: 100–1000+ matches depending on scene complexity.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 45 },
+      "id": 40,
+      "datasource": { "type": "loki", "uid": "placeframe-loki" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "points", "pointSize": 4, "spanNulls": false },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "orange", "value": 50 },
+            { "color": "yellow", "value": 100 },
+            { "color": "green", "value": 200 }
+          ] },
+          "custom.thresholdsStyle": { "mode": "line" }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [{
+        "expr": "{service=\"localizer\"} |= \"num_matches\" | json | unwrap num_matches [1m] | __error__=\"\"",
+        "legendFormat": "matches",
+        "queryType": "range"
+      }]
+    },
+    {
+      "title": "3D Back-Projection Rate",
+      "description": "Ratio of correspondences (matches with 3D points) to total matches. Low values indicate map sparsity — the SfM reconstruction didn't triangulate enough of the matched features. From COLMAP (Schönberger & Frahm, 2016), typical maps have 70–90% of keypoints associated with 3D points for well-reconstructed scenes.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 45 },
+      "id": 41,
+      "datasource": { "type": "loki", "uid": "placeframe-loki" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": { "drawStyle": "points", "pointSize": 4, "spanNulls": false },
+          "min": 0, "max": 1,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "orange", "value": 0.3 },
+            { "color": "yellow", "value": 0.5 },
+            { "color": "green", "value": 0.7 }
+          ] },
+          "custom.thresholdsStyle": { "mode": "line" }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [{
+        "expr": "{service=\"localizer\"} |= \"num_correspondences\" | json | line_format \"{{divide .num_correspondences .num_matches}}\" | unwrap _entry [1m] | __error__=\"\"",
+        "legendFormat": "3d_backproj_rate",
+        "queryType": "range"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 53 },
+      "id": 105,
+      "title": "Localizer Error Logs",
+      "type": "row",
+      "panels": []
+    },
+    {
+      "title": "Localization Errors",
+      "description": "Errors from the localizer service — LocalizationError (insufficient features/matches), map loading failures, model errors",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 54 },
+      "id": 50,
+      "datasource": { "type": "loki", "uid": "placeframe-loki" },
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      },
+      "targets": [{
+        "expr": "{service=\"localizer\"} |= \"error\" or \"Error\" or \"Traceback\" or \"Exception\"",
+        "refId": "A"
+      }]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["placeframe", "localization", "slo", "ml-quality", "hloc"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "title": "Placeframe: Localization Pipeline SLO",
+  "uid": "placeframe-localization-slo"
+}

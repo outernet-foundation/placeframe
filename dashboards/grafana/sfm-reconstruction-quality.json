@@ -1,0 +1,300 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "COLMAP Image Registration (from reconstructor stdout)",
+      "type": "row"
+    },
+    {
+      "title": "Image Registration Progress (live)",
+      "description": "COLMAP incremental SfM registration progress extracted from stdout. Each log line 'Registering image #N (num_reg_frames=M)' gives the running count of registered images. Track this against total images to see registration rate converge. Per Schonberger & Frahm (CVPR 2016), registration rate >70% is typical; <50% signals scene difficulty or matching failure.",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 1 },
+      "id": 1,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "spanNulls": true, "stacking": { "mode": "none" } }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["max", "lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "max_over_time({service=\"reconstructor\", container=\"app\"} |= `num_reg_frames` | regexp `num_reg_frames=(?P<reg_frames>[0-9]+)` | unwrap reg_frames [$__auto]) by ()",
+        "queryType": "range",
+        "legendFormat": "Registered Frames",
+        "refId": "A"
+      }]
+    },
+    {
+      "title": "Per-Image Point Visibility",
+      "description": "For each image COLMAP registers, it reports 'Image sees X / Y points' where X = new points contributed and Y = total points visible from that viewpoint. The ratio X/Y is the 'novelty fraction' - how much new 3D structure this image adds. High novelty early (good coverage), diminishing novelty later (overlap building). Per SfM-Revisited, sufficient overlap is critical for robust BA.",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 1 },
+      "id": 2,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "points", "pointSize": 4, "spanNulls": false }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "new points" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "total visible" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "min", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "avg_over_time({service=\"reconstructor\", container=\"app\"} |= `Image sees` | regexp `Image sees (?P<new_pts>[0-9]+)` | unwrap new_pts [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "new points",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "avg_over_time({service=\"reconstructor\", container=\"app\"} |= `Image sees` | regexp `Image sees [0-9]+ / (?P<total_pts>[0-9]+)` | unwrap total_pts [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "total visible",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 11 },
+      "id": 101,
+      "title": "Bundle Adjustment & Reconstruction Timing",
+      "type": "row"
+    },
+    {
+      "title": "Reconstruction Wall-Clock Time",
+      "description": "COLMAP reports 'Elapsed time: N [minutes]' at completion. This is the pure SfM time (excludes feature extraction, matching). Per GLOMAP (Pan et al 2024), incremental SfM times scale roughly quadratically with image count. Sudden increases suggest scene complexity changes.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 12 },
+      "id": 10,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "points", "pointSize": 8, "spanNulls": false },
+          "unit": "m"
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "last_over_time({service=\"reconstructor\", container=\"app\"} |= `Elapsed time` | regexp `Elapsed time: (?P<elapsed>[0-9.]+)` | unwrap elapsed [$__auto]) by ()",
+        "queryType": "range",
+        "legendFormat": "COLMAP SfM time (min)",
+        "refId": "A"
+      }]
+    },
+    {
+      "title": "Global Bundle Adjustment Events",
+      "description": "Count of BA events per time window. BA runs multiple times during incremental SfM: after initial pair, then periodically as images are registered, then a final global BA. More BA events = more images being registered. Per COLMAP, BA is the most expensive step.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 12 },
+      "id": 11,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "bars", "fillOpacity": 80 },
+          "color": { "fixedColor": "orange", "mode": "fixed" }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "count_over_time({service=\"reconstructor\", container=\"app\"} |= `Global bundle adjustment` [$__auto])",
+        "queryType": "range",
+        "legendFormat": "BA events",
+        "refId": "A"
+      }]
+    },
+    {
+      "title": "Reconstruction Pipeline Stage Log",
+      "description": "Live log stream filtered to key pipeline stage transitions: feature extraction, matching, COLMAP registration, BA, success/failure. Each stage corresponds to a ReconstructionStatus enum value.",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 12 },
+      "id": 12,
+      "options": { "showTime": true, "showLabels": false, "showCommonLabels": false, "wrapLogMessage": true, "prettifyLogMessage": false, "enableLogDetails": true, "sortOrder": "Descending" },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "{service=\"reconstructor\", container=\"app\"} |~ `Extracting features|Elapsed time|Reconstruction (succeeded|failed)|Keeping successful|bundle adjustment|Downloaded capture`",
+        "queryType": "range",
+        "refId": "A"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 20 },
+      "id": 102,
+      "title": "Reconstruction Quality (from PostgreSQL: SfM output statistics)",
+      "type": "row"
+    },
+    {
+      "title": "Camera Positions per Map (proxy for registration rate)",
+      "description": "After COLMAP runs, successfully registered camera poses are stored as localization_map_camera_positions. This count is a proxy for the number of registered images. Per the Long-Term Visual Localization Benchmark (Sattler et al, CVPR 2018), registration rate >70% is expected for well-captured scenes. Maps with few camera positions relative to capture frame count may indicate SfM difficulty.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "id": 20,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "bars", "fillOpacity": 60, "stacking": { "mode": "none" } },
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT lm.created_at AS time, COALESCE(lm.name, cs.name, 'map-' || left(lm.id::text, 8)) AS metric, count(cp.id) AS value FROM localization_maps lm JOIN reconstructions r ON r.id = lm.reconstruction_id JOIN capture_sessions cs ON cs.id = r.capture_session_id LEFT JOIN localization_map_camera_positions cp ON cp.localization_map_id = lm.id GROUP BY lm.id, lm.name, cs.name, lm.created_at ORDER BY lm.created_at;",
+        "format": "time_series"
+      }]
+    },
+    {
+      "title": "Map Quality Scatter: Camera Count vs Spatial Extent",
+      "description": "Each point is a map. X-axis = number of camera positions (proxy for registered images). Y-axis = spatial extent in meters (bounding box diagonal). Ideal maps are in the upper-right: many cameras covering large space. Lower-left indicates poor captures (few frames or small coverage). Per SfM literature, registration rate and coverage area together indicate reconstruction quality better than either alone.",
+      "type": "xychart",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 21 },
+      "id": 21,
+      "fieldConfig": { "defaults": { "custom": { "pointSize": { "fixed": 8 } } }, "overrides": [] },
+      "options": { "seriesMapping": "manual", "series": [{ "x": { "field": "cameras" }, "y": { "field": "extent_m" }, "name": { "field": "map_name" } }] },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(lm.name, cs.name, 'map-' || left(lm.id::text, 8)) AS map_name, count(cp.id) AS cameras, round(sqrt(power(max(cp.position_x) - min(cp.position_x), 2) + power(max(cp.position_y) - min(cp.position_y), 2) + power(max(cp.position_z) - min(cp.position_z), 2))::numeric, 2) AS extent_m FROM localization_maps lm JOIN reconstructions r ON r.id = lm.reconstruction_id JOIN capture_sessions cs ON cs.id = r.capture_session_id JOIN localization_map_camera_positions cp ON cp.localization_map_id = lm.id WHERE lm.active = true GROUP BY lm.id, lm.name, cs.name HAVING count(cp.id) >= 2;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 },
+      "id": 103,
+      "title": "Reconstruction Pipeline Stages & Artifacts",
+      "type": "row"
+    },
+    {
+      "title": "Feature Extraction Progress",
+      "description": "Count of 'Extracting features: image N of M' log lines over time. SuperPoint extracts keypoints + descriptors per image. Per SuperPoint (DeTone et al 2018), the detector aims for 500-2500 keypoints per image. The extraction rate indicates GPU throughput for the feature extraction stage.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 32 },
+      "id": 30,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "bars", "fillOpacity": 80 },
+          "color": { "fixedColor": "blue", "mode": "fixed" }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "count_over_time({service=\"reconstructor\", container=\"app\"} |= `Extracting features` [$__auto])",
+        "queryType": "range",
+        "legendFormat": "Feature extractions",
+        "refId": "A"
+      }]
+    },
+    {
+      "title": "S3 Artifact Uploads",
+      "description": "Count of 'Putting object in bucket' log lines, indicating artifact upload to S3. A successful reconstruction uploads: sfm_model/ (frame_poses.npz, points3D.npz, images.txt, cameras.txt), features.h5, global_descriptors.h5, opq_matrix.pkl, pq_quantizer.pkl, manifest.json. Missing uploads indicate failure before that pipeline stage.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 32 },
+      "id": 31,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "bars", "fillOpacity": 80 },
+          "color": { "fixedColor": "green", "mode": "fixed" }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "count_over_time({service=\"reconstructor\", container=\"app\"} |= `Putting object in bucket` [$__auto])",
+        "queryType": "range",
+        "legendFormat": "Artifact uploads",
+        "refId": "A"
+      }]
+    },
+    {
+      "title": "Reconstruction Success/Failure Events",
+      "description": "Explicit success and failure log lines from the reconstructor. 'Reconstruction succeeded' = complete pipeline. 'Reconstruction failed, no model was created' = COLMAP could not build a 3D model (insufficient matches, degenerate scene, etc.).",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 32 },
+      "id": 32,
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Succeeded" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "Failed" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "count_over_time({service=\"reconstructor\", container=\"app\"} |= `Reconstruction succeeded` [$__auto])",
+          "queryType": "range",
+          "legendFormat": "Succeeded",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "count_over_time({service=\"reconstructor\", container=\"app\"} |~ `Reconstruction failed|no model was created` [$__auto])",
+          "queryType": "range",
+          "legendFormat": "Failed",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
+      "id": 104,
+      "title": "Per-Reconstruction Detailed Table",
+      "type": "row"
+    },
+    {
+      "title": "Reconstruction Detail (with quality indicators)",
+      "description": "Complete per-reconstruction table with quality proxy metrics. Camera position count serves as a proxy for SfM registration. Duration tracks pipeline performance. Multiple attempts per capture session indicate systematic issues with that capture data. Per literature: registration rate <50% (critical), <70% (warning); maps with <10 cameras likely insufficient for reliable relocalization.",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 41 },
+      "id": 40,
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "status" }, "properties": [
+            { "id": "custom.displayMode", "value": "color-background" },
+            { "id": "mappings", "value": [
+              { "type": "value", "options": { "succeeded": { "color": "green", "text": "succeeded" }, "failed": { "color": "red", "text": "failed" }, "running": { "color": "blue", "text": "running" }, "queued": { "color": "yellow", "text": "queued" } } }
+            ] }
+          ] },
+          { "matcher": { "id": "byName", "options": "cameras" }, "properties": [
+            { "id": "custom.displayMode", "value": "gradient-gauge" },
+            { "id": "min", "value": 0 }, { "id": "max", "value": 300 },
+            { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 10 }, { "color": "green", "value": 50 }] } }
+          ] },
+          { "matcher": { "id": "byName", "options": "duration_sec" }, "properties": [{ "id": "unit", "value": "s" }] }
+        ]
+      },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT r.id AS reconstruction_id, cs.name AS capture, cs.device_type::text AS device, r.orchestration_status::text AS status, EXTRACT(EPOCH FROM (r.updated_at - r.created_at))::int AS duration_sec, COALESCE(cam.cnt, 0) AS cameras, COALESCE(round(cam.extent::numeric, 2), 0) AS extent_m, (SELECT count(*) FROM reconstructions r2 WHERE r2.capture_session_id = r.capture_session_id) AS total_attempts, r.created_at, r.updated_at FROM reconstructions r JOIN capture_sessions cs ON cs.id = r.capture_session_id LEFT JOIN LATERAL (SELECT count(*) AS cnt, sqrt(power(max(position_x) - min(position_x), 2) + power(max(position_y) - min(position_y), 2) + power(max(position_z) - min(position_z), 2)) AS extent FROM localization_map_camera_positions cp JOIN localization_maps lm ON lm.id = cp.localization_map_id WHERE lm.reconstruction_id = r.id) cam ON true ORDER BY r.created_at DESC LIMIT 30;",
+        "format": "table"
+      }]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["placeframe", "sfm", "colmap", "reconstruction", "engineering"],
+  "templating": { "list": [] },
+  "time": { "from": "now-7d", "to": "now" },
+  "title": "Placeframe: SfM Reconstruction Quality",
+  "uid": "placeframe-sfm-quality"
+}

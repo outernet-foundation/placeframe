@@ -1,0 +1,637 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Localization Volume & Success",
+      "type": "row"
+    },
+    {
+      "title": "Successful Localizations",
+      "description": "Count of localization requests that produced pose estimates (detected via metrics JSON in localizer stdout)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "green", "mode": "fixed" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["sum"] } },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "count_over_time({service=\"localizer\", container=\"app\"} |= `\"inlier_ratio\"` [$__auto])",
+        "queryType": "range",
+        "legendFormat": "Successful",
+        "refId": "A"
+      }]
+    },
+    {
+      "title": "Failed Localizations",
+      "description": "Count of localization errors (pose estimation failure, no keypoints, etc.)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "red", "mode": "fixed" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["sum"] } },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "count_over_time({service=\"localizer\", container=\"app\"} |~ `(?i)error|failed|traceback` [$__auto])",
+        "queryType": "range",
+        "legendFormat": "Errors",
+        "refId": "A"
+      }]
+    },
+    {
+      "title": "Localization Request Rate",
+      "description": "Localizations per minute over time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 1 },
+      "id": 3,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 20, "pointSize": 5, "spanNulls": true }, "unit": "opm" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "sum(count_over_time({service=\"localizer\", container=\"app\"} |= `\"inlier_ratio\"` [$__auto])) * 60 / $__interval_ms * 1000",
+          "queryType": "range",
+          "legendFormat": "Successful/min",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "sum(count_over_time({service=\"localizer\", container=\"app\"} |~ `(?i)error|failed` [$__auto])) * 60 / $__interval_ms * 1000",
+          "queryType": "range",
+          "legendFormat": "Errors/min",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Active Localization Sessions",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 4,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT count(*) FROM localization_sessions;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Active Maps Available",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 5,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT count(*) FROM localization_maps WHERE active = true;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 101,
+      "title": "Pose Estimation Quality (from localizer stdout via Loki)",
+      "type": "row"
+    },
+    {
+      "title": "Inlier Ratio Over Time",
+      "description": "Ratio of RANSAC PnP inliers to total correspondences. Higher is better (>0.5 is good, >0.8 is excellent). Extracted from localizer stdout JSON metrics.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 10 },
+      "id": 10,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "points", "pointSize": 6, "spanNulls": false },
+          "min": 0, "max": 1,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0.3 }, { "color": "green", "value": 0.5 }] },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "avg_over_time({service=\"localizer\", container=\"app\"} |= `\"inlier_ratio\"` | regexp `\"inlier_ratio\": (?P<inlier_ratio>[0-9.]+)` | unwrap inlier_ratio [$__auto]) by ()",
+        "queryType": "range",
+        "legendFormat": "avg inlier_ratio",
+        "refId": "A"
+      }]
+    },
+    {
+      "title": "Reprojection Error Median (px)",
+      "description": "Median reprojection error of inlier correspondences in pixels. Lower is better (<2px is good, <1px is excellent). This measures how accurately the estimated pose reprojects 3D points onto the query image.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 10 },
+      "id": 11,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "points", "pointSize": 6, "spanNulls": false },
+          "unit": "pixel", "min": 0,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 2 }, { "color": "red", "value": 5 }] },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "avg_over_time({service=\"localizer\", container=\"app\"} |= `\"reprojection_error_median\"` | regexp `\"reprojection_error_median\": (?P<reproj_err>[0-9.]+)` | unwrap reproj_err [$__auto]) by ()",
+        "queryType": "range",
+        "legendFormat": "avg reproj error (px)",
+        "refId": "A"
+      }]
+    },
+    {
+      "title": "Inlier Coverage",
+      "description": "Fraction of the query image covered by the convex hull of inlier correspondences. Higher coverage means the pose is constrained across more of the image. Low coverage (<0.2) suggests the match is concentrated in a small region.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 10 },
+      "id": 12,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "points", "pointSize": 6, "spanNulls": false },
+          "min": 0, "max": 1, "unit": "percentunit",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0.15 }, { "color": "green", "value": 0.3 }] },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "avg_over_time({service=\"localizer\", container=\"app\"} |= `\"inlier_coverage\"` | regexp `\"inlier_coverage\": (?P<coverage>[0-9.]+)` | unwrap coverage [$__auto]) by ()",
+        "queryType": "range",
+        "legendFormat": "avg inlier_coverage",
+        "refId": "A"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 102,
+      "title": "Feature Matching Pipeline (from localizer stdout via Loki)",
+      "type": "row"
+    },
+    {
+      "title": "Feature Matching Funnel",
+      "description": "The localization pipeline: LightGlue produces raw matches, filtering for valid 3D points gives correspondences, RANSAC PnP selects inliers. Each stage filters further. Healthy pipelines should show matches >> correspondences > inliers with stable ratios.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
+      "id": 20,
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "points", "pointSize": 5, "spanNulls": false } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "matches" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "correspondences" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "inliers" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "min", "max", "lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "avg_over_time({service=\"localizer\", container=\"app\"} |= `\"num_matches\"` | regexp `\"num_matches\": (?P<num_matches>[0-9]+)` | unwrap num_matches [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "matches",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "avg_over_time({service=\"localizer\", container=\"app\"} |= `\"num_correspondences\"` | regexp `\"num_correspondences\": (?P<num_corr>[0-9]+)` | unwrap num_corr [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "correspondences",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "avg_over_time({service=\"localizer\", container=\"app\"} |= `\"num_inliers\"` | regexp `\"num_inliers\": (?P<num_inliers>[0-9]+)` | unwrap num_inliers [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "inliers",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "title": "Correspondence Yield & Inlier Yield",
+      "description": "Correspondence yield = correspondences/matches (how many LightGlue matches have valid 3D points). Inlier yield = inliers/correspondences (RANSAC success rate). Both should be stable; drops indicate map quality degradation or environmental change.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
+      "id": 21,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "points", "pointSize": 5, "spanNulls": false },
+          "min": 0, "max": 1, "unit": "percentunit"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "inlier_ratio (inliers/corr)" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "min", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "avg_over_time({service=\"localizer\", container=\"app\"} |= `\"inlier_ratio\"` | regexp `\"inlier_ratio\": (?P<val>[0-9.]+)` | unwrap val [$__auto]) by ()",
+        "queryType": "range",
+        "legendFormat": "inlier_ratio (inliers/corr)",
+        "refId": "A"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "id": 103,
+      "title": "Localization Quality Distributions",
+      "type": "row"
+    },
+    {
+      "title": "Inlier Ratio Distribution (last 24h)",
+      "description": "Histogram of inlier ratios across all localization attempts. The distribution shape indicates overall system health: a right-skewed distribution (peak near 1.0) means most localizations are excellent.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 28 },
+      "id": 30,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 30, "spanNulls": false },
+          "min": 0, "max": 1
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "p50" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p10" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p90" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "quantile_over_time(0.1, {service=\"localizer\", container=\"app\"} |= `\"inlier_ratio\"` | regexp `\"inlier_ratio\": (?P<val>[0-9.]+)` | unwrap val [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "p10",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "quantile_over_time(0.5, {service=\"localizer\", container=\"app\"} |= `\"inlier_ratio\"` | regexp `\"inlier_ratio\": (?P<val>[0-9.]+)` | unwrap val [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "p50",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "quantile_over_time(0.9, {service=\"localizer\", container=\"app\"} |= `\"inlier_ratio\"` | regexp `\"inlier_ratio\": (?P<val>[0-9.]+)` | unwrap val [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "p90",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "title": "Reprojection Error Distribution (last 24h)",
+      "description": "Percentiles of reprojection error (pixels). p50 < 2px is good. p90 < 5px means the tail is acceptable. Rising p90 with stable p50 suggests intermittent poor-quality localizations.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 28 },
+      "id": 31,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 30, "spanNulls": false },
+          "unit": "pixel", "min": 0
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "p50" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p90" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p99" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "quantile_over_time(0.5, {service=\"localizer\", container=\"app\"} |= `\"reprojection_error_median\"` | regexp `\"reprojection_error_median\": (?P<val>[0-9.]+)` | unwrap val [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "quantile_over_time(0.9, {service=\"localizer\", container=\"app\"} |= `\"reprojection_error_median\"` | regexp `\"reprojection_error_median\": (?P<val>[0-9.]+)` | unwrap val [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "p90",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "quantile_over_time(0.99, {service=\"localizer\", container=\"app\"} |= `\"reprojection_error_median\"` | regexp `\"reprojection_error_median\": (?P<val>[0-9.]+)` | unwrap val [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "title": "Match Count Distribution",
+      "description": "Percentiles of raw LightGlue match counts. If p10 is very low (<10), some query images are barely matching the map, possibly due to viewpoint change, lighting, or occlusion.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 28 },
+      "id": 32,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "spanNulls": false },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "quantile_over_time(0.1, {service=\"localizer\", container=\"app\"} |= `\"num_matches\"` | regexp `\"num_matches\": (?P<val>[0-9]+)` | unwrap val [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "p10 matches",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "quantile_over_time(0.5, {service=\"localizer\", container=\"app\"} |= `\"num_matches\"` | regexp `\"num_matches\": (?P<val>[0-9]+)` | unwrap val [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "p50 matches",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "quantile_over_time(0.9, {service=\"localizer\", container=\"app\"} |= `\"num_matches\"` | regexp `\"num_matches\": (?P<val>[0-9]+)` | unwrap val [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "p90 matches",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 36 },
+      "id": 104,
+      "title": "Localization Logs & Error Analysis",
+      "type": "row"
+    },
+    {
+      "title": "Localizer Error Stream",
+      "description": "Raw error logs from the localizer service. Watch for patterns: 'No matching keypoints' = poor image quality or map mismatch, 'Pose estimation failed' = insufficient correspondences for RANSAC.",
+      "type": "logs",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 37 },
+      "id": 40,
+      "options": { "showTime": true, "showLabels": true, "showCommonLabels": false, "wrapLogMessage": true, "prettifyLogMessage": false, "enableLogDetails": true, "sortOrder": "Descending" },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "{service=\"localizer\", container=\"app\"} |~ `(?i)error|failed|traceback|exception|no matching`",
+        "queryType": "range",
+        "refId": "A"
+      }]
+    },
+    {
+      "title": "Reconstructor Error Stream",
+      "description": "Raw error logs from the reconstructor. 'Reconstruction failed, no model was created' = COLMAP SfM could not build a 3D model.",
+      "type": "logs",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 37 },
+      "id": 41,
+      "options": { "showTime": true, "showLabels": true, "showCommonLabels": false, "wrapLogMessage": true, "prettifyLogMessage": false, "enableLogDetails": true, "sortOrder": "Descending" },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "{service=\"reconstructor\", container=\"app\"} |~ `(?i)error|failed|traceback|exception`",
+        "queryType": "range",
+        "refId": "A"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 47 },
+      "id": 105,
+      "title": "Localization Session Tracking",
+      "type": "row"
+    },
+    {
+      "title": "Localization Sessions Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
+      "id": 50,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80 }, "color": { "fixedColor": "blue", "mode": "fixed" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT date_trunc('day', created_at) AS time, count(*) AS \"Sessions\" FROM localization_sessions WHERE created_at >= now() - interval '30 days' GROUP BY 1 ORDER BY 1;",
+        "format": "time_series"
+      }]
+    },
+    {
+      "title": "Recent Localization Sessions",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
+      "id": 51,
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT ls.id, ls.container_id, ls.container_url, ls.created_at, t.name AS tenant FROM localization_sessions ls LEFT JOIN auth.tenants t ON t.id = ls.tenant_id ORDER BY ls.created_at DESC LIMIT 20;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 56 },
+      "id": 106,
+      "title": "GPU & Device Metrics",
+      "type": "row"
+    },
+    {
+      "title": "GPU Utilization (Localizer Node)",
+      "description": "DCGM GPU utilization on nodes running the localizer. High sustained utilization during localization requests is expected.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 57 },
+      "id": 60,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 20 }, "unit": "percent", "min": 0, "max": 100 }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+        "expr": "DCGM_FI_DEV_GPU_UTIL{job=\"dcgm-exporter\"}",
+        "legendFormat": "GPU {{gpu}} ({{Hostname}})"
+      }]
+    },
+    {
+      "title": "GPU Memory Used (Localizer)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 57 },
+      "id": 61,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 20 }, "unit": "decbytes" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+        "expr": "DCGM_FI_DEV_FB_USED{job=\"dcgm-exporter\"} * 1024 * 1024",
+        "legendFormat": "Used GPU {{gpu}} ({{Hostname}})"
+      }]
+    },
+    {
+      "title": "GPU Temperature (Localizer)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 57 },
+      "id": 62,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 },
+          "unit": "celsius",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 85 }] },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+        "expr": "DCGM_FI_DEV_GPU_TEMP{job=\"dcgm-exporter\"}",
+        "legendFormat": "GPU {{gpu}} ({{Hostname}})"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 65 },
+      "id": 107,
+      "title": "Quality Classification (literature thresholds from Sattler et al CVPR 2018, Sarlin et al CVPR 2019)",
+      "type": "row"
+    },
+    {
+      "title": "Inlier Ratio Quality Bands",
+      "description": "Classification of localization quality based on RANSAC inlier ratio. Thresholds from visual localization benchmark literature:\n- Excellent (>0.5): Strong geometric consensus, reliable pose\n- Acceptable (0.3-0.5): Moderate consensus, pose likely correct but less confident\n- Poor (0.2-0.3): Weak consensus, high chance of incorrect pose\n- Critical (<0.2): Near-random, pipeline degradation likely\n\nPer Sarlin et al (CVPR 2019), inlier ratio is the primary diagnostic for RANSAC PnP quality. At >50% outlier ratio, even LO-RANSAC degrades significantly.",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 66 },
+      "id": 70,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "points", "pointSize": 6, "spanNulls": false },
+          "min": 0, "max": 1,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "dark-red", "value": null },
+            { "color": "red", "value": 0.2 },
+            { "color": "yellow", "value": 0.3 },
+            { "color": "green", "value": 0.5 },
+            { "color": "dark-green", "value": 0.8 }
+          ] },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "last_over_time({service=\"localizer\", container=\"app\"} |= `\"inlier_ratio\"` | regexp `\"inlier_ratio\": (?P<val>[0-9.]+)` | unwrap val [$__auto]) by ()",
+        "queryType": "range",
+        "legendFormat": "inlier_ratio (per query)",
+        "refId": "A"
+      }]
+    },
+    {
+      "title": "Inlier Count Quality Bands",
+      "description": "Absolute inlier count per localization query. Thresholds from literature:\n- Robust (>30): Well-constrained pose, sufficient for P3P+RANSAC\n- Marginal (12-30): Minimum for reliable pose, sensitive to outlier distribution\n- Critical (<12): Below minimum for P3P, pose estimation unreliable\n\nPer the Image Matching Challenge (2021-2024), minimum 12 correspondences are needed for geometric verification. Below this, RANSAC cannot reliably distinguish inliers from outliers.",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 66 },
+      "id": 71,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "points", "pointSize": 6, "spanNulls": false },
+          "min": 0,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "dark-red", "value": null },
+            { "color": "red", "value": 12 },
+            { "color": "yellow", "value": 30 },
+            { "color": "green", "value": 50 },
+            { "color": "dark-green", "value": 100 }
+          ] },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "last_over_time({service=\"localizer\", container=\"app\"} |= `\"num_inliers\"` | regexp `\"num_inliers\": (?P<val>[0-9]+)` | unwrap val [$__auto]) by ()",
+        "queryType": "range",
+        "legendFormat": "inlier count (per query)",
+        "refId": "A"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 76 },
+      "id": 108,
+      "title": "Degradation Cascade Monitoring (per Sattler et al, failure modes propagate downstream)",
+      "type": "row"
+    },
+    {
+      "title": "Feature Matching Pipeline Health",
+      "description": "The localization pipeline has three stages that cascade: matches → correspondences → inliers. This panel shows the ratios between stages, which diagnose WHERE failures originate.\n\n- Low correspondences/matches = many LightGlue matches lack valid 3D points in the map (map coverage gap or stale map)\n- Low inliers/correspondences = RANSAC rejecting most correspondences (viewpoint change, moving objects, or wrong retrieval)\n\nPer the degradation cascade model from Sattler et al (CVPR 2018): low-texture → fewer features → fewer matches → low inliers → pose failure. The first ratio to degrade identifies the pipeline bottleneck.",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 77 },
+      "id": 72,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "spanNulls": true },
+          "min": 0
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "p50 matches" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p50 correspondences" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p50 inliers" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p10 inliers" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }, { "id": "custom.lineStyle", "value": { "fill": "dash" } }] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "min", "lastNotNull"] },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "quantile_over_time(0.5, {service=\"localizer\", container=\"app\"} |= `\"num_matches\"` | regexp `\"num_matches\": (?P<val>[0-9]+)` | unwrap val [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "p50 matches",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "quantile_over_time(0.5, {service=\"localizer\", container=\"app\"} |= `\"num_correspondences\"` | regexp `\"num_correspondences\": (?P<val>[0-9]+)` | unwrap val [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "p50 correspondences",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "quantile_over_time(0.5, {service=\"localizer\", container=\"app\"} |= `\"num_inliers\"` | regexp `\"num_inliers\": (?P<val>[0-9]+)` | unwrap val [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "p50 inliers",
+          "refId": "C"
+        },
+        {
+          "datasource": { "type": "loki", "uid": "placeframe-loki" },
+          "expr": "quantile_over_time(0.1, {service=\"localizer\", container=\"app\"} |= `\"num_inliers\"` | regexp `\"num_inliers\": (?P<val>[0-9]+)` | unwrap val [$__auto]) by ()",
+          "queryType": "range",
+          "legendFormat": "p10 inliers",
+          "refId": "D"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["placeframe", "localization", "engineering", "ml-pipeline"],
+  "templating": { "list": [] },
+  "time": { "from": "now-24h", "to": "now" },
+  "title": "Placeframe: Localization Pipeline Engineering",
+  "uid": "placeframe-localization-eng"
+}
