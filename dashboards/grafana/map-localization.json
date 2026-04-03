@@ -1,0 +1,247 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Map Inventory",
+      "type": "row"
+    },
+    {
+      "title": "Total Maps",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT count(*) FROM localization_maps;", "format": "table" }]
+    },
+    {
+      "title": "Active Maps",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT count(*) FROM localization_maps WHERE active = true;", "format": "table" }]
+    },
+    {
+      "title": "Inactive Maps",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "dark-red", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT count(*) FROM localization_maps WHERE active = false;", "format": "table" }]
+    },
+    {
+      "title": "Total Camera Positions",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT count(*) FROM localization_map_camera_positions;", "format": "table" }]
+    },
+    {
+      "title": "Avg Camera Positions per Map",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] }, "decimals": 1 }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT COALESCE(avg(cnt), 0) FROM (SELECT count(*) AS cnt FROM localization_map_camera_positions GROUP BY localization_map_id) sub;", "format": "table" }]
+    },
+    {
+      "title": "Localization Sessions",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "yellow", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT count(*) FROM localization_sessions;", "format": "table" }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "Map Detail Table",
+      "type": "row"
+    },
+    {
+      "title": "All Localization Maps",
+      "description": "Comprehensive table of all localization maps with their properties and related data",
+      "type": "table",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 6 },
+      "id": 10,
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "active" }, "properties": [
+            { "id": "custom.displayMode", "value": "color-background" },
+            { "id": "mappings", "value": [
+              { "type": "value", "options": { "true": { "color": "green", "text": "Active" }, "false": { "color": "dark-red", "text": "Inactive" } } }
+            ] }
+          ] },
+          { "matcher": { "id": "byName", "options": "camera_positions" }, "properties": [
+            { "id": "custom.displayMode", "value": "gradient-gauge" },
+            { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 10 }, { "color": "green", "value": 30 }] } }
+          ] }
+        ]
+      },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT lm.id, COALESCE(lm.name, cs.name, 'unnamed') AS map_name, cs.name AS capture_session, cs.device_type::text AS device, lm.active::text, lm.lighting, round(lm.position_x::numeric, 3) AS pos_x, round(lm.position_y::numeric, 3) AS pos_y, round(lm.position_z::numeric, 3) AS pos_z, (SELECT count(*) FROM localization_map_camera_positions cp WHERE cp.localization_map_id = lm.id) AS camera_positions, lm.created_at, lm.updated_at FROM localization_maps lm JOIN reconstructions r ON r.id = lm.reconstruction_id JOIN capture_sessions cs ON cs.id = r.capture_session_id ORDER BY lm.updated_at DESC;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 102,
+      "title": "Spatial Distribution",
+      "type": "row"
+    },
+    {
+      "title": "Map Positions (X vs Z plane)",
+      "description": "Top-down view of map positions in world space",
+      "type": "xychart",
+      "gridPos": { "h": 12, "w": 12, "x": 0, "y": 19 },
+      "id": 20,
+      "fieldConfig": { "defaults": { "custom": { "pointSize": { "fixed": 10 } } }, "overrides": [] },
+      "options": { "seriesMapping": "manual", "series": [{ "x": { "field": "pos_x" }, "y": { "field": "pos_z" }, "name": { "field": "map_name" } }] },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(lm.name, cs.name, 'map-' || left(lm.id::text, 8)) AS map_name, lm.position_x AS pos_x, lm.position_z AS pos_z FROM localization_maps lm JOIN reconstructions r ON r.id = lm.reconstruction_id JOIN capture_sessions cs ON cs.id = r.capture_session_id WHERE lm.active = true;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Camera Positions (X vs Z plane)",
+      "description": "Top-down view of all camera positions across all maps",
+      "type": "xychart",
+      "gridPos": { "h": 12, "w": 12, "x": 12, "y": 19 },
+      "id": 21,
+      "fieldConfig": { "defaults": { "custom": { "pointSize": { "fixed": 3 } } }, "overrides": [] },
+      "options": { "seriesMapping": "manual", "series": [{ "x": { "field": "pos_x" }, "y": { "field": "pos_z" }, "name": { "field": "map_name" } }] },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(lm.name, cs.name, 'map-' || left(lm.id::text, 8)) AS map_name, cp.position_x AS pos_x, cp.position_z AS pos_z FROM localization_map_camera_positions cp JOIN localization_maps lm ON lm.id = cp.localization_map_id JOIN reconstructions r ON r.id = lm.reconstruction_id JOIN capture_sessions cs ON cs.id = r.capture_session_id WHERE lm.active = true LIMIT 5000;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 },
+      "id": 103,
+      "title": "Map Coverage Analysis",
+      "type": "row"
+    },
+    {
+      "title": "Camera Positions per Map",
+      "description": "Number of registered camera positions for each map, a proxy for map coverage and quality",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "id": 30,
+      "fieldConfig": { "defaults": { "color": { "mode": "continuous-GrYlRd" } }, "overrides": [] },
+      "options": { "barWidth": 0.8, "orientation": "horizontal", "legend": { "displayMode": "list", "placement": "bottom" }, "xTickLabelRotation": 0 },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(lm.name, cs.name, left(lm.id::text, 8)) AS \"Map\", count(cp.id) AS \"Camera Positions\" FROM localization_maps lm JOIN reconstructions r ON r.id = lm.reconstruction_id JOIN capture_sessions cs ON cs.id = r.capture_session_id LEFT JOIN localization_map_camera_positions cp ON cp.localization_map_id = lm.id GROUP BY lm.id, lm.name, cs.name ORDER BY count(cp.id) DESC LIMIT 20;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Map Spatial Extent (bounding box diagonal)",
+      "description": "Spatial extent of each map's camera positions, indicating the physical area covered",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "id": 31,
+      "fieldConfig": { "defaults": { "color": { "mode": "continuous-BlYlRd" }, "unit": "m" }, "overrides": [] },
+      "options": { "barWidth": 0.8, "orientation": "horizontal", "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(lm.name, cs.name, left(lm.id::text, 8)) AS \"Map\", round(sqrt(power(max(cp.position_x) - min(cp.position_x), 2) + power(max(cp.position_y) - min(cp.position_y), 2) + power(max(cp.position_z) - min(cp.position_z), 2))::numeric, 2) AS \"Extent\" FROM localization_maps lm JOIN reconstructions r ON r.id = lm.reconstruction_id JOIN capture_sessions cs ON cs.id = r.capture_session_id JOIN localization_map_camera_positions cp ON cp.localization_map_id = lm.id GROUP BY lm.id, lm.name, cs.name HAVING count(cp.id) >= 2 ORDER BY sqrt(power(max(cp.position_x) - min(cp.position_x), 2) + power(max(cp.position_y) - min(cp.position_y), 2) + power(max(cp.position_z) - min(cp.position_z), 2)) DESC LIMIT 20;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
+      "id": 104,
+      "title": "Localization Sessions",
+      "type": "row"
+    },
+    {
+      "title": "Localization Sessions Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 41 },
+      "id": 40,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80 }, "color": { "fixedColor": "blue", "mode": "fixed" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] }, "tooltip": { "mode": "single" } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT date_trunc('day', created_at) AS time, count(*) AS \"Sessions\" FROM localization_sessions WHERE created_at >= now() - interval '30 days' GROUP BY 1 ORDER BY 1;", "format": "time_series" }]
+    },
+    {
+      "title": "Recent Localization Sessions",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 41 },
+      "id": 41,
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT id, container_id, container_url, created_at FROM localization_sessions ORDER BY created_at DESC LIMIT 20;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 49 },
+      "id": 105,
+      "title": "Map Creation Trends",
+      "type": "row"
+    },
+    {
+      "title": "Map Creation Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 50 },
+      "id": 50,
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "active" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "inactive" }, "properties": [{ "id": "color", "value": { "fixedColor": "dark-red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT date_trunc('week', created_at) AS time, CASE WHEN active THEN 'active' ELSE 'inactive' END AS metric, count(*) AS value FROM localization_maps WHERE created_at >= now() - interval '6 months' GROUP BY 1, 2 ORDER BY 1;", "format": "time_series" }]
+    },
+    {
+      "title": "Maps by Lighting Condition",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 50 },
+      "id": 51,
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }, "pieType": "donut" },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT COALESCE('lighting-' || lighting::text, 'unset') AS metric, count(*) AS value FROM localization_maps GROUP BY lighting ORDER BY count(*) DESC;", "format": "table" }]
+    },
+    {
+      "title": "Maps by Device Type",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 50 },
+      "id": 52,
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }, "pieType": "donut" },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT cs.device_type::text AS metric, count(*) AS value FROM localization_maps lm JOIN reconstructions r ON r.id = lm.reconstruction_id JOIN capture_sessions cs ON cs.id = r.capture_session_id GROUP BY cs.device_type ORDER BY count(*) DESC;", "format": "table" }]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["placeframe", "localization", "maps"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30d", "to": "now" },
+  "title": "Placeframe: Map & Localization Analytics",
+  "uid": "placeframe-map-localization"
+}

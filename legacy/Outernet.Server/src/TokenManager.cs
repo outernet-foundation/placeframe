@@ -14,6 +14,7 @@ namespace Outernet.Server
         private readonly string _tokenUrl;
         private readonly string _clientId;
         private readonly string _privateKeyPath;
+        private readonly string _audience;
         private readonly HttpClient _httpClient;
 
         // Cache state
@@ -26,6 +27,7 @@ namespace Outernet.Server
             _tokenUrl = configuration["AUTH_TOKEN_URL"] ?? throw new ArgumentNullException("AUTH_TOKEN_URL");
             _clientId = configuration["AUTH_CLIENT_ID"] ?? throw new ArgumentNullException("AUTH_CLIENT_ID");
             _privateKeyPath = configuration["PRIVATE_KEY_PATH"] ?? throw new ArgumentNullException("PRIVATE_KEY_PATH");
+            _audience = configuration["AUTH_TOKEN_AUDIENCE"] ?? _tokenUrl;
             _httpClient = httpClient;
         }
 
@@ -84,7 +86,7 @@ namespace Outernet.Server
             {
                 Issuer = _clientId,
                 Subject = new ClaimsIdentity(new[] { new Claim("sub", _clientId) }),
-                Audience = _tokenUrl,
+                Audience = _audience,
                 Expires = now.AddMinutes(1),
                 IssuedAt = now,
                 SigningCredentials = new SigningCredentials(rsaKey, SecurityAlgorithms.RsaSha256),

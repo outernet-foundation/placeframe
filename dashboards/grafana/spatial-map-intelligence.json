@@ -1,0 +1,277 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Map Quality Indicators",
+      "type": "row"
+    },
+    {
+      "title": "Total Camera Positions",
+      "description": "Camera positions are computed during reconstruction. More positions = more coverage = better relocalization potential.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT count(*) FROM localization_map_camera_positions;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Avg Cameras/Map",
+      "description": "Average camera positions per map. Maps with very few cameras (<5) may have poor coverage for relocalization.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 10 }, { "color": "green", "value": 30 }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(round(avg(cnt)), 0) FROM (SELECT count(*) AS cnt FROM localization_map_camera_positions GROUP BY localization_map_id) sub;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Maps with <10 Cameras",
+      "description": "Maps with fewer than 10 camera positions have limited coverage and may produce unreliable localizations.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 5 }] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT count(*) FROM (SELECT localization_map_id, count(*) AS cnt FROM localization_map_camera_positions GROUP BY localization_map_id HAVING count(*) < 10) sub;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Total Spatial Volume (m^3)",
+      "description": "Approximate total spatial volume covered by all active maps combined (bounding box sum).",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "fieldConfig": { "defaults": { "decimals": 1, "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(sum(vol), 0) FROM (SELECT (max(cp.position_x) - min(cp.position_x)) * (max(cp.position_y) - min(cp.position_y)) * (max(cp.position_z) - min(cp.position_z)) AS vol FROM localization_map_camera_positions cp JOIN localization_maps lm ON lm.id = cp.localization_map_id WHERE lm.active = true GROUP BY cp.localization_map_id HAVING count(*) >= 3) sub;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Active Maps",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT count(*) FROM localization_maps WHERE active = true;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Inactive Maps",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "yellow", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT count(*) FROM localization_maps WHERE active = false;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "Per-Map Quality Metrics",
+      "type": "row"
+    },
+    {
+      "title": "Map Quality Report",
+      "description": "Comprehensive per-map analysis: camera count, spatial extent, camera density, device type, and reconstruction status. Low camera density maps may need re-capture.",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 6 },
+      "id": 10,
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "cameras" }, "properties": [{ "id": "custom.displayMode", "value": "gradient-gauge" }, { "id": "min", "value": 0 }, { "id": "max", "value": 100 }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 10 }, { "color": "green", "value": 30 }] } }] },
+          { "matcher": { "id": "byName", "options": "extent_m" }, "properties": [{ "id": "unit", "value": "lengthm" }, { "id": "decimals", "value": 2 }] },
+          { "matcher": { "id": "byName", "options": "density_per_m3" }, "properties": [{ "id": "decimals", "value": 2 }] }
+        ]
+      },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(lm.name, cs.name, 'map-' || left(lm.id::text, 8)) AS map_name, cs.device_type::text AS device, r.orchestration_status::text AS recon_status, lm.active, COALESCE(cam.cnt, 0) AS cameras, COALESCE(round(cam.extent::numeric, 2), 0) AS extent_m, CASE WHEN cam.vol > 0 THEN round((cam.cnt / cam.vol)::numeric, 2) ELSE 0 END AS density_per_m3, lm.lighting, lm.created_at FROM localization_maps lm JOIN reconstructions r ON r.id = lm.reconstruction_id JOIN capture_sessions cs ON cs.id = r.capture_session_id LEFT JOIN LATERAL (SELECT count(*) AS cnt, sqrt(power(max(position_x) - min(position_x), 2) + power(max(position_y) - min(position_y), 2) + power(max(position_z) - min(position_z), 2)) AS extent, greatest((max(position_x) - min(position_x)) * (max(position_y) - min(position_y)) * (max(position_z) - min(position_z)), 0.001) AS vol FROM localization_map_camera_positions WHERE localization_map_id = lm.id) cam ON true ORDER BY cam.cnt DESC NULLS LAST;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 },
+      "id": 102,
+      "title": "Camera Position Spatial Analysis",
+      "type": "row"
+    },
+    {
+      "title": "Camera Positions Top-Down (X vs Z)",
+      "description": "Bird's-eye view of all camera positions across all active maps. Each color represents a different map. Clusters indicate areas with dense coverage; gaps indicate blind spots.",
+      "type": "xychart",
+      "gridPos": { "h": 14, "w": 12, "x": 0, "y": 17 },
+      "id": 20,
+      "fieldConfig": { "defaults": { "custom": { "pointSize": { "fixed": 5 } } }, "overrides": [] },
+      "options": { "seriesMapping": "manual", "series": [{ "x": { "field": "pos_x" }, "y": { "field": "pos_z" }, "name": { "field": "map_name" } }] },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(lm.name, 'map-' || left(lm.id::text, 8)) AS map_name, cp.position_x AS pos_x, cp.position_z AS pos_z FROM localization_map_camera_positions cp JOIN localization_maps lm ON lm.id = cp.localization_map_id WHERE lm.active = true LIMIT 5000;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Camera Positions Elevation (X vs Y)",
+      "description": "Side view showing camera height distribution. Y axis is elevation. Helps identify if maps cover multiple floors or vertical structures.",
+      "type": "xychart",
+      "gridPos": { "h": 14, "w": 12, "x": 12, "y": 17 },
+      "id": 21,
+      "fieldConfig": { "defaults": { "custom": { "pointSize": { "fixed": 5 } } }, "overrides": [] },
+      "options": { "seriesMapping": "manual", "series": [{ "x": { "field": "pos_x" }, "y": { "field": "pos_y" }, "name": { "field": "map_name" } }] },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(lm.name, 'map-' || left(lm.id::text, 8)) AS map_name, cp.position_x AS pos_x, cp.position_y AS pos_y FROM localization_map_camera_positions cp JOIN localization_maps lm ON lm.id = cp.localization_map_id WHERE lm.active = true LIMIT 5000;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 },
+      "id": 103,
+      "title": "Camera Distribution Statistics",
+      "type": "row"
+    },
+    {
+      "title": "Camera Count per Map",
+      "description": "Camera positions per map, sorted by count. Maps at the bottom with few cameras may need recapture.",
+      "type": "barchart",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 32 },
+      "id": 30,
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 10 }, { "color": "green", "value": 30 }] }
+        },
+        "overrides": []
+      },
+      "options": { "barWidth": 0.8, "orientation": "horizontal", "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(lm.name, cs.name, 'map-' || left(lm.id::text, 8)) AS \"Map\", count(cp.id) AS \"Camera Positions\" FROM localization_maps lm JOIN reconstructions r ON r.id = lm.reconstruction_id JOIN capture_sessions cs ON cs.id = r.capture_session_id LEFT JOIN localization_map_camera_positions cp ON cp.localization_map_id = lm.id WHERE lm.active = true GROUP BY lm.id, lm.name, cs.name ORDER BY count(cp.id) DESC LIMIT 25;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Map Spatial Extent (bounding box diagonal)",
+      "description": "3D bounding box diagonal for each map's camera positions. Larger extent = larger physical area covered.",
+      "type": "barchart",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 32 },
+      "id": 31,
+      "fieldConfig": { "defaults": { "unit": "lengthm", "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "barWidth": 0.8, "orientation": "horizontal", "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(lm.name, cs.name, 'map-' || left(lm.id::text, 8)) AS \"Map\", round(sqrt(power(max(cp.position_x) - min(cp.position_x), 2) + power(max(cp.position_y) - min(cp.position_y), 2) + power(max(cp.position_z) - min(cp.position_z), 2))::numeric, 2) AS \"Extent (m)\" FROM localization_maps lm JOIN reconstructions r ON r.id = lm.reconstruction_id JOIN capture_sessions cs ON cs.id = r.capture_session_id JOIN localization_map_camera_positions cp ON cp.localization_map_id = lm.id WHERE lm.active = true GROUP BY lm.id, lm.name, cs.name HAVING count(cp.id) >= 2 ORDER BY 2 DESC LIMIT 25;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 42 },
+      "id": 104,
+      "title": "Camera Height & Inter-Camera Analysis",
+      "type": "row"
+    },
+    {
+      "title": "Camera Height (Y) Distribution by Map",
+      "description": "Distribution of camera Y coordinates (elevation) per map. Multi-modal distributions indicate multi-floor coverage. Tight distributions indicate single-level capture.",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 43 },
+      "id": 40,
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(lm.name, 'map-' || left(lm.id::text, 8)) AS map_name, count(cp.id) AS cameras, round(min(cp.position_y)::numeric, 2) AS min_y, round(avg(cp.position_y)::numeric, 2) AS avg_y, round(max(cp.position_y)::numeric, 2) AS max_y, round((max(cp.position_y) - min(cp.position_y))::numeric, 2) AS height_range, round(stddev(cp.position_y)::numeric, 3) AS stddev_y FROM localization_map_camera_positions cp JOIN localization_maps lm ON lm.id = cp.localization_map_id WHERE lm.active = true GROUP BY lm.id, lm.name HAVING count(cp.id) >= 2 ORDER BY height_range DESC;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Inter-Camera Distance Statistics",
+      "description": "Average nearest-neighbor distance between cameras in each map. Very dense cameras (<0.1m) may indicate redundant frames. Very sparse cameras (>2m) may indicate gaps in coverage.",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 43 },
+      "id": 41,
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "WITH cam_stats AS (SELECT lm.id AS map_id, COALESCE(lm.name, 'map-' || left(lm.id::text, 8)) AS map_name, count(cp.id) AS cameras, round(avg(sqrt(power(cp.position_x, 2) + power(cp.position_y, 2) + power(cp.position_z, 2)))::numeric, 2) AS avg_dist_from_origin, round(stddev(cp.position_x)::numeric, 2) AS spread_x, round(stddev(cp.position_y)::numeric, 2) AS spread_y, round(stddev(cp.position_z)::numeric, 2) AS spread_z FROM localization_map_camera_positions cp JOIN localization_maps lm ON lm.id = cp.localization_map_id WHERE lm.active = true GROUP BY lm.id, lm.name HAVING count(cp.id) >= 3) SELECT map_name, cameras, avg_dist_from_origin, spread_x, spread_y, spread_z FROM cam_stats ORDER BY cameras DESC;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 51 },
+      "id": 105,
+      "title": "Map Lifecycle & Tenant Usage",
+      "type": "row"
+    },
+    {
+      "title": "Map Creation & Activation Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 52 },
+      "id": 50,
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "active" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "inactive" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT date_trunc('week', created_at) AS time, CASE WHEN active THEN 'active' ELSE 'inactive' END AS metric, count(*) AS value FROM localization_maps WHERE created_at >= now() - interval '6 months' GROUP BY 1, 2 ORDER BY 1;",
+        "format": "time_series"
+      }]
+    },
+    {
+      "title": "Maps per Tenant",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 52 },
+      "id": 51,
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "barWidth": 0.8, "orientation": "horizontal", "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(t.name, lm.tenant_id::text) AS \"Tenant\", count(*) FILTER (WHERE lm.active) AS \"Active Maps\", count(*) FILTER (WHERE NOT lm.active) AS \"Inactive Maps\" FROM localization_maps lm LEFT JOIN auth.tenants t ON t.id = lm.tenant_id GROUP BY t.name, lm.tenant_id ORDER BY count(*) DESC LIMIT 15;",
+        "format": "table"
+      }]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["placeframe", "spatial", "maps", "engineering"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30d", "to": "now" },
+  "title": "Placeframe: Spatial & Map Intelligence",
+  "uid": "placeframe-spatial-intelligence"
+}

@@ -1,0 +1,478 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Service Health",
+      "type": "row"
+    },
+    {
+      "title": "API Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+          "expr": "kube_pod_status_ready{namespace=\"outernet\", pod=~\"placeframe-api-.*\", condition=\"true\"}",
+          "legendFormat": "API"
+        }
+      ]
+    },
+    {
+      "title": "Localizer Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+          "expr": "kube_pod_status_ready{namespace=\"outernet\", pod=~\"placeframe-localizer-.*\", condition=\"true\"}",
+          "legendFormat": "Localizer"
+        }
+      ]
+    },
+    {
+      "title": "Reconstructor Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+          "expr": "kube_pod_status_ready{namespace=\"outernet\", pod=~\"placeframe-reconstructor-.*\", condition=\"true\"}",
+          "legendFormat": "Reconstructor"
+        }
+      ]
+    },
+    {
+      "title": "State-Sync Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+          "expr": "kube_pod_status_ready{namespace=\"outernet\", pod=~\"placeframe-state-sync-.*\", condition=\"true\"}",
+          "legendFormat": "State Sync"
+        }
+      ]
+    },
+    {
+      "title": "Keycloak Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+          "expr": "kube_pod_status_ready{namespace=\"outernet\", pod=~\"placeframe-keycloak-.*\", condition=\"true\"}",
+          "legendFormat": "Keycloak"
+        }
+      ]
+    },
+    {
+      "title": "CNPG Database Health",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+          "expr": "cnpg_collector_up{cluster=\"cnpg-cluster-placeframe\"}",
+          "legendFormat": "{{pod}}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "Pipeline Entity Counts",
+      "type": "row"
+    },
+    {
+      "title": "Total Capture Sessions",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 6 },
+      "id": 10,
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+          "rawSql": "SELECT count(*) AS \"Capture Sessions\" FROM capture_sessions;",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "title": "Total Reconstructions",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 6 },
+      "id": 11,
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+          "rawSql": "SELECT count(*) AS \"Reconstructions\" FROM reconstructions;",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "title": "Active Localization Maps",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 6 },
+      "id": 12,
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+          "rawSql": "SELECT count(*) AS \"Active Maps\" FROM localization_maps WHERE active = true;",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "title": "Total Nodes",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 6 },
+      "id": 13,
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+          "rawSql": "SELECT count(*) AS \"Nodes\" FROM nodes;",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "title": "Reconstruction Success Rate",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 6 },
+      "id": 14,
+      "fieldConfig": {
+        "defaults": {
+          "min": 0, "max": 100, "unit": "percent",
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 50 }, { "color": "green", "value": 80 }] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+          "rawSql": "SELECT CASE WHEN count(*) = 0 THEN 0 ELSE round(100.0 * count(*) FILTER (WHERE orchestration_status = 'succeeded') / count(*), 1) END AS \"Success %\" FROM reconstructions WHERE orchestration_status IN ('succeeded', 'failed');",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "title": "Registered Users",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 6 },
+      "id": 15,
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "yellow", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+          "rawSql": "SELECT count(*) AS \"Users\" FROM auth.users;",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 10 },
+      "id": 102,
+      "title": "Pipeline Activity (Database Row Throughput)",
+      "type": "row"
+    },
+    {
+      "title": "Table Row Inserts (rate/min)",
+      "description": "Rate of new rows being inserted into core pipeline tables, from CNPG pg_stat metrics",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 11 },
+      "id": 20,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "pointSize": 5, "spanNulls": true }, "unit": "rowspm" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max", "lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+          "expr": "rate(cnpg_pg_stat_user_tables_n_tup_ins{cluster=\"cnpg-cluster-placeframe\", relname=~\"capture_sessions|reconstructions|localization_maps|localization_sessions|nodes\"}[5m]) * 60",
+          "legendFormat": "{{relname}}"
+        }
+      ]
+    },
+    {
+      "title": "Table Row Updates (rate/min)",
+      "description": "Rate of row updates, indicates state transitions (e.g. reconstruction status changes)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 11 },
+      "id": 21,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "pointSize": 5, "spanNulls": true }, "unit": "rowspm" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max", "lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+          "expr": "rate(cnpg_pg_stat_user_tables_n_tup_upd{cluster=\"cnpg-cluster-placeframe\", relname=~\"capture_sessions|reconstructions|localization_maps|nodes\"}[5m]) * 60",
+          "legendFormat": "{{relname}}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 19 },
+      "id": 103,
+      "title": "Entity Creation Over Time",
+      "type": "row"
+    },
+    {
+      "title": "Capture Sessions Created (daily)",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 20 },
+      "id": 30,
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "barWidth": 0.8, "groupWidth": 0.7, "legend": { "displayMode": "list", "placement": "bottom" }, "orientation": "vertical", "xTickLabelRotation": -45 },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+          "rawSql": "SELECT date_trunc('day', created_at)::date AS time, device_type::text AS metric, count(*) AS value FROM capture_sessions WHERE created_at >= now() - interval '30 days' GROUP BY 1, 2 ORDER BY 1;",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "title": "Reconstructions Created (daily)",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 20 },
+      "id": 31,
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "barWidth": 0.8, "groupWidth": 0.7, "legend": { "displayMode": "list", "placement": "bottom" }, "orientation": "vertical", "xTickLabelRotation": -45 },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+          "rawSql": "SELECT date_trunc('day', created_at)::date AS time, orchestration_status::text AS metric, count(*) AS value FROM reconstructions WHERE created_at >= now() - interval '30 days' GROUP BY 1, 2 ORDER BY 1;",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "title": "Maps Created (daily)",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 20 },
+      "id": 32,
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "barWidth": 0.8, "groupWidth": 0.7, "legend": { "displayMode": "list", "placement": "bottom" }, "orientation": "vertical", "xTickLabelRotation": -45 },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+          "rawSql": "SELECT date_trunc('day', created_at)::date AS time, CASE WHEN active THEN 'active' ELSE 'inactive' END AS metric, count(*) AS value FROM localization_maps WHERE created_at >= now() - interval '30 days' GROUP BY 1, 2 ORDER BY 1;",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 28 },
+      "id": 104,
+      "title": "Reconstruction Pipeline Status",
+      "type": "row"
+    },
+    {
+      "title": "Reconstruction Status Breakdown",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 29 },
+      "id": 40,
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [
+        { "matcher": { "id": "byName", "options": "succeeded" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+        { "matcher": { "id": "byName", "options": "failed" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+        { "matcher": { "id": "byName", "options": "running" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+        { "matcher": { "id": "byName", "options": "queued" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
+        { "matcher": { "id": "byName", "options": "pending" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+      ] },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }, "pieType": "donut", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+          "rawSql": "SELECT orchestration_status::text AS metric, count(*) AS value FROM reconstructions GROUP BY 1 ORDER BY 1;",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "title": "Recent Reconstructions",
+      "description": "Last 20 reconstructions with status and timing",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 29 },
+      "id": 41,
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "status" }, "properties": [
+            { "id": "custom.displayMode", "value": "color-background" },
+            { "id": "mappings", "value": [
+              { "type": "value", "options": { "succeeded": { "color": "green", "text": "succeeded" }, "failed": { "color": "red", "text": "failed" }, "running": { "color": "blue", "text": "running" }, "queued": { "color": "yellow", "text": "queued" }, "pending": { "color": "orange", "text": "pending" } } }
+            ] }
+          ] }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+          "rawSql": "SELECT r.id, cs.name AS capture_session, cs.device_type::text AS device, r.orchestration_status::text AS status, r.created_at, r.updated_at, EXTRACT(EPOCH FROM (r.updated_at - r.created_at))::int AS duration_sec FROM reconstructions r JOIN capture_sessions cs ON cs.id = r.capture_session_id ORDER BY r.created_at DESC LIMIT 20;",
+          "format": "table"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 37 },
+      "id": 105,
+      "title": "Database Performance",
+      "type": "row"
+    },
+    {
+      "title": "Active DB Connections",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 38 },
+      "id": 50,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+          "expr": "cnpg_pg_stat_activity_count{cluster=\"cnpg-cluster-placeframe\"}",
+          "legendFormat": "{{datname}} ({{state}})"
+        }
+      ]
+    },
+    {
+      "title": "Database Size",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 38 },
+      "id": 51,
+      "fieldConfig": { "defaults": { "unit": "decbytes", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1073741824 }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+          "expr": "cnpg_pg_database_size_bytes{cluster=\"cnpg-cluster-placeframe\", datname=\"placeframe\"}",
+          "legendFormat": "placeframe"
+        }
+      ]
+    },
+    {
+      "title": "Transactions/sec",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 38 },
+      "id": 52,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 }, "unit": "ops" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+          "expr": "rate(cnpg_pg_stat_database_xact_commit{cluster=\"cnpg-cluster-placeframe\", datname=\"placeframe\"}[5m])",
+          "legendFormat": "commits/s"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+          "expr": "rate(cnpg_pg_stat_database_xact_rollback{cluster=\"cnpg-cluster-placeframe\", datname=\"placeframe\"}[5m])",
+          "legendFormat": "rollbacks/s"
+        }
+      ]
+    },
+    {
+      "title": "Table Sizes",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 42 },
+      "id": 53,
+      "fieldConfig": { "defaults": { "unit": "decbytes" }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value_and_name", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+          "rawSql": "SELECT relname AS metric, pg_total_relation_size(relid) AS value FROM pg_stat_user_tables WHERE schemaname = 'public' ORDER BY pg_total_relation_size(relid) DESC LIMIT 8;",
+          "format": "table"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["placeframe", "pipeline", "overview"],
+  "templating": { "list": [] },
+  "time": { "from": "now-24h", "to": "now" },
+  "title": "Placeframe: Pipeline Overview",
+  "uid": "placeframe-pipeline-overview"
+}

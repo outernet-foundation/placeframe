@@ -1,0 +1,238 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Content Summary",
+      "type": "row"
+    },
+    {
+      "title": "Total Nodes",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT count(*) FROM nodes;", "format": "table" }]
+    },
+    {
+      "title": "Active Nodes",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT count(*) FROM nodes WHERE active = true;", "format": "table" }]
+    },
+    {
+      "title": "Groups",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT count(*) FROM groups;", "format": "table" }]
+    },
+    {
+      "title": "Layers",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT count(*) FROM layers;", "format": "table" }]
+    },
+    {
+      "title": "Users",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "yellow", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT count(*) FROM auth.users;", "format": "table" }]
+    },
+    {
+      "title": "Tenants",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "dark-blue", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT count(*) FROM auth.tenants;", "format": "table" }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "Node Analytics",
+      "type": "row"
+    },
+    {
+      "title": "Nodes by Label Type",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 6 },
+      "id": 10,
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }, "pieType": "donut" },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT label_type::text AS metric, count(*) AS value FROM nodes GROUP BY 1 ORDER BY 2 DESC;", "format": "table" }]
+    },
+    {
+      "title": "Nodes by Link Type",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 6 },
+      "id": 11,
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }, "pieType": "donut" },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT link_type::text AS metric, count(*) AS value FROM nodes GROUP BY 1 ORDER BY 2 DESC;", "format": "table" }]
+    },
+    {
+      "title": "Nodes by Group",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 6 },
+      "id": 12,
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "barWidth": 0.8, "orientation": "horizontal", "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT COALESCE(g.name, 'ungrouped') AS \"Group\", count(n.id) AS \"Nodes\" FROM nodes n LEFT JOIN groups g ON g.id = n.parent_id GROUP BY g.name ORDER BY count(n.id) DESC LIMIT 15;", "format": "table" }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 102,
+      "title": "Node Spatial Distribution",
+      "type": "row"
+    },
+    {
+      "title": "Node Positions (X vs Z plane, colored by label type)",
+      "description": "Top-down spatial distribution of nodes",
+      "type": "xychart",
+      "gridPos": { "h": 12, "w": 12, "x": 0, "y": 15 },
+      "id": 20,
+      "fieldConfig": { "defaults": { "custom": { "pointSize": { "fixed": 6 } } }, "overrides": [] },
+      "options": { "seriesMapping": "manual", "series": [{ "x": { "field": "pos_x" }, "y": { "field": "pos_z" }, "name": { "field": "label_type" } }] },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT label_type::text, position_x AS pos_x, position_z AS pos_z FROM nodes WHERE active = true LIMIT 2000;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Node Positions (X vs Y plane, elevation view)",
+      "description": "Side-view spatial distribution of nodes showing elevation",
+      "type": "xychart",
+      "gridPos": { "h": 12, "w": 12, "x": 12, "y": 15 },
+      "id": 21,
+      "fieldConfig": { "defaults": { "custom": { "pointSize": { "fixed": 6 } } }, "overrides": [] },
+      "options": { "seriesMapping": "manual", "series": [{ "x": { "field": "pos_x" }, "y": { "field": "pos_y" }, "name": { "field": "label_type" } }] },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT label_type::text, position_x AS pos_x, position_y AS pos_y FROM nodes WHERE active = true LIMIT 2000;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "id": 103,
+      "title": "Content Creation Over Time",
+      "type": "row"
+    },
+    {
+      "title": "Nodes Created per Week",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 28 },
+      "id": 30,
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT date_trunc('week', created_at) AS time, label_type::text AS metric, count(*) AS value FROM nodes WHERE created_at >= now() - interval '6 months' GROUP BY 1, 2 ORDER BY 1;", "format": "time_series" }]
+    },
+    {
+      "title": "Groups Created per Month",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 28 },
+      "id": 31,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80 }, "color": { "fixedColor": "purple", "mode": "fixed" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] }, "tooltip": { "mode": "single" } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT date_trunc('month', created_at) AS time, count(*) AS \"Groups\" FROM groups WHERE created_at >= now() - interval '12 months' GROUP BY 1 ORDER BY 1;", "format": "time_series" }]
+    },
+    {
+      "title": "Layers Created per Month",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 28 },
+      "id": 32,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80 }, "color": { "fixedColor": "orange", "mode": "fixed" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] }, "tooltip": { "mode": "single" } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT date_trunc('month', created_at) AS time, count(*) AS \"Layers\" FROM layers WHERE created_at >= now() - interval '12 months' GROUP BY 1 ORDER BY 1;", "format": "time_series" }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 36 },
+      "id": 104,
+      "title": "Group & Layer Detail",
+      "type": "row"
+    },
+    {
+      "title": "Groups (with hierarchy and node counts)",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 37 },
+      "id": 40,
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT g.name AS group_name, pg.name AS parent_group, (SELECT count(*) FROM nodes n WHERE n.parent_id = g.id) AS node_count, (SELECT count(*) FROM groups c WHERE c.parent_id = g.id) AS child_groups, g.created_at FROM groups g LEFT JOIN groups pg ON pg.id = g.parent_id ORDER BY g.created_at DESC;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Layers (with node counts)",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 37 },
+      "id": 41,
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT l.name AS layer_name, count(n.id) AS node_count, min(n.created_at) AS first_node, max(n.created_at) AS last_node, l.created_at FROM layers l LEFT JOIN nodes n ON n.layer_id = l.id GROUP BY l.id, l.name, l.created_at ORDER BY count(n.id) DESC;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 45 },
+      "id": 105,
+      "title": "User & Tenant Activity",
+      "type": "row"
+    },
+    {
+      "title": "User Activity Summary",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 46 },
+      "id": 50,
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT u.name AS user_name, u.email, count(DISTINCT cs.id) AS captures, count(DISTINCT r.id) AS reconstructions, count(DISTINCT lm.id) AS maps, count(DISTINCT n.id) AS nodes, count(DISTINCT g.id) AS groups FROM auth.users u JOIN auth.memberships m ON m.user_id = u.id AND m.is_personal LEFT JOIN capture_sessions cs ON cs.tenant_id = m.tenant_id LEFT JOIN reconstructions r ON r.tenant_id = m.tenant_id LEFT JOIN localization_maps lm ON lm.tenant_id = m.tenant_id LEFT JOIN nodes n ON n.tenant_id = m.tenant_id LEFT JOIN groups g ON g.tenant_id = m.tenant_id GROUP BY u.id, u.name, u.email ORDER BY count(DISTINCT r.id) DESC;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Entity Creation by User (weekly)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 46 },
+      "id": 51,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 60, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT date_trunc('week', n.created_at) AS time, COALESCE(u.name, n.tenant_id::text) AS metric, count(*) AS value FROM nodes n LEFT JOIN auth.memberships m ON m.tenant_id = n.tenant_id AND m.is_personal LEFT JOIN auth.users u ON u.id = m.user_id WHERE n.created_at >= now() - interval '3 months' GROUP BY 1, 2 ORDER BY 1;", "format": "time_series" }]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["placeframe", "content", "spatial", "nodes"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30d", "to": "now" },
+  "title": "Placeframe: Content & Spatial Analytics",
+  "uid": "placeframe-content-spatial"
+}

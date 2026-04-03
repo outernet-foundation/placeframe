@@ -2,9 +2,11 @@ from functools import partial
 from os import environ
 
 from common.litestar import create_litestar_app
+from litestar.middleware.base import DefineMiddleware
 from litestar.openapi.config import OpenAPIConfig
 from litestar.openapi.plugins import ScalarRenderPlugin
 from litestar.openapi.spec import Components, OAuthFlow, OAuthFlows, SecurityScheme, Server
+from litestar.plugins.prometheus import PrometheusConfig, PrometheusController
 
 from .auth import AuthMiddleware
 from .routers.capture_sessions import router as capture_sessions_router
@@ -18,16 +20,31 @@ from .routers.nodes import router as nodes_router
 from .routers.reconstructions import router as reconstructions_router
 from .settings import get_settings
 
+
+class _MetricsController(PrometheusController):
+    include_in_schema = False
+
+
 #####
 if environ.get("CODEGEN"):
-    middleware: list[partial[AuthMiddleware]] = []
+    middleware: list[partial[AuthMiddleware] | DefineMiddleware] = []
 
     openapi_config = OpenAPIConfig("Placeframe", "0.1.0", servers=[Server(url="http://localhost:8000")])
 
 else:
     settings = get_settings()
 
-    middleware = [partial(AuthMiddleware, exclude=[r"^/$", r"^/health/?$", r"^/schema(?:/.*)?$"])]
+    _prometheus_config = PrometheusConfig(
+        app_name="placeframe-api",
+        prefix="placeframe",
+        group_path=True,
+        exclude=[r"^/$", r"^/health/?$", r"^/metrics/?$", r"^/schema(?:/.*)?$"],
+    )
+
+    middleware = [
+        partial(AuthMiddleware, exclude=[r"^/$", r"^/health/?$", r"^/metrics/?$", r"^/schema(?:/.*)?$"]),
+        _prometheus_config.middleware,
+    ]
 
     openapi_config = OpenAPIConfig(
         "Placeframe",
@@ -88,6 +105,7 @@ app = create_litestar_app(
         layers_router,
         nodes_router,
         graph_router,
+        _MetricsController,
     ],
     openapi_config,
     middleware,

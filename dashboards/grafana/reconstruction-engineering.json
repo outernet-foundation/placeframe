@@ -1,0 +1,337 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Pipeline Throughput & Queue",
+      "type": "row"
+    },
+    {
+      "title": "Queue Depth",
+      "description": "Reconstructions currently queued or pending. High queue depth + slow drain = capacity bottleneck.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 3 }, { "color": "red", "value": 10 }] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "area", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT count(*) FROM reconstructions WHERE orchestration_status IN ('queued', 'pending');",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Active (Running)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT count(*) FROM reconstructions WHERE orchestration_status = 'running';",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Completed Today",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT count(*) FROM reconstructions WHERE orchestration_status = 'succeeded' AND updated_at >= date_trunc('day', now());",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Failed Today",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT count(*) FROM reconstructions WHERE orchestration_status = 'failed' AND updated_at >= date_trunc('day', now());",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Median Duration (succeeded)",
+      "description": "Median time from creation to completion for successful reconstructions",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 600 }, { "color": "red", "value": 1800 }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (updated_at - created_at))), 0)::int FROM reconstructions WHERE orchestration_status = 'succeeded' AND updated_at > created_at;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "p95 Duration (succeeded)",
+      "description": "95th percentile reconstruction duration. If this is much higher than the median, you have occasional slow reconstructions (likely large capture sessions).",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1200 }, { "color": "red", "value": 3600 }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(percentile_cont(0.95) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (updated_at - created_at))), 0)::int FROM reconstructions WHERE orchestration_status = 'succeeded' AND updated_at > created_at;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 101,
+      "title": "Duration Analysis",
+      "type": "row"
+    },
+    {
+      "title": "Reconstruction Duration Over Time",
+      "description": "Each point is a completed reconstruction. Color indicates success (green) or failure (red). Duration is wall-clock time from creation to final status. Outliers may indicate large capture sessions or resource contention.",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 6 },
+      "id": 10,
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "points", "pointSize": 8, "spanNulls": false }, "unit": "s" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "succeeded" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "failed" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max", "count"] }, "tooltip": { "mode": "single" } },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+          "rawSql": "SELECT updated_at AS time, EXTRACT(EPOCH FROM (updated_at - created_at))::int AS \"succeeded\" FROM reconstructions WHERE orchestration_status = 'succeeded' AND updated_at > created_at ORDER BY updated_at;",
+          "format": "time_series"
+        },
+        {
+          "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+          "rawSql": "SELECT updated_at AS time, EXTRACT(EPOCH FROM (updated_at - created_at))::int AS \"failed\" FROM reconstructions WHERE orchestration_status = 'failed' AND updated_at > created_at ORDER BY updated_at;",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "title": "Duration Percentile Trend (weekly)",
+      "description": "Rolling weekly percentiles of reconstruction duration. Tracks whether the pipeline is getting faster or slower over time.",
+      "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 6 },
+      "id": 11,
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "spanNulls": true }, "unit": "s" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "p50" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p90" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "p99" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT date_trunc('week', updated_at) AS time, percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (updated_at - created_at)))::int AS \"p50\", percentile_cont(0.9) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (updated_at - created_at)))::int AS \"p90\", percentile_cont(0.99) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (updated_at - created_at)))::int AS \"p99\" FROM reconstructions WHERE orchestration_status = 'succeeded' AND updated_at > created_at AND updated_at >= now() - interval '6 months' GROUP BY 1 ORDER BY 1;",
+        "format": "time_series"
+      }]
+    },
+    {
+      "title": "Duration Distribution (histogram buckets)",
+      "description": "Distribution of reconstruction durations across buckets. Helps identify if you have a bimodal distribution (e.g., quick small sessions + slow large sessions).",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 12,
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "blue", "mode": "fixed" } }, "overrides": [] },
+      "options": { "barWidth": 0.8, "orientation": "vertical", "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "WITH durations AS (SELECT EXTRACT(EPOCH FROM (updated_at - created_at))::int AS dur FROM reconstructions WHERE orchestration_status = 'succeeded' AND updated_at > created_at) SELECT CASE WHEN dur < 60 THEN '<1m' WHEN dur < 300 THEN '1-5m' WHEN dur < 600 THEN '5-10m' WHEN dur < 1800 THEN '10-30m' WHEN dur < 3600 THEN '30-60m' ELSE '>60m' END AS \"Duration Bucket\", count(*) AS \"Count\" FROM durations GROUP BY CASE WHEN dur < 60 THEN 1 WHEN dur < 300 THEN 2 WHEN dur < 600 THEN 3 WHEN dur < 1800 THEN 4 WHEN dur < 3600 THEN 5 ELSE 6 END, CASE WHEN dur < 60 THEN '<1m' WHEN dur < 300 THEN '1-5m' WHEN dur < 600 THEN '5-10m' WHEN dur < 1800 THEN '10-30m' WHEN dur < 3600 THEN '30-60m' ELSE '>60m' END ORDER BY 1;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Throughput: Completions per Day",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "id": 13,
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "succeeded" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "failed" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT date_trunc('day', updated_at) AS time, orchestration_status::text AS metric, count(*) AS value FROM reconstructions WHERE orchestration_status IN ('succeeded', 'failed') AND updated_at >= now() - interval '30 days' GROUP BY 1, 2 ORDER BY 1;",
+        "format": "time_series"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+      "id": 102,
+      "title": "Failure Analysis",
+      "type": "row"
+    },
+    {
+      "title": "Failure Rate by Device Type",
+      "description": "Failure rate (%) broken down by capture device. If one device type has significantly higher failure rate, it may indicate device-specific issues (frame quality, calibration, etc.).",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 25 },
+      "id": 20,
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT cs.device_type::text AS device, count(*) AS total, count(*) FILTER (WHERE r.orchestration_status = 'succeeded') AS succeeded, count(*) FILTER (WHERE r.orchestration_status = 'failed') AS failed, CASE WHEN count(*) FILTER (WHERE r.orchestration_status IN ('succeeded', 'failed')) = 0 THEN 0 ELSE round(100.0 * count(*) FILTER (WHERE r.orchestration_status = 'failed') / count(*) FILTER (WHERE r.orchestration_status IN ('succeeded', 'failed')), 1) END AS failure_rate_pct, COALESCE(avg(EXTRACT(EPOCH FROM (r.updated_at - r.created_at))) FILTER (WHERE r.orchestration_status = 'succeeded'), 0)::int AS avg_duration_sec FROM reconstructions r JOIN capture_sessions cs ON cs.id = r.capture_session_id GROUP BY cs.device_type ORDER BY failure_rate_pct DESC;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Retry Analysis: Reconstructions per Capture Session",
+      "description": "Captures with multiple reconstruction attempts. High retry counts indicate persistent issues with specific capture data.",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 25 },
+      "id": 21,
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT cs.name AS capture_session, cs.device_type::text AS device, count(r.id) AS attempts, count(r.id) FILTER (WHERE r.orchestration_status = 'succeeded') AS succeeded, count(r.id) FILTER (WHERE r.orchestration_status = 'failed') AS failed, min(r.created_at) AS first_attempt, max(r.updated_at) AS last_attempt FROM capture_sessions cs JOIN reconstructions r ON r.capture_session_id = cs.id GROUP BY cs.id, cs.name, cs.device_type HAVING count(r.id) > 1 ORDER BY count(r.id) DESC LIMIT 20;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Failed Reconstructions Detail",
+      "description": "Recent failed reconstructions with timing and capture details. Use this to identify patterns in failures.",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 33 },
+      "id": 22,
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "status" }, "properties": [{ "id": "custom.displayMode", "value": "color-background" }, { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT r.id AS reconstruction_id, cs.name AS capture_session, cs.device_type::text AS device, r.orchestration_status::text AS status, r.created_at, r.updated_at, EXTRACT(EPOCH FROM (r.updated_at - r.created_at))::int AS duration_sec, (SELECT count(*) FROM reconstructions r2 WHERE r2.capture_session_id = r.capture_session_id) AS total_attempts FROM reconstructions r JOIN capture_sessions cs ON cs.id = r.capture_session_id WHERE r.orchestration_status = 'failed' ORDER BY r.updated_at DESC LIMIT 30;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 41 },
+      "id": 103,
+      "title": "Reconstructor GPU & Logs",
+      "type": "row"
+    },
+    {
+      "title": "GPU Utilization (Reconstructor)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 42 },
+      "id": 30,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 20 }, "unit": "percent", "min": 0, "max": 100 }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+        "expr": "DCGM_FI_DEV_GPU_UTIL{job=\"dcgm-exporter\"}",
+        "legendFormat": "GPU {{gpu}} ({{Hostname}})"
+      }]
+    },
+    {
+      "title": "GPU Memory (Reconstructor)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 42 },
+      "id": 31,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 20 }, "unit": "decbytes" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "datasource": { "type": "prometheus", "uid": "placeframe-prometheus" },
+        "expr": "DCGM_FI_DEV_FB_USED{job=\"dcgm-exporter\"} * 1024 * 1024",
+        "legendFormat": "Used GPU {{gpu}} ({{Hostname}})"
+      }]
+    },
+    {
+      "title": "Reconstructor Feature Extraction Log",
+      "description": "Live log stream of feature extraction progress from the reconstructor. Pattern: 'Extracting features: image N of M'",
+      "type": "logs",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 42 },
+      "id": 32,
+      "options": { "showTime": true, "showLabels": false, "showCommonLabels": false, "wrapLogMessage": true, "prettifyLogMessage": false, "enableLogDetails": true, "sortOrder": "Descending" },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "placeframe-loki" },
+        "expr": "{service=\"reconstructor\", container=\"app\"} |~ `Extracting features|Putting object|Reconstruction failed|Using device`",
+        "queryType": "range",
+        "refId": "A"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 50 },
+      "id": 104,
+      "title": "Pipeline State Machine",
+      "type": "row"
+    },
+    {
+      "title": "Reconstruction State Transitions Over Time",
+      "description": "Weekly count of reconstructions by final state. Helps identify periods of instability.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 51 },
+      "id": 40,
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80, "stacking": { "mode": "normal" } } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "succeeded" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "failed" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "cancelled" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT date_trunc('week', updated_at) AS time, orchestration_status::text AS metric, count(*) AS value FROM reconstructions WHERE orchestration_status IN ('succeeded', 'failed', 'cancelled') AND updated_at >= now() - interval '6 months' GROUP BY 1, 2 ORDER BY 1;",
+        "format": "time_series"
+      }]
+    },
+    {
+      "title": "Failure Rate Trend (weekly %)",
+      "description": "Weekly failure rate as a percentage. A rising trend indicates systematic issues.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 51 },
+      "id": 41,
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15 },
+          "unit": "percent", "min": 0, "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 20 }, { "color": "red", "value": 50 }] },
+          "color": { "mode": "thresholds" }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT date_trunc('week', updated_at) AS time, CASE WHEN count(*) = 0 THEN 0 ELSE round(100.0 * count(*) FILTER (WHERE orchestration_status = 'failed') / count(*), 1) END AS \"Failure Rate %\" FROM reconstructions WHERE orchestration_status IN ('succeeded', 'failed') AND updated_at >= now() - interval '6 months' GROUP BY 1 ORDER BY 1;",
+        "format": "time_series"
+      }]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["placeframe", "reconstruction", "engineering", "ml-pipeline"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30d", "to": "now" },
+  "title": "Placeframe: Reconstruction Pipeline Engineering",
+  "uid": "placeframe-reconstruction-eng"
+}

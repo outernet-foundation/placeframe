@@ -1,0 +1,240 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Reconstruction Summary",
+      "type": "row"
+    },
+    {
+      "title": "Total Reconstructions",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 0, "y": 1 },
+      "id": 1,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT count(*) FROM reconstructions;", "format": "table" }]
+    },
+    {
+      "title": "Succeeded",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 4, "y": 1 },
+      "id": 2,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT count(*) FROM reconstructions WHERE orchestration_status = 'succeeded';", "format": "table" }]
+    },
+    {
+      "title": "Failed",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT count(*) FROM reconstructions WHERE orchestration_status = 'failed';", "format": "table" }]
+    },
+    {
+      "title": "Running / Queued / Pending",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT count(*) FROM reconstructions WHERE orchestration_status IN ('running', 'queued', 'pending');", "format": "table" }]
+    },
+    {
+      "title": "Success Rate",
+      "type": "gauge",
+      "gridPos": { "h": 3, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "fieldConfig": { "defaults": { "min": 0, "max": 100, "unit": "percent", "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 50 }, { "color": "green", "value": 80 }] } }, "overrides": [] },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT CASE WHEN count(*) = 0 THEN 0 ELSE round(100.0 * count(*) FILTER (WHERE orchestration_status = 'succeeded') / count(*), 1) END FROM reconstructions WHERE orchestration_status IN ('succeeded', 'failed');", "format": "table" }]
+    },
+    {
+      "title": "Avg Duration (succeeded)",
+      "type": "stat",
+      "gridPos": { "h": 3, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "fieldConfig": { "defaults": { "unit": "s", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 300 }, { "color": "red", "value": 600 }] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "center", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT COALESCE(avg(EXTRACT(EPOCH FROM (updated_at - created_at))), 0)::int FROM reconstructions WHERE orchestration_status = 'succeeded';", "format": "table" }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 4 },
+      "id": 101,
+      "title": "Reconstruction Timeline",
+      "type": "row"
+    },
+    {
+      "title": "Reconstruction Status Over Time (weekly)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "id": 10,
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "bars", "lineWidth": 0, "fillOpacity": 80, "stacking": { "mode": "normal" } } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "succeeded" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "failed" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "running" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "queued" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT date_trunc('week', created_at) AS time, orchestration_status::text AS metric, count(*) AS value FROM reconstructions WHERE created_at >= now() - interval '6 months' GROUP BY 1, 2 ORDER BY 1;", "format": "time_series" }]
+    },
+    {
+      "title": "Reconstruction Duration Distribution (seconds)",
+      "description": "Histogram of reconstruction durations for succeeded reconstructions",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "id": 11,
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "purple", "mode": "fixed" } }, "overrides": [] },
+      "options": { "barWidth": 0.8, "orientation": "vertical", "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "WITH durations AS (SELECT EXTRACT(EPOCH FROM (updated_at - created_at)) AS dur FROM reconstructions WHERE orchestration_status = 'succeeded' AND updated_at > created_at), buckets AS (SELECT width_bucket(dur, 0, GREATEST((SELECT max(dur) FROM durations), 1), 10) AS bucket, count(*) AS cnt FROM durations GROUP BY 1) SELECT (bucket - 1) * (GREATEST((SELECT max(dur) FROM durations), 1) / 10)::int || '-' || bucket * (GREATEST((SELECT max(dur) FROM durations), 1) / 10)::int || 's' AS \"Duration Range\", cnt AS \"Count\" FROM buckets ORDER BY bucket;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 13 },
+      "id": 102,
+      "title": "Reconstruction Quality by Capture Session",
+      "type": "row"
+    },
+    {
+      "title": "Reconstructions by Capture Session",
+      "description": "Number of reconstruction attempts per capture session, grouped by outcome",
+      "type": "table",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 14 },
+      "id": 20,
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "succeeded" }, "properties": [{ "id": "custom.displayMode", "value": "color-background-solid" }, { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "failed" }, "properties": [{ "id": "custom.displayMode", "value": "color-background-solid" }, { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT cs.name AS capture_session, cs.device_type::text AS device, count(*) AS total_reconstructions, count(*) FILTER (WHERE r.orchestration_status = 'succeeded') AS succeeded, count(*) FILTER (WHERE r.orchestration_status = 'failed') AS failed, count(*) FILTER (WHERE r.orchestration_status IN ('queued', 'pending', 'running')) AS in_progress, min(r.created_at) AS first_attempt, max(r.updated_at) AS last_activity FROM reconstructions r JOIN capture_sessions cs ON cs.id = r.capture_session_id GROUP BY cs.id, cs.name, cs.device_type ORDER BY max(r.updated_at) DESC;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+      "id": 103,
+      "title": "Device & Capture Analytics",
+      "type": "row"
+    },
+    {
+      "title": "Captures by Device Type",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 25 },
+      "id": 30,
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }, "pieType": "donut" },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT device_type::text AS metric, count(*) AS value FROM capture_sessions GROUP BY 1;", "format": "table" }]
+    },
+    {
+      "title": "Reconstruction Attempts per Capture",
+      "description": "Distribution of how many reconstruction attempts each capture session has",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 25 },
+      "id": 31,
+      "fieldConfig": { "defaults": { "color": { "fixedColor": "blue", "mode": "fixed" } }, "overrides": [] },
+      "options": { "barWidth": 0.8, "orientation": "vertical", "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "WITH attempts AS (SELECT capture_session_id, count(*) AS cnt FROM reconstructions GROUP BY 1) SELECT cnt || ' attempts' AS \"Attempts\", count(*) AS \"Capture Sessions\" FROM attempts GROUP BY cnt ORDER BY cnt;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Capture Sessions Without Successful Reconstruction",
+      "description": "Capture sessions that have never had a successful reconstruction",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 25 },
+      "id": 32,
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT cs.name, cs.device_type::text AS device, cs.created_at, count(r.id) AS attempts, count(r.id) FILTER (WHERE r.orchestration_status = 'failed') AS failures FROM capture_sessions cs LEFT JOIN reconstructions r ON r.capture_session_id = cs.id WHERE NOT EXISTS (SELECT 1 FROM reconstructions r2 WHERE r2.capture_session_id = cs.id AND r2.orchestration_status = 'succeeded') GROUP BY cs.id, cs.name, cs.device_type, cs.created_at ORDER BY cs.created_at DESC LIMIT 20;",
+        "format": "table"
+      }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 33 },
+      "id": 104,
+      "title": "Pipeline Throughput & Performance",
+      "type": "row"
+    },
+    {
+      "title": "Reconstructions Completed per Day",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 34 },
+      "id": 40,
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "bars", "lineWidth": 0, "fillOpacity": 80 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "succeeded" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "failed" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum", "mean"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT date_trunc('day', updated_at) AS time, orchestration_status::text AS metric, count(*) AS value FROM reconstructions WHERE orchestration_status IN ('succeeded', 'failed') AND updated_at >= now() - interval '30 days' GROUP BY 1, 2 ORDER BY 1;", "format": "time_series" }]
+    },
+    {
+      "title": "Reconstruction Duration Trend",
+      "description": "Duration of succeeded reconstructions over time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 34 },
+      "id": 41,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "points", "pointSize": 8 }, "unit": "s" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "min", "max"] }, "tooltip": { "mode": "single" } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT updated_at AS time, EXTRACT(EPOCH FROM (updated_at - created_at))::int AS \"duration\" FROM reconstructions WHERE orchestration_status = 'succeeded' AND updated_at > created_at ORDER BY updated_at;", "format": "time_series" }]
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 42 },
+      "id": 105,
+      "title": "Tenant Activity",
+      "type": "row"
+    },
+    {
+      "title": "Reconstructions by Tenant",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 43 },
+      "id": 50,
+      "targets": [{
+        "datasource": { "type": "postgres", "uid": "placeframe-postgres" },
+        "rawSql": "SELECT COALESCE(u.name, t.id::text) AS tenant, count(DISTINCT cs.id) AS capture_sessions, count(r.id) AS reconstructions, count(r.id) FILTER (WHERE r.orchestration_status = 'succeeded') AS succeeded, count(DISTINCT lm.id) AS maps FROM auth.tenants t LEFT JOIN auth.memberships m ON m.tenant_id = t.id AND m.is_personal LEFT JOIN auth.users u ON u.id = m.user_id LEFT JOIN capture_sessions cs ON cs.tenant_id = t.id LEFT JOIN reconstructions r ON r.tenant_id = t.id LEFT JOIN localization_maps lm ON lm.tenant_id = t.id GROUP BY t.id, u.name ORDER BY count(r.id) DESC;",
+        "format": "table"
+      }]
+    },
+    {
+      "title": "Activity by Tenant Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 43 },
+      "id": 51,
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 60, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["sum"] }, "tooltip": { "mode": "multi" } },
+      "targets": [{ "datasource": { "type": "postgres", "uid": "placeframe-postgres" }, "rawSql": "SELECT date_trunc('week', r.created_at) AS time, COALESCE(u.name, r.tenant_id::text) AS metric, count(*) AS value FROM reconstructions r LEFT JOIN auth.memberships m ON m.tenant_id = r.tenant_id AND m.is_personal LEFT JOIN auth.users u ON u.id = m.user_id WHERE r.created_at >= now() - interval '3 months' GROUP BY 1, 2 ORDER BY 1;", "format": "time_series" }]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["placeframe", "reconstruction", "ml-pipeline"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30d", "to": "now" },
+  "title": "Placeframe: Reconstruction Analytics",
+  "uid": "placeframe-reconstruction-analytics"
+}

@@ -13,6 +13,7 @@ concurrency:
 
 env:
   CACHE_REGISTRY: ghcr.io/${{ github.repository }}/cache
+  BUILD_CACHE_REGISTRY: ghcr.io/${{ github.repository }}/build-cache
 
 jobs:
   preflight:

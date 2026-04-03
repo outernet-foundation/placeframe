@@ -15,6 +15,7 @@ class TokenManager:
     token_url: str
     client_id: str
     private_key_path: Path
+    audience: Optional[str] = None
 
     _access_token: Optional[str] = field(default=None, init=False)
     _expires_at: float = field(default=0.0, init=False)
@@ -40,7 +41,7 @@ class TokenManager:
                             {
                                 "iss": self.client_id,
                                 "sub": self.client_id,
-                                "aud": self.token_url,
+                                "aud": self.audience or self.token_url,
                                 "jti": str(uuid.uuid4()),
                                 "exp": now + 60,
                                 "iat": now,

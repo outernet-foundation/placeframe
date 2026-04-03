@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import shlex
 from typing import Literal
 
@@ -16,6 +17,7 @@ Variant = Literal["common", "cuda", "rocm"]
 
 
 class Settings(BaseSettings):
+    github_repository: str
     github_workspace: str
     github_actor: str
     github_token: str
@@ -31,6 +33,7 @@ def ci_main(variant: Variant = typer.Option(help="Build variant: common, cuda, o
     with ci_step("Setup"):
         configure_git(settings.github_workspace)
         free_disk_space(large_packages=True, docker_images=True, swap_storage=True)
+        os.environ["GHCR_REPO"] = settings.github_repository.lower()
 
     with ci_step("Create builder and login"):
         bash("docker buildx create --use --driver docker-container")
