@@ -1,7 +1,12 @@
 from typing import Annotated, cast
 from uuid import UUID
 
-from common.multipart_requests import MultipartRequestModel, MultipartRequestOperation
+from common.multipart_requests import (
+    MultipartRequestModel,
+    MultipartRequestOperation,
+    multipart_json,
+    multipart_json_list,
+)
 from core.axis_convention import AxisConvention
 from core.camera_config import PinholeCameraConfig
 from core.localization_metrics import LocalizationMetrics
@@ -17,7 +22,7 @@ from placeframe_localizer_client import ApiClient, ApiException, Configuration
 from placeframe_localizer_client.api.default_api import DefaultApi
 from placeframe_localizer_client.models.axis_convention import AxisConvention as LocalizerAxisConvention
 from placeframe_localizer_client.models.pinhole_camera_config import PinholeCameraConfig as LocalizerPinholeCameraConfig
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator, Json
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
@@ -28,8 +33,8 @@ settings = get_settings()
 
 
 class LocalizationRequest(MultipartRequestModel):
-    map_ids: list[UUID]
-    camera_config: PinholeCameraConfig
+    map_ids: Annotated[Json[list[UUID]], BeforeValidator(multipart_json_list)]
+    camera_config: Annotated[Json[PinholeCameraConfig], BeforeValidator(multipart_json)]
     axis_convention: AxisConvention
     retrieval_top_k: int
     ransac_threshold: float

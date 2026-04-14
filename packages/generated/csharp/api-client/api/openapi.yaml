@@ -1025,6 +1025,17 @@ paths:
       requestBody:
         content:
           multipart/form-data:
+            encoding:
+              camera_config:
+                allowReserved: false
+                contentType: application/json
+                explode: false
+                style: form
+              map_ids:
+                allowReserved: false
+                contentType: application/json
+                explode: false
+                style: form
             schema:
               $ref: "#/components/schemas/LocalizationRequest"
         required: true

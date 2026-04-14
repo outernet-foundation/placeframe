@@ -76,7 +76,7 @@ class DefaultApi:
         :param ransac_threshold: (required)
         :type ransac_threshold: float
         :param image: (required)
-        :type image: bytearray
+        :type image: bytes
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -163,7 +163,7 @@ class DefaultApi:
         :param ransac_threshold: (required)
         :type ransac_threshold: float
         :param image: (required)
-        :type image: bytearray
+        :type image: bytes
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -250,7 +250,7 @@ class DefaultApi:
         :param ransac_threshold: (required)
         :type ransac_threshold: float
         :param image: (required)
-        :type image: bytearray
+        :type image: bytes
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of

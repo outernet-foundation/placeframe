@@ -24,7 +24,7 @@ PYTHON_REQUIRES = ">= 3.9"
 REQUIRES = [
     "python-dateutil >= 2.8.2",
     "httpx >= 0.28.1",
-    "pydantic >= 2",
+    "pydantic >= 2.11",
     "typing-extensions >= 4.7.1",
 ]
 

@@ -9,7 +9,12 @@ from uuid import UUID
 
 from common.boto_clients import create_s3_client
 from common.litestar import create_litestar_app
-from common.multipart_requests import MultipartRequestModel, MultipartRequestOperation
+from common.multipart_requests import (
+    MultipartRequestModel,
+    MultipartRequestOperation,
+    multipart_json,
+    multipart_json_list,
+)
 from core.axis_convention import AxisConvention
 from core.camera_config import PinholeCameraConfig
 from litestar import post
@@ -20,6 +25,7 @@ from litestar.openapi.config import OpenAPIConfig
 from litestar.openapi.spec import Server
 from litestar.params import Body
 from litestar.status_codes import HTTP_422_UNPROCESSABLE_ENTITY
+from pydantic import BeforeValidator, Json
 
 from .map import Map, load_map
 from .schemas import LoadState, Localization
@@ -49,8 +55,8 @@ if not environ.get("CODEGEN"):
 
 
 class LocalizationRequest(MultipartRequestModel):
-    reconstruction_ids: list[UUID]
-    camera_config: PinholeCameraConfig
+    reconstruction_ids: Annotated[Json[list[UUID]], BeforeValidator(multipart_json_list)]
+    camera_config: Annotated[Json[PinholeCameraConfig], BeforeValidator(multipart_json)]
     axis_convention: AxisConvention
     retrieval_top_k: int
     ransac_threshold: float
