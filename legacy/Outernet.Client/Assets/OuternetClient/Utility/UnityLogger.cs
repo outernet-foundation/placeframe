@@ -1,4 +1,5 @@
 using System;
+using Outernet.Logging;
 
 namespace Outernet.Client
 {

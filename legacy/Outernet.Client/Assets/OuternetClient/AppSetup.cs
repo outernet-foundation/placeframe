@@ -1,5 +1,6 @@
 using UnityEngine;
 using Outernet.Client.Location;
+using Outernet.Logging;
 using Cysharp.Threading.Tasks;
 using FofX.Serialization;
 using Unity.Mathematics;
@@ -26,13 +27,17 @@ namespace Outernet.Client
         static void Initialize()
         {
             UnityEngine.Debug.Log($"[BuildInfo] {Application.version}");
-            Logger.Initialize();
+            Logger.Initialize(suppressErrors: new[]
+            {
+                "Error: MLCamera.InternalGetFramePose failed to get camera frame pose. Reason: MLResult_PoseNotFound",
+                "Error: MLCVCameraGetFramePose in the Magic Leap API failed. Reason: MLResult_PoseNotFound",
+                "Error: XrBeginPlaneDetection in the Magic Leap API failed. Reason: SpaceNotLocatableEXT",
+                "OPENGL NATIVE PLUG-IN ERROR: GL_INVALID_ENUM",
+            });
 
-            UnityEnv env = UnityEnv.GetOrCreateInstance();
-
-            Log.enabledLogGroups = env.enabledLogGroups;
-            Log.logLevel = env.logLevel;
-            Log.stackTraceLevel = env.stackTraceLevel;
+            Log.enabledLogGroups = ~LogGroup.None;
+            Log.logLevel = LogLevel.Info;
+            Log.stackTraceLevel = LogLevel.Warn;
 
             Log.Info($"Build {Application.version}");
         }
@@ -53,8 +58,6 @@ namespace Outernet.Client
             var camera = Instantiate(AuthoringTools.AuthoringToolsPrefabs.Camera);
             var defaultRaycaster = camera.gameObject.AddComponent<AuthoringTools.DefaultRaycaster>();
 #endif
-
-            UnityEnv env = UnityEnv.GetOrCreateInstance();
 
             Instantiate(prefabSystem, transform);
 
