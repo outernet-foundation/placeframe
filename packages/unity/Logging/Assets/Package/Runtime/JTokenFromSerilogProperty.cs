@@ -3,7 +3,7 @@ using System.Linq;
 using Newtonsoft.Json.Linq;
 using Serilog.Events;
 
-namespace Outernet.Client
+namespace Outernet.Logging
 {
     public static class Json
     {
@@ -29,12 +29,12 @@ namespace Outernet.Client
                     .Select(frame =>
                     {
                         var frameProperty = frame as DictionaryValue;
-                        var frameString = (frameProperty.Elements[Enricher.methodSignatureKey] as ScalarValue).Value;
+                        var frameString = (frameProperty.Elements[EnricherKeys.MethodSignatureKey] as ScalarValue).Value;
 
-                        if (frameProperty.Elements.TryGetValue(Enricher.fileNameKey, out var fileNameProperty))
+                        if (frameProperty.Elements.TryGetValue(EnricherKeys.FileNameKey, out var fileNameProperty))
                         {
                             var fileName = (fileNameProperty as ScalarValue).Value;
-                            var lineNumber = (frameProperty.Elements[Enricher.lineNumberKey] as ScalarValue).Value;
+                            var lineNumber = (frameProperty.Elements[EnricherKeys.LineNumberKey] as ScalarValue).Value;
 
                             if (addHyperlinks)
                             {
@@ -50,12 +50,6 @@ namespace Outernet.Client
                     });
 
                 return JToken.FromObject(stackTrace);
-            }
-
-            if (key == "httpResponse" || key == "json")
-            {
-                // this json already, so just parse and return
-                return JToken.Parse((value as ScalarValue).Value.ToString());
             }
 
             return JToken.FromObject(value switch

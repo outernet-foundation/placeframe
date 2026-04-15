@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using Grpc.Core;
+using Outernet.Logging;
 using Outernet.Shared;
 using R3;
 

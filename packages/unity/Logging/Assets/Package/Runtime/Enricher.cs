@@ -10,14 +10,10 @@ using Serilog.Events;
 using Serilog.Parsing;
 using UnityEngine;
 
-namespace Outernet.Client
+namespace Outernet.Logging
 {
-    public class Enricher : ILogEventEnricher
+    public class Enricher<TLogGroup> : ILogEventEnricher where TLogGroup : struct, Enum
     {
-        public static ScalarValue methodSignatureKey = new ScalarValue("methodSignature");
-        public static ScalarValue fileNameKey = new ScalarValue("fileName");
-        public static ScalarValue lineNumberKey = new ScalarValue("lineNumber");
-
         private static Regex anonymousFunctionRegex = new Regex(@"\<(?<method>\w+)\>b__\d+_(?<index>\d+)");
         private static Regex asyncStateMachineRegex = new Regex(@"\<(?<method>\w+)\>d__\d+");
 
@@ -42,13 +38,7 @@ namespace Outernet.Client
 
             logEvent.AddPropertyIfAbsent(new LogEventProperty("messageTemplate", new ScalarValue(logEvent.MessageTemplate.Text)));
             logEvent.AddPropertyIfAbsent(new LogEventProperty("message", new ScalarValue(logEvent.MessageTemplate.Render(logEvent.Properties))));
-            logEvent.AddPropertyIfAbsent(new LogEventProperty("deviceName", new ScalarValue(Logger.DeviceName)));
-
-            var room = ConnectionManager.RoomConnectionRequested?.Value;
-            if (room != null)
-            {
-                logEvent.AddOrUpdateProperty(propertyFactory.CreateProperty("room", room));
-            }
+            logEvent.AddPropertyIfAbsent(new LogEventProperty("deviceName", new ScalarValue(Logger<TLogGroup>.DeviceName)));
 
             var propertyTokens = logEvent.MessageTemplate.Tokens
                 .OfType<PropertyToken>()
@@ -64,7 +54,7 @@ namespace Outernet.Client
                 }))));
             }
 
-            if (logLevelMap[logEvent.Level] >= Log.stackTraceLevel)
+            if (logLevelMap[logEvent.Level] >= Log<TLogGroup>.stackTraceLevel)
             {
                 logEvent.AddPropertyIfAbsent(new LogEventProperty("stackTrace", SerilogStackTrace()));
             }
@@ -78,12 +68,6 @@ namespace Outernet.Client
                 { new ScalarValue("message"), new ScalarValue(exception.Message) }
             };
 
-            if (exception is WebRequestException)
-            {
-                properties.Add(new ScalarValue("httpStatusCode"), new ScalarValue((exception as WebRequestException).StatusCode));
-                properties.Add(new ScalarValue("httpResponse"), new ScalarValue((exception as WebRequestException).Response));
-            }
-
             if (exception.StackTrace != null)
             {
                 properties.Add(new ScalarValue("stackTrace"), SerilogStackTrace(exception));
@@ -96,11 +80,6 @@ namespace Outernet.Client
             else if (exception.InnerException != null)
             {
                 properties.Add(new ScalarValue("innerException"), SerilogException(exception.InnerException));
-            }
-
-            if (exception is ResponseDeserializationException)
-            {
-                properties.Add(new ScalarValue("json"), new ScalarValue((exception as ResponseDeserializationException).Json));
             }
 
             return new DictionaryValue(properties);
@@ -122,7 +101,7 @@ namespace Outernet.Client
                 {
                     return new DictionaryValue(new Dictionary<ScalarValue, LogEventPropertyValue>
                     {
-                        { methodSignatureKey, new ScalarValue("<unknown method>") }
+                        { EnricherKeys.MethodSignatureKey, new ScalarValue("<unknown method>") }
                     });
                 }
 
@@ -132,7 +111,7 @@ namespace Outernet.Client
 
                 var properties = new Dictionary<ScalarValue, LogEventPropertyValue>
                 {
-                    { methodSignatureKey, new ScalarValue(methodSignature) }
+                    { EnricherKeys.MethodSignatureKey, new ScalarValue(methodSignature) }
                 };
 
                 var fileName = frame.GetFileName();
@@ -145,8 +124,8 @@ namespace Outernet.Client
                         fileName = fileName.Substring(unityProjectRoot.Length + 1);
                     }
 
-                    properties.Add(fileNameKey, new ScalarValue(fileName));
-                    properties.Add(lineNumberKey, new ScalarValue(frame.GetFileLineNumber()));
+                    properties.Add(EnricherKeys.FileNameKey, new ScalarValue(fileName));
+                    properties.Add(EnricherKeys.LineNumberKey, new ScalarValue(frame.GetFileLineNumber()));
                 }
 
                 return new DictionaryValue(properties);
@@ -207,5 +186,12 @@ namespace Outernet.Client
 
             return typeName;
         }
+    }
+
+    public static class EnricherKeys
+    {
+        public static readonly ScalarValue MethodSignatureKey = new ScalarValue("methodSignature");
+        public static readonly ScalarValue FileNameKey = new ScalarValue("fileName");
+        public static readonly ScalarValue LineNumberKey = new ScalarValue("lineNumber");
     }
 }

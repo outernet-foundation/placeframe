@@ -5,26 +5,13 @@ import typer
 from common.bash import bash_handoff
 from common.detect_gpu import Gpu, detect_gpu
 
+from .context_sha import compute_service_shas
+
 ENV_FILE = Path(".env")
 LOCK_FILE = Path(".env.lock")
-LOCAL_LOCK_FILE = Path(".env.local.lock")
 
 
 def _resolve_service_shas() -> None:
-    if LOCAL_LOCK_FILE.exists():
-        shas: dict[str, str] = {}
-        for line in LOCAL_LOCK_FILE.read_text(encoding="utf-8").splitlines():
-            if "=" not in line or line.startswith("#"):
-                continue
-            k, v = line.split("=", 1)
-            if k.strip().endswith("_SHA"):
-                shas[k.strip()] = v.strip()
-        if shas:
-            os.environ.update(shas)
-            return
-
-    from .context_sha import compute_service_shas
-
     os.environ.update(compute_service_shas(Path.cwd(), Path("compose.bake.yml")))
 
 
@@ -39,13 +26,11 @@ def down(
     if not ENV_FILE.exists():
         raise RuntimeError("No .env file found")
 
-    if not LOCK_FILE.exists() and not LOCAL_LOCK_FILE.exists():
-        raise RuntimeError("No lock file found; run 'lock.py' first")
+    if not LOCK_FILE.exists():
+        raise RuntimeError("No lock file found; run 'uv run build --lock-only' first")
 
     if gpu == "auto":
         gpu = detect_gpu()
-
-    lock_file = LOCAL_LOCK_FILE if LOCAL_LOCK_FILE.exists() else LOCK_FILE
 
     _resolve_service_shas()
 
@@ -54,7 +39,7 @@ def down(
         "-f compose.yml "
         f"{f'-f compose.{gpu}.yml ' if gpu != 'none' else ''}"
         "--env-file .env "
-        f"--env-file {lock_file} "  # Needed so compose won't error on missing variables, even though they are irrelevant for 'down'
+        f"--env-file {LOCK_FILE} "  # Needed so compose won't error on missing variables, even though they are irrelevant for 'down'
         "down --remove-orphans"
     )
 

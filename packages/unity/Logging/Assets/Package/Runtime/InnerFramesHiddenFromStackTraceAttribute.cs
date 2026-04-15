@@ -1,6 +1,6 @@
 using System;
 
-namespace Outernet.Client
+namespace Outernet.Logging
 {
     public class InnerFramesHiddenFromStackTraceAttribute : Attribute { }
 }

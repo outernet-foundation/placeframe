@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using Newtonsoft.Json.Linq;
 using Serilog;
 using Serilog.Configuration;
@@ -7,16 +9,16 @@ using Serilog.Core;
 using Serilog.Events;
 using UnityEngine;
 
-namespace Outernet.Client
+namespace Outernet.Logging
 {
     static class UnityLoggerConfiguration
     {
-        public static LoggerConfiguration Unity(this LoggerSinkConfiguration loggerConfiguration)
+        public static LoggerConfiguration Unity<TLogGroup>(this LoggerSinkConfiguration loggerConfiguration) where TLogGroup : struct, Enum
         {
-            return loggerConfiguration.Sink(new UnityDebugSink());
+            return loggerConfiguration.Sink(new UnityDebugSink<TLogGroup>());
         }
 
-        class UnityDebugSink : ILogEventSink
+        class UnityDebugSink<TLogGroup> : ILogEventSink where TLogGroup : struct, Enum
         {
             static readonly Dictionary<LogEventLevel, LogType> logLevelMap = new Dictionary<LogEventLevel, LogType>
             {
@@ -28,11 +30,26 @@ namespace Outernet.Client
                 { LogEventLevel.Fatal, LogType.Error }
             };
 
+            static readonly Dictionary<string, string> colorCache;
+
+            static UnityDebugSink()
+            {
+                colorCache = new Dictionary<string, string>();
+                foreach (var field in typeof(TLogGroup).GetFields(BindingFlags.Public | BindingFlags.Static))
+                {
+                    var attr = field.GetCustomAttribute<LogGroupColorAttribute>();
+                    if (attr != null)
+                    {
+                        colorCache[field.Name] = attr.HexColor;
+                    }
+                }
+            }
+
             public void Emit(LogEvent logEvent)
             {
                 string logGroup = (string)(logEvent.Properties.GetValueOrDefault("logGroup") as ScalarValue).Value;
-                string prelude = Log.ColorPalette.ContainsKey(logGroup) ?
-                    $"<color={Log.ColorPalette[logGroup]}>[{logGroup}]</color>" :
+                string prelude = colorCache.TryGetValue(logGroup, out var color) ?
+                    $"<color={color}>[{logGroup}]</color>" :
                     $"[{logGroup}]";
 
                 string message;
@@ -61,14 +78,14 @@ namespace Outernet.Client
                     .Replace("{", "{{")
                     .Replace("}", "}}");
 
-                Logger.emittingToUnity = true;
+                Logger<TLogGroup>.emittingToUnity = true;
                 try
                 {
-                    Logger.defaultUnityLogHandler.LogFormat(logLevelMap[logEvent.Level], null, message);
+                    Logger<TLogGroup>.defaultUnityLogHandler.LogFormat(logLevelMap[logEvent.Level], null, message);
                 }
                 finally
                 {
-                    Logger.emittingToUnity = false;
+                    Logger<TLogGroup>.emittingToUnity = false;
                 }
             }
 

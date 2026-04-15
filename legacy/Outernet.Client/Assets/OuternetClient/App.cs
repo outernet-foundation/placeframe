@@ -108,7 +108,21 @@ namespace Outernet.Client
                 domain
             );
 
-            Logger.EnableLoki(state.userSettings.domain.value);
+            Logger.EnableLoki(
+                state.userSettings.domain.value,
+                tokenProvider: () => Auth.GetOrRefreshToken(),
+                labels: new[] {
+                    ("app", "outernet-client"),
+#if UNITY_EDITOR
+                    ("platform", "editor")
+#elif MAGIC_LEAP
+                    ("platform", "magic-leap")
+#elif OUTERNET_ANDROID_MOBILE
+                    ("platform", "android-mobile")
+#else
+                    ("platform", "unknown")
+#endif
+                });
 
 #if !AUTHORING_TOOLS_ENABLED
             ConnectionManager.HubConnectionRequested.EnqueueSet(true);

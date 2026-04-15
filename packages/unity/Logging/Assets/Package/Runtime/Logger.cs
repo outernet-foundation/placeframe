@@ -1,14 +1,14 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using R3;
 using Serilog;
 using UnityEngine;
 
-namespace Outernet.Client
+namespace Outernet.Logging
 {
-    static class Logger
+    public static class Logger<TLogGroup> where TLogGroup : struct, Enum
     {
         public static Serilog.Core.Logger logger { get; private set; }
         public static ILogHandler defaultUnityLogHandler;
@@ -18,31 +18,28 @@ namespace Outernet.Client
         public static string DeviceName => _deviceName;
 
         private static IDisposable subscriptions;
+        private static IReadOnlyList<string> benignErrorSubstrings = Array.Empty<string>();
 
-        public static void Initialize()
+        public static void Initialize(IEnumerable<string> suppressErrors = null)
         {
+            benignErrorSubstrings = suppressErrors != null ? new List<string>(suppressErrors) : Array.Empty<string>();
             _deviceName = SystemInfo.deviceName;
 
             logger = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
-                .Enrich.With<Enricher>()
-                .WriteTo.Unity()
+                .Enrich.With<Enricher<TLogGroup>>()
+                .WriteTo.Unity<TLogGroup>()
                 .CreateLogger();
 
-            // Use a custom Unity log handler to pipe to Serilog any messages that are logged
-            // directly using Unity's Debug class, such as by third-party code we don't control, or
-            // by Unity itself when exceptions are thrown by Unity lifecycle methods
             defaultUnityLogHandler = Debug.unityLogger.logHandler;
             Debug.unityLogger.logHandler = new SerilogLogHandler();
 
-            // If serilog itself throws an exception, log it using Unity's default log handler
             global::Serilog.Debugging.SelfLog.Enable(
                 error =>
                 {
                     defaultUnityLogHandler.LogFormat(LogType.Error, null, error);
                 });
 
-            // Disable Unity's stack trace generation, since we generate our own stack traces
             Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
             Application.SetStackTraceLogType(LogType.Warning, StackTraceLogType.None);
             Application.SetStackTraceLogType(LogType.Error, StackTraceLogType.None);
@@ -50,7 +47,6 @@ namespace Outernet.Client
             Application.SetStackTraceLogType(LogType.Assert, StackTraceLogType.None);
 
             subscriptions = Disposable.Combine(
-                // Log logs that bypass Debug.unityLogger.logHandler
                 Observable
                     .FromEvent<Application.LogCallback, (string condition, string stackTrace, LogType type)>(
                         handler => (condition, stackTrace, type) => handler((condition, stackTrace, type)),
@@ -58,33 +54,30 @@ namespace Outernet.Client
                         handler => Application.logMessageReceived -= handler)
                     .Subscribe(tuple => UnityLogMessageReceived(tuple.condition, tuple.stackTrace, tuple.type)),
 
-                // Log uncaught exceptions thrown by UniTasks
                 Observable
                     .FromEvent<Exception>(
                         handler => UniTaskScheduler.UnobservedTaskException += handler,
                         handler => UniTaskScheduler.UnobservedTaskException -= handler)
-                    .Subscribe(exception => Log.Error(LogGroup.UncaughtException, exception, "UniTaskScheduler UnobservedTaskException")),
+                    .Subscribe(exception => Log<TLogGroup>.Error(exception, "UniTaskScheduler UnobservedTaskException")),
 
-                // Log uncaught exceptions thrown by Tasks
                 Observable
                     .FromEventHandler<UnobservedTaskExceptionEventArgs>(
                         handler => TaskScheduler.UnobservedTaskException += handler,
                         handler => TaskScheduler.UnobservedTaskException -= handler)
-                    .Subscribe(args => Log.Error(LogGroup.UncaughtException, args.e.Exception, "TaskScheduler UnobservedTaskException: sender {0}", args.sender))
+                    .Subscribe(args => Log<TLogGroup>.Error(args.e.Exception, "TaskScheduler UnobservedTaskException: sender {0}", args.sender))
             );
 
-            // Log uncaught exceptions thrown by R3 subscriptions
-            ObservableSystem.RegisterUnhandledExceptionHandler(exception => Log.Error(LogGroup.UncaughtException, exception, "R3 subscription unhandled exception"));
+            ObservableSystem.RegisterUnhandledExceptionHandler(exception => Log<TLogGroup>.Error(exception, "R3 subscription unhandled exception"));
         }
 
-        public static void EnableLoki(string domain)
+        public static void EnableLoki(string domain, Func<UniTask<string>> tokenProvider, IEnumerable<(string key, string value)> labels)
         {
             var previous = logger;
             logger = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
-                .Enrich.With<Enricher>()
-                .WriteTo.Unity()
-                .WriteTo.Loki(domain)
+                .Enrich.With<Enricher<TLogGroup>>()
+                .WriteTo.Unity<TLogGroup>()
+                .WriteTo.Loki(domain, tokenProvider, labels)
                 .CreateLogger();
             previous.Dispose();
         }
@@ -95,7 +88,7 @@ namespace Outernet.Client
             logger.Dispose();
         }
 
-        public static void Serilog(LogLevel level, LogGroup group, Exception exception, string messageTemplate, params object[] propertyValues)
+        public static void Serilog(LogLevel level, TLogGroup group, Exception exception, string messageTemplate, params object[] propertyValues)
         {
             messageTemplate ??= string.Empty;
 
@@ -129,21 +122,15 @@ namespace Outernet.Client
             }
         }
 
-        // Benign errors from third-party native code that we can't fix at source.
-        // Downgrade to Log so they don't pollute error tracking.
         static LogType SuppressBenignErrors(LogType type, string message)
         {
-            if ((type == LogType.Exception || type == LogType.Error) &&
-                (message.Contains("Error: MLCamera.InternalGetFramePose failed to get camera frame pose. Reason: MLResult_PoseNotFound") ||
-                message.Contains("Error: MLCVCameraGetFramePose in the Magic Leap API failed. Reason: MLResult_PoseNotFound") ||
-                message.Contains("Error: XrBeginPlaneDetection in the Magic Leap API failed. Reason: SpaceNotLocatableEXT") ||
-                // ARCore's native ARPresto plugin passes GL_TEXTURE_EXTERNAL_OES to a GL
-                // call that doesn't accept it during camera texture init on Mali GPUs.
-                // The error is inside the precompiled ARPresto.aar — we can't fix it.
-                // It fires once at startup and ARCore recovers; no visible impact.
-                message.Contains("OPENGL NATIVE PLUG-IN ERROR: GL_INVALID_ENUM")))
+            if ((type == LogType.Exception || type == LogType.Error) && benignErrorSubstrings.Count > 0)
             {
-                return LogType.Log;
+                for (int i = 0; i < benignErrorSubstrings.Count; i++)
+                {
+                    if (message.Contains(benignErrorSubstrings[i]))
+                        return LogType.Log;
+                }
             }
             return type;
         }
@@ -158,16 +145,14 @@ namespace Outernet.Client
             switch (type)
             {
                 case LogType.Assert:
-                    Log.Fatal(condition);
+                    Log<TLogGroup>.Fatal(condition);
                     break;
                 case LogType.Error:
-                    Log.Error(condition);
+                    Log<TLogGroup>.Error(condition);
                     break;
-                // Treat all native logs as possible bugs, since they might be (example: calling Quaternion.LookRotation with
-                // Vector3.zero is almost certainly a mistake, but results in native code logging a message of type LogType.Log)
                 case LogType.Warning:
                 case LogType.Log:
-                    Log.Warn(condition);
+                    Log<TLogGroup>.Warn(condition);
                     break;
             }
         }
@@ -183,16 +168,16 @@ namespace Outernet.Client
                 switch (logType)
                 {
                     case LogType.Assert:
-                        Log.Fatal(message);
+                        Log<TLogGroup>.Fatal(message);
                         break;
                     case LogType.Error:
-                        Log.Error(message);
+                        Log<TLogGroup>.Error(message);
                         break;
                     case LogType.Warning:
-                        Log.Warn(message);
+                        Log<TLogGroup>.Warn(message);
                         break;
                     case LogType.Log:
-                        Log.Info(message);
+                        Log<TLogGroup>.Info(message);
                         break;
                 }
             }
@@ -200,7 +185,7 @@ namespace Outernet.Client
             [InnerFramesHiddenFromStackTrace]
             public void LogException(Exception exception, UnityEngine.Object context)
             {
-                Log.Error(LogGroup.UncaughtException, exception, "Unity exception");
+                Log<TLogGroup>.Error(exception, "Unity exception");
             }
         }
     }

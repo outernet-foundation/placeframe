@@ -1,9 +1,7 @@
-using System.Threading.Tasks;
-using Cysharp.Threading.Tasks;
 using FofX.Stateful;
 using Nessle;
+using Outernet.Logging;
 using Placeframe.Core;
-using R3;
 using UnityEngine;
 #if !UNITY_EDITOR
 using Placeframe.Core.ARFoundation;
@@ -21,15 +19,7 @@ namespace Placeframe.Client
 
         private void Awake()
         {
-            UniTaskScheduler.UnobservedTaskException += (exception) =>
-                Log.Error(LogGroup.UncaughtException, $"Unobserved task exception: {exception}");
-
-            TaskScheduler.UnobservedTaskException += (sender, args) =>
-                Log.Error(LogGroup.UncaughtException, $"Unobserved task exception: {args.Exception}");
-
-            ObservableSystem.RegisterUnhandledExceptionHandler(exception =>
-                Log.Error(LogGroup.UncaughtException, $"R3 unhandled exception: {exception}")
-            );
+            Logger<LogGroup>.Initialize();
 
             sceneReferences.Initialize();
 
