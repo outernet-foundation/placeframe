@@ -1,89 +1,124 @@
 using System;
-
-public enum LogLevel
-{
-    Trace,
-    Debug,
-    Info,
-    Warn,
-    Error,
-    Fatal,
-    None,
-}
+using Outernet.Logging;
 
 [Flags]
 public enum LogGroup
 {
     None = 0,
-    Default = 1 << 0,
-    UncaughtException = 1 << 1,
-    LoggingTests = 1 << 2,
-    Grpc = 1 << 3,
-    SyncedStateClient = 1 << 4,
-    MagicLeapCamera = 1 << 5,
-    Immersal = 1 << 6,
-    Rest = 1 << 7,
-    Localizer = 1 << 8,
-    PlaneDetector = 1 << 9,
-    Permissions = 1 << 10,
-    BugReports = 1 << 11,
-    ContentManagement = 1 << 12,
-    Stateful = 1 << 13,
+    [LogGroupColor("#4E79A7")] Default = 1 << 0,
+    [LogGroupColor("#E15759")] UncaughtException = 1 << 1,
+    [LogGroupColor("#76B7B2")] Rest = 1 << 2,
+    [LogGroupColor("#EDC948")] Localizer = 1 << 3,
+    [LogGroupColor("#59A14F")] Capture = 1 << 4,
 }
 
 public static class Log
 {
-    public static LogLevel Level { get; set; } = LogLevel.Info;
+    public static LogLevel Level { get => Log<LogGroup>.logLevel; set => Log<LogGroup>.logLevel = value; }
+    public static LogLevel StackTraceLevel { get => Log<LogGroup>.stackTraceLevel; set => Log<LogGroup>.stackTraceLevel = value; }
+    public static LogGroup EnabledLogGroups { get => Log<LogGroup>.enabledLogGroups; set => Log<LogGroup>.enabledLogGroups = value; }
 
-    public static void Trace(LogGroup group, string message)
-    {
-        if (Level <= LogLevel.Trace)
-            UnityEngine.Debug.Log($"[{group}] {message}");
-    }
+    public static void DoLog(LogLevel level, LogGroup group, Exception exception, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.DoLog(level, group, exception, messageTemplate, propertyValues);
+    public static void DoLog(LogLevel level, LogGroup group, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.DoLog(level, group, messageTemplate, propertyValues);
+    public static void DoLog(LogLevel level, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.DoLog(level, messageTemplate, propertyValues);
+    public static void DoLog(LogLevel level, Exception exception, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.DoLog(level, exception, messageTemplate, propertyValues);
+    public static void DoLog(LogLevel level, LogGroup group, Exception exception)
+        => Log<LogGroup>.DoLog(level, group, exception);
 
-    public static void Debug(LogGroup group, string message)
-    {
-        if (Level <= LogLevel.Debug)
-            UnityEngine.Debug.Log($"[{group}] {message}");
-    }
+    [InnerFramesHiddenFromStackTrace]
+    public static void Trace(LogGroup group, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Trace(group, messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Trace(LogGroup group, Exception exception, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Trace(group, exception, messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Trace(string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Trace(messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Trace(Exception exception, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Trace(exception, messageTemplate, propertyValues);
 
-    public static void Info(LogGroup group, string message)
-    {
-        if (Level <= LogLevel.Info)
-            UnityEngine.Debug.Log($"[{group}] {message}");
-    }
+    [InnerFramesHiddenFromStackTrace]
+    public static void Debug(LogGroup group, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Debug(group, messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Debug(LogGroup group, Exception exception, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Debug(group, exception, messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Debug(string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Debug(messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Debug(Exception exception, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Debug(exception, messageTemplate, propertyValues);
 
+    [InnerFramesHiddenFromStackTrace]
+    public static void Info(LogGroup group, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Info(group, messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
     public static void Info(LogGroup group, Exception exception, string messageTemplate, params object[] propertyValues)
-    {
-        if (Level <= LogLevel.Info)
-        {
-            UnityEngine.Debug.Log($"[{group}] {messageTemplate} {propertyValues}\nException: {exception}");
-        }
-    }
+        => Log<LogGroup>.Info(group, exception, messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Info(string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Info(messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Info(Exception exception, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Info(exception, messageTemplate, propertyValues);
 
-    public static void Warn(LogGroup group, string message)
-    {
-        if (Level <= LogLevel.Warn)
-            UnityEngine.Debug.LogWarning($"[{group}] {message}");
-    }
+    [InnerFramesHiddenFromStackTrace]
+    public static void Warn(LogGroup group, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Warn(group, messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Warn(LogGroup group, Exception exception, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Warn(group, exception, messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Warn(LogGroup group, string messageTemplate, Exception exception, params object[] propertyValues)
+        => Log<LogGroup>.Warn(group, messageTemplate, exception, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Warn(string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Warn(messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Warn(Exception exception, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Warn(exception, messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Warn(string messageTemplate, Exception exception, params object[] propertyValues)
+        => Log<LogGroup>.Warn(messageTemplate, exception, propertyValues);
 
-    public static void Error(LogGroup group, string message)
-    {
-        if (Level <= LogLevel.Error)
-            UnityEngine.Debug.LogError($"[{group}] {message}");
-    }
+    [InnerFramesHiddenFromStackTrace]
+    public static void Error(LogGroup group, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Error(group, messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Error(LogGroup group, params object[] propertyValues)
+        => Log<LogGroup>.Error(group, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Error(LogGroup group, Exception exception, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Error(group, exception, messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Error(LogGroup group, string messageTemplate, Exception exception, params object[] propertyValues)
+        => Log<LogGroup>.Error(group, messageTemplate, exception, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Error(string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Error(messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Error(Exception exception, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Error(exception, messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Error(string messageTemplate, Exception exception, params object[] propertyValues)
+        => Log<LogGroup>.Error(messageTemplate, exception, propertyValues);
 
-    public static void Exception(Exception exception)
-    {
-        if (Level <= LogLevel.Error)
-        {
-            UnityEngine.Debug.LogException(exception);
-        }
-    }
-
-    public static void Fatal(LogGroup group, string message)
-    {
-        if (Level <= LogLevel.Fatal)
-            UnityEngine.Debug.LogError($"[{group}] {message}");
-    }
+    [InnerFramesHiddenFromStackTrace]
+    public static void Fatal(LogGroup group, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Fatal(group, messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Fatal(LogGroup group, Exception exception, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Fatal(group, exception, messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Fatal(string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Fatal(messageTemplate, propertyValues);
+    [InnerFramesHiddenFromStackTrace]
+    public static void Fatal(Exception exception, string messageTemplate, params object[] propertyValues)
+        => Log<LogGroup>.Fatal(exception, messageTemplate, propertyValues);
 }

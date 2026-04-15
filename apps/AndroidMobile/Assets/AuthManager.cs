@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using FofX;
 using FofX.Stateful;
+using Outernet.Logging;
 using Placeframe.Core;
 using UnityEngine;
 
@@ -46,6 +47,19 @@ namespace Placeframe.Client
                 App.ExecuteActionOrDelay(new SetAuthStatusAction(AuthStatus.Error, exc.Message));
                 throw exc;
             }
+
+            Logger<LogGroup>.EnableLoki(
+                domain,
+                tokenProvider: () => Auth.GetOrRefreshToken(),
+                labels: new[]
+                {
+                    ("app", "capture-tool"),
+#if UNITY_EDITOR
+                    ("platform", "editor"),
+#else
+                    ("platform", "android-mobile"),
+#endif
+                });
 
             await UniTask.SwitchToMainThread(cancellationToken: cancellationToken);
             App.state.authStatus.ExecuteSetOrDelay(AuthStatus.LoggedIn);
