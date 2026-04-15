@@ -22,7 +22,6 @@ class Settings(BaseSettings):
 settings = Settings.model_validate({})
 
 LOCK_FILE = Path(".env.lock")
-LOCAL_LOCK_FILE = Path(".env.local.lock")
 COMPOSE_FILE = Path("compose.yml")
 BAKE_FILE = Path("compose.bake.yml")
 METADATA_PATH = Path("metadata.json")
@@ -113,7 +112,7 @@ def _load_compose(path: Path) -> dict[str, Any]:
 def build(
     upgrade: bool = typer.Option(False, "--upgrade", "-u", help="Re-resolve and rewrite base digests."),
     lock_only: bool = typer.Option(False, "--lock-only", help="Update lock file without building images."),
-    mode: Mode = typer.Option("local", "--mode", help="local: updates .env.lock.local; ci: updates .env.lock."),
+    mode: Mode = typer.Option("local", "--mode", help="local: --load images; ci: --push images + registry caches."),
     gpu: Gpu = typer.Option("auto", "--gpu", help="auto|cuda|rocm|none"),
     no_cache: bool = typer.Option(False, "--no-cache", help="Force rebuild by disabling cache usage."),
     targets_opt: list[str] | None = typer.Option(
@@ -168,14 +167,8 @@ def build(
     if lock_only:
         return
 
-    # Load local lock file and merge in updated base/third-party image digests from main lock file
-    local_lock_data = _load_lock_file(LOCAL_LOCK_FILE) if (mode == "local" and LOCAL_LOCK_FILE.exists()) else {}
-    for image, ref in lock_data.items():
-        if image not in local_lock_data or image in base_images or image in third_party_images:
-            local_lock_data[image] = ref
-
-    # Update environment with updated external dependency image digests
-    os.environ.update(local_lock_data)
+    # Update environment with external dependency image digests
+    os.environ.update(lock_data)
 
     # Build command arguments
     command_arguments: list[str] = []
@@ -232,10 +225,6 @@ def build(
     baked_images: dict[str, Any] = json.loads(METADATA_PATH.read_text()) if METADATA_PATH.exists() else {}
     if not set(targets) <= baked_images.keys():
         raise RuntimeError("Baked images do not match target images; something went wrong during the bake.")
-
-    if mode == "local":
-        local_lock_data.update(service_shas)
-        _write_lock_file(LOCAL_LOCK_FILE, local_lock_data)
 
 
 def main() -> None:
