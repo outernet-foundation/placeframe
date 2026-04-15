@@ -96,6 +96,12 @@ All API endpoints require an OAuth2 Bearer token from Keycloak. The default dev 
 - **No docstrings.** Do not add docstrings to any function, class, or module — including new files. Comments are allowed only where the logic isn't self-evident.
 - **No inline imports.** All imports at module level. No `from x import y` inside functions or methods.
 
+## NuGet Packages in Unity Projects
+
+Unity projects use [NuGetForUnity](https://github.com/GlitchEnzo/NuGetForUnity) with `packages.config` files. The NuGetForUnity CLI (`dotnet nugetforunity restore`) only downloads packages already listed — it does **not** resolve transitive dependencies. Dependency resolution only happens through the NuGetForUnity editor UI inside Unity.
+
+**When adding a NuGet package to `packages.config`**, you must also add its transitive dependencies manually. Check the package's **.NET Standard 2.0** dependency list on nuget.org (e.g. `https://www.nuget.org/packages/Serilog/4.0.1`). Skip low-level BCL packages that Unity's runtime already provides (e.g. `System.Buffers`, `System.Memory`, `System.Numerics.Vectors`, `System.Threading.Tasks.Extensions`). Add higher-level transitive deps like `System.Text.Json`, `System.Diagnostics.DiagnosticSource`, etc. When in doubt, check `legacy/Outernet.Client/Assets/packages.config` as a working reference — if the legacy project works without listing a dep, AndroidMobile doesn't need it either. Missing transitive deps won't cause compile errors locally in the editor (NuGetForUnity resolves them there), but they **will** fail in CI where only `restore` runs.
+
 ## Docker Build Context
 
 - **`.dockerignore` is an allowlist.** It uses `*` (ignore everything) then `!` entries to whitelist paths Docker can see. This file is the single source of truth for which files affect Docker image builds and for the `CONTEXT_SHA` image tag. Adding a COPY for a path not in the allowlist fails the build loudly (self-correcting). Extra entries cause unnecessary rebuilds (safe failure mode). When adding a new directory that a Dockerfile COPYs, add a `!` entry to `.dockerignore`.
