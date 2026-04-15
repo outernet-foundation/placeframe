@@ -27,7 +27,7 @@ namespace Outernet.Client
         static void Initialize()
         {
             UnityEngine.Debug.Log($"[BuildInfo] {Application.version}");
-            Logger.Initialize(suppressErrors: new[]
+            Logger<LogGroup>.Initialize(suppressErrors: new[]
             {
                 "Error: MLCamera.InternalGetFramePose failed to get camera frame pose. Reason: MLResult_PoseNotFound",
                 "Error: MLCVCameraGetFramePose in the Magic Leap API failed. Reason: MLResult_PoseNotFound",

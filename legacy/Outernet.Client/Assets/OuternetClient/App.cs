@@ -108,7 +108,7 @@ namespace Outernet.Client
                 domain
             );
 
-            Logger.EnableLoki(
+            Logger<LogGroup>.EnableLoki(
                 state.userSettings.domain.value,
                 tokenProvider: () => Auth.GetOrRefreshToken(),
                 labels: new[] {
@@ -325,7 +325,7 @@ namespace Outernet.Client
             VisualPositioningSystem.StopLocalizing();
 #endif
             SceneViewManager.Terminate();
-            Logger.Terminate();
+            Logger<LogGroup>.Terminate();
 
             return true;
         }
