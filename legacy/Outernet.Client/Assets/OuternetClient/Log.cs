@@ -1,4 +1,5 @@
 global using Log = Outernet.Logging.Log<Outernet.Client.LogGroup>;
+global using Logger = Outernet.Logging.Logger<Outernet.Client.LogGroup>;
 
 using System;
 using Outernet.Logging;
