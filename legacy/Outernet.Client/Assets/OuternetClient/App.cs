@@ -15,6 +15,7 @@ using Cysharp.Threading.Tasks;
 
 using PlaceframeApiClient.Api;
 using Placeframe.Core;
+using Outernet.Logging;
 
 namespace Outernet.Client
 {
