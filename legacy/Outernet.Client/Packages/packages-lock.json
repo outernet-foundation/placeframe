@@ -514,6 +514,12 @@
       },
       "url": "https://registry.npmjs.org"
     },
+    "org.outernet.logging": {
+      "version": "file:../../../packages/unity/Logging/Assets/Package",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
+    },
     "org.outernet.placeframe": {
       "version": "file:../../../packages/unity/Placeframe/Assets/Package/Core",
       "depth": 0,
