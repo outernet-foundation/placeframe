@@ -324,8 +324,8 @@ name = "pytorch-triton-rocm"
 version = "3.5.1"
 index = "https://download.pytorch.org/whl/rocm6.4"
 wheels = [
-    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313-linux_x86_64.whl", hashes = {} },
-    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313t-linux_x86_64.whl", hashes = {} },
+    { url = "https://download-r2.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313-linux_x86_64.whl", hashes = {} },
+    { url = "https://download-r2.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313t-linux_x86_64.whl", hashes = {} },
 ]
 
 [[packages]]
@@ -409,8 +409,8 @@ name = "torch"
 version = "2.9.1+rocm6.4"
 index = "https://download.pytorch.org/whl/rocm6.4"
 wheels = [
-    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.9.1%2Brocm6.4-cp313-cp313-manylinux_2_28_x86_64.whl", hashes = { sha256 = "19ac1ef5db3f96e01172d0f62bc0438c6d3a8667358c3a00204fbbb44da74229" } },
-    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.9.1%2Brocm6.4-cp313-cp313t-manylinux_2_28_x86_64.whl", hashes = { sha256 = "435361fcc18291a725970beb21f5327b28ba809130a129587551249f22998522" } },
+    { url = "https://download-r2.pytorch.org/whl/rocm6.4/torch-2.9.1%2Brocm6.4-cp313-cp313-manylinux_2_28_x86_64.whl", hashes = { sha256 = "19ac1ef5db3f96e01172d0f62bc0438c6d3a8667358c3a00204fbbb44da74229" } },
+    { url = "https://download-r2.pytorch.org/whl/rocm6.4/torch-2.9.1%2Brocm6.4-cp313-cp313t-manylinux_2_28_x86_64.whl", hashes = { sha256 = "435361fcc18291a725970beb21f5327b28ba809130a129587551249f22998522" } },
 ]
 
 [[packages]]

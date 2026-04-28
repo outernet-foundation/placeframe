@@ -11,10 +11,12 @@ if sys.platform == "win32":
         if os.path.isdir(p):
             os.add_dll_directory(p)
 
-from common.fastapi import create_fastapi_app
+from common.litestar import create_litestar_app
+from litestar.openapi.config import OpenAPIConfig
+from litestar.openapi.plugins import ScalarRenderPlugin
 
 from .routers.captures import router as captures_router
 
-app = create_fastapi_app("Zed API")
+openapi_config = OpenAPIConfig("Zed API", "0.1.0", render_plugins=[ScalarRenderPlugin()])
 
-app.include_router(captures_router)
+app = create_litestar_app([captures_router], openapi_config)

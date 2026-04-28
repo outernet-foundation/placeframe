@@ -18,7 +18,7 @@ All top-level commands are run via `uv run <command>` from the repo root. These 
 | `uv run migrate-database` | Run PostgreSQL schema migrations |
 | `uv run generate-clients` | Regenerate OpenAPI client packages |
 | `uv run generate-datamodels` | Regenerate Pydantic data models |
-| `uv run generate-lock-files` | Regenerate per-service `uv.lock` files |
+| `uv run lock-python` | Regenerate workspace `uv.lock` and per-service `pylock.toml` files |
 | `uv run deptry-check` | Check for dependency issues across all packages |
 
 **Linting and type checking** (run from repo root):
@@ -64,12 +64,12 @@ Auto-generated packages in `packages/generated/` should not be edited directly �
 **Generation pipeline**: Code in `packages/generated/` is produced by two scripts that must be run after certain changes:
 
 - **`uv run generate-datamodels`** — Introspects the **live PostgreSQL database** (via `sqlacodegen`) to produce `packages/generated/python/datamodels/` (SQLAlchemy table models + Pydantic DTOs). Must be run after any changes to `database/*.sql` schema files. **Requires Docker + postgres to be running** (`uv run up`, then `uv run migrate-database` to apply schema changes).
-- **`uv run generate-lock-files`** — Regenerates per-service `uv.lock` files. Must be run before `generate-clients` (which uses `uv run --no_workspace` per-service and needs the lock files). Also re-run after `uv sync --all-packages` since that overwrites per-service locks.
+- **`uv run lock-python`** — Regenerates the workspace `uv.lock` and per-service `pylock.toml` files (for services with a `Dockerfile`). Must be run before `generate-clients` (which uses `uv run --no_workspace` per-service and needs the lock files). Also re-run after `uv sync --all-packages` since that overwrites per-service locks.
 - **`uv run generate-clients --config openapi-projects.json`** — Dumps the OpenAPI spec from each Litestar app and runs `openapi-generator-cli` (via `uvx`) to produce typed API clients in `packages/generated/python/` and `packages/generated/csharp/`. Must be run after any changes to API route signatures (new query params, new response fields, etc.). Requires Java (JDK 11+) on PATH. Use `--project docker/api` to generate only the API client (the localizer requires PyTorch/pycolmap to dump its spec).
 
 **When changing both schema and API routes**, run in this order:
 1. `uv run generate-datamodels` (updates Pydantic models the API imports; needs live postgres)
-2. `uv sync --all-packages` then `uv run generate-lock-files` (sync first if any `pyproject.toml` changed; lock files must precede generate-clients)
+2. `uv sync --all-packages` then `uv run lock-python` (sync first if any `pyproject.toml` changed; lock files must precede generate-clients)
 3. `uv run generate-clients --config openapi-projects.json` (dumps updated OpenAPI spec, generates clients)
 
 All three scripts live in `scripts/src/scripts/`.
@@ -95,6 +95,9 @@ All API endpoints require an OAuth2 Bearer token from Keycloak. The default dev 
 - **No shell scripts.** All scripting is Python. CI workflow steps should be one command (two at most). If there's a condition, a loop, or any real logic, it belongs in a Python script invoked via `uv run`, not inline shell in a workflow YAML.
 - **No docstrings.** Do not add docstrings to any function, class, or module — including new files. Comments are allowed only where the logic isn't self-evident.
 - **No inline imports.** All imports at module level. No `from x import y` inside functions or methods.
+- **No lint suppression changes without asking.** Never add, remove, or modify `noqa`, `type: ignore`, file-level lint directives, or any equivalent suppression without explicit user approval.
+- **Pin everything.** Never use `:latest` image tags, unpinned package versions, or any mutable version reference. All images use content-addressed SHA tags (e.g. `zed-capture:${ZED_CAPTURE_SHA}`). All base images in `compose.bake.yml` use digest-pinned references. If a SHA tag doesn't exist in the registry yet, surface a clear error — don't fall back to `:latest`.
+- **`bash()` / `bash_output()` reject shell operators.** The `_check_no_pipe` guard in `common.bash` strips quoted strings and rejects any `|` — this catches both pipes (`|`) and logical OR (`||`). Don't use shell fallback patterns like `cmd || echo default`. Instead, use `bash_check()` to test success, then `bash_output()` for the value. `bash_pipe()` is only for actual pipelines (`cmd1 | cmd2`).
 
 ## NuGet Packages in Unity Projects
 
@@ -127,7 +130,7 @@ When running in a containerized Claude Code environment (COI sandbox):
    - `uv run up --quiet-pull` (starts postgres, runs migrations automatically)
    - `uv run generate-datamodels` (needs live postgres)
    - `uv sync --all-packages` (required if any `pyproject.toml` changed; slow but necessary)
-   - `uv run generate-lock-files` (must precede generate-clients)
+   - `uv run lock-python` (must precede generate-clients)
    - `uv run generate-clients --config openapi-projects.json --project docker/api` (localizer can't dump spec without GPU/PyTorch)
-8. **Don't `uv sync` inside a service directory**: Running `uv sync` in e.g. `docker/api/` clobbers the workspace venv. Always sync from the repo root with `uv sync --all-packages`, then re-run `uv run generate-lock-files`.
+8. **Don't `uv sync` inside a service directory**: Running `uv sync` in e.g. `docker/api/` clobbers the workspace venv. Always sync from the repo root with `uv sync --all-packages`, then re-run `uv run lock-python`.
 9. **Tests**: `uv run pytest` from repo root. Collection errors for `docker/localizer/tests/` and `dirtorch/test_dir.py` may occur if PyTorch is not installed in the workspace venv (it's only in the Docker images).

@@ -12,6 +12,10 @@ def reboot_camera(cam: sl.Camera):
         raise Exception(f"ZED Camera Reboot Error: {error}")
 
 
+def set_from_svo_file(init: sl.InitParameters, path: str) -> None:
+    init.set_from_svo_file(path)
+
+
 def open_camera(cam: sl.Camera, init: sl.InitParameters):
     error = cam.open(init)
     if error != sl.ERROR_CODE.SUCCESS:
@@ -47,6 +51,16 @@ def enable_positional_tracking(cam: sl.Camera, params: object):
 
 def disable_positional_tracking(cam: sl.Camera):
     cam.disable_positional_tracking()
+
+
+def enable_recording(cam: sl.Camera, params: sl.RecordingParameters) -> None:
+    error = cam.enable_recording(params)
+    if error != sl.ERROR_CODE.SUCCESS:
+        raise Exception(f"ZED Enable Recording Error: {error}")
+
+
+def disable_recording(cam: sl.Camera) -> None:
+    cam.disable_recording()
 
 
 def grab(cam: sl.Camera):
