@@ -375,8 +375,8 @@
       "source": "local",
       "dependencies": {}
     },
-    "org.nuget.placeframezedclient": {
-      "version": "file:../../../packages/generated/csharp/zed-client/src/PlaceframeZedClient",
+    "org.nuget.placeframezedcaptureclient": {
+      "version": "file:../../../packages/generated/csharp/zed-capture-client/src/PlaceframeZedCaptureClient",
       "depth": 0,
       "source": "local",
       "dependencies": {}

@@ -38,7 +38,7 @@
     "com.unity.xr.arcore": "6.0.6",
     "com.unity.xr.arfoundation": "6.0.6",
     "org.nuget.placeframeapiclient": "file:../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
-    "org.nuget.placeframezedclient": "file:../../../packages/generated/csharp/zed-client/src/PlaceframeZedClient",
+    "org.nuget.placeframezedcaptureclient": "file:../../../packages/generated/csharp/zed-capture-client/src/PlaceframeZedCaptureClient",
     "org.outernet.logging": "file:../../../packages/unity/Logging/Assets/Package",
     "org.outernet.placeframe": "file:../../../packages/unity/Placeframe/Assets/Package/Core",
     "org.outernet.placeframe.arfoundation": "file:../../../packages/unity/Placeframe/Assets/Package/ARFoundation",
