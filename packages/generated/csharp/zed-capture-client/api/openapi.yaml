@@ -1,0 +1,296 @@
+openapi: 3.0.3
+info:
+  title: Zed API
+  version: 0.1.0
+servers:
+- url: /
+paths:
+  /captures/start:
+    post:
+      deprecated: false
+      operationId: start_capture
+      parameters:
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        explode: true
+        in: query
+        name: capture_interval
+        required: false
+        schema:
+          nullable: true
+          type: number
+        style: form
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                format: uuid
+                type: string
+          description: "Document created, URL follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/start_capture_400_response"
+          description: Bad request syntax or unsupported method
+      summary: StartCapture
+      tags:
+      - Default
+  /captures/stop:
+    post:
+      deprecated: false
+      operationId: stop_capture
+      responses:
+        "201":
+          description: "Document created, URL follows"
+      summary: StopCapture
+      tags:
+      - Default
+  /captures:
+    delete:
+      deprecated: false
+      operationId: delete_all_captures
+      responses:
+        "204":
+          description: "Request fulfilled, nothing follows"
+      summary: DeleteAllCaptures
+      tags:
+      - Default
+    get:
+      deprecated: false
+      operationId: get_captures
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  format: uuid
+                  type: string
+                type: array
+          description: "Request fulfilled, document follows"
+      summary: GetCaptures
+      tags:
+      - Default
+  /captures/{id}:
+    delete:
+      deprecated: false
+      operationId: delete_capture
+      parameters:
+      - deprecated: false
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "204":
+          description: "Request fulfilled, nothing follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/start_capture_400_response"
+          description: Bad request syntax or unsupported method
+      summary: DeleteCapture
+      tags:
+      - Default
+    get:
+      deprecated: false
+      operationId: download_capture_tar
+      parameters:
+      - deprecated: false
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        explode: true
+        in: query
+        name: include_svo
+        required: false
+        schema:
+          default: false
+          type: boolean
+        style: form
+      responses:
+        "200":
+          content:
+            application/x-tar:
+              schema:
+                format: binary
+                type: string
+          description: Stream Response
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/start_capture_400_response"
+          description: Bad request syntax or unsupported method
+      summary: DownloadCaptureTar
+      tags:
+      - Default
+  /status:
+    get:
+      deprecated: false
+      operationId: get_status
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ZedStatus"
+          description: "Request fulfilled, document follows"
+      summary: GetStatus
+      tags:
+      - Default
+  /logs:
+    get:
+      deprecated: false
+      operationId: get_logs
+      parameters:
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: Token from previous response; ack-on-next-fetch advances the
+          box's persistent cursor
+        explode: true
+        in: query
+        name: ack
+        required: false
+        schema:
+          default: ""
+          description: Token from previous response; ack-on-next-fetch advances the
+            box's persistent cursor
+          type: string
+        style: form
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 1000
+          maximum: 10000.0
+          minimum: 1.0
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogBatch"
+          description: "Request fulfilled, document follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/start_capture_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetLogs
+      tags:
+      - Default
+components:
+  schemas:
+    LogBatch:
+      example:
+        entries:
+        - entries
+        - entries
+        next_cursor: next_cursor
+        bytes_returned: 0
+        has_more: true
+        dropped_before: true
+      properties:
+        entries:
+          items:
+            type: string
+          type: array
+        next_cursor:
+          type: string
+        has_more:
+          type: boolean
+        dropped_before:
+          type: boolean
+        bytes_returned:
+          format: int64
+          type: integer
+      required:
+      - bytes_returned
+      - dropped_before
+      - entries
+      - has_more
+      - next_cursor
+      title: LogBatch
+      type: object
+    ZedStatus:
+      example:
+        disk_free_bytes: 0
+        current_capture_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        last_exception: last_exception
+        log_cursor: log_cursor
+        uptime_s: 6.027456183070403
+        version: version
+      properties:
+        current_capture_id:
+          format: uuid
+          nullable: true
+          type: string
+        last_exception:
+          nullable: true
+          type: string
+        disk_free_bytes:
+          format: int64
+          type: integer
+        uptime_s:
+          type: number
+        version:
+          type: string
+        log_cursor:
+          type: string
+      required:
+      - disk_free_bytes
+      - log_cursor
+      - uptime_s
+      - version
+      title: ZedStatus
+      type: object
+    start_capture_400_response_extra:
+      additionalProperties: {}
+      anyOf:
+      - type: object
+      - items: {}
+        type: array
+      nullable: true
+    start_capture_400_response:
+      description: Validation Exception
+      example:
+        status_code: 400
+        detail: Bad Request
+        extra: {}
+      properties:
+        status_code:
+          type: integer
+        detail:
+          type: string
+        extra:
+          $ref: "#/components/schemas/start_capture_400_response_extra"
+      required:
+      - detail
+      - status_code
+      type: object
+
