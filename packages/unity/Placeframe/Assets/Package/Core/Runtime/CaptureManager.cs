@@ -51,7 +51,7 @@ namespace Placeframe.Core
                 cameraConfigObservable
                     // Write the capture manifest once using the camera configuration
                     .Take(1)
-                    .Subscribe(config => WriteManifest(sessionDirectory, config)),
+                    .Subscribe(config => WriteManifest(sessionDirectory, config, intervalSeconds)),
                 cameraConfigObservable
                     // Observe CameraFrames (with camera pose anchoring, to prevent pose discontinuities due to tracking loss)
                     .SelectMany(_ => _cameraProvider.Frames(intervalSeconds, useCameraPoseAnchoring: true))
@@ -144,7 +144,7 @@ namespace Placeframe.Core
 
         private static string ZipPath(string name) => Path.Combine(_recordingsRoot, $"{name}.zip");
 
-        private static void WriteManifest(string sessionDirectory, PinholeCameraConfig config) =>
+        private static void WriteManifest(string sessionDirectory, PinholeCameraConfig config, float intervalSeconds) =>
             File.WriteAllText(
                 Path.Combine(sessionDirectory, "manifest.json"),
                 new CaptureSessionManifest(
@@ -165,7 +165,7 @@ namespace Placeframe.Core
                             }
                         ),
                     }
-                ).ToJson()
+                ) { CaptureIntervalSeconds = intervalSeconds }.ToJson()
             );
 
         private static async UniTask WriteFrame(string sessionDirectory, CameraFrame frame, CancellationToken _)
