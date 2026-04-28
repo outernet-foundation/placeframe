@@ -23,3 +23,4 @@ class RigConfig(BaseModel):
 class CaptureSessionManifest(BaseModel):
     axis_convention: AxisConvention
     rigs: list[RigConfig]
+    capture_interval_seconds: float | None = None
