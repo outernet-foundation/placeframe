@@ -363,8 +363,12 @@ def main(
     print("Configure captive-portal DHCP option")
     _setup_captive_portal_dhcp(host)
 
+    # `down` first so deploys are idempotent against any prior partially-failed
+    # `up --force-recreate` (which can leave containers stuck under their
+    # ID-prefixed rename, blocking the next recreate with a name conflict).
     print("Start container on ZED Box")
-    _ssh(host, f'"{docker} compose -f {REMOTE_COMPOSE} up -d --force-recreate"')
+    _ssh(host, f'"{docker} compose -f {REMOTE_COMPOSE} down --remove-orphans"')
+    _ssh(host, f'"{docker} compose -f {REMOTE_COMPOSE} up -d"')
 
     if not local:
         container = f"{docker} compose -f {REMOTE_COMPOSE} exec zed-capture"
