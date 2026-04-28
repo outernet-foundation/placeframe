@@ -36,6 +36,8 @@ namespace Placeframe.Client
 
         void Awake()
         {
+            ZedCaptureController.Initialize();
+
             localCaptureNamePath = $"{Application.persistentDataPath}/LocalCaptureNames.json";
 
             // var placeframeApiUrl = $"https://{App.state.domain.value}";
@@ -281,6 +283,11 @@ namespace Placeframe.Client
                     break;
                 case DeviceType.Zed:
                     await ZedCaptureController.StopCapture(cancellationToken);
+                    // Authoritatively reflect the just-confirmed transition. The /status poll
+                    // (1.5s cadence) would otherwise race a disconnect: a cable pull between
+                    // here and the next poll observation would flip Recording -> Unreachable
+                    // instead of Recording -> Ready.
+                    App.state.zedStatus.ExecuteSetOrDelay(ZedStatusKind.Ready);
                     break;
                 default:
                     throw new Exception($"Unhandled capture type {deviceType}");
@@ -296,6 +303,10 @@ namespace Placeframe.Client
                     break;
                 case DeviceType.Zed:
                     await ZedCaptureController.StartCapture(captureIntervalSeconds, cancellationToken);
+                    // Without this, a disconnect landing in the gap before the next /status
+                    // poll observes Recording would flip Ready -> Unreachable instead of
+                    // Ready -> Recording -> LostMidCapture, losing the recovery signal.
+                    App.state.zedStatus.ExecuteSetOrDelay(ZedStatusKind.Recording);
                     break;
                 default:
                     throw new Exception($"Unhandled capture type {deviceType}");

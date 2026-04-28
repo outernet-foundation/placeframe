@@ -4,9 +4,10 @@ from typing import Any, Sequence
 from litestar import Litestar, Request, Response, get
 from litestar.exceptions import HTTPException, ValidationException
 from litestar.handlers import HTTPRouteHandler
+from litestar.logging import BaseLoggingConfig
 from litestar.openapi.config import OpenAPIConfig
 from litestar.response import Redirect
-from litestar.types import ControllerRouterHandler, Method, Middleware
+from litestar.types import ControllerRouterHandler, Method, Middleware, Empty, EmptyType
 from litestar.types.internal_types import PathParameterDefinition
 
 logger = getLogger("uvicorn.error")
@@ -66,6 +67,11 @@ def create_litestar_app(
     route_handlers: Sequence[ControllerRouterHandler],
     openapi_config: OpenAPIConfig,
     middleware: Sequence[Middleware] | None = None,
+    # Default Empty preserves Litestar's auto-LoggingConfig behavior for callers
+    # that haven't configured logging themselves (api, localizer). Pass None to
+    # opt out — required when the caller has already called dictConfig() and
+    # would have its handlers clobbered by Litestar's default queue-based setup.
+    logging_config: BaseLoggingConfig | EmptyType | None = Empty,
 ) -> Litestar:
     openapi_config.operation_id_creator = use_handler_name
 
@@ -75,4 +81,5 @@ def create_litestar_app(
         middleware=middleware,
         request_max_body_size=1024 * 1024 * 1024,
         exception_handlers={HTTPException: log_http_exception, Exception: log_unhandled_exception},
+        logging_config=logging_config,
     )

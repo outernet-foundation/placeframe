@@ -17,6 +17,8 @@ dependencies = [
     "litestar>=2.19.0",
     "numpy>=2.4.0",
     "pillow>=12.1.0",
+    "pydantic>=2.0.0",
+    "python-json-logger>=3.2.0",
 ]
 
 [dependency-groups]
@@ -24,4 +26,5 @@ dev = ["scipy-stubs"]
 
 [tool.deptry.per_rule_ignores]
 DEP001 = ["pyzed"]
+# uvicorn: ASGI server entrypoint, only invoked from entrypoint.sh.
 DEP002 = ["uvicorn"]

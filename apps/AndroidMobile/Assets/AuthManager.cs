@@ -59,7 +59,20 @@ namespace Placeframe.Client
 #else
                     ("platform", "android-mobile"),
 #endif
-                });
+                },
+#if !UNITY_EDITOR && UNITY_ANDROID
+                // Bind Loki POSTs to wifi/cellular so they don't get black-holed onto
+                // the ZED USB-ethernet link when the cable is plugged in. See
+                // AndroidBoundHttpHandler class comment for context.
+                handler: new AndroidBoundHttpHandler(new[]
+                {
+                    AndroidBoundHttpHandler.TransportWifi,
+                    AndroidBoundHttpHandler.TransportCellular,
+                })
+#else
+                handler: null
+#endif
+            );
 
             await UniTask.SwitchToMainThread(cancellationToken: cancellationToken);
             App.state.authStatus.ExecuteSetOrDelay(AuthStatus.LoggedIn);

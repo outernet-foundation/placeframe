@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using FofX.Stateful;
 using Placeframe.Core;
 using UnityEngine;
@@ -15,11 +16,28 @@ namespace Placeframe.Client
                 App.state.placeframeAuthAudience.value,
                 message => Log.Info(LogGroup.Localizer, message),
                 message => Log.Warn(LogGroup.Localizer, message),
-                message => Log.Error(LogGroup.Localizer, message)
+                message => Log.Error(LogGroup.Localizer, message),
+                // Bind cloud-API and auth traffic to wifi/cellular so the ZED USB-ethernet
+                // link (when plugged in) can't intercept it as the system default network.
+                // See AndroidBoundHttpHandler class comment for context.
+                httpHandlerFactory: BoundInternetHandlerFactory()
             );
 
             App.RegisterObserver(HandleAppModeChanged, App.state.mode, App.state.localizing);
             App.RegisterObserver(HandleMapForLocalizationChanged, App.state.mapForLocalization);
+        }
+
+        private static Func<HttpMessageHandler> BoundInternetHandlerFactory()
+        {
+#if !UNITY_EDITOR && UNITY_ANDROID
+            return () => new AndroidBoundHttpHandler(new[]
+            {
+                AndroidBoundHttpHandler.TransportWifi,
+                AndroidBoundHttpHandler.TransportCellular,
+            });
+#else
+            return null;
+#endif
         }
 
         private void HandleAppModeChanged(NodeChangeEventArgs args)

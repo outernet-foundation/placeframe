@@ -73,12 +73,75 @@ namespace Placeframe.Client
             });
         }
 
+        private static bool IsBannerState(ZedStatusKind kind) => kind switch
+        {
+            ZedStatusKind.Unreachable => true,
+            ZedStatusKind.LostMidCapture => true,
+            ZedStatusKind.DegradedDiskLow => true,
+            ZedStatusKind.DegradedError => true,
+            _ => false,
+        };
+
+        private static Color ColorForBanner(ZedStatusKind kind) => kind switch
+        {
+            ZedStatusKind.DegradedDiskLow => new Color(1.00f, 0.70f, 0.00f, 1f),
+            ZedStatusKind.DegradedError => new Color(1.00f, 0.70f, 0.00f, 1f),
+            _ => new Color(0.90f, 0.25f, 0.25f, 1f),
+        };
+
+        private static string LabelForBanner(ZedStatusKind kind) => kind switch
+        {
+            ZedStatusKind.Unreachable => "Zed box not reachable",
+            ZedStatusKind.LostMidCapture => "Connection lost to Zed box",
+            ZedStatusKind.DegradedDiskLow => "Zed box disk low",
+            ZedStatusKind.DegradedError => "Zed box camera error",
+            _ => "",
+        };
+
         public static IControl CaptureUI()
         {
+            var zedStatusObservable = App.state.zedStatus.ToObservable();
+
             return Control("Capture UI", new()
             {
                 layout = Utility.FillParentProps(),
                 children = Props.List(
+                    Control("Zed Status Banner", new()
+                    {
+                        layout = new()
+                        {
+                            pivot = Props.Value(new Vector2(0.5f, 0)),
+                            anchorMin = Props.Value(new Vector2(0.5f, 0)),
+                            anchorMax = Props.Value(new Vector2(0.5f, 0)),
+                            anchoredPosition = Props.Value(new Vector2(0, 430)),
+                            sizeDelta = Props.Value(new Vector2(785, 60))
+                        },
+                        element = new()
+                        {
+                            active = Observables.Combine(
+                                App.state.captureMode.ToObservable(),
+                                zedStatusObservable,
+                                (mode, status) => mode == DeviceType.Zed && IsBannerState(status))
+                        },
+                        children = Props.List(
+                            Image(new()
+                            {
+                                sprite = Props.Value(elements.roundedRect),
+                                style = { color = zedStatusObservable.ObservableSelect(ColorForBanner) },
+                                layout = Utility.FillParentProps()
+                            }),
+                            Text(new()
+                            {
+                                value = zedStatusObservable.ObservableSelect(LabelForBanner),
+                                style =
+                                {
+                                    horizontalAlignment = Props.Value(TMPro.HorizontalAlignmentOptions.Center),
+                                    verticalAlignment = Props.Value(TMPro.VerticalAlignmentOptions.Capline)
+                                },
+                                layout = Utility.FillParentProps()
+                            })
+                        )
+                    }),
                     Control("Bottom Bar", new()
                     {
                         layout = new()
@@ -121,9 +184,19 @@ namespace Placeframe.Client
                                 value = App.state.captureStatus
                                     .ToObservable()
                                     .ObservableSelect(x => x == CaptureStatus.Capturing || x == CaptureStatus.Starting),
-                                interactable = App.state.captureStatus
-                                    .ToObservable()
-                                    .ObservableSelect(x => x == CaptureStatus.Idle || x == CaptureStatus.Capturing),
+                                interactable = Observables.Combine(
+                                    App.state.captureStatus.ToObservable(),
+                                    App.state.captureMode.ToObservable(),
+                                    zedStatusObservable,
+                                    (status, mode, zed) =>
+                                    {
+                                        var statusOk = status == CaptureStatus.Idle || status == CaptureStatus.Capturing;
+                                        if (!statusOk)
+                                            return false;
+                                        if (mode != DeviceType.Zed)
+                                            return true;
+                                        return zed == ZedStatusKind.Ready || zed == ZedStatusKind.Recording;
+                                    }),
                                 layout = new()
                                 {
                                     anchorMin = Props.Value(new Vector2(0.5f, 0.5f)),

@@ -28,6 +28,7 @@ namespace Placeframe.Core
         private static Action<string> _logCallback;
         private static Action<string> _warnCallback;
         private static Action<string> _errorCallback;
+        private static Func<HttpMessageHandler> _httpHandlerFactory;
         private static IDisposable _localizationSubscription;
         private static HashSet<Guid> _maps = new HashSet<Guid>();
         private static LocalizationMapManager _localizationMapManager;
@@ -59,7 +60,8 @@ namespace Placeframe.Core
             string authAudience,
             Action<string> logCallback,
             Action<string> warnCallback,
-            Action<string> errorCallback
+            Action<string> errorCallback,
+            Func<HttpMessageHandler> httpHandlerFactory = null
         )
         {
             if (_cameraProvider != null)
@@ -68,8 +70,9 @@ namespace Placeframe.Core
             _logCallback = logCallback;
             _warnCallback = warnCallback;
             _errorCallback = errorCallback;
+            _httpHandlerFactory = httpHandlerFactory;
 
-            Auth.Initialize(authAudience, logCallback, warnCallback, errorCallback);
+            Auth.Initialize(authAudience, logCallback, warnCallback, errorCallback, httpHandlerFactory);
 
             _cameraProvider = cameraProvider;
         }
@@ -82,7 +85,7 @@ namespace Placeframe.Core
             await Auth.Login(authTokenUrl, username, password);
 
             Api = new DefaultApi(
-                new HttpClient(new AuthHttpHandler() { InnerHandler = new HttpClientHandler() })
+                new HttpClient(new AuthHttpHandler() { InnerHandler = _httpHandlerFactory?.Invoke() ?? new HttpClientHandler() })
                 {
                     BaseAddress = new Uri(apiUrl),
                 },

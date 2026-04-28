@@ -35,6 +35,18 @@ namespace Placeframe.Client
         Error,
     }
 
+    public enum ZedStatusKind
+    {
+        Unknown,
+        Connecting,
+        Ready,
+        Recording,
+        DegradedDiskLow,
+        DegradedError,
+        Unreachable,
+        LostMidCapture,
+    }
+
     public class SettingsState : ObservableObject
     {
         public ObservablePrimitive<string> domain { get; private set; }
@@ -58,6 +70,9 @@ namespace Placeframe.Client
             new ObservablePrimitive<DeviceType>(DeviceType.ARFoundation);
         public ObservablePrimitive<CaptureStatus> captureStatus { get; private set; }
         public ObservableDictionary<Guid, CaptureState> captures { get; private set; }
+
+        public ObservablePrimitive<ZedStatusKind> zedStatus { get; private set; } =
+            new ObservablePrimitive<ZedStatusKind>(ZedStatusKind.Unknown);
 
         public ObservablePrimitive<bool> localizing { get; private set; }
         public ObservablePrimitive<Guid> mapForLocalization { get; private set; }
