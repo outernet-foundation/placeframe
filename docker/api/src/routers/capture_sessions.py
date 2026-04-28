@@ -1,3 +1,5 @@
+import csv
+import io
 import tarfile
 from typing import Annotated, BinaryIO, cast
 from uuid import UUID
@@ -22,7 +24,7 @@ from litestar.datastructures import UploadFile
 from litestar.di import Provide
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import HTTPException, InternalServerException, NotFoundException
-from litestar.openapi.spec import OpenAPIFormat, OpenAPIType, Schema
+from litestar.openapi.spec import Schema
 from litestar.params import Body, Parameter
 from litestar.response import Stream
 from litestar.status_codes import HTTP_409_CONFLICT, HTTP_422_UNPROCESSABLE_ENTITY, HTTP_504_GATEWAY_TIMEOUT
@@ -33,6 +35,41 @@ from ..database import get_session
 from ..storage import get_storage
 
 BUCKET = "dev-captures"
+MIN_TEMPORAL_COVERAGE = 0.5
+
+
+def _validate_temporal_coverage(tf: tarfile.TarFile, capture_interval_seconds: float) -> None:
+    try:
+        frames_member = tf.getmember("rig0/frames.csv")
+        frames_file = tf.extractfile(frames_member)
+    except KeyError:
+        return
+    if frames_file is None:
+        return
+
+    reader = csv.reader(io.TextIOWrapper(frames_file, encoding="utf-8"))
+    next(reader, None)
+    timestamps = [float(row[0]) for row in reader if row]
+    if len(timestamps) < 2:
+        return
+
+    duration_s = (max(timestamps) - min(timestamps)) / 1000
+    expected_frames = duration_s / capture_interval_seconds
+    if expected_frames <= 0:
+        return
+
+    coverage = len(timestamps) / expected_frames
+    if coverage >= MIN_TEMPORAL_COVERAGE:
+        return
+
+    raise HTTPException(
+        status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+        detail=(
+            f"Insufficient temporal coverage: {len(timestamps)} frames captured"
+            f" but {expected_frames:.0f} expected over {duration_s:.1f}s"
+            f" (coverage={coverage:.1%}). Minimum is {MIN_TEMPORAL_COVERAGE:.0%}."
+        ),
+    )
 
 
 @post("")
@@ -193,11 +230,14 @@ async def upload_capture_session_tar(
                 )
 
             try:
-                CaptureSessionManifest.model_validate_json(manifest_file.read().decode("utf-8"))
+                manifest = CaptureSessionManifest.model_validate_json(manifest_file.read().decode("utf-8"))
             except Exception as e:
                 raise HTTPException(
                     status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Capture session manifest.json is invalid: {e}"
                 ) from e
+
+            if manifest.capture_interval_seconds is not None:
+                _validate_temporal_coverage(tf, manifest.capture_interval_seconds)
 
         fileobj.seek(0)
 
@@ -220,10 +260,9 @@ async def upload_capture_session_tar(
 
 @get(
     "/{id:uuid}/tar",
-    response_media_type="application/x-tar",
-    response_schema=Schema(
-        type=OpenAPIType.STRING, format=OpenAPIFormat.BINARY, description="Capture session tar archive"
-    ),
+    media_type="application/x-tar",
+    content_encoding="binary",
+    content_media_type="application/x-tar",
 )
 async def download_capture_session_tar(session: AsyncSession, id: UUID) -> Stream:
     # Validate capture session exists

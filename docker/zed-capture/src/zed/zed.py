@@ -236,6 +236,7 @@ class Zed(Thread):
             config_file.write(
                 CaptureSessionManifest(
                     axis_convention=AxisConvention.OPENCV,
+                    capture_interval_seconds=self._capture_interval,
                     rigs=[
                         RigConfig(
                             id="rig0",
