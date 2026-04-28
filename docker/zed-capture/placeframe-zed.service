@@ -1,0 +1,13 @@
+[Unit]
+Description=Placeframe ZED capture (force-recreate on boot)
+After=docker.service nvargus-daemon.service zed_x_daemon.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=/usr/bin/docker compose -f COMPOSE_PATH up -d --force-recreate
+ExecStop=/usr/bin/docker compose -f COMPOSE_PATH down
+
+[Install]
+WantedBy=multi-user.target

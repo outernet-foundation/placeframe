@@ -23,7 +23,7 @@
     "org.outernet.placeframe": "file:../../../packages/unity/Placeframe/Assets/Package/Core",
     "org.outernet.placeframe.arfoundation": "file:../../../packages/unity/Placeframe/Assets/Package/ARFoundation",
     "org.nuget.placeframeapiclient": "file:../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
-    "org.nuget.placeframezedclient": "file:../../../packages/generated/csharp/zed-client/src/PlaceframeZedClient",
+    "org.nuget.placeframezedcaptureclient": "file:../../../packages/generated/csharp/zed-capture-client/src/PlaceframeZedCaptureClient",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.collab-proxy": "2.11.2",
     "com.unity.device-simulator.devices": "1.0.0",

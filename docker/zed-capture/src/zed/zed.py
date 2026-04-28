@@ -3,7 +3,6 @@ from __future__ import annotations
 from concurrent.futures import Future
 from csv import writer
 from dataclasses import dataclass
-from json import dump
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Thread
@@ -21,6 +20,7 @@ from PIL import Image
 from pyzed.sl import (
     REFERENCE_FRAME,
     RESOLUTION,
+    SVO_COMPRESSION_MODE,
     UNIT,
     VIDEO_SETTINGS,
     VIEW,
@@ -29,6 +29,7 @@ from pyzed.sl import (
     Mat,
     Pose,
     PositionalTrackingParameters,
+    RecordingParameters,
     Rect,
 )
 from scipy.spatial.transform import Rotation
@@ -36,7 +37,9 @@ from scipy.spatial.transform import Rotation
 from .zed_wrapper import (
     close_camera,
     disable_positional_tracking,
+    disable_recording,
     enable_positional_tracking,
+    enable_recording,
     get_camera_information,
     get_camera_settings,
     get_data,
@@ -86,7 +89,6 @@ class Zed(Thread):
         self._last_exception: str | None = None
 
         self._camera = Camera()
-        self._image_buffer_matrix = Mat()
         self._pose = Pose()
 
     def start_capture(self, interval: float) -> UUID:
@@ -134,7 +136,6 @@ class Zed(Thread):
                         command.reply.set_exception(InvalidStateException("No capture running"))
                         continue
 
-                    self._current_id = None
                     self._capture_interval = None
                     self._next_capture_time = None
 
@@ -143,6 +144,8 @@ class Zed(Thread):
                     except Exception as e:
                         command.reply.set_exception(e)
                         continue
+                    finally:
+                        self._current_id = None
 
                     command.reply.set_result(None)
             except Empty:
@@ -178,6 +181,7 @@ class Zed(Thread):
         return self._rig_directory() / "camera1"
 
     def _start(self):
+        self._rig_directory().mkdir(parents=True, exist_ok=True)
         self._camera0_directory().mkdir(parents=True, exist_ok=True)
         self._camera1_directory().mkdir(parents=True, exist_ok=True)
 
@@ -194,11 +198,16 @@ class Zed(Thread):
         if get_camera_settings(self._camera, VIDEO_SETTINGS.SHARPNESS) != 4:
             set_camera_settings(self._camera, VIDEO_SETTINGS.SHARPNESS, 4)
 
-        print("Metering and locking exposure, gain, and white balance")
+        recording_params = RecordingParameters()
+        recording_params.video_filename = str(self._rig_directory() / "video.svo2")
+        recording_params.compression_mode = SVO_COMPRESSION_MODE.H265
+        enable_recording(self._camera, recording_params)
 
-        exposure, gain, white_balance = self._meter_and_lock(0.25, 0.25, 0.5, 0.5)
-        with open(self._output_directory() / "metered_values.json", "w") as config_file:
-            dump({"exposure": exposure, "gain": gain, "white_balance": white_balance}, config_file, indent=4)
+        # TODO: _meter_and_lock was written for ZED 2 (USB) — may not work on ZED X (GMSL2/ISP)
+        # print("Metering and locking exposure, gain, and white balance")
+        # exposure, gain, white_balance = self._meter_and_lock(0.25, 0.25, 0.5, 0.5)
+        # with open(self._output_directory() / "metered_values.json", "w") as config_file:
+        #     dump({"exposure": exposure, "gain": gain, "white_balance": white_balance}, config_file, indent=4)
 
         print("Enabling positional tracking")
 
@@ -286,6 +295,7 @@ class Zed(Thread):
         print("Capture started")
 
     def _stop(self):
+        disable_recording(self._camera)
         disable_positional_tracking(self._camera)
         close_camera(self._camera)
         print("Capture stopped")
@@ -305,11 +315,12 @@ class Zed(Thread):
             csv_writer = writer(csv_file)
             csv_writer.writerow([timestamp, *camera_center_in_world.tolist(), *rotation_world_from_camera.tolist()])
 
-        # Retrieve images and write to disk
-        retrieve_image(self._camera, self._image_buffer_matrix, VIEW.LEFT)
-        self._write_jpeg(self._image_buffer_matrix, self._camera0_directory() / f"{timestamp}.jpg")
-        retrieve_image(self._camera, self._image_buffer_matrix, VIEW.RIGHT)
-        self._write_jpeg(self._image_buffer_matrix, self._camera1_directory() / f"{timestamp}.jpg")
+        # Write stereo JPEG pair
+        image_buffer = Mat()
+        retrieve_image(self._camera, image_buffer, VIEW.LEFT)
+        self._write_jpeg(image_buffer, self._camera0_directory() / f"{timestamp}.jpg")
+        retrieve_image(self._camera, image_buffer, VIEW.RIGHT)
+        self._write_jpeg(image_buffer, self._camera1_directory() / f"{timestamp}.jpg")
 
     def _meter_and_lock(self, rx: float, ry: float, rw: float, rh: float):
         # Enable auto-exposure and auto white balance
@@ -324,12 +335,13 @@ class Zed(Thread):
         set_camera_settings_roi(self._camera, Rect(0, 0, w, h))
 
         # Let camera settle
+        settle_buffer = Mat()
         start = perf_counter()
         settle_for = 1.5
         while (perf_counter() - start) < settle_for:
             try:
                 grab(self._camera)
-                retrieve_image(self._camera, self._image_buffer_matrix, VIEW.LEFT_UNRECTIFIED)
+                retrieve_image(self._camera, settle_buffer, VIEW.LEFT_UNRECTIFIED)
             except Exception as e:
                 print(f"Exception occurred while settling: {e}")
 
