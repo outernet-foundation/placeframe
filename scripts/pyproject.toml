@@ -2,11 +2,7 @@
 name = "scripts"
 version = "0.1.0"
 requires-python = ">=3.13"
-dependencies = [
-  "build-scripts",
-  "common",
-  "typer>=0.15",
-]
+dependencies = ["build-scripts", "common", "placeframe-api-client", "pydantic>=2", "httpx>=0.28.1", "typer>=0.15"]
 
 [build-system]
 requires = ["hatchling"]
@@ -19,3 +15,5 @@ packages = ["src/scripts"]
 forward-unity-android-debug-port = "scripts.forward_unity_android_debug_port:main"
 list-debug-targets = "scripts.list_debug_targets:main"
 install = "scripts.install:app"
+deploy-rig = "scripts.deploy_rig:app"
+test-placeframe-e2e = "scripts.test_placeframe_e2e:app"
