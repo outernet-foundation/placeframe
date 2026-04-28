@@ -4,8 +4,8 @@ using System.IO;
 using System.Net.Http;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using PlaceframeZedClient.Api;
-using PlaceframeZedClient.Client;
+using PlaceframeZedCaptureClient.Api;
+using PlaceframeZedCaptureClient.Client;
 
 public static class ZedCaptureController
 {

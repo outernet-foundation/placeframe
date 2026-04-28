@@ -9,7 +9,10 @@ from pathlib import Path
 from typing import AsyncIterator
 
 
-def stream_tar(base: str | PathLike[str]) -> AsyncIterator[bytes]:
+def stream_tar(
+    base: str | PathLike[str],
+    exclude_suffixes: tuple[str, ...] = (),
+) -> AsyncIterator[bytes]:
     base_path = Path(base).resolve()
     if not base_path.is_dir():
         raise FileNotFoundError(f"{base_path} is not a directory")
@@ -24,6 +27,8 @@ def stream_tar(base: str | PathLike[str]) -> AsyncIterator[bytes]:
             ):
                 for path in base_path.rglob("*"):
                     if not path.is_file():
+                        continue
+                    if exclude_suffixes and path.suffix in exclude_suffixes:
                         continue
                     tar_info = tar_file.gettarinfo(str(path), arcname=str(path.relative_to(base_path)))
                     with path.open("rb") as file_object:

@@ -1,0 +1,14 @@
+## Creating a new template patch
+
+This repo stores OpenAPI Generator template changes as `.patch` files.
+
+To create a new patch, edit the relevant mustache template in-place under:
+
+`build/openapi-generator/templates-generated/...`
+
+Then run:
+
+```bash
+git diff -- build/openapi-generator/templates-generated \
+  > build/openapi-generator/templates-patches/csharp/000X-your-patch-name.patch
+```
