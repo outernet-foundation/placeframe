@@ -10,7 +10,6 @@ using FofX.Stateful;
 using Nessle;
 
 using ObserveThing;
-using ObserveThing.StatefulExtensions;
 
 using static Nessle.UIBuilder;
 using DeviceType = PlaceframeApiClient.Model.DeviceType;
@@ -105,8 +104,8 @@ namespace Placeframe.Client
                             }),
                             LabeledButton(new LabeledButtonProps()
                             {
-                                label = App.state.captureMode.ToObservable().ObservableSelect(x => x == DeviceType.ARFoundation ? "Local" : "Zed"),
-                                onClick = () => App.state.captureMode.ExecuteSetOrDelay(App.state.captureMode.value == DeviceType.ARFoundation ? DeviceType.Zed : DeviceType.ARFoundation),
+                                label = App.state.captureMode.ObservableSelect(x => x == DeviceType.ARFoundation ? "Local" : "Zed"),
+                                onClick = () => App.state.captureMode.value = App.state.captureMode.value == DeviceType.ARFoundation ? DeviceType.Zed : DeviceType.ARFoundation,
                                 layout = new()
                                 {
                                     sizeDelta = Props.Value(new Vector2(255, 75)),
@@ -119,10 +118,10 @@ namespace Placeframe.Client
                             Toggle(prefab: elements.recordButton, props: new ToggleProps()
                             {
                                 value = App.state.captureStatus
-                                    .ToObservable()
+
                                     .ObservableSelect(x => x == CaptureStatus.Capturing || x == CaptureStatus.Starting),
                                 interactable = App.state.captureStatus
-                                    .ToObservable()
+
                                     .ObservableSelect(x => x == CaptureStatus.Idle || x == CaptureStatus.Capturing),
                                 layout = new()
                                 {
@@ -135,12 +134,12 @@ namespace Placeframe.Client
                                     if (isOn)
                                     {
                                         if (App.state.captureStatus.value == CaptureStatus.Idle)
-                                            App.state.captureStatus.ExecuteSetOrDelay(CaptureStatus.Starting);
+                                            App.state.captureStatus.value = CaptureStatus.Starting;
                                     }
                                     else
                                     {
                                         if (App.state.captureStatus.value == CaptureStatus.Capturing)
-                                            App.state.captureStatus.ExecuteSetOrDelay(CaptureStatus.Stopping);
+                                            App.state.captureStatus.value = CaptureStatus.Stopping;
                                     }
                                 }
                             })
@@ -174,7 +173,7 @@ namespace Placeframe.Client
                                 {
                                     value = Props.Value(new Vector2(0, 1)),
                                     vertical = Props.Value(true),
-                                    layout = new() { flexibleHeight = Props.Value(true) },
+                                    layout = new() { flexibleHeight = Props.Value(1f) },
                                     content = Props.Value(
                                         TightRowsWideColumns(new()
                                         {
@@ -184,8 +183,8 @@ namespace Placeframe.Client
                                                 pivot = Props.Value(new Vector2(0, 1))
                                             }),
                                             children = App.state.captures
-                                                .ToObservable()
-                                                .ObservableOrderBy(x => x.Value.name.ToObservable())
+
+                                                .ObservableOrderBy(x => x.Value.name)
                                                 .ObservableCreate(x => CaptureRow(x.Value))
                                         })
                                     )
@@ -216,7 +215,7 @@ namespace Placeframe.Client
 
         public static IControl LocalizationMetricsDialog(LocalizationMetricsDialogProps props)
         {
-            var metrics = new ValueObservable<LocalizationMetrics>(VisualPositioningSystem.MostRecentMetrics);
+            var metrics = new ObservableValue<LocalizationMetrics>(VisualPositioningSystem.MostRecentMetrics);
             Action handleMetricsChanged = () => metrics.value = VisualPositioningSystem.MostRecentMetrics;
             VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated += handleMetricsChanged;
 
@@ -288,7 +287,7 @@ namespace Placeframe.Client
                                 Text(new()
                                 {
                                     value = target.ObservableSelect(x => x == null ? "--" : getValue(x).ToString()),
-                                    layout = new() { flexibleWidth = Props.Value(true) },
+                                    layout = new() { flexibleWidth = Props.Value(1f) },
                                     style = new()
                                     {
                                         outlineWidth = Props.Value(.15f),
@@ -306,7 +305,7 @@ namespace Placeframe.Client
 
         public static IControl ValidationUI()
         {
-            var metricsDialogOpen = new ValueObservable<bool>(false);
+            var metricsDialogOpen = new ObservableValue<bool>(false);
             IControl selectValidationTargetDialog = default;
 
             return Control("Validation UI", new()
@@ -348,19 +347,19 @@ namespace Placeframe.Client
                             }),
                             LabeledButton(new LabeledButtonProps()
                             {
-                                label = App.state.mapForLocalization.ToObservable().ObservableSelect(x =>
+                                label = App.state.mapForLocalization.ObservableSelect(x =>
                                 {
                                     if (x == Guid.Empty)
                                         return Props.Value("Maps");
 
-                                    return App.state.captures.ToObservable()
+                                    return App.state.captures
                                         .ObservableSelect(x => x.Value)
-                                        .ObservableFirstOrDefault(x => Observables.Combine(
-                                            App.state.mapForLocalization.ToObservable(),
-                                            x.localizationMapId.ToObservable(),
+                                        .ObservableFirstOrDefault(x => Observables.ObservableCombineValues(
+                                            App.state.mapForLocalization,
+                                            x.localizationMapId,
                                             (targetCapture, capture) => targetCapture == capture
                                         ))
-                                        .ObservableSelect(x => x?.name.ToObservable() ?? Props.Value("Maps"));
+                                        .ObservableSelect(x => x?.name ?? Props.Value("Maps"));
                                 }),
                                 labelStyle = new TextStyleProps()
                                 {
@@ -371,8 +370,8 @@ namespace Placeframe.Client
                                 {
                                     onValidationTargetSelected = x =>
                                     {
-                                        App.state.mapForLocalization.ExecuteSetOrDelay(x);
-                                        App.state.localizing.ExecuteSetOrDelay(true);
+                                        App.state.mapForLocalization.value = x;
+                                        App.state.localizing.value = true;
                                         selectValidationTargetDialog.Dispose();
                                     }
                                 }),
@@ -387,9 +386,9 @@ namespace Placeframe.Client
                             }),
                             Toggle(prefab: elements.playButton, props: new ToggleProps()
                             {
-                                value = App.state.localizing.ToObservable(),
-                                interactable = App.state.mapForLocalization.ToObservable().ObservableSelect(x => x != Guid.Empty),
-                                onValueChanged = x => App.state.localizing.ExecuteSetOrDelay(x),
+                                value = App.state.localizing,
+                                interactable = App.state.mapForLocalization.ObservableSelect(x => x != Guid.Empty),
+                                onValueChanged = x => App.state.localizing.value = x,
                                 layout = new()
                                 {
                                     anchorMin = Props.Value(new Vector2(0.5f, 0.5f)),
@@ -427,7 +426,7 @@ namespace Placeframe.Client
                                 {
                                     value = Props.Value(new Vector2(0, 1)),
                                     horizontal = Props.Value(false),
-                                    layout = new() { flexibleHeight = Props.Value(true) },
+                                    layout = new() { flexibleHeight = Props.Value(1f) },
                                     content = Props.Value(
                                         TightRowsWideColumns(new()
                                         {
@@ -442,12 +441,12 @@ namespace Placeframe.Client
                                                 fitContentVertical = Props.Value(ContentSizeFitter.FitMode.PreferredSize)
                                             }),
                                             children = App.state.captures
-                                                .ToObservable()
-                                                .ObservableWhere(x => x.Value.localizationMapId.ToObservable().ObservableSelect(x => x != Guid.Empty))
-                                                .ObservableOrderBy(x => x.Value.name.ToObservable())
+
+                                                .ObservableWhere(x => x.Value.localizationMapId.ObservableSelect(x => x != Guid.Empty))
+                                                .ObservableOrderBy(x => x.Value.name)
                                                 .ObservableSelect(x => LabeledButton(new LabeledButtonProps()
                                                 {
-                                                    label = x.Value.name.ToObservable(),
+                                                    label = x.Value.name,
                                                     onClick = () => props.onValidationTargetSelected?.Invoke(x.Value.localizationMapId.value)
                                                 }))
                                         })
@@ -500,7 +499,7 @@ namespace Placeframe.Client
                                 {
                                     vertical = Props.Value(true),
                                     value = Props.Value(new Vector2(0, 1)),
-                                    layout = new() { flexibleHeight = Props.Value(true) },
+                                    layout = new() { flexibleHeight = Props.Value(1f) },
                                     content = Props.Value(
                                         VerticalLayout(new()
                                         {
@@ -526,7 +525,7 @@ namespace Placeframe.Client
                                     childControlHeight = Props.Value(true),
                                     spacing = Props.Value(10f),
                                     childAlignment = Props.Value(TextAnchor.MiddleRight),
-                                    layout = new() { flexibleWidth = Props.Value(true) },
+                                    layout = new() { flexibleWidth = Props.Value(1f) },
                                     children = Props.List(
                                         LabeledButton(new LabeledButtonProps()
                                         {
@@ -577,7 +576,7 @@ namespace Placeframe.Client
                                 ScrollRect(new ScrollRectProps()
                                 {
                                     vertical = Props.Value(true),
-                                    layout = new() { flexibleHeight = Props.Value(true) },
+                                    layout = new() { flexibleHeight = Props.Value(1f) },
                                     content = Props.Value(
                                         VerticalLayout(new()
                                         {
@@ -600,10 +599,10 @@ namespace Placeframe.Client
                                                     label = Props.Value("Name"),
                                                     control = InputField(new InputFieldProps()
                                                     {
-                                                        layout = new() { flexibleWidth = Props.Value(true) },
-                                                        value = capture.name.ToObservable(),
+                                                        layout = new() { flexibleWidth = Props.Value(1f) },
+                                                        value = capture.name,
                                                         placeholderValue = Props.Value(capture.id.ToString()),
-                                                        onEndEdit = x => capture.name.ExecuteSetOrDelay(x)
+                                                        onEndEdit = x => capture.name.value = x
                                                     })
                                                 }),
                                                 LabeledControl(new LabeledControlProps()
@@ -612,8 +611,8 @@ namespace Placeframe.Client
                                                     labelWidth = Props.Value(240f),
                                                     control = Text(new TextProps()
                                                     {
-                                                        layout = new() { flexibleWidth = Props.Value(true) },
-                                                        value = capture.type.ToObservable().ObservableSelect(x => x == DeviceType.ARFoundation ? "Mobile" : "Zed"),
+                                                        layout = new() { flexibleWidth = Props.Value(1f) },
+                                                        value = capture.type.ObservableSelect(x => x == DeviceType.ARFoundation ? "Mobile" : "Zed"),
                                                         style = new TextStyleProps()
                                                         {
                                                             verticalAlignment = Props.Value(TMPro.VerticalAlignmentOptions.Capline),
@@ -627,8 +626,8 @@ namespace Placeframe.Client
                                                     labelWidth = Props.Value(240f),
                                                     control = Text(new TextProps()
                                                     {
-                                                        layout = new() { flexibleWidth = Props.Value(true) },
-                                                        value = capture.createdAt.ToObservable().ObservableSelect(x => x.ToString()),
+                                                        layout = new() { flexibleWidth = Props.Value(1f) },
+                                                        value = capture.createdAt.ObservableSelect(x => x.ToString()),
                                                         style = new TextStyleProps()
                                                         {
                                                             verticalAlignment = Props.Value(TMPro.VerticalAlignmentOptions.Capline),
@@ -641,16 +640,16 @@ namespace Placeframe.Client
                                                     spacing = Props.Value(30f),
                                                     layout = new()
                                                     {
-                                                        flexibleWidth = Props.Value(true),
+                                                        flexibleWidth = Props.Value(1f),
                                                         minHeight = Props.Value(75f),
                                                     },
                                                     columns = Props.List(
                                                         LabeledButton(new LabeledButtonProps()
                                                         {
                                                             label = Props.Value("Clear Local Files "),
-                                                            interactable = Observables.Combine(
-                                                                capture.status.ToObservable(),
-                                                                capture.hasLocalFiles.ToObservable(),
+                                                            interactable = Observables.ObservableCombineValues(
+                                                                capture.status,
+                                                                capture.hasLocalFiles,
                                                                 (status, hasLocalFiles) =>
                                                                     hasLocalFiles && (
                                                                         status == CaptureUploadStatus.NotUploaded ||
@@ -673,18 +672,18 @@ namespace Placeframe.Client
 
                                                                 if (capture.status.value == CaptureUploadStatus.NotUploaded)
                                                                 {
-                                                                    App.state.captures.ExecuteRemoveOrDelay(capture.id);
+                                                                    App.state.captures.Remove(capture.id);
                                                                     dialog.Dispose();
                                                                 }
                                                                 else
                                                                 {
-                                                                    capture.hasLocalFiles.ExecuteSetOrDelay(false);
+                                                                    capture.hasLocalFiles.value = false;
                                                                 }
                                                             }
                                                         }),
                                                         LabeledButton(new LabeledButtonProps()
                                                         {
-                                                            label = capture.status.ToObservable().ObservableSelect(x =>
+                                                            label = capture.status.ObservableSelect(x =>
                                                                 x switch
                                                                 {
                                                                     CaptureUploadStatus.NotUploaded => "Upload",
@@ -701,7 +700,7 @@ namespace Placeframe.Client
                                                                     _ => throw new ArgumentOutOfRangeException(nameof(x), x, null)
                                                                 }
                                                             ),
-                                                            interactable = capture.status.ToObservable().ObservableSelect(x =>
+                                                            interactable = capture.status.ObservableSelect(x =>
                                                                 x == CaptureUploadStatus.NotUploaded ||
                                                                 x == CaptureUploadStatus.ReconstructionNotStarted ||
                                                                 x == CaptureUploadStatus.Uploaded
@@ -710,15 +709,15 @@ namespace Placeframe.Client
                                                             {
                                                                 if (capture.status.value == CaptureUploadStatus.NotUploaded)
                                                                 {
-                                                                    capture.status.ExecuteSetOrDelay(CaptureUploadStatus.UploadRequested);
+                                                                    capture.status.value = CaptureUploadStatus.UploadRequested;
                                                                 }
                                                                 else if (capture.status.value == CaptureUploadStatus.ReconstructionNotStarted)
                                                                 {
-                                                                    capture.status.ExecuteSetOrDelay(CaptureUploadStatus.ReconstructRequested);
+                                                                    capture.status.value = CaptureUploadStatus.ReconstructRequested;
                                                                 }
                                                                 else if (capture.status.value == CaptureUploadStatus.Uploaded)
                                                                 {
-                                                                    capture.status.ExecuteSetOrDelay(CaptureUploadStatus.CreateMapRequested);
+                                                                    capture.status.value = CaptureUploadStatus.CreateMapRequested;
                                                                 }
                                                             }
                                                         })
@@ -731,7 +730,7 @@ namespace Placeframe.Client
                                                     {
                                                         label = new TextProps() { value = Props.Value("Reconstruction Options") },
                                                         isOpen = Props.Value(false),
-                                                        interactable = capture.manifest.ToObservable().ObservableSelect(x => x != null)
+                                                        interactable = capture.manifest.ObservableSelect(x => x != null)
                                                     },
                                                     isReadonly = Props.Value(true)
                                                 }),
@@ -742,7 +741,7 @@ namespace Placeframe.Client
                                                     {
                                                         label = new TextProps() { value = Props.Value("Reconstruction Metrics") },
                                                         isOpen = Props.Value(false),
-                                                        interactable = capture.manifest.ToObservable().ObservableSelect(x => x != null)
+                                                        interactable = capture.manifest.ObservableSelect(x => x != null)
                                                     },
                                                     isReadonly = Props.Value(true)
                                                 })

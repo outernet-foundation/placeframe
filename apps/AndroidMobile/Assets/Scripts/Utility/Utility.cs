@@ -45,9 +45,9 @@ namespace Placeframe.Client
         // public static IValueObservable<int> FollowIndexDynamic<T>(this IListObservable<T> list, int index)
         //     => new FollowIndexObservable<T>(list, index);
 
-        public static void AddRange<T>(this ListObservable<T> list, params T[] elements)
-        {
-            list.AddRange(elements);
-        }
+        // public static void AddRange<T>(this ListObservable<T> list, params T[] elements)
+        // {
+        //     list.AddRange(elements);
+        // }
     }
 }

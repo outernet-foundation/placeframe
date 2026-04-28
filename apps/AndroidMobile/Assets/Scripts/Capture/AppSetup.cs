@@ -29,7 +29,7 @@ namespace Placeframe.Client
 
             gameObject.AddComponent<App>();
 
-            App.state.placeframeAuthAudience.ExecuteSet("placeframe-api");
+            App.state.placeframeAuthAudience.value = "placeframe-api";
 
             Instantiate(localizationManager);
             Instantiate(localizationMapManager);

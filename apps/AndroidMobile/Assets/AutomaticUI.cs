@@ -10,6 +10,7 @@ using UnityEngine;
 using TMPro;
 
 using static Nessle.UIBuilder;
+using FofX.Stateful;
 
 namespace Placeframe.Client
 {
@@ -204,8 +205,8 @@ namespace Placeframe.Client
             if (nullableUnderlyingType != null)
             {
                 var initValue = value.Peek();
-                var selectedValue = new ValueObservable<object>(initValue ?? Activator.CreateInstance(nullableUnderlyingType));
-                var isNull = new ValueObservable<bool>(initValue == null);
+                var selectedValue = new ObservableValue<object>(initValue ?? Activator.CreateInstance(nullableUnderlyingType));
+                var isNull = new ObservableValue<bool>(initValue == null);
 
                 return HorizontalLayout(new()
                 {
@@ -222,7 +223,7 @@ namespace Placeframe.Client
                                 if (x != null)
                                     selectedValue.value = x;
                             }),
-                            Observables.Combine(
+                            Observables.ObservableCombineValues(
                                 selectedValue,
                                 isNull,
                                 (selected, isNull) => isNull ? null : selected
@@ -245,7 +246,7 @@ namespace Placeframe.Client
                                 Text(new()
                                 {
                                     value = label,
-                                    layout = new() { flexibleWidth = Props.Value(true) },
+                                    layout = new() { flexibleWidth = Props.Value(1f) },
                                     style = new()
                                     {
                                         verticalAlignment = Props.Value(VerticalAlignmentOptions.Capline),
@@ -259,7 +260,7 @@ namespace Placeframe.Client
                                     value = selectedValue,
                                     onValueChanged = x => selectedValue.value = x,
                                     interactable = interactable,
-                                    layout = new() { flexibleWidth = Props.Value(true) }
+                                    layout = new() { flexibleWidth = Props.Value(1f) }
                                 })
                             )
                         })
@@ -273,7 +274,7 @@ namespace Placeframe.Client
                     Text(new()
                     {
                         value = label,
-                        layout = new() { flexibleWidth = Props.Value(true) },
+                        layout = new() { flexibleWidth = Props.Value(1f) },
                         style = new()
                         {
                             verticalAlignment = Props.Value(VerticalAlignmentOptions.Capline),
@@ -287,7 +288,7 @@ namespace Placeframe.Client
                         value = value,
                         onValueChanged = onValueChanged,
                         interactable = interactable,
-                        layout = new() { flexibleWidth = Props.Value(true) }
+                        layout = new() { flexibleWidth = Props.Value(1f) }
                     })
                 )
             });

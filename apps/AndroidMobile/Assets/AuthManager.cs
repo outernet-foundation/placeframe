@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using FofX;
@@ -12,19 +13,19 @@ namespace Placeframe.Client
     public class AuthManager : MonoBehaviour
     {
         private TaskHandle _loginTask = TaskHandle.Complete;
-
+        private IDisposable _subscription;
         private void Awake()
         {
-            App.RegisterObserver(HandleLoginRequestedChanged, App.state.loginRequested);
+            _subscription = App.state.loginRequested.SubscribeOperations(HandleLoginRequestedChanged);
         }
 
         private void OnDestroy()
         {
-            App.DeregisterObserver(HandleLoginRequestedChanged);
+            _subscription.Dispose();
             _loginTask.Cancel();
         }
 
-        private void HandleLoginRequestedChanged(NodeChangeEventArgs args)
+        private void HandleLoginRequestedChanged(IReadOnlyList<IStateOperation> args)
         {
             _loginTask.Cancel();
 
@@ -36,7 +37,7 @@ namespace Placeframe.Client
 
         private async UniTask LogIn(string domain, string username, string password, CancellationToken cancellationToken = default)
         {
-            App.ExecuteActionOrDelay(new SetAuthStatusAction(AuthStatus.LoggingIn));
+            App.ExecuteTransaction(new SetAuthStatusAction(AuthStatus.LoggingIn));
 
             try
             {
@@ -44,7 +45,7 @@ namespace Placeframe.Client
             }
             catch (Exception exc)
             {
-                App.ExecuteActionOrDelay(new SetAuthStatusAction(AuthStatus.Error, exc.Message));
+                App.ExecuteTransaction(new SetAuthStatusAction(AuthStatus.Error, exc.Message));
                 throw exc;
             }
 
@@ -62,7 +63,7 @@ namespace Placeframe.Client
                 });
 
             await UniTask.SwitchToMainThread(cancellationToken: cancellationToken);
-            App.state.authStatus.ExecuteSetOrDelay(AuthStatus.LoggedIn);
+            App.state.authStatus.value = AuthStatus.LoggedIn;
         }
     }
 }

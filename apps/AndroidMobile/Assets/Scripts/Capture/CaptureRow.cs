@@ -9,7 +9,6 @@ using FofX.Stateful;
 using Nessle;
 
 using ObserveThing;
-using ObserveThing.StatefulExtensions;
 
 using static Nessle.UIBuilder;
 
@@ -37,12 +36,12 @@ namespace Placeframe.Client
                         labelWidth = Props.Value(240f),
                         control = HorizontalLayout(new()
                         {
-                            layout = new() { flexibleWidth = Props.Value(true) },
+                            layout = new() { flexibleWidth = Props.Value(1f) },
                             children = Props.List(
                                 InputField(new InputFieldProps()
                                 {
-                                    layout = new() { flexibleWidth = Props.Value(true) },
-                                    value = capture.name.ToObservable(),
+                                    layout = new() { flexibleWidth = Props.Value(1f) },
+                                    value = capture.name,
                                     placeholderValue = Props.Value($"<i>Unnamed [{capture.id}]"),
                                     inputTextStyle = new TextStyleProps()
                                     {
@@ -56,7 +55,7 @@ namespace Placeframe.Client
                                         textWrappingMode = Props.Value(TextWrappingModes.Normal),
                                         overflowMode = Props.Value(TextOverflowModes.Ellipsis)
                                     },
-                                    onEndEdit = x => capture.name.ExecuteSetOrDelay(x)
+                                    onEndEdit = x => capture.name.value = x
                                 }),
                                 RoundIconButton(new RoundIconButtonProps()
                                 {
@@ -76,8 +75,8 @@ namespace Placeframe.Client
                         labelWidth = Props.Value(240f),
                         control = Text(new TextProps()
                         {
-                            layout = new() { flexibleWidth = Props.Value(true) },
-                            value = capture.type.ToObservable().ObservableSelect(x => x == PlaceframeApiClient.Model.DeviceType.ARFoundation ? "Mobile" : "Zed"),
+                            layout = new() { flexibleWidth = Props.Value(1f) },
+                            value = capture.type.ObservableSelect(x => x == PlaceframeApiClient.Model.DeviceType.ARFoundation ? "Mobile" : "Zed"),
                             style = new TextStyleProps()
                             {
                                 verticalAlignment = Props.Value(VerticalAlignmentOptions.Capline),
@@ -91,8 +90,8 @@ namespace Placeframe.Client
                         labelWidth = Props.Value(240f),
                         control = Text(new TextProps()
                         {
-                            layout = new() { flexibleWidth = Props.Value(true) },
-                            value = capture.createdAt.ToObservable().ObservableSelect(x => x.ToString()),
+                            layout = new() { flexibleWidth = Props.Value(1f) },
+                            value = capture.createdAt.ObservableSelect(x => x.ToString()),
                             style = new TextStyleProps()
                             {
                                 verticalAlignment = Props.Value(VerticalAlignmentOptions.Capline),
@@ -102,12 +101,12 @@ namespace Placeframe.Client
                     }),
                     Row(new()
                     {
-                        layout = new() { flexibleWidth = Props.Value(true) },
+                        layout = new() { flexibleWidth = Props.Value(1f) },
                         childAlignment = Props.Value(TextAnchor.MiddleRight),
                         children = Props.List(
                             LabeledButton(new LabeledButtonProps()
                             {
-                                label = capture.status.ToObservable().ObservableSelect(x =>
+                                label = capture.status.ObservableSelect(x =>
                                     x switch
                                     {
                                         CaptureUploadStatus.NotUploaded => "Upload",
@@ -124,7 +123,7 @@ namespace Placeframe.Client
                                         _ => throw new ArgumentOutOfRangeException(nameof(x), x, null)
                                     }
                                 ),
-                                interactable = capture.status.ToObservable().ObservableSelect(x =>
+                                interactable = capture.status.ObservableSelect(x =>
                                     x == CaptureUploadStatus.NotUploaded ||
                                     x == CaptureUploadStatus.ReconstructionNotStarted ||
                                     x == CaptureUploadStatus.Uploaded
@@ -133,15 +132,15 @@ namespace Placeframe.Client
                                 {
                                     if (capture.status.value == CaptureUploadStatus.NotUploaded)
                                     {
-                                        capture.status.ExecuteSetOrDelay(CaptureUploadStatus.UploadRequested);
+                                        capture.status.value = CaptureUploadStatus.UploadRequested;
                                     }
                                     else if (capture.status.value == CaptureUploadStatus.ReconstructionNotStarted)
                                     {
-                                        capture.status.ExecuteSetOrDelay(CaptureUploadStatus.ReconstructRequested);
+                                        capture.status.value = CaptureUploadStatus.ReconstructRequested;
                                     }
                                     else if (capture.status.value == CaptureUploadStatus.Uploaded)
                                     {
-                                        capture.status.ExecuteSetOrDelay(CaptureUploadStatus.CreateMapRequested);
+                                        capture.status.value = CaptureUploadStatus.CreateMapRequested;
                                     }
                                 }
                             })

@@ -3,12 +3,16 @@
     {
       "name": "npmjs",
       "url": "https://registry.npmjs.org",
-      "scopes": ["org.outernet"]
+      "scopes": [
+        "org.outernet"
+      ]
     },
     {
       "name": "UnityNuGet",
       "url": "https://unitynuget-registry.openupm.com",
-      "scopes": ["org.nuget"]
+      "scopes": [
+        "org.nuget"
+      ]
     }
   ],
   "dependencies": {
@@ -16,14 +20,8 @@
     "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
     "com.fofx.nessle": "https://github.com/outernet-foundation/Nessle.git?path=Assets/Package/Core",
     "com.fofx.observething": "https://github.com/outernet-foundation/ObserveThing.git?path=Assets/Package/Core",
-    "com.fofx.observething.statefulextensions": "https://github.com/outernet-foundation/ObserveThing.git?path=Assets/Package/StatefulExtensions",
     "com.fofx.stateful": "https://github.com/epjecha/StatefulUnity.git?path=Assets/Package",
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
-    "org.outernet.logging": "file:../../../packages/unity/Logging/Assets/Package",
-    "org.outernet.placeframe": "file:../../../packages/unity/Placeframe/Assets/Package/Core",
-    "org.outernet.placeframe.arfoundation": "file:../../../packages/unity/Placeframe/Assets/Package/ARFoundation",
-    "org.nuget.placeframeapiclient": "file:../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
-    "org.nuget.placeframezedclient": "file:../../../packages/generated/csharp/zed-client/src/PlaceframeZedClient",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.collab-proxy": "2.11.2",
     "com.unity.device-simulator.devices": "1.0.0",
@@ -39,6 +37,11 @@
     "com.unity.visualscripting": "1.9.7",
     "com.unity.xr.arcore": "6.0.6",
     "com.unity.xr.arfoundation": "6.0.6",
+    "org.nuget.placeframeapiclient": "file:../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
+    "org.nuget.placeframezedclient": "file:../../../packages/generated/csharp/zed-client/src/PlaceframeZedClient",
+    "org.outernet.logging": "file:../../../packages/unity/Logging/Assets/Package",
+    "org.outernet.placeframe": "file:../../../packages/unity/Placeframe/Assets/Package/Core",
+    "org.outernet.placeframe.arfoundation": "file:../../../packages/unity/Placeframe/Assets/Package/ARFoundation",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",

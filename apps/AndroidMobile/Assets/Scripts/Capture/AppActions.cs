@@ -5,7 +5,7 @@ using Placeframe.Client;
 
 namespace Placeframe.Client
 {
-    public class SetCaptureStatusAction : ObservableNodeAction<AppState>
+    public class SetCaptureStatusAction : StateTransaction<AppState>
     {
         private static Dictionary<CaptureStatus, CaptureStatus> _validTransitions = new Dictionary<CaptureStatus, CaptureStatus>()
         {
@@ -22,7 +22,7 @@ namespace Placeframe.Client
             _status = status;
         }
 
-        public override void Execute(AppState target)
+        protected override void Execute(AppState target)
         {
             if (target.captureStatus.value == _status)
                 return;

@@ -70,7 +70,7 @@ namespace Placeframe.Client
 
         public static IControl Dialog(DialogProps props)
         {
-            var children = new ListObservable<IControl>(
+            var children = new ObservableList<IControl>(
                 Image(new()
                 {
                     layout = Utility.FillParentProps(),
@@ -267,7 +267,7 @@ namespace Placeframe.Client
         public static IControl Columns(ColumnsProps props)
         {
             props.spacing = props.spacing ?? Props.Value(0f);
-            ListObservable<IControl> columns = new ListObservable<IControl>();
+            ObservableList<IControl> columns = new ObservableList<IControl>();
             float spacingValue = 0;
 
             var control = Control("Columns", new()
@@ -279,9 +279,9 @@ namespace Placeframe.Client
 
             Action layoutColumns = () =>
             {
-                float step = 1f / columns.count;
+                float step = 1f / columns.Count;
 
-                for (int i = 0; i < columns.count; i++)
+                for (int i = 0; i < columns.Count; i++)
                 {
                     var child = columns[i];
                     child.rectTransform.anchorMin = new Vector2(step * i, 0);

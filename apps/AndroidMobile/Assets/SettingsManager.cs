@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using FofX.Stateful;
 using SimpleJSON;
@@ -8,6 +9,7 @@ namespace Placeframe.Client
 {
     public class SettingsManager : MonoBehaviour
     {
+        private bool _initializing;
         private string settingsPath => $"{Application.persistentDataPath}/settings.json";
 
         private void Awake()
@@ -16,8 +18,9 @@ namespace Placeframe.Client
 
             if (!File.Exists(settingsPath))
             {
-                App.state.settings.ExecuteAction(x =>
+                App.ExecuteTransaction(appState =>
                 {
+                    var x = appState.settings;
                     x.domain.value = null;
                     x.username.value = "user";
                     x.password.value = "password";
@@ -25,21 +28,24 @@ namespace Placeframe.Client
             }
             else
             {
-                App.state.settings.ExecuteAction(
-                    JSONNode.Parse(File.ReadAllText(settingsPath)),
-                    (json, settings) => settings.FromJSON(json)
-                );
+                App.ExecuteTransaction(appState =>
+                {
+                    var json = JSONNode.Parse(File.ReadAllText(settingsPath));
+                    appState.settings.FromJSON(json);
+                });
             }
 
-            App.RegisterObserver(HandleSettingsChanged, App.state.settings);
-        }
+            _initializing = true;
 
-        private void HandleSettingsChanged(NodeChangeEventArgs args)
-        {
-            if (args.initialize)
-                return;
+            App.state.settings.SubscribeOperationsRecursive(_ =>
+            {
+                if (_initializing)
+                    return;
 
-            File.WriteAllText(settingsPath, App.state.settings.ToJSON(_ => true).ToString());
+                File.WriteAllText(settingsPath, App.state.settings.ToJSON(_ => true).ToString());
+            });
+
+            _initializing = false;
         }
     }
 }

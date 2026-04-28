@@ -2,7 +2,7 @@ using FofX.Stateful;
 
 namespace Placeframe.Client
 {
-    public class SetAuthStatusAction : ObservableNodeAction<AppState>
+    public class SetAuthStatusAction : StateTransaction<AppState>
     {
         private AuthStatus _status;
         private string _error;
@@ -13,7 +13,7 @@ namespace Placeframe.Client
             _error = error;
         }
 
-        public override void Execute(AppState target)
+        protected override void Execute(AppState target)
         {
             target.authStatus.value = _status;
             target.authError.value = _status == AuthStatus.Error ? _error : null;

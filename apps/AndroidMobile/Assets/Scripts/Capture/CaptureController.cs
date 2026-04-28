@@ -9,12 +9,13 @@ using FofX;
 using FofX.Stateful;
 using Nessle;
 using ObserveThing;
-using ObserveThing.StatefulExtensions;
 using Placeframe.Core;
 using PlaceframeApiClient.Api;
 using PlaceframeApiClient.Client;
 using PlaceframeApiClient.Model;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.XR;
 using static Placeframe.Client.UIElements;
 using DeviceType = PlaceframeApiClient.Model.DeviceType;
 
@@ -34,6 +35,8 @@ namespace Placeframe.Client
         private Dictionary<Guid, TaskHandle> awaitReconstructionTasks = new Dictionary<Guid, TaskHandle>();
         private IDisposable captureStatusStream;
 
+        private IDisposable _subscription;
+
         void Awake()
         {
             localCaptureNamePath = $"{Application.persistentDataPath}/LocalCaptureNames.json";
@@ -52,7 +55,7 @@ namespace Placeframe.Client
                 new()
                 {
                     children = Props.List(
-                        App.state.loggedIn.ToObservable()
+                        App.state.loggedIn
                             .ObservableCreate(loggedIn =>
                             {
                                 IControl screen = default;
@@ -61,8 +64,8 @@ namespace Placeframe.Client
                                     screen = MainAppUI(
                                         new MainAppUIProps()
                                         {
-                                            mode = App.state.mode.ToObservable(),
-                                            onModeChanged = x => App.state.mode.ExecuteSetOrDelay(x),
+                                            mode = App.state.mode,
+                                            onModeChanged = x => App.state.mode.value = x,
                                         }
                                     );
                                 }
@@ -77,15 +80,17 @@ namespace Placeframe.Client
                 }
             );
 
-            App.RegisterObserver(HandleCaptureStatusChanged, App.state.loggedIn, App.state.captureStatus);
-            App.RegisterObserver(HandleCapturesChanged, App.state.captures);
+            _subscription = new ComposedDisposable(
+                StateObservables.SubscribeOperations(HandleCaptureStatusChanged, App.state.loggedIn, App.state.captureStatus),
+                App.state.captures.SubscribeOperations(HandleCapturesChanged)
+            );
 
             captureStatusStream = App
-                .state.captures.ToObservable()
+                .state.captures
                 .ObservableSelect(x => x.Value)
                 .SubscribeEach(capture =>
                     capture
-                        .status.ToObservable()
+                        .status
                         .Subscribe(x =>
                         {
                             if (
@@ -113,13 +118,13 @@ namespace Placeframe.Client
                                                     capture,
                                                     reconstructionOptions,
                                                     Progress.Create<(CaptureUploadStatus, float?)>(progress =>
-                                                        capture.status.ScheduleSet(progress.Item1)
+                                                        capture.status.value = progress.Item1
                                                     )
                                                 )
                                                 .Forget();
                                         },
                                         onDialogCancelled = () =>
-                                            capture.status.ExecuteSetOrDelay(CaptureUploadStatus.NotUploaded),
+                                            capture.status.value = CaptureUploadStatus.NotUploaded,
                                     }
                                 );
 
@@ -135,12 +140,10 @@ namespace Placeframe.Client
                                         {
                                             CreateReconstruction(capture.id, reconstructionOptions).Forget();
 
-                                            capture.status.ExecuteSetOrDelay(CaptureUploadStatus.Reconstructing);
+                                            capture.status.value = CaptureUploadStatus.Reconstructing;
                                         },
                                         onDialogCancelled = () =>
-                                            capture.status.ExecuteSetOrDelay(
-                                                CaptureUploadStatus.ReconstructionNotStarted
-                                            ),
+                                            capture.status.value = CaptureUploadStatus.ReconstructionNotStarted,
                                     }
                                 );
 
@@ -167,8 +170,8 @@ namespace Placeframe.Client
                                     )
                                     .ContinueWith(x =>
                                     {
-                                        capture.localizationMapId.ScheduleSet(x.Result.Id);
-                                        capture.status.ScheduleSet(CaptureUploadStatus.MapCreated);
+                                        capture.localizationMapId.value = x.Result.Id;
+                                        capture.status.value = CaptureUploadStatus.MapCreated;
                                     });
                             }
                             else if (x == CaptureUploadStatus.Reconstructing)
@@ -176,7 +179,7 @@ namespace Placeframe.Client
                                 if (!awaitReconstructionTasks.ContainsKey(capture.id))
                                 {
                                     var progress = Progress.Create<CaptureUploadStatus>(progress =>
-                                        capture.status.ScheduleSet(progress)
+                                        capture.status.value = progress
                                     );
 
                                     awaitReconstructionTasks.Add(
@@ -230,7 +233,7 @@ namespace Placeframe.Client
             captureStatusStream?.Dispose();
         }
 
-        private void HandleCaptureStatusChanged(NodeChangeEventArgs args)
+        private void HandleCaptureStatusChanged(IReadOnlyList<IStateOperation> ops)
         {
             if (!App.state.loggedIn.value)
                 return;
@@ -245,7 +248,7 @@ namespace Placeframe.Client
                     currentCaptureTask = TaskHandle.Execute(async token =>
                     {
                         await StartCapture(App.state.captureMode.value, token);
-                        App.state.ExecuteActionOrDelay(new SetCaptureStatusAction(CaptureStatus.Capturing));
+                        App.ExecuteTransaction(new SetCaptureStatusAction(CaptureStatus.Capturing));
                     });
                     break;
 
@@ -253,21 +256,21 @@ namespace Placeframe.Client
                     currentCaptureTask = TaskHandle.Execute(async token =>
                     {
                         await StopCapture(App.state.captureMode.value, token);
-                        App.state.ExecuteActionOrDelay(new SetCaptureStatusAction(CaptureStatus.Idle));
+                        App.ExecuteTransaction(new SetCaptureStatusAction(CaptureStatus.Idle));
                     });
                     break;
             }
         }
 
-        private void HandleCapturesChanged(NodeChangeEventArgs args)
+        private void HandleCapturesChanged(IReadOnlyList<IStateOperation> ops)
         {
             if (!capturesLoaded)
                 return;
 
             var json = new SimpleJSON.JSONObject();
 
-            foreach (var kvp in App.state.captures.Where(x => x.value.status.value == CaptureUploadStatus.NotUploaded))
-                json[kvp.key.ToString()] = kvp.value.name.value;
+            foreach (var kvp in App.state.captures.Where(x => x.Value.status.value == CaptureUploadStatus.NotUploaded))
+                json[kvp.Key.ToString()] = kvp.Value.name.value;
 
             File.WriteAllText(localCaptureNamePath, json.ToString());
         }
@@ -419,63 +422,61 @@ namespace Placeframe.Client
 
             await UniTask.SwitchToMainThread();
 
-            App.state.captures.ExecuteActionOrDelay(
-                captureData,
-                (captureData, state) =>
-                {
-                    state.SetFrom(
-                        captureData,
-                        refreshOldEntries: true,
-                        copy: (key, entry, state) =>
+            App.ExecuteTransaction(appState =>
+            {
+                var state = appState.captures;
+                state.SetFrom(
+                    captureData,
+                    refreshOldEntries: true,
+                    copy: (key, entry, state) =>
+                    {
+                        state.name.value = entry.name;
+                        state.hasLocalFiles.value = entry.hasLocalFiles;
+                        state.manifest.value = entry.reconstructionManifest;
+
+                        if (entry.capture == null) //capture is local only
                         {
-                            state.name.value = entry.name;
-                            state.hasLocalFiles.value = entry.hasLocalFiles;
-                            state.manifest.value = entry.reconstructionManifest;
-
-                            if (entry.capture == null) //capture is local only
-                            {
-                                state.type.value = entry.deviceType;
-                                state.status.value = CaptureUploadStatus.NotUploaded;
-                                return;
-                            }
-                            else
-                            {
-                                state.type.value = entry.deviceType;
-                            }
-
-                            if (entry.reconstruction == null)
-                            {
-                                state.status.value = CaptureUploadStatus.ReconstructionNotStarted;
-                                return;
-                            }
-
-                            state.reconstructionId.value = entry.reconstruction.Id;
-
-                            switch (entry.reconstruction.OrchestrationStatus)
-                            {
-                                case OrchestrationStatus.Pending:
-                                case OrchestrationStatus.Queued:
-                                case OrchestrationStatus.Running:
-                                    state.status.value = CaptureUploadStatus.Reconstructing;
-                                    break;
-                                case OrchestrationStatus.Succeeded:
-                                    state.status.value = CaptureUploadStatus.Uploaded;
-                                    break;
-                                case OrchestrationStatus.Cancelled:
-                                case OrchestrationStatus.Failed:
-                                    state.status.value = CaptureUploadStatus.Failed;
-                                    break;
-                            }
-
-                            if (entry.localizationMap != null)
-                            {
-                                state.status.value = CaptureUploadStatus.MapCreated;
-                                state.localizationMapId.value = entry.localizationMap.Id;
-                            }
+                            state.type.value = entry.deviceType;
+                            state.status.value = CaptureUploadStatus.NotUploaded;
+                            return;
                         }
-                    );
-                }
-            );
+                        else
+                        {
+                            state.type.value = entry.deviceType;
+                        }
+
+                        if (entry.reconstruction == null)
+                        {
+                            state.status.value = CaptureUploadStatus.ReconstructionNotStarted;
+                            return;
+                        }
+
+                        state.reconstructionId.value = entry.reconstruction.Id;
+
+                        switch (entry.reconstruction.OrchestrationStatus)
+                        {
+                            case OrchestrationStatus.Pending:
+                            case OrchestrationStatus.Queued:
+                            case OrchestrationStatus.Running:
+                                state.status.value = CaptureUploadStatus.Reconstructing;
+                                break;
+                            case OrchestrationStatus.Succeeded:
+                                state.status.value = CaptureUploadStatus.Uploaded;
+                                break;
+                            case OrchestrationStatus.Cancelled:
+                            case OrchestrationStatus.Failed:
+                                state.status.value = CaptureUploadStatus.Failed;
+                                break;
+                        }
+
+                        if (entry.localizationMap != null)
+                        {
+                            state.status.value = CaptureUploadStatus.MapCreated;
+                            state.localizationMapId.value = entry.localizationMap.Id;
+                        }
+                    }
+                );
+            });
 
             capturesLoaded = true;
         }
@@ -577,7 +578,7 @@ namespace Placeframe.Client
 
             progress?.Report((CaptureUploadStatus.Reconstructing, null));
 
-            capture.status.ExecuteSetOrDelay(CaptureUploadStatus.Reconstructing);
+            capture.status.value = CaptureUploadStatus.Reconstructing;
 
             await CreateReconstruction(captureSession.Id, reconstructionOptions);
         }
@@ -608,7 +609,7 @@ namespace Placeframe.Client
             var reconstructionId = await AwaitReconstructionID(captureSessionId, cancellationToken);
 
             //HACK: Pushing directly to state for convenience
-            App.state.captures[captureSessionId].reconstructionId.ScheduleSet(reconstructionId);
+            App.state.captures[captureSessionId].reconstructionId.value = reconstructionId;
 
             progress?.Report(CaptureUploadStatus.Reconstructing);
 

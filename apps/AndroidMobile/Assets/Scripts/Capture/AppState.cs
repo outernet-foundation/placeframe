@@ -1,5 +1,6 @@
 using System;
 using FofX.Stateful;
+using ObserveThing;
 using PlaceframeApiClient.Model;
 
 namespace Placeframe.Client
@@ -35,39 +36,37 @@ namespace Placeframe.Client
         Error,
     }
 
-    public class SettingsState : ObservableObject
+    public class SettingsState : StateObject
     {
-        public ObservablePrimitive<string> domain { get; private set; }
-        public ObservablePrimitive<string> username { get; private set; }
-        public ObservablePrimitive<string> password { get; private set; }
+        public StateValue<string> domain { get; private set; }
+        public StateValue<string> username { get; private set; }
+        public StateValue<string> password { get; private set; }
     }
 
-    public class AppState : ObservableObject
+    public class AppState : StateObject
     {
-        public ObservablePrimitive<string> placeframeAuthAudience { get; private set; }
-        public ObservablePrimitive<bool> loginRequested { get; private set; }
-        public ObservablePrimitive<AuthStatus> authStatus { get; private set; }
-        public ObservablePrimitive<string> authError { get; private set; }
-        public ObservablePrimitive<bool> loggedIn { get; private set; }
+        public StateValue<string> placeframeAuthAudience { get; private set; }
+        public StateValue<bool> loginRequested { get; private set; }
+        public StateValue<AuthStatus> authStatus { get; private set; }
+        public StateValue<string> authError { get; private set; }
+        public StateValue<bool> loggedIn { get; private set; }
 
         public SettingsState settings { get; private set; }
 
-        public ObservablePrimitive<AppMode> mode { get; private set; }
+        public StateValue<AppMode> mode { get; private set; }
 
-        public ObservablePrimitive<DeviceType> captureMode { get; private set; } =
-            new ObservablePrimitive<DeviceType>(DeviceType.ARFoundation);
-        public ObservablePrimitive<CaptureStatus> captureStatus { get; private set; }
-        public ObservableDictionary<Guid, CaptureState> captures { get; private set; }
+        public StateValue<DeviceType> captureMode { get; private set; } =
+            new StateValue<DeviceType>(DeviceType.ARFoundation);
+        public StateValue<CaptureStatus> captureStatus { get; private set; }
+        public StateDictionary<Guid, CaptureState> captures { get; private set; }
 
-        public ObservablePrimitive<bool> localizing { get; private set; }
-        public ObservablePrimitive<Guid> mapForLocalization { get; private set; }
+        public StateValue<bool> localizing { get; private set; }
+        public StateValue<Guid> mapForLocalization { get; private set; }
 
         protected override void PostInitializeInternal()
         {
-            loggedIn.RegisterDerived(
-                _ => loggedIn.value = authStatus.value == AuthStatus.LoggedIn,
-                ObservationScope.Self,
-                authStatus
+            loggedIn.Derive(
+                authStatus.ObservableSelect(status => status == AuthStatus.LoggedIn)
             );
         }
     }
@@ -87,20 +86,20 @@ namespace Placeframe.Client
         Failed,
     }
 
-    public class CaptureState : ObservableObject, IKeyedObservableNode<Guid>
+    public class CaptureState : StateObject, IKeyedStateNode<Guid>
     {
         public Guid id { get; private set; }
 
-        public ObservablePrimitive<string> name { get; private set; }
-        public ObservablePrimitive<DeviceType> type { get; private set; }
-        public ObservablePrimitive<DateTime> createdAt { get; private set; }
-        public ObservablePrimitive<CaptureUploadStatus> status { get; private set; }
-        public ObservablePrimitive<float> statusPercentage { get; private set; }
-        public ObservablePrimitive<Guid> reconstructionId { get; private set; }
-        public ObservablePrimitive<Guid> localizationMapId { get; private set; }
-        public ObservablePrimitive<bool> hasLocalFiles { get; private set; }
-        public ObservablePrimitive<ReconstructionManifest> manifest { get; private set; }
+        public StateValue<string> name { get; private set; }
+        public StateValue<DeviceType> type { get; private set; }
+        public StateValue<DateTime> createdAt { get; private set; }
+        public StateValue<CaptureUploadStatus> status { get; private set; }
+        public StateValue<float> statusPercentage { get; private set; }
+        public StateValue<Guid> reconstructionId { get; private set; }
+        public StateValue<Guid> localizationMapId { get; private set; }
+        public StateValue<bool> hasLocalFiles { get; private set; }
+        public StateValue<ReconstructionManifest> manifest { get; private set; }
 
-        void IKeyedObservableNode<Guid>.AssignKey(Guid key) => id = key;
+        void IKeyedStateNode<Guid>.AssignKey(Guid key) => id = key;
     }
 }
