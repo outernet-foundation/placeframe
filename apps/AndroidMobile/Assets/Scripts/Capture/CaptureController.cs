@@ -37,6 +37,16 @@ namespace Placeframe.Client
 
         private IDisposable _subscription;
 
+        public static UniTask DeleteCapture(Guid id, DeviceType type)
+        {
+            if (type == DeviceType.ARFoundation)
+            {
+                CaptureManager.DeleteCapture(id);
+                return UniTask.CompletedTask;
+            }
+            return ZedCaptureController.DeleteCapture(id);
+        }
+
         void Awake()
         {
             ZedCaptureController.Initialize();
