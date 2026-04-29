@@ -22,11 +22,12 @@ namespace Outernet.Logging
             this LoggerSinkConfiguration loggerConfiguration,
             string domain,
             Func<UniTask<string>> tokenProvider,
-            IEnumerable<(string key, string value)> labels)
+            IEnumerable<(string key, string value)> labels,
+            HttpMessageHandler handler = null)
         {
             return loggerConfiguration.GrafanaLoki(
                 $"https://{domain}",
-                httpClient: new TokenAuthenticatedHttpClient(tokenProvider),
+                httpClient: new TokenAuthenticatedHttpClient(tokenProvider, handler),
                 labels: labels.Select(l => new LokiLabel() { Key = l.key, Value = l.value }).ToList(),
                 textFormatter: new LokiJsonTextFormatter());
         }
@@ -35,7 +36,8 @@ namespace Outernet.Logging
         {
             private readonly Func<UniTask<string>> _tokenProvider;
 
-            public TokenAuthenticatedHttpClient(Func<UniTask<string>> tokenProvider)
+            public TokenAuthenticatedHttpClient(Func<UniTask<string>> tokenProvider, HttpMessageHandler handler)
+                : base(new HttpClient(handler ?? new HttpClientHandler()))
             {
                 _tokenProvider = tokenProvider;
             }
