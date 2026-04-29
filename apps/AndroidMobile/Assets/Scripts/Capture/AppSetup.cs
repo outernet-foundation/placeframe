@@ -43,7 +43,6 @@ namespace Placeframe.Client
             CaptureManager.Initialize(cameraProvider);
 
             localizationManager.Initialize(cameraProvider);
-            ZedCaptureController.Initialize();
 
             gameObject.AddComponent<AuthManager>();
             gameObject.AddComponent<SettingsManager>();

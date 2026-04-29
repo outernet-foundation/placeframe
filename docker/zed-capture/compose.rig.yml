@@ -1,0 +1,76 @@
+services:
+  zed-capture:
+    image: ${ZED_IMAGE:-ghcr.io/outernet-foundation/placeframe/zed-capture:${ZED_CAPTURE_SHA:?err}}
+    network_mode: host
+    privileged: true
+    runtime: nvidia
+    environment:
+      # Box hardware identity. The phone-relayed log stream uses this to label
+      # entries in Loki. Set by install-zed from /proc/device-tree/serial-number
+      # (Jetson) or /etc/machine-id (fallback). Fails compose-up if unset.
+      ZED_BOX_ID: ${ZED_BOX_ID:?err}
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    volumes:
+      - captures:/root/captures
+      - zed-logs:/var/log/zed-capture
+      - zed-state:/var/lib/zed-capture
+      - /usr/local/zed/settings:/usr/local/zed/settings
+      - /usr/local/zed/resources:/usr/local/zed/resources
+      - /tmp/argus_socket:/tmp/argus_socket
+      - /tmp/nvscsock:/tmp/nvscsock
+      - /tmp/camsock:/tmp/camsock
+    restart: no
+
+  # Answers Android's connectivity probe to put the USB-ethernet link in
+  # NetworkMonitor's CAPTIVE_PORTAL state — deliberately NOT VALIDATED.
+  #
+  # Why not VALIDATED: a 204 reply is what Android wants for "validated", but
+  # validated TRANSPORT_ETHERNET outranks TRANSPORT_WIFI/CELLULAR in AOSP's
+  # NetworkRanker, so Android promotes the cable to the system default network
+  # for every app on the phone. Since the cable has no usable default route
+  # (we don't advertise a gateway), all unbound traffic on the phone gets
+  # black-holed — the Capture Tool's per-socket bound traffic still works,
+  # but every other app on the phone loses internet until the cable is
+  # unplugged. Browsers, Gmail, etc. all break.
+  #
+  # Why not NO_INTERNET (probe failure): EthernetNetworkFactory restarts
+  # IpClient every few seconds on probe failure, kernel-destroying live TCP
+  # sockets at 192.168.55.100 — silently kills any phone-side request that
+  # takes more than ~1s to complete (e.g. StartCapture during camera init).
+  #
+  # Why CAPTIVE_PORTAL: Android keeps the network alive (so our held
+  # requestNetwork callback in AndroidBoundHttpHandler still works and
+  # per-socket binding via Network.openConnection still routes ZED traffic
+  # over the cable), but the network is NOT promoted to default, so other
+  # apps' traffic continues over wifi/cellular as normal. The phone shows a
+  # one-time dismissable "Sign in to network" notification per cable plug-in.
+  # Tapping it opens our 200's HTML body, which explains there's nothing to
+  # sign in to.
+  #
+  # Two halves: tiny DNS server resolves Android's probe hostnames to the
+  # Jetson's gadget IP, and tiny HTTP server returns 200 with a stub HTML
+  # body. Pairs with install-zed's dhcpd.conf edit that advertises the Jetson
+  # as DNS server via DHCP option 6.
+  #
+  # Binds specifically to 192.168.55.1 (the gadget IP) rather than 0.0.0.0 to
+  # sidestep conflicts with services bound to 127.0.0.1:53 (e.g. NetworkManager's
+  # internal dnsmasq, systemd-resolved). Retries the bind so it survives starting
+  # before the USB cable is plugged in (l4tbr0 brought up by udev on cable connect).
+  captive-portal-responder:
+    image: python:3.13-alpine
+    network_mode: host
+    configs:
+      - source: captive-portal-script
+        target: /captive.py
+    command: ["python", "/captive.py"]
+    restart: unless-stopped
+
+configs:
+  captive-portal-script:
+    file: ./captive_portal.py
+
+volumes:
+  captures:
+  zed-logs:
+  zed-state:

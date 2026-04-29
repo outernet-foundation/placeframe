@@ -249,6 +249,7 @@ services:
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
       LOCALIZER_CONTAINER_URL: http://localizer:8000
+      LOKI_URL: http://loki:3100
       RELOAD: "true"
       DEBUG: "${DEBUG_API:?err}"
       DEBUG_WAIT: "${DEBUG_WAIT_API:?err}"

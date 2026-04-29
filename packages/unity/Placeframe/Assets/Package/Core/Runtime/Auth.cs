@@ -42,7 +42,7 @@ namespace Placeframe.Core
         public static string Password { get; private set; }
         public static TokenResponse tokenResponse;
 
-        private static readonly HttpClient _httpClient = new HttpClient();
+        private static HttpClient _httpClient;
         private static DateTimeOffset _accessTokenExpiresAt;
         private static DateTimeOffset _refreshTokenExpiresAt;
         private static readonly TimeSpan _skew = TimeSpan.FromSeconds(60);
@@ -68,7 +68,8 @@ namespace Placeframe.Core
             string authAudience,
             Action<string> logInfo,
             Action<string> logWarning,
-            Action<string> logError
+            Action<string> logError,
+            Func<HttpMessageHandler> httpHandlerFactory = null
         )
         {
             if (string.IsNullOrEmpty(authAudience))
@@ -78,6 +79,7 @@ namespace Placeframe.Core
             LogInfo = logInfo;
             LogWarning = logWarning;
             LogError = logError;
+            _httpClient = new HttpClient(httpHandlerFactory?.Invoke() ?? new HttpClientHandler());
             Initialized = true;
         }
 

@@ -15,5 +15,5 @@ packages = ["src/scripts"]
 forward-unity-android-debug-port = "scripts.forward_unity_android_debug_port:main"
 list-debug-targets = "scripts.list_debug_targets:main"
 install = "scripts.install:app"
-deploy-rig = "scripts.deploy_rig:app"
+install-zed = "scripts.install_zed:app"
 test-placeframe-e2e = "scripts.test_placeframe_e2e:app"
