@@ -34,6 +34,16 @@ namespace Placeframe.Client
         private Dictionary<Guid, TaskHandle> awaitReconstructionTasks = new Dictionary<Guid, TaskHandle>();
         private IDisposable captureStatusStream;
 
+        public static UniTask DeleteCapture(Guid id, DeviceType type)
+        {
+            if (type == DeviceType.ARFoundation)
+            {
+                CaptureManager.DeleteCapture(id);
+                return UniTask.CompletedTask;
+            }
+            return ZedCaptureController.DeleteCapture(id);
+        }
+
         void Awake()
         {
             ZedCaptureController.Initialize();
