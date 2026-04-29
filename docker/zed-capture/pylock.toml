@@ -348,6 +348,13 @@ sdist = { url = "https://files.pythonhosted.org/packages/66/c0/0c8b6ad9f17a802ee
 wheels = [{ url = "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl", upload-time = 2024-03-01T18:36:18Z, size = 229892, hashes = { sha256 = "a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427" } }]
 
 [[packages]]
+name = "python-json-logger"
+version = "4.1.0"
+index = "https://pypi.org/simple"
+sdist = { url = "https://files.pythonhosted.org/packages/f7/ff/3cc9165fd44106973cd7ac9facb674a65ed853494592541d339bdc9a30eb/python_json_logger-4.1.0.tar.gz", upload-time = 2026-03-29T04:39:56Z, size = 17573, hashes = { sha256 = "b396b9e3ed782b09ff9d6e4f1683d46c83ad0d35d2e407c09a9ebbf038f88195" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/27/be/0631a861af4d1c875f096c07d34e9a63639560a717130e7a87cbc82b7e3f/python_json_logger-4.1.0-py3-none-any.whl", upload-time = 2026-03-29T04:39:55Z, size = 15021, hashes = { sha256 = "132994765cf75bf44554be9aa49b06ef2345d23661a96720262716438141b6b2" } }]
+
+[[packages]]
 name = "pyyaml"
 version = "6.0.3"
 index = "https://pypi.org/simple"

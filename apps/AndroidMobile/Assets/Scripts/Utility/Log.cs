@@ -13,4 +13,5 @@ public enum LogGroup
     [LogGroupColor("#76B7B2")] Rest = 1 << 2,
     [LogGroupColor("#EDC948")] Localizer = 1 << 3,
     [LogGroupColor("#59A14F")] Capture = 1 << 4,
+    [LogGroupColor("#B07AA1")] Zed = 1 << 5,
 }

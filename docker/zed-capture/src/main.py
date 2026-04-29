@@ -16,7 +16,16 @@ from litestar.openapi.config import OpenAPIConfig
 from litestar.openapi.plugins import ScalarRenderPlugin
 
 from .routers.captures import router as captures_router
+from .routers.logs import router as logs_router
+from .routers.status import router as status_router
 
 openapi_config = OpenAPIConfig("Zed API", "0.1.0", render_plugins=[ScalarRenderPlugin()])
 
-app = create_litestar_app([captures_router], openapi_config)
+# logging_config=None opts out of Litestar's default LoggingConfig, which would
+# call dictConfig with its own QueueHandler-based setup and clobber the handlers
+# installed by src/__init__.py importing src.logging_config.
+app = create_litestar_app(
+    [captures_router, status_router, logs_router],
+    openapi_config,
+    logging_config=None,
+)
