@@ -211,11 +211,11 @@ namespace Placeframe.Client
                     if (key == null && value == null) break;
                     if (key == null) continue;
 
-                    ((string.Equals(key, "Content-Length", StringComparison.OrdinalIgnoreCase)
+                    HttpHeaders target = (string.Equals(key, "Content-Length", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(key, "Content-Type", StringComparison.OrdinalIgnoreCase))
                         ? response.Content.Headers
-                        : response.Headers)
-                        .TryAddWithoutValidation(key, value);
+                        : response.Headers;
+                    target.TryAddWithoutValidation(key, value);
                 }
 
                 return response;
