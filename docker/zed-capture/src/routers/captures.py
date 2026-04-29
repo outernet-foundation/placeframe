@@ -1,4 +1,5 @@
 import pathlib
+from asyncio import to_thread
 from os import environ
 from shutil import rmtree
 from typing import List, cast
@@ -28,8 +29,12 @@ DEFAULT_CAPTURE_INTERVAL = 0.5
 
 @post("/start")
 async def start_capture(capture_interval: float | None = None) -> UUID:
+    # Camera open is ~4s of synchronous work waiting on the actor-thread Future.
+    # Off-loading to a worker thread keeps the event loop free so concurrent
+    # /status polls don't queue up and time out, which would otherwise flip the
+    # phone-side health monitor to Unreachable on every StartCapture.
     try:
-        return zed.start_capture(capture_interval or DEFAULT_CAPTURE_INTERVAL)
+        return await to_thread(zed.start_capture, capture_interval or DEFAULT_CAPTURE_INTERVAL)
     except InvalidStateException as e:
         raise ClientException(detail=str(e), status_code=HTTP_409_CONFLICT)
 
@@ -37,7 +42,7 @@ async def start_capture(capture_interval: float | None = None) -> UUID:
 @post("/stop")
 async def stop_capture() -> None:
     try:
-        zed.stop_capture()
+        await to_thread(zed.stop_capture)
     except InvalidStateException as e:
         raise ClientException(detail=str(e), status_code=HTTP_409_CONFLICT)
 

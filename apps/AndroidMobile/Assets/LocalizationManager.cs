@@ -18,7 +18,8 @@ namespace Placeframe.Client
                 App.state.placeframeAuthAudience.value,
                 message => Log.Info(LogGroup.Localizer, message),
                 message => Log.Warn(LogGroup.Localizer, message),
-                message => Log.Error(LogGroup.Localizer, message)
+                message => Log.Error(LogGroup.Localizer, message),
+                httpHandlerFactory: InternetBoundHandler.Create
             );
 
             _intializing = true;
