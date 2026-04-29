@@ -17,23 +17,20 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt
-from typing import Any, ClassVar, Dict, List, Optional, Union
-from placeframe_api_client.models.axis_convention import AxisConvention
-from placeframe_api_client.models.rig_config import RigConfig
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from typing import Any, ClassVar, Dict, List
+from typing_extensions import Annotated
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class CaptureSessionManifest(BaseModel):
+class LogRelayBatch(BaseModel):
     """
-    CaptureSessionManifest
+    LogRelayBatch
     """ # noqa: E501
-    axis_convention: AxisConvention
-    rigs: List[RigConfig]
-    capture_interval_seconds: Optional[Union[StrictFloat, StrictInt]] = None
+    entries: Annotated[List[StrictStr], Field(min_length=1)]
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["axis_convention", "rigs", "capture_interval_seconds"]
+    __properties: ClassVar[List[str]] = ["entries"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -53,7 +50,7 @@ class CaptureSessionManifest(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of CaptureSessionManifest from a JSON string"""
+        """Create an instance of LogRelayBatch from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -76,28 +73,16 @@ class CaptureSessionManifest(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of each item in rigs (list)
-        _items = []
-        if self.rigs:
-            for _item_rigs in self.rigs:
-                if _item_rigs:
-                    _items.append(_item_rigs.to_dict())
-            _dict['rigs'] = _items
         # puts key-value pairs in additional_properties in the top level
         if self.additional_properties is not None:
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
-        # set to None if capture_interval_seconds (nullable) is None
-        # and model_fields_set contains the field
-        if self.capture_interval_seconds is None and "capture_interval_seconds" in self.model_fields_set:
-            _dict['capture_interval_seconds'] = None
-
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of CaptureSessionManifest from a dict"""
+        """Create an instance of LogRelayBatch from a dict"""
         if obj is None:
             return None
 
@@ -105,9 +90,7 @@ class CaptureSessionManifest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "axis_convention": obj.get("axis_convention"),
-            "rigs": [RigConfig.from_dict(_item) for _item in obj["rigs"]] if obj.get("rigs") is not None else None,
-            "capture_interval_seconds": obj.get("capture_interval_seconds")
+            "entries": obj.get("entries")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():
