@@ -733,14 +733,7 @@ namespace Placeframe.Client
                                                             ),
                                                             onClick = () =>
                                                             {
-                                                                if (capture.type.value == DeviceType.ARFoundation)
-                                                                {
-                                                                    CaptureManager.DeleteCapture(capture.id);
-                                                                }
-                                                                else
-                                                                {
-                                                                    ZedCaptureController.DeleteCapture(capture.id).Forget();
-                                                                }
+                                                                CaptureController.DeleteCapture(capture.id, capture.type.value).Forget();
 
                                                                 if (capture.status.value == CaptureUploadStatus.NotUploaded)
                                                                 {
