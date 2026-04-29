@@ -292,8 +292,10 @@ paths:
       responses:
         "200":
           content:
-            application/json:
-              schema: {}
+            application/x-tar:
+              schema:
+                format: binary
+                type: string
           description: Stream Response
         "400":
           content:
@@ -1608,6 +1610,28 @@ paths:
       summary: CreateGraph
       tags:
       - Default
+  /zed-boxes/logs:
+    post:
+      deprecated: false
+      operationId: push_zed_box_logs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogRelayBatch"
+        required: true
+      responses:
+        "201":
+          description: "Document created, URL follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: PushZedBoxLogs
+      tags:
+      - Default
 components:
   schemas:
     AxisConvention:
@@ -1741,6 +1765,7 @@ components:
             ref_sensor: true
             id: id
           id: id
+        capture_interval_seconds: 1.0246457001441578
         axis_convention: OPENCV
       properties:
         axis_convention:
@@ -1749,6 +1774,9 @@ components:
           items:
             $ref: "#/components/schemas/RigConfig"
           type: array
+        capture_interval_seconds:
+          nullable: true
+          type: number
       required:
       - axis_convention
       - rigs
@@ -2542,6 +2570,21 @@ components:
       - ransac_threshold
       - retrieval_top_k
       title: LocalizationRequest
+      type: object
+    LogRelayBatch:
+      example:
+        entries:
+        - entries
+        - entries
+      properties:
+        entries:
+          items:
+            type: string
+          minItems: 1
+          type: array
+      required:
+      - entries
+      title: LogRelayBatch
       type: object
     MapLocalization:
       example:

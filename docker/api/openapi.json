@@ -686,8 +686,11 @@
             "description": "Stream Response",
             "headers": {},
             "content": {
-              "application/json": {
-                "schema": {}
+              "application/x-tar": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
               }
             }
           },
@@ -3715,6 +3718,73 @@
         },
         "deprecated": false
       }
+    },
+    "/zed-boxes/logs": {
+      "post": {
+        "tags": [
+          "zed-box-logs"
+        ],
+        "summary": "PushZedBoxLogs",
+        "operationId": "push_zed_box_logs",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogRelayBatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
     }
   },
   "components": {
@@ -3784,6 +3854,10 @@
               "$ref": "#/components/schemas/RigConfig"
             },
             "type": "array"
+          },
+          "capture_interval_seconds": {
+            "nullable": true,
+            "type": "number"
           }
         },
         "type": "object",
@@ -4536,6 +4610,22 @@
           "retrieval_top_k"
         ],
         "title": "LocalizationRequest"
+      },
+      "LogRelayBatch": {
+        "properties": {
+          "entries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1
+          }
+        },
+        "type": "object",
+        "required": [
+          "entries"
+        ],
+        "title": "LogRelayBatch"
       },
       "MapLocalization": {
         "properties": {
