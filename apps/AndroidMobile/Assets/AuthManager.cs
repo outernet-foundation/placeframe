@@ -60,7 +60,9 @@ namespace Placeframe.Client
 #else
                     ("platform", "android-mobile"),
 #endif
-                });
+                },
+                handler: InternetBoundHandler.Create()
+            );
 
             await UniTask.SwitchToMainThread(cancellationToken: cancellationToken);
             App.state.authStatus.value = AuthStatus.LoggedIn;

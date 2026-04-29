@@ -3,11 +3,11 @@ from __future__ import annotations
 from concurrent.futures import Future
 from csv import writer
 from dataclasses import dataclass
+from logging import getLogger
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Thread
 from time import perf_counter, time
-from traceback import format_exception
 from typing import Union, cast
 from uuid import UUID, uuid4
 
@@ -52,6 +52,8 @@ from .zed_wrapper import (
     set_camera_settings_roi,
     update_pose,
 )
+
+logger = getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -100,6 +102,13 @@ class Zed(Thread):
         reply: Future[None] = Future()
         self._commands.put(_StopCapture(reply=reply))
         reply.result()
+
+    # Reads mutable fields from a non-actor thread. Both fields are single-
+    # reference Python attributes, so the GIL makes each read atomic; callers
+    # see a self-consistent snapshot of each field but not necessarily of the
+    # pair. Good enough for a status endpoint.
+    def state(self) -> State:
+        return State(capture_id=self._current_id, last_exception=self._last_exception)
 
     def run(self) -> None:
         while True:
@@ -158,11 +167,7 @@ class Zed(Thread):
                     try:
                         self._capture_frame()
                     except Exception as e:
-                        # turn e into string including callstack
-
-                        print(
-                            f"Exception occurred during frame capture: {format_exception(type(e), e, e.__traceback__)}"
-                        )
+                        logger.exception("Exception occurred during frame capture")
                         self._last_exception = str(e)
 
                     self._next_capture_time += self._capture_interval
@@ -185,7 +190,7 @@ class Zed(Thread):
         self._camera0_directory().mkdir(parents=True, exist_ok=True)
         self._camera1_directory().mkdir(parents=True, exist_ok=True)
 
-        print("Opening ZED camera")
+        logger.info("Opening ZED camera")
 
         init = InitParameters()
         init.camera_resolution = RESOLUTION.HD1080
@@ -209,14 +214,14 @@ class Zed(Thread):
         # with open(self._output_directory() / "metered_values.json", "w") as config_file:
         #     dump({"exposure": exposure, "gain": gain, "white_balance": white_balance}, config_file, indent=4)
 
-        print("Enabling positional tracking")
+        logger.info("Enabling positional tracking")
 
         positionTrackingParameters = PositionalTrackingParameters()
         positionTrackingParameters.enable_imu_fusion = True
         positionTrackingParameters.set_floor_as_origin = False
         enable_positional_tracking(self._camera, positionTrackingParameters)
 
-        print("Writing manifest.json")
+        logger.info("Writing manifest.json")
 
         cam_info = get_camera_information(self._camera)
         # calibration_parameters = cam_info.camera_configuration.calibration_parameters_raw
@@ -287,22 +292,22 @@ class Zed(Thread):
                 ).model_dump_json(indent=4)
             )
 
-        print("Write frame.csv header")
+        logger.info("Writing frame.csv header")
 
         with open(self._rig_directory() / "frames.csv", "w", newline="") as csv_file:
             csv_writer = writer(csv_file)
             csv_writer.writerow(["timestamp_ms", "tx", "ty", "tz", "qx", "qy", "qz", "qw"])
 
-        print("Capture started")
+        logger.info("Capture started")
 
     def _stop(self):
         disable_recording(self._camera)
         disable_positional_tracking(self._camera)
         close_camera(self._camera)
-        print("Capture stopped")
+        logger.info("Capture stopped")
 
     def _capture_frame(self):
-        print("Capturing frame")
+        logger.info("Capturing frame")
         grab(self._camera)
 
         # Retrieve pose and write to disk
@@ -343,8 +348,8 @@ class Zed(Thread):
             try:
                 grab(self._camera)
                 retrieve_image(self._camera, settle_buffer, VIEW.LEFT_UNRECTIFIED)
-            except Exception as e:
-                print(f"Exception occurred while settling: {e}")
+            except Exception:
+                logger.exception("Exception occurred while settling")
 
         # Read current exposure, gain, and white balance values
         exposure = get_camera_settings(self._camera, VIDEO_SETTINGS.EXPOSURE)

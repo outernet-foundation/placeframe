@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using R3;
@@ -70,14 +71,14 @@ namespace Outernet.Logging
             ObservableSystem.RegisterUnhandledExceptionHandler(exception => Log<TLogGroup>.Error(exception, "R3 subscription unhandled exception"));
         }
 
-        public static void EnableLoki(string domain, Func<UniTask<string>> tokenProvider, IEnumerable<(string key, string value)> labels)
+        public static void EnableLoki(string domain, Func<UniTask<string>> tokenProvider, IEnumerable<(string key, string value)> labels, HttpMessageHandler handler = null)
         {
             var previous = logger;
             logger = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
                 .Enrich.With<Enricher<TLogGroup>>()
                 .WriteTo.Unity<TLogGroup>()
-                .WriteTo.Loki(domain, tokenProvider, labels)
+                .WriteTo.Loki(domain, tokenProvider, labels, handler)
                 .CreateLogger();
             previous.Dispose();
         }

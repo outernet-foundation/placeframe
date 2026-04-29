@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     minio_secret_key: str | None = None
 
     localizer_container_url: AnyHttpUrl = Field()
+    loki_url: AnyHttpUrl = Field()
 
     reconstructions_bucket: str = Field(...)
 

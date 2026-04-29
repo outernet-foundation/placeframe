@@ -39,6 +39,8 @@ namespace Placeframe.Client
 
         void Awake()
         {
+            ZedCaptureController.Initialize();
+
             localCaptureNamePath = $"{Application.persistentDataPath}/LocalCaptureNames.json";
 
             // var placeframeApiUrl = $"https://{App.state.domain.value}";

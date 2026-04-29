@@ -16,6 +16,7 @@ from .routers.localization import router as localization_router
 from .routers.localization_maps import router as localization_maps_router
 from .routers.nodes import router as nodes_router
 from .routers.reconstructions import router as reconstructions_router
+from .routers.zed_box_logs import router as zed_box_logs_router
 from .settings import get_settings
 
 #####
@@ -88,6 +89,7 @@ app = create_litestar_app(
         layers_router,
         nodes_router,
         graph_router,
+        zed_box_logs_router,
     ],
     openapi_config,
     middleware,
