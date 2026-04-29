@@ -545,7 +545,7 @@ namespace Placeframe.Client
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"Failed to get local capture data for capture {id}: {e}");
+                    Log.Error(LogGroup.Capture, $"Failed to get local capture data for capture {id}: {e}");
                     throw;
                 }
 
@@ -558,7 +558,7 @@ namespace Placeframe.Client
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"Failed to create capture session for capture {id}: {e}");
+                    Log.Error(LogGroup.Capture, $"Failed to create capture session for capture {id}: {e}");
                     throw;
                 }
             }
@@ -573,7 +573,7 @@ namespace Placeframe.Client
             }
             catch (Exception exception)
             {
-                Debug.LogError($"Upload failed: {exception}");
+                Log.Error(LogGroup.Capture, $"Upload failed: {exception}");
                 throw;
             }
 
