@@ -107,6 +107,26 @@
         ],
         "title": "AxisConvention"
       },
+      "Confidence": {
+        "properties": {
+          "tight": {
+            "type": "number"
+          },
+          "loose": {
+            "type": "number"
+          },
+          "is_calibrated": {
+            "type": "boolean"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_calibrated",
+          "loose",
+          "tight"
+        ],
+        "title": "Confidence"
+      },
       "Float3": {
         "properties": {
           "x": {
@@ -191,15 +211,33 @@
           },
           "inlier_coverage": {
             "type": "number"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/Confidence"
+          },
+          "measurement_covariance": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "pipeline_version": {
+            "type": "string"
           }
         },
         "type": "object",
         "required": [
+          "confidence",
           "inlier_coverage",
           "inlier_ratio",
+          "measurement_covariance",
           "num_correspondences",
           "num_inliers",
           "num_matches",
+          "pipeline_version",
           "reprojection_error_median"
         ],
         "title": "LocalizationMetrics"

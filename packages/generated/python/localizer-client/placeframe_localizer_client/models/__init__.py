@@ -14,6 +14,7 @@
 
 # import models into model package
 from placeframe_localizer_client.models.axis_convention import AxisConvention
+from placeframe_localizer_client.models.confidence import Confidence
 from placeframe_localizer_client.models.float3 import Float3
 from placeframe_localizer_client.models.float4 import Float4
 from placeframe_localizer_client.models.localization import Localization

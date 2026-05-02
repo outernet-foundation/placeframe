@@ -18,6 +18,7 @@ placeframe_api_client/models/capture_session_create.py
 placeframe_api_client/models/capture_session_manifest.py
 placeframe_api_client/models/capture_session_read.py
 placeframe_api_client/models/capture_session_update.py
+placeframe_api_client/models/confidence.py
 placeframe_api_client/models/create_graph_request.py
 placeframe_api_client/models/create_graph_response.py
 placeframe_api_client/models/device_type.py

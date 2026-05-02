@@ -45,7 +45,10 @@ namespace PlaceframeApiClient.Model
         /// <param name="numCorrespondences">numCorrespondences (required).</param>
         /// <param name="numMatches">numMatches (required).</param>
         /// <param name="inlierCoverage">inlierCoverage (required).</param>
-        public LocalizationMetrics(double inlierRatio, double reprojectionErrorMedian, int numInliers, int numCorrespondences, int numMatches, double inlierCoverage)
+        /// <param name="confidence">confidence (required).</param>
+        /// <param name="measurementCovariance">measurementCovariance (required).</param>
+        /// <param name="pipelineVersion">pipelineVersion (required).</param>
+        public LocalizationMetrics(double inlierRatio, double reprojectionErrorMedian, int numInliers, int numCorrespondences, int numMatches, double inlierCoverage, Confidence confidence, List<List<double>> measurementCovariance, string pipelineVersion)
         {
             this.InlierRatio = inlierRatio;
             this.ReprojectionErrorMedian = reprojectionErrorMedian;
@@ -53,6 +56,24 @@ namespace PlaceframeApiClient.Model
             this.NumCorrespondences = numCorrespondences;
             this.NumMatches = numMatches;
             this.InlierCoverage = inlierCoverage;
+            // to ensure "confidence" is required (not null)
+            if (confidence == null)
+            {
+                throw new ArgumentNullException("confidence is a required property for LocalizationMetrics and cannot be null");
+            }
+            this.Confidence = confidence;
+            // to ensure "measurementCovariance" is required (not null)
+            if (measurementCovariance == null)
+            {
+                throw new ArgumentNullException("measurementCovariance is a required property for LocalizationMetrics and cannot be null");
+            }
+            this.MeasurementCovariance = measurementCovariance;
+            // to ensure "pipelineVersion" is required (not null)
+            if (pipelineVersion == null)
+            {
+                throw new ArgumentNullException("pipelineVersion is a required property for LocalizationMetrics and cannot be null");
+            }
+            this.PipelineVersion = pipelineVersion;
         }
 
         /// <summary>
@@ -200,6 +221,78 @@ namespace PlaceframeApiClient.Model
             return _flagInlierCoverage;
         }
         /// <summary>
+        /// Gets or Sets Confidence
+        /// </summary>
+        [DataMember(Name = "confidence", IsRequired = true, EmitDefaultValue = true)]
+        public Confidence Confidence
+        {
+            get{ return _Confidence;}
+            set
+            {
+                _Confidence = value;
+                _flagConfidence = true;
+            }
+        }
+        private Confidence _Confidence;
+        private bool _flagConfidence;
+
+        /// <summary>
+        /// Returns false as Confidence should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeConfidence()
+        {
+            return _flagConfidence;
+        }
+        /// <summary>
+        /// Gets or Sets MeasurementCovariance
+        /// </summary>
+        [DataMember(Name = "measurement_covariance", IsRequired = true, EmitDefaultValue = true)]
+        public List<List<double>> MeasurementCovariance
+        {
+            get{ return _MeasurementCovariance;}
+            set
+            {
+                _MeasurementCovariance = value;
+                _flagMeasurementCovariance = true;
+            }
+        }
+        private List<List<double>> _MeasurementCovariance;
+        private bool _flagMeasurementCovariance;
+
+        /// <summary>
+        /// Returns false as MeasurementCovariance should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeMeasurementCovariance()
+        {
+            return _flagMeasurementCovariance;
+        }
+        /// <summary>
+        /// Gets or Sets PipelineVersion
+        /// </summary>
+        [DataMember(Name = "pipeline_version", IsRequired = true, EmitDefaultValue = true)]
+        public string PipelineVersion
+        {
+            get{ return _PipelineVersion;}
+            set
+            {
+                _PipelineVersion = value;
+                _flagPipelineVersion = true;
+            }
+        }
+        private string _PipelineVersion;
+        private bool _flagPipelineVersion;
+
+        /// <summary>
+        /// Returns false as PipelineVersion should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePipelineVersion()
+        {
+            return _flagPipelineVersion;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -213,6 +306,9 @@ namespace PlaceframeApiClient.Model
             sb.Append("  NumCorrespondences: ").Append(NumCorrespondences).Append("\n");
             sb.Append("  NumMatches: ").Append(NumMatches).Append("\n");
             sb.Append("  InlierCoverage: ").Append(InlierCoverage).Append("\n");
+            sb.Append("  Confidence: ").Append(Confidence).Append("\n");
+            sb.Append("  MeasurementCovariance: ").Append(MeasurementCovariance).Append("\n");
+            sb.Append("  PipelineVersion: ").Append(PipelineVersion).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

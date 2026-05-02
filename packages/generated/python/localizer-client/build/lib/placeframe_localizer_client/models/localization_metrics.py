@@ -17,8 +17,9 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt
+from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Union
+from placeframe_localizer_client.models.confidence import Confidence
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -33,8 +34,11 @@ class LocalizationMetrics(BaseModel):
     num_correspondences: StrictInt
     num_matches: StrictInt
     inlier_coverage: Union[StrictFloat, StrictInt]
+    confidence: Confidence
+    measurement_covariance: List[List[Union[StrictFloat, StrictInt]]]
+    pipeline_version: StrictStr
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["inlier_ratio", "reprojection_error_median", "num_inliers", "num_correspondences", "num_matches", "inlier_coverage"]
+    __properties: ClassVar[List[str]] = ["inlier_ratio", "reprojection_error_median", "num_inliers", "num_correspondences", "num_matches", "inlier_coverage", "confidence", "measurement_covariance", "pipeline_version"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -77,6 +81,9 @@ class LocalizationMetrics(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of confidence
+        if self.confidence:
+            _dict['confidence'] = self.confidence.to_dict()
         # puts key-value pairs in additional_properties in the top level
         if self.additional_properties is not None:
             for _key, _value in self.additional_properties.items():
@@ -99,7 +106,10 @@ class LocalizationMetrics(BaseModel):
             "num_inliers": obj.get("num_inliers"),
             "num_correspondences": obj.get("num_correspondences"),
             "num_matches": obj.get("num_matches"),
-            "inlier_coverage": obj.get("inlier_coverage")
+            "inlier_coverage": obj.get("inlier_coverage"),
+            "confidence": Confidence.from_dict(obj["confidence"]) if obj.get("confidence") is not None else None,
+            "measurement_covariance": obj.get("measurement_covariance"),
+            "pipeline_version": obj.get("pipeline_version")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

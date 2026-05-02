@@ -1832,6 +1832,24 @@ components:
           type: string
       title: CaptureSessionUpdate
       type: object
+    Confidence:
+      example:
+        loose: 9.301444243932576
+        is_calibrated: true
+        tight: 7.061401241503109
+      properties:
+        tight:
+          type: number
+        loose:
+          type: number
+        is_calibrated:
+          type: boolean
+      required:
+      - is_calibrated
+      - loose
+      - tight
+      title: Confidence
+      type: object
     CreateGraphRequest:
       example:
         nodes:
@@ -2517,9 +2535,19 @@ components:
     LocalizationMetrics:
       example:
         num_correspondences: 5
+        pipeline_version: pipeline_version
+        measurement_covariance:
+        - - 3.616076749251911
+          - 3.616076749251911
+        - - 3.616076749251911
+          - 3.616076749251911
         inlier_coverage: 2.3021358869347655
         num_inliers: 1
         inlier_ratio: 0.8008281904610115
+        confidence:
+          loose: 9.301444243932576
+          is_calibrated: true
+          tight: 7.061401241503109
         reprojection_error_median: 6.027456183070403
         num_matches: 5
       properties:
@@ -2535,12 +2563,25 @@ components:
           type: integer
         inlier_coverage:
           type: number
+        confidence:
+          $ref: "#/components/schemas/Confidence"
+        measurement_covariance:
+          items:
+            items:
+              type: number
+            type: array
+          type: array
+        pipeline_version:
+          type: string
       required:
+      - confidence
       - inlier_coverage
       - inlier_ratio
+      - measurement_covariance
       - num_correspondences
       - num_inliers
       - num_matches
+      - pipeline_version
       - reprojection_error_median
       title: LocalizationMetrics
       type: object
@@ -2601,9 +2642,19 @@ components:
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         metrics:
           num_correspondences: 5
+          pipeline_version: pipeline_version
+          measurement_covariance:
+          - - 3.616076749251911
+            - 3.616076749251911
+          - - 3.616076749251911
+            - 3.616076749251911
           inlier_coverage: 2.3021358869347655
           num_inliers: 1
           inlier_ratio: 0.8008281904610115
+          confidence:
+            loose: 9.301444243932576
+            is_calibrated: true
+            tight: 7.061401241503109
           reprojection_error_median: 6.027456183070403
           num_matches: 5
         map_transform:

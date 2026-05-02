@@ -29,6 +29,7 @@ src/PlaceframeApiClient/Model/CaptureSessionCreate.cs
 src/PlaceframeApiClient/Model/CaptureSessionManifest.cs
 src/PlaceframeApiClient/Model/CaptureSessionRead.cs
 src/PlaceframeApiClient/Model/CaptureSessionUpdate.cs
+src/PlaceframeApiClient/Model/Confidence.cs
 src/PlaceframeApiClient/Model/CreateGraphRequest.cs
 src/PlaceframeApiClient/Model/CreateGraphResponse.cs
 src/PlaceframeApiClient/Model/DeviceType.cs
