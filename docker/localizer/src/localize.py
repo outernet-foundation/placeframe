@@ -55,8 +55,8 @@ def localize_image_against_reconstruction(
     camera: PinholeCameraConfig,
     axis_convention: AxisConvention,
     image_buffer: bytes,
-    retrieval_top_k: int,
-    ransac_threshold: float,
+    retrieval_top_k: int | None,
+    ransac_threshold: float | None,
 ) -> tuple[Transform, LocalizationMetrics]:
     # Extract features from query image
     image = canonicalize_image(image_buffer, camera.orientation)

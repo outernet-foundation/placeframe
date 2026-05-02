@@ -36,8 +36,8 @@ class LocalizationRequest(MultipartRequestModel):
     map_ids: Annotated[Json[list[UUID]], BeforeValidator(multipart_json_list)]
     camera_config: Annotated[Json[PinholeCameraConfig], BeforeValidator(multipart_json)]
     axis_convention: AxisConvention
-    retrieval_top_k: int
-    ransac_threshold: float
+    retrieval_top_k: int | None = None
+    ransac_threshold: float | None = None
     image: UploadFile
 
 
@@ -62,9 +62,9 @@ async def localize_image(
                 list(reconstruction_id_to_map_id.keys()),
                 LocalizerPinholeCameraConfig.model_validate(data.camera_config.model_dump()),
                 LocalizerAxisConvention(data.axis_convention.value),
+                await data.image.read(),
                 data.retrieval_top_k,
                 data.ransac_threshold,
-                await data.image.read(),
             )
 
             return [
