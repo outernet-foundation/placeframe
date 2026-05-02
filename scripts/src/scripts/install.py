@@ -24,13 +24,27 @@ def _resolve_project(projects: dict[str, UnityProjectConfig], name: str) -> str:
     raise typer.BadParameter(f"Unknown project '{name}'. Valid projects: {valid}")
 
 
-def _resolve_target(project_config: UnityProjectConfig, project_name: str, target: str) -> str:
+def _resolve_target(project_config: UnityProjectConfig, project_name: str, target: str | None) -> str:
     installable = [build for build in (project_config.builds or []) if build in INSTALLABLE_TARGETS]
+    if target is None:
+        if len(installable) == 1:
+            return installable[0]
+        valid = ", ".join(installable) if installable else "(none)"
+        raise typer.BadParameter(
+            f"--target is required for {project_name} (multiple installable targets). Valid targets: {valid}"
+        )
     for build in installable:
         if build.lower() == target.lower():
             return build
     valid = ", ".join(installable)
     raise typer.BadParameter(f"No installable target '{target}' for {project_name}. Valid targets: {valid}")
+
+
+def _current_git_branch() -> str:
+    branch = bash_output("git rev-parse --abbrev-ref HEAD").strip()
+    if branch == "HEAD":
+        raise typer.BadParameter("HEAD is detached; pass --branch explicitly")
+    return branch
 
 
 def _find_run_id(artifact_name: str, branch: str) -> str:
@@ -67,8 +81,14 @@ def _find_linux_executable(artifact_path: Path) -> Path:
 @app.command()
 def main(
     project: Annotated[str, typer.Option("--project", "-p", help="Unity project name")],
-    target: Annotated[str, typer.Option("--target", "-t", help="Device target (android-mobile, magicleap, linux64)")],
-    branch: Annotated[str, typer.Option("--branch", "-b", help="Branch to find latest successful run")] = "main",
+    target: Annotated[
+        str | None,
+        typer.Option("--target", "-t", help="Device target (android-mobile, magicleap, linux64)"),
+    ] = None,
+    branch: Annotated[
+        str | None,
+        typer.Option("--branch", "-b", help="Branch to find latest successful run (default: current git branch)"),
+    ] = None,
     run: Annotated[int | None, typer.Option("--run", "-r", help="Specific GitHub Actions run ID")] = None,
     serial: Annotated[str | None, typer.Option("--serial", "-s", help="adb device serial")] = None,
 ) -> None:
@@ -80,7 +100,8 @@ def main(
     if serial and target_name not in ADB_TARGETS:
         print(f"Warning: --serial is ignored for target '{target_name}'")
 
-    run_id = str(run) if run else _find_run_id(artifact_name, branch)
+    resolved_branch = branch or _current_git_branch()
+    run_id = str(run) if run else _find_run_id(artifact_name, resolved_branch)
     print(f"Run: {run_id}")
     print(f"Artifact: {artifact_name}")
 
