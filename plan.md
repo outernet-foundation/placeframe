@@ -315,6 +315,18 @@ Shipped `LightGlue(features="aliked", width_confidence=-1, depth_confidence=0.95
 
 **Tier 1 localizer sweep** (29 paired queries across the same map): V3 wins 10/29, loses 18/29, ties 1. Mean V3−V2 matching delta: **+8 ms slower**. The original single-query V3 win was a sampling artifact — V3 wins on hard queries (V2 >170 ms) and loses on easy ones (V2 <130 ms); most queries are easy. V2 picked everywhere; the `perf_counter` line in `run_reconstruction.py` stays as reconstructor observability.
 
+### Reconstructor pose-inversion idiom — drive-by cleanup
+
+Three sites in the reconstructor hand-roll `world_from_X = X_from_world⁻¹` as `rot.matrix().T` plus `-rot.T @ trans` instead of using `pycolmap.Rigid3d.inverse()` (which exists, returns the inverted `Rigid3d`):
+
+- `docker/reconstructor/src/reconstructor/colmap.py:178` — Umeyama diagnostic, `rig_from_world` → camera center (added in chunk 3 of Phase 3).
+- `docker/reconstructor/src/reconstructor/colmap.py:218–219` — `rig_from_world` → `world_from_rig` for the npz writer.
+- `docker/reconstructor/src/reconstructor/metrics_builder.py:145–150` — `rig_from_world` → viewing-direction column for `map_viewpoint_diversity`.
+
+Pattern surfaced during the chunk 4 audit. Same fix at all three sites — assign `world_from_X = X_from_world.inverse()` once and read `.rotation.matrix()` / `.translation` off it. No behavior change, reads as "obviously the inverse." Do as a single drive-by commit after the rest of Phase 3's calibration work lands (chunks 5–7); deliberately not bundled with chunk 4 to keep that commit's diff focused on calibration.
+
+The harness has the same idiom at `scripts/test_placeframe_e2e.py` (`_localize_and_label`) but operates on numpy rotation/translation rather than `Rigid3d`, so the equivalent fix would be a `pytransform3d.invert_transform` 4×4 round-trip — neutral on line count and not worth folding in. Leave as-is.
+
 ## Scaffolding inventory
 
 Placeholders deliberately left by earlier phases, with the trigger for replacement. Line numbers approximate; resolve by symbol if drifted.
