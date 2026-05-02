@@ -191,10 +191,8 @@ namespace Placeframe.Core
                 _maps.ToList(),
                 cameraConfig,
                 AxisConvention.UNITY,
-                12,
-                12.0,
                 new FileParameter(memoryStream),
-                cancellationToken
+                cancellationToken: cancellationToken
             );
 
             if (localizationResults.Count == 0)

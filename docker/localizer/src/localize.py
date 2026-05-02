@@ -22,6 +22,10 @@ from .map import Map
 
 DEVICE = "cuda" if cuda.is_available() else "cpu"
 
+# Pipeline-tuning constants. Folded into pipeline_version (the localizer's git SHA), so changes
+# bump pipeline_version automatically and the calibration loader hard-fails on mismatch.
+RANSAC_THRESHOLD = 8.0
+RETRIEVAL_TOP_K = 12
 
 dir: Any = None
 aliked: Any = None
@@ -55,9 +59,13 @@ def localize_image_against_reconstruction(
     camera: PinholeCameraConfig,
     axis_convention: AxisConvention,
     image_buffer: bytes,
-    retrieval_top_k: int,
-    ransac_threshold: float,
+    retrieval_top_k: int | None,
+    ransac_threshold: float | None,
 ) -> tuple[Transform, LocalizationMetrics]:
+    if retrieval_top_k is None:
+        retrieval_top_k = RETRIEVAL_TOP_K
+    if ransac_threshold is None:
+        ransac_threshold = RANSAC_THRESHOLD
     # Extract features from query image
     image = canonicalize_image(image_buffer, camera.orientation)
     rgb_tensor = from_numpy(asarray(image, dtype=float32)).permute(2, 0, 1).div(255.0)
