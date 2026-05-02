@@ -3163,6 +3163,7 @@ components:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         orchestration_status: queued
+        is_indoor: true
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         capture_session_id:
@@ -3176,6 +3177,10 @@ components:
           type: string
         orchestration_status:
           $ref: "#/components/schemas/OrchestrationStatus"
+        is_indoor:
+          nullable: true
+          title: Is Indoor
+          type: boolean
       required:
       - capture_session_id
       title: ReconstructionCreate
@@ -3208,6 +3213,7 @@ components:
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           orchestration_status: queued
+          is_indoor: true
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         create:
@@ -3256,19 +3262,24 @@ components:
           stereo_verified_match_inliers_median: 7.457744773683766
           all_verified_matches: 2
           average_keypoints_per_image: 5.637376656633329
+          map_viewpoint_diversity: 2.8841621266687802
           cross_sensor_verified_match_rate: 6.683562403749608
           registration_rate: 1.4658129805029452
+          map_bounding_volume_m3: 1.284659006116532
           same_sensor_verified_match_inliers_mean: 5.025004791520295
           registered_images: 6
           percent_tracks_with_length_greater_than_or_equal_to_3: 3.616076749251911
           same_sensor_verified_matches: 1
+          map_image_count: 6
           track_length_50th_percentile: 9.301444243932576
           cross_sensor_verified_match_inliers_median: 9.018348186070783
           all_verified_match_rate: 4.145608029883936
           total_images: 0
           reprojection_pixel_error_90th_percentile: 7.061401241503109
           stereo_verified_matches: 1
+          map_point_count: 3
           stereo_verified_match_inliers_mean: 6.84685269835264
+          map_avg_track_length: 6.965117697638846
         capture_id: capture_id
         error: error
         status: queued
@@ -3317,19 +3328,24 @@ components:
         stereo_verified_match_inliers_median: 7.457744773683766
         all_verified_matches: 2
         average_keypoints_per_image: 5.637376656633329
+        map_viewpoint_diversity: 2.8841621266687802
         cross_sensor_verified_match_rate: 6.683562403749608
         registration_rate: 1.4658129805029452
+        map_bounding_volume_m3: 1.284659006116532
         same_sensor_verified_match_inliers_mean: 5.025004791520295
         registered_images: 6
         percent_tracks_with_length_greater_than_or_equal_to_3: 3.616076749251911
         same_sensor_verified_matches: 1
+        map_image_count: 6
         track_length_50th_percentile: 9.301444243932576
         cross_sensor_verified_match_inliers_median: 9.018348186070783
         all_verified_match_rate: 4.145608029883936
         total_images: 0
         reprojection_pixel_error_90th_percentile: 7.061401241503109
         stereo_verified_matches: 1
+        map_point_count: 3
         stereo_verified_match_inliers_mean: 6.84685269835264
+        map_avg_track_length: 6.965117697638846
       properties:
         total_images:
           description: Total number of input images considered for this reconstruction
@@ -3443,6 +3459,32 @@ components:
         cross_sensor_verified_match_inliers_median:
           description: Median number of inliers for verified matches for cross-sensor
             pairs.
+          nullable: true
+          type: number
+        map_image_count:
+          description: Number of registered images in the reconstruction.
+          nullable: true
+          type: integer
+        map_point_count:
+          description: Number of triangulated 3D points in the reconstruction.
+          nullable: true
+          type: integer
+        map_avg_track_length:
+          description: Mean number of image observations per 3D point. Coarse density-of-evidence
+            proxy.
+          nullable: true
+          type: number
+        map_bounding_volume_m3:
+          description: "Convex-hull volume of registered camera centers, in cubic\
+            \ meters. Captures spatial extent; complements image_count which only\
+            \ captures coverage density."
+          nullable: true
+          type: number
+        map_viewpoint_diversity:
+          description: 1 - |mean(unit viewing direction)| across registered cameras.
+            Zero when all cameras face the same way; approaches one as viewing directions
+            spread uniformly. Discriminates panoramic sweeps from single-viewpoint
+            maps even when the rest of the metrics agree.
           nullable: true
           type: number
       title: ReconstructionMetrics
@@ -3594,6 +3636,7 @@ components:
         updated_at: 2000-01-23T04:56:07.000+00:00
         orchestration_status: queued
         created_at: 2000-01-23T04:56:07.000+00:00
+        is_indoor: true
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         capture_session_id:
@@ -3618,10 +3661,14 @@ components:
           type: string
         orchestration_status:
           $ref: "#/components/schemas/OrchestrationStatus"
+        is_indoor:
+          title: Is Indoor
+          type: boolean
       required:
       - capture_session_id
       - created_at
       - id
+      - is_indoor
       - orchestration_status
       - updated_at
       title: ReconstructionRead

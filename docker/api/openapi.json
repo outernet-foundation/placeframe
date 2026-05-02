@@ -5194,6 +5194,11 @@
           "orchestration_status": {
             "nullable": true,
             "$ref": "#/components/schemas/OrchestrationStatus"
+          },
+          "is_indoor": {
+            "title": "Is Indoor",
+            "nullable": true,
+            "type": "boolean"
           }
         },
         "type": "object",
@@ -5386,6 +5391,31 @@
             "description": "Median number of inliers for verified matches for cross-sensor pairs.",
             "nullable": true,
             "type": "number"
+          },
+          "map_image_count": {
+            "description": "Number of registered images in the reconstruction.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "map_point_count": {
+            "description": "Number of triangulated 3D points in the reconstruction.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "map_avg_track_length": {
+            "description": "Mean number of image observations per 3D point. Coarse density-of-evidence proxy.",
+            "nullable": true,
+            "type": "number"
+          },
+          "map_bounding_volume_m3": {
+            "description": "Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; complements image_count which only captures coverage density.",
+            "nullable": true,
+            "type": "number"
+          },
+          "map_viewpoint_diversity": {
+            "description": "1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps from single-viewpoint maps even when the rest of the metrics agree.",
+            "nullable": true,
+            "type": "number"
           }
         },
         "type": "object",
@@ -5535,6 +5565,10 @@
           },
           "orchestration_status": {
             "$ref": "#/components/schemas/OrchestrationStatus"
+          },
+          "is_indoor": {
+            "type": "boolean",
+            "title": "Is Indoor"
           }
         },
         "type": "object",
@@ -5542,6 +5576,7 @@
           "capture_session_id",
           "created_at",
           "id",
+          "is_indoor",
           "orchestration_status",
           "updated_at"
         ],
