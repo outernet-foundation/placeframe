@@ -39,6 +39,11 @@ DEVICE = "cuda" if cuda.is_available() else "cpu"
 RANSAC_THRESHOLD = 8.0
 RETRIEVAL_TOP_K = 12
 
+# Quality floor for accepting a localization. See the BAND-AID block in
+# localize_image_against_reconstruction.
+MIN_NUM_INLIERS = 50
+MIN_INLIER_COVERAGE = 0.15
+
 global_descriptor_extractor: Callable[[Tensor], TT[RetrievalDim]]
 local_feature_extractor: Callable[[Tensor], LocalFeatureOutput]
 local_feature_matcher: Callable[
@@ -197,6 +202,25 @@ def localize_image_against_reconstruction(
         pipeline_version,
         calibration,
     )
+
+    # THIS IS A BAND-AID. Remove once the calibration system actually computes
+    # meaningful confidence values from the localization result.
+    #
+    # build_metrics.py calls apply_global_calibration(calibration, Features.zeros()).
+    # Zero-valued features mean the logistic regression sees no real inputs from
+    # this localization, so metrics.confidence.{tight,loose} reduce to constants
+    # (sigmoid of the model intercept under the identity-bootstrap calibration)
+    # that are identical for a great pose and a garbage one. is_calibrated=True
+    # is misleading — the model is fitted to nothing.
+    #
+    # Once features are plumbed through and the calibration model is refit against
+    # labeled data, replace this with a confidence-based check, e.g.:
+    #     if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)
+    if metrics.num_inliers < MIN_NUM_INLIERS or metrics.inlier_coverage < MIN_INLIER_COVERAGE:
+        raise LocalizationError(
+            f"Below quality floor: num_inliers={metrics.num_inliers} (min {MIN_NUM_INLIERS}), "
+            f"inlier_coverage={metrics.inlier_coverage:.3f} (min {MIN_INLIER_COVERAGE})"
+        )
 
     # Success
     print(transform.model_dump_json(indent=2))
