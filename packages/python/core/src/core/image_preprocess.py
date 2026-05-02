@@ -2,11 +2,16 @@ from __future__ import annotations
 
 from io import BytesIO
 from math import ceil
+from typing import NewType
 
 from PIL import Image as PILImage
 from PIL.Image import Resampling, Transpose
 
 from .camera_config import ImageOrientation, PinholeCameraConfig
+
+NumImages = NewType("NumImages", int)
+MaxTiles = NewType("MaxTiles", int)
+NumQueryTiles = NewType("NumQueryTiles", int)
 
 # Standardizes per-pixel scale across cameras with different resolutions, so the feature extractor's
 # fixed-pixel receptive field sees comparable structure regardless of source camera.

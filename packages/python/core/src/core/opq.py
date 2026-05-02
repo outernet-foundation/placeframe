@@ -11,7 +11,7 @@ from faiss import (  # type: ignore
 )
 from numpy import ascontiguousarray, float32, uint8
 from numpy.linalg import norm
-from numpy.typing import NDArray
+from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 
 OPQ_MATRIX_FILE = "opq_matrix.tf"
 PQ_QUANTIZER_FILE = "pq_quantizer.pq"

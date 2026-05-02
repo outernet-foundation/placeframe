@@ -1,21 +1,41 @@
+from __future__ import annotations
+
+from typing import NewType
+
 from lightglue import LightGlue  # type: ignore
-from numpy import float32, int32, intp, nonzero
-from numpy.typing import NDArray
+from numpy import bool_, dtype, float32, intp, ndarray
 from torch import Tensor, from_numpy, inference_mode, tensor  # type: ignore
 from torch.nn.utils.rnn import pad_sequence
+
+from .numpy_ops import compress, nonzero
+
+NumMatches = NewType("NumMatches", int)
+
+MatchIndices = dict[
+    tuple[str, str],
+    tuple[ndarray[tuple[NumMatches], dtype[intp]], ndarray[tuple[NumMatches], dtype[intp]]],
+]
+
+# Per-image-name dicts for the matcher's two distinct positional arguments. Branded at the dict
+# level so pyright catches positional swaps at the call site — passing Keypoints where Descriptors
+# is expected (or vice versa) is a type error, even though both wrap dict[str, Tensor] at runtime.
+Keypoints = NewType("Keypoints", dict[str, Tensor])
+Descriptors = NewType("Descriptors", dict[str, Tensor])
+KeypointsArrays = NewType("KeypointsArrays", dict[str, ndarray[tuple[int, int], dtype[float32]]])
+DescriptorsArrays = NewType("DescriptorsArrays", dict[str, ndarray[tuple[int, int], dtype[float32]]])
 
 
 def lightglue_match(
     lightglue: LightGlue,
     pairs: list[tuple[str, str]],
-    keypoints: dict[str, NDArray[float32]],
-    descriptors: dict[str, NDArray[float32]],
+    keypoints: KeypointsArrays,
+    descriptors: DescriptorsArrays,
     sizes: dict[str, tuple[int, int]],
     batch_size: int,
     device: str,
-):
-    keypoints_tensors = {name: from_numpy(kp).to(device) for name, kp in keypoints.items()}
-    descriptors_tensors = {name: from_numpy(desc).to(device) for name, desc in descriptors.items()}
+) -> MatchIndices:
+    keypoints_tensors = Keypoints({name: from_numpy(kp).to(device) for name, kp in keypoints.items()})
+    descriptors_tensors = Descriptors({name: from_numpy(desc).to(device) for name, desc in descriptors.items()})
 
     return lightglue_match_tensors(lightglue, pairs, keypoints_tensors, descriptors_tensors, sizes, batch_size, device)
 
@@ -23,14 +43,14 @@ def lightglue_match(
 def lightglue_match_tensors(
     lightglue: LightGlue,
     pairs: list[tuple[str, str]],
-    keypoints: dict[str, Tensor],
-    descriptors: dict[str, Tensor],
+    keypoints: Keypoints,
+    descriptors: Descriptors,
     sizes: dict[str, tuple[int, int]],
     batch_size: int,
     device: str,
-):
+) -> MatchIndices:
     num_batches = (len(pairs) + batch_size - 1) // batch_size
-    match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]] = {}
+    match_indices: MatchIndices = {}
     for batch_start in range(0, len(pairs), batch_size):
         print(f"Matching features: batch {batch_start // batch_size + 1} of {num_batches}")
         batch_pairs = pairs[batch_start : batch_start + batch_size]
@@ -53,12 +73,10 @@ def lightglue_match_tensors(
             image_a_num_keypoints = keypoints[image_a].shape[0]
 
             # Get actual batch matches (without padding), move to CPU, and convert to numpy
-            batch_matches = matches[i, :image_a_num_keypoints].cpu().numpy().astype(int32)
+            batch_matches = matches[i, :image_a_num_keypoints].cpu().numpy().astype(intp)
 
             # Mask out non-matches (-1)
-            mask = batch_matches >= 0
-            image_a_keypoint_indices = nonzero(mask)[0]
-            image_b_keypoint_indices = batch_matches[mask]
-            match_indices[(image_a, image_b)] = (image_a_keypoint_indices, image_b_keypoint_indices)
+            mask: ndarray[tuple[int], dtype[bool_]] = batch_matches >= 0
+            match_indices[(image_a, image_b)] = (nonzero(mask)[0], compress(mask, batch_matches))
 
     return match_indices

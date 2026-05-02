@@ -1,31 +1,45 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from os import environ
 from typing import Any, cast
 
 from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
 from core.camera_config import PinholeCameraConfig
 from core.image_preprocess import canonicalize_image, canonicalize_intrinsics, tile_image
-from core.lightglue import lightglue_match_tensors
+from core.lightglue import Descriptors, Keypoints, MatchIndices
 from core.localization_metrics import LocalizationMetrics
+from core.model_wrappers import (
+    LocalFeatureOutput,
+    make_global_descriptor_extractor,
+    make_local_feature_extractor,
+    make_local_feature_matcher_for_tensors,
+)
 from core.opq import decode_descriptors
+from core.image_preprocess import NumQueryTiles
+from core.model_wrappers import RetrievalDim
+from core.tensor_types import TT
 from core.transform import Float3, Float4, Transform
 from numpy import asarray, float32, vstack
 from pycolmap import AbsolutePoseEstimationOptions, RANSACOptions
 from pycolmap import Camera as ColmapCamera
 from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose  # type: ignore  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
-from torch import cuda, from_numpy, stack, topk  # type: ignore
+from torch import Tensor, cuda, topk  # type: ignore
 
 from .build_metrics import build_localization_metrics
 from .map import Map
+from .torch_ops import amax, from_numpy, matmul, permute, stack, to, transpose
 
 DEVICE = "cuda" if cuda.is_available() else "cpu"
 
 
-dir: Any = None
-aliked: Any = None
-lightglue: Any = None
+global_descriptor_extractor: Callable[[Tensor], TT[RetrievalDim]]
+local_feature_extractor: Callable[[Tensor], LocalFeatureOutput]
+local_feature_matcher: Callable[
+    [list[tuple[str, str]], Keypoints, Descriptors, dict[str, tuple[int, int]], int],
+    MatchIndices,
+]
 
 
 class LocalizationError(ValueError):
@@ -44,10 +58,10 @@ def load_models():
     # Turn off gradient calculations globally (we only do inference here)
     set_grad_enabled(False)
 
-    global dir, aliked, lightglue
-    dir = load_DIR(DEVICE)
-    aliked = load_aliked(device=DEVICE)
-    lightglue = load_lightglue(DEVICE)
+    global global_descriptor_extractor, local_feature_extractor, local_feature_matcher
+    global_descriptor_extractor = make_global_descriptor_extractor(load_DIR(DEVICE))
+    local_feature_extractor = make_local_feature_extractor(load_aliked(device=DEVICE))
+    local_feature_matcher = make_local_feature_matcher_for_tensors(load_lightglue(DEVICE), DEVICE)
 
 
 def localize_image_against_reconstruction(
@@ -61,21 +75,20 @@ def localize_image_against_reconstruction(
     # Extract features from query image
     image = canonicalize_image(image_buffer, camera.orientation)
     rgb_tensor = from_numpy(asarray(image, dtype=float32)).permute(2, 0, 1).div(255.0)
-    aliked_output = aliked({"image": rgb_tensor.unsqueeze(0).to(device=DEVICE)})
+    query_keypoints_tensor, query_descriptors_tensor = local_feature_extractor(
+        rgb_tensor.unsqueeze(0).to(device=DEVICE)
+    )
 
-    descriptor_per_query_tile: list[Any] = []
+    descriptor_per_query_tile: list[TT[RetrievalDim]] = []
     for tile in tile_image(image):
         tile_tensor = from_numpy(asarray(tile, dtype=float32)).permute(2, 0, 1).div(255.0)
-        descriptor_per_query_tile.append(dir({"image": tile_tensor.unsqueeze(0).to(device=DEVICE)})["global_descriptor"][0])
-    query_tile_descriptors = stack(descriptor_per_query_tile, dim=0)
+        descriptor_per_query_tile.append(global_descriptor_extractor(tile_tensor.unsqueeze(0).to(device=DEVICE)))
+    query_tile_descriptors: TT[NumQueryTiles, RetrievalDim] = stack(descriptor_per_query_tile, dim=0)
 
     # Per-database-image similarity is the max over all (query_tile, database_tile) pairs for that image.
-    database_descriptors = from_numpy(map.tile_descriptors).to(DEVICE)  # (num_images, max_tiles, D)
-    num_images, max_tiles, descriptor_dim = database_descriptors.shape
-    similarity_pairs = (
-        query_tile_descriptors @ database_descriptors.reshape(num_images * max_tiles, descriptor_dim).T
-    ).reshape(-1, num_images, max_tiles)
-    per_image_similarity = similarity_pairs.amax(dim=(0, 2))
+    database_descriptors = to(from_numpy(map.tile_descriptors), DEVICE)
+    similarity_pairs = permute(matmul(query_tile_descriptors, transpose(database_descriptors, 1, 2)), (1, 0, 2))
+    per_image_similarity = amax(similarity_pairs, dim=(0, 2))
     top_k = retrieval_top_k if retrieval_top_k is not None else 12
     top_k_image_indices: list[int] = topk(per_image_similarity, top_k).indices.cpu().tolist()  # type: ignore
     matched_image_ids = [map.ordered_image_ids[i] for i in top_k_image_indices]
@@ -86,19 +99,23 @@ def localize_image_against_reconstruction(
     )
 
     # Prepare database image data for matching
-    keypoints = {str(image_id): from_numpy(map.keypoints[image_id]).to(DEVICE) for image_id in matched_image_ids}
-    descriptors = {str(image_id): from_numpy(descriptors[image_id]).to(DEVICE) for image_id in matched_image_ids}
+    keypoints = Keypoints({
+        str(image_id): from_numpy(map.keypoints[image_id]).to(DEVICE) for image_id in matched_image_ids
+    })
+    descriptors = Descriptors({
+        str(image_id): from_numpy(descriptors[image_id]).to(DEVICE) for image_id in matched_image_ids
+    })
     sizes = {str(image_id): map.image_sizes[str(image_id)] for image_id in matched_image_ids}
 
     # Prepare query image data for matching
-    keypoints["query"] = aliked_output["keypoints"][0].to(DEVICE)
-    descriptors["query"] = aliked_output["descriptors"][0].to(DEVICE)
+    keypoints["query"] = query_keypoints_tensor.to(DEVICE)
+    descriptors["query"] = query_descriptors_tensor.to(DEVICE)
     sizes["query"] = (image.height, image.width)
 
     # Match features between query and database images
     pairs = [(str(image_id), "query") for image_id in matched_image_ids]
 
-    match_indices = lightglue_match_tensors(lightglue, pairs, keypoints, descriptors, sizes, len(pairs), DEVICE)
+    match_indices = local_feature_matcher(pairs, keypoints, descriptors, sizes, len(pairs))
 
     # Count raw LightGlue matches before 3D filtering
     num_matches = sum(match_indices[key][0].shape[0] for key in match_indices)

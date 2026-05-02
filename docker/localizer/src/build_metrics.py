@@ -3,7 +3,7 @@ from typing import Any
 from core.localization_metrics import LocalizationMetrics
 from numpy import asarray, float64, median, ndarray
 from numpy.linalg import norm
-from numpy.typing import NDArray
+from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from pycolmap import Camera as ColmapCamera
 from scipy.spatial import ConvexHull
 
