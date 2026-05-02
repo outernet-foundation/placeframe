@@ -5,7 +5,7 @@ from typing import Any, cast
 
 from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
 from core.camera_config import PinholeCameraConfig
-from core.image_preprocess import canonicalize_image, canonicalize_intrinsics
+from core.image_preprocess import canonicalize_image, canonicalize_intrinsics, tile_image
 from core.lightglue import lightglue_match_tensors
 from core.localization_metrics import LocalizationMetrics
 from core.opq import decode_descriptors
@@ -15,7 +15,7 @@ from pycolmap import AbsolutePoseEstimationOptions, RANSACOptions
 from pycolmap import Camera as ColmapCamera
 from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose  # type: ignore  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
-from torch import cuda, from_numpy, mv, topk  # type: ignore
+from torch import cuda, from_numpy, stack, topk  # type: ignore
 
 from .build_metrics import build_localization_metrics
 from core.calibration import CalibrationArtifact
@@ -73,12 +73,22 @@ def localize_image_against_reconstruction(
     image = canonicalize_image(image_buffer, camera.orientation)
     rgb_tensor = from_numpy(asarray(image, dtype=float32)).permute(2, 0, 1).div(255.0)
     aliked_output = aliked({"image": rgb_tensor.unsqueeze(0).to(device=DEVICE)})
-    query_global_descriptor = dir({"image": rgb_tensor.unsqueeze(0).to(device=DEVICE)})["global_descriptor"][0]
 
-    # Retrieve similar database images
-    similarity_scores = mv(from_numpy(map.global_descriptors_matrix).to(DEVICE), query_global_descriptor)
-    topk_rows: list[int] = topk(similarity_scores, retrieval_top_k).indices.cpu().tolist()  # type: ignore
-    matched_image_ids = [map.ordered_image_ids[i] for i in topk_rows]
+    descriptor_per_query_tile: list[Any] = []
+    for tile in tile_image(image):
+        tile_tensor = from_numpy(asarray(tile, dtype=float32)).permute(2, 0, 1).div(255.0)
+        descriptor_per_query_tile.append(dir({"image": tile_tensor.unsqueeze(0).to(device=DEVICE)})["global_descriptor"][0])
+    query_tile_descriptors = stack(descriptor_per_query_tile, dim=0)
+
+    # Per-database-image similarity is the max over all (query_tile, database_tile) pairs for that image.
+    database_descriptors = from_numpy(map.tile_descriptors).to(DEVICE)  # (num_images, max_tiles, D)
+    num_images, max_tiles, descriptor_dim = database_descriptors.shape
+    similarity_pairs = (
+        query_tile_descriptors @ database_descriptors.reshape(num_images * max_tiles, descriptor_dim).T
+    ).reshape(-1, num_images, max_tiles)
+    per_image_similarity = similarity_pairs.amax(dim=(0, 2))
+    top_k_image_indices: list[int] = topk(per_image_similarity, retrieval_top_k).indices.cpu().tolist()  # type: ignore
+    matched_image_ids = [map.ordered_image_ids[i] for i in top_k_image_indices]
 
     # Decode descriptors of matched database images
     descriptors = decode_descriptors(
