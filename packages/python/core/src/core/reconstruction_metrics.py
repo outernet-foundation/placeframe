@@ -128,3 +128,20 @@ class ReconstructionMetrics(BaseModel):
             "from single-viewpoint maps even when the rest of the metrics agree."
         ),
     )
+    truth_alignment_rms_residual_m: Optional[float] = Field(
+        default=None,
+        description=(
+            "RMS over registered cameras of ||T·c_map - c_truth|| in meters, where T is the rigid Umeyama "
+            "alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: "
+            "small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large "
+            "values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies "
+            "the capture from calibration."
+        ),
+    )
+    truth_alignment_max_residual_m: Optional[float] = Field(
+        default=None,
+        description=(
+            "Maximum over registered cameras of ||T·c_map - c_truth|| in meters. Companion to the RMS "
+            "field; surfaces single-frame outliers that the RMS would smooth over."
+        ),
+    )
