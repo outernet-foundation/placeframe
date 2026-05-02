@@ -36,8 +36,8 @@ class LocalizationRequest(MultipartRequestModel):
     map_ids: Annotated[Json[list[UUID]], BeforeValidator(multipart_json_list)]
     camera_config: Annotated[Json[PinholeCameraConfig], BeforeValidator(multipart_json)]
     axis_convention: AxisConvention
-    retrieval_top_k: int
-    ransac_threshold: float
+    retrieval_top_k: int | None = None
+    ransac_threshold: float | None = None
     image: UploadFile
 
 
@@ -59,12 +59,12 @@ async def localize_image(
     async with ApiClient(Configuration(host=str(settings.localizer_container_url))) as api_client:
         try:
             localizations = await DefaultApi(api_client).localize_image(
-                list(reconstruction_id_to_map_id.keys()),
-                LocalizerPinholeCameraConfig.model_validate(data.camera_config.model_dump()),
-                LocalizerAxisConvention(data.axis_convention.value),
-                data.retrieval_top_k,
-                data.ransac_threshold,
-                await data.image.read(),
+                reconstruction_ids=list(reconstruction_id_to_map_id.keys()),
+                camera_config=LocalizerPinholeCameraConfig.model_validate(data.camera_config.model_dump()),
+                axis_convention=LocalizerAxisConvention(data.axis_convention.value),
+                retrieval_top_k=cast(int, data.retrieval_top_k),
+                ransac_threshold=cast(float, data.ransac_threshold),
+                image=await data.image.read(),
             )
 
             return [
