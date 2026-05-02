@@ -1,8 +1,9 @@
 # Plan
 
 > Design intents:
-> - VPS redesign: [`vps-redesign-intent.md`](vps-redesign-intent.md) (Phases 0, 1, 2a, 3–6).
-> - Feature pipeline modernization: [`feature-pipeline-intent.md`](feature-pipeline-intent.md) (Phases 2b, 2c, 2c-fixup, 2d, 2e).
+> - VPS redesign: [`vps-redesign-intent.md`](vps-redesign-intent.md) (Phases 0, 1, 2a, 4).
+> - Feature pipeline modernization: [`feature-pipeline-intent.md`](feature-pipeline-intent.md) (Phases 2b, 2c, 2c-fixup, 2d).
+> - End-to-end testing and calibration: [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md) (Phase 3 — fused initiative; downstream Phases 5, 6 execute its deferred algorithms).
 > - Static tensor shape typing: [`static-tensor-typing-intent.md`](static-tensor-typing-intent.md) (Phase T).
 
 This file tracks execution of all in-flight initiatives: phase definitions, status, tradeoffs taken, and scaffolding deliberately left for later phases to replace. Deleted when all initiatives complete.
@@ -18,8 +19,7 @@ This file tracks execution of all in-flight initiatives: phase definitions, stat
 | 2c | Local-feature scale standardization (formerly "Aspect-ratio preprocessing") | Pipeline | ✅ Done — but the in-DIR letterbox added under this phase is misguided and is reverted in 2c-fixup |
 | 2c-fixup | Revert in-DIR letterbox; add square-tile retrieval aggregation | Pipeline | ✅ Done — optional `transform_image` rename deferred |
 | T | Static tensor shape typing | Typing | Prototype landed; widening deferred. Orthogonal — no specific phasing dependency. |
-| 2e | Repair `test-placeframe-e2e` and rerun parameter sweep | Pipeline | Not started — moved ahead of 2d |
-| 3 | ZED-only global calibration | VPS | Not started — moved ahead of 2d |
+| 3 | End-to-end testing and calibration (code-complete; corpus deferred) | E2E+calibration | Not started |
 | 2d | Semantic-segmentation masking (~3-day implementation) | Pipeline | Not started — moved after Phase 3; required for outdoor operation |
 | 4 | Dogfooding logger | VPS | Not started |
 | 5 | Phone-side correction | VPS | Not started |
@@ -28,12 +28,16 @@ This file tracks execution of all in-flight initiatives: phase definitions, stat
 ## Critical path
 
 ```
-Phase 0 ─► 1 ─► 2a ─► 2b ─► 2c ─► 2c-fixup ─► T ─► 2e ─► 3 ─► 2d ─► 4 ─► 5 ─► (6 opportunistic)
+Phase 0 ─► 1 ─► 2a ─► 2b ─► 2c ─► 2c-fixup ─► T ─► 3 ─► 2d ─► 4 ─► 5 ─► (6 opportunistic)
 ```
 
 Strictly serial. With ~2 known users, total wall-clock time is dominated by coding work and a single directed data-gathering session at Phase 5, not by passive accumulation. There's no parallelism to exploit.
 
-Phase 2d (semantic-segmentation masking) was originally bundled ahead of Phase 3 to avoid a calibration refit. It's been moved to *after* Phase 3 because (a) the band-aids in `localize.py` and the bootstrap calibration are real friction during ongoing testing, (b) Phase 3's calibration logic doesn't change based on whether masking is in place — only the data distribution does, so the cost of the reorder is exactly one offline refit when masking lands (a few hours of GPU compute on already-collected ZED data, no new data acquisition), and (c) lived experience with calibrated confidence will inform 2d's tuning. Phase 2e still leads Phase 3 because the parameter sweep picks reconstruction defaults that get baked into pipeline_version and fitted against.
+Phase 2d (semantic-segmentation masking) was originally bundled ahead of Phase 3 to avoid a calibration refit. It's been moved to *after* Phase 3 because (a) the band-aids in `localize.py` and the bootstrap calibration are real friction during ongoing testing, (b) the calibration logic doesn't change based on whether masking is in place — only the data distribution does, so the cost of the reorder is exactly one offline refit when masking lands (a few hours of GPU compute on already-collected data, no new data acquisition), and (c) lived experience with calibrated confidence will inform 2d's tuning.
+
+The "Phase 2e" parameter-sweep work originally listed in `feature-pipeline-intent.md` has been merged into Phase 3. The discovery: the e2e harness is the calibration data-generation engine — the sweep cells are the calibration training rows. See [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md) "Why these are one effort." Phase 2e no longer exists as a distinct phase.
+
+Phase 3 itself is scoped to *code completion* this turn: get the harness, fit pipeline, runtime loader, and schema migrations into a logically-correct end-to-end state. **The corpus does not exist and is not being gathered as part of Phase 3.** A standalone deliverable of Phase 3 is the corpus-gathering spec in the intent file, ready to execute when the operator goes to assemble the corpus and run the real fit.
 
 **Phase 2c-fixup** exists because the original Phase 2c bundled together two distinct fixes that should have been separate: scale standardization for local features (correctly addressed by shorter-side resize, kept) and cross-aspect framing handling for retrieval (incorrectly addressed by an in-DIR letterbox with mean padding, reverted). The corrective phase reverts the letterbox and adds the actually-correct fix — square-tile aggregation on the retrieval path. See `feature-pipeline-intent.md` Status section for why the original design was wrong.
 
@@ -121,12 +125,12 @@ Cross-aspect query/database mismatch makes whole-image DIR descriptors compare d
 - Localizer tiles the query ✅. Similarity is computed as a `(M_q, sum_M_db)` matrix; per-database-image similarity is the max over all `(query_tile, db_tile)` pairs (mathematically equivalent to max over query-tile axis followed by scatter-max grouped by image). Top-K picks images by aggregated similarity.
 - `Map` grew a `(sum_M_db, D)` `global_descriptors_matrix` plus a parallel `tile_to_image_row` index mapping each row to its position in `ordered_image_ids` ✅.
 
-**Naming cleanup (deferred):** `transform_image()` still doesn't telegraph that it resizes. With `tile_for_retrieval()` now sitting alongside `transform_image()`, the natural rename to `prepare_image_for_extraction()` / `prepare_image_for_retrieval()` is straightforward — but it touches multiple callers across services and was held back to keep the tiling commit reviewable on its own. Worth a follow-up commit before Phase 2e, or fold into the next pipeline change.
+**Naming cleanup (deferred):** `transform_image()` still doesn't telegraph that it resizes. With `tile_for_retrieval()` now sitting alongside `transform_image()`, the natural rename to `prepare_image_for_extraction()` / `prepare_image_for_retrieval()` is straightforward — but it touches multiple callers across services and was held back to keep the tiling commit reviewable on its own. Worth a follow-up commit, or fold into the next pipeline change.
 
 **Risks (unmeasured):**
 
-- Tile aggregation policy (`max` vs `mean`) — default `max`; revisit during Phase 2e.
-- M, tile size, overlap — defaults look reasonable; sweep range during Phase 2e.
+- Tile aggregation policy (`max` vs `mean`) — default `max`; revisit when the Phase 3 e2e harness's parameter sweep first runs.
+- M, tile size, overlap — defaults look reasonable; sweep range when the Phase 3 e2e harness's parameter sweep first runs.
 - M× growth in OPQ index storage — manageable at M = 3–5 for current map sizes.
 - In-aspect regression risk: tiling could underperform single-window retrieval on same-aspect query/database pairs (less context per descriptor). Configurable `RETRIEVAL_TILES_PER_IMAGE = 1` falls back to single-window without removing the code path.
 
@@ -138,7 +142,7 @@ A localizer-scope prototype landed alongside Phase 2c-fixup. `core/tensor_types.
 
 **E2E verification (gate before widening):**
 
-- Run `test-placeframe-e2e` (or manual smoke if the harness is broken — Phase 2e backlog) against the post-prototype pipeline. Confirm reconstruction completes and localization produces a non-degenerate pose.
+- Run `test-placeframe-e2e` (or manual smoke if the harness is broken — Phase 3 backlog) against the post-prototype pipeline. Confirm reconstruction completes and localization produces a non-degenerate pose.
 - The `global_descriptor_extractor` wrapper (replacing the prior `dir` global) in `localize.py` / `run_reconstruction.py` and the retrieval-block matmul rearrangement (`torch_ops.transpose` + `torch_ops.matmul` + `torch_ops.permute`) are mechanical translations of the prior code; bisecting against `403d9fd1` ("Add square-tile retrieval aggregation") isolates any regression.
 - Block widening migration until this passes.
 
@@ -172,30 +176,33 @@ A localizer-scope prototype landed alongside Phase 2c-fixup. `core/tensor_types.
 
 End of Phase T: tensor shapes are statically checked at function/assignment boundaries throughout the localizer, reconstructor, `core`, and `neural-networks` packages. New tensor code in subsequent phases lands typed by default, with lint enforcing it. No runtime overhead; no library dependency.
 
-### Phase 2e — Repair `test-placeframe-e2e` and rerun parameter sweep
+### Phase 3 — End-to-end testing and calibration (code-complete; corpus deferred)
 
-The `scripts/src/scripts/test_placeframe_e2e.py` parameter-sweep harness predates the VPS redesign. It has lint/type errors and hasn't been run against the new pipeline. Repair and run it before Phase 3; the sweep informs Phase 3's calibration defaults.
+Fuses the previously-separate "Phase 2e" (e2e harness repair + parameter sweep) and "Phase 3" (ZED-only global calibration) under the realization that the e2e harness *is* the calibration data-generation engine. Full design in [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md).
 
-- Fix the S608 false-positive on `_build_insert_sql` and the ASYNC240 violation in `_run`.
-- Wire `tar_paths` from `main()` into `_run` (the half-finished signature change).
-- Re-verify `basedpyright` passes.
-- Run the full sweep against the current (pre-masking) pipeline. Capture results to SQLite.
-- Use sweep output to pick reconstruction defaults and the localization param grid Phase 3 fits calibration against.
+Scope this turn: code only. **No corpus is gathered, no real calibration is fit, no parameter sweep is run.** The deliverable is logically-correct code that, given a corpus, will produce a real calibration without further engineering work.
 
-End of Phase 2e: parameter defaults are picked from real data on the post-2c-fixup pipeline; calibration in Phase 3 fits against an evidence-informed configuration.
+Code deliverables (full list in the intent file):
 
-### Phase 3 — ZED-only global calibration
+- Repair `scripts/src/scripts/test_placeframe_e2e.py` (S608, ASYNC240, broken `main()`, `basedpyright` clean).
+- Extend the harness with a pose-error-labeling step (Procrustes-align `frames.csv` truth to rebuilt COLMAP map; record `err_t`, `err_r` per held-out frame).
+- Add map-quality columns to the schema (`map_image_count`, `map_point_count`, `map_avg_track_length`, `map_bounding_volume_m3`, `map_viewpoint_diversity`, `is_indoor`); reconstructor populates them at map-build time; migration backfills.
+- Create `scripts/src/scripts/fit_calibration.py` implementing Algorithm 1 (ZED held-out logistic + isotonic fit with reporting).
+- Plumb features through `apply_global_calibration` (replace `features={}` in `build_metrics.py:66`).
+- Implement the per-map calibration loader path (lazy MinIO fetch + cache, soft-fall-back to global-only). Per-map fitting (Algorithm 3) is *not* implemented; deferred to Phase 6.
 
-The calibration pipeline goes live with bulk-only data (Algorithm 1). Phone queries still suffer device shift, but ZED-source queries get well-calibrated confidence.
+Documentation deliverable:
 
-- Map quality features: compute at map-build time and store in the maps table. Backfill for existing maps.
-- `scripts/src/scripts/fit_calibration.py` with Algorithm 1 (ZED held-out) implemented.
-- Commit the first non-identity `config/calibration/global.json`. Deploy.
-- Remove the `IDENTITY_BOOTSTRAP_SENTINEL` skip in the calibration loader; real artifacts carry real pipeline versions and the equality check enforces match.
-- Re-tune Phase 1's heuristic Σ_meas weighting now that confidence is meaningful (snap threshold, base per-tick process noise, confidence-to-Σ_meas scaling). The base process noise constants shipped early to fix the lock-in bug; this phase replaces the coarse defaults with values informed by the fitted σ_meas.
-- Implement the per-map calibration loader path (lazy MinIO fetch + cache), but defer the per-map fitting code to Phase 6.
+- The corpus-gathering spec in the intent file, unambiguous enough to execute cold.
 
-End of Phase 3: confidence is well-calibrated for ZED-source queries; phone queries still suffer device shift but are meaningfully better than identity.
+Deferred until corpus exists (out of scope this turn):
+
+- Removing the `IDENTITY_BOOTSTRAP_SENTINEL` skip and the `MIN_NUM_INLIERS` / `MIN_INLIER_COVERAGE` band-aid (these depend on a real fitted calibration replacing the identity bootstrap).
+- Committing a non-identity `config/calibration/global.json`.
+- Re-tuning `RelocalizationFilter.BaseProcessNoise{Translation,Rotation}VariancePerTick` and `SnapThresholdSigmas` against fitted σ_meas.
+- Running the parameter sweep (~15 hours estimated).
+
+End of Phase 3 (code-complete): the harness is repaired and emits labeled rows; `fit_calibration.py` exists and unit-tests against synthetic data; the runtime loader plumbs features end-to-end; the schema is migrated. The system is ready for the operator to gather the corpus and run the real fit. The band-aid removals and constant re-tuning happen in a follow-up step *after* a real calibration is committed (which is itself gated on the corpus run).
 
 ### Phase 2d — Semantic-segmentation masking (3-day time-box)
 
@@ -244,10 +251,12 @@ Per-map fitting code is deferred from Phase 3 (loader is in place, fitting isn't
 
 ## Tradeoffs taken
 
-- **Phase 1 ships before calibration exists.** Phase 1's measurement weighting uses heuristic Σ_meas scaling. When Phase 3's real calibration lands, those tunables (snap threshold, process noise, confidence-to-Σ_meas scaling) will need re-tuning. Tuning rework, not architectural rework.
+- **Phase 1 ships before calibration exists.** Phase 1's measurement weighting uses heuristic Σ_meas scaling. When a real calibration lands (post-corpus-run, after Phase 3's code-complete state), those tunables (snap threshold, process noise, confidence-to-Σ_meas scaling) will need re-tuning. Tuning rework, not architectural rework.
 - **Phase 1 math lives inline in Unity and is tested via Unity Test Framework.** SE(3) and Bayesian-filter math sit alongside the Unity runtime in `packages/unity/Placeframe/Assets/Package/Core/Runtime/`; tests are an Editor-only asmdef next to it.
 - **Phase 2a blocked all subsequent VPS phases.** It would have been possible to ship calibration (Phase 3) on top of fully-untested math, but Phases 3–6 reference the math to interpret confidence-weighted measurements, and the test coverage cheaply catches regressions there.
-- **Phases 2b/2c/2c-fixup bundle ahead of Phase 3; Phase 2d does not.** Originally all of 2b–2e bundled ahead of Phase 3 to fit calibration once. 2d (masking) was reordered to land after Phase 3 because (a) the band-aids in `localize.py` and the bootstrap calibration's hand-set intercept are real friction during ongoing testing, (b) Phase 3's calibration logic is unchanged with or without masking — only the metric distribution shifts, so the cost of one offline refit is GPU compute on already-collected ZED data with no new data-acquisition cycle, and (c) lived experience with calibrated confidence will inform 2d's tuning. 2b/2c/2c-fixup still bundle ahead because they were already done before this reorder.
+- **Phase 2e merged into Phase 3.** Originally separate ("repair harness, run sweep, pick reconstruction defaults" → "fit calibration against the picked defaults"). Discovery during planning: the harness *is* the calibration data-generation engine — the sweep cells are the calibration training rows. Algorithm 1's held-out tar machinery is exactly what `_prepare_capture` already implements. Maintaining them as separate phases would have meant duplicating the upload+reconstruct+localize loop across two scripts. The fused intent file ([`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md)) owns both.
+- **Phase 3 is scoped to code only this turn; corpus and real fit are explicitly deferred.** A code-complete state is what unblocks the operator from going to gather the corpus. Running the fit before the corpus exists is impossible; running it on a single capture (which is all we have today) would overfit and produce a calibration that doesn't generalize. The honest framing is "land the loop, don't ship a fake calibration." Cost of the deferral: the band-aids (`MIN_NUM_INLIERS`, hand-set intercept, `IDENTITY_BOOTSTRAP_SENTINEL` skip) stay in place until the corpus run, instead of being removed at Phase 3 close.
+- **Phases 2b/2c/2c-fixup bundle ahead of Phase 3; Phase 2d does not.** Originally all of 2b–2e bundled ahead of Phase 3 to fit calibration once. 2d (masking) was reordered to land after Phase 3 because (a) the band-aids are real friction during ongoing testing, (b) calibration logic is unchanged with or without masking — only the metric distribution shifts, so the cost is one offline refit on already-collected data with no new data-acquisition cycle, and (c) lived experience with calibrated confidence informs masking tuning. 2b/2c/2c-fixup still bundle ahead because they were already done before this reorder.
 - **Phase 2d is time-boxed and deferrable.** Masking is the largest scope and the most likely to overrun. The 3-day budget plus a hard defer-to-post-Phase-6 fallback bounds the delay. Deferral cost is one *additional* future refit on top of the one accepted by the reorder.
 - **Phase 4 lands after Phase 3, not before.** A previous iteration of this plan put the dogfooding logger before ZED calibration to compress passive-accumulation wall-clock. Pre-go-to-market that compression is illusory: with a small known user pool, phone-side data is gathered in directed sessions, not passively. Building the logger after Phase 3 also means its schema and feature set can be informed by Phase 3's lived experience, reducing rework risk.
 - **Phase 6 fitting code is deferred.** The loader is in place from Phase 3, but writing the per-map fitting code is held back until at least one map clears the sample threshold. Risk: when that day comes, the fitting code is novel work that delays per-map calibration for that first map by a few days. Reward: avoids speculative code that may never run.
@@ -286,9 +295,9 @@ Shipped `LightGlue(features="aliked", width_confidence=-1, depth_confidence=0.95
 
 Placeholders deliberately left by earlier phases, with the trigger for replacement. Line numbers approximate; resolve by symbol if drifted.
 
-- `docker/localizer/src/build_metrics.py` — `apply_global_calibration(calibration, features={})` empty features dict. Phase 3 populates with transformed metrics + map quality features keyed by the calibration's `feature_names`.
-- `config/calibration/global.json` — identity calibration: empty logistic weights, intercept-only, identity isotonic, `pipeline_version: "identity-bootstrap"`. The `tight.logistic.intercept` was tweaked from `0.0` to `-4.59511985013459` (so `sigmoid → 0.01`) as a band-aid to give the `Σ_meas / tight²` formula sensible 10000× covariance inflation; runtime logic is unchanged from the proper-Phase-3 design. Replaced wholesale by output of `scripts/fit_calibration.py` in Phase 3.
-- `docker/localizer/src/localize.py` — `MIN_NUM_INLIERS = 50` / `MIN_INLIER_COVERAGE = 0.15` raw quality floor band-aid. Rejects garbage localizations that the broken confidence stub can't filter. Replaced in Phase 3 by `if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)` — see the BAND-AID comment block in `localize_image_against_reconstruction`.
-- `docker/localizer/src/calibration.py:56` — `IDENTITY_BOOTSTRAP_SENTINEL` and the equality-check skip in `load_global_calibration`. Both removed once Phase 3's first real calibration ships.
-- ~~VPS frontend lacks σ_posterior floor / per-tick process noise. Filter locks in after ~30 stationary measurements.~~ Shipped early as a per-tick base process noise term in `RelocalizationFilter.ProcessNoise()` — `BaseProcessNoise{Translation,Rotation}VariancePerTick` added unconditionally. Numbers (1e-4 m², 1e-6 rad²) are coarse and will be re-tuned in Phase 3 once σ_meas is fit from real data.
+- `docker/localizer/src/build_metrics.py` — `apply_global_calibration(calibration, features={})` empty features dict. Plumbed through with transformed metrics + map quality features in Phase 3 (code deliverable; takes effect once a real calibration is fit).
+- `config/calibration/global.json` — identity calibration: empty logistic weights, intercept-only, identity isotonic, `pipeline_version: "identity-bootstrap"`. The `tight.logistic.intercept` was tweaked from `0.0` to `-4.59511985013459` (so `sigmoid → 0.01`) as a band-aid to give the `Σ_meas / tight²` formula sensible 10000× covariance inflation; runtime logic is unchanged. Replaced wholesale by output of `scripts/fit_calibration.py` *after* the corpus is gathered (post-Phase-3 step gated on operator data-collection).
+- `docker/localizer/src/localize.py` — `MIN_NUM_INLIERS = 50` / `MIN_INLIER_COVERAGE = 0.15` raw quality floor band-aid. Rejects garbage localizations that the broken confidence stub can't filter. Replaced by `if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)` *after* a real fitted calibration is committed (post-corpus-run step) — see the BAND-AID comment block in `localize_image_against_reconstruction`.
+- `docker/localizer/src/calibration.py:56` — `IDENTITY_BOOTSTRAP_SENTINEL` and the equality-check skip in `load_global_calibration`. Both removed once the first real calibration ships (post-corpus-run step).
+- ~~VPS frontend lacks σ_posterior floor / per-tick process noise. Filter locks in after ~30 stationary measurements.~~ Shipped early as a per-tick base process noise term in `RelocalizationFilter.ProcessNoise()` — `BaseProcessNoise{Translation,Rotation}VariancePerTick` added unconditionally. Numbers (1e-4 m², 1e-6 rad²) are coarse and will be re-tuned once σ_meas is fit from real data (post-corpus-run step).
 - Phase 1 inline math in `packages/unity/Placeframe/Assets/Package/Core/Runtime/` (SE(3) Log/Exp, 6×6 covariance algebra, `RelocalizationFilter`) stays here permanently. Tested in-place via Unity Test Framework in Phase 2a.

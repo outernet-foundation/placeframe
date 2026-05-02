@@ -1,13 +1,15 @@
 # Feature Pipeline Modernization — Intent
 
 > Execution and progress tracked in [`plan.md`](plan.md).
-> Companion design intent: [`vps-redesign-intent.md`](vps-redesign-intent.md) (Phases 0, 1, 3–6).
+> Companion design intents:
+> - [`vps-redesign-intent.md`](vps-redesign-intent.md) — VPS frontend, Bayesian filter, dogfooding logger, API contract.
+> - [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md) — calibration internals, fit pipeline, e2e harness, corpus.
 
 ## Status
 
 Pieces 1 (ALIKED), 2 (local-feature scale standardization), and 3 (square-tile retrieval aggregation) have shipped. **Piece 4 (semantic masking) is the remaining required work** — outdoor city-street operation requires masking parked cars and other transient objects out of features, otherwise the system degrades severely. Piece 5 (DIR replacement) is opportunistic and deferred indefinitely.
 
-Each piece independently changes the localizer's `pipeline_version` hash and invalidates VPS calibration (see `vps-redesign-intent.md` "Pipeline version"). Bundling pieces 1-4 ahead of VPS Phase 3 means calibration is fit once against the final pipeline.
+Each piece independently changes the localizer's `pipeline_version` hash and invalidates calibration (see `vps-redesign-intent.md` "Pipeline version"). Bundling pieces 1–3 ahead of the e2e-and-calibration initiative meant the first calibration is fit against a stable pipeline; piece 4 lands later and forces one calibration refit when it does (see [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md)).
 
 ## Context
 
@@ -102,7 +104,7 @@ The fix isn't preprocessing — it's giving each image *multiple framings* so at
 
 **Required for outdoor operation.** City-street scenes are dominated by parked cars, pedestrians, and other transient content; without masking, features extracted on those objects produce matches that fail at query time (the cars moved, the people moved, the street furniture rotated). Indoor-only operation has tolerated the absence of masking because indoor transient content is sparser. Masking is no longer "nice to have."
 
-Implementation budget: ~3 days. If it overruns, masking ships late, but it ships — there is no defer-to-post-Phase-6 fallback for outdoor deployment. Phases that follow (VPS Phase 3 calibration) can proceed against the indoor pipeline meanwhile, with a known calibration refit needed when masking lands.
+Implementation budget: ~3 days. If it overruns, masking ships late, but it ships — there is no defer-to-post-Phase-6 fallback for outdoor deployment. Calibration can proceed against the pre-masking pipeline meanwhile, with a known calibration refit needed when masking lands.
 
 - OneFormer (MIT code + weights) loaded once at service startup.
 - Reconstructor: OneFormer-Swin-L. One-time cost at map build; favor quality.
@@ -112,7 +114,7 @@ Implementation budget: ~3 days. If it overruns, masking ships late, but it ships
 - Mask applied in image space: pixels in masked regions zeroed before both DIR and ALIKED inference.
 - Fallback: if a masked image has fewer than `MIN_KEYPOINTS_AFTER_MASK` (default 50) keypoints, retry without mask and log. Avoids over-masking failure on crowded scenes.
 
-**Overrun handling**: if implementation slips past the 3-day budget, masking ships late but is not deferred — outdoor operation depends on it. Phase 3 calibration can proceed against the pre-masking pipeline meanwhile and refits once masking lands.
+**Overrun handling**: if implementation slips past the 3-day budget, masking ships late but is not deferred — outdoor operation depends on it. Calibration can proceed against the pre-masking pipeline meanwhile and refits once masking lands.
 
 ### 5. DIR replacement (DEFERRED — optional upgrade)
 
@@ -122,7 +124,7 @@ DIR works and is license-clean, but is dated and self-vendored. Modern Apache/MI
 - **SALAD** (CVPR 2024, MIT) — current SOTA, DINOv2 backbone. Heavier compute.
 - **DINOv2 + GeM pooling** (Apache 2.0) — simplest path. No specialized training. Drops the dirtorch dependency entirely.
 
-Deferred because retrieval quality isn't the bottleneck. Re-evaluate after pieces 1–3 land. If pursued, costs another calibration refit unless bundled before Phase 3.
+Deferred because retrieval quality isn't the bottleneck. Re-evaluate after pieces 1–3 land. If pursued, costs another calibration refit unless bundled before the calibration initiative.
 
 ---
 
@@ -131,19 +133,19 @@ Deferred because retrieval quality isn't the bottleneck. Re-evaluate after piece
 All of pieces 1–4 (and 5 if pursued) change the localizer's `pipeline_version` hash. The bundling logic:
 
 - Each piece independently invalidates calibration.
-- Bundling all pieces before VPS Phase 3 means calibration is fit once.
-- Any piece deferred to after Phase 3 forces a calibration refit when it lands.
+- Bundling pieces ahead of the calibration initiative means the first calibration is fit against a stable pipeline.
+- Any piece deferred forces a calibration refit when it lands.
 
 Therefore the order:
 
 1. ALIKED swap (license urgency, smallest scope).
 2. Local-feature scale standardization (clean signal for masking and tiling).
 3. Square-tile retrieval aggregation (revert the Phase 2c letterbox first; then tile).
-4. Semantic masking (biggest scope; time-boxed to 3 days; deferrable if it slips).
-5. Repair `test-placeframe-e2e` script and rerun the parameter sweep against the new pipeline. Output informs Phase 3's calibration defaults.
-6. VPS Phase 3 (ZED-only global calibration) — fits once against the final pipeline.
+4. Semantic masking (biggest scope; time-boxed to 3 days; deferrable if it slips — refit cost on landing).
 
-DIR replacement (piece 5) is opportunistic — bundle it ahead of Phase 3 if it's quick, otherwise leave it for a later focused upgrade. Note that DIR replacement and tiling compose: any successor retrieval model (EigenPlaces, SALAD, DINOv2+GeM) inherits the same global-descriptor / cross-aspect-framing problem and benefits from tiling unchanged.
+The harness repair and parameter-sweep work that originally lived as "Phase 2e" here has merged into [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md): the harness is the calibration data-generation engine, not a separate testing concern.
+
+DIR replacement (piece 5) is opportunistic — bundle it ahead of the calibration initiative if it's quick, otherwise leave it for a later focused upgrade. Note that DIR replacement and tiling compose: any successor retrieval model (EigenPlaces, SALAD, DINOv2+GeM) inherits the same global-descriptor / cross-aspect-framing problem and benefits from tiling unchanged.
 
 ---
 
@@ -166,10 +168,10 @@ DIR replacement (piece 5) is opportunistic — bundle it ahead of Phase 3 if it'
 - **Mask boundary keypoints**. Features extracted at the boundary between masked and unmasked regions may be unstable. Mask dilation (default 0) is the tuning knob; revisit if observed.
 - **Crowded-scene masking failure**. Plazas dominated by people may end up with insufficient keypoints. The fallback (retry without mask) bounds this risk but means crowded scenes get the worst of both worlds — no masking benefit, slower than baseline. Acceptable for v1.
 - **Masking time-box overruns**. The 3-day budget is tight. Honest assessment: 50–70% likely it lands in budget. Deferral adds a future calibration refit, not an architectural problem.
-- **Tile aggregation policy** (max vs mean, similarity weighting). Default is max-over-pairs; mean is the alternative if max ends up too noisy on tiles dominated by repetitive structure. Untested on real data — pick after Phase 2e parameter sweep covers it.
-- **Tile geometry tuning**. M, tile size, and overlap are interrelated. Defaults (tile_size = `LOCAL_FEATURE_RESIZE_SHORTER_SIDE`, ~50% overlap, M = ⌈long_axis / (tile_size · overlap_stride)⌉) are reasonable but unmeasured. Sweep range during Phase 2e.
+- **Tile aggregation policy** (max vs mean, similarity weighting). Default is max-over-pairs; mean is the alternative if max ends up too noisy on tiles dominated by repetitive structure. Untested on real data — pick once the e2e harness's parameter sweep covers it (see [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md)).
+- **Tile geometry tuning**. M, tile size, and overlap are interrelated. Defaults (tile_size = `LOCAL_FEATURE_RESIZE_SHORTER_SIDE`, ~50% overlap, M = ⌈long_axis / (tile_size · overlap_stride)⌉) are reasonable but unmeasured. Sweep range when the e2e harness's parameter sweep first runs.
 - **Retrieval index size**. M× growth in OPQ index storage and per-query similarity work. At M=3–5 and database sizes typical for VPS maps (few thousand images), this is workable. If M needs to grow further, OPQ subvector budget may need rebalancing.
-- **In-aspect regression risk for tiling**. Tiling could underperform single-window retrieval on same-aspect query/database pairs (because tiles capture less context per descriptor). Honest unknown — measure during Phase 2e against the existing pre-2c-letterbox single-window baseline.
+- **In-aspect regression risk for tiling**. Tiling could underperform single-window retrieval on same-aspect query/database pairs (because tiles capture less context per descriptor). Honest unknown — measure when the e2e harness's parameter sweep runs, against the existing pre-2c-letterbox single-window baseline.
 
 ---
 

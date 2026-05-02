@@ -1,6 +1,7 @@
 # VPS Confidence, Calibration, and Fusion — Intent
 
 > Execution and progress tracked in [`plan.md`](plan.md).
+> Companion design intent: [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md) — owns the calibration internals (Algorithms 1–3, fit pipeline, runtime loader, artifact format, corpus). This file owns the VPS frontend (Bayesian filter, slew, dogfooding logger) and the localizer's API contract for calibrated responses.
 
 ## Status
 
@@ -10,21 +11,21 @@ Phases 0, 1, and 2a have shipped and the system has been used end-to-end against
 
 ## Production bring-up findings
 
-### Calibration-stub band-aids in place pending Phase 3
+### Calibration-stub band-aids in place pending the e2e-and-calibration initiative
 
-`apply_global_calibration(calibration, features={})` currently returns model-intercept constants because no features are plumbed through and the model is the identity bootstrap. This breaks two downstream consumers, both of which have band-aids in place that are removed when Phase 3's first real calibration ships.
+`apply_global_calibration(calibration, features={})` currently returns model-intercept constants because no features are plumbed through and the model is the identity bootstrap. This breaks two downstream consumers, both of which have band-aids in place that are removed when the first real calibration ships. See [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md) for the full plan.
 
-**1. Confidence values (`tight`, `loose`) are constants** — same for great and garbage poses. A confidence-based gate at the localizer or filter would treat all results identically. *Band-aid*: a hard floor on raw metrics (`MIN_NUM_INLIERS = 50`, `MIN_INLIER_COVERAGE = 0.15` in `docker/localizer/src/localize.py`) rejects garbage results before they propagate. Replaced in Phase 3 by `if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)`.
+**1. Confidence values (`tight`, `loose`) are constants** — same for great and garbage poses. A confidence-based gate at the localizer or filter would treat all results identically. *Band-aid*: a hard floor on raw metrics (`MIN_NUM_INLIERS = 50`, `MIN_INLIER_COVERAGE = 0.15` in `docker/localizer/src/localize.py`) rejects garbage results before they propagate. Replaced by `if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)` once the corpus is gathered and a real calibration is fit.
 
-**2. Σ_meas scaling collapses** — `Σ_meas = PnP_cov / tight²` with constant `tight = 0.5` gives only 4× inflation. PnP's analytic Hessian covariance is wildly tight (~1e-6 variance, σ ≈ 0.3mm), so post-scaling Σ_meas is still absurdly tight. The Bayesian filter's innovation gate then rejects nearly every measurement as implausibly far. *Band-aid*: the bootstrap calibration's `tight.logistic.intercept` is set to `ln(0.01/0.99) ≈ -4.595` so `sigmoid(intercept) = tight = 0.01`, producing 10000× covariance inflation and effective σ_meas ≈ 10cm. Runtime logic in `build_metrics.py` is unchanged — the `Σ_meas / tight²` formula does the right thing once `tight` is a sensible constant. Replaced in Phase 3 by per-localization tight values from a fitted model.
+**2. Σ_meas scaling collapses** — `Σ_meas = PnP_cov / tight²` with constant `tight = 0.5` gives only 4× inflation. PnP's analytic Hessian covariance is wildly tight (~1e-6 variance, σ ≈ 0.3mm), so post-scaling Σ_meas is still absurdly tight. The Bayesian filter's innovation gate then rejects nearly every measurement as implausibly far. *Band-aid*: the bootstrap calibration's `tight.logistic.intercept` is set to `ln(0.01/0.99) ≈ -4.595` so `sigmoid(intercept) = tight = 0.01`, producing 10000× covariance inflation and effective σ_meas ≈ 10cm. Runtime logic in `build_metrics.py` is unchanged — the `Σ_meas / tight²` formula does the right thing once `tight` is a sensible constant. Replaced by per-localization tight values from a fitted model once the corpus is gathered.
 
-### Σ_posterior lock-in (fixed)
+### Σ_posterior lock-in (fixed; re-tuning deferred to post-calibration)
 
 Observed in production: once the filter had accepted ~30 measurements during a stable session, σ_posterior shrank to ~σ_meas/√N (~2cm on each axis). Subsequent measurements that disagreed with the converged posterior by more than ~3σ got rejected by the innovation gate, even when their quality metrics were statistically identical to accepted ones. The filter "locked in" to its first cluster of measurements and couldn't absorb new evidence.
 
 This was the textbook "no process noise" failure mode. The pre-fix `ProcessNoise(currentVioPosition, lastAcceptedVioPosition)` added Σ proportional to translated distance and nothing when the device was stationary. Stationary observation → unbounded σ_posterior shrinkage → over-confident filter.
 
-**Fix shipped**: added `BaseProcessNoise{Translation,Rotation}VariancePerTick` constants (1e-4 m², 1e-6 rad²) to `RelocalizationFilter`, applied unconditionally in `ProcessNoise()`. Sized so steady-state σ_posterior stays roughly σ_meas/3 at the current 1Hz query cadence and bootstrap σ_meas. The numbers are coarse band-aids — they're re-tuned in Phase 3 once σ_meas comes from a fitted model rather than the bootstrap intercept. Cost: visible micro-jitter in steady-state instead of full stop. Tradeoff is product-dependent — for "place a virtual object on a surface" UX, the prior rock-solid behavior may be preferable; for "produce ground-truth pose telemetry", the per-tick noise is correct. Re-evaluate after Phase 3.
+**Fix shipped**: added `BaseProcessNoise{Translation,Rotation}VariancePerTick` constants (1e-4 m², 1e-6 rad²) to `RelocalizationFilter`, applied unconditionally in `ProcessNoise()`. Sized so steady-state σ_posterior stays roughly σ_meas/3 at the current 1Hz query cadence and bootstrap σ_meas. The numbers are coarse band-aids — they get re-tuned once σ_meas comes from a fitted model rather than the bootstrap intercept (see [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md)). Cost: visible micro-jitter in steady-state instead of full stop. Tradeoff is product-dependent — for "place a virtual object on a surface" UX, the prior rock-solid behavior may be preferable; for "produce ground-truth pose telemetry", the per-tick noise is correct.
 
 ### Frontend metrics-event design gap
 
@@ -169,57 +170,9 @@ The localizer computes a deterministic hash of all inputs that affect metric dis
 
 This hash is `PipelineVersion`. It's computed once at service startup and embedded in every response. Calibration artifacts carry the same hash as metadata; mismatch at startup is a hard failure (see "Failure modes" below).
 
-### Calibration loader
+### Calibration loader, confidence computation, map quality features
 
-At startup the localizer:
-
-1. **Loads global calibration** from a config file mounted at `/etc/placeframe/calibration/global.json`. Source of truth is the git repo at `config/calibration/global.json`, mounted via Docker compose `configs:` block.
-2. **Verifies pipeline version**. If `global.PipelineVersion != localizer.PipelineVersion`: hard-fail startup with a loud log explaining the mismatch and the expected fix (run the offline fitting pipeline against the new version, commit the result, redeploy).
-3. **Per-map calibrations** are NOT loaded eagerly. Each map has at most one calibration artifact at `s3://placeframe-maps/{map_id}/calibration.json`. The first request to localize against a map triggers a lazy load: fetch + cache in memory keyed by map ID. If absent, fall back to global-only for that map (logged, not failed). If present but pipeline-version-mismatched, log loudly and fall back to global-only.
-
-### Confidence computation per query
-
-Given raw `metrics`, the active map's metadata `map_quality_features`, and the loaded calibration:
-
-```
-features = transform(metrics, map_quality_features)
-  # transformations: log(NumInliers + 1), ReprojErr / image_diagonal_pixels,
-  # InlierRatio (already 0-1), InlierCoverage (already 0-1),
-  # log(MapImageCount + 1), log(MapPointCount + 1), MapAvgTrackLength,
-  # log(MapBoundingVolumeM3 + 1), MapViewpointDiversity, IsIndoor
-
-p_global_tight = sigmoid(features @ global.tight.weights + global.tight.intercept)
-p_global_loose = sigmoid(features @ global.loose.weights + global.loose.intercept)
-
-# Stage 1 isotonic (calibrates the logistic output to actual P over training distribution)
-p_calibrated_tight = global.tight.isotonic.apply(p_global_tight)
-p_calibrated_loose = global.loose.isotonic.apply(p_global_loose)
-
-# Stage 2 isotonic (per-map correction, identity if absent)
-if per_map_calibration_loaded:
-    p_final_tight = per_map.tight.isotonic.apply(p_calibrated_tight)
-    p_final_loose = per_map.loose.isotonic.apply(p_calibrated_loose)
-else:
-    p_final_tight = p_calibrated_tight
-    p_final_loose = p_calibrated_loose
-
-return Confidence(tight=p_final_tight, loose=p_final_loose, is_calibrated=True)
-```
-
-Total cost: a few dozen FLOPS plus two isotonic lookups (binary search over ~100 breakpoints). Negligible (<10 µs per query).
-
-### Map quality features
-
-Extracted at map-build time and stored as part of the map's metadata (database row, alongside the map ID). Computed once when the map is reconstructed:
-
-- `MapImageCount`: total registered images.
-- `MapPointCount`: total triangulated 3D points.
-- `MapAvgTrackLength`: mean number of observations per 3D point.
-- `MapBoundingVolumeM3`: convex hull volume of the camera centers, in cubic meters.
-- `MapViewpointDiversity`: scalar derived from the variance of camera viewing directions (higher = more directional coverage).
-- `IsIndoor`: boolean flag, set at upload time as map metadata. Default false; toggleable per map.
-
-These get joined into the calibration feature vector at query time. Schema lives in the maps table; serialized to the same map metadata document the localizer already loads.
+Owned by [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md). Briefly: the localizer loads `config/calibration/global.json` at startup (hard-fails on missing file or pipeline-version mismatch), lazily loads per-map calibrations from MinIO on first request, computes `Confidence` from a logistic + isotonic over transformed metrics and map-quality features. Map-quality features (image count, point count, avg track length, bounding volume, viewpoint diversity, indoor flag) are computed at map-build time and stored on the maps table.
 
 ### Failure modes
 
@@ -235,153 +188,17 @@ These get joined into the calibration feature vector at query time. Schema lives
 
 ## Calibration
 
-### Two tolerances, two models
+Owned in full by [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md), including:
 
-For each tolerance level, we fit an independent calibration model end-to-end. Models share the same input features but have different binary labels.
+- The two-tolerance, two-model design (`tight`, `loose`) and rationale.
+- The two-stage calibration (Stage 1 ZED held-out bulk, Stage 2 phone-side correction).
+- The global-model + per-map-overlay hybrid.
+- Algorithms 1 / 2 / 3 in full procedural detail.
+- Calibration artifact format and storage lifecycle.
+- The fit pipeline (`scripts/fit_calibration.py`).
+- The fused e2e-harness-as-data-generator architecture and corpus-gathering spec.
 
-- **Tight**: label is `(translation_err < 5cm) AND (rotation_err < 1°)`. Frontend uses for primary gating decisions.
-- **Loose**: label is `(translation_err < 30cm) AND (rotation_err < 5°)`. Frontend uses for sanity-checking ("is this a wild outlier?") and for graceful UX degradation.
-
-Independent models because:
-
-- Tight-tolerance success and loose-tolerance success are correlated but not identical, especially in the regime where calibration matters most (mediocre quality results).
-- They have different operational uses on the frontend.
-- Fit cost is trivial — fitting two logistic regressions instead of one is irrelevant to the pipeline.
-
-### Two-stage calibration: bulk + correction
-
-Two distinct datasets feed two distinct fitting steps:
-
-**Stage 1 — Bulk training on ZED held-out data**.
-
-Plentiful, free-from-pose-prior, comes from the same hardware that built the map. Fits a logistic regression mapping `(metrics, map_features) → P(success)`. Captures the *shape* of the calibration function — how InlierRatio relates to ReprojErr relates to MapPointCount relates to success. This is the bulk of the function and generalizes across deployment conditions.
-
-**Stage 2 — Domain correction on phone-side data**.
-
-A smaller dataset (~500 samples per device class) of phone queries with VIO-relative ground truth. Fits an isotonic regression on top of stage 1's output: `predicted_p → empirical P(success)` for phone-source queries. Corrects for the systematic distribution shift between ZED-source and phone-source images.
-
-The two-stage design lets us use plentiful ZED data for the bulk fit while only requiring a small amount of phone data to handle device shift. If phone data is unavailable, stage 2 is identity (same as stage 1 output).
-
-### Hybrid: global model + per-map overlay
-
-Two layers stacked on each query:
-
-1. **Global model** (trained on all available data, all maps pooled): logistic + isotonic, takes raw metrics and map-quality features as input. Always present.
-2. **Per-map isotonic correction** (optional, fit lazily once a map has accumulated enough samples): a second isotonic on top of the global output. Identity when absent.
-
-Per-map fitting trigger: when a map accumulates ≥200 phone-side samples with VIO-relative pose-error labels, the offline pipeline fits a per-map isotonic and uploads it to MinIO alongside the map. Refit cadence: weekly or whenever sample count grows by 50%, whichever comes first. (Tunable; not load-bearing.)
-
-### Algorithm 1: ZED held-out fitting
-
-Source: every ZED capture session that builds a map.
-
-Procedure:
-
-1. For each capture session contributing to the map:
-   a. Hold out 10% of the session's images at map-build time. Build the COLMAP map from the remaining 90%.
-   b. From the in-set images, COLMAP outputs reconstructed poses `P_map_i` (in F_map). The same images had ZED pose priors `P_zed_i` (in F_zed) at capture time.
-   c. Solve `T_zed_to_map` via Procrustes/Umeyama on `(P_zed_i, P_map_i)` pairs. This is a rigid + scale alignment, closed form.
-2. For each held-out image:
-   a. Transform its ZED-prior pose into F_map: `P_truth = T_zed_to_map · P_zed`.
-   b. Run the localizer on the held-out image against the built map: `P_estimated, metrics`.
-   c. Compute pose errors: `err_t = ||translation(P_truth) − translation(P_estimated)||`, `err_r = angle_between(rotation(P_truth), rotation(P_estimated))`.
-   d. Record `(metrics, map_quality_features, err_t, err_r)`.
-3. Pool across all sessions and maps. Add binary labels (`success_tight = err_t<5cm AND err_r<1°`, similar for loose).
-4. Fit logistic regression for each label using sklearn's `LogisticRegression(class_weight='balanced')`.
-5. Fit isotonic regression on the logistic output using sklearn's `IsotonicRegression(out_of_bounds='clip')` against the same labels (calibration step — ensures output is a true probability).
-6. Optionally hold out 10% of the pooled samples to compute Brier score and reliability diagrams; report in the fit metadata.
-
-Output: `{tight: {weights, intercept, isotonic}, loose: {weights, intercept, isotonic}, fit_metadata, pipeline_version}`.
-
-This stage runs as part of the offline fitting pipeline; see "Offline fitting pipeline" below.
-
-### Algorithm 2: phone-side pairwise calibration
-
-Source: opt-in dogfooding sessions captured by the AndroidMobile app.
-
-Per session, the app logs every localization query:
-- Server response: estimated pose `T_map_i`, metrics, confidence (whatever stage 1 said).
-- Local snapshot at the moment the query was captured: VIO pose `T_vio_i`, monotonic timestamp, frame index.
-
-Per session, after upload:
-
-1. Enumerate localization pairs `(i, j)` where `j > i` and `||translation(T_vio_j) − translation(T_vio_i)|| ≤ 1.0 m` (limits VIO drift contribution to <1cm on flagship phones, <2cm on lower-end).
-2. For each pair, compute pairwise error:
-   - VIO-implied relative motion: `dT_vio = T_vio_j · T_vio_i⁻¹`.
-   - Localizer-implied relative motion: `dT_loc = T_map_j · T_map_i⁻¹`.
-   - Pairwise translation error: `err_t = ||translation(dT_loc) − translation(dT_vio)||`.
-   - Pairwise rotation error: `err_r = angle_between(rotation(dT_loc), rotation(dT_vio))`.
-   - Note: pairwise error reflects *combined* error of the two localizations. A clean attribution requires more than this — see "Attribution" below.
-3. Attribution: for each individual localization, define `err_i = median over all pairs that include i of pair_err`. Robust to outlier pairs; assigns each localization a per-frame error label.
-4. Add binary labels per localization (using attributed `err_i`).
-5. Pool across phone sessions. Fit isotonic correction `g(p) = empirical P(success | predicted_p_from_stage_1)`.
-
-Output: `{tight: {isotonic}, loose: {isotonic}}`.
-
-**Attribution caveat**. Pairwise errors confound the two localizations involved. Median-over-pairs is a coarse but robust attribution heuristic. A more principled alternative is a least-squares formulation (each pair's error is the L2 sum of its two localizations' errors; solve a per-localization-error system). Median-over-pairs is the chosen baseline; LSQ refinement remains an option if the heuristic proves insufficient.
-
-**What this CAN'T detect**. Errors that are systematically shared across all localizations in a session (e.g., a phone with miscalibrated intrinsics that produces a constant 30cm offset on every query) get absorbed into the implicit `T_align` and produce zero pairwise residual. The system would calibrate as "all localizations look perfect" while being absolutely wrong. This is acceptable: the user-facing experience of "consistent but slightly shifted world" is visually stable and is the lowest-impact failure mode. Random outlier localizations — the high-impact failure mode — are detected normally because they stick out from neighboring localizations.
-
-### Algorithm 3: per-map fitting
-
-Same as Algorithm 2, but partitioned by map ID. Once a map has ≥200 phone-side samples, the offline pipeline fits a per-map isotonic on top of the global stage-1+stage-2 prediction:
-
-```
-predicted_p_global = stage1(metrics, map_features).then(stage2_isotonic)
-# Per-map isotonic learns:
-#   permap_isotonic(p) = empirical P(success | predicted_p_global = p, map = M)
-```
-
-Output uploaded to `s3://placeframe-maps/{map_id}/calibration.json`.
-
-### Calibration artifact format
-
-Single JSON document, ~3 KB for global, ~1 KB per map.
-
-```json
-{
-  "schema_version": 1,
-  "pipeline_version": "abc123def456...",
-  "fit_metadata": {
-    "fit_at": "2026-04-29T14:00:00Z",
-    "fit_by": "scripts/fit_calibration.py v0.1",
-    "sample_count": 8743,
-    "validation": {
-      "brier_tight": 0.092,
-      "brier_loose": 0.041,
-      "reliability_diagram_bins": [...]
-    }
-  },
-  "global": {
-    "tight": {
-      "logistic": {
-        "weights": [0.234, -1.83, 0.45, ...],
-        "intercept": -2.14,
-        "feature_names": ["log_inliers", "inlier_ratio", "reproj_err_norm", ...]
-      },
-      "isotonic": {
-        "x_breakpoints": [0.01, 0.05, 0.10, ..., 0.99],
-        "y_breakpoints": [0.02, 0.06, 0.12, ..., 0.97]
-      }
-    },
-    "loose": { "logistic": {...}, "isotonic": {...} }
-  }
-}
-```
-
-Per-map artifact has the same shape but only `tight.isotonic` and `loose.isotonic` blocks (no logistic — the global one is the upstream).
-
-### Storage and lifecycle
-
-| Artifact | Path | Updated by | Cadence |
-|---|---|---|---|
-| Global calibration | `config/calibration/global.json` (git repo) | Engineer (PR after running offline pipeline) | When offline pipeline produces a meaningful update — initially weekly, slowing to quarterly |
-| Per-map calibrations | `s3://placeframe-maps/{map_id}/calibration.json` (MinIO) | Offline pipeline (automated upload) | Per map: when sample count grows 50% or weekly, whichever first |
-| Phone-side calibration data (raw logs) | `s3://placeframe-calibration-data/sessions/{session_id}.json` (MinIO) | AndroidMobile app (when dogfooding toggle is on) | Per session at session end |
-
-The global calibration mounts into the localizer container as a Docker compose `configs:` volume. Updating is: run offline pipeline → `git diff` → review → PR → merge → deploy → service restart on next deploy. No Docker rebuild.
-
-Per-map calibrations are loaded lazily by the localizer on first request to that map. Cached in memory. Optional `POST /calibration/refresh/{map_id}` admin endpoint to invalidate the cache after a per-map upload (otherwise picks up on next localizer restart).
+This file's role re: calibration is limited to the API contract (LocalizationMetrics' Confidence/Covariance/PipelineVersion fields) above and the frontend's consumption of those fields below.
 
 ---
 
@@ -556,42 +373,6 @@ API endpoint `POST /calibration-data` writes the JSON directly to MinIO at `s3:/
 
 ---
 
-## Offline fitting pipeline
-
-A new Python script: `scripts/src/scripts/fit_calibration.py`. Run manually (or scheduled). Pulls data, fits, produces artifacts.
-
-### Inputs
-
-- ZED held-out data: regenerated on demand from existing capture sessions in MinIO. The script invokes the localizer in batch mode against held-out images and records `(metrics, pose_error)` rows.
-- Phone-side data: read from the `placeframe-calibration-data` bucket in MinIO (uploaded by AndroidMobile dogfooding).
-- Map metadata: read from the maps table in PostgreSQL.
-
-### Output
-
-- Updated `config/calibration/global.json` (engineer reviews diff and commits).
-- One per-map calibration JSON per map that meets the sample threshold, uploaded directly to `s3://placeframe-maps/{map_id}/calibration.json`.
-- A fitting report (Brier scores, reliability diagrams, sample counts, fit dates) printed to stdout and saved to `config/calibration/last_fit_report.md` (also git-committed).
-
-### Steps
-
-1. Fetch ZED capture sessions and their builds. For each: run held-out generation if not already present.
-2. Fetch phone-side calibration data from MinIO. Filter by pipeline version (skip mismatches with current).
-3. Compute pairwise pose errors per phone session (Algorithm 2).
-4. Pool ZED held-out and phone-attributed data. Fit stage 1 logistic + stage 1 isotonic for tight and loose.
-5. Fit stage 2 isotonic (phone-only correction) for tight and loose.
-6. For each map with ≥200 phone samples: fit per-map isotonic. Write to MinIO.
-7. Write global JSON to `config/calibration/global.json`.
-8. Generate report with validation metrics (Brier, reliability binning).
-9. Print summary; exit nonzero if any sanity checks fail (e.g., Brier > some ceiling, sample count anomalously low).
-
-### Cadence
-
-- Initial: run weekly during early calibration data accumulation (manual).
-- Steady state: monthly or quarterly (manual, once calibration is stable).
-- After any pipeline change in the localizer: mandatory re-fit before redeploy. Pipeline version mismatch enforces this.
-
----
-
 ## Open tunables
 
 These are values the design depends on but where the right number is empirical and will be tuned post-deployment:
@@ -607,7 +388,7 @@ These are values the design depends on but where the right number is empirical a
 | Per-map calibration refit cadence | weekly OR +50% samples | Offline pipeline |
 | Phone pair distance cap | 1.0 m | Algorithm 2 pairwise interval |
 | Frontend tight-confidence gating threshold | n/a (use confidence as Σ_meas weight, no hard threshold) | VPS measurement processing |
-| Base per-tick process noise | 1e-4 m² translation, 1e-6 rad² rotation (coarse — re-tuned in Phase 3 against fitted σ_meas) | VPS measurement processing — see "Σ_posterior lock-in" finding |
+| Base per-tick process noise | 1e-4 m² translation, 1e-6 rad² rotation (coarse — re-tuned against fitted σ_meas; see [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md)) | VPS measurement processing — see "Σ_posterior lock-in" finding |
 
 The frontend NOTABLY does not have a "reject if confidence < X" hard threshold (other than the `LooseLowerBound = 0.1` floor). Confidence flows into measurement processing as a measurement-covariance scaling — a low-confidence measurement is treated as a wide-σ measurement and naturally gets little weight in the Bayesian update, while a high-confidence measurement gets tight σ and dominates. This is the textbook Bayesian way to use a calibrated probability and avoids picking a magic threshold.
 
