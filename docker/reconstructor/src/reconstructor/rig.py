@@ -1,6 +1,6 @@
 from core.axis_convention import AxisConvention, change_basis_opencv_from_unity_pose
-from core.camera_config import transform_intrinsics
 from core.capture_session_manifest import RigCameraConfig, RigConfig
+from core.image_preprocess import canonicalize_intrinsics
 from core.transform import Float3, Float4
 from numpy import array, float64
 from numpy.typing import NDArray
@@ -35,7 +35,7 @@ class Rig:
         self.cameras: dict[str, tuple[RigCameraConfig, ColmapCamera]] = {}
         rig_camera_configs: list[ColmapRigConfigCamera] = []
         for camera in rig_config.cameras:
-            width, height, *params = transform_intrinsics(camera.camera_config)
+            width, height, *params = canonicalize_intrinsics(camera.camera_config)
             self.cameras[camera.id] = (camera, ColmapCamera(width=width, height=height, model="PINHOLE", params=params))
 
             rig_camera_configs.append(
