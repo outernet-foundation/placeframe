@@ -260,7 +260,46 @@ Per-map fitting code is deferred from Phase 3 (loader is in place, fitting isn't
 
 Threads that aren't a phase but are tracked so they're not forgotten.
 
-- **LightGlue per-query latency (~250ms, 44% of total).** `load_lightglue` in `packages/python/neural-networks/src/neural_networks/models.py:112` sets `width_confidence=-1, depth_confidence=-1`, which disables LightGlue's adaptive width/depth pruning. Original rationale was something about batched matching but the `# TODO: add comment about why...` next to it confirms the reason wasn't captured at the time. Investigate whether re-enabling pruning is compatible with the current batched-matching path (12 pairs per query, padded keypoints via `pad_sequence`); if the pruning machinery's internal masking tolerates per-pair early-exit while the outer batch dim is held together, re-enabling could shave 30–50% off matching wall time. Experiment: toggle the flags, run `test-placeframe-e2e`, compare total localization wall time and match-quality metrics. Bundle into a pipeline change (Phase 2e or 2d) so the calibration refit doesn't happen in isolation.
+### LightGlue per-query latency (~250ms, 44% of total)
+
+`load_lightglue` in `packages/python/neural-networks/src/neural_networks/models.py:112` sets `width_confidence=-1, depth_confidence=-1`, disabling LightGlue's adaptive width/depth pruning. The original `# TODO: add comment about why...` next to it confirms the rationale wasn't captured at the time. Investigation done; experiments still to run.
+
+**What the flags do** (read in `.venv/lib/python3.13/site-packages/lightglue/lightglue.py`):
+
+- **`depth_confidence`** (early stopping — `lightglue.py:528, 547–550, 645–656`). Each layer computes per-keypoint confidence via a small `token_confidence[i]` MLP; `check_if_stop` reduces all batch elements + all keypoints to **a single scalar ratio** of high-confidence tokens, breaking the layer loop for the whole batch when ratio > `depth_confidence` (default 0.95). **Batch-compatible.** Cost: `token_confidence` MLP runs every layer when enabled. Effectiveness with B>1 is bottlenecked by the hardest pair in the batch.
+- **`width_confidence`** (point pruning — `lightglue.py:529, 551–566, 636–643`). Each layer drops low-matchability keypoints from `desc0`/`desc1`. The pruning mask is computed per-batch-element (shape `[B, M]`) but the implementation does `keep0 = torch.where(prunemask0)[1]; desc0 = desc0.index_select(1, keep0)` — collapsing the batch dim into a flat column-index list and applying the same selection to all batch elements. For B>1 with disagreeing masks this produces an incoherent tensor (duplicated columns where multiple batch elements voted keep, positions unrelated to each batch element's actual decision). The cvg/LightGlue authors know this — `do_point_pruning = width_confidence > 0 and not do_compile` (line 529) explicitly disables it under compile/static-lengths. **Batch-incompatible as written in cvg/LightGlue.**
+
+**Why our flags are `-1`:** `core/lightglue.py:54–70` batches 12 pairs through `pad_sequence` in a single LightGlue call.
+
+- `width_confidence=-1` is forced by batching. Re-enabling with the current call pattern produces wrong matches. Not a tunable until we either un-batch or patch upstream.
+- `depth_confidence=-1` is a free choice — probably set defensively at the same time. No correctness reason to disable. Re-enabling has minimal risk and uncertain speedup.
+
+**Other levers in `LightGlue` config:**
+- `mp: False` (default) — mixed-precision autocast. Easy 1.5–2× on Ampere+ GPUs.
+- `flash: True` (default) — FlashAttention; already on if available.
+- `compile()` — torch-compiled forward with bucketed static lengths. Fast but warmup-heavy and disables width pruning anyway.
+
+**Other levers on our side:**
+- `MAX_KEYPOINTS_PER_IMAGE = 2500` (`reconstructor/options_builder.py:19`). Attention cost is roughly quadratic in keypoint count.
+- `RETRIEVAL_TOP_K = 12` (`docker/localizer/src/localize.py:41`). Linear in pair count.
+
+**Experiment plan** (ranked; run in order, stop when satisfied):
+
+Each variant requires a localizer rebuild (`pipeline_version` bumps). Measure `localize timings(ms): matching=X` from the localizer log and confirm `num_matches` (raw LightGlue match count, summed in `localize.py:164`) doesn't collapse. Run each against the same query/map pair so timings are comparable.
+
+1. **Re-enable depth-only**: `LightGlue(features="aliked", width_confidence=-1, depth_confidence=0.95)`. Zero correctness risk. Expected 0–30% speedup depending on how often the hardest pair in the batch gates early stop.
+2. **Add mixed precision**: variant 1 plus `mp=True`. Expected 30–50% additional speedup; small match-count drift is normal.
+3. **Un-batch + full pruning**: loop pairs sequentially (set batch_size=1 in `lightglue_match_tensors`), `width_confidence=0.99, depth_confidence=0.95, mp=True`. Each pair gains pruning at the cost of ~12× call overhead. Net could go either way; only worth running if 1+2 didn't get us where we want.
+
+**How to run:**
+- Stack up: `uv run up --quiet-pull` (waits for `migrate-database` container).
+- Edit `load_lightglue` in `packages/python/neural-networks/src/neural_networks/models.py`, then `uv run build` (CUDA auto-detected) and `uv run up --quiet-pull` to redeploy.
+- Issue a localization request via the Capture Tool against an existing reconstructed map, or via the OpenAPI UI at the ngrok domain. Read `localize timings(ms): ...` from `docker logs placeframe-localizer-1`.
+- Repeat per variant. Compare matching=, total=, num_matches.
+
+**Bundling strategy.** Each pipeline change bumps `pipeline_version` and invalidates calibration. Don't ship a winning variant in isolation — bundle into Phase 2e (so the parameter sweep runs against the faster matcher) or Phase 2d (so the post-masking refit absorbs the change). Acceptable to land it on a side branch and merge into whichever phase ships first.
+
+**Replacing the code TODO.** Once the experiment lands, the comment in `models.py:111` becomes something like: "width_confidence=-1 because point pruning is incompatible with batched inputs in cvg/LightGlue (the prune mask is per-batch but applied as a flat column selection); we batch N pairs, so width pruning must stay off. depth_confidence=<chosen> based on experiment <commit-sha>."
 
 ## Scaffolding inventory
 
