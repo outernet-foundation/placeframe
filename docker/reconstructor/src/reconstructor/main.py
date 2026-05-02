@@ -69,7 +69,7 @@ def handle_sigterm(signum: int, frame: Any) -> NoReturn:
 
 
 def main() -> None:
-    load_models(settings.max_keypoints_per_image)
+    load_models()
 
     # Register the signal handler for graceful Docker shutdowns
     signal(SIGTERM, handle_sigterm)

@@ -51,7 +51,7 @@ s3_client = create_s3_client(
 if not environ.get("CODEGEN"):
     from .localize import load_models
 
-    load_models(settings.max_keypoints_per_image)
+    load_models()
 
 
 class LocalizationRequest(MultipartRequestModel):
