@@ -4,6 +4,7 @@ from os import environ
 from typing import Any, cast
 
 from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
+from core.calibration import CalibrationArtifact
 from core.camera_config import PinholeCameraConfig
 from core.image_preprocess import canonicalize_image, canonicalize_intrinsics, tile_image
 from core.lightglue import lightglue_match_tensors
@@ -61,6 +62,8 @@ def localize_image_against_reconstruction(
     image_buffer: bytes,
     retrieval_top_k: int | None,
     ransac_threshold: float | None,
+    pipeline_version: str,
+    calibration: CalibrationArtifact,
 ) -> tuple[Transform, LocalizationMetrics]:
     if retrieval_top_k is None:
         retrieval_top_k = RETRIEVAL_TOP_K
@@ -142,7 +145,9 @@ def localize_image_against_reconstruction(
     points3D = vstack([map.points3D[i].xyz for i in point3d_indices])  # noqa: N806 — pycolmap CV notation
     pnp_result = cast(
         dict[str, Any] | None,
-        estimate_and_refine_absolute_pose(points2D, points3D, pycolmap_camera, estimation_options),
+        estimate_and_refine_absolute_pose(
+            points2D, points3D, pycolmap_camera, estimation_options, return_covariance=True
+        ),
     )
 
     # Check if pose estimation was successful
@@ -164,7 +169,17 @@ def localize_image_against_reconstruction(
     )
 
     # Build metrics
-    metrics = build_localization_metrics(pnp_result, points2D, points3D, pycolmap_camera, num_matches, width, height)
+    metrics = build_localization_metrics(
+        pnp_result,
+        points2D,
+        points3D,
+        pycolmap_camera,
+        num_matches,
+        width,
+        height,
+        pipeline_version,
+        calibration,
+    )
 
     # Success
     print(transform.model_dump_json(indent=2))

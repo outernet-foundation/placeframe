@@ -7,6 +7,8 @@ from numpy.typing import NDArray
 from pycolmap import Camera as ColmapCamera
 from scipy.spatial import ConvexHull
 
+from core.calibration import CalibrationArtifact, Features, apply_global_calibration
+
 
 def _compute_inlier_coverage(points2d_inliers: ndarray, image_width: int, image_height: int) -> float:
     if points2d_inliers.shape[0] < 3:
@@ -26,6 +28,8 @@ def build_localization_metrics(
     num_matches: int,
     image_width: int,
     image_height: int,
+    pipeline_version: str,
+    calibration: CalibrationArtifact,
 ) -> LocalizationMetrics:
     num_inliers = int(pnp_result["num_inliers"])
     num_correspondences = int(points2d.shape[0])
@@ -55,6 +59,10 @@ def build_localization_metrics(
     # Compute inlier coverage
     inlier_coverage = _compute_inlier_coverage(points2d_inliers, image_width, image_height)
 
+    confidence = apply_global_calibration(calibration, features=Features.zeros())
+
+    covariance = pnp_result["covariance"].tolist()
+
     return LocalizationMetrics(
         inlier_ratio=inlier_ratio,
         reprojection_error_median=reprojection_error_median,
@@ -62,4 +70,7 @@ def build_localization_metrics(
         num_correspondences=num_correspondences,
         num_matches=num_matches,
         inlier_coverage=inlier_coverage,
+        confidence=confidence,
+        covariance=covariance,
+        pipeline_version=pipeline_version,
     )

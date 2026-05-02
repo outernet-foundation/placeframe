@@ -24,4 +24,8 @@ RUN uv pip check
 
 COPY --chmod=0755 docker/localizer/entrypoint.sh /usr/local/bin/entrypoint.sh
 
+# Stamped late so only the trailing ENV layer invalidates per commit; upstream pip-install layers stay cached.
+ARG GIT_COMMIT_SHA
+ENV GIT_COMMIT_SHA=${GIT_COMMIT_SHA}
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
