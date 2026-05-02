@@ -9,14 +9,19 @@ from itertools import product
 from json import load as json_load
 from pathlib import Path
 from tarfile import TarInfo, open as tar_open
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from httpx import AsyncClient
 from numpy import array, degrees, float64
 from numpy.linalg import norm
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
-from pydantic import BaseModel
+from pytransform3d.transformations import (
+    concat,
+    exponential_coordinates_from_transform,
+    invert_transform,
+    transform_from,
+)
 from scipy.spatial.transform import Rotation
 from typer import Exit, Option, Typer, echo
 
@@ -34,6 +39,8 @@ from placeframe_api_client import (
     ReconstructionCreateWithOptions,
     ReconstructionOptions,
 )
+
+from .e2e_results import E2EResults, LocalizationResult, ReconMetrics, ReconstructionResult
 
 app = Typer()
 
@@ -79,61 +86,6 @@ PB_SEED = [+1, +1, +1, +1, -1, +1, -1, +1, +1, -1]
 
 LOC_RETRIEVAL_TOP_K = [3, 5, 10]
 LOC_RANSAC_THRESHOLD = [6.0, 12.0, 24.0]
-
-
-# --- Result models (serialized to JSON) ---
-
-
-class ReconMetrics(BaseModel):
-    total_images: int | None
-    registered_images: int | None
-    registration_rate: float | None
-    num_3d_points: int | None
-    reproj_error_50th: float | None
-    reproj_error_90th: float | None
-
-
-class ReconstructionResult(BaseModel):
-    location: str
-    device_type: str
-    capture_name: str
-    config_idx: int
-    options: dict[str, Any] | None
-    reconstruction_id: str | None
-    succeeded: bool
-    metrics: ReconMetrics | None = None
-    loc_map_id: str | None = None
-    truth_alignment_rms_residual_m: float | None = None
-    truth_alignment_max_residual_m: float | None = None
-
-
-class LocalizationResult(BaseModel):
-    location: str
-    recon_device_type: str
-    recon_capture_name: str
-    recon_config_idx: int
-    reconstruction_id: str
-    query_device_type: str
-    query_capture_name: str
-    query_frame_timestamp: str
-    is_cross_device: bool
-    retrieval_top_k: int | None
-    ransac_threshold: float | None
-    succeeded: bool
-    inlier_ratio: float | None = None
-    reproj_error_median: float | None = None
-    num_inliers: int | None = None
-    num_correspondences: int | None = None
-    num_matches: int | None = None
-    inlier_coverage: float | None = None
-    err_t_m: float | None = None
-    err_r_deg: float | None = None
-
-
-class E2EResults(BaseModel):
-    run_timestamp: str
-    reconstructions: list[ReconstructionResult]
-    localizations: list[LocalizationResult]
 
 
 # --- Internal dataclasses ---
@@ -237,6 +189,93 @@ def _prepare_capture(capture: CaptureInfo) -> None:
     )
 
 
+async def _localize_and_label(
+    api: DefaultApi,
+    recon: ReconstructionResult,
+    loc_map_id: str,
+    reconstruction_id: str,
+    qcap: CaptureInfo,
+    qframe: WithheldFrame,
+    top_k: int | None,
+    thresh: float | None,
+) -> LocalizationResult:
+    loc_result = LocalizationResult(
+        location=recon.location,
+        recon_device_type=recon.device_type,
+        recon_capture_name=recon.capture_name,
+        recon_config_idx=recon.config_idx,
+        reconstruction_id=reconstruction_id,
+        query_device_type=qcap.device_type.value,
+        query_capture_name=qcap.device_dir,
+        query_frame_timestamp=qframe.timestamp,
+        query_image_diagonal_px=float((qframe.camera_config.width**2 + qframe.camera_config.height**2) ** 0.5),
+        is_cross_device=qcap.device_type.value != recon.device_type,
+        retrieval_top_k=top_k,
+        ransac_threshold=thresh,
+        succeeded=False,
+    )
+
+    try:
+        loc_resp = await api.localize_image(
+            map_ids=[UUID(loc_map_id)],
+            camera_config=qframe.camera_config,
+            axis_convention=qcap.axis_convention,
+            retrieval_top_k=top_k,
+            ransac_threshold=thresh,
+            image=("query.jpg", qframe.image_bytes),
+        )
+    except Exception as e:
+        echo(f"    Localization error: {e}")
+        return loc_result
+
+    if not loc_resp:
+        return loc_result
+
+    best = loc_resp[0].metrics
+    loc_result.succeeded = True
+    loc_result.inlier_ratio = best.inlier_ratio
+    loc_result.reproj_error_median = best.reprojection_error_median
+    loc_result.num_inliers = best.num_inliers
+    loc_result.num_correspondences = best.num_correspondences
+    loc_result.num_matches = best.num_matches
+    loc_result.inlier_coverage = best.inlier_coverage
+    loc_result.pnp_covariance = [[float(v) for v in row] for row in best.pnp_covariance]
+
+    # camera_from_map is the localizer's camera-from-world pose (the reconstructor's
+    # Umeyama alignment puts the map in truth-world frame). Truth from frames.csv is
+    # world_from_rig with the ref sensor at identity offset, so it doubles as
+    # world_from_camera. Both are in the capture's native axis convention — the API
+    # converts back from OpenCV at the boundary based on the query's `axis_convention`.
+    cam_from_map = loc_resp[0].camera_from_map_transform
+    cam_from_map_translation = array(
+        [cam_from_map.translation.x, cam_from_map.translation.y, cam_from_map.translation.z],
+        dtype=float64,
+    )
+    cam_from_map_rotation = Rotation.from_quat([
+        cam_from_map.rotation.x,
+        cam_from_map.rotation.y,
+        cam_from_map.rotation.z,
+        cam_from_map.rotation.w,
+    ]).as_matrix()
+    estimated_camera_position = -cam_from_map_rotation.T @ cam_from_map_translation
+    estimated_world_from_camera = cam_from_map_rotation.T
+    truth_world_from_camera = Rotation.from_quat(qframe.truth_rotation_quat_xyzw).as_matrix()
+    relative_rotation = Rotation.from_matrix(truth_world_from_camera @ estimated_world_from_camera.T)
+
+    loc_result.err_t_m = float(norm(qframe.truth_translation - estimated_camera_position))
+    loc_result.err_r_deg = float(degrees(relative_rotation.magnitude()))
+
+    # SE(3) residual log(P_truth · P_estimated⁻¹) as a 6-vector for the Σ_meas α/β fit.
+    truth_world_from_camera_4x4 = transform_from(truth_world_from_camera, qframe.truth_translation)
+    estimated_world_from_camera_4x4 = transform_from(estimated_world_from_camera, estimated_camera_position)
+    residual_transform = concat(
+        truth_world_from_camera_4x4, invert_transform(estimated_world_from_camera_4x4, check=False)
+    )
+    loc_result.se3_residual = exponential_coordinates_from_transform(residual_transform).tolist()
+
+    return loc_result
+
+
 async def _run_reconstruction(
     api: DefaultApi,
     capture: CaptureInfo,
@@ -270,6 +309,7 @@ async def _run_reconstruction(
             )
 
     m = (await api.get_reconstruction_manifest(id=recon.id)).metrics
+    recon_read = await api.get_reconstruction(id=recon.id)
 
     loc_map = await api.create_localization_map(
         LocalizationMapCreate(
@@ -300,8 +340,14 @@ async def _run_reconstruction(
             num_3d_points=m.num_3d_points,
             reproj_error_50th=m.reprojection_pixel_error_50th_percentile,
             reproj_error_90th=m.reprojection_pixel_error_90th_percentile,
+            map_image_count=m.map_image_count,
+            map_point_count=m.map_point_count,
+            map_avg_track_length=m.map_avg_track_length,
+            map_bounding_volume_m3=m.map_bounding_volume_m3,
+            map_viewpoint_diversity=m.map_viewpoint_diversity,
         ),
         loc_map_id=str(loc_map.id),
+        is_indoor=recon_read.is_indoor,
         truth_alignment_rms_residual_m=m.truth_alignment_rms_residual_m,
         truth_alignment_max_residual_m=m.truth_alignment_max_residual_m,
     )
@@ -464,71 +510,9 @@ async def _run(tar_paths: list[Path], single_config: bool) -> E2EResults:
         for i, (recon, loc_map_id, reconstruction_id, qcap, qframe, top_k, thresh) in enumerate(loc_tasks):
             if (i + 1) % 100 == 0:
                 echo(f"  Localization {i + 1}/{len(loc_tasks)}...")
-
-            loc_result = LocalizationResult(
-                location=recon.location,
-                recon_device_type=recon.device_type,
-                recon_capture_name=recon.capture_name,
-                recon_config_idx=recon.config_idx,
-                reconstruction_id=reconstruction_id,
-                query_device_type=qcap.device_type.value,
-                query_capture_name=qcap.device_dir,
-                query_frame_timestamp=qframe.timestamp,
-                is_cross_device=qcap.device_type.value != recon.device_type,
-                retrieval_top_k=top_k,
-                ransac_threshold=thresh,
-                succeeded=False,
+            results.localizations.append(
+                await _localize_and_label(api, recon, loc_map_id, reconstruction_id, qcap, qframe, top_k, thresh)
             )
-
-            try:
-                loc_resp = await api.localize_image(
-                    map_ids=[UUID(loc_map_id)],
-                    camera_config=qframe.camera_config,
-                    axis_convention=qcap.axis_convention,
-                    retrieval_top_k=top_k,
-                    ransac_threshold=thresh,
-                    image=("query.jpg", qframe.image_bytes),
-                )
-            except Exception as e:
-                echo(f"    Localization error: {e}")
-                results.localizations.append(loc_result)
-                continue
-
-            if not loc_resp:
-                results.localizations.append(loc_result)
-                continue
-
-            best = loc_resp[0].metrics
-            loc_result.succeeded = True
-            loc_result.inlier_ratio = best.inlier_ratio
-            loc_result.reproj_error_median = best.reprojection_error_median
-            loc_result.num_inliers = best.num_inliers
-            loc_result.num_correspondences = best.num_correspondences
-            loc_result.num_matches = best.num_matches
-            loc_result.inlier_coverage = best.inlier_coverage
-
-            # camera_from_map is the localizer's camera-from-world pose (the reconstructor's
-            # Umeyama alignment puts the map in truth-world frame). Truth from frames.csv is
-            # world_from_rig with the ref sensor at identity offset, so it doubles as
-            # world_from_camera. Both are in the capture's native axis convention — the API
-            # converts back from OpenCV at the boundary based on the query's `axis_convention`.
-            cam_from_map = loc_resp[0].camera_from_map_transform
-            cam_from_map_translation = array(
-                [cam_from_map.translation.x, cam_from_map.translation.y, cam_from_map.translation.z],
-                dtype=float64,
-            )
-            cam_from_map_rotation = Rotation.from_quat(
-                [cam_from_map.rotation.x, cam_from_map.rotation.y, cam_from_map.rotation.z, cam_from_map.rotation.w]
-            ).as_matrix()
-            estimated_camera_position = -cam_from_map_rotation.T @ cam_from_map_translation
-            estimated_world_from_camera = cam_from_map_rotation.T
-            truth_world_from_camera = Rotation.from_quat(qframe.truth_rotation_quat_xyzw).as_matrix()
-            relative_rotation = Rotation.from_matrix(truth_world_from_camera @ estimated_world_from_camera.T)
-
-            loc_result.err_t_m = float(norm(qframe.truth_translation - estimated_camera_position))
-            loc_result.err_r_deg = float(degrees(relative_rotation.magnitude()))
-
-            results.localizations.append(loc_result)
 
     echo(f"\nReconstructions: {len(succeeded)}/{len(results.reconstructions)} succeeded")
     echo(
