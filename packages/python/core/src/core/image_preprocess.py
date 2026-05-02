@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+from math import ceil
 
 from PIL import Image as PILImage
 from PIL.Image import Resampling, Transpose
@@ -10,6 +11,10 @@ from .camera_config import ImageOrientation, PinholeCameraConfig
 # Standardizes per-pixel scale across cameras with different resolutions, so the feature extractor's
 # fixed-pixel receptive field sees comparable structure regardless of source camera.
 LOCAL_FEATURE_RESIZE_SHORTER_SIDE = 1024
+
+# Tiling produces multiple framings per image so cross-aspect query/database pairs can still find a
+# comparable match. CNN-backbone retrieval models also expect square inputs near their training shape.
+RETRIEVAL_TILE_OVERLAP_FRACTION = 0.5
 
 
 def canonicalize_image(image_buffer: bytes, orientation: ImageOrientation) -> PILImage.Image:
@@ -27,6 +32,25 @@ def canonicalize_intrinsics(camera: PinholeCameraConfig):
     scale_x = new_width / width
     scale_y = new_height / height
     return new_width, new_height, fx * scale_x, fy * scale_y, cx * scale_x, cy * scale_y
+
+
+def tile_image(image: PILImage.Image) -> list[PILImage.Image]:
+    side = LOCAL_FEATURE_RESIZE_SHORTER_SIDE
+    width, height = image.width, image.height
+    long_axis = max(width, height)
+    if long_axis <= side:
+        return [image]
+
+    stride_target = max(1, round(side * (1.0 - RETRIEVAL_TILE_OVERLAP_FRACTION)))
+    num_tiles = max(2, ceil((long_axis - side) / stride_target) + 1)
+    step = (long_axis - side) / (num_tiles - 1)
+
+    tiles: list[PILImage.Image] = []
+    for tile_index in range(num_tiles):
+        offset = round(tile_index * step)
+        box = (offset, 0, offset + side, side) if width >= height else (0, offset, side, offset + side)
+        tiles.append(image.crop(box))
+    return tiles
 
 
 def _resized_dimensions(width: int, height: int) -> tuple[int, int]:
