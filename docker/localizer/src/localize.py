@@ -4,7 +4,8 @@ from os import environ
 from typing import Any, cast
 
 from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
-from core.camera_config import PinholeCameraConfig, transform_image, transform_intrinsics
+from core.camera_config import PinholeCameraConfig
+from core.image_preprocess import canonicalize_image, canonicalize_intrinsics
 from core.lightglue import lightglue_match_tensors
 from core.localization_metrics import LocalizationMetrics
 from core.opq import decode_descriptors
@@ -58,7 +59,7 @@ def localize_image_against_reconstruction(
     ransac_threshold: float,
 ) -> tuple[Transform, LocalizationMetrics]:
     # Extract features from query image
-    image = transform_image(image_buffer, camera.orientation)
+    image = canonicalize_image(image_buffer, camera.orientation)
     rgb_tensor = from_numpy(asarray(image, dtype=float32)).permute(2, 0, 1).div(255.0)
     aliked_output = aliked({"image": rgb_tensor.unsqueeze(0).to(device=DEVICE)})
     query_global_descriptor = dir({"image": rgb_tensor.unsqueeze(0).to(device=DEVICE)})["global_descriptor"][0]
@@ -109,7 +110,7 @@ def localize_image_against_reconstruction(
         raise LocalizationError("No matching keypoints found")
 
     # Create COLMAP camera model
-    width, height, *params = transform_intrinsics(camera)
+    width, height, *params = canonicalize_intrinsics(camera)
     pycolmap_camera = ColmapCamera(width=width, height=height, model="PINHOLE", params=params)
 
     # Set estimation options
