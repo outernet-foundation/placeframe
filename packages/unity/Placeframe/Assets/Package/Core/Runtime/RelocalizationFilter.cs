@@ -55,6 +55,16 @@ namespace Placeframe.Core
         // Per meter of VIO motion, σ_translation grows by 1cm and σ_rotation by 0.01 rad ≈ 0.57°.
         public const double DriftPerMeter = 0.01;
 
+        // Base process noise added per measurement regardless of VIO motion, so σ_posterior
+        // cannot shrink unboundedly during stationary observation. Without this, ~30 stationary
+        // measurements drive σ_posterior below σ_meas/√N and the innovation gate locks the filter
+        // onto its first cluster, rejecting all further measurements. Sized to keep steady-state
+        // σ_posterior at roughly σ_meas/3 given a 1Hz query cadence and the current bootstrapped
+        // σ_meas (translation ≈ 10cm, rotation tight from PnP Hessian). Re-tuned in Phase 3 once
+        // σ_meas is fit from real data.
+        public const double BaseProcessNoiseTranslationVariancePerTick = 1e-4;
+        public const double BaseProcessNoiseRotationVariancePerTick = 1e-6;
+
         public const double BootstrapSigmaTranslationMeters = 100.0;
         public static readonly double BootstrapSigmaRotationRadians = math.PI_DBL;
 
@@ -210,8 +220,20 @@ namespace Placeframe.Core
 
         public static Matrix<double> ProcessNoise(double3 currentVioPosition, double3? lastAcceptedVioPosition)
         {
+            var noise = Matrix<double>.Build.DenseOfDiagonalArray(
+                new[]
+                {
+                    BaseProcessNoiseRotationVariancePerTick,
+                    BaseProcessNoiseRotationVariancePerTick,
+                    BaseProcessNoiseRotationVariancePerTick,
+                    BaseProcessNoiseTranslationVariancePerTick,
+                    BaseProcessNoiseTranslationVariancePerTick,
+                    BaseProcessNoiseTranslationVariancePerTick,
+                }
+            );
+
             if (lastAcceptedVioPosition == null)
-                return Matrix<double>.Build.Dense(6, 6);
+                return noise;
 
             // VIO drift is modeled as proportional to translated distance and applied uniformly to all 6
             // tangent dimensions: σ_translation in meters, σ_rotation in radians. Rotation-only motion
@@ -219,8 +241,8 @@ namespace Placeframe.Core
             // effect than translational and harder to attribute without an IMU bias model.
             var deltaTranslation = math.length(currentVioPosition - lastAcceptedVioPosition.Value);
             var sigma = DriftPerMeter * deltaTranslation;
-            var variance = sigma * sigma;
-            return Matrix<double>.Build.DenseDiagonal(6, 6, variance);
+            var motionVariance = sigma * sigma;
+            return noise + Matrix<double>.Build.DenseDiagonal(6, 6, motionVariance);
         }
 
         public static double MahalanobisSquared(Vector<double> residual, Matrix<double> covariance)
