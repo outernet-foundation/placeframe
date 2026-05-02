@@ -5,7 +5,7 @@ from shutil import rmtree
 from typing import Any, ValuesView, cast
 
 from numpy import concatenate, empty, eye, float32, float64, intp, savez_compressed, stack, uint8, uint32
-from numpy.typing import NDArray
+from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from pycolmap import Database, PosePrior, PosePriorCoordinateSystem
 from pycolmap import Image as pycolmapImage
 from pycolmap._core import Frame, Point3D, Rigid3d, Sim3d, apply_rig_config, incremental_mapping, match_spatial  # noqa: PLC2701 — no public API

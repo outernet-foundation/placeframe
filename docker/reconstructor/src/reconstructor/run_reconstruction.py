@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tarfile
+from collections.abc import Callable
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -11,14 +12,22 @@ from core.camera_config import PinholeCameraConfig
 from core.capture_session_manifest import CaptureSessionManifest
 from core.image_preprocess import canonicalize_image, tile_image
 from core.h5 import write_features, write_global_descriptors
-from core.lightglue import lightglue_match
+from core.lightglue import DescriptorsArrays, KeypointsArrays, MatchIndices
+from core.model_wrappers import (
+    LocalFeatureOutput,
+    make_global_descriptor_extractor,
+    make_local_feature_extractor,
+    make_local_feature_matcher_for_arrays,
+)
 from core.opq import encode_descriptors, train_opq_matrix, train_pq_quantizer, write_opq_matrix, write_pq_quantizer
 from core.reconstruction_manifest import ReconstructionManifest
+from core.model_wrappers import RetrievalDim
+from core.tensor_types import TT
 from neural_networks.models import load_aliked, load_DIR, load_lightglue
 from numpy import asarray, ascontiguousarray, float32, random, stack, vstack
-from numpy.typing import NDArray
+from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from pycolmap._core import set_random_seed  # noqa: PLC2701 — no public API
-from torch import cuda, from_numpy, set_grad_enabled  # type: ignore
+from torch import Tensor, cuda, from_numpy, set_grad_enabled  # type: ignore
 
 from .colmap import run_colmap_reconstruction
 from .metrics_builder import MetricsBuilder
@@ -32,9 +41,16 @@ DEVICE = "cuda" if cuda.is_available() else "cpu"
 WORK_DIR = Path("/tmp/reconstruction")
 CAPTURE_SESSION_DIRECTORY = WORK_DIR / "capture_session"
 
-dir: Any = None
-lightglue: Any = None
-aliked: Any = None
+global_descriptor_extractor: Callable[[Tensor], TT[RetrievalDim]]
+local_feature_extractor: Callable[[Tensor], LocalFeatureOutput]
+local_feature_matcher: Callable[
+    [list[tuple[str, str]], KeypointsArrays, DescriptorsArrays, dict[str, tuple[int, int]], int],
+    MatchIndices,
+]
+
+# Underlying ALIKED model retained for per-job `dkd.n_limit` configuration; the typed wrapper
+# above is the call-path entry point.
+_aliked_model: Any = None
 
 
 def load_models():
@@ -43,10 +59,11 @@ def load_models():
     # Turn off gradient calculations globally (we only do inference here)
     set_grad_enabled(False)
 
-    global dir, lightglue, aliked
-    dir = load_DIR(DEVICE)
-    lightglue = load_lightglue(DEVICE)
-    aliked = load_aliked(device=DEVICE)
+    global _aliked_model, global_descriptor_extractor, local_feature_extractor, local_feature_matcher
+    _aliked_model = load_aliked(device=DEVICE)
+    global_descriptor_extractor = make_global_descriptor_extractor(load_DIR(DEVICE))
+    local_feature_extractor = make_local_feature_extractor(_aliked_model)
+    local_feature_matcher = make_local_feature_matcher_for_arrays(load_lightglue(DEVICE), DEVICE)
 
 
 def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
@@ -100,7 +117,7 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
 
     # Apply per-reconstruction keypoint cap by mutating the DKD module's threshold-mode n_limit.
     # ALIKED itself is loaded once at startup; only this cap is per-job.
-    aliked.dkd.n_limit = options.max_keypoints_per_image()
+    _aliked_model.dkd.n_limit = options.max_keypoints_per_image()
 
     # Generate image pairs
     pairs = generate_image_pairs(rigs, options.neighbors_count(), options.rotation_threshold_deg())
@@ -108,9 +125,9 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
     _put_reconstruction_object(key=file_name, body=file_bytes)
 
     # Extract features
-    global_descriptors: dict[str, NDArray[float32]] = {}
-    keypoints: dict[str, NDArray[float32]] = {}
-    descriptors: dict[str, NDArray[float32]] = {}
+    global_descriptors: dict[str, NDArray[float32]] = {}  # noqa: TID251 — Phase T piece 3 follow-up migration
+    keypoints = KeypointsArrays({})
+    descriptors = DescriptorsArrays({})
     sizes: dict[str, tuple[int, int]] = {}
     image_list: list[tuple[str, PinholeCameraConfig]] = [
         (f"{rig_id}/{camera[0].id}/{frame_id}.jpg", camera[0].camera_config)
@@ -128,18 +145,18 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         # Write image back to disk, so incremental_mapping samples the processed image for point cloud colorization
         image.save(image_path)
 
-        tile_descriptors: list[Any] = []
+        tile_descriptors: list[TT[RetrievalDim]] = []
         for tile in tile_image(image):
             tile_tensor = from_numpy(asarray(tile, dtype=float32)).permute(2, 0, 1).div(255.0)
-            tile_descriptors.append(dir({"image": tile_tensor.unsqueeze(0).to(device=DEVICE)})["global_descriptor"][0])
+            tile_descriptors.append(global_descriptor_extractor(tile_tensor.unsqueeze(0).to(device=DEVICE)))
 
-        aliked_output = aliked({"image": rgb_tensor.unsqueeze(0).to(device=DEVICE)})
+        image_keypoints, image_descriptors = local_feature_extractor(rgb_tensor.unsqueeze(0).to(device=DEVICE))
 
         global_descriptors[image_name] = stack(
             [tile_descriptor.cpu().numpy().astype(float32, copy=False) for tile_descriptor in tile_descriptors], axis=0
         )
-        keypoints[image_name] = aliked_output["keypoints"][0].cpu().numpy().astype(float32, copy=False)
-        descriptors[image_name] = aliked_output["descriptors"][0].cpu().numpy().astype(float32, copy=False)
+        keypoints[image_name] = image_keypoints.cpu().numpy().astype(float32, copy=False)
+        descriptors[image_name] = image_descriptors.cpu().numpy().astype(float32, copy=False)
         sizes[image_name] = (image.height, image.width)
 
     # Write global descriptors to storage
@@ -179,9 +196,7 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
     _put_reconstruction_object(key=file_name, body=file_bytes)
 
     # Match features
-    match_indices = lightglue_match(
-        lightglue, pairs, keypoints, descriptors, sizes, options.lightglue_batch_size(), DEVICE
-    )
+    match_indices = local_feature_matcher(pairs, keypoints, descriptors, sizes, options.lightglue_batch_size())
     if cuda.is_available():
         cuda.empty_cache()
 

@@ -3,7 +3,7 @@ from typing import Any, Iterable, Mapping, cast
 
 from h5py import Dataset, File, Group
 from numpy import asarray, float32, uint8
-from numpy.typing import NDArray
+from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 
 GLOBAL_DESCRIPTORS_DATASET_NAME = "global_descriptor"
 KEYPOINTS_DATASET_NAME = "keypoints"

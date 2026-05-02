@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from numpy import asarray, float64, uint8
-from numpy.typing import NDArray
+from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from pyzed import sl  # type: ignore
 
 
