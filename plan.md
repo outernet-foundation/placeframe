@@ -187,7 +187,7 @@ Code deliverables (full list in the intent file):
 - Repair `scripts/src/scripts/test_placeframe_e2e.py` (S608, ASYNC240, broken `main()`, `basedpyright` clean).
 - Add a `--single-config` flag to the harness (server-default recon + loc, skips the cross product).
 - Extend the harness with a pose-error-labeling step (Procrustes-align `frames.csv` truth to rebuilt COLMAP map; record `err_t`, `err_r` per held-out frame).
-- Add map-quality columns to the `reconstructions` table (`map_image_count`, `map_point_count`, `map_avg_track_length`, `map_bounding_volume_m3`, `map_viewpoint_diversity`, `is_indoor`); reconstructor populates them at map-build time; migration backfills; harness joins via `localization_maps.reconstruction_id`.
+- Add the 5 map-quality features (`map_image_count`, `map_point_count`, `map_avg_track_length`, `map_bounding_volume_m3`, `map_viewpoint_diversity`) to `ReconstructionMetrics`; reconstructor populates them inside `build_reconstruction_metrics` at map-build time; they ride the existing manifest-in-S3 path. Add `is_indoor` boolean column to `reconstructions` (default false; user-toggle, not a reconstruction output). Harness fetches the manifest per reconstruction at row-emission time.
 - Create `scripts/src/scripts/fit_calibration.py` implementing Algorithm 1 (ZED held-out logistic + isotonic fit + Σ_meas α/β scalar fit, with reporting).
 - Plumb features through `apply_global_calibration` (replace `features={}` in `build_metrics.py:66`).
 - Decouple Σ_meas from confidence in `build_metrics.py`: replace `PnP_cov / tight²` with `α · PnP_cov + β · I` (α, β read from artifact). Confidence becomes a gate via `if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)` in `localize.py`.
@@ -214,7 +214,7 @@ End of Phase 3: the harness is repaired and emits labeled rows; `fit_calibration
 **Execution chunks** (each lands as one or more reviewable commits; each is a stoppable pause point):
 
 1. **Harness repair** — fix S608 / ASYNC240 / broken `main()`; add `--single-config` flag.
-2. **Schema + reconstructor map-quality features** — 6 columns on `reconstructions`; reconstructor populates them at map-build time (`scipy.spatial.ConvexHull` for volume); migration backfills; harness joins via `localization_maps.reconstruction_id`. Runs the full regen pipeline (`migrate-database` → `generate-datamodels` → `lock-python` → `generate-clients`).
+2. **Reconstructor map-quality metrics + `is_indoor` column** — fold the 5 features into `ReconstructionMetrics`; reconstructor populates them inside `build_reconstruction_metrics` at map-build time (`scipy.spatial.ConvexHull` for volume); manifest-in-S3 carries them. Add `is_indoor` boolean column to `reconstructions`. Runs the regen pipeline as needed (`migrate-database` → `generate-datamodels` → `generate-clients`).
 3. **Procrustes pose-error labeling** — Umeyama via pycolmap `Sim3d` primitives; SE(3) residuals via `pytransform3d`; per-capture residual surfacing; persist labeled rows.
 4. **`fit_calibration.py`** — pool rows; sklearn logistic + isotonic; `scipy.optimize.minimize` for α/β; Brier + calibration_curve report; artifact write; unit tests (Procrustes solve, α/β solve, round-trip).
 5. **Runtime feature plumbing + Σ_meas decoupling + per-map loader** — replace `features={}` with real feature dict; replace `PnP_cov / tight²` with `α · PnP_cov + β · I`; lazy MinIO per-map loader with global-only fallback. *Pause point — after this, code is logically complete but not yet servable; next chunk produces the calibration that makes it live.*
