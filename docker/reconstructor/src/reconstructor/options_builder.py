@@ -16,6 +16,7 @@ DEFAULT_OPQ_NUMBER_OF_SUBVECTORS = 16
 DEFAULT_OPQ_NUMBER_OF_BITS_PER_SUBVECTOR = 8
 DEFAULT_OPQ_NUMBER_OF_TRAINING_ITERATIONS = 20
 DEFAULT_LIGHTGLUE_BATCH_SIZE = 16
+DEFAULT_MAX_KEYPOINTS_PER_IMAGE = 2500
 
 
 class OptionsBuilder:
@@ -62,6 +63,9 @@ class OptionsBuilder:
 
     def lightglue_batch_size(self):
         return self.options.lightglue_batch_size or DEFAULT_LIGHTGLUE_BATCH_SIZE
+
+    def max_keypoints_per_image(self):
+        return self.options.max_keypoints_per_image or DEFAULT_MAX_KEYPOINTS_PER_IMAGE
 
     def incremental_pipeline_options(self):
         incremental_pipeline_options = IncrementalPipelineOptions()

@@ -1,5 +1,5 @@
-from .models import load_DIR, load_lightglue, load_superpoint
+from .models import load_aliked, load_DIR, load_lightglue
 
 _ = load_DIR()
-_ = load_superpoint()
+_ = load_aliked()
 _ = load_lightglue()

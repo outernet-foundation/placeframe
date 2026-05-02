@@ -23,7 +23,7 @@ DEVICE = "cuda" if cuda.is_available() else "cpu"
 
 
 dir: Any = None
-superpoint: Any = None
+aliked: Any = None
 lightglue: Any = None
 
 
@@ -31,11 +31,11 @@ class LocalizationError(ValueError):
     pass
 
 
-def load_models(max_keypoints_per_image: int):
+def load_models():
     if environ.get("CODEGEN"):
         return
 
-    from neural_networks.models import load_DIR, load_lightglue, load_superpoint
+    from neural_networks.models import load_aliked, load_DIR, load_lightglue
     from torch import set_grad_enabled
 
     print(f"Using device: {DEVICE}")
@@ -43,9 +43,9 @@ def load_models(max_keypoints_per_image: int):
     # Turn off gradient calculations globally (we only do inference here)
     set_grad_enabled(False)
 
-    global dir, superpoint, lightglue
+    global dir, aliked, lightglue
     dir = load_DIR(DEVICE)
-    superpoint = load_superpoint(max_num_keypoints=max_keypoints_per_image, device=DEVICE)
+    aliked = load_aliked(device=DEVICE)
     lightglue = load_lightglue(DEVICE)
 
 
@@ -60,8 +60,7 @@ def localize_image_against_reconstruction(
     # Extract features from query image
     image = transform_image(image_buffer, camera.orientation)
     rgb_tensor = from_numpy(asarray(image, dtype=float32)).permute(2, 0, 1).div(255.0)
-    gray_tensor = from_numpy(asarray(image.convert("L"), dtype=float32)).unsqueeze(0).div(255.0)
-    superpoint_output = superpoint({"image": gray_tensor.unsqueeze(0).to(device=DEVICE)})
+    aliked_output = aliked({"image": rgb_tensor.unsqueeze(0).to(device=DEVICE)})
     query_global_descriptor = dir({"image": rgb_tensor.unsqueeze(0).to(device=DEVICE)})["global_descriptor"][0]
 
     # Retrieve similar database images
@@ -80,8 +79,8 @@ def localize_image_against_reconstruction(
     sizes = {str(image_id): map.image_sizes[str(image_id)] for image_id in matched_image_ids}
 
     # Prepare query image data for matching
-    keypoints["query"] = superpoint_output["keypoints"][0].to(DEVICE)
-    descriptors["query"] = superpoint_output["descriptors"][0].to(DEVICE)
+    keypoints["query"] = aliked_output["keypoints"][0].to(DEVICE)
+    descriptors["query"] = aliked_output["descriptors"][0].to(DEVICE)
     sizes["query"] = (image.height, image.width)
 
     # Match features between query and database images
@@ -115,7 +114,7 @@ def localize_image_against_reconstruction(
 
     # Set estimation options
     ransac_options = RANSACOptions()
-    ransac_options.max_error = ransac_threshold
+    ransac_options.max_error = ransac_threshold if ransac_threshold is not None else 8.0
     estimation_options = AbsolutePoseEstimationOptions()
     estimation_options.ransac = ransac_options
 
