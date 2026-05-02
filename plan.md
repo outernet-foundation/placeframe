@@ -18,9 +18,9 @@ This file tracks execution of all in-flight initiatives: phase definitions, stat
 | 2c | Local-feature scale standardization (formerly "Aspect-ratio preprocessing") | Pipeline | ✅ Done — but the in-DIR letterbox added under this phase is misguided and is reverted in 2c-fixup |
 | 2c-fixup | Revert in-DIR letterbox; add square-tile retrieval aggregation | Pipeline | ✅ Done — optional `transform_image` rename deferred |
 | T | Static tensor shape typing | Typing | Prototype landed; widening deferred. Orthogonal — no specific phasing dependency. |
-| 2d | Semantic-segmentation masking (~3-day implementation) | Pipeline | Not started — required for outdoor operation |
-| 2e | Repair `test-placeframe-e2e` and rerun parameter sweep | Pipeline | Not started |
-| 3 | ZED-only global calibration | VPS | Not started |
+| 2e | Repair `test-placeframe-e2e` and rerun parameter sweep | Pipeline | Not started — moved ahead of 2d |
+| 3 | ZED-only global calibration | VPS | Not started — moved ahead of 2d |
+| 2d | Semantic-segmentation masking (~3-day implementation) | Pipeline | Not started — moved after Phase 3; required for outdoor operation |
 | 4 | Dogfooding logger | VPS | Not started |
 | 5 | Phone-side correction | VPS | Not started |
 | 6 | Per-map overlay (opportunistic) | VPS | Not started |
@@ -28,12 +28,12 @@ This file tracks execution of all in-flight initiatives: phase definitions, stat
 ## Critical path
 
 ```
-Phase 0 ─► 1 ─► 2a ─► 2b ─► 2c ─► 2c-fixup ─► T ─► 2d ─► 2e ─► 3 ─► 4 ─► 5 ─► (6 opportunistic)
+Phase 0 ─► 1 ─► 2a ─► 2b ─► 2c ─► 2c-fixup ─► T ─► 2e ─► 3 ─► 2d ─► 4 ─► 5 ─► (6 opportunistic)
 ```
 
 Strictly serial. With ~2 known users, total wall-clock time is dominated by coding work and a single directed data-gathering session at Phase 5, not by passive accumulation. There's no parallelism to exploit.
 
-Phases 2b through 2e bundle all localizer-pipeline-altering changes ahead of Phase 3. Each one independently invalidates VPS calibration via the localizer's `pipeline_version` hash; bundling them means Phase 3 fits calibration once. Phase 2d (masking) is required for outdoor operation and ships even if it overruns its ~3-day budget; if it slips significantly, Phase 3 can proceed against the pre-masking pipeline meanwhile and refits once masking lands.
+Phase 2d (semantic-segmentation masking) was originally bundled ahead of Phase 3 to avoid a calibration refit. It's been moved to *after* Phase 3 because (a) the band-aids in `localize.py` and the bootstrap calibration are real friction during ongoing testing, (b) Phase 3's calibration logic doesn't change based on whether masking is in place — only the data distribution does, so the cost of the reorder is exactly one offline refit when masking lands (a few hours of GPU compute on already-collected ZED data, no new data acquisition), and (c) lived experience with calibrated confidence will inform 2d's tuning. Phase 2e still leads Phase 3 because the parameter sweep picks reconstruction defaults that get baked into pipeline_version and fitted against.
 
 **Phase 2c-fixup** exists because the original Phase 2c bundled together two distinct fixes that should have been separate: scale standardization for local features (correctly addressed by shorter-side resize, kept) and cross-aspect framing handling for retrieval (incorrectly addressed by an in-DIR letterbox with mean padding, reverted). The corrective phase reverts the letterbox and adds the actually-correct fix — square-tile aggregation on the retrieval path. See `feature-pipeline-intent.md` Status section for why the original design was wrong.
 
@@ -172,30 +172,17 @@ A localizer-scope prototype landed alongside Phase 2c-fixup. `core/tensor_types.
 
 End of Phase T: tensor shapes are statically checked at function/assignment boundaries throughout the localizer, reconstructor, `core`, and `neural-networks` packages. New tensor code in subsequent phases lands typed by default, with lint enforcing it. No runtime overhead; no library dependency.
 
-### Phase 2d — Semantic-segmentation masking (3-day time-box)
-
-OneFormer (MIT) loaded once at service startup, run right after `transform_image()`, mask applied in image space before feature extraction.
-
-- Reconstructor: OneFormer-Swin-L (one-time cost at map build).
-- Localizer: OneFormer-Swin-T (~100–200ms GPU; tolerable for 1Hz queries).
-- Hard-coded COCO transient class list: `person, bicycle, car, motorcycle, bus, train, truck, boat, traffic light, bird, cat, dog, horse, sheep, cow`.
-- Fallback when masked image has fewer than `MIN_KEYPOINTS_AFTER_MASK` keypoints (default 50): retry without mask, log.
-
-**Time-box rule**: if Day 4 is spent on environment, dependency, or model-loading wrestling, Phase 2d defers to a post-Phase-6 follow-up. Phases 2b/2c ship without it. The cost of deferral is one future calibration refit when masking later lands.
-
-End of Phase 2d: transient scene content suppressed from features in both pipelines. OR: this phase is deferred and the bullet above is what shipped.
-
 ### Phase 2e — Repair `test-placeframe-e2e` and rerun parameter sweep
 
-The `scripts/src/scripts/test_placeframe_e2e.py` parameter-sweep harness predates the VPS redesign. It has lint/type errors and hasn't been run against the new pipeline. Repair and run it once 2b/2c/(2d) have landed; the sweep informs Phase 3's calibration defaults.
+The `scripts/src/scripts/test_placeframe_e2e.py` parameter-sweep harness predates the VPS redesign. It has lint/type errors and hasn't been run against the new pipeline. Repair and run it before Phase 3; the sweep informs Phase 3's calibration defaults.
 
 - Fix the S608 false-positive on `_build_insert_sql` and the ASYNC240 violation in `_run`.
 - Wire `tar_paths` from `main()` into `_run` (the half-finished signature change).
 - Re-verify `basedpyright` passes.
-- Run the full sweep against the post-2b/2c/(2d) pipeline. Capture results to SQLite.
+- Run the full sweep against the current (pre-masking) pipeline. Capture results to SQLite.
 - Use sweep output to pick reconstruction defaults and the localization param grid Phase 3 fits calibration against.
 
-End of Phase 2e: parameter defaults are picked from real data on the new pipeline; calibration in Phase 3 fits against an evidence-informed configuration.
+End of Phase 2e: parameter defaults are picked from real data on the post-2c-fixup pipeline; calibration in Phase 3 fits against an evidence-informed configuration.
 
 ### Phase 3 — ZED-only global calibration
 
@@ -209,6 +196,22 @@ The calibration pipeline goes live with bulk-only data (Algorithm 1). Phone quer
 - Implement the per-map calibration loader path (lazy MinIO fetch + cache), but defer the per-map fitting code to Phase 6.
 
 End of Phase 3: confidence is well-calibrated for ZED-source queries; phone queries still suffer device shift but are meaningfully better than identity.
+
+### Phase 2d — Semantic-segmentation masking (3-day time-box)
+
+Originally bundled ahead of Phase 3 to avoid a calibration refit; reordered to land *after* Phase 3 because Phase 3's logic doesn't depend on whether masking is in place — only the metric distribution shifts. One offline refit when masking lands is the entire cost of the reorder.
+
+OneFormer (MIT) loaded once at service startup, run right after `transform_image()`, mask applied in image space before feature extraction.
+
+- Reconstructor: OneFormer-Swin-L (one-time cost at map build).
+- Localizer: OneFormer-Swin-T (~100–200ms GPU; tolerable for 1Hz queries).
+- Hard-coded COCO transient class list: `person, bicycle, car, motorcycle, bus, train, truck, boat, traffic light, bird, cat, dog, horse, sheep, cow`.
+- Fallback when masked image has fewer than `MIN_KEYPOINTS_AFTER_MASK` keypoints (default 50): retry without mask, log.
+- After landing, re-run `fit_calibration.py` (Phase 3 Algorithm 1) against the new pipeline_version. Commit the refit `config/calibration/global.json`. ZED-only data is sufficient for this refit; the Phase-5 phone correction is unaffected.
+
+**Time-box rule**: if Day 4 is spent on environment, dependency, or model-loading wrestling, Phase 2d defers to a post-Phase-6 follow-up. The cost of deferral is one *additional* future calibration refit when masking later lands.
+
+End of Phase 2d: transient scene content suppressed from features in both pipelines; calibration refit against the masked pipeline.
 
 ### Phase 4 — Dogfooding logger
 
@@ -244,14 +247,20 @@ Per-map fitting code is deferred from Phase 3 (loader is in place, fitting isn't
 - **Phase 1 ships before calibration exists.** Phase 1's measurement weighting uses heuristic Σ_meas scaling. When Phase 3's real calibration lands, those tunables (snap threshold, process noise, confidence-to-Σ_meas scaling) will need re-tuning. Tuning rework, not architectural rework.
 - **Phase 1 math lives inline in Unity and is tested via Unity Test Framework.** SE(3) and Bayesian-filter math sit alongside the Unity runtime in `packages/unity/Placeframe/Assets/Package/Core/Runtime/`; tests are an Editor-only asmdef next to it.
 - **Phase 2a blocked all subsequent VPS phases.** It would have been possible to ship calibration (Phase 3) on top of fully-untested math, but Phases 3–6 reference the math to interpret confidence-weighted measurements, and the test coverage cheaply catches regressions there.
-- **Phases 2b–2e bundle ahead of Phase 3.** Every pipeline-altering change invalidates calibration. Bundling all of them before the first calibration fit means Phase 3 fits once, against the final pipeline. The cost is delaying calibration until the bundle lands; the alternative — fitting calibration multiple times — is more expensive in both compute and data-acquisition cycles.
-- **Phase 2d is time-boxed and deferrable.** Masking is the largest scope in the bundle and the most likely to overrun. The 3-day budget plus a hard defer-to-post-Phase-6 fallback bounds the calibration delay. Deferral cost is one future refit, not architectural rework.
+- **Phases 2b/2c/2c-fixup bundle ahead of Phase 3; Phase 2d does not.** Originally all of 2b–2e bundled ahead of Phase 3 to fit calibration once. 2d (masking) was reordered to land after Phase 3 because (a) the band-aids in `localize.py` and the bootstrap calibration's hand-set intercept are real friction during ongoing testing, (b) Phase 3's calibration logic is unchanged with or without masking — only the metric distribution shifts, so the cost of one offline refit is GPU compute on already-collected ZED data with no new data-acquisition cycle, and (c) lived experience with calibrated confidence will inform 2d's tuning. 2b/2c/2c-fixup still bundle ahead because they were already done before this reorder.
+- **Phase 2d is time-boxed and deferrable.** Masking is the largest scope and the most likely to overrun. The 3-day budget plus a hard defer-to-post-Phase-6 fallback bounds the delay. Deferral cost is one *additional* future refit on top of the one accepted by the reorder.
 - **Phase 4 lands after Phase 3, not before.** A previous iteration of this plan put the dogfooding logger before ZED calibration to compress passive-accumulation wall-clock. Pre-go-to-market that compression is illusory: with a small known user pool, phone-side data is gathered in directed sessions, not passively. Building the logger after Phase 3 also means its schema and feature set can be informed by Phase 3's lived experience, reducing rework risk.
 - **Phase 6 fitting code is deferred.** The loader is in place from Phase 3, but writing the per-map fitting code is held back until at least one map clears the sample threshold. Risk: when that day comes, the fitting code is novel work that delays per-map calibration for that first map by a few days. Reward: avoids speculative code that may never run.
 - **`pipeline_version` is the git SHA, not a selective hash.** Every commit invalidates calibration. We don't yet know which inputs actually shift the metric distribution; once Phase 3 is in production and we have evidence, this can become a selective hash. False-positive refit cost doesn't bite until Phase 3 anyway.
 - **Pipeline-tuning constants live as module-level Python constants in the localizer, not env vars.** `RANSAC_THRESHOLD`, `RETRIEVAL_TOP_K`, and similar per-pipeline knobs are baked into the image so changing them requires a code change and bumps `pipeline_version` (the localizer's git SHA), automatically invalidating calibration. Env vars would silently bypass that invariant. Implication: tuning these at deploy time isn't possible — that's the intended cost.
 - **`transform_image()` does work the name doesn't telegraph (resize + discard pixels).** Currently lives because the function predates the resize semantics. Not corrected at Phase 2c landing time; Phase 2c-fixup is the natural place to rename to a paired pair (`prepare_image_for_extraction` / `prepare_image_for_retrieval`) since both functions land alongside each other in that phase.
 - **Phase 2c was scoped wrong.** Cross-aspect mismatch was treated as one problem with one preprocessing fix; it's actually two distinct problems (scale for local features vs framing for retrieval) requiring different fixes (resize vs tile). Phase 2c-fixup is the corrective step. The local-feature half (shorter-side resize + intrinsics) landed correctly under 2c and stays. The retrieval half (in-DIR letterbox with mean padding) is reverted in 2c-fixup and replaced with square-tile aggregation — the technique originally listed as a non-goal in `feature-pipeline-intent.md` but promoted to the actually-correct fix once the framing-vs-shape distinction was understood. Cost of the misstep: one extra commit on the branch and a brief design tangent; no production impact since calibration is still identity.
+
+## Open investigations
+
+Threads that aren't a phase but are tracked so they're not forgotten.
+
+- **LightGlue per-query latency (~250ms, 44% of total).** `load_lightglue` in `packages/python/neural-networks/src/neural_networks/models.py:112` sets `width_confidence=-1, depth_confidence=-1`, which disables LightGlue's adaptive width/depth pruning. Original rationale was something about batched matching but the `# TODO: add comment about why...` next to it confirms the reason wasn't captured at the time. Investigate whether re-enabling pruning is compatible with the current batched-matching path (12 pairs per query, padded keypoints via `pad_sequence`); if the pruning machinery's internal masking tolerates per-pair early-exit while the outer batch dim is held together, re-enabling could shave 30–50% off matching wall time. Experiment: toggle the flags, run `test-placeframe-e2e`, compare total localization wall time and match-quality metrics. Bundle into a pipeline change (Phase 2e or 2d) so the calibration refit doesn't happen in isolation.
 
 ## Scaffolding inventory
 
