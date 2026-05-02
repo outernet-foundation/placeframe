@@ -10,12 +10,27 @@ using Nessle;
 
 using ObserveThing;
 
+using PlaceframeApiClient.Model;
+
 using static Nessle.UIBuilder;
 
 namespace Placeframe.Client
 {
     public static partial class UIElements
     {
+        private static string ReconstructingPhaseLabel(ReconstructionManifest manifest) =>
+            manifest?.Status switch
+            {
+                ReconstructionManifest.StatusEnum.Downloading => "Downloading",
+                ReconstructionManifest.StatusEnum.ExtractingFeatures => "Extracting features",
+                ReconstructionManifest.StatusEnum.MatchingFeatures => "Matching features",
+                ReconstructionManifest.StatusEnum.TrainingOpqMatrix => "Training index",
+                ReconstructionManifest.StatusEnum.TrainingProductQuantizer => "Training index",
+                ReconstructionManifest.StatusEnum.Reconstructing => "Reconstructing",
+                ReconstructionManifest.StatusEnum.Uploading => "Uploading model",
+                _ => "Constructing",
+            };
+
         public static IControl CaptureRow(CaptureState capture)
         {
             return VerticalLayout(new()
@@ -106,8 +121,10 @@ namespace Placeframe.Client
                         children = Props.List(
                             LabeledButton(new LabeledButtonProps()
                             {
-                                label = capture.status.ObservableSelect(x =>
-                                    x switch
+                                label = Observables.Combine(
+                                    capture.status,
+                                    capture.manifest,
+                                    (x, manifest) => x switch
                                     {
                                         CaptureUploadStatus.NotUploaded => "Upload",
                                         CaptureUploadStatus.UploadRequested => "Initializing",
@@ -115,7 +132,7 @@ namespace Placeframe.Client
                                         CaptureUploadStatus.Uploading => "Uploading",
                                         CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
                                         CaptureUploadStatus.ReconstructRequested => "Constructing",
-                                        CaptureUploadStatus.Reconstructing => "Constructing",
+                                        CaptureUploadStatus.Reconstructing => ReconstructingPhaseLabel(manifest),
                                         CaptureUploadStatus.Uploaded => "Create Map",
                                         CaptureUploadStatus.CreateMapRequested => "Create Map",
                                         CaptureUploadStatus.MapCreated => "Map Created",

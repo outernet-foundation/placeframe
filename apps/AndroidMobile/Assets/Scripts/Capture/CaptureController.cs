@@ -638,6 +638,16 @@ namespace Placeframe.Client
                     throw new Exception("Capture reconstruction failed.");
                 }
 
+                try
+                {
+                    var manifest = await VisualPositioningSystem.Api.GetReconstructionManifestAsync(reconstructionId, cancellationToken);
+                    App.state.captures[captureSessionId].manifest.value = manifest;
+                }
+                catch (Exception exception)
+                {
+                    Log.Warn(LogGroup.Capture, $"Manifest poll failed for reconstruction {reconstructionId}: {exception.Message}");
+                }
+
                 await UniTask.WaitForSeconds(3, cancellationToken: cancellationToken);
             }
 
