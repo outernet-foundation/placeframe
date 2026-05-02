@@ -2,7 +2,7 @@
 
 > Design intents:
 > - VPS redesign: [`vps-redesign-intent.md`](vps-redesign-intent.md) (Phases 0, 1, 2a, 3–6).
-> - Feature pipeline modernization: [`feature-pipeline-intent.md`](feature-pipeline-intent.md) (Phases 2b, 2c, 2d, 2e).
+> - Feature pipeline modernization: [`feature-pipeline-intent.md`](feature-pipeline-intent.md) (Phases 2b, 2c, 2c-fixup, 2d, 2e).
 
 This file tracks execution of both in-flight initiatives: phase definitions, status, tradeoffs taken, and scaffolding deliberately left for later phases to replace. Deleted when both initiatives complete.
 
@@ -14,8 +14,9 @@ This file tracks execution of both in-flight initiatives: phase definitions, sta
 | 1 | Frontend rewrite | VPS | ✅ Done |
 | 2a | In-Unity NUnit tests for Phase 1 math | VPS | ✅ Done |
 | 2b | SuperPoint → ALIKED | Pipeline | ✅ Done |
-| 2c | Aspect-ratio preprocessing | Pipeline | ✅ Done |
-| 2d | Semantic-segmentation masking (3-day time-box) | Pipeline | Up next |
+| 2c | Local-feature scale standardization (formerly "Aspect-ratio preprocessing") | Pipeline | ✅ Done — but the in-DIR letterbox added under this phase is misguided and is reverted in 2c-fixup |
+| 2c-fixup | Revert in-DIR letterbox; add square-tile retrieval aggregation | Pipeline | Up next |
+| 2d | Semantic-segmentation masking (3-day time-box) | Pipeline | Not started |
 | 2e | Repair `test-placeframe-e2e` and rerun parameter sweep | Pipeline | Not started |
 | 3 | ZED-only global calibration | VPS | Not started |
 | 4 | Dogfooding logger | VPS | Not started |
@@ -25,12 +26,14 @@ This file tracks execution of both in-flight initiatives: phase definitions, sta
 ## Critical path
 
 ```
-Phase 0 ─► 1 ─► 2a ─► 2b ─► 2c ─► 2d ─► 2e ─► 3 ─► 4 ─► 5 ─► (6 opportunistic)
+Phase 0 ─► 1 ─► 2a ─► 2b ─► 2c ─► 2c-fixup ─► 2d ─► 2e ─► 3 ─► 4 ─► 5 ─► (6 opportunistic)
 ```
 
 Strictly serial. With ~2 known users, total wall-clock time is dominated by coding work and a single directed data-gathering session at Phase 5, not by passive accumulation. There's no parallelism to exploit.
 
-Phases 2b–2e bundle all localizer-pipeline-altering changes ahead of Phase 3. Each one independently invalidates VPS calibration via the localizer's `pipeline_version` hash; bundling them means Phase 3 fits calibration once. If Phase 2d (masking) overruns its 3-day time-box, it's deferred to a post-Phase-6 follow-up at the cost of one future calibration refit.
+Phases 2b through 2e bundle all localizer-pipeline-altering changes ahead of Phase 3. Each one independently invalidates VPS calibration via the localizer's `pipeline_version` hash; bundling them means Phase 3 fits calibration once. If Phase 2d (masking) overruns its 3-day time-box, it's deferred to a post-Phase-6 follow-up at the cost of one future calibration refit.
+
+**Phase 2c-fixup** exists because the original Phase 2c bundled together two distinct fixes that should have been separate: scale standardization for local features (correctly addressed by shorter-side resize, kept) and cross-aspect framing handling for retrieval (incorrectly addressed by an in-DIR letterbox with mean padding, reverted). The corrective phase reverts the letterbox and adds the actually-correct fix — square-tile aggregation on the retrieval path. See `feature-pipeline-intent.md` Status section for why the original design was wrong.
 
 ## Phases
 
@@ -89,15 +92,44 @@ Pre-market: no maps to migrate, pure code swap. Generated OpenAPI artifacts (`do
 
 End of Phase 2b: Apache-2.0-clean feature pipeline. Local matching produces the same shape of result it did before, with different magnitudes. Calibration remains identity (Phase 3 not yet fit).
 
-### Phase 2c — Aspect-ratio preprocessing
+### Phase 2c — Local-feature scale standardization
 
-Today the pipeline applies only orientation correction in `transform_image()`. A portrait query against a landscape-built map degrades retrieval and pushes feature distributions asymmetrically. Standard hloc/LightGlue handling fixes this.
+> **Scope correction**: this phase originally bundled local-feature scale handling and a retrieval-side letterbox (treating cross-aspect mismatch as a single problem). Those are actually two distinct problems; the local-feature half landed correctly here, the retrieval half landed incorrectly here and is reverted in Phase 2c-fixup. See `feature-pipeline-intent.md` Status note.
 
-- Resize-shorter-side added to `transform_image()` ✅. `LOCAL_FEATURE_RESIZE_SHORTER_SIDE = 1024`. Aspect ratio preserved; no padding for the local-feature path.
+Today the pipeline (pre-2c) applies only orientation correction in `transform_image()`. ALIKED's receptive field is fixed in pixels, so the same physical content at different camera resolutions produces different keypoint scales — descriptors don't match across resolution gaps. The fix is scale standardization via shorter-side resize. (For cross-aspect retrieval framing — the *separate* problem — see Phase 2c-fixup.)
+
+- Resize-shorter-side added to `transform_image()` ✅. `LOCAL_FEATURE_RESIZE_SHORTER_SIDE = 1024`. Aspect ratio preserved; no padding for the local-feature path. Standardizes physical-meters-per-pixel so ALIKED's receptive field sees comparable structure regardless of source camera resolution.
 - `transform_intrinsics()` now applies the same per-axis resize ratio to `(width, height, fx, fy, cx, cy)` so PnP stays correct ✅.
-- DIR letterboxes to a square inside `DIR.forward` ✅: pad with the model's preprocess mean so post-normalization padded regions are exactly zero — GeM pooling sees zero contribution from padding, and the descriptor is no longer aspect-biased. Reconstructor and localizer share both hooks since they call into the same `transform_image()` and the same `DIR` class.
+- DIR also letterboxes to a square inside `DIR.forward` ✅ — **but this is misguided**: it tries to address cross-aspect retrieval framing via a non-standard mean-pad-with-handwave-zero-contribution mechanism, when the real cross-aspect retrieval problem is framing-mismatch (different content captured) which can't be fixed by reshaping the input. Reverted in Phase 2c-fixup.
 
-End of Phase 2c: cross-aspect queries no longer corrupt retrieval. Single hook shared across reconstructor and localizer.
+End of Phase 2c: local-feature path is scale-standardized. Cross-aspect retrieval is *not* solved — that requires Phase 2c-fixup.
+
+### Phase 2c-fixup — Revert in-DIR letterbox; add square-tile retrieval aggregation
+
+Cross-aspect query/database mismatch makes whole-image DIR descriptors compare different framed content (a portrait excludes left/right strips of a landscape and vice versa). The Phase 2c letterbox tried to fix this with mean-padding inside `DIR.forward` but it's the wrong fix — reshaping the input can't recover content that wasn't framed in the first place. The correct fix is to give each image *multiple framings* via square-tile aggregation; at least one tile pair frames similar content and surfaces the match.
+
+**Revert work:**
+
+- Remove the letterbox from `DIR.forward` (`packages/python/neural-networks/src/neural_networks/models.py`); `DIR.forward` becomes a thin normalize-and-run wrapper.
+- Drop `_letterbox_to_square` helper.
+
+**Tiling work:**
+
+- Add `tile_for_retrieval(image)` helper (likely in `core/camera_config.py` or a new `core/retrieval_preprocess.py`) that takes a shorter-side-resized PIL image and produces M overlapping `LOCAL_FEATURE_RESIZE_SHORTER_SIDE × LOCAL_FEATURE_RESIZE_SHORTER_SIDE` square crops along the long axis. Default ~50% overlap; M derived from long-axis length.
+- Reconstructor (`run_reconstruction.py`): for each database image, run DIR over its M tiles; store M descriptors per image. OPQ matrix and PQ training operate on the union of tile descriptors. The map's per-image descriptor cache stores M descriptors per image_id.
+- Localizer (`localize.py`): tile the query image; produce M descriptors. Top-K retrieval similarity becomes a max (or mean — config) over `M_query × M_db_per_image` pairs per database image. Top-K picks the best database images by aggregated similarity.
+- The `Map` data structure may need to grow a tile-aware descriptor matrix (e.g., shape `(num_db_images × M, descriptor_dim)` plus an `image_id` lookup table).
+
+**Naming cleanup (optional but worth doing while touching this code):** the current `transform_image()` name doesn't telegraph that it resizes. With piece-3 preprocessing landing alongside piece-2 preprocessing, consider renaming both to honest paired names — e.g., `prepare_image_for_extraction()` (orient + shorter-side resize) and `prepare_image_for_retrieval()` (orient + shorter-side resize + tile). Each paired with corresponding intrinsics functions where applicable. The user has flagged this concern explicitly.
+
+**Risks (unmeasured):**
+
+- Tile aggregation policy (`max` vs `mean`) — default `max`; revisit during Phase 2e.
+- M, tile size, overlap — defaults look reasonable; sweep range during Phase 2e.
+- M× growth in OPQ index storage — manageable at M = 3–5 for current map sizes.
+- In-aspect regression risk: tiling could underperform single-window retrieval on same-aspect query/database pairs (less context per descriptor). Configurable `RETRIEVAL_TILES_PER_IMAGE = 1` falls back to single-window without removing the code path.
+
+End of Phase 2c-fixup: cross-aspect retrieval is correctly addressed. The pipeline now has two preprocessing paths sitting side-by-side with honest names: local features get aspect-preserved shorter-side resize; retrieval gets that plus square tiling.
 
 ### Phase 2d — Semantic-segmentation masking (3-day time-box)
 
@@ -176,6 +208,9 @@ Per-map fitting code is deferred from Phase 3 (loader is in place, fitting isn't
 - **Phase 4 lands after Phase 3, not before.** A previous iteration of this plan put the dogfooding logger before ZED calibration to compress passive-accumulation wall-clock. Pre-go-to-market that compression is illusory: with a small known user pool, phone-side data is gathered in directed sessions, not passively. Building the logger after Phase 3 also means its schema and feature set can be informed by Phase 3's lived experience, reducing rework risk.
 - **Phase 6 fitting code is deferred.** The loader is in place from Phase 3, but writing the per-map fitting code is held back until at least one map clears the sample threshold. Risk: when that day comes, the fitting code is novel work that delays per-map calibration for that first map by a few days. Reward: avoids speculative code that may never run.
 - **`pipeline_version` is the git SHA, not a selective hash.** Every commit invalidates calibration. We don't yet know which inputs actually shift the metric distribution; once Phase 3 is in production and we have evidence, this can become a selective hash. False-positive refit cost doesn't bite until Phase 3 anyway.
+- **Pipeline-tuning constants live as module-level Python constants in the localizer, not env vars.** `RANSAC_THRESHOLD`, `RETRIEVAL_TOP_K`, and similar per-pipeline knobs are baked into the image so changing them requires a code change and bumps `pipeline_version` (the localizer's git SHA), automatically invalidating calibration. Env vars would silently bypass that invariant. Implication: tuning these at deploy time isn't possible — that's the intended cost.
+- **`transform_image()` does work the name doesn't telegraph (resize + discard pixels).** Currently lives because the function predates the resize semantics. Not corrected at Phase 2c landing time; Phase 2c-fixup is the natural place to rename to a paired pair (`prepare_image_for_extraction` / `prepare_image_for_retrieval`) since both functions land alongside each other in that phase.
+- **Phase 2c was scoped wrong.** Cross-aspect mismatch was treated as one problem with one preprocessing fix; it's actually two distinct problems (scale for local features vs framing for retrieval) requiring different fixes (resize vs tile). Phase 2c-fixup is the corrective step. The local-feature half (shorter-side resize + intrinsics) landed correctly under 2c and stays. The retrieval half (in-DIR letterbox with mean padding) is reverted in 2c-fixup and replaced with square-tile aggregation — the technique originally listed as a non-goal in `feature-pipeline-intent.md` but promoted to the actually-correct fix once the framing-vs-shape distinction was understood. Cost of the misstep: one extra commit on the branch and a brief design tangent; no production impact since calibration is still identity.
 
 ## Scaffolding inventory
 
