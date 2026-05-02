@@ -38,7 +38,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="registeredImages">Number of images successfully registered into the final model..</param>
         /// <param name="registrationRate">Registration rate in percent: 100 × (registered_images / total_images). Computed after selecting the best reconstruction (max registered images)..</param>
         /// <param name="num3dPoints">Count of 3D points in the selected &#39;best&#39; reconstruction..</param>
-        /// <param name="averageKeypointsPerImage">Average number of detected keypoints per image (after SuperPoint extraction), computed across all images..</param>
+        /// <param name="averageKeypointsPerImage">Average number of detected keypoints per image (after ALIKED extraction), computed across all images..</param>
         /// <param name="reprojectionPixelError50thPercentile">Median (50th percentile) reprojection error in pixels across all valid 2D observations in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint..</param>
         /// <param name="reprojectionPixelError90thPercentile">90th percentile reprojection error in pixels across all valid 2D observations, computed the same way as the median..</param>
         /// <param name="trackLength50thPercentile">Median (50th percentile) track length across 3D points in the selected model. Track length &#x3D; number of distinct images observing the point..</param>
@@ -164,9 +164,9 @@ namespace PlaceframeApiClient.Model
             return _flagNum3dPoints;
         }
         /// <summary>
-        /// Average number of detected keypoints per image (after SuperPoint extraction), computed across all images.
+        /// Average number of detected keypoints per image (after ALIKED extraction), computed across all images.
         /// </summary>
-        /// <value>Average number of detected keypoints per image (after SuperPoint extraction), computed across all images.</value>
+        /// <value>Average number of detected keypoints per image (after ALIKED extraction), computed across all images.</value>
         [DataMember(Name = "average_keypoints_per_image", EmitDefaultValue = true)]
         public double? AverageKeypointsPerImage
         {
