@@ -24,7 +24,6 @@ services:
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
       CAPTURES_BUCKET: dev-captures
-      MAX_KEYPOINTS_PER_IMAGE: "${MAX_KEYPOINTS_PER_IMAGE:?err}"
 
   localizer-rocm:
     image: "ghcr.io/outernet-foundation/placeframe/localizer-rocm:${LOCALIZER_SHA:?err}"
@@ -48,4 +47,3 @@ services:
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
-      MAX_KEYPOINTS_PER_IMAGE: "${MAX_KEYPOINTS_PER_IMAGE:?err}"
