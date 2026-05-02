@@ -5,9 +5,14 @@
 
 ## Status
 
-Code only. **No corpus exists yet, and the full parameter sweep is explicitly out of scope for this effort.**
+Code-complete plus a single-capture starter calibration. **The full multi-capture corpus and the ~15-hour parameter sweep are explicitly out of scope for this effort.**
 
-The goal of this initiative is to land code that is logically correct end-to-end so that, when a corpus is later assembled, the existing code path produces a real calibration without further engineering work blocking the run. It also produces, as a deliverable, an unambiguous corpus-gathering spec for future-operator-self.
+The goal of this initiative is twofold:
+
+1. Land code that is logically correct end-to-end so that, when the multi-capture corpus is later assembled, the existing code path produces a production calibration without further engineering work blocking the run.
+2. Run that code path against the one capture we already have to produce a *known-bad-but-real* starter calibration. That starter calibration unblocks band-aid removal (`IDENTITY_BOOTSTRAP_SENTINEL`, `MIN_NUM_INLIERS`, `MIN_INLIER_COVERAGE`, hand-set `-4.595` intercept) and lets the system run on real fitted confidence — overfit and unreliable, but real — until the corpus run replaces it.
+
+The initiative also produces, as a deliverable, an unambiguous corpus-gathering spec for future-operator-self.
 
 The current state is a half-state:
 - The e2e harness has lint/type errors and a half-finished signature change in `main()`.
@@ -16,8 +21,9 @@ The current state is a half-state:
 - `localize.py` carries a raw-metric quality floor (`MIN_NUM_INLIERS=50`, `MIN_INLIER_COVERAGE=0.15`) as a band-aid for the constant-confidence stub.
 - `scripts/src/scripts/fit_calibration.py` doesn't exist.
 - The maps schema has no map-quality columns and the reconstructor doesn't compute them.
+- `Σ_meas = PnP_cov / tight²` conflates "geometric uncertainty" with "trustworthiness" — works only because `tight` is pinned at 0.01.
 
-This initiative climbs out of that.
+This initiative climbs out of all of that.
 
 ## Why these are one effort
 
@@ -34,37 +40,54 @@ The original plan separated Phase 2e ("repair harness, run sweep, pick reconstru
 **Code deliverables:**
 
 1. Repair `scripts/src/scripts/test_placeframe_e2e.py`: fix the S608 false-positive on `_build_insert_sql`, fix the ASYNC240 violation on the glob, complete the half-finished signature change so `main()` actually passes `tar_paths` into `_run`, re-verify `basedpyright` passes.
-2. Extend the harness to label pose error per held-out frame: Procrustes-align `frames.csv` truth poses to the rebuilt COLMAP map, transform held-out truth into map frame, compute `err_t` and `err_r` against the localizer estimate, persist alongside the existing metrics.
-3. Add map-quality features to the schema and reconstructor: columns on `localization_maps` (or `reconstructions`) for `map_image_count`, `map_point_count`, `map_avg_track_length`, `map_bounding_volume_m3`, `map_viewpoint_diversity`, `is_indoor`. Reconstructor computes them at map-build time. Migration backfills existing rows.
-4. Create `scripts/src/scripts/fit_calibration.py`: pulls the labeled rows produced by the harness (or invokes the harness in a "fit-only" mode), pools them, fits Algorithm 1's logistic + isotonic for tight and loose, writes `config/calibration/global.json` with the localizer's git SHA as `pipeline_version`. Emits a fit report (Brier, reliability, sample count, Procrustes residual per capture).
-5. Plumb features through `apply_global_calibration`: `build_metrics.py:66` currently passes `features={}`. Wire transformed metrics + map features into the dict keyed by the calibration's `feature_names`.
-6. Remove the band-aids: `IDENTITY_BOOTSTRAP_SENTINEL` and its skip in `calibration.py`; `MIN_NUM_INLIERS` / `MIN_INLIER_COVERAGE` in `localize.py` (replace with `if metrics.confidence.tight < TIGHT_MIN`); the hand-set `-4.595` intercept in `global.json`. **These removals only happen once a real fitted calibration is committed**; they cannot land before the corpus exists.
-7. Per-map calibration loader path: lazy MinIO fetch + cache, fall back to global-only if absent. **Per-map fitting (Algorithm 3) is deferred to a later phase.** Only the loader plumbing lands now.
-8. Frontend Σ_meas re-tuning: a noted follow-up, not code in this initiative. The `BaseProcessNoise` and `SnapThresholdSigmas` constants in `RelocalizationFilter` are tuned against fitted σ_meas — which doesn't exist until the corpus is gathered. Tracked as scaffolding to be replaced.
+2. Add a `--single-config` flag to the harness: short-circuit Phase 4 to `[None]` (server-default recon config) and skip the `LOC_RETRIEVAL_TOP_K` × `LOC_RANSAC_THRESHOLD` cross product. Used for fast iteration and for incremental refits when only the corpus has changed.
+3. Extend the harness to label pose error per held-out frame: Procrustes-align `frames.csv` truth poses to the rebuilt COLMAP map, transform held-out truth into map frame, compute `err_t` and `err_r` against the localizer estimate, persist alongside the existing metrics.
+4. Add map-quality features to the schema and reconstructor: columns on `reconstructions` for `map_image_count`, `map_point_count`, `map_avg_track_length`, `map_bounding_volume_m3`, `map_viewpoint_diversity`, `is_indoor`. Reconstructor computes them at map-build time. Migration backfills existing rows. Harness joins through `localization_maps.reconstruction_id` at row-emission time.
+5. Create `scripts/src/scripts/fit_calibration.py`: pulls the labeled rows produced by the harness, pools them, fits Algorithm 1 (logistic + isotonic for tight and loose, plus the Σ_meas α, β scalars described below). Writes `config/calibration/global.json` with the localizer's git SHA as `pipeline_version`. Emits a fit report (Brier, reliability, sample count, Procrustes residual per capture, fitted α/β).
+6. Plumb features through `apply_global_calibration`: `build_metrics.py:66` currently passes `features={}`. Wire transformed metrics + map features into the dict keyed by the calibration's `feature_names`.
+7. Decouple `Σ_meas` from confidence in `build_metrics.py`: replace `PnP_cov / tight²` with `α · PnP_cov + β · I` (α, β read from the fitted calibration artifact). Confidence becomes a gate: `if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)` in `localize.py`.
+8. Remove the band-aids: `IDENTITY_BOOTSTRAP_SENTINEL` and its skip in `calibration.py`; `MIN_NUM_INLIERS` / `MIN_INLIER_COVERAGE` in `localize.py`; the hand-set `-4.595` intercept in `global.json`; the `CONFIDENCE_TIGHT_FLOOR` floor in `build_metrics.py`. These all happen once the starter calibration (next deliverable) is committed.
+9. Per-map calibration loader path: lazy MinIO fetch + cache, fall back to global-only if absent. **Per-map fitting (Algorithm 3) is deferred to a later phase.** Only the loader plumbing lands now.
+
+**Run-and-commit deliverables (single-capture starter calibration):**
+
+10. Run the harness in `--single-config` mode against the one capture we have today. Produces ~11 labeled rows. Run `fit_calibration.py` against those rows; commit the resulting `config/calibration/global.json` to the repo with a header comment that it is a known-bad single-capture starter, not a production calibration.
+11. Pick `TIGHT_MIN` from the starter fit's distribution of `tight` values on successful held-out localizations (e.g. some quantile of the success cluster). Bake into `localize.py` as a module constant.
 
 **Documentation deliverable:**
 
-9. Corpus-gathering instructions (this file's "Corpus-gathering spec" section). Unambiguous enough to execute cold.
+12. Corpus-gathering instructions (this file's "Corpus-gathering spec" section). Unambiguous enough to execute cold.
+
+**Frontend follow-up (out of scope this initiative):**
+
+- `BaseProcessNoise{Translation,Rotation}VariancePerTick` and `SnapThresholdSigmas` in `RelocalizationFilter` are tuned against the heuristic Σ_meas. With Σ_meas now decoupled and fitted, these need re-tuning. Tracked as scaffolding to be replaced; the starter calibration isn't reliable enough to drive that re-tuning meaningfully — defer until the multi-capture corpus run.
 
 **Non-deliverables (explicit):**
 
-- Running the parameter sweep. Estimated ~15 hours per full run; not part of this effort.
-- Gathering any captures.
-- Producing a real `config/calibration/global.json` artifact. The bootstrap identity stays in place until the corpus is gathered and the fit is run.
+- Running the full parameter sweep. Estimated ~15 hours per full run; not part of this effort.
+- Gathering additional captures beyond the one we have.
+- Producing a *production* `config/calibration/global.json`. The starter calibration that ships from this initiative is overfit-to-one-scene by construction; production calibration depends on the multi-capture corpus run later.
 - Algorithm 2 (phone-side pairwise calibration). Algorithm specified below for completeness; code lands in a later phase.
 - Algorithm 3 (per-map fitting). Algorithm specified below; code lands in a later phase.
 
-## What "logically correct without a corpus" means
+## What this initiative validates and what it doesn't
 
-The validation bar for this initiative is intentionally bounded: code that compiles, type-checks, lints, and passes whatever unit tests are reasonable to write without real data. That covers more than it sounds:
+We *do* run the full code path end-to-end this initiative — single-config harness + fit + commit + band-aid removal — against the one capture we have. That validates more than the previous "code-only" framing:
 
-- The harness can run end-to-end against an empty corpus (zero captures discovered) and exit cleanly. This is a real test — it exercises auth, API client, file discovery, and the no-data path.
-- The harness can run against a fake corpus of 1 trivial capture to verify the upload → reconstruct → localize → label → record path. (Trivial = a few synthetic-or-existing frames; doesn't have to produce a meaningful map.)
-- `fit_calibration.py` can be unit-tested for the Procrustes solve (synthetic point pairs with known alignment) and for round-trip artifact write/read.
-- The runtime loader change (features plumbed through) can be tested by feeding a hand-written calibration with known weights and verifying the output Confidence matches the math.
-- The schema migration applies clean against the test database and the reconstructor populates the new columns on the next reconstruction.
+- The harness's full path (upload → reconstruct → localize → label → row emission) executes against real data.
+- `fit_calibration.py` actually produces an artifact, not just unit-tested in isolation.
+- The runtime loader reads the produced artifact and `apply_global_calibration` emits real (varying) confidence values.
+- The schema migration applies, the reconstructor computes the new columns, the harness joins them in.
+- The decoupled Σ_meas formula (α · PnP_cov + β · I) executes against the real innovation gate in the Bayesian filter.
 
-What we *can't* validate without a corpus: that the fitted logistic produces meaningful probabilities, that the Procrustes residuals are small enough for truth poses to be useful, that map-quality features actually have signal, that calibration generalizes across captures. Those are the things the corpus run will answer.
+What we *can't* validate with a single capture: that the fitted logistic generalizes (it won't — it overfits to that one scene's metric distribution by construction), that map-quality features have signal (they're constants within a single map), that confidence is well-calibrated against held-out reality. Those answers come from the multi-capture corpus run. The starter calibration is functional, not trustworthy.
+
+Smaller-scope validations not requiring the harness run:
+
+- `fit_calibration.py` Procrustes solve unit-tested on synthetic point pairs with known alignment.
+- Σ_meas α, β fit unit-tested on synthetic 6D residuals with known covariance.
+- Round-trip artifact write/read.
+- Hand-written calibration → known feature vector → expected confidence (loader correctness).
 
 ## Architecture
 
@@ -96,6 +119,7 @@ What we *can't* validate without a corpus: that the fitted logistic produces mea
                        │ scripts/fit_calibration.py  *NEW*    │
                        │  - pool rows                         │
                        │  - fit logistic + isotonic           │
+                       │  - fit Σ_meas α, β                   │
                        │  - emit fit report                   │
                        │  - write config/calibration/         │
                        │    global.json                       │
@@ -132,9 +156,10 @@ Procedure per capture:
 4. **Pool across all captures and configs.** Add binary labels: `success_tight = err_t < 5cm AND err_r < 1°`, `success_loose = err_t < 30cm AND err_r < 5°`.
 5. **Fit logistic regression** (sklearn `LogisticRegression(class_weight='balanced')`) on the feature vector. Features: `log(num_inliers + 1)`, `inlier_ratio`, `reproj_err / image_diagonal_pixels`, `inlier_coverage`, `log(num_matches + 1)`, `log(map_image_count + 1)`, `log(map_point_count + 1)`, `map_avg_track_length`, `log(map_bounding_volume_m3 + 1)`, `map_viewpoint_diversity`, `is_indoor`.
 6. **Fit isotonic** (sklearn `IsotonicRegression(out_of_bounds='clip')`) on the logistic output against the same labels.
-7. **Optional 10% holdout** for Brier score and reliability diagram; report in fit metadata.
+7. **Fit Σ_meas scaling.** For each held-out localization, compute the SE(3) residual `e = log(P_truth_in_map · P_estimated⁻¹) ∈ ℝ⁶`. Solve scalar α, β that maximize `Σᵢ log N(eᵢ; 0, α·PnP_covᵢ + β·I)` (closed-form-ish; small unconstrained 2-D MLE — scipy `minimize` is fine). The α, β scalars carry the empirical "actual pose-error spread relative to PnP_cov" signal that PnP_cov alone misses (mis-registered map points, wrong-but-confident inliers, etc.).
+8. **Optional 10% holdout** for Brier score and reliability diagram; report in fit metadata.
 
-Output: `{tight: {logistic, isotonic}, loose: {logistic, isotonic}, fit_metadata, pipeline_version}` written to `config/calibration/global.json`.
+Output: `{tight: {logistic, isotonic}, loose: {logistic, isotonic}, sigma_meas: {alpha, beta}, fit_metadata, pipeline_version}` written to `config/calibration/global.json`.
 
 **Note on feature relevance with a small corpus.** Map-quality features are constants within a single capture's map-config combinations (the same map → the same features). With ≥3 distinct maps the features start to vary; with one capture they collapse into the intercept. The fitting code includes them unconditionally; the regression naturally weights them down to zero when they don't vary.
 
@@ -201,6 +226,18 @@ else:
 return Confidence(tight=p_final_tight, loose=p_final_loose, is_calibrated=True)
 ```
 
+**Σ_meas computation per query** (decoupled from confidence):
+
+```
+Σ_meas = α · PnP_cov + β · I_6
+
+  # α, β read from global.sigma_meas at startup.
+  # Confidence does NOT scale Σ_meas. Confidence is used as a binary
+  # gate upstream: localize.py rejects with LocalizationError if
+  # metrics.confidence.tight < TIGHT_MIN. Admitted measurements use
+  # this Σ_meas regardless of confidence value.
+```
+
 A few dozen FLOPs plus two isotonic lookups (binary search over ~100 breakpoints). Negligible cost.
 
 **Failure modes:**
@@ -214,7 +251,7 @@ A few dozen FLOPs plus two isotonic lookups (binary search over ~100 breakpoints
 
 ## Map quality features
 
-Computed at map-build time, stored as columns on `localization_maps` (or `reconstructions` — see open question 1):
+Computed at map-build time, stored as columns on `reconstructions`. The harness joins through `localization_maps.reconstruction_id` at row-emission time. At runtime, the localizer reads the features from the map artifact bundle in MinIO (alongside the COLMAP outputs) — no SQL query needed at apply time.
 
 - `map_image_count`: total registered images.
 - `map_point_count`: total triangulated 3D points.
@@ -256,7 +293,11 @@ Single JSON document. ~3 KB global, ~1 KB per-map.
         "y_breakpoints": [0.02, 0.06, 0.12, ..., 0.97]
       }
     },
-    "loose": { "logistic": {...}, "isotonic": {...} }
+    "loose": { "logistic": {...}, "isotonic": {...} },
+    "sigma_meas": {
+      "alpha": 1.4,
+      "beta": 0.0008
+    }
   }
 }
 ```
@@ -267,8 +308,8 @@ Per-map artifact has the same shape but only `tight.isotonic` and `loose.isotoni
 
 | Artifact | Path | Updated by | Cadence |
 |---|---|---|---|
-| Global calibration | `config/calibration/global.json` (git repo) | Engineer (PR after running fit pipeline) | When sweep produces a meaningful update |
-| Per-map calibrations | `s3://placeframe-maps/{map_id}/calibration.json` (MinIO) | Fit pipeline (automated upload) | Per map: when sample count grows 50% or weekly |
+| Global calibration | `config/calibration/global.json` (git repo) | Engineer (PR after running fit pipeline) | Manual, on demand. Refit on every pipeline-affecting change to the localizer; otherwise refit when corpus grows meaningfully. |
+| Per-map calibrations | `s3://placeframe-maps/{map_id}/calibration.json` (MinIO) | Fit pipeline (automated upload) | Manual, on demand. Per map, once sample count clears the threshold and is materially out of date. |
 | Phone-side calibration data (raw logs) | `s3://placeframe-calibration-data/sessions/{session_id}.json` (MinIO) | AndroidMobile app (when dogfooding toggle is on) | Per session at session end |
 
 Updating global: run fit → `git diff` → review → PR → merge → deploy. No Docker rebuild (mounted as compose `configs:` volume).
@@ -277,7 +318,7 @@ Per-map: lazy load on first request, cached. Optional `POST /calibration/refresh
 
 ## Corpus-gathering spec (for future-operator-self)
 
-When the time comes to gather the corpus and run the calibration for real, this is the spec.
+When the time comes to gather the multi-capture corpus and run the *production* calibration (replacing the single-capture starter that ships at the end of this initiative), this is the spec.
 
 ### Layout
 
@@ -364,43 +405,30 @@ The fit report (printed to stdout, also written next to the artifact) should be 
 
 If any of these look bad, **don't ship the artifact**. Diagnose first.
 
-## Open questions
+## Resolved decisions
 
-These are the questions left unresolved by this document. They're the agenda for resuming this initiative cold.
+The questions that drove this document's design, and how each was resolved. Kept around so the resolution is traceable.
 
-1. **Where do map-quality columns live: `localization_maps` or `reconstructions`?** Maps are the calibration-relevant unit (calibration is a map-aware decision), but the features are computed during reconstruction. Tradeoff: features-on-reconstructions means joining at calibration time; features-on-maps means duplicating if a reconstruction backs multiple maps (currently it can't — there's a `UNIQUE (reconstruction_id)` constraint — but the data model doesn't actively prevent the future possibility).
-
-2. **Map-features-as-features-vs-deferred for the first fit.** Including them in the logistic when we have one or two maps is meaningless (constants). Land the schema + reconstructor changes now, but does the *fitting code* include them in the feature vector unconditionally and let the regression weight them to zero, or does it gate them on having ≥3 distinct maps in the corpus? Recommended: unconditional + let regression handle it. Confirm.
-
-3. **Held-out at map-build infrastructure: harness-side tar surgery vs. reconstructor-side option.** The harness today preprocesses tars to remove withheld frames before upload (`_prepare_capture`). The earlier draft of Phase 3 considered adding `held_out_image_ids` to `ReconstructionOptions` instead. Tar surgery is what's already implemented; recommended: keep it. Confirm.
-
-4. **Procrustes-residual surfacing.** For each (capture, recon_config) pair, the Procrustes solve on in-set images has a residual. Large residuals mean the truth source (frames.csv) is too noisy for Algorithm 1 to work for that capture. The fit report should surface these per-capture so bad captures are identifiable. **Should the fit script also automatically drop captures with residuals above a threshold?** If yes, what threshold (in meters)? Recommended: surface per-capture, don't auto-drop in v1; let the operator decide from the report.
-
-5. **`pipeline_version` chicken-and-egg.** `fit_calibration.py` embeds the localizer's git SHA at fit time. The deploy after fitting must come from that same SHA — there's a window where the calibration is fit, the SHA changes (someone commits something localizer-touching), and the now-stale calibration would hard-fail on the next deploy. **Should the fit script also auto-commit (or auto-PR) the calibration with a fixed SHA reference**, so the calibration commit *is* the deploy point? Or is "operator discipline" sufficient? Recommended: operator discipline; the loader's hard-fail surfaces the mismatch before serving traffic.
-
-6. **Σ_meas scaling formula.** Currently `Σ_meas = PnP_cov / tight²` with a hand-tuned 10000× inflation via the `tight = 0.01` band-aid intercept. Once the band-aid is gone, real fitted `tight` values are typically much higher (e.g. 0.7), giving only ~2× inflation — likely too tight. The intent doc flags the formula as "a tuning detail in the offline calibration step's 'what does Σ_meas mean' decision" — but doesn't specify what the replacement is. Three options:
-   - Keep the formula, accept that `Σ_meas` will be too tight in practice, and re-tune `RelocalizationFilter.BaseProcessNoise` and `SnapThresholdSigmas` to compensate at the filter level.
-   - Replace the formula with one fit empirically: `Σ_meas = α · PnP_cov + β · I` with `α, β` chosen so the empirical pose-error distribution on the held-out set matches the predicted Σ_meas (a one-time offline calibration on top of the calibration).
-   - Defer this question to Phase 5 when phone-side data validates the formula end-to-end against VIO drift.
-   Recommended: option (b), small offline addition to `fit_calibration.py`. Confirm.
-
-7. **Harness "single-config" / "fit-only" mode.** Today the harness runs the full Plackett-Burman sweep (17 configs). For fast iteration during this initiative — and for incremental refits when only the corpus has changed, not the parameter grid — a single-config mode that uses server defaults for everything is needed. Should this be a new CLI flag, an env var, or a separate entry point? Recommended: `--single-config` flag on `test-placeframe-e2e`.
-
-8. **Per-capture `frames.csv` truth-pose quality varies by device.** ZED VIO is high-quality and multi-second-stable. ARFoundation VIO is also good but session-relative; for short sessions (< a few minutes) it's plenty for Procrustes. **What do we do if a capture's frames.csv truth is bad?** No code-level answer; this is a runtime open question that surfaces via Procrustes residual reporting (see #4).
-
-9. **Fit script test surface.** Procrustes solve on synthetic point pairs is a clean unit test. Round-trip artifact write/read is a smoke test. The full fit-against-real-data path can't be tested without a corpus. **Is there value in a "tiny synthetic corpus" fixture — a hand-constructed ~10-image-per-capture setup checked into the repo — that lets us at least exercise the harness's full path in CI?** Tradeoff: real CI signal vs. tens of MB of binary fixtures. Recommended: defer; the harness's no-data path (zero captures discovered) is the CI test.
-
-10. **Removing the `MIN_NUM_INLIERS` / `MIN_INLIER_COVERAGE` band-aid before the corpus exists.** The replacement is `if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)`. **`TIGHT_MIN` defaults to what?** Today's band-aid rejects garbage; pre-corpus the calibration is identity-bootstrap so `tight` is constant (0.01) and a `tight < TIGHT_MIN` check is trivial. The band-aid stays in place until a real fitted calibration exists; this is the "removal happens after corpus" piece of code deliverable 6. Confirm.
-
-11. **The intent doc framing of "calibration refit cadence."** The original `vps-redesign-intent.md` said "weekly initially, slowing to quarterly." With ~15-hour fits and the harness doubling as the parameter sweep, that cadence was always aspirational. Realistic cadence: refit on every pipeline-affecting change, otherwise once when the corpus first lands. **Does the doc need an explicit cadence section, or is "manual on demand" the truthful description?** Recommended: just say "manual on demand" and remove the weekly/quarterly framing.
+1. **Map-quality columns live on `reconstructions`** (not `localization_maps`). Conceptually it's a property of the reconstruction. Harness joins through `localization_maps.reconstruction_id` at row-emission time. Runtime reads features from the map artifact bundle in MinIO, not via SQL.
+2. **Map-quality features are included in the fit feature vector unconditionally.** The regression weights them to zero when they're constants (single-capture corpus). No gating on map count.
+3. **Held-out frames stay implemented as harness-side tar surgery.** Already-implemented `_prepare_capture` keeps; no `held_out_image_ids` reconstructor option.
+4. **Procrustes residuals are surfaced per-capture in the fit report.** Operator decides from the report whether to drop a capture; no auto-drop threshold in v1.
+5. **`pipeline_version` chicken-and-egg is handled by operator discipline.** No auto-commit; the loader's startup hard-fail surfaces any mismatch before traffic flows.
+6. **Σ_meas decoupled from confidence.** Replaced `PnP_cov / tight²` with `α · PnP_cov + β · I`, with α, β fit empirically in `fit_calibration.py` against held-out SE(3) residuals. Confidence becomes a binary gate (`tight < TIGHT_MIN` rejects); admitted measurements use Σ_meas regardless of confidence value.
+7. **`--single-config` CLI flag** on `test-placeframe-e2e`. Short-circuits Phase 4 to `[None]` and skips the loc-config cross product. Used for fast iteration and incremental refits.
+8. **Bad `frames.csv` truth has no code-side action.** Procrustes residual reporting (decision 4) is the operator-facing diagnostic. No "bad capture" flag in the schema.
+9. **No synthetic corpus fixture.** CI is out of scope for this initiative; deferred to a separate effort if/when CI ever wants to exercise the harness path.
+10. **Band-aids removed in this initiative**, not deferred. The single-capture starter calibration committed as deliverable 10 unblocks the swap. `TIGHT_MIN` is read off the starter fit's success-cluster distribution rather than guessed (deliverable 11).
+11. **Refit cadence is "manual, on demand."** Removed weekly/quarterly framing.
 
 ## Risks and unknowns
 
 - **Procrustes-as-truth assumption.** Algorithm 1 treats `T_truth_to_map · P_truth_i` as ground truth for the held-out frame. The truth source is `frames.csv` — the device's VIO/SLAM pose from capture time. ZED VIO is good but not perfect; ARFoundation VIO drifts noticeably over multi-minute sessions. The Procrustes residual on in-set images is the diagnostic, but it can mask issues: a globally-drifting VIO can be fit by Procrustes with low residual and still produce systematically biased held-out truth.
-- **Cold-start with one capture in the corpus.** Even with one capture, the harness can run end-to-end and produce a fitted artifact. The artifact will overfit to that capture's scene/lighting/device and won't generalize. Operator discipline: don't ship a single-capture fit as the production calibration.
+- **Single-capture starter calibration is overfit by construction.** The starter shipped from this initiative is fit on ~11 held-out localizations from one scene. It will not generalize. It is committed deliberately to unblock the band-aid removal and let the system run on real (varying) confidence — not because it's trustworthy. Production calibration depends on the multi-capture corpus run.
 - **Schema migration backfill.** Existing reconstructions in the database don't have map-quality features computed. The migration backfills with NULLs (or computes from stored COLMAP output if accessible). NULL handling in `apply_global_calibration` needs explicit policy — feature-vector NaN propagates to logistic NaN. Recommended: NULLs treated as feature-vector zeros at runtime, with a log line; the fit script only uses rows where features are populated.
 - **Test corpus size for sweep.** The estimate of "~15 hours full run" comes from the orphaned md, and assumed 4 captures × 17 recon configs × N localizations. With more captures the runtime scales linearly in capture count and frame count. A corpus with ~10 captures and richer per-capture frame counts could easily push the full sweep past a day. The single-config mode is the workaround.
-- **`pipeline_version` churn in active development.** Every commit that touches the localizer's relevant config invalidates the calibration. During this initiative the fit doesn't run, so churn doesn't bite. Once a real calibration is committed, this becomes a real friction point — see open question 5.
+- **`pipeline_version` churn in active development.** Every commit that touches the localizer's relevant config invalidates the calibration. The starter calibration committed at the end of this initiative will go stale on the next localizer-touching commit. Loader hard-fail catches it; the operator refits.
+- **Frontend filter constants are not re-tuned this initiative.** `BaseProcessNoise` and `SnapThresholdSigmas` were tuned against the heuristic Σ_meas. They're now miscalibrated against the decoupled Σ_meas + starter calibration. The starter is too unreliable to drive meaningful re-tuning; it'll feel rougher than identity-bootstrap until the corpus run lands. This is accepted cost.
 
 ## Where this used to live
 
