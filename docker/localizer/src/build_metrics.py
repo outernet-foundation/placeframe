@@ -9,6 +9,10 @@ from scipy.spatial import ConvexHull
 
 from core.calibration import CalibrationArtifact, Features, apply_global_calibration
 
+# Floor on confidence.tight when scaling raw Hessian covariance into Σ_meas; prevents
+# division-by-zero when calibration outputs a near-zero tight probability.
+CONFIDENCE_TIGHT_FLOOR = 0.01
+
 
 def _compute_inlier_coverage(points2d_inliers: ndarray, image_width: int, image_height: int) -> float:
     if points2d_inliers.shape[0] < 3:
@@ -61,7 +65,8 @@ def build_localization_metrics(
 
     confidence = apply_global_calibration(calibration, features=Features.zeros())
 
-    covariance = pnp_result["covariance"].tolist()
+    tight_scaled = max(confidence.tight, CONFIDENCE_TIGHT_FLOOR)
+    measurement_covariance = (pnp_result["covariance"] / (tight_scaled * tight_scaled)).tolist()
 
     return LocalizationMetrics(
         inlier_ratio=inlier_ratio,
@@ -71,6 +76,6 @@ def build_localization_metrics(
         num_matches=num_matches,
         inlier_coverage=inlier_coverage,
         confidence=confidence,
-        covariance=covariance,
+        measurement_covariance=measurement_covariance,
         pipeline_version=pipeline_version,
     )
