@@ -63,10 +63,13 @@ def main(
         install_oras()
         restore_license()
 
-    tag = f"{cache_key}-{platform}-{branch.replace('/', '-')}"
+    branch_slug = branch.replace("/", "-")
+    tag = f"{cache_key}-{platform}-{branch_slug}"
+    fallback_branch = "dev"
+    fallback_tags = [f"{cache_key}-{platform}-{fallback_branch}"] if branch_slug != fallback_branch else None
 
     with ci_step("Restore library cache"):
-        restore(registry, "unity-library", tag, Path("."))
+        restore(registry, "unity-library", tag, Path("."), fallback_tags=fallback_tags)
 
     with ci_step("Prepare build"):
         config = load_unity_projects()
