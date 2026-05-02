@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from os import environ
+from time import perf_counter
 from typing import Any, cast
 
 from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
@@ -88,26 +89,48 @@ def localize_image_against_reconstruction(
         retrieval_top_k = RETRIEVAL_TOP_K
     if ransac_threshold is None:
         ransac_threshold = RANSAC_THRESHOLD
+
+    # Per-stage timing instrumentation. CUDA kernels are async, so each GPU-bound stage ends
+    # with cuda.synchronize() to attribute its true wall time rather than just kernel-launch.
+    timings: dict[str, float] = {}
+
+    def _gpu_sync() -> None:
+        if DEVICE == "cuda":
+            cuda.synchronize()
+
+    t0 = perf_counter()
+
     # Extract features from query image
     image = canonicalize_image(image_buffer, camera.orientation)
+    timings["canonicalize"] = perf_counter() - t0
+
+    t = perf_counter()
     rgb_tensor = from_numpy(asarray(image, dtype=float32)).permute(2, 0, 1).div(255.0)
     query_keypoints_tensor, query_descriptors_tensor = local_feature_extractor(
         rgb_tensor.unsqueeze(0).to(device=DEVICE)
     )
+    _gpu_sync()
+    timings["aliked"] = perf_counter() - t
 
+    t = perf_counter()
     descriptor_per_query_tile: list[TT[RetrievalDim]] = []
     for tile in tile_image(image):
         tile_tensor = from_numpy(asarray(tile, dtype=float32)).permute(2, 0, 1).div(255.0)
         descriptor_per_query_tile.append(global_descriptor_extractor(tile_tensor.unsqueeze(0).to(device=DEVICE)))
     query_tile_descriptors: TT[NumQueryTiles, RetrievalDim] = stack(descriptor_per_query_tile, dim=0)
+    _gpu_sync()
+    timings["dir_tiles"] = perf_counter() - t
 
+    t = perf_counter()
     # Per-database-image similarity is the max over all (query_tile, database_tile) pairs for that image.
     database_descriptors = to(from_numpy(map.tile_descriptors), DEVICE)
     similarity_pairs = permute(matmul(query_tile_descriptors, transpose(database_descriptors, 1, 2)), (1, 0, 2))
     per_image_similarity = amax(similarity_pairs, dim=(0, 2))
     top_k_image_indices: list[int] = topk(per_image_similarity, retrieval_top_k).indices.cpu().tolist()  # type: ignore
     matched_image_ids = [map.ordered_image_ids[i] for i in top_k_image_indices]
+    timings["retrieval"] = perf_counter() - t
 
+    t = perf_counter()
     # Decode descriptors of matched database images
     descriptors = decode_descriptors(
         map.opq_matrix, map.product_quantizer, {image_id: map.pq_codes[image_id] for image_id in matched_image_ids}
@@ -126,11 +149,16 @@ def localize_image_against_reconstruction(
     keypoints["query"] = query_keypoints_tensor.to(DEVICE)
     descriptors["query"] = query_descriptors_tensor.to(DEVICE)
     sizes["query"] = (image.height, image.width)
+    _gpu_sync()
+    timings["matching_setup"] = perf_counter() - t
 
+    t = perf_counter()
     # Match features between query and database images
     pairs = [(str(image_id), "query") for image_id in matched_image_ids]
 
     match_indices = local_feature_matcher(pairs, keypoints, descriptors, sizes, len(pairs))
+    _gpu_sync()
+    timings["matching"] = perf_counter() - t
 
     # Count raw LightGlue matches before 3D filtering
     num_matches = sum(match_indices[key][0].shape[0] for key in match_indices)
@@ -163,6 +191,7 @@ def localize_image_against_reconstruction(
     estimation_options.ransac = ransac_options
 
     # Estimate pose
+    t = perf_counter()
     points2D = keypoints["query"][query_keypoint_indices].cpu().numpy()  # noqa: N806 — pycolmap CV notation
     points3D = vstack([map.points3D[i].xyz for i in point3d_indices])  # noqa: N806 — pycolmap CV notation
     pnp_result = cast(
@@ -171,6 +200,7 @@ def localize_image_against_reconstruction(
             points2D, points3D, pycolmap_camera, estimation_options, return_covariance=True
         ),
     )
+    timings["pnp"] = perf_counter() - t
 
     # Check if pose estimation was successful
     if pnp_result is None:
@@ -221,6 +251,9 @@ def localize_image_against_reconstruction(
             f"Below quality floor: num_inliers={metrics.num_inliers} (min {MIN_NUM_INLIERS}), "
             f"inlier_coverage={metrics.inlier_coverage:.3f} (min {MIN_INLIER_COVERAGE})"
         )
+
+    timings["total"] = perf_counter() - t0
+    print("localize timings(ms): " + " ".join(f"{k}={v * 1000:.0f}" for k, v in timings.items()))
 
     # Success
     print(transform.model_dump_json(indent=2))
