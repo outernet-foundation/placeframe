@@ -289,9 +289,9 @@ namespace Placeframe.Client
 
         public static IControl LocalizationMetricsDialog(LocalizationMetricsDialogProps props)
         {
-            var metrics = new ValueObservable<LocalizationMetrics>(VisualPositioningSystem.MostRecentMetrics);
-            Action handleMetricsChanged = () => metrics.value = VisualPositioningSystem.MostRecentMetrics;
-            VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated += handleMetricsChanged;
+            var metrics = new ValueObservable<LocalizationMetrics>(VisualPositioningSystem.LastReceivedMetrics);
+            Action handleMetricsChanged = () => metrics.value = VisualPositioningSystem.LastReceivedMetrics;
+            VisualPositioningSystem.OnMetricsReceived += handleMetricsChanged;
 
             var control = VerticalLayout(new()
             {
@@ -312,7 +312,7 @@ namespace Placeframe.Client
             });
 
             control.AddBinding(
-                new Disposable(() => VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated -= handleMetricsChanged)
+                new Disposable(() => VisualPositioningSystem.OnMetricsReceived -= handleMetricsChanged)
             );
 
             return control;
