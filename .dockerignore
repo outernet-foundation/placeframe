@@ -3,7 +3,9 @@
 # Adding a COPY for a path not listed here will fail the build loudly.
 *
 !docker/
-!packages/
+!packages/python/
+!packages/generated/python/
+!packages/generated/csharp/api-client/
 !legacy/
 legacy/Outernet.Client/
 !compose.bake.yml
