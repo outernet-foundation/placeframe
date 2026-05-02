@@ -15,7 +15,7 @@ This file tracks execution of both in-flight initiatives: phase definitions, sta
 | 2a | In-Unity NUnit tests for Phase 1 math | VPS | ✅ Done |
 | 2b | SuperPoint → ALIKED | Pipeline | ✅ Done |
 | 2c | Local-feature scale standardization (formerly "Aspect-ratio preprocessing") | Pipeline | ✅ Done — but the in-DIR letterbox added under this phase is misguided and is reverted in 2c-fixup |
-| 2c-fixup | Revert in-DIR letterbox; add square-tile retrieval aggregation | Pipeline | Up next |
+| 2c-fixup | Revert in-DIR letterbox; add square-tile retrieval aggregation | Pipeline | ✅ Done — optional `transform_image` rename deferred |
 | 2d | Semantic-segmentation masking (3-day time-box) | Pipeline | Not started |
 | 2e | Repair `test-placeframe-e2e` and rerun parameter sweep | Pipeline | Not started |
 | 3 | ZED-only global calibration | VPS | Not started |
@@ -110,17 +110,16 @@ Cross-aspect query/database mismatch makes whole-image DIR descriptors compare d
 
 **Revert work:**
 
-- Remove the letterbox from `DIR.forward` (`packages/python/neural-networks/src/neural_networks/models.py`); `DIR.forward` becomes a thin normalize-and-run wrapper.
-- Drop `_letterbox_to_square` helper.
+- Letterbox removed from `DIR.forward` ✅; `_letterbox_to_square` helper dropped ✅.
 
 **Tiling work:**
 
-- Add `tile_for_retrieval(image)` helper (likely in `core/camera_config.py` or a new `core/retrieval_preprocess.py`) that takes a shorter-side-resized PIL image and produces M overlapping `LOCAL_FEATURE_RESIZE_SHORTER_SIDE × LOCAL_FEATURE_RESIZE_SHORTER_SIDE` square crops along the long axis. Default ~50% overlap; M derived from long-axis length.
-- Reconstructor (`run_reconstruction.py`): for each database image, run DIR over its M tiles; store M descriptors per image. OPQ matrix and PQ training operate on the union of tile descriptors. The map's per-image descriptor cache stores M descriptors per image_id.
-- Localizer (`localize.py`): tile the query image; produce M descriptors. Top-K retrieval similarity becomes a max (or mean — config) over `M_query × M_db_per_image` pairs per database image. Top-K picks the best database images by aggregated similarity.
-- The `Map` data structure may need to grow a tile-aware descriptor matrix (e.g., shape `(num_db_images × M, descriptor_dim)` plus an `image_id` lookup table).
+- `tile_for_retrieval(image)` helper added to `core/camera_config.py` ✅. Takes a shorter-side-resized PIL image and produces M overlapping `LOCAL_FEATURE_RESIZE_SHORTER_SIDE × LOCAL_FEATURE_RESIZE_SHORTER_SIDE` square crops along the long axis. `RETRIEVAL_TILE_OVERLAP_FRACTION = 0.5` (~50% overlap); M derived from long-axis length.
+- Reconstructor runs DIR over each tile per database image and stores `(M, D)` descriptors per image ✅. OPQ/PQ training operates on the local (ALIKED) descriptors only — global-descriptor tiling doesn't affect that path.
+- Localizer tiles the query ✅. Similarity is computed as a `(M_q, sum_M_db)` matrix; per-database-image similarity is the max over all `(query_tile, db_tile)` pairs (mathematically equivalent to max over query-tile axis followed by scatter-max grouped by image). Top-K picks images by aggregated similarity.
+- `Map` grew a `(sum_M_db, D)` `global_descriptors_matrix` plus a parallel `tile_to_image_row` index mapping each row to its position in `ordered_image_ids` ✅.
 
-**Naming cleanup (optional but worth doing while touching this code):** the current `transform_image()` name doesn't telegraph that it resizes. With piece-3 preprocessing landing alongside piece-2 preprocessing, consider renaming both to honest paired names — e.g., `prepare_image_for_extraction()` (orient + shorter-side resize) and `prepare_image_for_retrieval()` (orient + shorter-side resize + tile). Each paired with corresponding intrinsics functions where applicable. The user has flagged this concern explicitly.
+**Naming cleanup (deferred):** `transform_image()` still doesn't telegraph that it resizes. With `tile_for_retrieval()` now sitting alongside `transform_image()`, the natural rename to `prepare_image_for_extraction()` / `prepare_image_for_retrieval()` is straightforward — but it touches multiple callers across services and was held back to keep the tiling commit reviewable on its own. Worth a follow-up commit before Phase 2e, or fold into the next pipeline change.
 
 **Risks (unmeasured):**
 
