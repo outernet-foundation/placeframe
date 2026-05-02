@@ -1,6 +1,6 @@
 # VPS Confidence, Calibration, and Fusion — Intent
 
-> Execution and progress tracked in [`vps-redesign-plan.md`](vps-redesign-plan.md).
+> Execution and progress tracked in [`plan.md`](plan.md).
 
 ## Status
 
