@@ -13,7 +13,11 @@ from typing import Annotated, Any
 from uuid import UUID
 
 from httpx import AsyncClient
+from numpy import array, degrees, float64
+from numpy.linalg import norm
+from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from pydantic import BaseModel
+from scipy.spatial.transform import Rotation
 from typer import Exit, Option, Typer, echo
 
 from placeframe_api_client import (
@@ -99,6 +103,8 @@ class ReconstructionResult(BaseModel):
     succeeded: bool
     metrics: ReconMetrics | None = None
     loc_map_id: str | None = None
+    truth_alignment_rms_residual_m: float | None = None
+    truth_alignment_max_residual_m: float | None = None
 
 
 class LocalizationResult(BaseModel):
@@ -120,6 +126,8 @@ class LocalizationResult(BaseModel):
     num_correspondences: int | None = None
     num_matches: int | None = None
     inlier_coverage: float | None = None
+    err_t_m: float | None = None
+    err_r_deg: float | None = None
 
 
 class E2EResults(BaseModel):
@@ -148,6 +156,11 @@ class WithheldFrame:
     timestamp: str
     image_bytes: bytes
     camera_config: PinholeCameraConfig
+    # world_from_rig pose from frames.csv, in the capture's native axis convention.
+    # The localizer returns its estimate in that same convention (it converts back from OpenCV at
+    # the API boundary), so direct comparison is correct without a basis change.
+    truth_translation: NDArray[float64]
+    truth_rotation_quat_xyzw: NDArray[float64]
 
 
 # --- Helpers (called from multiple sites or to reduce nesting) ---
@@ -160,6 +173,14 @@ def _prepare_capture(capture: CaptureInfo) -> None:
         all_rows = list(DictReader(StringIO(frames_f.read().decode("utf-8"))))
 
     withheld_indices = {i for i in range(len(all_rows)) if (i + 1) % WITHHOLD_INTERVAL == 0}
+
+    withheld_truth_by_timestamp: dict[str, tuple[NDArray[float64], NDArray[float64]]] = {}
+    for i in sorted(withheld_indices):
+        row = all_rows[i]
+        withheld_truth_by_timestamp[row["timestamp"]] = (
+            array([float(row["tx"]), float(row["ty"]), float(row["tz"])], dtype=float64),
+            array([float(row["qx"]), float(row["qy"]), float(row["qz"]), float(row["qw"])], dtype=float64),
+        )
 
     withheld_image_paths: set[str] = set()
     for i in sorted(withheld_indices):
@@ -187,11 +208,15 @@ def _prepare_capture(capture: CaptureInfo) -> None:
             if member.name in withheld_image_paths and member.name.startswith("rig0/camera0/"):
                 f = src.extractfile(member)
                 assert f is not None
+                timestamp = Path(member.name).stem
+                truth_translation, truth_rotation = withheld_truth_by_timestamp[timestamp]
                 withheld_frames.append(
                     WithheldFrame(
-                        timestamp=Path(member.name).stem,
+                        timestamp=timestamp,
                         image_bytes=f.read(),
                         camera_config=capture.camera_configs["camera0"],
+                        truth_translation=truth_translation,
+                        truth_rotation_quat_xyzw=truth_rotation,
                     )
                 )
             if member.name in withheld_image_paths:
@@ -277,6 +302,8 @@ async def _run_reconstruction(
             reproj_error_90th=m.reprojection_pixel_error_90th_percentile,
         ),
         loc_map_id=str(loc_map.id),
+        truth_alignment_rms_residual_m=m.truth_alignment_rms_residual_m,
+        truth_alignment_max_residual_m=m.truth_alignment_max_residual_m,
     )
 
 
@@ -479,6 +506,28 @@ async def _run(tar_paths: list[Path], single_config: bool) -> E2EResults:
             loc_result.num_correspondences = best.num_correspondences
             loc_result.num_matches = best.num_matches
             loc_result.inlier_coverage = best.inlier_coverage
+
+            # camera_from_map is the localizer's camera-from-world pose (the reconstructor's
+            # Umeyama alignment puts the map in truth-world frame). Truth from frames.csv is
+            # world_from_rig with the ref sensor at identity offset, so it doubles as
+            # world_from_camera. Both are in the capture's native axis convention — the API
+            # converts back from OpenCV at the boundary based on the query's `axis_convention`.
+            cam_from_map = loc_resp[0].camera_from_map_transform
+            cam_from_map_translation = array(
+                [cam_from_map.translation.x, cam_from_map.translation.y, cam_from_map.translation.z],
+                dtype=float64,
+            )
+            cam_from_map_rotation = Rotation.from_quat(
+                [cam_from_map.rotation.x, cam_from_map.rotation.y, cam_from_map.rotation.z, cam_from_map.rotation.w]
+            ).as_matrix()
+            estimated_camera_position = -cam_from_map_rotation.T @ cam_from_map_translation
+            estimated_world_from_camera = cam_from_map_rotation.T
+            truth_world_from_camera = Rotation.from_quat(qframe.truth_rotation_quat_xyzw).as_matrix()
+            relative_rotation = Rotation.from_matrix(truth_world_from_camera @ estimated_world_from_camera.T)
+
+            loc_result.err_t_m = float(norm(qframe.truth_translation - estimated_camera_position))
+            loc_result.err_r_deg = float(degrees(relative_rotation.magnitude()))
+
             results.localizations.append(loc_result)
 
     echo(f"\nReconstructions: {len(succeeded)}/{len(results.reconstructions)} succeeded")

@@ -2,11 +2,26 @@ from __future__ import annotations
 
 from pathlib import Path
 from shutil import rmtree
-from typing import Any, ValuesView, cast
+from typing import Any, Iterator, ValuesView, cast
 
-from numpy import concatenate, empty, eye, float32, float64, intp, savez_compressed, stack, uint8, uint32
+from numpy import (
+    asarray,
+    concatenate,
+    diag,
+    empty,
+    eye,
+    float32,
+    float64,
+    intp,
+    savez_compressed,
+    sign,
+    stack,
+    uint8,
+    uint32,
+)
+from numpy.linalg import det, norm, svd
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
-from pycolmap import Database, PosePrior, PosePriorCoordinateSystem
+from pycolmap import Database, PosePrior, PosePriorCoordinateSystem, Reconstruction
 from pycolmap import Image as pycolmapImage
 from pycolmap._core import Frame, Point3D, Rigid3d, Sim3d, apply_rig_config, incremental_mapping, match_spatial  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
@@ -17,6 +32,23 @@ from .rig import Rig, Transform
 
 COLMAP_DB_FILE = "database.db"
 COLMAP_SFM_DIRECTORY = "sfm_model"
+
+
+def _registered_frames(
+    rigs: dict[str, Rig],
+    colmap_image_ids: dict[str, int],
+    reconstruction: Reconstruction,
+) -> Iterator[tuple[Transform, Rigid3d]]:
+    # Multi-camera rigs (e.g. ZED stereo) share one Frame per rig+frame, so any registered
+    # image of any camera in that frame yields the Frame's rig_from_world.
+    for rig_id, rig in rigs.items():
+        for frame_id, transform in rig.frame_poses.items():
+            for camera_id in rig.cameras.keys():
+                image_id = colmap_image_ids[f"{rig_id}/{camera_id}/{frame_id}.jpg"]
+                if image_id in reconstruction.images:
+                    rig_from_world = cast(Rigid3d, cast(Frame, reconstruction.images[image_id].frame).rig_from_world)  # type: ignore
+                    yield transform, rig_from_world
+                    break
 
 
 def run_colmap_reconstruction(
@@ -117,23 +149,10 @@ def run_colmap_reconstruction(
     metrics.build_reconstruction_metrics(best_reconstruction)
 
     # Use the first frame that is registered in the best reconstruction to determine the similarity transform
-    anchor_frame_prior_pose: Transform | None = None
-    anchor_rig_from_world_transform: Rigid3d | None = None
-    for rig_id, camera_id, frame_id in (
-        (rig_id, camera_id, frame_id)
-        for rig_id in rigs.keys()
-        for frame_id in rigs[rig_id].frame_poses.keys()
-        for camera_id in rigs[rig_id].cameras.keys()
-    ):
-        image_id = colmap_image_ids[f"{rig_id}/{camera_id}/{frame_id}.jpg"]
-        if image_id in best_reconstruction.images:
-            reconstruction_frame = cast(Frame, best_reconstruction.images[image_id].frame)
-            anchor_frame_prior_pose = rigs[rig_id].frame_poses[frame_id]
-            anchor_rig_from_world_transform = cast(Rigid3d, reconstruction_frame.rig_from_world)  # type: ignore
-            break
-
-    if anchor_frame_prior_pose is None or anchor_rig_from_world_transform is None:
+    anchor = next(_registered_frames(rigs, colmap_image_ids, best_reconstruction), None)
+    if anchor is None:
         raise RuntimeError("Could not find anchor frame in best reconstruction")
+    anchor_frame_prior_pose, anchor_rig_from_world_transform = anchor
 
     # Transform the reconstruction to align with the rig coordinate system
     best_reconstruction.transform(
@@ -148,6 +167,28 @@ def run_colmap_reconstruction(
             )
         )
     )
+
+    # Diagnostic-only rigid Umeyama best-fit of registered map centers to truth (not applied
+    # to the reconstruction). Residual surfaces as the per-capture VIO-quality signal the
+    # calibration corpus filter uses to drop unreliable captures.
+    truth_centers_list: list[NDArray[float64]] = []
+    map_centers_list: list[NDArray[float64]] = []
+    for transform, rig_from_world in _registered_frames(rigs, colmap_image_ids, best_reconstruction):
+        truth_centers_list.append(transform.translation.astype(float64))
+        map_centers_list.append(-rig_from_world.rotation.matrix().T @ rig_from_world.translation)
+
+    if len(truth_centers_list) < 3:
+        raise RuntimeError(f"Need ≥3 registered frames for alignment diagnostic (got {len(truth_centers_list)})")
+
+    truth_centers = asarray(truth_centers_list, dtype=float64)
+    map_centers = asarray(map_centers_list, dtype=float64)
+    truth_mean, map_mean = truth_centers.mean(axis=0), map_centers.mean(axis=0)
+    u, _, vt = svd((map_centers - map_mean).T @ (truth_centers - truth_mean))
+    fit_rotation = vt.T @ diag([1.0, 1.0, sign(det(vt.T @ u.T))]) @ u.T
+    fit_translation = truth_mean - fit_rotation @ map_mean
+    residuals = norm((fit_rotation @ map_centers.T).T + fit_translation - truth_centers, axis=1)
+    metrics.metrics.truth_alignment_rms_residual_m = float((residuals**2).mean() ** 0.5)
+    metrics.metrics.truth_alignment_max_residual_m = float(residuals.max())
 
     # Write the best reconstruction to disk in COLMAP format
     best_reconstruction.write_text(str(output_path))
