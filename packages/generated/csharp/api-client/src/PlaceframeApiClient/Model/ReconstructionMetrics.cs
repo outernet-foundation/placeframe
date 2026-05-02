@@ -64,6 +64,8 @@ namespace PlaceframeApiClient.Model
         /// <param name="mapAvgTrackLength">Mean number of image observations per 3D point. Coarse density-of-evidence proxy..</param>
         /// <param name="mapBoundingVolumeM3">Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; complements image_count which only captures coverage density..</param>
         /// <param name="mapViewpointDiversity">1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps from single-viewpoint maps even when the rest of the metrics agree..</param>
+        /// <param name="truthAlignmentRmsResidualM">RMS over registered cameras of ||T·c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration..</param>
+        /// <param name="truthAlignmentMaxResidualM">Maximum over registered cameras of ||T·c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over..</param>
         public ReconstructionMetrics()
         {
         }
@@ -819,6 +821,56 @@ namespace PlaceframeApiClient.Model
             return _flagMapViewpointDiversity;
         }
         /// <summary>
+        /// RMS over registered cameras of ||T·c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration.
+        /// </summary>
+        /// <value>RMS over registered cameras of ||T·c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration.</value>
+        [DataMember(Name = "truth_alignment_rms_residual_m", EmitDefaultValue = true)]
+        public double? TruthAlignmentRmsResidualM
+        {
+            get{ return _TruthAlignmentRmsResidualM;}
+            set
+            {
+                _TruthAlignmentRmsResidualM = value;
+                _flagTruthAlignmentRmsResidualM = true;
+            }
+        }
+        private double? _TruthAlignmentRmsResidualM;
+        private bool _flagTruthAlignmentRmsResidualM;
+
+        /// <summary>
+        /// Returns false as TruthAlignmentRmsResidualM should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeTruthAlignmentRmsResidualM()
+        {
+            return _flagTruthAlignmentRmsResidualM;
+        }
+        /// <summary>
+        /// Maximum over registered cameras of ||T·c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over.
+        /// </summary>
+        /// <value>Maximum over registered cameras of ||T·c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over.</value>
+        [DataMember(Name = "truth_alignment_max_residual_m", EmitDefaultValue = true)]
+        public double? TruthAlignmentMaxResidualM
+        {
+            get{ return _TruthAlignmentMaxResidualM;}
+            set
+            {
+                _TruthAlignmentMaxResidualM = value;
+                _flagTruthAlignmentMaxResidualM = true;
+            }
+        }
+        private double? _TruthAlignmentMaxResidualM;
+        private bool _flagTruthAlignmentMaxResidualM;
+
+        /// <summary>
+        /// Returns false as TruthAlignmentMaxResidualM should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeTruthAlignmentMaxResidualM()
+        {
+            return _flagTruthAlignmentMaxResidualM;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -856,6 +908,8 @@ namespace PlaceframeApiClient.Model
             sb.Append("  MapAvgTrackLength: ").Append(MapAvgTrackLength).Append("\n");
             sb.Append("  MapBoundingVolumeM3: ").Append(MapBoundingVolumeM3).Append("\n");
             sb.Append("  MapViewpointDiversity: ").Append(MapViewpointDiversity).Append("\n");
+            sb.Append("  TruthAlignmentRmsResidualM: ").Append(TruthAlignmentRmsResidualM).Append("\n");
+            sb.Append("  TruthAlignmentMaxResidualM: ").Append(TruthAlignmentMaxResidualM).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }
