@@ -6,7 +6,7 @@ from typing import Any, Mapping, Protocol, cast
 import torch
 from lightglue import ALIKED, LightGlue  # type: ignore
 from numpy import float32
-from numpy.typing import NDArray
+from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from sklearn.decomposition import _pca  # type: ignore  # noqa: PLC2701 — no public API for IncrementalPCA internals
 from torch import Tensor, from_numpy  # type: ignore
 from torch.hub import get_dir
