@@ -46,27 +46,40 @@ namespace Placeframe.Core.Tests
         }
 
         [Test]
-        public void ProcessNoise_NoPriorVioPosition_ReturnsZeroMatrix()
+        public void ProcessNoise_NoPriorVioPosition_ReturnsBaseTerm()
         {
             var noise = RelocalizationFilter.ProcessNoise(new double3(1, 2, 3), null);
 
+            var expected = new[]
+            {
+                RelocalizationFilter.BaseProcessNoiseRotationVariancePerTick,
+                RelocalizationFilter.BaseProcessNoiseRotationVariancePerTick,
+                RelocalizationFilter.BaseProcessNoiseRotationVariancePerTick,
+                RelocalizationFilter.BaseProcessNoiseTranslationVariancePerTick,
+                RelocalizationFilter.BaseProcessNoiseTranslationVariancePerTick,
+                RelocalizationFilter.BaseProcessNoiseTranslationVariancePerTick,
+            };
             for (int r = 0; r < 6; r++)
                 for (int c = 0; c < 6; c++)
-                    Assert.That(noise[r, c], Is.EqualTo(0.0).Within(1e-12));
+                    Assert.That(noise[r, c], Is.EqualTo(r == c ? expected[r] : 0.0).Within(1e-12));
         }
 
         [Test]
-        public void ProcessNoise_ScalesQuadraticallyWithDistance()
+        public void ProcessNoise_MotionTermScalesQuadraticallyWithDistance()
         {
             var origin = new double3(0, 0, 0);
             var oneMeter = new double3(1, 0, 0);
             var twoMeters = new double3(2, 0, 0);
 
-            var noiseAtOne = RelocalizationFilter.ProcessNoise(oneMeter, origin);
-            var noiseAtTwo = RelocalizationFilter.ProcessNoise(twoMeters, origin);
+            var motionAtOne =
+                RelocalizationFilter.ProcessNoise(oneMeter, origin)[0, 0]
+                - RelocalizationFilter.BaseProcessNoiseRotationVariancePerTick;
+            var motionAtTwo =
+                RelocalizationFilter.ProcessNoise(twoMeters, origin)[0, 0]
+                - RelocalizationFilter.BaseProcessNoiseRotationVariancePerTick;
 
             // Variance scales with σ², σ scales linearly with distance, so variance ∝ distance².
-            Assert.That(noiseAtTwo[0, 0] / noiseAtOne[0, 0], Is.EqualTo(4.0).Within(1e-9));
+            Assert.That(motionAtTwo / motionAtOne, Is.EqualTo(4.0).Within(1e-9));
         }
 
         [Test]
