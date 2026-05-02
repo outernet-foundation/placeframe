@@ -20,7 +20,7 @@ from core.model_wrappers import (
     make_local_feature_matcher_for_arrays,
 )
 from core.opq import encode_descriptors, train_opq_matrix, train_pq_quantizer, write_opq_matrix, write_pq_quantizer
-from core.reconstruction_manifest import ReconstructionManifest
+from core.reconstruction_manifest import ReconstructionManifest, ReconstructionStatus
 from core.model_wrappers import RetrievalDim
 from core.tensor_types import TT
 from neural_networks.models import load_aliked, load_DIR, load_lightglue
@@ -79,6 +79,18 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         print(f"Putting object in bucket {settings.reconstructions_bucket} with key {reconstruction_id}/{key}")
         s3_client.put_object(Bucket=settings.reconstructions_bucket, Key=f"{reconstruction_id}/{key}", Body=body)
 
+    # Load reconstruction manifest first so phase updates can publish through it as work proceeds.
+    manifest = ReconstructionManifest.model_validate_json(
+        s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{reconstruction_id}/manifest.json")[
+            "Body"
+        ].read()
+    )
+
+    def _set_phase(status: ReconstructionStatus) -> None:
+        manifest.status = status
+        _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
+
+    _set_phase("downloading")
     print(
         f"Downloading capture session archive for capture session ID: {capture_id} from bucket {settings.captures_bucket}"
     )
@@ -101,13 +113,6 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         for rig in capture_session_manifest.rigs
     }
 
-    # Download and validate reconstruction manifest
-    manifest = ReconstructionManifest.model_validate_json(
-        s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{reconstruction_id}/manifest.json")[
-            "Body"
-        ].read()
-    )
-
     options = OptionsBuilder(manifest.options)
     metrics = MetricsBuilder()
 
@@ -125,6 +130,7 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
     _put_reconstruction_object(key=file_name, body=file_bytes)
 
     # Extract features
+    _set_phase("extracting_features")
     global_descriptors: dict[str, NDArray[float32]] = {}  # noqa: TID251 — Phase T piece 3 follow-up migration
     keypoints = KeypointsArrays({})
     descriptors = DescriptorsArrays({})
@@ -172,6 +178,7 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
     descriptor_array = ascontiguousarray(vstack([descriptor for descriptor in descriptors.values()]), dtype=float32)
 
     # Train OPQ matrix
+    _set_phase("training_opq_matrix")
     opq_matrix = train_opq_matrix(
         options.compression_opq_number_of_subvectors(),
         options.compression_opq_number_of_training_iterations(),
@@ -181,6 +188,7 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
     _put_reconstruction_object(key=file_name, body=file_bytes)
 
     # Train PQ quantizer
+    _set_phase("training_product_quantizer")
     product_quantizer = train_pq_quantizer(
         options.compression_opq_number_of_subvectors(),
         options.compression_opq_number_of_bits_per_subvector(),
@@ -196,11 +204,13 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
     _put_reconstruction_object(key=file_name, body=file_bytes)
 
     # Match features
+    _set_phase("matching_features")
     match_indices = local_feature_matcher(pairs, keypoints, descriptors, sizes, options.lightglue_batch_size())
     if cuda.is_available():
         cuda.empty_cache()
 
     # Run COLMAP reconstruction
+    _set_phase("reconstructing")
     sfm_output_path = WORK_DIR / "sfm_output"
     sfm_output_path.mkdir(parents=True, exist_ok=True)
     reconstruction = run_colmap_reconstruction(
@@ -214,13 +224,14 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         manifest.status = "failed"
         manifest.error = "No model was created"
     else:
+        _set_phase("uploading")
         for file_path in sfm_output_path.rglob("*"):
             if file_path.is_file():
                 _put_reconstruction_object(
                     key=f"sfm_model/{file_path.relative_to(sfm_output_path)}", body=file_path.read_bytes()
                 )
+        manifest.status = "succeeded"
 
     # Update and write reconstruction manifest
     manifest.metrics = metrics.metrics
-    manifest.status = "succeeded"
     _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))

@@ -750,8 +750,10 @@ namespace Placeframe.Client
                                                         }),
                                                         LabeledButton(new LabeledButtonProps()
                                                         {
-                                                            label = capture.status.ToObservable().ObservableSelect(x =>
-                                                                x switch
+                                                            label = Observables.Combine(
+                                                                capture.status.ToObservable(),
+                                                                capture.manifest.ToObservable(),
+                                                                (x, manifest) => x switch
                                                                 {
                                                                     CaptureUploadStatus.NotUploaded => "Upload",
                                                                     CaptureUploadStatus.UploadRequested => "Initializing",
@@ -759,7 +761,7 @@ namespace Placeframe.Client
                                                                     CaptureUploadStatus.Uploading => "Uploading",
                                                                     CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
                                                                     CaptureUploadStatus.ReconstructRequested => "Constructing",
-                                                                    CaptureUploadStatus.Reconstructing => "Constructing",
+                                                                    CaptureUploadStatus.Reconstructing => ReconstructingPhaseLabel(manifest),
                                                                     CaptureUploadStatus.Uploaded => "Create Map",
                                                                     CaptureUploadStatus.CreateMapRequested => "Create Map",
                                                                     CaptureUploadStatus.MapCreated => "Map Created",
