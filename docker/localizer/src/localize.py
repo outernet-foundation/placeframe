@@ -17,6 +17,7 @@ from scipy.spatial.transform import Rotation
 from torch import cuda, from_numpy, mv, topk  # type: ignore
 
 from .build_metrics import build_localization_metrics
+from core.calibration import CalibrationArtifact
 from .map import Map
 
 DEVICE = "cuda" if cuda.is_available() else "cpu"
@@ -56,6 +57,8 @@ def localize_image_against_reconstruction(
     image_buffer: bytes,
     retrieval_top_k: int,
     ransac_threshold: float,
+    pipeline_version: str,
+    calibration: CalibrationArtifact,
 ) -> tuple[Transform, LocalizationMetrics]:
     # Extract features from query image
     image = transform_image(image_buffer, camera.orientation)
@@ -124,7 +127,9 @@ def localize_image_against_reconstruction(
     points3D = vstack([map.points3D[i].xyz for i in point3d_indices])  # noqa: N806 — pycolmap CV notation
     pnp_result = cast(
         dict[str, Any] | None,
-        estimate_and_refine_absolute_pose(points2D, points3D, pycolmap_camera, estimation_options),
+        estimate_and_refine_absolute_pose(
+            points2D, points3D, pycolmap_camera, estimation_options, return_covariance=True
+        ),
     )
 
     # Check if pose estimation was successful
@@ -146,7 +151,17 @@ def localize_image_against_reconstruction(
     )
 
     # Build metrics
-    metrics = build_localization_metrics(pnp_result, points2D, points3D, pycolmap_camera, num_matches, width, height)
+    metrics = build_localization_metrics(
+        pnp_result,
+        points2D,
+        points3D,
+        pycolmap_camera,
+        num_matches,
+        width,
+        height,
+        pipeline_version,
+        calibration,
+    )
 
     # Success
     print(transform.model_dump_json(indent=2))

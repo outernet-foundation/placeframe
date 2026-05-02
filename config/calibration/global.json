@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "pipeline_version": "identity-bootstrap",
+  "fit_at": "2026-04-29T00:00:00Z",
+  "fit_by": "identity bootstrap",
+  "sample_count": 0,
+  "tight": {
+    "logistic_weights": [],
+    "logistic_intercept": 0.0,
+    "logistic_feature_names": [],
+    "isotonic_x_breakpoints": [0.0, 1.0],
+    "isotonic_y_breakpoints": [0.0, 1.0]
+  },
+  "loose": {
+    "logistic_weights": [],
+    "logistic_intercept": 2.1972245773362196,
+    "logistic_feature_names": [],
+    "isotonic_x_breakpoints": [0.0, 1.0],
+    "isotonic_y_breakpoints": [0.0, 1.0]
+  },
+  "sigma_meas_alpha": 1.0,
+  "sigma_meas_beta": 0.0
+}
