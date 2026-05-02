@@ -188,4 +188,7 @@ ignore = [
 [lint.flake8-builtins]
 ignorelist = ["id", "map"]
 
+[lint.flake8-tidy-imports.banned-api]
+"numpy.typing.NDArray".msg = "NDArray bakes Any into the shape parameter. Use ndarray[tuple[...], dtype[T]] with explicit shape brands."
+
 [lint.isort]
