@@ -406,15 +406,17 @@ on measurement (T_meas, Σ_meas, confidence):
     log_dropped("low confidence")
     return
 
-  # 2. Predict prior from VIO motion since last measurement
-  vio_motion = ARFoundation.GetMotionSince(_lastMeasurementTimestamp)
-  T_predicted = _unityFromEcefTransform_target ⊕ vio_motion  # compose in Unity-world frame
+  # 2. Predict prior. The alignment is a static relationship between ECEF and Unity
+  #    world; device motion does not drift it, so the mean is unchanged. VIO motion
+  #    inflates uncertainty only.
+  vio_motion = VIOMotionSince(_lastMeasurementTimestamp)  # device motion accumulated since last accept
+  μ_predicted = _alignmentMean
   Σ_predicted = _alignmentCovariance + ProcessNoise(vio_motion)
     # ProcessNoise: (drift_rate * ||vio_motion.translation||)^2 added to diagonal,
     # rotation drift proportional to motion. Default drift_rate = 0.01 (1%/m).
 
   # 3. Mahalanobis innovation gate
-  residual_se3 = log(T_predicted⁻¹ · T_meas)   # 6-vector in se(3) tangent space
+  residual_se3 = log(μ_predicted⁻¹ · T_meas)   # 6-vector in se(3) tangent space
   innovation_cov = Σ_predicted + Σ_meas
   m_dist = residual_se3.transpose() @ inv(innovation_cov) @ residual_se3
   if m_dist > Chi2_99_6dof:  # ~16.81
@@ -423,7 +425,7 @@ on measurement (T_meas, Σ_meas, confidence):
 
   # 4. Bayesian update on the alignment posterior
   K = Σ_predicted @ inv(Σ_predicted + Σ_meas)             # Kalman gain
-  μ_new = T_predicted ⊕ (K @ residual_se3)                # exp-map back to SE(3)
+  μ_new = μ_predicted ⊕ (K @ residual_se3)                # exp-map back to SE(3)
   Σ_new = (I - K) @ Σ_predicted
 
   # 5. Decide snap vs slew
