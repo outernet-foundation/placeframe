@@ -7,11 +7,21 @@
 
 ## Status
 
-Active. A localizer-scope prototype landed alongside Phase 2c-fixup: `core/tensor_types.py` (the `TT` shim alone) with dim brands distributed to where their concept is defined — `NumImages` / `MaxTiles` / `NumQueryTiles` in `core/image_preprocess.py` (tile/database-image counts), `RetrievalDim` / `NumKeypoints` / `LocalDescDim` in `core/model_wrappers.py` (DIR / ALIKED output dims), `NumMatches` in `core/lightglue.py` (matching-output count), `docker/localizer/src/torch_ops.py` (thin generic torch wrappers — `from_numpy`, `to`, `stack`, `permute`, `transpose`, `matmul`, `amax` — each function is one torch op, parameterized by `Literal`-typed dim/axis tuples and overloaded per rank so output shape flows from the runtime arg through the type system), `packages/python/core/src/core/numpy_ops.py` (sibling for numpy primitives; currently `zeros` overloaded per rank, plus rank-1 `nonzero` and `compress` for boolean-index seams; consumed by `Map.load_map` for the branded `tile_descriptors` shape and by `lightglue_match_tensors` to drop the cast pair around match-index branding), `Map.tile_descriptors` annotated as `ndarray[tuple[NumImages, MaxTiles, RetrievalDim], dtype[float32]]`, and `core/model_wrappers.py` housing four `make_*` helper factories that take a raw model and return typed callables — `make_global_descriptor_extractor` (DIR), `make_local_feature_extractor` (ALIKED), `make_local_feature_matcher_for_tensors` and `make_local_feature_matcher_for_arrays` (LightGlue, tensor-input and numpy-input variants). Both `localize.py` and `run_reconstruction.py` consume these helpers in their `load_models()` instead of hand-rolling identical inner closures. `core/lightglue.py` migrated off `NDArray` to typed `ndarray[tuple[..., ...], dtype[...]]` and exports `Keypoints` / `Descriptors` / `KeypointsArrays` / `DescriptorsArrays` `NewType` brands so positional swaps of keypoints and descriptors at call sites are caught at type-check time. The remaining 11 `NDArray` imports across the codebase carry `# noqa: TID251 — Phase T piece 3 follow-up migration` to keep lint clean while the wider migration waits.
+Important but orthogonal — no specific phasing dependency on the VPS calibration arc. Pursued opportunistically when bandwidth allows; the localizer-scope prototype is sufficient until the wider migration is prioritized.
 
-The wrappers live in `core` (not `neural_networks.models`) on purpose: `neural_networks` deliberately does not depend on `core` — a Docker-build constraint preserved through this refactor. The `make_*` helpers accept their model parameter as `Any`, which is the only loose end at the seam; the typed callable they return recovers full brand info before any consumer touches it.
+A localizer-scope prototype landed alongside Phase 2c-fixup. What's in place:
 
-Promoted to its own initiative because the prototype produced disproportionate readability and correctness wins for the size of the diff. Static dim mismatches at function/assignment boundaries are now caught at type-check time without runtime overhead, no library dependency, and no migration off the existing tooling.
+- `core/tensor_types.py` — the `TT[*Shape]` torch shim (the only thing in this file).
+- Dim brands live next to the concepts that define them: `NumImages` / `MaxTiles` / `NumQueryTiles` in `core/image_preprocess.py`; `RetrievalDim` / `NumKeypoints` / `LocalDescDim` in `core/model_wrappers.py`; `NumMatches` in `core/lightglue.py`.
+- `docker/localizer/src/torch_ops.py` — thin per-rank torch wrappers (`from_numpy`, `to`, `stack`, `permute`, `transpose`, `matmul`, `amax`) typed via `@overload` so output shape flows from runtime args.
+- `core/numpy_ops.py` — numpy sibling (`zeros` per rank, rank-1 `nonzero` / `compress`).
+- `core/model_wrappers.py` — four `make_*` factories returning typed callables: `make_global_descriptor_extractor` (DIR), `make_local_feature_extractor` (ALIKED), `make_local_feature_matcher_for_{tensors,arrays}` (LightGlue). Consumed by both `localize.py` and `run_reconstruction.py`'s `load_models()`.
+- `core/lightglue.py` migrated off `NDArray`; exports `Keypoints` / `Descriptors` / `KeypointsArrays` / `DescriptorsArrays` `NewType` brands so positional swaps at the matcher are caught statically.
+- 11 remaining `NDArray` imports across the codebase carry `# noqa: TID251 — Phase T piece 3 follow-up migration` to keep lint clean while the wider migration waits.
+
+Wrappers live in `core` (not `neural_networks.models`) because `neural_networks` deliberately doesn't depend on `core` (Docker-build constraint). The `make_*` helpers take `Any` for the raw model; the typed callable they return recovers full brand info at the seam.
+
+The prototype produced disproportionate readability and correctness wins for the size of the diff. Static dim mismatches at function/assignment boundaries are now caught at type-check time without runtime overhead, no library dependency, and no migration off the existing tooling.
 
 ## Context
 
@@ -97,7 +107,7 @@ Once piece 3 + 4 land:
 
 ## Pipeline-version interaction
 
-This initiative does not change the localizer's runtime behavior — it's pure type annotations, casts (no-op), and one wrapper-function refactor (`global_descriptor_extractor` returning a flattened tensor instead of a dict-with-batch-dim, replacing the previous `dir` global). The wrapper change is functionally identical to the prior pattern: same input, same output, same numerical computation. The localizer's git SHA bumps, so `pipeline_version` invalidates calibration — but this initiative is bundled ahead of Phase 3 alongside the rest of the feature-pipeline work, so it's a single calibration cost, not an additional one.
+This initiative does not change the localizer's runtime behavior — it's pure type annotations, casts (no-op), and one wrapper-function refactor (`global_descriptor_extractor` returning a flattened tensor instead of a dict-with-batch-dim, replacing the previous `dir` global). The wrapper change is functionally identical to the prior pattern: same input, same output, same numerical computation. The localizer's git SHA bumps, so `pipeline_version` invalidates calibration — bundle wider migration work alongside any other pipeline change to avoid an isolated calibration refit cost.
 
 ## Failure modes
 

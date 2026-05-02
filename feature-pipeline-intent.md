@@ -5,14 +5,9 @@
 
 ## Status
 
-Design intent. The localizer's feature pipeline today has four definite problems and one optional upgrade. Each independently changes the localizer's `pipeline_version` hash, so each independently invalidates VPS calibration (see `vps-redesign-intent.md` "Pipeline version"). They're bundled into one initiative so calibration is fit once against the final pipeline.
+Pieces 1 (ALIKED), 2 (local-feature scale standardization), and 3 (square-tile retrieval aggregation) have shipped. **Piece 4 (semantic masking) is the remaining required work** — outdoor city-street operation requires masking parked cars and other transient objects out of features, otherwise the system degrades severely. Piece 5 (DIR replacement) is opportunistic and deferred indefinitely.
 
-**Design correction (mid-execution).** The original version of this doc bundled "aspect-ratio preprocessing" into a single piece treating cross-aspect mismatch as one problem. It's actually two distinct problems with different fixes, and the original retrieval-side fix proposed (letterbox to a fixed square inside the DIR head) was misguided — it was reaching for "fixed shape" without addressing the underlying *framing-mismatch* problem that whole-image retrieval suffers from when query and database aspect ratios differ. The corrected design splits the work into:
-
-- **Piece 2 (local features)**: scale standardization via shorter-side resize. Per-keypoint matching naturally tolerates cross-aspect framing — only overlap matters; non-overlapping keypoints get rejected by RANSAC. Confirmed correct.
-- **Piece 3 (retrieval)**: cross-aspect framing handled by square-tile aggregation, formerly listed as a non-goal. Promoted to Plan A based on field evidence (cross-device localization with mismatched aspect ratios produced visibly worse retrieval than same-device).
-
-The Phase 2c work in `plan.md` already landed the piece-2 portion correctly; the in-DIR letterbox it also added is the misguided fix and needs to be reverted as part of Phase 2c-fixup before piece 3 lands.
+Each piece independently changes the localizer's `pipeline_version` hash and invalidates VPS calibration (see `vps-redesign-intent.md` "Pipeline version"). Bundling pieces 1-4 ahead of VPS Phase 3 means calibration is fit once against the final pipeline.
 
 ## Context
 
@@ -105,7 +100,9 @@ The fix isn't preprocessing — it's giving each image *multiple framings* so at
 
 ### 4. Semantic-segmentation masking
 
-**Time-boxed to 3 days. If it slips, defer to post-Phase 6.**
+**Required for outdoor operation.** City-street scenes are dominated by parked cars, pedestrians, and other transient content; without masking, features extracted on those objects produce matches that fail at query time (the cars moved, the people moved, the street furniture rotated). Indoor-only operation has tolerated the absence of masking because indoor transient content is sparser. Masking is no longer "nice to have."
+
+Implementation budget: ~3 days. If it overruns, masking ships late, but it ships — there is no defer-to-post-Phase-6 fallback for outdoor deployment. Phases that follow (VPS Phase 3 calibration) can proceed against the indoor pipeline meanwhile, with a known calibration refit needed when masking lands.
 
 - OneFormer (MIT code + weights) loaded once at service startup.
 - Reconstructor: OneFormer-Swin-L. One-time cost at map build; favor quality.
@@ -115,7 +112,7 @@ The fix isn't preprocessing — it's giving each image *multiple framings* so at
 - Mask applied in image space: pixels in masked regions zeroed before both DIR and ALIKED inference.
 - Fallback: if a masked image has fewer than `MIN_KEYPOINTS_AFTER_MASK` (default 50) keypoints, retry without mask and log. Avoids over-masking failure on crowded scenes.
 
-**Time-box rule**: if Day 4 is spent on environment/dependency/model-loading issues, the piece is deferred. Pieces 1 and 2 ship without it. The cost of deferral is a calibration refit when masking later lands.
+**Overrun handling**: if implementation slips past the 3-day budget, masking ships late but is not deferred — outdoor operation depends on it. Phase 3 calibration can proceed against the pre-masking pipeline meanwhile and refits once masking lands.
 
 ### 5. DIR replacement (DEFERRED — optional upgrade)
 

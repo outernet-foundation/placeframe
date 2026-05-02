@@ -17,8 +17,8 @@ This file tracks execution of all in-flight initiatives: phase definitions, stat
 | 2b | SuperPoint → ALIKED | Pipeline | ✅ Done |
 | 2c | Local-feature scale standardization (formerly "Aspect-ratio preprocessing") | Pipeline | ✅ Done — but the in-DIR letterbox added under this phase is misguided and is reverted in 2c-fixup |
 | 2c-fixup | Revert in-DIR letterbox; add square-tile retrieval aggregation | Pipeline | ✅ Done — optional `transform_image` rename deferred |
-| T | Static tensor shape typing | Typing | Active — localizer-scope prototype landed; e2e verification pending; repo-wide migration pending |
-| 2d | Semantic-segmentation masking (3-day time-box) | Pipeline | Not started |
+| T | Static tensor shape typing | Typing | Prototype landed; widening deferred. Orthogonal — no specific phasing dependency. |
+| 2d | Semantic-segmentation masking (~3-day implementation) | Pipeline | Not started — required for outdoor operation |
 | 2e | Repair `test-placeframe-e2e` and rerun parameter sweep | Pipeline | Not started |
 | 3 | ZED-only global calibration | VPS | Not started |
 | 4 | Dogfooding logger | VPS | Not started |
@@ -33,7 +33,7 @@ Phase 0 ─► 1 ─► 2a ─► 2b ─► 2c ─► 2c-fixup ─► T ─► 2
 
 Strictly serial. With ~2 known users, total wall-clock time is dominated by coding work and a single directed data-gathering session at Phase 5, not by passive accumulation. There's no parallelism to exploit.
 
-Phases 2b through 2e bundle all localizer-pipeline-altering changes ahead of Phase 3. Each one independently invalidates VPS calibration via the localizer's `pipeline_version` hash; bundling them means Phase 3 fits calibration once. If Phase 2d (masking) overruns its 3-day time-box, it's deferred to a post-Phase-6 follow-up at the cost of one future calibration refit.
+Phases 2b through 2e bundle all localizer-pipeline-altering changes ahead of Phase 3. Each one independently invalidates VPS calibration via the localizer's `pipeline_version` hash; bundling them means Phase 3 fits calibration once. Phase 2d (masking) is required for outdoor operation and ships even if it overruns its ~3-day budget; if it slips significantly, Phase 3 can proceed against the pre-masking pipeline meanwhile and refits once masking lands.
 
 **Phase 2c-fixup** exists because the original Phase 2c bundled together two distinct fixes that should have been separate: scale standardization for local features (correctly addressed by shorter-side resize, kept) and cross-aspect framing handling for retrieval (incorrectly addressed by an in-DIR letterbox with mean padding, reverted). The corrective phase reverts the letterbox and adds the actually-correct fix — square-tile aggregation on the retrieval path. See `feature-pipeline-intent.md` Status section for why the original design was wrong.
 
@@ -257,7 +257,9 @@ Per-map fitting code is deferred from Phase 3 (loader is in place, fitting isn't
 
 Placeholders deliberately left by earlier phases, with the trigger for replacement. Line numbers approximate; resolve by symbol if drifted.
 
-- `docker/localizer/src/build_metrics.py:62` — `apply_global_calibration(calibration, features={})` empty features dict. Phase 3 populates with transformed metrics + map quality features keyed by the calibration's `feature_names`.
-- `config/calibration/global.json` — identity calibration: empty logistic weights, intercept-only (yields constant `tight=0.5` / `loose=0.9`), identity isotonic, `pipeline_version: "identity-bootstrap"`. Replaced wholesale by output of `scripts/fit_calibration.py` in Phase 3.
+- `docker/localizer/src/build_metrics.py` — `apply_global_calibration(calibration, features={})` empty features dict. Phase 3 populates with transformed metrics + map quality features keyed by the calibration's `feature_names`.
+- `config/calibration/global.json` — identity calibration: empty logistic weights, intercept-only, identity isotonic, `pipeline_version: "identity-bootstrap"`. The `tight.logistic.intercept` was tweaked from `0.0` to `-4.59511985013459` (so `sigmoid → 0.01`) as a band-aid to give the `Σ_meas / tight²` formula sensible 10000× covariance inflation; runtime logic is unchanged from the proper-Phase-3 design. Replaced wholesale by output of `scripts/fit_calibration.py` in Phase 3.
+- `docker/localizer/src/localize.py` — `MIN_NUM_INLIERS = 50` / `MIN_INLIER_COVERAGE = 0.15` raw quality floor band-aid. Rejects garbage localizations that the broken confidence stub can't filter. Replaced in Phase 3 by `if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)` — see the BAND-AID comment block in `localize_image_against_reconstruction`.
 - `docker/localizer/src/calibration.py:56` — `IDENTITY_BOOTSTRAP_SENTINEL` and the equality-check skip in `load_global_calibration`. Both removed once Phase 3's first real calibration ships.
+- VPS frontend lacks σ_posterior floor / per-tick process noise. Filter locks in after ~30 stationary measurements. Phase 3 adds either approach, sized at ~σ_meas/3. See `vps-redesign-intent.md` "Σ_posterior lock-in" finding.
 - Phase 1 inline math in `packages/unity/Placeframe/Assets/Package/Core/Runtime/` (SE(3) Log/Exp, 6×6 covariance algebra, `RelocalizationFilter`) stays here permanently. Tested in-place via Unity Test Framework in Phase 2a.

@@ -6,6 +6,40 @@
 
 Design intent. Going-for-broke version: the goal is a system that is as accurate as practical under as many conditions as practical, with no compromises taken for shippability that aren't necessary.
 
+Phases 0, 1, and 2a have shipped and the system has been used end-to-end against a real reconstructed map. The findings below update the design forward.
+
+## Production bring-up findings
+
+### Calibration-stub band-aids in place pending Phase 3
+
+`apply_global_calibration(calibration, features={})` currently returns model-intercept constants because no features are plumbed through and the model is the identity bootstrap. This breaks two downstream consumers, both of which have band-aids in place that are removed when Phase 3's first real calibration ships.
+
+**1. Confidence values (`tight`, `loose`) are constants** — same for great and garbage poses. A confidence-based gate at the localizer or filter would treat all results identically. *Band-aid*: a hard floor on raw metrics (`MIN_NUM_INLIERS = 50`, `MIN_INLIER_COVERAGE = 0.15` in `docker/localizer/src/localize.py`) rejects garbage results before they propagate. Replaced in Phase 3 by `if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)`.
+
+**2. Σ_meas scaling collapses** — `Σ_meas = PnP_cov / tight²` with constant `tight = 0.5` gives only 4× inflation. PnP's analytic Hessian covariance is wildly tight (~1e-6 variance, σ ≈ 0.3mm), so post-scaling Σ_meas is still absurdly tight. The Bayesian filter's innovation gate then rejects nearly every measurement as implausibly far. *Band-aid*: the bootstrap calibration's `tight.logistic.intercept` is set to `ln(0.01/0.99) ≈ -4.595` so `sigmoid(intercept) = tight = 0.01`, producing 10000× covariance inflation and effective σ_meas ≈ 10cm. Runtime logic in `build_metrics.py` is unchanged — the `Σ_meas / tight²` formula does the right thing once `tight` is a sensible constant. Replaced in Phase 3 by per-localization tight values from a fitted model.
+
+### Σ_posterior lock-in
+
+Observed in production: once the filter has accepted ~30 measurements during a stable session, σ_posterior shrinks to ~σ_meas/√N (~2cm on each axis). Subsequent measurements that disagree with the converged posterior by more than ~3σ get rejected by the innovation gate, even when their quality metrics are statistically identical to accepted ones. The filter "locks in" to its first cluster of measurements and can't absorb new evidence.
+
+This is the textbook "no process noise" failure mode. The codebase has `ProcessNoise(currentVioPosition, lastAcceptedVioPosition)` that adds Σ proportional to translated distance, but it adds nothing when the device is stationary. Stationary observation → unbounded σ_posterior shrinkage → over-confident filter.
+
+**Phase 3 candidate fix**: add either a constant per-tick process noise term (textbook KF approach) or a hard σ_posterior floor (cruder but equivalent for our purposes). Sized so σ_posterior never shrinks below ~σ_meas/3. Cost: visible micro-jitter in steady-state instead of full stop. Tradeoff is product-dependent — for "place a virtual object on a surface" UX, the current rock-solid behavior may be preferable; for "produce ground-truth pose telemetry", the floor is better.
+
+### Frontend metrics-event design gap
+
+The original design exposed `OnEcefToUnityWorldTransformUpdated` as the only event. Once the Bayesian filter is steady-state, that event fires only on snap (rare) or during slew animations (brief, and only when σ_posterior shifts enough to trigger a slew). UI consumers that want per-measurement metrics — including any "live metrics" diagnostic display — can't bind to it usefully. Added `OnMetricsReceived` event + `LastReceivedMetrics` static property that fire on every API response regardless of filter accept/reject. Reflected in Frontend changes section below.
+
+### LightGlue dominates per-request time
+
+Per-stage instrumentation in `docker/localizer/src/localize.py` (logged as `localize timings(ms): canonicalize=… aliked=… …`) shows steady-state per-request breakdown: ALIKED ~30ms, DIR tile loop ~65ms, retrieval ~1ms, matching_setup ~85ms, **LightGlue matching ~250ms (44% of total)**, PnP ~80ms. Total ~570ms.
+
+Relevant for Phase 2d (masking) sizing: ALIKED + DIR are cheap enough that adding OneFormer-Swin-T (~100-200ms) would meaningfully bump per-request latency but not catastrophically. The 1Hz client throttle means ~570ms is well below the cycle budget; ~770ms with masking still fits.
+
+### Operating-point reality check
+
+System currently lands at ~1cm visual misalignment in indoor testing. This is at or slightly below what the published literature reports as the noise floor for hloc-style pipelines (LaMAR, KAPTURE, hloc indoor benchmarks all report 2-10cm depending on scene difficulty). Further accuracy gains would require things outside Phase 3's scope: per-device intrinsics calibration, map georeferencing against ground truth, or fundamentally different feature extractors. Filter tuning alone won't help meaningfully — the σ_posterior lock-in fix above is about responsiveness/correctness of the average, not about reducing the floor itself.
+
 ## Context
 
 ### What this system is
@@ -388,9 +422,13 @@ public static double4x4 EcefToUnityWorldTransform => _unityFromEcefTransform_cur
 public static event Action OnEcefToUnityWorldTransformUpdated;
 public static AlignmentUncertainty CurrentUncertainty => SummariseCovariance(_alignmentCovariance);
 public static LocalizationMetrics MostRecentMetrics { get; private set; }
+public static LocalizationMetrics LastReceivedMetrics { get; private set; }
+public static event Action OnMetricsReceived;
 ```
 
 `AlignmentUncertainty` is a small struct: `{ float TranslationStdMeters; float RotationStdDegrees; }`. UI consumers that want a scalar "how confident is alignment" use this.
+
+`MostRecentMetrics` is the metrics from the last *accepted* measurement (filter state). `LastReceivedMetrics` is the metrics from the last *received* server response, regardless of filter accept/reject. `OnMetricsReceived` fires per API response. UI consumers wanting per-measurement updates bind to `OnMetricsReceived` rather than `OnEcefToUnityWorldTransformUpdated`, since the latter only fires on snap or during slew animations and goes silent in steady state.
 
 #### Measurement processing
 
@@ -569,6 +607,7 @@ These are values the design depends on but where the right number is empirical a
 | Per-map calibration refit cadence | weekly OR +50% samples | Offline pipeline |
 | Phone pair distance cap | 1.0 m | Algorithm 2 pairwise interval |
 | Frontend tight-confidence gating threshold | n/a (use confidence as Σ_meas weight, no hard threshold) | VPS measurement processing |
+| σ_posterior floor / per-tick process noise | None today (filter shrinks unboundedly) — Phase 3 to add, sized at ~σ_meas/3 | VPS measurement processing — see "Σ_posterior lock-in" finding |
 
 The frontend NOTABLY does not have a "reject if confidence < X" hard threshold (other than the `LooseLowerBound = 0.1` floor). Confidence flows into measurement processing as a measurement-covariance scaling — a low-confidence measurement is treated as a wide-σ measurement and naturally gets little weight in the Bayesian update, while a high-confidence measurement gets tight σ and dominates. This is the textbook Bayesian way to use a calibrated probability and avoids picking a magic threshold.
 
