@@ -62,4 +62,4 @@ include = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["build/tests", "packages/python/common/tests"]
+testpaths = ["build/tests", "packages/python/common/tests", "scripts/tests"]
