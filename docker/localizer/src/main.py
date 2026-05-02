@@ -58,8 +58,8 @@ class LocalizationRequest(MultipartRequestModel):
     reconstruction_ids: Annotated[Json[list[UUID]], BeforeValidator(multipart_json_list)]
     camera_config: Annotated[Json[PinholeCameraConfig], BeforeValidator(multipart_json)]
     axis_convention: AxisConvention
-    retrieval_top_k: int
-    ransac_threshold: float
+    retrieval_top_k: int | None = None
+    ransac_threshold: float | None = None
     image: UploadFile
 
 
