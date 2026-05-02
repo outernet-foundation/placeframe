@@ -114,6 +114,8 @@ def run_colmap_reconstruction(
         max(range(len(reconstructions)), key=lambda i: reconstructions[i].num_reg_images())
     ]
 
+    metrics.build_reconstruction_metrics(best_reconstruction)
+
     # Use the first frame that is registered in the best reconstruction to determine the similarity transform
     anchor_frame_prior_pose: Transform | None = None
     anchor_rig_from_world_transform: Rigid3d | None = None

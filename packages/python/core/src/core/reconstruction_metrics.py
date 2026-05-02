@@ -104,3 +104,27 @@ class ReconstructionMetrics(BaseModel):
     cross_sensor_verified_match_inliers_median: Optional[float] = Field(
         default=None, description="Median number of inliers for verified matches for cross-sensor pairs."
     )
+    map_image_count: Optional[int] = Field(
+        default=None, description="Number of registered images in the reconstruction."
+    )
+    map_point_count: Optional[int] = Field(
+        default=None, description="Number of triangulated 3D points in the reconstruction."
+    )
+    map_avg_track_length: Optional[float] = Field(
+        default=None, description="Mean number of image observations per 3D point. Coarse density-of-evidence proxy."
+    )
+    map_bounding_volume_m3: Optional[float] = Field(
+        default=None,
+        description=(
+            "Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; "
+            "complements image_count which only captures coverage density."
+        ),
+    )
+    map_viewpoint_diversity: Optional[float] = Field(
+        default=None,
+        description=(
+            "1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the "
+            "same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps "
+            "from single-viewpoint maps even when the rest of the metrics agree."
+        ),
+    )
