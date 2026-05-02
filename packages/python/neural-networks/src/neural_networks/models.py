@@ -108,5 +108,34 @@ def load_aliked(
 
 
 def load_lightglue(device: str = "cpu"):
-    # TODO: add comment about why width_confidence and depth_confidence are set to -1
-    return LightGlue(features="aliked", width_confidence=-1, depth_confidence=-1).eval().to(device)
+    # width_confidence=-1 disables point pruning. cvg/LightGlue's prune mask is per-batch-element
+    # but applied via `keep = torch.where(mask)[1]; desc.index_select(1, keep)` — a flat column
+    # index list applied uniformly across the batch dim. With B>1, per-element prune decisions
+    # collapse and matches corrupt silently. Both the localizer and reconstructor batch through
+    # `pad_sequence`, so width pruning must stay off here. cvg/LightGlue itself disables it under
+    # compile (`do_point_pruning = width_confidence > 0 and not do_compile`) for the same reason.
+    #
+    # depth_confidence=0.95 enables early stopping. Batch-compatible: the stop signal reduces all
+    # batch elements + all keypoints to a single scalar ratio, so the layer loop breaks uniformly.
+    # mp=True enables mixed-precision autocast. Together these two flags account for ~40% matching
+    # latency reduction over the all-off baseline on Ampere+ GPUs, with no match-count drift.
+    #
+    # The "un-batch + width pruning" alternative (call LightGlue per pair with batch_size=1 and
+    # width_confidence=0.99) was measured and rejected:
+    # - Reconstructor (3,304 pairs, B=16→1): ~20% slower. Per-pair savings can't recoup the
+    #   16× CUDA-launch overhead at large N.
+    # - Localizer (12 pairs, B=12→1): a single-query benchmark suggested 5% faster, but a 30-frame
+    #   sweep over the same map flipped to mean +8 ms slower (V3 won 10/29 frames, lost 18/29).
+    #   V3 wins on hard queries (V2 matching > ~170 ms — V2 is bottlenecked by the hardest pair
+    #   in the batch holding back depth-stop) and loses on easy queries (V2 matching < ~130 ms —
+    #   V2's depth-stop fires fast and the call overhead dominates the savings). Most queries are
+    #   in the easy regime, so V3 loses on average. The single-query test happened to land in the
+    #   V3-wins zone.
+    #
+    # Adopting V3 only on the localizer would also require a per-service config split
+    # (`load_lightglue` and the matcher's batch_size) plus a runtime invariant check pairing
+    # `width_confidence > 0` with `batch_size == 1` to prevent silent corruption.
+    #
+    # If the localizer's query distribution shifts toward harder regimes (sparse features, motion
+    # blur, large viewpoint deltas), V3 may become net-positive — re-sweep before adopting.
+    return LightGlue(features="aliked", width_confidence=-1, depth_confidence=0.95, mp=True).eval().to(device)
