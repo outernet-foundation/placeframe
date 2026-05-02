@@ -13,7 +13,7 @@ from core.h5 import write_features, write_global_descriptors
 from core.lightglue import lightglue_match
 from core.opq import encode_descriptors, train_opq_matrix, train_pq_quantizer, write_opq_matrix, write_pq_quantizer
 from core.reconstruction_manifest import ReconstructionManifest
-from neural_networks.models import load_DIR, load_lightglue, load_superpoint
+from neural_networks.models import load_aliked, load_DIR, load_lightglue
 from numpy import asarray, ascontiguousarray, float32, random, vstack
 from numpy.typing import NDArray
 from pycolmap._core import set_random_seed  # noqa: PLC2701 — no public API
@@ -33,19 +33,19 @@ CAPTURE_SESSION_DIRECTORY = WORK_DIR / "capture_session"
 
 dir: Any = None
 lightglue: Any = None
-superpoint: Any = None
+aliked: Any = None
 
 
-def load_models(max_keypoints_per_image: int):
+def load_models():
     print(f"Using device: {DEVICE}")
 
     # Turn off gradient calculations globally (we only do inference here)
     set_grad_enabled(False)
 
-    global dir, lightglue, superpoint
+    global dir, lightglue, aliked
     dir = load_DIR(DEVICE)
     lightglue = load_lightglue(DEVICE)
-    superpoint = load_superpoint(max_num_keypoints=max_keypoints_per_image, device=DEVICE)
+    aliked = load_aliked(device=DEVICE)
 
 
 def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
@@ -97,6 +97,10 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         random.seed(manifest.options.random_seed)  # noqa: NPY002 — pycolmap reads numpy's global random state; can't use default_rng()
         set_random_seed(manifest.options.random_seed)
 
+    # Apply per-reconstruction keypoint cap by mutating the DKD module's threshold-mode n_limit.
+    # ALIKED itself is loaded once at startup; only this cap is per-job.
+    aliked.dkd.n_limit = options.max_keypoints_per_image()
+
     # Generate image pairs
     pairs = generate_image_pairs(rigs, options.neighbors_count(), options.rotation_threshold_deg())
     file_name, file_bytes = write_pairs(pairs, WORK_DIR)
@@ -117,20 +121,18 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         print(f"Extracting features: image {index + 1} of {len(image_list)}")
 
         image_path = CAPTURE_SESSION_DIRECTORY / image_name
-        # (image, rgb_tensor, gray_tensor) = create_image_tensors(image_path.read_bytes(), camera_config)
         image = transform_image(image_path.read_bytes(), camera_config.orientation)
         rgb_tensor = from_numpy(asarray(image, dtype=float32)).permute(2, 0, 1).div(255.0)
-        gray_tensor = from_numpy(asarray(image.convert("L"), dtype=float32)).unsqueeze(0).div(255.0)
 
         # Write image back to disk, so incremental_mapping samples the processed image for point cloud colorization
         image.save(image_path)
 
         dir_output = dir({"image": rgb_tensor.unsqueeze(0).to(device=DEVICE)})
-        superpoint_output = superpoint({"image": gray_tensor.unsqueeze(0).to(device=DEVICE)})
+        aliked_output = aliked({"image": rgb_tensor.unsqueeze(0).to(device=DEVICE)})
 
         global_descriptors[image_name] = dir_output["global_descriptor"][0].cpu().numpy().astype(float32, copy=False)
-        keypoints[image_name] = superpoint_output["keypoints"][0].cpu().numpy().astype(float32, copy=False)
-        descriptors[image_name] = superpoint_output["descriptors"][0].cpu().numpy().astype(float32, copy=False)
+        keypoints[image_name] = aliked_output["keypoints"][0].cpu().numpy().astype(float32, copy=False)
+        descriptors[image_name] = aliked_output["descriptors"][0].cpu().numpy().astype(float32, copy=False)
         sizes[image_name] = (image.height, image.width)
 
     # Write global descriptors to storage

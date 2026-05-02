@@ -25,7 +25,7 @@ class ReconstructionMetrics(BaseModel):
     average_keypoints_per_image: Optional[float] = Field(
         default=None,
         description=(
-            "Average number of detected keypoints per image (after SuperPoint extraction), computed across all images."
+            "Average number of detected keypoints per image (after ALIKED extraction), computed across all images."
         ),
     )
     reprojection_pixel_error_50th_percentile: Optional[float] = Field(

@@ -125,3 +125,10 @@ class ReconstructionOptions(BaseModel):
             "Smaller values = stronger priors."
         ),
     )
+    max_keypoints_per_image: Optional[int] = Field(
+        default=None,
+        description=(
+            "Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode). "
+            "If None, a sensible default is used."
+        ),
+    )
