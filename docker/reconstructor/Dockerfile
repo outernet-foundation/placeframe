@@ -1,5 +1,11 @@
 FROM neural-networks-base AS dev
 
+# PyTorch's default caching allocator uses fixed-size segments, which fragment under
+# varying per-job allocation patterns and eventually OOM despite ample free memory.
+# Expandable segments use CUDA virtual memory to grow segments on demand, eliminating
+# that fragmentation class.
+ENV PYTORCH_ALLOC_CONF=expandable_segments:True
+
 WORKDIR /app/docker/reconstructor
 
 ENV UV_TOOLS_ENVIRONMENT=/opt/uv/tools
