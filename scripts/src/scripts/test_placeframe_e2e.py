@@ -111,8 +111,8 @@ class LocalizationResult(BaseModel):
     query_capture_name: str
     query_frame_timestamp: str
     is_cross_device: bool
-    retrieval_top_k: int
-    ransac_threshold: float
+    retrieval_top_k: int | None
+    ransac_threshold: float | None
     succeeded: bool
     inlier_ratio: float | None = None
     reproj_error_median: float | None = None
@@ -283,7 +283,7 @@ async def _run_reconstruction(
 # --- Main orchestration ---
 
 
-async def _run(tar_paths: list[Path]) -> E2EResults:
+async def _run(tar_paths: list[Path], single_config: bool) -> E2EResults:
     results = E2EResults(
         run_timestamp=datetime.now(timezone.utc).isoformat(),
         reconstructions=[],
@@ -387,15 +387,17 @@ async def _run(tar_paths: list[Path]) -> E2EResults:
             await api.upload_capture_session_tar(id=session.id, file=("capture.tar", capture.modified_tar_bytes))
             echo(f"  Uploaded {capture.location}/{capture.device_dir} → {session.id}")
 
-    # Phase 4: Plackett-Burman screening — rotate seed row to generate 15 configs + all-low + baseline
+    # Phase 4: Plackett-Burman screening — rotate seed row to generate 15 configs + all-low + baseline.
+    # In single-config mode, short-circuit to the server-default baseline only (one cell per capture).
     configs: list[ReconstructionOptions | None] = [None]
-    row = list(PB_SEED)
-    for _ in range(len(PB_SEED) + 5):
-        configs.append(
-            ReconstructionOptions(**{f: getattr(PB_HIGH if s == 1 else PB_LOW, f) for f, s in zip(PB_FACTORS, row)})
-        )
-        row = [row[-1], *row[:-1]]
-    configs.append(ReconstructionOptions(**{f: getattr(PB_LOW, f) for f in PB_FACTORS}))
+    if not single_config:
+        row = list(PB_SEED)
+        for _ in range(len(PB_SEED) + 5):
+            configs.append(
+                ReconstructionOptions(**{f: getattr(PB_HIGH if s == 1 else PB_LOW, f) for f, s in zip(PB_FACTORS, row)})
+            )
+            row = [row[-1], *row[:-1]]
+        configs.append(ReconstructionOptions(**{f: getattr(PB_LOW, f) for f in PB_FACTORS}))
     echo(f"=== Phase 4: {len(configs)} experiment configs (1 baseline + {len(configs) - 1} Plackett-Burman) ===")
 
     # Phase 5: Run reconstructions
@@ -417,13 +419,16 @@ async def _run(tar_paths: list[Path]) -> E2EResults:
     for cap in captures:
         captures_by_location.setdefault(cap.location, []).append(cap)
 
+    loc_param_grid: list[tuple[int | None, float | None]] = (
+        [(None, None)] if single_config else list(product(LOC_RETRIEVAL_TOP_K, LOC_RANSAC_THRESHOLD))
+    )
     loc_tasks = [
         (recon, recon.loc_map_id, recon.reconstruction_id, qcap, qframe, top_k, thresh)
         for recon in succeeded
         if recon.loc_map_id is not None and recon.reconstruction_id is not None
         for qcap in captures_by_location.get(recon.location, [])
         for qframe in qcap.withheld_frames
-        for top_k, thresh in product(LOC_RETRIEVAL_TOP_K, LOC_RANSAC_THRESHOLD)
+        for top_k, thresh in loc_param_grid
     ]
     echo(f"\n=== Phase 6: Running {len(loc_tasks)} localizations ===")
 
@@ -487,7 +492,14 @@ async def _run(tar_paths: list[Path]) -> E2EResults:
 def main(
     captures_dir: Annotated[Path, Option(help="Directory containing test captures")] = CAPTURES_DIR,
     output: Annotated[Path, Option(help="Path for JSON results file")] = REPO_ROOT / "e2e-results.json",
+    single_config: Annotated[
+        bool,
+        Option(
+            "--single-config",
+            help="Run a single server-default reconstruction and localization cell per capture (skips the parameter cross-product). Use to produce starter calibration rows from a small corpus.",
+        ),
+    ] = False,
 ) -> None:
-    results = run(_run(sorted(captures_dir.glob("*/*/capture.tar"))))
+    results = run(_run(sorted(captures_dir.glob("*/*/capture.tar")), single_config=single_config))
     output.write_text(results.model_dump_json(indent=2))
     echo(f"Results written to {output}")
