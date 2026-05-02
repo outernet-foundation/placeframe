@@ -7,8 +7,9 @@ from typing import Any
 from uuid import UUID
 
 from common.boto_clients import create_s3_client
-from core.camera_config import PinholeCameraConfig, transform_image
+from core.camera_config import PinholeCameraConfig
 from core.capture_session_manifest import CaptureSessionManifest
+from core.image_preprocess import canonicalize_image
 from core.h5 import write_features, write_global_descriptors
 from core.lightglue import lightglue_match
 from core.opq import encode_descriptors, train_opq_matrix, train_pq_quantizer, write_opq_matrix, write_pq_quantizer
@@ -121,7 +122,7 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         print(f"Extracting features: image {index + 1} of {len(image_list)}")
 
         image_path = CAPTURE_SESSION_DIRECTORY / image_name
-        image = transform_image(image_path.read_bytes(), camera_config.orientation)
+        image = canonicalize_image(image_path.read_bytes(), camera_config.orientation)
         rgb_tensor = from_numpy(asarray(image, dtype=float32)).permute(2, 0, 1).div(255.0)
 
         # Write image back to disk, so incremental_mapping samples the processed image for point cloud colorization
