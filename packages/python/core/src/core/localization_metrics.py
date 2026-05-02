@@ -19,4 +19,7 @@ class LocalizationMetrics(BaseModel):
     # consumes directly as Σ_meas. Derived from the inverse PnP Hessian and scaled by
     # confidence; the precise scaling is a calibration concern owned by the localizer.
     measurement_covariance: list[list[float]]
+    # Raw 6x6 inverse PnP Hessian (se(3) tangent), pre-Σ_meas-scaling. Surfaced so
+    # `scripts/fit_calibration.py` can fit the Σ_meas α/β scalars against held-out residuals.
+    pnp_covariance: list[list[float]]
     pipeline_version: str

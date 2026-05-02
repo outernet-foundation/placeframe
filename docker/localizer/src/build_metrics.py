@@ -65,8 +65,9 @@ def build_localization_metrics(
 
     confidence = apply_global_calibration(calibration, features=Features.zeros())
 
+    pnp_covariance = pnp_result["covariance"]
     tight_scaled = max(confidence.tight, CONFIDENCE_TIGHT_FLOOR)
-    measurement_covariance = (pnp_result["covariance"] / (tight_scaled * tight_scaled)).tolist()
+    measurement_covariance = (pnp_covariance / (tight_scaled * tight_scaled)).tolist()
 
     return LocalizationMetrics(
         inlier_ratio=inlier_ratio,
@@ -77,5 +78,6 @@ def build_localization_metrics(
         inlier_coverage=inlier_coverage,
         confidence=confidence,
         measurement_covariance=measurement_covariance,
+        pnp_covariance=pnp_covariance.tolist(),
         pipeline_version=pipeline_version,
     )
