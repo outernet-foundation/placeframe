@@ -224,6 +224,15 @@
             },
             "type": "array"
           },
+          "pnp_covariance": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
           "pipeline_version": {
             "type": "string"
           }
@@ -238,6 +247,7 @@
           "num_inliers",
           "num_matches",
           "pipeline_version",
+          "pnp_covariance",
           "reprojection_error_median"
         ],
         "title": "LocalizationMetrics"

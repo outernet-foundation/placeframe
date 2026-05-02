@@ -47,8 +47,9 @@ namespace PlaceframeApiClient.Model
         /// <param name="inlierCoverage">inlierCoverage (required).</param>
         /// <param name="confidence">confidence (required).</param>
         /// <param name="measurementCovariance">measurementCovariance (required).</param>
+        /// <param name="pnpCovariance">pnpCovariance (required).</param>
         /// <param name="pipelineVersion">pipelineVersion (required).</param>
-        public LocalizationMetrics(double inlierRatio, double reprojectionErrorMedian, int numInliers, int numCorrespondences, int numMatches, double inlierCoverage, Confidence confidence, List<List<double>> measurementCovariance, string pipelineVersion)
+        public LocalizationMetrics(double inlierRatio, double reprojectionErrorMedian, int numInliers, int numCorrespondences, int numMatches, double inlierCoverage, Confidence confidence, List<List<double>> measurementCovariance, List<List<double>> pnpCovariance, string pipelineVersion)
         {
             this.InlierRatio = inlierRatio;
             this.ReprojectionErrorMedian = reprojectionErrorMedian;
@@ -68,6 +69,12 @@ namespace PlaceframeApiClient.Model
                 throw new ArgumentNullException("measurementCovariance is a required property for LocalizationMetrics and cannot be null");
             }
             this.MeasurementCovariance = measurementCovariance;
+            // to ensure "pnpCovariance" is required (not null)
+            if (pnpCovariance == null)
+            {
+                throw new ArgumentNullException("pnpCovariance is a required property for LocalizationMetrics and cannot be null");
+            }
+            this.PnpCovariance = pnpCovariance;
             // to ensure "pipelineVersion" is required (not null)
             if (pipelineVersion == null)
             {
@@ -269,6 +276,30 @@ namespace PlaceframeApiClient.Model
             return _flagMeasurementCovariance;
         }
         /// <summary>
+        /// Gets or Sets PnpCovariance
+        /// </summary>
+        [DataMember(Name = "pnp_covariance", IsRequired = true, EmitDefaultValue = true)]
+        public List<List<double>> PnpCovariance
+        {
+            get{ return _PnpCovariance;}
+            set
+            {
+                _PnpCovariance = value;
+                _flagPnpCovariance = true;
+            }
+        }
+        private List<List<double>> _PnpCovariance;
+        private bool _flagPnpCovariance;
+
+        /// <summary>
+        /// Returns false as PnpCovariance should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePnpCovariance()
+        {
+            return _flagPnpCovariance;
+        }
+        /// <summary>
         /// Gets or Sets PipelineVersion
         /// </summary>
         [DataMember(Name = "pipeline_version", IsRequired = true, EmitDefaultValue = true)]
@@ -308,6 +339,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  InlierCoverage: ").Append(InlierCoverage).Append("\n");
             sb.Append("  Confidence: ").Append(Confidence).Append("\n");
             sb.Append("  MeasurementCovariance: ").Append(MeasurementCovariance).Append("\n");
+            sb.Append("  PnpCovariance: ").Append(PnpCovariance).Append("\n");
             sb.Append("  PipelineVersion: ").Append(PipelineVersion).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
