@@ -89,6 +89,20 @@ Smaller-scope validations not requiring the harness run:
 - Round-trip artifact write/read.
 - Hand-written calibration → known feature vector → expected confidence (loader correctness).
 
+## Libraries used
+
+The math is mostly off-the-shelf. Things to know about up front:
+
+- **pycolmap** — `Sim3d` and friends for the Procrustes/Umeyama alignment of truth poses to the COLMAP map (already a reconstructor dep; see `docker/reconstructor/src/reconstructor/colmap.py:138` for existing usage).
+- **scipy** — `spatial.ConvexHull(centers).volume` for `map_bounding_volume_m3`; `optimize.minimize` for the Σ_meas α, β MLE.
+- **sklearn** — `linear_model.LogisticRegression`, `isotonic.IsotonicRegression`, `metrics.brier_score_loss`, `calibration.calibration_curve`.
+- **pytransform3d** — SE(3) `log` for computing the 6-D residuals fed to the Σ_meas fit. New dep, added to the `scripts` package.
+
+Things hand-rolled (small, well-defined):
+
+- **Viewpoint diversity** — design metric, no library covers it. Pick a definition (variance of unit viewing-direction vectors); ~10 lines numpy.
+- **Σ_meas α/β NLL** — custom 2-D Gaussian negative-log-likelihood passed to `scipy.optimize.minimize`; ~20 lines.
+
 ## Architecture
 
 ```
@@ -147,7 +161,7 @@ Source: every capture session in the corpus that contributes a built map.
 
 Procedure per capture:
 1. **Hold out frames at map-build time.** Withhold every 9th frame (the harness's existing scheme — 1/9 ≈ 11% held-out). Rebuild the COLMAP map from the remaining 8/9.
-2. **Solve `T_truth_to_map` via Procrustes/Umeyama** on the in-set images: each in-set image has both a COLMAP-reconstructed pose `P_map_i` (in map frame) and a `frames.csv` truth pose `P_truth_i` (in capture-session local frame, sourced from the device's VIO/SLAM at capture time). Solve the rigid + scale alignment closed-form on `(P_truth_i, P_map_i)` pairs.
+2. **Solve `T_truth_to_map` via Procrustes/Umeyama** on the in-set images: each in-set image has both a COLMAP-reconstructed pose `P_map_i` (in map frame) and a `frames.csv` truth pose `P_truth_i` (in capture-session local frame, sourced from the device's VIO/SLAM at capture time). Solve the rigid + scale alignment closed-form on `(P_truth_i, P_map_i)` pairs using pycolmap's `Sim3d` primitives (the reconstructor already uses these at `colmap.py:138`).
 3. **Per held-out frame**:
    - Transform its truth pose into map frame: `P_truth_in_map = T_truth_to_map · P_truth`.
    - Run the localizer on the held-out frame against the rebuilt map: `(P_estimated, metrics)`.
@@ -156,8 +170,8 @@ Procedure per capture:
 4. **Pool across all captures and configs.** Add binary labels: `success_tight = err_t < 5cm AND err_r < 1°`, `success_loose = err_t < 30cm AND err_r < 5°`.
 5. **Fit logistic regression** (sklearn `LogisticRegression(class_weight='balanced')`) on the feature vector. Features: `log(num_inliers + 1)`, `inlier_ratio`, `reproj_err / image_diagonal_pixels`, `inlier_coverage`, `log(num_matches + 1)`, `log(map_image_count + 1)`, `log(map_point_count + 1)`, `map_avg_track_length`, `log(map_bounding_volume_m3 + 1)`, `map_viewpoint_diversity`, `is_indoor`.
 6. **Fit isotonic** (sklearn `IsotonicRegression(out_of_bounds='clip')`) on the logistic output against the same labels.
-7. **Fit Σ_meas scaling.** For each held-out localization, compute the SE(3) residual `e = log(P_truth_in_map · P_estimated⁻¹) ∈ ℝ⁶`. Solve scalar α, β that maximize `Σᵢ log N(eᵢ; 0, α·PnP_covᵢ + β·I)` (closed-form-ish; small unconstrained 2-D MLE — scipy `minimize` is fine). The α, β scalars carry the empirical "actual pose-error spread relative to PnP_cov" signal that PnP_cov alone misses (mis-registered map points, wrong-but-confident inliers, etc.).
-8. **Optional 10% holdout** for Brier score and reliability diagram; report in fit metadata.
+7. **Fit Σ_meas scaling.** For each held-out localization, compute the SE(3) residual `e = log(P_truth_in_map · P_estimated⁻¹) ∈ ℝ⁶` (using `pytransform3d.transformations.transform_log_from_transform`). Solve scalar α, β that maximize `Σᵢ log N(eᵢ; 0, α·PnP_covᵢ + β·I)` via `scipy.optimize.minimize` on the negative log-likelihood (small 2-D unconstrained MLE). The α, β scalars carry the empirical "actual pose-error spread relative to PnP_cov" signal that PnP_cov alone misses (mis-registered map points, wrong-but-confident inliers, etc.).
+8. **Optional 10% holdout** for Brier score (`sklearn.metrics.brier_score_loss`) and reliability diagram (`sklearn.calibration.calibration_curve`); report in fit metadata.
 
 Output: `{tight: {logistic, isotonic}, loose: {logistic, isotonic}, sigma_meas: {alpha, beta}, fit_metadata, pipeline_version}` written to `config/calibration/global.json`.
 
@@ -256,7 +270,7 @@ Computed at map-build time, stored as columns on `reconstructions`. The harness 
 - `map_image_count`: total registered images.
 - `map_point_count`: total triangulated 3D points.
 - `map_avg_track_length`: mean number of observations per 3D point.
-- `map_bounding_volume_m3`: convex hull volume of camera centers, in cubic meters.
+- `map_bounding_volume_m3`: convex hull volume of camera centers, in cubic meters (`scipy.spatial.ConvexHull(centers).volume`).
 - `map_viewpoint_diversity`: scalar derived from variance of camera viewing directions (higher = more directional coverage).
 - `is_indoor`: boolean flag, set at upload time. Default false; toggleable per map.
 

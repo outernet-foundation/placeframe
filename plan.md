@@ -211,6 +211,16 @@ Deferred until multi-capture corpus exists (out of scope this turn):
 
 End of Phase 3: the harness is repaired and emits labeled rows; `fit_calibration.py` exists and is tested against synthetic data plus exercised against the one real capture; the runtime loader plumbs features and decoupled Σ_meas end-to-end; the schema is migrated; a starter calibration is committed; band-aids are removed. The system runs on real (varying, overfit) confidence. The operator is unblocked from going to gather the multi-capture corpus and replace the starter.
 
+**Execution chunks** (each lands as one or more reviewable commits; each is a stoppable pause point):
+
+1. **Harness repair** — fix S608 / ASYNC240 / broken `main()`; add `--single-config` flag.
+2. **Schema + reconstructor map-quality features** — 6 columns on `reconstructions`; reconstructor populates them at map-build time (`scipy.spatial.ConvexHull` for volume); migration backfills; harness joins via `localization_maps.reconstruction_id`. Runs the full regen pipeline (`migrate-database` → `generate-datamodels` → `lock-python` → `generate-clients`).
+3. **Procrustes pose-error labeling** — Umeyama via pycolmap `Sim3d` primitives; SE(3) residuals via `pytransform3d`; per-capture residual surfacing; persist labeled rows.
+4. **`fit_calibration.py`** — pool rows; sklearn logistic + isotonic; `scipy.optimize.minimize` for α/β; Brier + calibration_curve report; artifact write; unit tests (Procrustes solve, α/β solve, round-trip).
+5. **Runtime feature plumbing + Σ_meas decoupling + per-map loader** — replace `features={}` with real feature dict; replace `PnP_cov / tight²` with `α · PnP_cov + β · I`; lazy MinIO per-map loader with global-only fallback. *Pause point — after this, code is logically complete but not yet servable; next chunk produces the calibration that makes it live.*
+6. **Run starter** — bring up Docker stack; `uv run test-placeframe-e2e --single-config`; `uv run fit-calibration`; inspect fit report; commit `config/calibration/global.json` with known-bad-starter header.
+7. **Band-aid removal + `TIGHT_MIN`** — pick `TIGHT_MIN` from starter fit's success-cluster distribution; remove `IDENTITY_BOOTSTRAP_SENTINEL`, `MIN_NUM_INLIERS`/`MIN_INLIER_COVERAGE`, hand-set `-4.595` intercept, `CONFIDENCE_TIGHT_FLOOR`; run `uv run --no-sync preflight` to confirm CI-clean.
+
 ### Phase 2d — Semantic-segmentation masking (3-day time-box)
 
 Originally bundled ahead of Phase 3 to avoid a calibration refit; reordered to land *after* Phase 3 because Phase 3's logic doesn't depend on whether masking is in place — only the metric distribution shifts. One offline refit when masking lands is the entire cost of the reorder.
