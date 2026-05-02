@@ -39,10 +39,10 @@ The original plan separated Phase 2e ("repair harness, run sweep, pick reconstru
 
 **Code deliverables:**
 
-1. Repair `scripts/src/scripts/test_placeframe_e2e.py`: fix the S608 false-positive on `_build_insert_sql`, fix the ASYNC240 violation on the glob, complete the half-finished signature change so `main()` actually passes `tar_paths` into `_run`, re-verify `basedpyright` passes.
-2. Add a `--single-config` flag to the harness: short-circuit Phase 4 to `[None]` (server-default recon config) and skip the `LOC_RETRIEVAL_TOP_K` × `LOC_RANSAC_THRESHOLD` cross product. Used for fast iteration and for incremental refits when only the corpus has changed.
-3. Extend the harness to label pose error per held-out frame: Procrustes-align `frames.csv` truth poses to the rebuilt COLMAP map, transform held-out truth into map frame, compute `err_t` and `err_r` against the localizer estimate, persist alongside the existing metrics.
-4. Add map-quality features to the reconstructor's metrics output: `map_image_count`, `map_point_count`, `map_avg_track_length`, `map_bounding_volume_m3`, `map_viewpoint_diversity`. Folded into `ReconstructionMetrics` (single concept; same plumbing as the existing track-length and reprojection-error fields). Reconstructor computes them inside `build_reconstruction_metrics` at map-build time and writes them to `manifest.json` in MinIO alongside the rest of the metrics block. Harness fetches the manifest per reconstruction at row-emission time. The user-controlled `is_indoor` boolean lives as a column on `reconstructions` (default false) since it isn't a reconstruction output.
+1. ✅ Repair `scripts/src/scripts/test_placeframe_e2e.py`: S608 / ASYNC240 / broken `main()` were already addressed in `dddeca1d`; chunk 1 added the `--single-config` flag (deliverable 2) and confirmed basedpyright clean.
+2. ✅ Add a `--single-config` flag to the harness: short-circuits Phase 4 to `[None]` (server-default recon config) and replaces the `LOC_RETRIEVAL_TOP_K` × `LOC_RANSAC_THRESHOLD` cross product with `[(None, None)]`. Used for fast iteration and for incremental refits.
+3. ✅ Pose-error labeling. The diagnostic lives in the **reconstructor**, not the harness. The reconstruction's truth-frame alignment is still the prior single-anchor `Sim3d` in `colmap.py` (preserves the "first registered frame == map origin" contract downstream consumers rely on); rigid Umeyama (closed-form Kabsch via numpy SVD) is computed *separately* over all registered frames as a per-capture diagnostic and the residual is emitted on `ReconstructionMetrics` as `truth_alignment_rms_residual_m` / `truth_alignment_max_residual_m`. The Umeyama transform itself is not applied to the reconstruction. Per-capture residuals ride the manifest. Harness captures held-out frame truth poses in `_prepare_capture` and computes `err_t_m` / `err_r_deg` per localization in Phase 6 by inverting the localizer's `camera_from_map` Transform. `pytransform3d` not added — `scipy.spatial.transform.Rotation.magnitude()` covers the rotation-error need.
+4. ✅ Map-quality features: `map_image_count`, `map_point_count`, `map_avg_track_length`, `map_bounding_volume_m3`, `map_viewpoint_diversity`. Folded into `ReconstructionMetrics` (single concept; same plumbing as existing track-length and reprojection-error fields). Reconstructor computes them inside `build_reconstruction_metrics` at map-build time and writes them to `manifest.json` in MinIO alongside the rest of the metrics block. Harness fetches the manifest per reconstruction at row-emission time. The user-controlled `is_indoor` boolean lives as a column on `reconstructions` (default false) since it isn't a reconstruction output.
 5. Create `scripts/src/scripts/fit_calibration.py`: pulls the labeled rows produced by the harness, pools them, fits Algorithm 1 (logistic + isotonic for tight and loose, plus the Σ_meas α, β scalars described below). Writes `config/calibration/global.json` with the localizer's git SHA as `pipeline_version`. Emits a fit report (Brier, reliability, sample count, Procrustes residual per capture, fitted α/β).
 6. Plumb features through `apply_global_calibration`: `build_metrics.py:66` currently passes `features={}`. Wire transformed metrics + map features into the dict keyed by the calibration's `feature_names`.
 7. Decouple `Σ_meas` from confidence in `build_metrics.py`: replace `PnP_cov / tight²` with `α · PnP_cov + β · I` (α, β read from the fitted calibration artifact). Confidence becomes a gate: `if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)` in `localize.py`.
@@ -93,7 +93,7 @@ Smaller-scope validations not requiring the harness run:
 
 The math is mostly off-the-shelf. Things to know about up front:
 
-- **pycolmap** — `Sim3d` and friends for the Procrustes/Umeyama alignment of truth poses to the COLMAP map (already a reconstructor dep; see `docker/reconstructor/src/reconstructor/colmap.py:138` for existing usage).
+- **pycolmap** — `Sim3d` is used by the reconstructor to apply the single-anchor truth-frame alignment to the COLMAP reconstruction (already a reconstructor dep). The diagnostic Procrustes (rigid Umeyama / Kabsch via numpy SVD) is computed against the same registered frames but its transform is not applied to the reconstruction — only the residual is reported. Hand-rolled because it's small enough that a library wasn't worth pulling in, and pycolmap's `Sim3d.estimate` wasn't needed once we only required rigid (unit-scale) alignment.
 - **scipy** — `spatial.ConvexHull(centers).volume` for `map_bounding_volume_m3`; `optimize.minimize` for the Σ_meas α, β MLE.
 - **sklearn** — `linear_model.LogisticRegression`, `isotonic.IsotonicRegression`, `metrics.brier_score_loss`, `calibration.calibration_curve`.
 - **pytransform3d** — SE(3) `log` for computing the 6-D residuals fed to the Σ_meas fit. New dep, added to the `scripts` package.
@@ -122,7 +122,7 @@ Things hand-rolled (small, well-defined):
                        │  Phase 4: generate config matrix     │
                        │  Phase 5: reconstruct (per config)   │
                        │  Phase 6: localize held-out frames   │
-                       │  Phase 7: label pose error  *NEW*    │
+                       │  Phase 7: label pose error           │
                        │  Phase 8: persist rows               │
                        └──────────────┬───────────────────────┘
                                       │ rows: (metrics, map_features,
@@ -161,11 +161,12 @@ Source: every capture session in the corpus that contributes a built map.
 
 Procedure per capture:
 1. **Hold out frames at map-build time.** Withhold every 9th frame (the harness's existing scheme — 1/9 ≈ 11% held-out). Rebuild the COLMAP map from the remaining 8/9.
-2. **Solve `T_truth_to_map` via Procrustes/Umeyama** on the in-set images: each in-set image has both a COLMAP-reconstructed pose `P_map_i` (in map frame) and a `frames.csv` truth pose `P_truth_i` (in capture-session local frame, sourced from the device's VIO/SLAM at capture time). Solve the rigid + scale alignment closed-form on `(P_truth_i, P_map_i)` pairs using pycolmap's `Sim3d` primitives (the reconstructor already uses these at `colmap.py:138`).
+2. **Reconstructor aligns the map to truth.** The reconstructor pins the first registered frame's COLMAP pose to its `frames.csv` truth pose via single-anchor `Sim3d`; this places the rebuilt map in the capture's truth frame. Separately and only as a diagnostic, the reconstructor solves rigid (no-scale) Procrustes (Umeyama / Kabsch via numpy SVD) over all registered frames and emits per-capture residuals (`truth_alignment_rms_residual_m`, `truth_alignment_max_residual_m`); these ride the manifest and the operator (or the fit script in chunk 4) uses them to filter unreliable captures out of the corpus. The Procrustes transform itself is not applied to the reconstruction.
 3. **Per held-out frame**:
-   - Transform its truth pose into map frame: `P_truth_in_map = T_truth_to_map · P_truth`.
-   - Run the localizer on the held-out frame against the rebuilt map: `(P_estimated, metrics)`.
-   - Compute pose errors: `err_t = ||translation(P_truth_in_map) − translation(P_estimated)||`, `err_r = angle_between(rotation(P_truth_in_map), rotation(P_estimated))`.
+   - Run the localizer on the held-out frame against the rebuilt map. The map is already in truth-frame from the single-anchor alignment, so the localizer's `camera_from_map` Transform doubles as `camera_from_world`.
+   - Invert to get the estimated camera position and orientation in world (truth) frame.
+   - Compare to the held-out frame's truth pose from `frames.csv` (read directly in the capture's native axis convention; the localizer's Transform is in the same convention since the API converts back from OpenCV at the boundary, so no basis change is needed).
+   - Compute `err_t = ||truth_position − estimated_position||` (Euclidean, meters) and `err_r = ‖log(R_truth · R_estimated⁻¹)‖` (geodesic, degrees, via `scipy.spatial.transform.Rotation.magnitude`).
    - Record `(metrics, map_features, recon_config, loc_config, device, err_t, err_r)`.
 4. **Pool across all captures and configs.** Add binary labels: `success_tight = err_t < 5cm AND err_r < 1°`, `success_loose = err_t < 30cm AND err_r < 5°`.
 5. **Fit logistic regression** (sklearn `LogisticRegression(class_weight='balanced')`) on the feature vector. Features: `log(num_inliers + 1)`, `inlier_ratio`, `reproj_err / image_diagonal_pixels`, `inlier_coverage`, `log(num_matches + 1)`, `log(map_image_count + 1)`, `log(map_point_count + 1)`, `map_avg_track_length`, `log(map_bounding_volume_m3 + 1)`, `map_viewpoint_diversity`, `is_indoor`.
