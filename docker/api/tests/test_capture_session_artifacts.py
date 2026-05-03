@@ -161,6 +161,16 @@ def capture_with_tar(api_client: httpx.Client) -> tuple[str, list[int], bytes, b
     return capture_id, timestamps_ms, expected_csv.encode("utf-8"), MINIMAL_JPEG
 
 
+def test_get_manifest_returns_manifest_json(api_client: httpx.Client, capture_with_tar):
+    capture_id, *_ = capture_with_tar
+    resp = api_client.get(f"/capture_sessions/{capture_id}/manifest.json")
+    assert resp.status_code == 200, resp.text
+    assert resp.headers["content-type"].startswith("application/json")
+    parsed = json.loads(resp.content)
+    assert parsed["axis_convention"] == "OPENCV"
+    assert parsed["rigs"] == []
+
+
 def test_get_frames_csv_returns_csv_bytes(api_client: httpx.Client, capture_with_tar):
     capture_id, _, expected_csv, _ = capture_with_tar
     resp = api_client.get(f"/capture_sessions/{capture_id}/frames.csv")

@@ -286,6 +286,20 @@ async def download_capture_session_tar(session: AsyncSession, id: UUID) -> Strea
 
 
 @get(
+    "/{id:uuid}/manifest.json",
+    media_type="application/json",
+    content_encoding="binary",
+    content_media_type="application/json",
+)
+async def get_capture_session_manifest_file(session: AsyncSession, id: UUID) -> Stream:
+    if await session.get(CaptureSession, id) is None:
+        raise NotFoundException(f"Capture session {id} not found")
+
+    contents = _extract_member_bytes(id, "manifest.json")
+    return Stream(iter([contents]), media_type="application/json")
+
+
+@get(
     "/{id:uuid}/frames.csv",
     media_type="text/csv",
     content_encoding="binary",
@@ -389,6 +403,7 @@ router = Router(
         update_capture_sessions,
         upload_capture_session_tar,
         download_capture_session_tar,
+        get_capture_session_manifest_file,
         get_capture_session_frames_csv,
         get_capture_session_image,
         get_capture_session_rig_config,
