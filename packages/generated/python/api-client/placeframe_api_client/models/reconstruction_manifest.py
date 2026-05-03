@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictStr, field_validator
+from pydantic import BaseModel, ConfigDict, StrictBool, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional
 from placeframe_api_client.models.reconstruction_metrics import ReconstructionMetrics
 from placeframe_api_client.models.reconstruction_options import ReconstructionOptions
@@ -34,8 +34,9 @@ class ReconstructionManifest(BaseModel):
     error: Optional[StrictStr] = None
     options: ReconstructionOptions
     metrics: ReconstructionMetrics
+    is_indoor: Optional[StrictBool] = False
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["capture_id", "status", "error", "options", "metrics"]
+    __properties: ClassVar[List[str]] = ["capture_id", "status", "error", "options", "metrics", "is_indoor"]
 
     @field_validator('status')
     def status_validate_enum(cls, value):
@@ -117,7 +118,8 @@ class ReconstructionManifest(BaseModel):
             "status": obj.get("status"),
             "error": obj.get("error"),
             "options": ReconstructionOptions.from_dict(obj["options"]) if obj.get("options") is not None else None,
-            "metrics": ReconstructionMetrics.from_dict(obj["metrics"]) if obj.get("metrics") is not None else None
+            "metrics": ReconstructionMetrics.from_dict(obj["metrics"]) if obj.get("metrics") is not None else None,
+            "is_indoor": obj.get("is_indoor") if obj.get("is_indoor") is not None else False
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

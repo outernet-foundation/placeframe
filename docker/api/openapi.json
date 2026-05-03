@@ -5899,6 +5899,10 @@
           },
           "metrics": {
             "$ref": "#/components/schemas/ReconstructionMetrics"
+          },
+          "is_indoor": {
+            "type": "boolean",
+            "default": false
           }
         },
         "type": "object",

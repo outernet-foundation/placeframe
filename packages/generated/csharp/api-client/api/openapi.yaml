@@ -3677,6 +3677,7 @@ components:
           bundle_adjustment_refine_focal_length: true
           single_threaded: true
           rig_verification: true
+        is_indoor: false
         metrics:
           truth_alignment_max_residual_m: 6.878052220127876
           all_verified_match_inliers_median: 1.2315135367772556
@@ -3737,6 +3738,9 @@ components:
           $ref: "#/components/schemas/ReconstructionOptions"
         metrics:
           $ref: "#/components/schemas/ReconstructionMetrics"
+        is_indoor:
+          default: false
+          type: boolean
       required:
       - capture_id
       - metrics
