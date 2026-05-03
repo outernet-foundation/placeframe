@@ -106,6 +106,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**get_capture_session**](docs/DefaultApi.md#get_capture_session) | **GET** /capture_sessions/{id} | GetCaptureSession
 *DefaultApi* | [**get_capture_session_frames_csv**](docs/DefaultApi.md#get_capture_session_frames_csv) | **GET** /capture_sessions/{id}/frames.csv | GetCaptureSessionFramesCsv
 *DefaultApi* | [**get_capture_session_image**](docs/DefaultApi.md#get_capture_session_image) | **GET** /capture_sessions/{id}/images/{frame_timestamp} | GetCaptureSessionImage
+*DefaultApi* | [**get_capture_session_manifest_file**](docs/DefaultApi.md#get_capture_session_manifest_file) | **GET** /capture_sessions/{id}/manifest.json | GetCaptureSessionManifestFile
 *DefaultApi* | [**get_capture_session_reconstructions**](docs/DefaultApi.md#get_capture_session_reconstructions) | **GET** /capture_sessions/{id}/reconstructions | GetCaptureSessionReconstructions
 *DefaultApi* | [**get_capture_session_rig_config**](docs/DefaultApi.md#get_capture_session_rig_config) | **GET** /capture_sessions/{id}/rig_config | GetCaptureSessionRigConfig
 *DefaultApi* | [**get_capture_sessions**](docs/DefaultApi.md#get_capture_sessions) | **GET** /capture_sessions | GetCaptureSessions

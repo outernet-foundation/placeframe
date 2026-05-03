@@ -432,6 +432,24 @@ namespace PlaceframeApiClient.Api
         /// <returns>ApiResponse of FileParameter</returns>
         ApiResponse<FileParameter> GetCaptureSessionImageWithHttpInfo(Guid id, int frameTimestamp);
         /// <summary>
+        /// GetCaptureSessionManifestFile
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>FileParameter</returns>
+        FileParameter GetCaptureSessionManifestFile(Guid id);
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        ApiResponse<FileParameter> GetCaptureSessionManifestFileWithHttpInfo(Guid id);
+        /// <summary>
         /// GetCaptureSessionReconstructions
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -1512,6 +1530,29 @@ namespace PlaceframeApiClient.Api
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
         System.Threading.Tasks.Task<ApiResponse<FileParameter>> GetCaptureSessionImageWithHttpInfoAsync(Guid id, int frameTimestamp, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// GetCaptureSessionManifestFile
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        System.Threading.Tasks.Task<FileParameter> GetCaptureSessionManifestFileAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        System.Threading.Tasks.Task<ApiResponse<FileParameter>> GetCaptureSessionManifestFileWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetCaptureSessionReconstructions
         /// </summary>
@@ -4939,6 +4980,113 @@ namespace PlaceframeApiClient.Api
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("GetCaptureSessionImage", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>FileParameter</returns>
+        public FileParameter GetCaptureSessionManifestFile(Guid id)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = GetCaptureSessionManifestFileWithHttpInfo(id);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        public PlaceframeApiClient.Client.ApiResponse<FileParameter> GetCaptureSessionManifestFileWithHttpInfo(Guid id)
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<FileParameter>("/capture_sessions/{id}/manifest.json", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionManifestFile", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        public async System.Threading.Tasks.Task<FileParameter> GetCaptureSessionManifestFileAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = await GetCaptureSessionManifestFileWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<FileParameter>> GetCaptureSessionManifestFileWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/capture_sessions/{id}/manifest.json", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionManifestFile", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 

@@ -337,6 +337,37 @@ paths:
       summary: UploadCaptureSessionTar
       tags:
       - Default
+  /capture_sessions/{id}/manifest.json:
+    get:
+      deprecated: false
+      operationId: get_capture_session_manifest_file
+      parameters:
+      - deprecated: false
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                format: binary
+                type: string
+          description: Stream Response
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetCaptureSessionManifestFile
+      tags:
+      - Default
   /capture_sessions/{id}/frames.csv:
     get:
       deprecated: false
