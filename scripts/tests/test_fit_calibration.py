@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from itertools import pairwise
 from pathlib import Path
 
 import pytest
@@ -8,49 +9,15 @@ from numpy import asarray, eye, exp, float64
 from numpy.random import default_rng
 
 from scripts.fit_calibration import (
-    fit_calibration_from_results,
+    CorpusRow,
+    fit_calibration_from_corpus,
     fit_logistic_with_isotonic,
 )
-from scripts.e2e_results import (
-    E2EResults,
-    LocalizationResult,
-    ReconMetrics,
-    ReconstructionResult,
-)
+from scripts.held_out_selection import HeldOutSelectionOptions, StrideHeldOutSelector
 
 
-def _make_recon(reconstruction_id: str = "recon-1") -> ReconstructionResult:
-    return ReconstructionResult(
-        location="loc",
-        device_type="zed",
-        capture_name="zed",
-        config_idx=0,
-        options=None,
-        reconstruction_id=reconstruction_id,
-        succeeded=True,
-        metrics=ReconMetrics(
-            total_images=100,
-            registered_images=95,
-            registration_rate=0.95,
-            num_3d_points=20000,
-            reproj_error_50th=1.0,
-            reproj_error_90th=2.0,
-            map_image_count=95,
-            map_point_count=20000,
-            map_avg_track_length=4.5,
-            map_bounding_volume_m3=12.3,
-            map_viewpoint_diversity=0.6,
-        ),
-        loc_map_id="map-1",
-        is_indoor=True,
-        truth_alignment_rms_residual_m=0.01,
-        truth_alignment_max_residual_m=0.03,
-    )
-
-
-def _make_loc(
+def _make_row(
     *,
-    reconstruction_id: str = "recon-1",
     succeeded: bool = True,
     err_t_m: float = 0.02,
     err_r_deg: float = 0.5,
@@ -58,20 +25,8 @@ def _make_loc(
     num_inliers: int = 200,
     pnp_covariance: list[list[float]] | None = None,
     se3_residual: list[float] | None = None,
-) -> LocalizationResult:
-    return LocalizationResult(
-        location="loc",
-        recon_device_type="zed",
-        recon_capture_name="zed",
-        recon_config_idx=0,
-        reconstruction_id=reconstruction_id,
-        query_device_type="zed",
-        query_capture_name="zed",
-        query_frame_timestamp="0",
-        query_image_diagonal_px=1500.0,
-        is_cross_device=False,
-        retrieval_top_k=5,
-        ransac_threshold=12.0,
+) -> CorpusRow:
+    return CorpusRow(
         succeeded=succeeded,
         inlier_ratio=inlier_ratio,
         reproj_error_median=1.2,
@@ -80,9 +35,16 @@ def _make_loc(
         num_matches=350,
         inlier_coverage=0.4,
         pnp_covariance=pnp_covariance,
+        se3_residual=se3_residual,
         err_t_m=err_t_m,
         err_r_deg=err_r_deg,
-        se3_residual=se3_residual,
+        query_image_diagonal_px=1500.0,
+        map_image_count=95,
+        map_point_count=20000,
+        map_avg_track_length=4.5,
+        map_bounding_volume_m3=12.3,
+        map_viewpoint_diversity=0.6,
+        is_indoor=True,
     )
 
 
@@ -99,7 +61,6 @@ class TestFitLogisticWithIsotonic:
 
         assert len(tolerance.logistic_weights) == 11
         assert len(tolerance.isotonic_x_breakpoints) >= 2
-        # Linearly separable → very high accuracy at 0.5 threshold.
         logits = features @ asarray(tolerance.logistic_weights, dtype=float64) + tolerance.logistic_intercept
         predictions = 1.0 / (1.0 + exp(-logits))
         accuracy = float(((predictions >= 0.5) == labels).mean())
@@ -115,25 +76,29 @@ class TestFitLogisticWithIsotonic:
         assert tolerance.logistic_intercept > 10.0
 
 
-class TestFitCalibrationFromResults:
-    def _make_results(self, n_success: int = 8, n_failure: int = 4) -> E2EResults:
-        recon = _make_recon()
+class TestFitCalibrationFromCorpus:
+    def _make_corpus(self, n_success: int = 8, n_failure: int = 4) -> list[CorpusRow]:
         rng = default_rng(0)
         identity_6 = eye(6, dtype=float64)
-        locs: list[LocalizationResult] = []
+        rows: list[CorpusRow] = []
         for _ in range(n_success):
             cov = (rng.normal(size=(6, 6)) @ rng.normal(size=(6, 6)).T + 1e-3 * identity_6).tolist()
             res = (rng.normal(size=6) * 0.01).tolist()
-            locs.append(
-                _make_loc(
-                    err_t_m=0.02, err_r_deg=0.3, inlier_ratio=0.7, num_inliers=300, pnp_covariance=cov, se3_residual=res
+            rows.append(
+                _make_row(
+                    err_t_m=0.02,
+                    err_r_deg=0.3,
+                    inlier_ratio=0.7,
+                    num_inliers=300,
+                    pnp_covariance=cov,
+                    se3_residual=res,
                 )
             )
         for _ in range(n_failure):
             cov = (rng.normal(size=(6, 6)) @ rng.normal(size=(6, 6)).T + 1e-3 * identity_6).tolist()
             res = (rng.normal(size=6) * 0.5).tolist()
-            locs.append(
-                _make_loc(
+            rows.append(
+                _make_row(
                     err_t_m=0.5,
                     err_r_deg=10.0,
                     inlier_ratio=0.1,
@@ -142,10 +107,10 @@ class TestFitCalibrationFromResults:
                     se3_residual=res,
                 )
             )
-        return E2EResults(run_timestamp="2026-05-02T00:00:00+00:00", reconstructions=[recon], localizations=locs)
+        return rows
 
     def test_produces_artifact_with_all_required_blocks(self):
-        artifact = fit_calibration_from_results([self._make_results()], pipeline_version="abc123")
+        artifact = fit_calibration_from_corpus(self._make_corpus(), pipeline_version="abc123")
 
         assert artifact.schema_version == 1
         assert artifact.pipeline_version == "abc123"
@@ -155,7 +120,7 @@ class TestFitCalibrationFromResults:
         assert artifact.sample_count == 12
 
     def test_round_trip_through_disk(self, tmp_path: Path):
-        artifact = fit_calibration_from_results([self._make_results()], pipeline_version="def456")
+        artifact = fit_calibration_from_corpus(self._make_corpus(), pipeline_version="def456")
         out = tmp_path / "global.json"
         artifact.write(out)
 
@@ -167,6 +132,30 @@ class TestFitCalibrationFromResults:
         assert loaded.sample_count == 12
 
     def test_no_usable_rows_raises(self):
-        empty = E2EResults(run_timestamp="t", reconstructions=[], localizations=[])
         with pytest.raises(RuntimeError, match="No usable rows"):
-            fit_calibration_from_results([empty], pipeline_version="x")
+            fit_calibration_from_corpus([], pipeline_version="x")
+
+
+class TestStrideHeldOutSelector:
+    def test_picks_evenly_spaced_timestamps(self):
+        timestamps = list(range(1_700_000_000_000, 1_700_000_000_500))
+        frames_csv = "timestamp,tx,ty,tz,qx,qy,qz,qw\n" + "".join(f"{ts},0,0,0,0,0,0,1\n" for ts in timestamps)
+
+        selected = StrideHeldOutSelector()(frames_csv, HeldOutSelectionOptions(target_count=10))
+
+        assert len(selected) == 10
+        assert selected[0] == 1_700_000_000_025
+        for prev, curr in pairwise(selected):
+            assert curr - prev == 50
+
+    def test_empty_input_returns_empty(self):
+        frames_csv = "timestamp,tx,ty,tz,qx,qy,qz,qw\n"
+        assert StrideHeldOutSelector()(frames_csv, HeldOutSelectionOptions(target_count=100)) == []
+
+    def test_target_count_exceeds_available_falls_back_to_stride_one(self):
+        timestamps = [1, 2, 3, 4, 5]
+        frames_csv = "timestamp,tx,ty,tz,qx,qy,qz,qw\n" + "".join(f"{ts},0,0,0,0,0,0,1\n" for ts in timestamps)
+
+        selected = StrideHeldOutSelector()(frames_csv, HeldOutSelectionOptions(target_count=100))
+
+        assert selected == timestamps
