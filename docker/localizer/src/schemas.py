@@ -22,3 +22,7 @@ class Localization(BaseModel):
     id: UUID
     transform: Transform
     metrics: LocalizationMetrics
+
+
+class LocalizerVersion(BaseModel):
+    git_sha: str

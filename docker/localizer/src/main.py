@@ -17,7 +17,7 @@ from common.multipart_requests import (
 )
 from core.axis_convention import AxisConvention
 from core.camera_config import PinholeCameraConfig
-from litestar import post
+from litestar import get, post
 from litestar.datastructures import UploadFile
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import HTTPException
@@ -29,7 +29,7 @@ from pydantic import BeforeValidator, Json
 
 from core.calibration import CalibrationArtifact
 from .map import Map, load_map
-from .schemas import LoadState, Localization
+from .schemas import LoadState, Localization, LocalizerVersion
 from .settings import get_settings
 
 RECONSTRUCTIONS_DIR = Path("/tmp/reconstructions")
@@ -113,7 +113,12 @@ async def localize_image(
     return localizations
 
 
+@get("/version")
+async def get_localizer_version() -> LocalizerVersion:
+    return LocalizerVersion(git_sha=pipeline_version)
+
+
 openapi_config = OpenAPIConfig("Localizer", "0.1.0", servers=[Server(url="http://localhost:8000")])
 
 
-app = create_litestar_app([localize_image], openapi_config)
+app = create_litestar_app([localize_image, get_localizer_version], openapi_config)
