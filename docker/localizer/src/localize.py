@@ -24,9 +24,9 @@ from core.transform import Float3, Float4, Transform
 from numpy import asarray, float32, vstack
 from pycolmap import AbsolutePoseEstimationOptions, RANSACOptions
 from pycolmap import Camera as ColmapCamera
-from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose  # type: ignore  # noqa: PLC2701 — no public API
+from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose, set_random_seed  # type: ignore  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
-from torch import Tensor, cuda, topk  # type: ignore
+from torch import Tensor, cuda, manual_seed, topk  # type: ignore
 
 from .build_metrics import build_localization_metrics
 from core.calibration import CalibrationArtifact
@@ -39,6 +39,13 @@ DEVICE = "cuda" if cuda.is_available() else "cpu"
 # bump pipeline_version automatically and the calibration loader hard-fails on mismatch.
 RANSAC_THRESHOLD = 8.0
 RETRIEVAL_TOP_K = 12
+
+# Seeded each call so localization_evaluations cache rows keyed on pipeline_version are
+# reproducible — fit_calibration treats (reconstruction_id, frame_timestamp, retrieval_top_k,
+# ransac_threshold, pipeline_version) as a deterministic cache key. cudnn-deterministic and
+# CUBLAS_WORKSPACE_CONFIG are deliberately not enabled: the 10–30% latency cost outweighs
+# the residual non-determinism, which is below the discrete inlier-set threshold the fit cares about.
+LOCALIZER_RANDOM_SEED = 0
 
 # Quality floor for accepting a localization. See the BAND-AID block in
 # localize_image_against_reconstruction.
@@ -89,6 +96,9 @@ def localize_image_against_reconstruction(
         retrieval_top_k = RETRIEVAL_TOP_K
     if ransac_threshold is None:
         ransac_threshold = RANSAC_THRESHOLD
+
+    set_random_seed(LOCALIZER_RANDOM_SEED)
+    manual_seed(LOCALIZER_RANDOM_SEED)
 
     # Per-stage timing instrumentation. CUDA kernels are async, so each GPU-bound stage ends
     # with cuda.synchronize() to attribute its true wall time rather than just kernel-launch.
