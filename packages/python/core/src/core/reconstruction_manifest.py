@@ -28,3 +28,6 @@ class ReconstructionManifest(BaseModel):
     error: Optional[str] = Field(default=None)
     options: ReconstructionOptions
     metrics: ReconstructionMetrics
+    # Snapshotted from the reconstructions row at create-time so the localizer can read all
+    # map-side calibration features from one place. Source-of-truth remains the row column.
+    is_indoor: bool = Field(default=False)
