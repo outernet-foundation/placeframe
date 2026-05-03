@@ -241,20 +241,18 @@ def localize_image_against_reconstruction(
         height,
         pipeline_version,
         calibration,
+        map,
     )
 
-    # THIS IS A BAND-AID. Remove once the calibration system actually computes
-    # meaningful confidence values from the localization result.
+    # THIS IS A BAND-AID. Remove once a real (fitted) calibration ships.
     #
-    # build_metrics.py calls apply_global_calibration(calibration, Features.zeros()).
-    # Zero-valued features mean the logistic regression sees no real inputs from
-    # this localization, so metrics.confidence.{tight,loose} reduce to constants
-    # (sigmoid of the model intercept under the identity-bootstrap calibration)
-    # that are identical for a great pose and a garbage one. is_calibrated=True
-    # is misleading — the model is fitted to nothing.
+    # Features are now plumbed through (chunk 8), but the identity-bootstrap calibration
+    # in config/calibration/global.json carries empty logistic weights and a hand-set
+    # `-4.595` intercept, so metrics.confidence.{tight,loose} are still constants
+    # independent of the localization quality. is_calibrated=True is misleading until
+    # the starter fit lands.
     #
-    # Once features are plumbed through and the calibration model is refit against
-    # labeled data, replace this with a confidence-based check, e.g.:
+    # Once a real-fit calibration ships (chunk 9), replace this with:
     #     if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)
     if metrics.num_inliers < MIN_NUM_INLIERS or metrics.inlier_coverage < MIN_INLIER_COVERAGE:
         raise LocalizationError(

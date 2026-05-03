@@ -7,6 +7,7 @@ from uuid import UUID
 
 from core.h5 import FEATURES_FILE, GLOBAL_DESCRIPTORS_FILE, read_features, read_global_descriptors
 from core.opq import OPQ_MATRIX_FILE, PQ_QUANTIZER_FILE, read_opq_matrix, read_pq_quantizer
+from core.reconstruction_manifest import ReconstructionManifest
 from faiss import OPQMatrix, ProductQuantizer  # type: ignore
 from numpy import dtype, float32, ndarray, uint8
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
@@ -36,6 +37,15 @@ class Map:
     tile_descriptors: ndarray[tuple[NumImages, MaxTiles, RetrievalDim], dtype[float32]]
     opq_matrix: OPQMatrix
     product_quantizer: ProductQuantizer
+    # Map-side calibration features, snapshotted from the reconstruction's manifest at load
+    # time. Source of truth is the reconstruction manifest in MinIO; these feed Features
+    # construction at query time in build_localization_metrics.
+    map_image_count: int
+    map_point_count: int
+    map_avg_track_length: float
+    map_bounding_volume_m3: float
+    map_viewpoint_diversity: float
+    is_indoor: bool
 
 
 def load_map(id: UUID, s3_client: S3Client, reconstruction_bucket: str, reconstructions_dir: Path) -> Map:
@@ -58,6 +68,21 @@ def load_map(id: UUID, s3_client: S3Client, reconstruction_bucket: str, reconstr
             local_path.parent.mkdir(parents=True, exist_ok=True)
             print(f"Downloading s3://{reconstruction_bucket}/{key} to {local_path}")
             s3_client.download_file(reconstruction_bucket, key, str(local_path))
+
+    manifest = ReconstructionManifest.model_validate_json(
+        s3_client.get_object(Bucket=reconstruction_bucket, Key=f"{id}/manifest.json")["Body"].read()
+    )
+    map_metrics = manifest.metrics
+    if (
+        map_metrics.map_image_count is None
+        or map_metrics.map_point_count is None
+        or map_metrics.map_avg_track_length is None
+        or map_metrics.map_bounding_volume_m3 is None
+        or map_metrics.map_viewpoint_diversity is None
+    ):
+        raise RuntimeError(
+            f"Reconstruction {id} manifest is missing map-quality metrics; rebuild required to populate them."
+        )
 
     reconstruction_path = reconstructions_dir / str(id)
     reconstruction = Reconstruction(str(reconstruction_path / "sfm_model"))
@@ -101,4 +126,10 @@ def load_map(id: UUID, s3_client: S3Client, reconstruction_bucket: str, reconstr
         padded_tile_descriptors,
         read_opq_matrix(reconstruction_path),
         read_pq_quantizer(reconstruction_path),
+        map_image_count=map_metrics.map_image_count,
+        map_point_count=map_metrics.map_point_count,
+        map_avg_track_length=map_metrics.map_avg_track_length,
+        map_bounding_volume_m3=map_metrics.map_bounding_volume_m3,
+        map_viewpoint_diversity=map_metrics.map_viewpoint_diversity,
+        is_indoor=manifest.is_indoor,
     )
