@@ -51,6 +51,7 @@ src/PlaceframeApiClient/Model/LocalizationMapCreate.cs
 src/PlaceframeApiClient/Model/LocalizationMapRead.cs
 src/PlaceframeApiClient/Model/LocalizationMapUpdate.cs
 src/PlaceframeApiClient/Model/LocalizationMetrics.cs
+src/PlaceframeApiClient/Model/LogRelayBatch.cs
 src/PlaceframeApiClient/Model/MapLocalization.cs
 src/PlaceframeApiClient/Model/NodeBatchCreate.cs
 src/PlaceframeApiClient/Model/NodeBatchUpdate.cs
