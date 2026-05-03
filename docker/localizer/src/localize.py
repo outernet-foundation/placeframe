@@ -47,11 +47,6 @@ RETRIEVAL_TOP_K = 12
 # the residual non-determinism, which is below the discrete inlier-set threshold the fit cares about.
 LOCALIZER_RANDOM_SEED = 0
 
-# Quality floor for accepting a localization. See the BAND-AID block in
-# localize_image_against_reconstruction.
-MIN_NUM_INLIERS = 50
-MIN_INLIER_COVERAGE = 0.15
-
 global_descriptor_extractor: Callable[[Tensor], TT[RetrievalDim]]
 local_feature_extractor: Callable[[Tensor], LocalFeatureOutput]
 local_feature_matcher: Callable[
@@ -244,20 +239,11 @@ def localize_image_against_reconstruction(
         map,
     )
 
-    # THIS IS A BAND-AID. Remove once a real (fitted) calibration ships.
-    #
-    # Features are now plumbed through (chunk 8), but the identity-bootstrap calibration
-    # in config/calibration/global.json carries empty logistic weights and a hand-set
-    # `-4.595` intercept, so metrics.confidence.{tight,loose} are still constants
-    # independent of the localization quality. is_calibrated=True is misleading until
-    # the starter fit lands.
-    #
-    # Once a real-fit calibration ships (chunk 9), replace this with:
-    #     if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)
-    if metrics.num_inliers < MIN_NUM_INLIERS or metrics.inlier_coverage < MIN_INLIER_COVERAGE:
+    if metrics.confidence.loose < calibration.loose_min or metrics.confidence.tight < calibration.tight_min:
         raise LocalizationError(
-            f"Below quality floor: num_inliers={metrics.num_inliers} (min {MIN_NUM_INLIERS}), "
-            f"inlier_coverage={metrics.inlier_coverage:.3f} (min {MIN_INLIER_COVERAGE})"
+            f"Confidence below gate: "
+            f"loose={metrics.confidence.loose:.3f} (min {calibration.loose_min}), "
+            f"tight={metrics.confidence.tight:.3f} (min {calibration.tight_min})"
         )
 
     timings["total"] = perf_counter() - t0

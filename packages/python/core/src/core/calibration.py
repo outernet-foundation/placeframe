@@ -9,8 +9,6 @@ from pydantic import BaseModel
 from .localization_metrics import Confidence
 
 SCHEMA_VERSION = 1
-# Loader skips the pipeline-version equality check when the calibration file carries this value.
-IDENTITY_BOOTSTRAP_SENTINEL = "identity-bootstrap"
 
 
 class CalibrationLoadError(RuntimeError):
@@ -68,6 +66,8 @@ class CalibrationArtifact(BaseModel):
     loose: ToleranceModel
     sigma_meas_alpha: float
     sigma_meas_beta: float
+    loose_min: float
+    tight_min: float
 
     def write(self, path: Path) -> None:
         path.write_text(self.model_dump_json(indent=2) + "\n", encoding="utf-8")
@@ -94,10 +94,6 @@ def load_global_calibration(path: Path, expected_pipeline_version: str) -> Calib
             f"in {path}. Localizer expects schema_version {SCHEMA_VERSION}."
         )
 
-    if calibration.pipeline_version == IDENTITY_BOOTSTRAP_SENTINEL:
-        _validate_feature_names(calibration, path, allow_empty=True)
-        return calibration
-
     if calibration.pipeline_version != expected_pipeline_version:
         raise CalibrationLoadError(
             "Global calibration pipeline-version mismatch.\n"
@@ -109,16 +105,14 @@ def load_global_calibration(path: Path, expected_pipeline_version: str) -> Calib
             "and redeploy."
         )
 
-    _validate_feature_names(calibration, path, allow_empty=False)
+    _validate_feature_names(calibration, path)
     return calibration
 
 
-def _validate_feature_names(calibration: CalibrationArtifact, path: Path, *, allow_empty: bool) -> None:
+def _validate_feature_names(calibration: CalibrationArtifact, path: Path) -> None:
     expected = list(FEATURE_NAMES)
     for label, model in (("tight", calibration.tight), ("loose", calibration.loose)):
         names = model.logistic_feature_names
-        if allow_empty and not names and not model.logistic_weights:
-            continue
         if names != expected:
             raise CalibrationLoadError(
                 f"Calibration {label} feature-name mismatch in {path}.\n"

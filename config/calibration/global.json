@@ -1,5 +1,5 @@
 {
-  "_note": "Known-bad single-capture starter. Produced by `uv run fit-calibration --captures 2d1451aa-e03f-432d-b083-d1c18cad5367 --held-out-count 30` against capture phase3-chunk9-starter (188ab02e tar). 31 samples, all succeeded → `tight` is degenerate (all weights zero, intercept -30 sends sigmoid to ~0 for any input) because there are no negative samples to fit on. `loose` carries real signal on log_inliers and log_num_matches; isotonic output saturates at 0.5. sigma_meas alpha/beta are real-fit and load-bearing. Use only for chunk 10 bring-up; replace via multi-capture corpus run (Phase 3 deferred follow-up).",
+  "_note": "Known-bad single-capture starter. Produced by `uv run fit-calibration --captures 2d1451aa-e03f-432d-b083-d1c18cad5367 --held-out-count 30` against capture phase3-chunk9-starter (188ab02e tar). 31 samples, all succeeded → `tight` is degenerate (all weights zero, intercept -30 sends sigmoid to ~0 for any input) because there are no negative samples to fit on. `loose` carries real signal on log_inliers and log_num_matches; isotonic output saturates at 0.5. sigma_meas alpha/beta are real-fit and load-bearing. loose_min=0.25 sits in the gap between the loose=0 failure cluster and the loose=0.5 success cluster; tight_min=0.0 disables the tight gate (any non-zero value would reject every localization given the degenerate tight model). Use only for chunk 10 bring-up; replace via multi-capture corpus run (Phase 3 deferred follow-up).",
   "schema_version": 1,
   "pipeline_version": "2b25c97cf668292945c8bb3db545b933722620a3",
   "fit_at": "2026-05-03T19:18:33.412655+00:00",
@@ -84,5 +84,7 @@
     ]
   },
   "sigma_meas_alpha": 32.02003412838375,
-  "sigma_meas_beta": 2.56231605669621
+  "sigma_meas_beta": 2.56231605669621,
+  "loose_min": 0.25,
+  "tight_min": 0.0
 }
