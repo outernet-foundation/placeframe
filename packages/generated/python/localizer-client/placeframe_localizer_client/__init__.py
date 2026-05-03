@@ -29,6 +29,7 @@ __all__ = [
     "ApiAttributeError",
     "ApiException",
     "AxisConvention",
+    "Confidence",
     "Float3",
     "Float4",
     "Localization",
@@ -55,6 +56,7 @@ from placeframe_localizer_client.exceptions import ApiException as ApiException
 
 # import models into sdk package
 from placeframe_localizer_client.models.axis_convention import AxisConvention as AxisConvention
+from placeframe_localizer_client.models.confidence import Confidence as Confidence
 from placeframe_localizer_client.models.float3 import Float3 as Float3
 from placeframe_localizer_client.models.float4 import Float4 as Float4
 from placeframe_localizer_client.models.localization import Localization as Localization

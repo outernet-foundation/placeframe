@@ -13,6 +13,7 @@ placeframe_localizer_client/configuration.py
 placeframe_localizer_client/exceptions.py
 placeframe_localizer_client/models/__init__.py
 placeframe_localizer_client/models/axis_convention.py
+placeframe_localizer_client/models/confidence.py
 placeframe_localizer_client/models/float3.py
 placeframe_localizer_client/models/float4.py
 placeframe_localizer_client/models/localization.py

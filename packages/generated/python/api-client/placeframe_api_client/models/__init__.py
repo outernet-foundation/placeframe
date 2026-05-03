@@ -19,6 +19,7 @@ from placeframe_api_client.models.capture_session_create import CaptureSessionCr
 from placeframe_api_client.models.capture_session_manifest import CaptureSessionManifest
 from placeframe_api_client.models.capture_session_read import CaptureSessionRead
 from placeframe_api_client.models.capture_session_update import CaptureSessionUpdate
+from placeframe_api_client.models.confidence import Confidence
 from placeframe_api_client.models.create_graph_request import CreateGraphRequest
 from placeframe_api_client.models.create_graph_response import CreateGraphResponse
 from placeframe_api_client.models.device_type import DeviceType
