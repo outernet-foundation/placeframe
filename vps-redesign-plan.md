@@ -41,16 +41,14 @@ Delivers smooth, temporally stable alignment. Calibration is still identity at t
 
 Split into two commits, reviewed one at a time:
 
-- **1a — `Anchor` → `GeoPose` rename + SE(3) interp utility + `TrackingState` enum**
+- **1a — `Anchor` → `GeoPose` rename + SE(3) interp utility** ✅ Done
   - Mechanical rename of `Anchor.cs` → `GeoPose.cs` and its inspector/scene references.
   - Remove the per-frame Lerp from the renamed class.
   - Add SE(3) interpolation utility (decompose, lerp/slerp components, recompose).
-  - Add `TrackingState` enum (no behavior changes yet).
 - **1b — VPS Bayesian filter rewrite**
   - Bayesian filter on SE(3) alignment with `(μ, Σ)` posterior, Mahalanobis innovation gate, snap-vs-slew decision, slew loop on `Update()`.
   - R3 main-thread marshaling for state mutations.
   - Confidence-scaled `Σ_meas` (`Σ_meas / confidence.tight²`) — heuristic re-tuned in Phase 2.
-  - Wire `OnTrackingStateChanged` event off the running posterior σ.
   - Add tests for the new SE(3) interp utility and Bayesian update math.
 
 End of Phase 1: visible UX is dramatically smoother and more robust to outliers. Confidence in responses is identity-valued; the filter still benefits from real `Σ_meas` and the innovation gate.
