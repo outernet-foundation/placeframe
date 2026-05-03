@@ -4590,9 +4590,11 @@
             "$ref": "#/components/schemas/AxisConvention"
           },
           "retrieval_top_k": {
+            "nullable": true,
             "type": "integer"
           },
           "ransac_threshold": {
+            "nullable": true,
             "type": "number"
           },
           "image": {
@@ -4605,9 +4607,7 @@
           "axis_convention",
           "camera_config",
           "image",
-          "map_ids",
-          "ransac_threshold",
-          "retrieval_top_k"
+          "map_ids"
         ],
         "title": "LocalizationRequest"
       },
@@ -5245,7 +5245,7 @@
             "type": "integer"
           },
           "average_keypoints_per_image": {
-            "description": "Average number of detected keypoints per image (after SuperPoint extraction), computed across all images.",
+            "description": "Average number of detected keypoints per image (after ALIKED extraction), computed across all images.",
             "nullable": true,
             "type": "number"
           },
@@ -5460,6 +5460,11 @@
             "description": "Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values = stronger priors.",
             "nullable": true,
             "type": "number"
+          },
+          "max_keypoints_per_image": {
+            "description": "Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode). If None, a sensible default is used.",
+            "nullable": true,
+            "type": "integer"
           }
         },
         "type": "object",

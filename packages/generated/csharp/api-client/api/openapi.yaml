@@ -2556,8 +2556,10 @@ components:
         axis_convention:
           $ref: "#/components/schemas/AxisConvention"
         retrieval_top_k:
+          nullable: true
           type: integer
         ransac_threshold:
+          nullable: true
           type: number
         image:
           format: binary
@@ -2567,8 +2569,6 @@ components:
       - camera_config
       - image
       - map_ids
-      - ransac_threshold
-      - retrieval_top_k
       title: LocalizationRequest
       type: object
     LogRelayBatch:
@@ -3145,6 +3145,7 @@ components:
           pose_prior_position_sigma_m: 1.0246457001441578
           lightglue_batch_size: 5
           compression_opq_number_of_training_iterations: 1
+          max_keypoints_per_image: 1
           neighbors_count: 6
           triangulation_complete_max_reprojection_error: 9.301444243932576
           mapper_filter_max_reprojection_error: 2.027123023002322
@@ -3182,6 +3183,7 @@ components:
           pose_prior_position_sigma_m: 1.0246457001441578
           lightglue_batch_size: 5
           compression_opq_number_of_training_iterations: 1
+          max_keypoints_per_image: 1
           neighbors_count: 6
           triangulation_complete_max_reprojection_error: 9.301444243932576
           mapper_filter_max_reprojection_error: 2.027123023002322
@@ -3297,7 +3299,7 @@ components:
           nullable: true
           type: integer
         average_keypoints_per_image:
-          description: "Average number of detected keypoints per image (after SuperPoint\
+          description: "Average number of detected keypoints per image (after ALIKED\
             \ extraction), computed across all images."
           nullable: true
           type: number
@@ -3409,6 +3411,7 @@ components:
         pose_prior_position_sigma_m: 1.0246457001441578
         lightglue_batch_size: 5
         compression_opq_number_of_training_iterations: 1
+        max_keypoints_per_image: 1
         neighbors_count: 6
         triangulation_complete_max_reprojection_error: 9.301444243932576
         mapper_filter_max_reprojection_error: 2.027123023002322
@@ -3527,6 +3530,11 @@ components:
             PosePrior to the database. Smaller values = stronger priors.
           nullable: true
           type: number
+        max_keypoints_per_image:
+          description: "Maximum number of ALIKED keypoints to retain per image (acts\
+            \ as a safety cap in threshold mode). If None, a sensible default is used."
+          nullable: true
+          type: integer
       title: ReconstructionOptions
       type: object
     ReconstructionRead:

@@ -696,11 +696,11 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <returns>List&lt;MapLocalization&gt;</returns>
-        List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image);
+        List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default);
 
         /// <summary>
         /// LocalizeImage
@@ -712,11 +712,11 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <returns>ApiResponse of List&lt;MapLocalization&gt;</returns>
-        ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image);
+        ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default);
         /// <summary>
         /// PushZedBoxLogs
         /// </summary>
@@ -1767,12 +1767,12 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;MapLocalization&gt;</returns>
-        System.Threading.Tasks.Task<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// LocalizeImage
@@ -1784,12 +1784,12 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;MapLocalization&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// PushZedBoxLogs
         /// </summary>
@@ -6341,13 +6341,13 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <returns>List&lt;MapLocalization&gt;</returns>
-        public List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image)
+        public List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = LocalizeImageWithHttpInfo(mapIds, cameraConfig, axisConvention, retrievalTopK, ransacThreshold, image);
+            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = LocalizeImageWithHttpInfo(mapIds, cameraConfig, axisConvention, image, retrievalTopK, ransacThreshold);
             return localVarResponse.Data;
         }
 
@@ -6358,11 +6358,11 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <returns>ApiResponse of List&lt;MapLocalization&gt;</returns>
-        public PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image)
+        public PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default)
         {
             // verify the required parameter 'mapIds' is set
             if (mapIds == null)
@@ -6413,10 +6413,16 @@ namespace PlaceframeApiClient.Api
             }
             // Primitive types (int, string, bool) go as standard form fields
             localVarRequestOptions.FormParameters.Add("axis_convention", PlaceframeApiClient.Client.ClientUtils.ParameterToString(axisConvention));
-            // Primitive types (int, string, bool) go as standard form fields
-            localVarRequestOptions.FormParameters.Add("retrieval_top_k", PlaceframeApiClient.Client.ClientUtils.ParameterToString(retrievalTopK));
-            // Primitive types (int, string, bool) go as standard form fields
-            localVarRequestOptions.FormParameters.Add("ransac_threshold", PlaceframeApiClient.Client.ClientUtils.ParameterToString(ransacThreshold));
+            if (retrievalTopK != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("retrieval_top_k", PlaceframeApiClient.Client.ClientUtils.ParameterToString(retrievalTopK));
+            }
+            if (ransacThreshold != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("ransac_threshold", PlaceframeApiClient.Client.ClientUtils.ParameterToString(ransacThreshold));
+            }
             localVarRequestOptions.FileParameters.Add("image", image);
 
 
@@ -6439,14 +6445,14 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;MapLocalization&gt;</returns>
-        public async System.Threading.Tasks.Task<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = await LocalizeImageWithHttpInfoAsync(mapIds, cameraConfig, axisConvention, retrievalTopK, ransacThreshold, image, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = await LocalizeImageWithHttpInfoAsync(mapIds, cameraConfig, axisConvention, image, retrievalTopK, ransacThreshold, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -6457,12 +6463,12 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;MapLocalization&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'mapIds' is set
             if (mapIds == null)
@@ -6515,10 +6521,16 @@ namespace PlaceframeApiClient.Api
             }
             // Primitive types (int, string, bool) go as standard form fields
             localVarRequestOptions.FormParameters.Add("axis_convention", PlaceframeApiClient.Client.ClientUtils.ParameterToString(axisConvention));
-            // Primitive types (int, string, bool) go as standard form fields
-            localVarRequestOptions.FormParameters.Add("retrieval_top_k", PlaceframeApiClient.Client.ClientUtils.ParameterToString(retrievalTopK));
-            // Primitive types (int, string, bool) go as standard form fields
-            localVarRequestOptions.FormParameters.Add("ransac_threshold", PlaceframeApiClient.Client.ClientUtils.ParameterToString(ransacThreshold));
+            if (retrievalTopK != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("retrieval_top_k", PlaceframeApiClient.Client.ClientUtils.ParameterToString(retrievalTopK));
+            }
+            if (ransacThreshold != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("ransac_threshold", PlaceframeApiClient.Client.ClientUtils.ParameterToString(ransacThreshold));
+            }
             localVarRequestOptions.FileParameters.Add("image", image);
 
 

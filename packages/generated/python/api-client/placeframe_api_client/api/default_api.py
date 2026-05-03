@@ -9623,9 +9623,9 @@ class DefaultApi:
         map_ids: List[UUID],
         camera_config: PinholeCameraConfig,
         axis_convention: AxisConvention,
-        retrieval_top_k: StrictInt,
-        ransac_threshold: Union[StrictFloat, StrictInt],
         image: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
+        retrieval_top_k: Optional[StrictInt] = None,
+        ransac_threshold: Optional[Union[StrictFloat, StrictInt]] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -9648,12 +9648,12 @@ class DefaultApi:
         :type camera_config: PinholeCameraConfig
         :param axis_convention: (required)
         :type axis_convention: AxisConvention
-        :param retrieval_top_k: (required)
-        :type retrieval_top_k: int
-        :param ransac_threshold: (required)
-        :type ransac_threshold: float
         :param image: (required)
         :type image: bytes
+        :param retrieval_top_k:
+        :type retrieval_top_k: int
+        :param ransac_threshold:
+        :type ransac_threshold: float
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -9680,9 +9680,9 @@ class DefaultApi:
             map_ids=map_ids,
             camera_config=camera_config,
             axis_convention=axis_convention,
+            image=image,
             retrieval_top_k=retrieval_top_k,
             ransac_threshold=ransac_threshold,
-            image=image,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -9710,9 +9710,9 @@ class DefaultApi:
         map_ids: List[UUID],
         camera_config: PinholeCameraConfig,
         axis_convention: AxisConvention,
-        retrieval_top_k: StrictInt,
-        ransac_threshold: Union[StrictFloat, StrictInt],
         image: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
+        retrieval_top_k: Optional[StrictInt] = None,
+        ransac_threshold: Optional[Union[StrictFloat, StrictInt]] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -9735,12 +9735,12 @@ class DefaultApi:
         :type camera_config: PinholeCameraConfig
         :param axis_convention: (required)
         :type axis_convention: AxisConvention
-        :param retrieval_top_k: (required)
-        :type retrieval_top_k: int
-        :param ransac_threshold: (required)
-        :type ransac_threshold: float
         :param image: (required)
         :type image: bytes
+        :param retrieval_top_k:
+        :type retrieval_top_k: int
+        :param ransac_threshold:
+        :type ransac_threshold: float
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -9767,9 +9767,9 @@ class DefaultApi:
             map_ids=map_ids,
             camera_config=camera_config,
             axis_convention=axis_convention,
+            image=image,
             retrieval_top_k=retrieval_top_k,
             ransac_threshold=ransac_threshold,
-            image=image,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -9797,9 +9797,9 @@ class DefaultApi:
         map_ids: List[UUID],
         camera_config: PinholeCameraConfig,
         axis_convention: AxisConvention,
-        retrieval_top_k: StrictInt,
-        ransac_threshold: Union[StrictFloat, StrictInt],
         image: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
+        retrieval_top_k: Optional[StrictInt] = None,
+        ransac_threshold: Optional[Union[StrictFloat, StrictInt]] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -9822,12 +9822,12 @@ class DefaultApi:
         :type camera_config: PinholeCameraConfig
         :param axis_convention: (required)
         :type axis_convention: AxisConvention
-        :param retrieval_top_k: (required)
-        :type retrieval_top_k: int
-        :param ransac_threshold: (required)
-        :type ransac_threshold: float
         :param image: (required)
         :type image: bytes
+        :param retrieval_top_k:
+        :type retrieval_top_k: int
+        :param ransac_threshold:
+        :type ransac_threshold: float
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -9854,9 +9854,9 @@ class DefaultApi:
             map_ids=map_ids,
             camera_config=camera_config,
             axis_convention=axis_convention,
+            image=image,
             retrieval_top_k=retrieval_top_k,
             ransac_threshold=ransac_threshold,
-            image=image,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -9879,9 +9879,9 @@ class DefaultApi:
         map_ids,
         camera_config,
         axis_convention,
+        image,
         retrieval_top_k,
         ransac_threshold,
-        image,
         _request_auth,
         _content_type,
         _headers,
