@@ -2650,6 +2650,11 @@ components:
           is_calibrated: true
           tight: 7.061401241503109
         reprojection_error_median: 6.027456183070403
+        pnp_covariance:
+        - - 2.027123023002322
+          - 2.027123023002322
+        - - 2.027123023002322
+          - 2.027123023002322
         num_matches: 5
       properties:
         inlier_ratio:
@@ -2672,6 +2677,12 @@ components:
               type: number
             type: array
           type: array
+        pnp_covariance:
+          items:
+            items:
+              type: number
+            type: array
+          type: array
         pipeline_version:
           type: string
       required:
@@ -2683,6 +2694,7 @@ components:
       - num_inliers
       - num_matches
       - pipeline_version
+      - pnp_covariance
       - reprojection_error_median
       title: LocalizationMetrics
       type: object
@@ -2757,6 +2769,11 @@ components:
             is_calibrated: true
             tight: 7.061401241503109
           reprojection_error_median: 6.027456183070403
+          pnp_covariance:
+          - - 2.027123023002322
+            - 2.027123023002322
+          - - 2.027123023002322
+            - 2.027123023002322
           num_matches: 5
         map_transform:
           rotation:

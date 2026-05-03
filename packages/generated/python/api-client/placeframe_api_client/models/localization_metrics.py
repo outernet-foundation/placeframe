@@ -36,9 +36,10 @@ class LocalizationMetrics(BaseModel):
     inlier_coverage: Union[StrictFloat, StrictInt]
     confidence: Confidence
     measurement_covariance: List[List[Union[StrictFloat, StrictInt]]]
+    pnp_covariance: List[List[Union[StrictFloat, StrictInt]]]
     pipeline_version: StrictStr
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["inlier_ratio", "reprojection_error_median", "num_inliers", "num_correspondences", "num_matches", "inlier_coverage", "confidence", "measurement_covariance", "pipeline_version"]
+    __properties: ClassVar[List[str]] = ["inlier_ratio", "reprojection_error_median", "num_inliers", "num_correspondences", "num_matches", "inlier_coverage", "confidence", "measurement_covariance", "pnp_covariance", "pipeline_version"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -109,6 +110,7 @@ class LocalizationMetrics(BaseModel):
             "inlier_coverage": obj.get("inlier_coverage"),
             "confidence": Confidence.from_dict(obj["confidence"]) if obj.get("confidence") is not None else None,
             "measurement_covariance": obj.get("measurement_covariance"),
+            "pnp_covariance": obj.get("pnp_covariance"),
             "pipeline_version": obj.get("pipeline_version")
         })
         # store additional fields in additional_properties
