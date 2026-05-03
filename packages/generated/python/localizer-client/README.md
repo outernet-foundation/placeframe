@@ -96,12 +96,14 @@ Class | Method | HTTP request | Description
 ## Documentation For Models
 
  - [AxisConvention](docs/AxisConvention.md)
+ - [Confidence](docs/Confidence.md)
  - [Float3](docs/Float3.md)
  - [Float4](docs/Float4.md)
  - [Localization](docs/Localization.md)
  - [LocalizationMetrics](docs/LocalizationMetrics.md)
  - [LocalizeImage400Response](docs/LocalizeImage400Response.md)
  - [LocalizeImage400ResponseExtra](docs/LocalizeImage400ResponseExtra.md)
+ - [LocalizerVersion](docs/LocalizerVersion.md)
  - [PinholeCameraConfig](docs/PinholeCameraConfig.md)
  - [Transform](docs/Transform.md)
 
