@@ -48,8 +48,9 @@ class ReconstructionOptions(BaseModel):
     compression_opq_number_of_bits_per_subvector: Optional[StrictInt] = Field(default=None, description="Number of bits per subvector for OPQ compression.")
     compression_opq_number_of_training_iterations: Optional[StrictInt] = Field(default=None, description="Number of training iterations for OPQ compression.")
     pose_prior_position_sigma_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values = stronger priors.")
+    max_keypoints_per_image: Optional[StrictInt] = Field(default=None, description="Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode). If None, a sensible default is used.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["random_seed", "single_threaded", "neighbors_count", "rotation_threshold", "lightglue_batch_size", "ransac_max_error", "ransac_min_inlier_ratio", "use_prior_position", "rig_verification", "triangulation_minimum_angle", "triangulation_complete_max_reprojection_error", "triangulation_merge_max_reprojection_error", "mapper_filter_max_reprojection_error", "bundle_adjustment_refine_sensor_from_rig", "bundle_adjustment_refine_focal_length", "bundle_adjustment_refine_principal_point", "bundle_adjustment_refine_additional_params", "compression_opq_number_of_subvectors", "compression_opq_number_of_bits_per_subvector", "compression_opq_number_of_training_iterations", "pose_prior_position_sigma_m"]
+    __properties: ClassVar[List[str]] = ["random_seed", "single_threaded", "neighbors_count", "rotation_threshold", "lightglue_batch_size", "ransac_max_error", "ransac_min_inlier_ratio", "use_prior_position", "rig_verification", "triangulation_minimum_angle", "triangulation_complete_max_reprojection_error", "triangulation_merge_max_reprojection_error", "mapper_filter_max_reprojection_error", "bundle_adjustment_refine_sensor_from_rig", "bundle_adjustment_refine_focal_length", "bundle_adjustment_refine_principal_point", "bundle_adjustment_refine_additional_params", "compression_opq_number_of_subvectors", "compression_opq_number_of_bits_per_subvector", "compression_opq_number_of_training_iterations", "pose_prior_position_sigma_m", "max_keypoints_per_image"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -202,6 +203,11 @@ class ReconstructionOptions(BaseModel):
         if self.pose_prior_position_sigma_m is None and "pose_prior_position_sigma_m" in self.model_fields_set:
             _dict['pose_prior_position_sigma_m'] = None
 
+        # set to None if max_keypoints_per_image (nullable) is None
+        # and model_fields_set contains the field
+        if self.max_keypoints_per_image is None and "max_keypoints_per_image" in self.model_fields_set:
+            _dict['max_keypoints_per_image'] = None
+
         return _dict
 
     @classmethod
@@ -234,7 +240,8 @@ class ReconstructionOptions(BaseModel):
             "compression_opq_number_of_subvectors": obj.get("compression_opq_number_of_subvectors"),
             "compression_opq_number_of_bits_per_subvector": obj.get("compression_opq_number_of_bits_per_subvector"),
             "compression_opq_number_of_training_iterations": obj.get("compression_opq_number_of_training_iterations"),
-            "pose_prior_position_sigma_m": obj.get("pose_prior_position_sigma_m")
+            "pose_prior_position_sigma_m": obj.get("pose_prior_position_sigma_m"),
+            "max_keypoints_per_image": obj.get("max_keypoints_per_image")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

@@ -394,6 +394,62 @@ namespace PlaceframeApiClient.Api
         /// <returns>ApiResponse of CaptureSessionRead</returns>
         ApiResponse<CaptureSessionRead> GetCaptureSessionWithHttpInfo(Guid id);
         /// <summary>
+        /// GetCaptureSessionFramesCsv
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>FileParameter</returns>
+        FileParameter GetCaptureSessionFramesCsv(Guid id);
+
+        /// <summary>
+        /// GetCaptureSessionFramesCsv
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        ApiResponse<FileParameter> GetCaptureSessionFramesCsvWithHttpInfo(Guid id);
+        /// <summary>
+        /// GetCaptureSessionImage
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <returns>FileParameter</returns>
+        FileParameter GetCaptureSessionImage(Guid id, int frameTimestamp);
+
+        /// <summary>
+        /// GetCaptureSessionImage
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        ApiResponse<FileParameter> GetCaptureSessionImageWithHttpInfo(Guid id, int frameTimestamp);
+        /// <summary>
+        /// GetCaptureSessionManifestFile
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>FileParameter</returns>
+        FileParameter GetCaptureSessionManifestFile(Guid id);
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        ApiResponse<FileParameter> GetCaptureSessionManifestFileWithHttpInfo(Guid id);
+        /// <summary>
         /// GetCaptureSessionReconstructions
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -696,11 +752,11 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <returns>List&lt;MapLocalization&gt;</returns>
-        List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image);
+        List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default);
 
         /// <summary>
         /// LocalizeImage
@@ -712,11 +768,11 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <returns>ApiResponse of List&lt;MapLocalization&gt;</returns>
-        ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image);
+        ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default);
         /// <summary>
         /// PushZedBoxLogs
         /// </summary>
@@ -1387,6 +1443,77 @@ namespace PlaceframeApiClient.Api
         /// <returns>Task of ApiResponse (CaptureSessionRead)</returns>
         System.Threading.Tasks.Task<ApiResponse<CaptureSessionRead>> GetCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
+        /// GetCaptureSessionFramesCsv
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        System.Threading.Tasks.Task<FileParameter> GetCaptureSessionFramesCsvAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// GetCaptureSessionFramesCsv
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        System.Threading.Tasks.Task<ApiResponse<FileParameter>> GetCaptureSessionFramesCsvWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// GetCaptureSessionImage
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        System.Threading.Tasks.Task<FileParameter> GetCaptureSessionImageAsync(Guid id, int frameTimestamp, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// GetCaptureSessionImage
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        System.Threading.Tasks.Task<ApiResponse<FileParameter>> GetCaptureSessionImageWithHttpInfoAsync(Guid id, int frameTimestamp, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// GetCaptureSessionManifestFile
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        System.Threading.Tasks.Task<FileParameter> GetCaptureSessionManifestFileAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        System.Threading.Tasks.Task<ApiResponse<FileParameter>> GetCaptureSessionManifestFileWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
         /// GetCaptureSessionReconstructions
         /// </summary>
         /// <remarks>
@@ -1767,12 +1894,12 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;MapLocalization&gt;</returns>
-        System.Threading.Tasks.Task<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// LocalizeImage
@@ -1784,12 +1911,12 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;MapLocalization&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image, System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task<ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// PushZedBoxLogs
         /// </summary>
@@ -4546,6 +4673,337 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
+        /// GetCaptureSessionFramesCsv 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>FileParameter</returns>
+        public FileParameter GetCaptureSessionFramesCsv(Guid id)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = GetCaptureSessionFramesCsvWithHttpInfo(id);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionFramesCsv 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        public PlaceframeApiClient.Client.ApiResponse<FileParameter> GetCaptureSessionFramesCsvWithHttpInfo(Guid id)
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "text/csv",
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<FileParameter>("/capture_sessions/{id}/frames.csv", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionFramesCsv", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionFramesCsv 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        public async System.Threading.Tasks.Task<FileParameter> GetCaptureSessionFramesCsvAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = await GetCaptureSessionFramesCsvWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionFramesCsv 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<FileParameter>> GetCaptureSessionFramesCsvWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "text/csv",
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/capture_sessions/{id}/frames.csv", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionFramesCsv", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionImage 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <returns>FileParameter</returns>
+        public FileParameter GetCaptureSessionImage(Guid id, int frameTimestamp)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = GetCaptureSessionImageWithHttpInfo(id, frameTimestamp);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionImage 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        public PlaceframeApiClient.Client.ApiResponse<FileParameter> GetCaptureSessionImageWithHttpInfo(Guid id, int frameTimestamp)
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "image/jpeg",
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.PathParameters.Add("frame_timestamp", PlaceframeApiClient.Client.ClientUtils.ParameterToString(frameTimestamp)); // path parameter
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<FileParameter>("/capture_sessions/{id}/images/{frame_timestamp}", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionImage", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionImage 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        public async System.Threading.Tasks.Task<FileParameter> GetCaptureSessionImageAsync(Guid id, int frameTimestamp, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = await GetCaptureSessionImageWithHttpInfoAsync(id, frameTimestamp, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionImage 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<FileParameter>> GetCaptureSessionImageWithHttpInfoAsync(Guid id, int frameTimestamp, System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "image/jpeg",
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.PathParameters.Add("frame_timestamp", PlaceframeApiClient.Client.ClientUtils.ParameterToString(frameTimestamp)); // path parameter
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/capture_sessions/{id}/images/{frame_timestamp}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionImage", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>FileParameter</returns>
+        public FileParameter GetCaptureSessionManifestFile(Guid id)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = GetCaptureSessionManifestFileWithHttpInfo(id);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        public PlaceframeApiClient.Client.ApiResponse<FileParameter> GetCaptureSessionManifestFileWithHttpInfo(Guid id)
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<FileParameter>("/capture_sessions/{id}/manifest.json", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionManifestFile", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        public async System.Threading.Tasks.Task<FileParameter> GetCaptureSessionManifestFileAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = await GetCaptureSessionManifestFileWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<FileParameter>> GetCaptureSessionManifestFileWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/capture_sessions/{id}/manifest.json", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionManifestFile", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
         /// GetCaptureSessionReconstructions 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -6341,13 +6799,13 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <returns>List&lt;MapLocalization&gt;</returns>
-        public List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image)
+        public List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = LocalizeImageWithHttpInfo(mapIds, cameraConfig, axisConvention, retrievalTopK, ransacThreshold, image);
+            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = LocalizeImageWithHttpInfo(mapIds, cameraConfig, axisConvention, image, retrievalTopK, ransacThreshold);
             return localVarResponse.Data;
         }
 
@@ -6358,11 +6816,11 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <returns>ApiResponse of List&lt;MapLocalization&gt;</returns>
-        public PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image)
+        public PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default)
         {
             // verify the required parameter 'mapIds' is set
             if (mapIds == null)
@@ -6413,10 +6871,16 @@ namespace PlaceframeApiClient.Api
             }
             // Primitive types (int, string, bool) go as standard form fields
             localVarRequestOptions.FormParameters.Add("axis_convention", PlaceframeApiClient.Client.ClientUtils.ParameterToString(axisConvention));
-            // Primitive types (int, string, bool) go as standard form fields
-            localVarRequestOptions.FormParameters.Add("retrieval_top_k", PlaceframeApiClient.Client.ClientUtils.ParameterToString(retrievalTopK));
-            // Primitive types (int, string, bool) go as standard form fields
-            localVarRequestOptions.FormParameters.Add("ransac_threshold", PlaceframeApiClient.Client.ClientUtils.ParameterToString(ransacThreshold));
+            if (retrievalTopK != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("retrieval_top_k", PlaceframeApiClient.Client.ClientUtils.ParameterToString(retrievalTopK));
+            }
+            if (ransacThreshold != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("ransac_threshold", PlaceframeApiClient.Client.ClientUtils.ParameterToString(ransacThreshold));
+            }
             localVarRequestOptions.FileParameters.Add("image", image);
 
 
@@ -6439,14 +6903,14 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;MapLocalization&gt;</returns>
-        public async System.Threading.Tasks.Task<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = await LocalizeImageWithHttpInfoAsync(mapIds, cameraConfig, axisConvention, retrievalTopK, ransacThreshold, image, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = await LocalizeImageWithHttpInfoAsync(mapIds, cameraConfig, axisConvention, image, retrievalTopK, ransacThreshold, cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -6457,12 +6921,12 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;MapLocalization&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image, System.Threading.CancellationToken cancellationToken = default)
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'mapIds' is set
             if (mapIds == null)
@@ -6515,10 +6979,16 @@ namespace PlaceframeApiClient.Api
             }
             // Primitive types (int, string, bool) go as standard form fields
             localVarRequestOptions.FormParameters.Add("axis_convention", PlaceframeApiClient.Client.ClientUtils.ParameterToString(axisConvention));
-            // Primitive types (int, string, bool) go as standard form fields
-            localVarRequestOptions.FormParameters.Add("retrieval_top_k", PlaceframeApiClient.Client.ClientUtils.ParameterToString(retrievalTopK));
-            // Primitive types (int, string, bool) go as standard form fields
-            localVarRequestOptions.FormParameters.Add("ransac_threshold", PlaceframeApiClient.Client.ClientUtils.ParameterToString(ransacThreshold));
+            if (retrievalTopK != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("retrieval_top_k", PlaceframeApiClient.Client.ClientUtils.ParameterToString(retrievalTopK));
+            }
+            if (ransacThreshold != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("ransac_threshold", PlaceframeApiClient.Client.ClientUtils.ParameterToString(ransacThreshold));
+            }
             localVarRequestOptions.FileParameters.Add("image", image);
 
 
