@@ -83,6 +83,7 @@ async def create_reconstruction(session: AsyncSession, data: ReconstructionCreat
         status="pending",
         options=data.options or ReconstructionOptions(),
         metrics=ReconstructionMetrics(),
+        is_indoor=row.is_indoor,
     )
 
     s3_client.put_object(
