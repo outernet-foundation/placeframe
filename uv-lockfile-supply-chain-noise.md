@@ -1,6 +1,6 @@
 # uv lockfile supply-chain noise — open issue
 
-> Captured 2026-05-02 during chunk 3 of Phase 3. Revisit when astral ships an opt-out, or when the next docker-context dep change forces us back to the wall.
+> Captured 2026-05-02 during chunk 3 of Phase 3. Resolved (for now) 2026-05-03 during chunk 6 by absorbing the diff once; revisit if pytorch.org (or another index) adds *another* informational field that uv emits, or if astral ships an opt-out we can adopt instead.
 
 ## Symptom
 
@@ -38,15 +38,17 @@ Pinning a specific uv version (e.g. via `[tool.uv] required-version = "==X.Y.Z"`
 
 We discussed adding a strip step to `_export_pylock` in `build/src/build_scripts/placeframe/lock_python.py` to remove `upload-time = ...,` from the exported file. Rejected on principle: lockfiles are the wrong artifact to post-process. uv should produce a deterministic output and we should commit what it produces.
 
-## What we actually did this turn
+## What we did
 
-**Option 4 (defer):** Skip `uv run lock-python` in chunk 3. The chunk's only dep change (numpy/scipy added to `scripts/pyproject.toml`) lands in a workspace member that has **no Dockerfile**, so per-service `pylock.toml` files don't actually need to change. `uv.lock` (root, outside docker context) gets the dep additions. Per-service pylocks stay byte-identical to origin/dev. Zero docker rebuild. Zero upload-time exposure. Origin/dev's pylock state is preserved untouched.
+**Chunks 3, 4, 5 — Option 4 (defer):** Skipped `uv run lock-python`. Each chunk's dep changes (numpy/scipy added to `scripts/pyproject.toml`; later, no dep change at all) landed in workspace members that have **no Dockerfile**, so per-service `pylock.toml` files didn't need to change. `uv.lock` (root, outside docker context) absorbed the dep additions. Per-service pylocks stayed byte-identical to origin/dev. Zero docker rebuild. Zero upload-time exposure. This worked for those chunks specifically because of the workspace-member coincidence — none modified a docker-relevant service's deps.
 
-This works for chunk 3 specifically because of the workspace-member coincidence. It does **not** work for any future change that touches a docker-relevant service's deps. The next such change forces us back to one of:
+**Chunk 6 — Option 3 (absorb once):** The defer pattern can't carry forward because preflight's `lock_python(check=True)` step regenerates and compares against committed state. Even chunks that *don't* touch any pyproject.toml fail the staleness check, since regen picks up upstream `data-upload-time` metadata. Continuing to defer would mean preflight is permanently red on the lock-files step for every PR, blocking CI. So chunk 6 ran `lock-python`, committed the regenerated `docker/neural-networks-base/pylock.neural-networks-{cpu,cuda,rocm}.toml` (with `upload-time` fields populated on PyTorch wheel URLs), and rebuilt every service that pulls neural-networks-base. Verified the rebuilt stack passes the chunk-6 integration test. After this commit, future chunks can run `lock-python` cleanly without reverting noise — the diff is taken once, not per-chunk.
+
+This buys back local/CI parity. It does **not** prevent the same problem recurring if PyTorch (or another pinned index) adds another informational field uv decides to emit. The structural options remain:
 
 - Pin uv ≤ 0.6.14 (full rebuild + year-old uv).
 - Post-process pylocks in `lock-python` (rejected on principle).
-- Absorb the upload-time diff once (rejected this turn).
+- Absorb the next informational-field cascade as it comes.
 - Wait for astral to ship an opt-out (no ETA).
 
 ## What needs to happen upstream
@@ -62,8 +64,7 @@ The framing for the issue: a lockfile's contract is "reproducible installs" — 
 ## When to revisit
 
 - When astral ships an opt-out: pin to that uv version, set the flag, regenerate pylocks. Done.
-- When the next docker-context dep change forces a `lock-python` regen: decide between the four options listed above. Re-read this doc first.
-- If pytorch.org or any other index adds *another* informational field that uv decides to emit: same wall, same options. The fix is structural, not field-specific.
+- If pytorch.org or any other index adds *another* informational field that uv decides to emit: same wall, same options. The fix is structural, not field-specific. Most likely path is to absorb the cascade again.
 
 ## Files relevant to this issue
 
