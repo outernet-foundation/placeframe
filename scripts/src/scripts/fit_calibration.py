@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 from asyncio import run, sleep
+from collections.abc import Callable
 from csv import DictReader
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -177,6 +178,13 @@ async def _run(
     selector_options = HeldOutSelectionOptions(target_count=held_out_count)
 
     async with ApiClient(api_config) as api_client:
+        # The generated openapi-generator client emits empty `_auth_settings` on every method,
+        # so `Configuration(access_token=...)` is never consumed and requests go out without
+        # an Authorization header. Until the codegen is fixed, inject the token as a default
+        # header so all calls authenticate. The cast wraps an untyped generated-client method.
+        cast(Callable[[str, str], None], api_client.set_default_header)(
+            "Authorization", f"Bearer {api_config.access_token}"
+        )
         api = DefaultApi(api_client)
 
         if capture_ids:
