@@ -18,7 +18,7 @@ All top-level commands are run via `uv run <command>` from the repo root. These 
 | `uv run migrate-database` | Run PostgreSQL schema migrations |
 | `uv run generate-clients` | Regenerate OpenAPI client packages |
 | `uv run generate-datamodels` | Regenerate Pydantic data models |
-| `uv run generate-lock-files` | Regenerate per-service `uv.lock` files |
+| `uv run lock-python` | Regenerate workspace `uv.lock` and per-service `pylock.toml` files |
 | `uv run deptry-check` | Check for dependency issues across all packages |
 
 **Linting and type checking** (run from repo root):
@@ -29,6 +29,8 @@ uv run basedpyright          # Type check (strict mode)
 ```
 
 **Tests**: `uv run pytest` from repo root. Tests live alongside each service (e.g. `docker/localizer/tests/`).
+
+**Full preflight**: `uv run --no-sync preflight` from the repo root. This is the exact command CI invokes — it bundles sync, lint, format check, type check, deptry, pytest, lock-file check, datamodel codegen, and client codegen staleness, all gated as a single pass/fail. Run it before claiming a change is CI-clean; running individual checks (just `ruff check`, just `pytest`, just the codegen check) won't catch failures in the others. Note: preflight tears down and re-brings-up `compose.postgres.yml`, so it interrupts a running stack.
 
 ## Architecture
 
@@ -64,15 +66,17 @@ Auto-generated packages in `packages/generated/` should not be edited directly �
 **Generation pipeline**: Code in `packages/generated/` is produced by two scripts that must be run after certain changes:
 
 - **`uv run generate-datamodels`** — Introspects the **live PostgreSQL database** (via `sqlacodegen`) to produce `packages/generated/python/datamodels/` (SQLAlchemy table models + Pydantic DTOs). Must be run after any changes to `database/*.sql` schema files. **Requires Docker + postgres to be running** (`uv run up`, then `uv run migrate-database` to apply schema changes).
-- **`uv run generate-lock-files`** — Regenerates per-service `uv.lock` files. Must be run before `generate-clients` (which uses `uv run --no_workspace` per-service and needs the lock files). Also re-run after `uv sync --all-packages` since that overwrites per-service locks.
+- **`uv run lock-python`** — Regenerates the workspace `uv.lock` and per-service `pylock.toml` files (for services with a `Dockerfile`). Must be run before `generate-clients` (which uses `uv run --no_workspace` per-service and needs the lock files). Also re-run after `uv sync --all-packages` since that overwrites per-service locks.
 - **`uv run generate-clients --config openapi-projects.json`** — Dumps the OpenAPI spec from each Litestar app and runs `openapi-generator-cli` (via `uvx`) to produce typed API clients in `packages/generated/python/` and `packages/generated/csharp/`. Must be run after any changes to API route signatures (new query params, new response fields, etc.). Requires Java (JDK 11+) on PATH. Use `--project docker/api` to generate only the API client (the localizer requires PyTorch/pycolmap to dump its spec).
 
 **When changing both schema and API routes**, run in this order:
 1. `uv run generate-datamodels` (updates Pydantic models the API imports; needs live postgres)
-2. `uv sync --all-packages` then `uv run generate-lock-files` (sync first if any `pyproject.toml` changed; lock files must precede generate-clients)
+2. `uv sync --all-packages` then `uv run lock-python` (sync first if any `pyproject.toml` changed; lock files must precede generate-clients)
 3. `uv run generate-clients --config openapi-projects.json` (dumps updated OpenAPI spec, generates clients)
 
 All three scripts live in `scripts/src/scripts/`.
+
+**Codegen commit hygiene**: Regenerated artifacts under `packages/generated/` always live in their own dedicated commit, separate from the source change that produced them. The codegen commit's message must be exactly `Run generate-clients`, `Run generate-datamodels`, or `Run generate-clients and generate-datamodels` — no body, no rationale, no reference to the source change or repo state. The reason: codegen output is not reviewed; reviewers must be able to spot and skip these commits at a glance, which only works if they're (a) always separate and (b) always have the same canonical message.
 
 ### Data Flow
 
@@ -94,7 +98,14 @@ All API endpoints require an OAuth2 Bearer token from Keycloak. The default dev 
 - The `deptry-check` command enforces that all imports match declared dependencies. Per-rule exceptions for platform-specific packages (CUDA/ROCm) are documented in each `pyproject.toml`.
 - **No shell scripts.** All scripting is Python. CI workflow steps should be one command (two at most). If there's a condition, a loop, or any real logic, it belongs in a Python script invoked via `uv run`, not inline shell in a workflow YAML.
 - **No docstrings.** Do not add docstrings to any function, class, or module — including new files. Comments are allowed only where the logic isn't self-evident.
+- **No temporal language in comments.** Don't write "Phase N", "currently", "for now", "until X lands", or other tense markers anchored to a moment. A comment should describe what the code does now; temporary scaffolding gets tracked in a per-initiative plan file, not inline. Comments that survive into a different temporal context become misleading.
+- **Comments must be self-contained.** A comment shouldn't require a reader to chase a specific design doc, ticket, or chat history to make sense. "See TDD" / "as discussed in spec" pointers are reference-bait — they imply context but don't deliver it, and orphan when the referenced doc is archived. Inline the full rationale or omit the comment. Cold-reader test: if every external doc were deleted, would this comment still make complete sense?
 - **No inline imports.** All imports at module level. No `from x import y` inside functions or methods.
+- **Callers before callees.** When one function in a file calls another defined in the same file, the caller's definition appears earlier (closer to the top). Module entry points / public API live near the top; leaf helpers live at the bottom. Among sibling callees called by the same parent, order them by their first call site within that parent's body. A reader scanning the file top-to-bottom encounters the high-level structure first and progressively descends into details.
+- **No lint suppression changes without asking.** Never add, remove, or modify `noqa`, `type: ignore`, file-level lint directives, or any equivalent suppression without explicit user approval.
+- **Pin everything.** Never use `:latest` image tags, unpinned package versions, or any mutable version reference. All images use content-addressed SHA tags (e.g. `zed-capture:${ZED_CAPTURE_SHA}`). All base images in `compose.bake.yml` use digest-pinned references. If a SHA tag doesn't exist in the registry yet, surface a clear error — don't fall back to `:latest`.
+- **Use `common.bash` for shell calls, not `subprocess`.** All shell-out from Python code goes through `bash()` / `bash_output()` / `bash_check()` / `bash_pipe()` / `bash_handoff()` in `common.bash`. Don't reach for `subprocess.run` / `subprocess.check_output` / `subprocess.Popen` — those bypass the project's logging, error-handling, and shell-operator guards.
+- **`bash()` / `bash_output()` reject shell operators.** The `_check_no_pipe` guard in `common.bash` strips quoted strings and rejects any `|` — this catches both pipes (`|`) and logical OR (`||`). Don't use shell fallback patterns like `cmd || echo default`. Instead, use `bash_check()` to test success, then `bash_output()` for the value. `bash_pipe()` is only for actual pipelines (`cmd1 | cmd2`).
 
 ## NuGet Packages in Unity Projects
 
@@ -127,7 +138,15 @@ When running in a containerized Claude Code environment (COI sandbox):
    - `uv run up --quiet-pull` (starts postgres, runs migrations automatically)
    - `uv run generate-datamodels` (needs live postgres)
    - `uv sync --all-packages` (required if any `pyproject.toml` changed; slow but necessary)
-   - `uv run generate-lock-files` (must precede generate-clients)
+   - `uv run lock-python` (must precede generate-clients)
    - `uv run generate-clients --config openapi-projects.json --project docker/api` (localizer can't dump spec without GPU/PyTorch)
-8. **Don't `uv sync` inside a service directory**: Running `uv sync` in e.g. `docker/api/` clobbers the workspace venv. Always sync from the repo root with `uv sync --all-packages`, then re-run `uv run generate-lock-files`.
+8. **Don't `uv sync` inside a service directory**: Running `uv sync` in e.g. `docker/api/` clobbers the workspace venv. Always sync from the repo root with `uv sync --all-packages`, then re-run `uv run lock-python`.
 9. **Tests**: `uv run pytest` from repo root. Collection errors for `docker/localizer/tests/` and `dirtorch/test_dir.py` may occur if PyTorch is not installed in the workspace venv (it's only in the Docker images).
+10. **Unity Editor is installed and licensed**: The editor binary is at `/opt/unity/<version>/Editor/Unity`, where `<version>` matches `m_EditorVersion` in `packages/unity/Placeframe/ProjectSettings/ProjectVersion.txt`. License is pre-activated (`~/.local/share/unity3d/Unity/Unity_lic.ulf`). Source `/opt/unity/slot-env.sh` to add Unity's bundled Android SDK to PATH and set `ANDROID_SDK_ROOT`. To verify the Unity project compiles after a C# change, run headlessly:
+    ```bash
+    /opt/unity/$(awk '/^m_EditorVersion:/{print $2}' packages/unity/Placeframe/ProjectSettings/ProjectVersion.txt)/Editor/Unity \
+      -batchmode -nographics -quit \
+      -projectPath packages/unity/Placeframe \
+      -logFile - 2>&1 | grep -E "error CS|Compilation"
+    ```
+    Compile errors appear as `error CS####`. Use this whenever you change `.cs` files in `packages/unity/` — `dotnet build` of standalone .NET projects does not catch Unity-side asmdef issues.
