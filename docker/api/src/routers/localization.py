@@ -11,7 +11,7 @@ from core.axis_convention import AxisConvention
 from core.camera_config import PinholeCameraConfig
 from core.localization_metrics import LocalizationMetrics
 from core.transform import Float3, Float4, Transform
-from litestar import Router, post
+from litestar import Router, get, post
 from litestar.datastructures import UploadFile
 from litestar.di import Provide
 from litestar.enums import RequestEncodingType
@@ -96,6 +96,15 @@ async def localize_image(
             raise HTTPException(status_code=HTTP_502_BAD_GATEWAY, detail="Localization session backend error") from e
 
 
+@get("/version")
+async def get_localizer_version() -> str:
+    async with ApiClient(Configuration(host=str(settings.localizer_container_url))) as api_client:
+        return await DefaultApi(api_client).get_localizer_version()
+
+
 router = Router(
-    "/localize", tags=["Localization"], dependencies={"session": Provide(get_session)}, route_handlers=[localize_image]
+    "/localize",
+    tags=["Localization"],
+    dependencies={"session": Provide(get_session)},
+    route_handlers=[localize_image, get_localizer_version],
 )

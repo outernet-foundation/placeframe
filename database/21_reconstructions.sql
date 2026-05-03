@@ -19,16 +19,16 @@ CREATE TABLE reconstructions(
   updated_at timestamptz 
     NOT NULL 
     DEFAULT now(),
-  capture_session_id uuid 
-    NOT NULL 
-    REFERENCES capture_sessions(id) 
+  capture_session_id uuid
+    NOT NULL
+    REFERENCES capture_sessions(id)
     ON DELETE RESTRICT,
   orchestration_status orchestration_status
-    NOT NULL 
+    NOT NULL
     DEFAULT 'queued',
 
-  id uuid 
-    PRIMARY KEY 
+  id uuid
+    PRIMARY KEY
     DEFAULT uuid_generate_v4()
 );
 

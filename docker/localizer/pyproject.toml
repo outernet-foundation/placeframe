@@ -34,7 +34,7 @@ DEP004 = ["neural_networks"]
 DEP002 = ["uvicorn", "debugpy"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["."]
 
 [build-system]
 requires = ["hatchling"]

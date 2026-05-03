@@ -18,7 +18,13 @@ class Transform:
 
 
 class Rig:
-    def __init__(self, rig_config: RigConfig, axis_convention: AxisConvention, frames_csv: str):
+    def __init__(
+        self,
+        rig_config: RigConfig,
+        axis_convention: AxisConvention,
+        frames_csv: str,
+        held_out_frame_timestamps: set[int] | None = None,
+    ):
         ref_sensors = [camera for camera in rig_config.cameras if camera.ref_sensor]
         if len(ref_sensors) != 1:
             raise ValueError(f"Rig {rig_config.id} must have exactly one reference sensor")
@@ -63,6 +69,8 @@ class Rig:
         self.frame_poses: dict[str, Transform] = {}
         for frame in frames_csv.splitlines()[1:]:  # Skip header
             frame_id, tx, ty, tz, qx, qy, qz, qw = frame.strip().split(",")
+            if held_out_frame_timestamps is not None and int(frame_id) in held_out_frame_timestamps:
+                continue
             rotation_world_from_rig = Rotation.from_quat([float(qx), float(qy), float(qz), float(qw)]).as_matrix()
             translation_world_from_rig = array([float(tx), float(ty), float(tz)], dtype=float)
 

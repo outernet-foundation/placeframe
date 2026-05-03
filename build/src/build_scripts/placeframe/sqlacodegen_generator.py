@@ -1,23 +1,31 @@
-# Custom sqlacodegen generator that fixes two things the stock DeclarativeGenerator gets wrong:
+# Custom sqlacodegen generator that fixes things the stock DeclarativeGenerator gets wrong:
 #
-# 1. ENUM COLUMNS: sqlacodegen renders PostgreSQL enums as inline Enum('val1', 'val2', name='...')
-#    with Mapped[str] type annotations. We need strict Python enum.Enum subclasses so that
-#    Pydantic can validate enum values in DTOs and so the generated models are type-safe.
-#    render_column_type() and render_column_python_type() intercept enum columns to emit
-#    PascalCase enum classes (e.g. DeviceType, OrchestrationStatus) with a values_callable,
-#    and generate() inserts those class definitions between the imports and the Base declaration.
+# - ENUM COLUMNS: sqlacodegen renders PostgreSQL enums as inline Enum('val1', 'val2', name='...')
+#   with Mapped[str] type annotations. We need strict Python enum.Enum subclasses so that
+#   Pydantic can validate enum values in DTOs and so the generated models are type-safe.
+#   render_column_type() and render_column_python_type() intercept enum columns to emit
+#   PascalCase enum classes (e.g. DeviceType, OrchestrationStatus) with a values_callable,
+#   and generate() inserts those class definitions between the imports and the Base declaration.
 #
-# 2. PASSIVE DELETES: sqlacodegen never emits passive_deletes=True on relationships, even when
-#    the underlying FK has ON DELETE CASCADE. Without it, SQLAlchemy issues SELECT+DELETE for
-#    every child row before the parent delete — which races against the DB cascade and causes
-#    500 errors (e.g. deleting a LocalizationMap that has camera positions). render_relationship()
-#    detects CASCADE FKs on ONE_TO_MANY relationships and injects passive_deletes=True.
+# - PASSIVE DELETES: sqlacodegen never emits passive_deletes=True on relationships, even when
+#   the underlying FK has ON DELETE CASCADE. Without it, SQLAlchemy issues SELECT+DELETE for
+#   every child row before the parent delete — which races against the DB cascade and causes
+#   500 errors (e.g. deleting a LocalizationMap that has camera positions). render_relationship()
+#   detects CASCADE FKs on ONE_TO_MANY relationships and injects passive_deletes=True.
+#
+# - ARRAY GENERIC PARAM: sqlacodegen renders array columns as `ARRAY(<inner>)`, but
+#   `mapped_column(ARRAY(<inner>))` triggers basedpyright `reportUnknownArgumentType` because
+#   `ARRAY[_T]`'s element type can't be inferred from a `_TypeEngineArgument[_T]` whose
+#   inner is itself a generic-without-binding (e.g. `Double()` is `Double[Unknown]`).
+#   render_column_type() rewrites these as `ARRAY[<python_type>](<inner>)`, binding ARRAY's
+#   type parameter explicitly — pyright then back-infers the inner type from ARRAY's _T.
 
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, cast
 
 from humps import pascalize
 from sqlalchemy import Column, Connection, Engine, MetaData
+from sqlalchemy.sql.sqltypes import ARRAY
 from sqlalchemy.sql.sqltypes import Enum as SAEnum
 from sqlalchemy.types import TypeEngine
 
@@ -38,6 +46,12 @@ class PlaceframeDeclarativeGenerator(DeclarativeGenerator):
         self._enum_classes: dict[str, list[str]] = {}
 
     def render_column_type(self, coltype: TypeEngine[Any]) -> str:
+        if isinstance(coltype, ARRAY):
+            item_type = cast(TypeEngine[Any], coltype.item_type)
+            inner_rendered = super().render_column_type(item_type)
+            python_type_name = item_type.python_type.__name__
+            return f"ARRAY[{python_type_name}]({inner_rendered})"
+
         if not isinstance(coltype, SAEnum):
             return super().render_column_type(coltype)
 

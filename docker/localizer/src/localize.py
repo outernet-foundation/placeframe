@@ -6,10 +6,11 @@ from time import perf_counter
 from typing import Any, cast
 
 from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
+from core.calibration import CalibrationArtifact
 from core.camera_config import PinholeCameraConfig
 from core.image_preprocess import canonicalize_image, canonicalize_intrinsics, tile_image
 from core.lightglue import Descriptors, Keypoints, MatchIndices
-from core.localization_metrics import LocalizationMetrics
+from core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT, LocalizationMetrics
 from core.model_wrappers import (
     LocalFeatureOutput,
     make_global_descriptor_extractor,
@@ -35,10 +36,11 @@ from .torch_ops import amax, from_numpy, matmul, permute, stack, to, transpose
 DEVICE = "cuda" if cuda.is_available() else "cpu"
 
 
-# Seeded each call so localization results are reproducible across invocations.
-# cudnn-deterministic and CUBLAS_WORKSPACE_CONFIG are deliberately not enabled: the 10–30%
-# latency cost outweighs the residual non-determinism, which is below the discrete inlier-set
-# threshold any downstream consumer cares about.
+# Seeded each call so localization_evaluations cache rows keyed on pipeline_version are
+# reproducible — fit_calibration treats (reconstruction_id, frame_timestamp, retrieval_top_k,
+# ransac_threshold, pipeline_version) as a deterministic cache key. cudnn-deterministic and
+# CUBLAS_WORKSPACE_CONFIG are deliberately not enabled: the 10–30% latency cost outweighs
+# the residual non-determinism, which is below the discrete inlier-set threshold the fit cares about.
 LOCALIZER_RANDOM_SEED = 0
 
 global_descriptor_extractor: Callable[[Tensor], TT[RetrievalDim]]
@@ -78,6 +80,8 @@ def localize_image_against_reconstruction(
     image_buffer: bytes,
     retrieval_top_k: int | None,
     ransac_threshold: float | None,
+    pipeline_version: str,
+    calibration: CalibrationArtifact,
 ) -> tuple[Transform, LocalizationMetrics]:
 
     set_random_seed(LOCALIZER_RANDOM_SEED)
@@ -119,7 +123,7 @@ def localize_image_against_reconstruction(
     database_descriptors = to(from_numpy(map.tile_descriptors), DEVICE)
     similarity_pairs = permute(matmul(query_tile_descriptors, transpose(database_descriptors, 1, 2)), (1, 0, 2))
     per_image_similarity = amax(similarity_pairs, dim=(0, 2))
-    top_k = retrieval_top_k if retrieval_top_k is not None else 12
+    top_k = retrieval_top_k if retrieval_top_k is not None else RETRIEVAL_TOP_K_DEFAULT
     top_k_image_indices: list[int] = topk(per_image_similarity, top_k).indices.cpu().tolist()  # type: ignore
     matched_image_ids = [map.ordered_image_ids[i] for i in top_k_image_indices]
     timings["retrieval"] = perf_counter() - t
@@ -180,7 +184,7 @@ def localize_image_against_reconstruction(
 
     # Set estimation options
     ransac_options = RANSACOptions()
-    ransac_options.max_error = ransac_threshold if ransac_threshold is not None else 8.0
+    ransac_options.max_error = ransac_threshold if ransac_threshold is not None else RANSAC_THRESHOLD_DEFAULT
     estimation_options = AbsolutePoseEstimationOptions()
     estimation_options.ransac = ransac_options
 
@@ -190,7 +194,9 @@ def localize_image_against_reconstruction(
     points3D = vstack([map.points3D[i].xyz for i in point3d_indices])  # noqa: N806 — pycolmap CV notation
     pnp_result = cast(
         dict[str, Any] | None,
-        estimate_and_refine_absolute_pose(points2D, points3D, pycolmap_camera, estimation_options),
+        estimate_and_refine_absolute_pose(
+            points2D, points3D, pycolmap_camera, estimation_options, return_covariance=True
+        ),
     )
     timings["pnp"] = perf_counter() - t
 
@@ -213,7 +219,25 @@ def localize_image_against_reconstruction(
     )
 
     # Build metrics
-    metrics = build_localization_metrics(pnp_result, points2D, points3D, pycolmap_camera, num_matches, width, height)
+    metrics = build_localization_metrics(
+        pnp_result,
+        points2D,
+        points3D,
+        pycolmap_camera,
+        num_matches,
+        width,
+        height,
+        pipeline_version,
+        calibration,
+        map,
+    )
+
+    if metrics.confidence_loose < calibration.loose_min or metrics.confidence_tight < calibration.tight_min:
+        raise LocalizationError(
+            f"Confidence below gate: "
+            f"loose={metrics.confidence_loose:.3f} (min {calibration.loose_min}), "
+            f"tight={metrics.confidence_tight:.3f} (min {calibration.tight_min})"
+        )
 
     timings["total"] = perf_counter() - t0
     print("localize timings(ms): " + " ".join(f"{k}={v * 1000:.0f}" for k, v in timings.items()))
