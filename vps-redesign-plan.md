@@ -50,11 +50,12 @@ Split into two commits, reviewed one at a time:
   - Mechanical rename of `Anchor.cs` → `GeoPose.cs` and its inspector/scene references.
   - Remove the per-frame Lerp from the renamed class.
   - Add SE(3) interpolation utility (decompose, lerp/slerp components, recompose).
-- **1b — VPS Bayesian filter rewrite**
+- **1b — VPS Bayesian filter rewrite** ✅ Done
   - Bayesian filter on SE(3) alignment with `(μ, Σ)` posterior, Mahalanobis innovation gate, snap-vs-slew decision, slew loop on `Update()`.
-  - R3 main-thread marshaling for state mutations.
+  - State mutations marshaled to the Unity main thread via `UniTask.SwitchToMainThread()` (existing pattern in this codebase; the intent's mention of `ObserveOnMainThread` is satisfied by the equivalent UniTask path).
   - Confidence-scaled `Σ_meas` (`Σ_meas / confidence.tight²`) — heuristic re-tuned in Phase 3.
   - VIO motion only inflates Σ via process noise; the alignment mean is unchanged between measurements (alignment is a static relationship between ECEF and Unity world; device motion doesn't drift it).
+  - 6×6 algebra delegated to `MathNet.Numerics` (added as a NuGet dependency); SE(3) Log/Exp written inline.
   - No new test infrastructure: tests for the new math arrive in Phase 2 alongside the package extraction.
 
 End of Phase 1: visible UX is dramatically smoother and more robust to outliers. Confidence in responses is identity-valued; the filter still benefits from real `Σ_meas` and the innovation gate.
