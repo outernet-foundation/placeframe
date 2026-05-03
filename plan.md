@@ -13,8 +13,8 @@ This file tracks execution of both in-flight initiatives: phase definitions, sta
 | 0 | Schema + plumbing | VPS | ✅ Done |
 | 1 | Frontend rewrite | VPS | ✅ Done |
 | 2a | In-Unity NUnit tests for Phase 1 math | VPS | ✅ Done |
-| 2b | SuperPoint → ALIKED | Pipeline | Up next |
-| 2c | Aspect-ratio preprocessing | Pipeline | Not started |
+| 2b | SuperPoint → ALIKED | Pipeline | ✅ Done |
+| 2c | Aspect-ratio preprocessing | Pipeline | Up next |
 | 2d | Semantic-segmentation masking (3-day time-box) | Pipeline | Not started |
 | 2e | Repair `test-placeframe-e2e` and rerun parameter sweep | Pipeline | Not started |
 | 3 | ZED-only global calibration | VPS | Not started |
@@ -80,12 +80,12 @@ End of Phase 2a: Phase 1's previously-untested math has TDD coverage; tests run 
 
 License blocker. SuperPoint's MagicLeap weights are non-commercial research-only and cannot ship under Apache 2.0.
 
-- Replace `load_superpoint` with `load_aliked` in `packages/python/neural-networks/src/neural_networks/models.py`.
-- Switch LightGlue's checkpoint to the official ALIKED variant (`features="aliked"`). Descriptor dim drops from 256 to 128.
-- ALIKED takes RGB float input vs SuperPoint's grayscale; adjust the tensor pipeline at the load site.
-- Tune `detection_threshold` and `nms_radius` to match SuperPoint's keypoint-density behavior.
+- Replace `load_superpoint` with `load_aliked` in `packages/python/neural-networks/src/neural_networks/models.py` ✅.
+- Switch LightGlue's checkpoint to the official ALIKED variant (`features="aliked"`) ✅. Descriptor dim drops from 256 to 128; downstream consumers (`lightglue_match_tensors`, OPQ training) are dim-agnostic.
+- Drop the grayscale tensor pipeline at the load sites in `localize.py` / `run_reconstruction.py`; ALIKED consumes the existing RGB tensor directly ✅.
+- `detection_threshold` and `nms_radius` left at ALIKED defaults (`0.2`, `2`); deferred to post-bringup tuning when keypoint density is observable on real data.
 
-Pre-market: no maps to migrate, pure code swap.
+Pre-market: no maps to migrate, pure code swap. Generated OpenAPI artifacts (`docker/api/openapi.json`, `packages/generated/**`) carry one stale "SuperPoint" string in `average_keypoints_per_image`'s description; sweeps in on the next `generate-clients` run.
 
 End of Phase 2b: Apache-2.0-clean feature pipeline. Local matching produces the same shape of result it did before, with different magnitudes. Calibration remains identity (Phase 3 not yet fit).
 
