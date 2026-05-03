@@ -95,6 +95,26 @@
         },
         "deprecated": false
       }
+    },
+    "/version": {
+      "get": {
+        "summary": "GetLocalizerVersion",
+        "operationId": "get_localizer_version",
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalizerVersion"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
     }
   },
   "components": {
@@ -288,6 +308,18 @@
           "reconstruction_ids"
         ],
         "title": "LocalizationRequest"
+      },
+      "LocalizerVersion": {
+        "properties": {
+          "git_sha": {
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "git_sha"
+        ],
+        "title": "LocalizerVersion"
       },
       "PinholeCameraConfig": {
         "properties": {
