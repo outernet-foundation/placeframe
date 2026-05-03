@@ -104,6 +104,8 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**delete_reconstruction**](docs/DefaultApi.md#delete_reconstruction) | **DELETE** /reconstructions/{id} | DeleteReconstruction
 *DefaultApi* | [**download_capture_session_tar**](docs/DefaultApi.md#download_capture_session_tar) | **GET** /capture_sessions/{id}/tar | DownloadCaptureSessionTar
 *DefaultApi* | [**get_capture_session**](docs/DefaultApi.md#get_capture_session) | **GET** /capture_sessions/{id} | GetCaptureSession
+*DefaultApi* | [**get_capture_session_frames_csv**](docs/DefaultApi.md#get_capture_session_frames_csv) | **GET** /capture_sessions/{id}/frames.csv | GetCaptureSessionFramesCsv
+*DefaultApi* | [**get_capture_session_image**](docs/DefaultApi.md#get_capture_session_image) | **GET** /capture_sessions/{id}/images/{frame_timestamp} | GetCaptureSessionImage
 *DefaultApi* | [**get_capture_session_reconstructions**](docs/DefaultApi.md#get_capture_session_reconstructions) | **GET** /capture_sessions/{id}/reconstructions | GetCaptureSessionReconstructions
 *DefaultApi* | [**get_capture_session_rig_config**](docs/DefaultApi.md#get_capture_session_rig_config) | **GET** /capture_sessions/{id}/rig_config | GetCaptureSessionRigConfig
 *DefaultApi* | [**get_capture_sessions**](docs/DefaultApi.md#get_capture_sessions) | **GET** /capture_sessions | GetCaptureSessions

@@ -145,6 +145,8 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**DeleteReconstruction**](docs/DefaultApi.md#deletereconstruction) | **DELETE** /reconstructions/{id} | DeleteReconstruction
 *DefaultApi* | [**DownloadCaptureSessionTar**](docs/DefaultApi.md#downloadcapturesessiontar) | **GET** /capture_sessions/{id}/tar | DownloadCaptureSessionTar
 *DefaultApi* | [**GetCaptureSession**](docs/DefaultApi.md#getcapturesession) | **GET** /capture_sessions/{id} | GetCaptureSession
+*DefaultApi* | [**GetCaptureSessionFramesCsv**](docs/DefaultApi.md#getcapturesessionframescsv) | **GET** /capture_sessions/{id}/frames.csv | GetCaptureSessionFramesCsv
+*DefaultApi* | [**GetCaptureSessionImage**](docs/DefaultApi.md#getcapturesessionimage) | **GET** /capture_sessions/{id}/images/{frame_timestamp} | GetCaptureSessionImage
 *DefaultApi* | [**GetCaptureSessionReconstructions**](docs/DefaultApi.md#getcapturesessionreconstructions) | **GET** /capture_sessions/{id}/reconstructions | GetCaptureSessionReconstructions
 *DefaultApi* | [**GetCaptureSessionRigConfig**](docs/DefaultApi.md#getcapturesessionrigconfig) | **GET** /capture_sessions/{id}/rig_config | GetCaptureSessionRigConfig
 *DefaultApi* | [**GetCaptureSessions**](docs/DefaultApi.md#getcapturesessions) | **GET** /capture_sessions | GetCaptureSessions
