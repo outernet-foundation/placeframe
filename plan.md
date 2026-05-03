@@ -14,8 +14,8 @@ This file tracks execution of both in-flight initiatives: phase definitions, sta
 | 1 | Frontend rewrite | VPS | ✅ Done |
 | 2a | In-Unity NUnit tests for Phase 1 math | VPS | ✅ Done |
 | 2b | SuperPoint → ALIKED | Pipeline | ✅ Done |
-| 2c | Aspect-ratio preprocessing | Pipeline | Up next |
-| 2d | Semantic-segmentation masking (3-day time-box) | Pipeline | Not started |
+| 2c | Aspect-ratio preprocessing | Pipeline | ✅ Done |
+| 2d | Semantic-segmentation masking (3-day time-box) | Pipeline | Up next |
 | 2e | Repair `test-placeframe-e2e` and rerun parameter sweep | Pipeline | Not started |
 | 3 | ZED-only global calibration | VPS | Not started |
 | 4 | Dogfooding logger | VPS | Not started |
@@ -93,9 +93,9 @@ End of Phase 2b: Apache-2.0-clean feature pipeline. Local matching produces the 
 
 Today the pipeline applies only orientation correction in `transform_image()`. A portrait query against a landscape-built map degrades retrieval and pushes feature distributions asymmetrically. Standard hloc/LightGlue handling fixes this.
 
-- Add resize-shorter-side logic to `transform_image()` (or sibling step). Default target: 1024px shorter side. Aspect ratio preserved; no padding for the local-feature path.
-- Update camera intrinsics to track the resize so PnP stays correct.
-- For the global retrieval head (DIR or replacement): letterbox to a fixed square at the head only. Mask the padded region from feature pooling.
+- Resize-shorter-side added to `transform_image()` ✅. `LOCAL_FEATURE_RESIZE_SHORTER_SIDE = 1024`. Aspect ratio preserved; no padding for the local-feature path.
+- `transform_intrinsics()` now applies the same per-axis resize ratio to `(width, height, fx, fy, cx, cy)` so PnP stays correct ✅.
+- DIR letterboxes to a square inside `DIR.forward` ✅: pad with the model's preprocess mean so post-normalization padded regions are exactly zero — GeM pooling sees zero contribution from padding, and the descriptor is no longer aspect-biased. Reconstructor and localizer share both hooks since they call into the same `transform_image()` and the same `DIR` class.
 
 End of Phase 2c: cross-aspect queries no longer corrupt retrieval. Single hook shared across reconstructor and localizer.
 
