@@ -52,6 +52,8 @@ __all__ = [
     "LayerRead",
     "LeaseResponse",
     "LinkType",
+    "LocalizationEvaluationCreate",
+    "LocalizationEvaluationRead",
     "LocalizationMapBatchUpdate",
     "LocalizationMapCreate",
     "LocalizationMapRead",
@@ -115,6 +117,8 @@ from placeframe_api_client.models.layer_create import LayerCreate as LayerCreate
 from placeframe_api_client.models.layer_read import LayerRead as LayerRead
 from placeframe_api_client.models.lease_response import LeaseResponse as LeaseResponse
 from placeframe_api_client.models.link_type import LinkType as LinkType
+from placeframe_api_client.models.localization_evaluation_create import LocalizationEvaluationCreate as LocalizationEvaluationCreate
+from placeframe_api_client.models.localization_evaluation_read import LocalizationEvaluationRead as LocalizationEvaluationRead
 from placeframe_api_client.models.localization_map_batch_update import LocalizationMapBatchUpdate as LocalizationMapBatchUpdate
 from placeframe_api_client.models.localization_map_create import LocalizationMapCreate as LocalizationMapCreate
 from placeframe_api_client.models.localization_map_read import LocalizationMapRead as LocalizationMapRead

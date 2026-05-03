@@ -4,6 +4,7 @@ import uuid
 from typing import Optional
 
 from sqlalchemy import (
+    ARRAY,
     BigInteger,
     Boolean,
     CheckConstraint,
@@ -75,6 +76,9 @@ class Tenant(Base):
     )
     nodes: Mapped[list["Node"]] = relationship("Node", back_populates="tenant")
     reconstructions: Mapped[list["Reconstruction"]] = relationship("Reconstruction", back_populates="tenant")
+    localization_evaluations: Mapped[list["LocalizationEvaluation"]] = relationship(
+        "LocalizationEvaluation", back_populates="tenant"
+    )
     localization_maps: Mapped[list["LocalizationMap"]] = relationship("LocalizationMap", back_populates="tenant")
     localization_map_camera_positions: Mapped[list["LocalizationMapCameraPosition"]] = relationship(
         "LocalizationMapCameraPosition", back_populates="tenant"
@@ -279,9 +283,68 @@ class Reconstruction(Base):
 
     capture_session: Mapped["CaptureSession"] = relationship("CaptureSession", back_populates="reconstructions")
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="reconstructions")
+    localization_evaluations: Mapped[list["LocalizationEvaluation"]] = relationship(
+        "LocalizationEvaluation", back_populates="reconstruction"
+    )
     localization_map: Mapped["LocalizationMap"] = relationship(
         "LocalizationMap", uselist=False, back_populates="reconstruction"
     )
+
+
+class LocalizationEvaluation(Base):
+    __tablename__ = "localization_evaluations"
+    __table_args__ = (
+        CheckConstraint("pnp_covariance IS NULL OR array_length(pnp_covariance, 1) = 36", name="pnp_covariance_length"),
+        CheckConstraint("se3_residual IS NULL OR array_length(se3_residual, 1) = 6", name="se3_residual_length"),
+        CheckConstraint(
+            "succeeded = (err_t_m IS NOT NULL) AND succeeded = (err_r_deg IS NOT NULL) AND succeeded = (se3_residual IS NOT NULL) AND succeeded = (pnp_covariance IS NOT NULL)",
+            name="labels_present_iff_succeeded",
+        ),
+        ForeignKeyConstraint(
+            ["reconstruction_id"],
+            ["public.reconstructions.id"],
+            ondelete="RESTRICT",
+            name="localization_evaluations_reconstruction_id_fkey",
+        ),
+        ForeignKeyConstraint(
+            ["tenant_id"], ["auth.tenants.id"], ondelete="RESTRICT", name="localization_evaluations_tenant_id_fkey"
+        ),
+        PrimaryKeyConstraint("id", name="localization_evaluations_pkey"),
+        UniqueConstraint(
+            "reconstruction_id",
+            "frame_timestamp",
+            "retrieval_top_k",
+            "ransac_threshold",
+            "pipeline_version",
+            name="localization_evaluations_reconstruction_id_frame_timestamp__key",
+        ),
+        {"schema": "public"},
+    )
+
+    reconstruction_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, server_default=text("current_tenant()"))
+    ransac_threshold: Mapped[float] = mapped_column(Double(53), nullable=False)
+    frame_timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    inlier_coverage: Mapped[float] = mapped_column(Double(53), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    query_image_diagonal_px: Mapped[float] = mapped_column(Double(53), nullable=False)
+    reproj_error_median: Mapped[float] = mapped_column(Double(53), nullable=False)
+    inlier_ratio: Mapped[float] = mapped_column(Double(53), nullable=False)
+    retrieval_top_k: Mapped[int] = mapped_column(Integer, nullable=False)
+    num_inliers: Mapped[int] = mapped_column(Integer, nullable=False)
+    num_matches: Mapped[int] = mapped_column(Integer, nullable=False)
+    num_correspondences: Mapped[int] = mapped_column(Integer, nullable=False)
+    succeeded: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    pipeline_version: Mapped[str] = mapped_column(Text, nullable=False)
+    err_r_deg: Mapped[Optional[float]] = mapped_column(Double(53))
+    err_t_m: Mapped[Optional[float]] = mapped_column(Double(53))
+    pnp_covariance: Mapped[Optional[list[float]]] = mapped_column(ARRAY[float](Double(53)))
+    se3_residual: Mapped[Optional[list[float]]] = mapped_column(ARRAY[float](Double(53)))
+
+    reconstruction: Mapped["Reconstruction"] = relationship("Reconstruction", back_populates="localization_evaluations")
+    tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="localization_evaluations")
 
 
 class LocalizationMap(Base):

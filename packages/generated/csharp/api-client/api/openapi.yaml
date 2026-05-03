@@ -1121,6 +1121,86 @@ paths:
       summary: UpdateLocalizationMap
       tags:
       - Default
+  /reconstructions/{reconstruction_id}/localization-evaluations:
+    get:
+      deprecated: false
+      operationId: list_localization_evaluations
+      parameters:
+      - deprecated: false
+        explode: false
+        in: path
+        name: reconstruction_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      - allowEmptyValue: false
+        allowReserved: false
+        deprecated: false
+        description: Optional pipeline_version to filter by
+        explode: true
+        in: query
+        name: pipeline_version
+        required: false
+        schema:
+          description: Optional pipeline_version to filter by
+          nullable: true
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/LocalizationEvaluationRead"
+                type: array
+          description: "Request fulfilled, document follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: ListLocalizationEvaluations
+      tags:
+      - Default
+    post:
+      deprecated: false
+      operationId: upsert_localization_evaluation
+      parameters:
+      - deprecated: false
+        explode: false
+        in: path
+        name: reconstruction_id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocalizationEvaluationCreate"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocalizationEvaluationRead"
+          description: "Document created, URL follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: UpsertLocalizationEvaluation
+      tags:
+      - Default
   /localize:
     post:
       deprecated: false
@@ -2332,6 +2412,230 @@ components:
       - image_list
       title: LinkType
       type: string
+    LocalizationEvaluationCreate:
+      example:
+        pipeline_version: pipeline_version
+        err_r_deg: 4.145608029883936
+        num_inliers: 9
+        ransac_threshold: 0.8008281904610115
+        inlier_ratio: 2.3021358869347655
+        pnp_covariance:
+        - ""
+        - ""
+        num_correspondences: 2
+        inlier_coverage: 1.4658129805029452
+        reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        frame_timestamp: 6
+        err_t_m: 7.386281948385884
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        query_image_diagonal_px: 5.962133916683182
+        num_matches: 3
+        se3_residual:
+        - ""
+        - ""
+        reproj_error_median: 5.637376656633329
+        retrieval_top_k: 7
+        succeeded: true
+      properties:
+        reconstruction_id:
+          format: uuid
+          title: Reconstruction Id
+          type: string
+        id:
+          format: uuid
+          nullable: true
+          title: Id
+          type: string
+        ransac_threshold:
+          title: Ransac Threshold
+          type: number
+        frame_timestamp:
+          title: Frame Timestamp
+          type: integer
+        inlier_coverage:
+          title: Inlier Coverage
+          type: number
+        query_image_diagonal_px:
+          title: Query Image Diagonal Px
+          type: number
+        reproj_error_median:
+          title: Reproj Error Median
+          type: number
+        inlier_ratio:
+          title: Inlier Ratio
+          type: number
+        retrieval_top_k:
+          title: Retrieval Top K
+          type: integer
+        num_inliers:
+          title: Num Inliers
+          type: integer
+        num_matches:
+          title: Num Matches
+          type: integer
+        num_correspondences:
+          title: Num Correspondences
+          type: integer
+        succeeded:
+          title: Succeeded
+          type: boolean
+        pipeline_version:
+          title: Pipeline Version
+          type: string
+        err_r_deg:
+          nullable: true
+          title: Err R Deg
+          type: number
+        err_t_m:
+          nullable: true
+          title: Err T M
+          type: number
+        pnp_covariance:
+          items: {}
+          nullable: true
+          title: Pnp Covariance
+          type: array
+        se3_residual:
+          items: {}
+          nullable: true
+          title: Se3 Residual
+          type: array
+      required:
+      - frame_timestamp
+      - inlier_coverage
+      - inlier_ratio
+      - num_correspondences
+      - num_inliers
+      - num_matches
+      - pipeline_version
+      - query_image_diagonal_px
+      - ransac_threshold
+      - reconstruction_id
+      - reproj_error_median
+      - retrieval_top_k
+      - succeeded
+      title: LocalizationEvaluationCreate
+      type: object
+    LocalizationEvaluationRead:
+      example:
+        pipeline_version: pipeline_version
+        err_r_deg: 4.145608029883936
+        num_inliers: 9
+        ransac_threshold: 0.8008281904610115
+        inlier_ratio: 2.3021358869347655
+        created_at: 2000-01-23T04:56:07.000+00:00
+        pnp_covariance:
+        - ""
+        - ""
+        num_correspondences: 2
+        inlier_coverage: 1.4658129805029452
+        updated_at: 2000-01-23T04:56:07.000+00:00
+        reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        frame_timestamp: 6
+        err_t_m: 7.386281948385884
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        query_image_diagonal_px: 5.962133916683182
+        num_matches: 3
+        se3_residual:
+        - ""
+        - ""
+        reproj_error_median: 5.637376656633329
+        retrieval_top_k: 7
+        succeeded: true
+      properties:
+        reconstruction_id:
+          format: uuid
+          title: Reconstruction Id
+          type: string
+        id:
+          format: uuid
+          title: Id
+          type: string
+        ransac_threshold:
+          title: Ransac Threshold
+          type: number
+        frame_timestamp:
+          title: Frame Timestamp
+          type: integer
+        updated_at:
+          description: datetime with the constraint that the value must have timezone
+            info
+          format: date-time
+          title: Created At
+          type: string
+        inlier_coverage:
+          title: Inlier Coverage
+          type: number
+        created_at:
+          description: datetime with the constraint that the value must have timezone
+            info
+          format: date-time
+          title: Created At
+          type: string
+        query_image_diagonal_px:
+          title: Query Image Diagonal Px
+          type: number
+        reproj_error_median:
+          title: Reproj Error Median
+          type: number
+        inlier_ratio:
+          title: Inlier Ratio
+          type: number
+        retrieval_top_k:
+          title: Retrieval Top K
+          type: integer
+        num_inliers:
+          title: Num Inliers
+          type: integer
+        num_matches:
+          title: Num Matches
+          type: integer
+        num_correspondences:
+          title: Num Correspondences
+          type: integer
+        succeeded:
+          title: Succeeded
+          type: boolean
+        pipeline_version:
+          title: Pipeline Version
+          type: string
+        err_r_deg:
+          nullable: true
+          title: Err R Deg
+          type: number
+        err_t_m:
+          nullable: true
+          title: Err T M
+          type: number
+        pnp_covariance:
+          items: {}
+          nullable: true
+          title: Pnp Covariance
+          type: array
+        se3_residual:
+          items: {}
+          nullable: true
+          title: Se3 Residual
+          type: array
+      required:
+      - created_at
+      - frame_timestamp
+      - id
+      - inlier_coverage
+      - inlier_ratio
+      - num_correspondences
+      - num_inliers
+      - num_matches
+      - pipeline_version
+      - query_image_diagonal_px
+      - ransac_threshold
+      - reconstruction_id
+      - reproj_error_median
+      - retrieval_top_k
+      - succeeded
+      - updated_at
+      title: LocalizationEvaluationRead
+      type: object
     LocalizationMapBatchUpdate:
       example:
         rotation_x: 5.637376656633329
