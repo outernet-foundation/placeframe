@@ -5,8 +5,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Mapping, cast
 from uuid import UUID
 
+from core.calibration import RawMapMetrics
 from core.h5 import FEATURES_FILE, GLOBAL_DESCRIPTORS_FILE, read_features, read_global_descriptors
 from core.opq import OPQ_MATRIX_FILE, PQ_QUANTIZER_FILE, read_opq_matrix, read_pq_quantizer
+from core.reconstruction_manifest import ReconstructionManifest
 from faiss import OPQMatrix, ProductQuantizer  # type: ignore
 from numpy import dtype, float32, ndarray, uint8
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
@@ -34,6 +36,7 @@ class Map:
     tile_descriptors: ndarray[tuple[NumImages, MaxTiles, RetrievalDim], dtype[float32]]
     opq_matrix: OPQMatrix
     product_quantizer: ProductQuantizer
+    map_metrics: RawMapMetrics
 
 
 def load_map(id: UUID, s3_client: S3Client, reconstruction_bucket: str, reconstructions_dir: Path) -> Map:
@@ -56,6 +59,23 @@ def load_map(id: UUID, s3_client: S3Client, reconstruction_bucket: str, reconstr
             local_path.parent.mkdir(parents=True, exist_ok=True)
             print(f"Downloading s3://{reconstruction_bucket}/{key} to {local_path}")
             s3_client.download_file(reconstruction_bucket, key, str(local_path))
+
+    manifest = ReconstructionManifest.model_validate_json(
+        s3_client.get_object(Bucket=reconstruction_bucket, Key=f"{id}/manifest.json")["Body"].read()
+    )
+    raw_metrics = manifest.metrics
+    assert raw_metrics.map_image_count is not None
+    assert raw_metrics.map_point_count is not None
+    assert raw_metrics.map_avg_track_length is not None
+    assert raw_metrics.map_bounding_volume_m3 is not None
+    assert raw_metrics.map_viewpoint_diversity is not None
+    map_metrics = RawMapMetrics(
+        map_image_count=raw_metrics.map_image_count,
+        map_point_count=raw_metrics.map_point_count,
+        map_avg_track_length=raw_metrics.map_avg_track_length,
+        map_bounding_volume_m3=raw_metrics.map_bounding_volume_m3,
+        map_viewpoint_diversity=raw_metrics.map_viewpoint_diversity,
+    )
 
     reconstruction_path = reconstructions_dir / str(id)
     reconstruction = Reconstruction(str(reconstruction_path / "sfm_model"))
@@ -99,4 +119,5 @@ def load_map(id: UUID, s3_client: S3Client, reconstruction_bucket: str, reconstr
         padded_tile_descriptors,
         read_opq_matrix(reconstruction_path),
         read_pq_quantizer(reconstruction_path),
+        map_metrics=map_metrics,
     )

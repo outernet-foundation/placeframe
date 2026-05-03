@@ -12,6 +12,11 @@ volumes:
   keycloak_data:
 
 
+configs:
+  localizer-calibration-global:
+    file: ./config/calibration/global.json
+
+
 services:
   minio:
     x-image-ref: docker.io/minio/minio:latest

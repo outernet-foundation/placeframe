@@ -103,12 +103,15 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
     with open(CAPTURE_SESSION_DIRECTORY / "manifest.json", "rb") as file:
         capture_session_manifest = CaptureSessionManifest.model_validate_json(file.read().decode("utf-8"))
 
+    held_out = set(manifest.options.held_out_frame_timestamps) if manifest.options.held_out_frame_timestamps else None
+
     # Load rigs (applying axis convention transformations as needed)
     rigs = {
         rig.id: Rig(
             rig,
             capture_session_manifest.axis_convention,
             (CAPTURE_SESSION_DIRECTORY / f"{rig.id}/frames.csv").read_text(),
+            held_out_frame_timestamps=held_out,
         )
         for rig in capture_session_manifest.rigs
     }
