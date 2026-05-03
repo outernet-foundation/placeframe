@@ -17,7 +17,7 @@ A localizer-scope prototype landed alongside Phase 2c-fixup. What's in place:
 - `core/numpy_ops.py` — numpy sibling (`zeros` per rank, rank-1 `nonzero` / `compress`).
 - `core/model_wrappers.py` — four `make_*` factories returning typed callables: `make_global_descriptor_extractor` (DIR), `make_local_feature_extractor` (ALIKED), `make_local_feature_matcher_for_{tensors,arrays}` (LightGlue). Consumed by both `localize.py` and `run_reconstruction.py`'s `load_models()`.
 - `core/lightglue.py` migrated off `NDArray`; exports `Keypoints` / `Descriptors` / `KeypointsArrays` / `DescriptorsArrays` `NewType` brands so positional swaps at the matcher are caught statically.
-- 11 remaining `NDArray` imports across the codebase carry `# noqa: TID251 — Phase T piece 3 follow-up migration` to keep lint clean while the wider migration waits.
+- 13 remaining `NDArray` imports across the codebase carry `# noqa: TID251 — Phase T piece 3 follow-up migration` to keep lint clean while the wider migration waits.
 
 Wrappers live in `core` (not `neural_networks.models`) because `neural_networks` deliberately doesn't depend on `core` (Docker-build constraint). The `make_*` helpers take `Any` for the raw model; the typed callable they return recovers full brand info at the seam.
 
@@ -73,13 +73,14 @@ The prototype already moved `tensor_types.py` to `packages/python/core/src/core/
 
 ### 3. Repo-wide migration of `NDArray` usages
 
-Eleven files import `NDArray` (per Ruff `TID251` enumeration). Migrate each:
+Thirteen files import `NDArray` (per Ruff `TID251` enumeration). Migrate each:
 
 - `docker/zed-capture/src/zed/zed_wrapper.py` — translation/orientation/image data; small fixed shapes.
 - `docker/reconstructor/src/reconstructor/{run_reconstruction,rig,colmap,metrics_builder}.py` — covered alongside the localizer migration; many shared types.
 - `docker/localizer/src/{map,build_metrics}.py` — covered by piece 2.
-- `packages/python/core/src/core/{axis_convention,h5,lightglue,opq}.py` — covered by piece 2 + h5 / opq specifics.
+- `packages/python/core/src/core/{axis_convention,h5,opq}.py` — covered by piece 2 + h5 / opq specifics. (`core/lightglue.py` was already migrated off `NDArray` in the prototype.)
 - `packages/python/neural-networks/src/neural_networks/models.py` — DIR / ALIKED preprocessing arrays.
+- `scripts/src/scripts/{run_e2e,fit_calibration}.py` — harness rows and the calibration fit's feature/covariance arrays; small fixed shapes.
 
 End state: zero `from numpy.typing import NDArray` imports outside generated code (`packages/generated/` is `.dockerignore`-allowlisted for ruff exclusion already). Zero `# noqa: TID251`.
 
@@ -120,7 +121,7 @@ This initiative does not change the localizer's runtime behavior — it's pure t
 
 ## Risks and unknowns
 
-- **Migration is large** (~50+ usage sites across 12 files for piece 3 alone). Risk of bundling too much into one commit and producing unreviewable diffs. Mitigation: per-file commits with a clear common pattern; reviewer-friendly grouping by module.
+- **Migration is large** (~50+ usage sites across 13 files for piece 3 alone). Risk of bundling too much into one commit and producing unreviewable diffs. Mitigation: per-file commits with a clear common pattern; reviewer-friendly grouping by module.
 - **PEP 646 limits** (no per-element bounds on `TypeVarTuple`) force per-rank `@overload` sets (e.g. one `from_numpy` overload per supported rank, six `permute` overloads for 3D's permutations) instead of a single fully-variadic definition. As we touch new ranks during migration, the wrapper module grows. Manageable; just verbose.
 - **Pyright's PEP 646 support has rough edges.** Some advanced unifications (variadic middle dims with literal endpoints) work in pyright but not mypy. We're a pyright-only shop in basedpyright strict mode, so this is fine — but worth noting if anyone tries to adopt jaxtyping later.
 - **One residual `reportUnknownVariableType` on `from torch import from_numpy`** — torch's stub declares `from_numpy(ndarray) -> Tensor` with no parameter annotation, which pyright treats as Unknown. Our `from_numpy_3d` wrapper consumes it and returns a fully-typed `TT[A, B, C]`, so the unknown does not propagate to consumers; the error is contained to the import line in `torch_ops.py`. Workspace venv now syncs with the `cpu` extra (`uv sync --all-packages --extra cpu`) so torch is resolvable locally and other previously-noisy `reportUnknown*` errors no longer drown out real signal.

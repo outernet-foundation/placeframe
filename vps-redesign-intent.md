@@ -13,7 +13,7 @@ Phases 0, 1, and 2a have shipped and the system has been used end-to-end against
 
 ### Calibration-stub band-aids in place pending the e2e-and-calibration initiative
 
-`apply_global_calibration(calibration, features={})` currently returns model-intercept constants because no features are plumbed through and the model is the identity bootstrap. This breaks two downstream consumers, both of which have band-aids in place that are removed when the first real calibration ships. See [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md) for the full plan.
+`apply_global_calibration(calibration, features=Features.zeros())` currently returns model-intercept constants because no real features are plumbed through (the placeholder passes zero-valued features through the typed `Features` seam) and the model is the identity bootstrap. This breaks two downstream consumers, both of which have band-aids in place that are removed when the first real calibration ships. See [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md) for the full plan.
 
 **1. Confidence values (`tight`, `loose`) are constants** — same for great and garbage poses. A confidence-based gate at the localizer or filter would treat all results identically. *Band-aid*: a hard floor on raw metrics (`MIN_NUM_INLIERS = 50`, `MIN_INLIER_COVERAGE = 0.15` in `docker/localizer/src/localize.py`) rejects garbage results before they propagate. Replaced by `if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)` once the corpus is gathered and a real calibration is fit.
 
