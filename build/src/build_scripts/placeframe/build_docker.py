@@ -124,6 +124,9 @@ def build(
     service_shas = compute_service_shas(Path.cwd(), BAKE_FILE)
     os.environ.update(service_shas)
 
+    # Baked into the localizer image at build time.
+    os.environ["GIT_COMMIT_SHA"] = bash_output("git rev-parse HEAD").strip()
+
     # Read bake, compose, and lock files
     bake_data: dict[str, Any] = yaml.safe_load(BAKE_FILE.read_text(encoding="utf-8"))
     compose_data: dict[str, Any] = _load_compose(COMPOSE_FILE)
