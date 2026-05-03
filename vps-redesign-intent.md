@@ -30,11 +30,11 @@ This was the textbook "no process noise" failure mode. The pre-fix `ProcessNoise
 
 The original design exposed `OnEcefToUnityWorldTransformUpdated` as the only event. Once the Bayesian filter is steady-state, that event fires only on snap (rare) or during slew animations (brief, and only when σ_posterior shifts enough to trigger a slew). UI consumers that want per-measurement metrics — including any "live metrics" diagnostic display — can't bind to it usefully. Added `OnMetricsReceived` event + `LastReceivedMetrics` static property that fire on every API response regardless of filter accept/reject. Reflected in Frontend changes section below.
 
-### LightGlue dominates per-request time
+### LightGlue per-request time (was dominant, no longer)
 
-Per-stage instrumentation in `docker/localizer/src/localize.py` (logged as `localize timings(ms): canonicalize=… aliked=… …`) shows steady-state per-request breakdown: ALIKED ~30ms, DIR tile loop ~65ms, retrieval ~1ms, matching_setup ~85ms, **LightGlue matching ~250ms (44% of total)**, PnP ~80ms. Total ~570ms.
+Per-stage instrumentation in `docker/localizer/src/localize.py` (logged as `localize timings(ms): canonicalize=… aliked=… …`) originally showed LightGlue matching at ~250 ms (44% of total per-request time). That finding motivated an investigation into LightGlue's pruning/precision flags; the durable record lives in the comment on `load_lightglue` in `packages/python/neural-networks/src/neural_networks/models.py`. Net effect of the shipped change (`depth_confidence=0.95`, `mp=True`): matching dropped to ~140 ms median (29-query sweep), no longer the dominant phase — roughly comparable to `dir_tiles + matching_setup` combined.
 
-Relevant for Phase 2d (masking) sizing: ALIKED + DIR are cheap enough that adding OneFormer-Swin-T (~100-200ms) would meaningfully bump per-request latency but not catastrophically. The 1Hz client throttle means ~570ms is well below the cycle budget; ~770ms with masking still fits.
+Relevant for Phase 2d (masking) sizing: per-request total varies with map size and query difficulty; against the test map used during bring-up, post-V2 total runs ~700 ms median (down from ~840 ms pre-V2 on the same map). Masking adds OneFormer-Swin-T at ~100–200 ms. Total stays under the 1 Hz client cycle budget but with less headroom than the pre-V2 numbers suggested. ALIKED + DIR remain cheap enough that masking is still affordable.
 
 ### Operating-point reality check
 
