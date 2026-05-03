@@ -66,8 +66,8 @@ CREATE TABLE localization_evaluations (
   CONSTRAINT se3_residual_length CHECK (
     se3_residual IS NULL OR array_length(se3_residual, 1) = 6
   ),
-  CONSTRAINT pnp_covariance_length CHECK (
-    pnp_covariance IS NULL OR array_length(pnp_covariance, 1) = 36
+  CONSTRAINT pnp_covariance_shape CHECK (
+    pnp_covariance IS NULL OR (array_length(pnp_covariance, 1) = 6 AND array_length(pnp_covariance, 2) = 6)
   )
 );
 

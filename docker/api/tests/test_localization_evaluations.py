@@ -138,7 +138,7 @@ def _evaluation_body(
         body["err_t_m"] = 0.05
         body["err_r_deg"] = 0.8
         body["se3_residual"] = [0.01, 0.02, 0.03, 0.001, 0.002, 0.003]
-        body["pnp_covariance"] = [0.1] * 36
+        body["pnp_covariance"] = [[0.1] * 6 for _ in range(6)]
     return body
 
 
@@ -152,7 +152,8 @@ def test_post_creates_row_and_returns_read_dto(api_client: httpx.Client, reconst
     assert row["num_inliers"] == 60
     assert row["succeeded"] is True
     assert row["err_t_m"] == pytest.approx(0.05)
-    assert len(row["pnp_covariance"]) == 36
+    assert len(row["pnp_covariance"]) == 6
+    assert len(row["pnp_covariance"][0]) == 6
     assert len(row["se3_residual"]) == 6
 
 

@@ -294,7 +294,10 @@ class Reconstruction(Base):
 class LocalizationEvaluation(Base):
     __tablename__ = "localization_evaluations"
     __table_args__ = (
-        CheckConstraint("pnp_covariance IS NULL OR array_length(pnp_covariance, 1) = 36", name="pnp_covariance_length"),
+        CheckConstraint(
+            "pnp_covariance IS NULL OR array_length(pnp_covariance, 1) = 6 AND array_length(pnp_covariance, 2) = 6",
+            name="pnp_covariance_shape",
+        ),
         CheckConstraint("se3_residual IS NULL OR array_length(se3_residual, 1) = 6", name="se3_residual_length"),
         CheckConstraint(
             "succeeded = (err_t_m IS NOT NULL) AND succeeded = (err_r_deg IS NOT NULL) AND succeeded = (se3_residual IS NOT NULL) AND succeeded = (pnp_covariance IS NOT NULL)",
