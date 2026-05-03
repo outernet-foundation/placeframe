@@ -70,13 +70,15 @@ namespace PlaceframeApiClient.Model
         /// <param name="createdAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="orchestrationStatus">orchestrationStatus (required).</param>
-        public ReconstructionRead(Guid captureSessionId, Guid id, DateTime createdAt, DateTime updatedAt, OrchestrationStatus orchestrationStatus)
+        /// <param name="isIndoor">isIndoor (required).</param>
+        public ReconstructionRead(Guid captureSessionId, Guid id, DateTime createdAt, DateTime updatedAt, OrchestrationStatus orchestrationStatus, bool isIndoor)
         {
             this.CaptureSessionId = captureSessionId;
             this.Id = id;
             this.CreatedAt = createdAt;
             this.UpdatedAt = updatedAt;
             this.OrchestrationStatus = orchestrationStatus;
+            this.IsIndoor = isIndoor;
         }
 
         /// <summary>
@@ -178,6 +180,30 @@ namespace PlaceframeApiClient.Model
             return _flagUpdatedAt;
         }
         /// <summary>
+        /// Gets or Sets IsIndoor
+        /// </summary>
+        [DataMember(Name = "is_indoor", IsRequired = true, EmitDefaultValue = true)]
+        public bool IsIndoor
+        {
+            get{ return _IsIndoor;}
+            set
+            {
+                _IsIndoor = value;
+                _flagIsIndoor = true;
+            }
+        }
+        private bool _IsIndoor;
+        private bool _flagIsIndoor;
+
+        /// <summary>
+        /// Returns false as IsIndoor should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeIsIndoor()
+        {
+            return _flagIsIndoor;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -190,6 +216,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  CreatedAt: ").Append(CreatedAt).Append("\n");
             sb.Append("  UpdatedAt: ").Append(UpdatedAt).Append("\n");
             sb.Append("  OrchestrationStatus: ").Append(OrchestrationStatus).Append("\n");
+            sb.Append("  IsIndoor: ").Append(IsIndoor).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

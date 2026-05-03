@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 from typing import Any, ClassVar, Dict, List
 from uuid import UUID
 from placeframe_api_client.models.orchestration_status import OrchestrationStatus
@@ -35,8 +35,9 @@ class ReconstructionRead(BaseModel):
     created_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     updated_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     orchestration_status: OrchestrationStatus
+    is_indoor: StrictBool
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["capture_session_id", "id", "created_at", "updated_at", "orchestration_status"]
+    __properties: ClassVar[List[str]] = ["capture_session_id", "id", "created_at", "updated_at", "orchestration_status", "is_indoor"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -100,7 +101,8 @@ class ReconstructionRead(BaseModel):
             "id": obj.get("id"),
             "created_at": obj.get("created_at"),
             "updated_at": obj.get("updated_at"),
-            "orchestration_status": obj.get("orchestration_status")
+            "orchestration_status": obj.get("orchestration_status"),
+            "is_indoor": obj.get("is_indoor")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

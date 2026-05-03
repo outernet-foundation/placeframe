@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, StrictBool
 from typing import Any, ClassVar, Dict, List, Optional
 from uuid import UUID
 from placeframe_api_client.models.orchestration_status import OrchestrationStatus
@@ -32,8 +32,9 @@ class ReconstructionCreate(BaseModel):
     capture_session_id: UUID
     id: Optional[UUID] = None
     orchestration_status: Optional[OrchestrationStatus] = None
+    is_indoor: Optional[StrictBool] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["capture_session_id", "id", "orchestration_status"]
+    __properties: ClassVar[List[str]] = ["capture_session_id", "id", "orchestration_status", "is_indoor"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -86,6 +87,11 @@ class ReconstructionCreate(BaseModel):
         if self.id is None and "id" in self.model_fields_set:
             _dict['id'] = None
 
+        # set to None if is_indoor (nullable) is None
+        # and model_fields_set contains the field
+        if self.is_indoor is None and "is_indoor" in self.model_fields_set:
+            _dict['is_indoor'] = None
+
         return _dict
 
     @classmethod
@@ -100,7 +106,8 @@ class ReconstructionCreate(BaseModel):
         _obj = cls.model_validate({
             "capture_session_id": obj.get("capture_session_id"),
             "id": obj.get("id"),
-            "orchestration_status": obj.get("orchestration_status")
+            "orchestration_status": obj.get("orchestration_status"),
+            "is_indoor": obj.get("is_indoor")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():
