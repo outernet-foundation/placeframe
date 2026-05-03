@@ -143,6 +143,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="error">error.</param>
         /// <param name="options">options (required).</param>
         /// <param name="metrics">metrics (required).</param>
+        /// <param name="isIndoor">isIndoor (default to false).</param>
         public ReconstructionManifest(string captureId, StatusEnum status, ReconstructionOptions options, ReconstructionMetrics metrics)
         {
             // to ensure "captureId" is required (not null)
@@ -263,6 +264,30 @@ namespace PlaceframeApiClient.Model
             return _flagError;
         }
         /// <summary>
+        /// Gets or Sets IsIndoor
+        /// </summary>
+        [DataMember(Name = "is_indoor", EmitDefaultValue = true)]
+        public bool IsIndoor
+        {
+            get{ return _IsIndoor;}
+            set
+            {
+                _IsIndoor = value;
+                _flagIsIndoor = true;
+            }
+        }
+        private bool _IsIndoor;
+        private bool _flagIsIndoor;
+
+        /// <summary>
+        /// Returns false as IsIndoor should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeIsIndoor()
+        {
+            return _flagIsIndoor;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -275,6 +300,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  Options: ").Append(Options).Append("\n");
             sb.Append("  Metrics: ").Append(Metrics).Append("\n");
             sb.Append("  Error: ").Append(Error).Append("\n");
+            sb.Append("  IsIndoor: ").Append(IsIndoor).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }
