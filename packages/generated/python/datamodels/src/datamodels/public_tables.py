@@ -275,6 +275,7 @@ class Reconstruction(Base):
         nullable=False,
         server_default=text("'queued'::orchestration_status"),
     )
+    is_indoor: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
 
     capture_session: Mapped["CaptureSession"] = relationship("CaptureSession", back_populates="reconstructions")
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="reconstructions")

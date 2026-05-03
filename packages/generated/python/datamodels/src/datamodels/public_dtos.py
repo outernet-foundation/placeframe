@@ -433,23 +433,27 @@ class ReconstructionCreate(BaseModel):
     capture_session_id: UUID = Field(..., title="Capture Session Id")
     id: UUID | None = Field(None, title="Id")
     orchestration_status: OrchestrationStatus | None = None
+    is_indoor: bool | None = Field(None, title="Is Indoor")
 
 
 class ReconstructionBatchCreate(BaseModel):
     capture_session_id: UUID = Field(..., title="Capture Session Id")
     id: UUID = Field(..., title="Id")
     orchestration_status: OrchestrationStatus | None = None
+    is_indoor: bool | None = Field(None, title="Is Indoor")
 
 
 class ReconstructionUpdate(BaseModel):
     capture_session_id: UUID | None = Field(None, title="Capture Session Id")
     orchestration_status: OrchestrationStatus | None = None
+    is_indoor: bool | None = Field(None, title="Is Indoor")
 
 
 class ReconstructionBatchUpdate(BaseModel):
     capture_session_id: UUID | None = Field(None, title="Capture Session Id")
     id: UUID = Field(..., title="Id")
     orchestration_status: OrchestrationStatus | None = None
+    is_indoor: bool | None = Field(None, title="Is Indoor")
 
 
 class ReconstructionRead(BaseModel):
@@ -458,6 +462,7 @@ class ReconstructionRead(BaseModel):
     created_at: AwareDatetime = Field(..., title="Created At")
     updated_at: AwareDatetime = Field(..., title="Updated At")
     orchestration_status: OrchestrationStatus
+    is_indoor: bool = Field(..., title="Is Indoor")
 
 
 def capture_session_from_dto(create: CaptureSessionCreate) -> CaptureSession:
