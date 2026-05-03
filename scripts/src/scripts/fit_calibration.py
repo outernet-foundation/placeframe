@@ -69,6 +69,14 @@ _SIGMA_MEAS_INITIAL = (1.0, 1.0e-4)
 _SIGMA_MEAS_BOUNDS = ((1.0e-6, 1.0e6), (0.0, 1.0e3))
 _IDENTITY_6 = eye(6, dtype=float64)
 
+# Hand-set gate thresholds written into the artifact. The starter's tight model is degenerate
+# (no positive class to fit on), so tight_min=0.0 no-ops the tight gate; loose_min=0.25 sits
+# in the empirical gap between the starter fit's loose=0 and loose=0.5 clusters. The corpus
+# run is expected to derive both from the success-cluster distribution; that wiring is a
+# deferred Phase 3 follow-up.
+STARTER_LOOSE_MIN = 0.25
+STARTER_TIGHT_MIN = 0.0
+
 # Reconstruction polling.
 RECONSTRUCTION_POLL_S = 5
 RECONSTRUCTION_TIMEOUT_S = 1800
@@ -546,6 +554,8 @@ def fit_calibration_from_corpus(corpus: list[CorpusRow], *, pipeline_version: st
         loose=fit_logistic_with_isotonic(features_matrix, loose_labels),
         sigma_meas_alpha=sigma_meas_alpha,
         sigma_meas_beta=sigma_meas_beta,
+        loose_min=STARTER_LOOSE_MIN,
+        tight_min=STARTER_TIGHT_MIN,
     )
 
 
