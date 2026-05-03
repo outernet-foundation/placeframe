@@ -195,8 +195,9 @@ Owned in full by [`e2e-and-calibration-intent.md`](e2e-and-calibration-intent.md
 - The global-model + per-map-overlay hybrid.
 - Algorithms 1 / 2 / 3 in full procedural detail.
 - Calibration artifact format and storage lifecycle.
-- The fit pipeline (`scripts/fit_calibration.py`).
-- The fused e2e-harness-as-data-generator architecture and corpus-gathering spec.
+- The fit pipeline (`scripts/fit_calibration.py`) and the recon-options sweep (`scripts/tune_reconstruction.py`).
+- The held-out-frames API (`ReconstructionOptions.held_out_frame_timestamps`) and the `localization_evaluations` cache table that fit-calibration uses as its corpus storage.
+- The corpus-gathering spec (captures uploaded via the normal API path; `fit-calibration --captures <id>` does the rest end-to-end).
 
 This file's role re: calibration is limited to the API contract (LocalizationMetrics' Confidence/Covariance/PipelineVersion fields) above and the frontend's consumption of those fields below.
 

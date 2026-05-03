@@ -14,26 +14,28 @@ The goal of this initiative is twofold:
 
 The initiative also produces, as a deliverable, an unambiguous corpus-gathering spec for future-operator-self.
 
+**Architectural correction in flight (chunks 5–7 of plan.md).** Chunks 1–4 landed the harness repair, map-quality metrics, pose-error labeling, and `fit_calibration.py`. After chunk 4, an audit surfaced that the harness was architected to own the calibration pipeline's input data (a sibling `placeframe-test-captures/` directory), output schema (`e2e-results.json`), and provenance bundling — drift driven by a single API gap (no way to build a reconstruction with frames excluded, so the harness invented a modify-and-reupload-the-tar workaround). Chunks 5–7 fix the API gap and collapse both scripts to thin orchestrators over backend ids: `run_e2e.py` → `tune_reconstruction.py` (PB sweep only); `fit_calibration.py` becomes a one-shot end-to-end command driven by `--captures <id>` or `--reconstructions <id>`. See "Why these are one effort" and "Architecture" below — both have been rewritten for the post-refactor design.
+
 The current state is a half-state:
-- The e2e harness has lint/type errors and a half-finished signature change in `main()`.
 - The calibration runtime loader has a hand-set band-aid intercept (`-4.595`) and a never-removed `IDENTITY_BOOTSTRAP_SENTINEL` skip path.
 - `apply_global_calibration` is called with `Features.zeros()` because no real features are plumbed (the typed `Features` seam landed but the placeholder passes zero-valued features).
 - `localize.py` carries a raw-metric quality floor (`MIN_NUM_INLIERS=50`, `MIN_INLIER_COVERAGE=0.15`) as a band-aid for the constant-confidence stub.
-- `scripts/src/scripts/fit_calibration.py` doesn't exist.
-- The maps schema has no map-quality columns and the reconstructor doesn't compute them.
 - `Σ_meas = PnP_cov / tight²` conflates "geometric uncertainty" with "trustworthiness" — works only because `tight` is pinned at 0.01.
+- The harness/fit boundary is wrong-architected (see above).
 
 This initiative climbs out of all of that.
 
 ## Why these are one effort
 
-The discovery that drove fusion: the e2e harness is the calibration data-generation engine. They are not two scripts that happen to share captures; they are the same script with overlapping outputs.
+The discovery that drove fusion of Phase 2e and Phase 3: the e2e harness is the calibration data-generation pipeline. The two are the same workflow with overlapping needs.
 
-- Algorithm 1 of the calibration design (ZED held-out fitting) requires a corpus of capture sessions, each rebuilt with ~10% of frames withheld, the held-out frames localized against the rebuilt map, and `(metrics, pose_error)` rows pooled into a fit. The held-out-tar machinery this requires is exactly what `_prepare_capture` in `test_placeframe_e2e.py:156` already does (it withholds every 9th frame, rebuilds the tar, keeps the withheld frames as queries).
-- The e2e harness already produces `(metrics, location, device_type, recon_config)` rows for every (held-out frame × map × loc-config) cell. What's missing for Algorithm 1 is the *pose-error labeling step* — Procrustes-align each capture's `frames.csv` truth to the rebuilt COLMAP map, transform the held-out frame's truth pose, compare to the localizer's estimate, record `err_t` and `err_r`. That's a delta to the harness, not a new script.
-- The harness's Phase 6 already runs cross-device localization (e.g. phone-frame against ZED-built map). Algorithm 2's phone-side data is one column of the same matrix.
+- Algorithm 1 of the calibration design (ZED held-out fitting) requires a corpus of capture sessions, each rebuilt with ~10% of frames withheld, the held-out frames localized against the rebuilt map, and `(metrics, pose_error)` rows pooled into a fit.
+- The PB recon-options sweep produces `(metrics, recon_config)` cells across the same captures. Run with held-out frames and pose-error labels, those cells *are* the calibration training rows.
+- The harness already runs cross-device localization (e.g. phone-frame against ZED-built map). Algorithm 2's phone-side data is one column of the same matrix.
 
 The original plan separated Phase 2e ("repair harness, run sweep, pick reconstruction defaults") and Phase 3 ("fit calibration against the picked defaults") as if they were sequential and independent. They aren't — the sweep cells are the calibration training rows. The sweep gives a richer training set (multiple recon configs × multiple loc configs × multiple captures); the calibration fits across all of them; the sweep can rank parameter choices using fitted confidence as one of its metrics.
+
+**Clarification on what "one effort" means after the chunk-5–7 refactor.** Fusing the two efforts does *not* mean fusing the two scripts. The first iteration (chunks 1–4) put both the PB sweep and the calibration-corpus generation inside one script (`run_e2e.py`) that owned input data, ran reconstructions, ran localizations, labeled pose errors, and wrote a sidecar JSON file that `fit_calibration.py` read separately. That collapsed two roles into one Python file and ended up with bad coupling. The chunk-5–7 refactor splits responsibilities cleanly: held-out-frame labeling becomes a first-class backend capability (`ReconstructionOptions.held_out_frame_timestamps` + a `localization_evaluations` cache table); `tune_reconstruction.py` does *only* the PB sweep over backend captures and emits a tuning report; `fit_calibration.py` does *only* corpus assembly + fit, also driven by backend ids. They share infrastructure (the held-out-frames API, the localization-evaluations table) but no code path or intermediate file.
 
 ## What this initiative produces
 
@@ -44,19 +46,28 @@ The original plan separated Phase 2e ("repair harness, run sweep, pick reconstru
 3. ✅ Pose-error labeling. The diagnostic lives in the **reconstructor**, not the harness. The reconstruction's truth-frame alignment is still the prior single-anchor `Sim3d` in `colmap.py` (preserves the "first registered frame == map origin" contract downstream consumers rely on); rigid Umeyama (closed-form Kabsch via numpy SVD) is computed *separately* over all registered frames as a per-capture diagnostic and the residual is emitted on `ReconstructionMetrics` as `truth_alignment_rms_residual_m` / `truth_alignment_max_residual_m`. The Umeyama transform itself is not applied to the reconstruction. Per-capture residuals ride the manifest. Harness captures held-out frame truth poses in `_prepare_capture` and computes `err_t_m` / `err_r_deg` per localization in Phase 6 by inverting the localizer's `camera_from_map` Transform. `pytransform3d` not added — `scipy.spatial.transform.Rotation.magnitude()` covers the rotation-error need.
 4. ✅ Map-quality features: `map_image_count`, `map_point_count`, `map_avg_track_length`, `map_bounding_volume_m3`, `map_viewpoint_diversity`. Folded into `ReconstructionMetrics` (single concept; same plumbing as existing track-length and reprojection-error fields). Reconstructor computes them inside `build_reconstruction_metrics` at map-build time and writes them to `manifest.json` in MinIO alongside the rest of the metrics block. Harness fetches the manifest per reconstruction at row-emission time. The user-controlled `is_indoor` boolean lives as a column on `reconstructions` (default false) since it isn't a reconstruction output.
 5. ✅ Create `scripts/src/scripts/fit_calibration.py`: reads one or more `e2e-results.json` files (each is a serialized `E2EResults`), pools succeeded localizations, joins map-quality features + `is_indoor` per reconstruction, builds the 11-feature vector, fits sklearn `LogisticRegression(class_weight='balanced')` + `IsotonicRegression(out_of_bounds='clip')` for tight (5cm/1°) and loose (30cm/5°) labels, fits Σ_meas (α, β) via `scipy.optimize.minimize` on the 6-D SE(3) residual NLL. Writes the artifact to `config/calibration/global.json` with `--pipeline-version` baked in. Fit report (printed + serialized in `fit_metadata.validation`) includes per-capture Procrustes residuals (`truth_alignment_*` from chunk 3's reconstructor diagnostic), Brier scores for tight/loose, reliability bins, sample counts, and a `notes` list capturing degenerate-fit fallbacks. To fit α/β, `LocalizationMetrics` now exposes `pnp_covariance` (raw 6×6 inverse PnP Hessian) alongside `measurement_covariance` (runtime-applied Σ_meas) — two fields by design so the frontend filter stays calibration-agnostic and the fit consumer gets the raw input. Pose-error labeling: the harness already computes `err_t_m`/`err_r_deg`; chunk 4 added `se3_residual` (6-vector via `pytransform3d.transformations.exponential_coordinates_from_transform`) and `query_image_diagonal_px` to each row. 5 unit tests cover separable-feature accuracy, single-class collapse, artifact-block presence (which exercises the Σ_meas α/β fit end-to-end on synthetic 6-D residuals), artifact round-trip, no-usable-rows error path.
-6. Plumb features through `apply_global_calibration`: `build_metrics.py:66` currently passes `Features.zeros()`. The typed seam landed early (drive-by during chunk 4 review): `core.calibration.Features` Pydantic model with all 11 named float fields, `FEATURE_NAMES` derived from `Features.model_fields`, `apply_global_calibration(features: Features)` signature replacing the prior `dict[str, float]`, and load-time `_validate_feature_names` rejecting artifacts whose `logistic_feature_names` don't match. Remaining work: build a real `Features` instance at the `build_metrics.py` call site from transformed metrics + map features.
-7. Decouple `Σ_meas` from confidence in `build_metrics.py`: replace `PnP_cov / tight²` with `α · PnP_cov + β · I` (α, β read from the fitted calibration artifact). Confidence becomes a gate: `if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)` in `localize.py`.
-8. Remove the band-aids: `IDENTITY_BOOTSTRAP_SENTINEL` and its skip in `calibration.py`; `MIN_NUM_INLIERS` / `MIN_INLIER_COVERAGE` in `localize.py`; the hand-set `-4.595` intercept in `global.json`; the `CONFIDENCE_TIGHT_FLOOR` floor in `build_metrics.py`. These all happen once the starter calibration (next deliverable) is committed.
-9. Per-map calibration loader path: lazy MinIO fetch + cache, fall back to global-only if absent. **Per-map fitting (Algorithm 3) is deferred to a later phase.** Only the loader plumbing lands now.
+6. **Held-out frames as a first-class `ReconstructionOptions` field** *(architectural correction; plan.md chunk 5)*. Add `held_out_frame_timestamps: list[int] | None = None` to `ReconstructionOptions` in `packages/python/core/src/core/reconstruction_options.py`. Type is `list[int]` (Unix milliseconds, matching the `long timestampMilliseconds` produced by Unity's `CaptureManager.cs`). **No `reconstructions` table column** — `ReconstructionOptions` is already round-tripped through MinIO inside `ReconstructionManifest.options`, so the manifest already carries the held-out set without additional schema. The reconstructor filters those frames out of `frames.csv` and skips the matching `rig0/camera*/{timestamp}.jpg` images at the parse boundary in `run_reconstruction.py` / `rig.py`. Reverses resolved decision #3 ("Held-out frames stay implemented as harness-side tar surgery"): the harness no longer modifies tars; the API does the right thing through the existing manifest path.
+7. **`localization_evaluations` cache table + API endpoints** *(architectural correction; plan.md chunk 6)*. New table keyed by `(reconstruction_id, frame_timestamp bigint, retrieval_top_k, ransac_threshold, pipeline_version text)` storing the localizer outputs (`inlier_ratio`, `reproj_error_median`, `num_inliers`, `num_correspondences`, `num_matches`, `inlier_coverage`, `pnp_covariance`, `query_image_diagonal_px`), the truth-error labels (`err_t_m`, `err_r_deg`, `se3_residual`), and `succeeded`. `pipeline_version` is on the unique key so localizer code changes accumulate rows alongside historical data rather than overwriting it; the fit script filters to one `pipeline_version` at fit time. Schema in `database/24_localization_evaluations.sql`. Endpoints: `POST /reconstructions/{id}/localization-evaluations` (upsert) and `GET /reconstructions/{id}/localization-evaluations` (list, with `pipeline_version` query-param filter). Tenant-scoped via the existing RLS pattern. The harness writes; the fit script reads. Lets `fit_calibration.py` re-fit cheaply without re-running localizations.
+8. **Decouple harness from calibration; both scripts collapse to backend-id orchestrators** *(architectural correction; plan.md chunk 7)*. Rename `scripts/src/scripts/run_e2e.py` → `scripts/src/scripts/tune_reconstruction.py`; strip to PB recon-sweep only; input becomes `--captures <id>`; output is a tuning report. Rewrite `scripts/src/scripts/fit_calibration.py` so a single invocation does the whole thing: `uv run fit-calibration --captures <id> --pipeline-version <sha>` selects held-out frames per capture, discovers/creates reconstructions with `held_out_frame_timestamps` set, localizes the held-out frames, writes results to `localization_evaluations`, reads them back as the corpus, fits, writes `global.json`. Add `--reconstructions <id>` mode for fitting against pre-built reconstructions; add `--no-fit` to populate the cache without fitting. This chunk has three load-bearing sub-pieces called out below; each requires a comment block in the code capturing the present choice and the documented improvement axis. Delete `scripts/src/scripts/e2e_results.py` and the harness-side tar manipulation (`_prepare_capture`, modify-and-reupload, `placeframe-test-captures/` dependency). Update `scripts/tests/test_fit_calibration.py` to mock API client / localization-evaluations responses. Update `pyproject.toml` script entry: `test-placeframe-e2e` → `tune-reconstruction`.
+
+   **8a. Held-out-frame selection — pluggable selector with a stride starter.** A `HeldOutFrameSelector` protocol behind a name (`--held-out-selector stride` is the default; future strategies register by name without touching the orchestration loop or the cache contract). The `StrideHeldOutSelector` ships now: `target_count = 100` (overridable via `--held-out-count`), `stride = max(1, len(timestamps) // target_count)`, `selected = timestamps[stride // 2 :: stride]`. Required big comment block explains: (a) chosen because it is deterministic, scales to capture length, gives even temporal spacing → roughly even spatial spacing on smooth capture paths; (b) known limitations — does not protect against connectivity loss (held-outs may be frames the SfM needed for tracks; the resulting map is then worse than what gets deployed and we calibrate against a worse map than reality), does not actively distribute spatially, fixed count rather than fraction-of-redundant-frames; (c) ideas for later — post-build filter (drop held-outs the SfM unregistered, augment from registered pool); spatial-bin (voxelize positions, pick one per voxel for even spatial coverage); hybrid stride+voxel; count-as-fraction-of-registered. The architectural shape is the load-bearing piece — adding a new strategy must not require surgery to `fit_calibration.py`'s orchestration loop or the localization-evaluations contract.
+
+   **8b. Reconstruction reuse — match on the full `ReconstructionOptions` blob.** For each capture, list reconstructions via `GET /capture-sessions/{id}/reconstructions`, filter to `orchestration_status = 'succeeded'`, fetch each candidate's `manifest.json` from MinIO, and reuse iff `manifest.options == requested_options` (Pydantic equality on the full blob, including `held_out_frame_timestamps`). The "requested options" are constructed by the script from `ReconstructionOptions(held_out_frame_timestamps=selected_timestamps)` — server defaults for every other knob. If no match: create a new reconstruction with those exact options and wait for it to succeed. Required big comment block explains: (a) full-blob match is the chosen invariant — calibrations must be fit against one pipeline configuration, mixing recons built with different options into one corpus contaminates the fit; (b) ideas for later — options-hash column on `reconstructions` (or a derived view) to skip the manifest fetch on big corpora, opt-in `--match-options-on=held_out_only` flag for development workflows where the operator explicitly knows other options are immaterial.
+
+   **8c. Localizer determinism (cache-key contract).** Add a one-time seed at the top of `localize_image_against_reconstruction` in `docker/localizer/src/localize.py`: `pycolmap._core.set_random_seed(LOCALIZER_RANDOM_SEED); torch.manual_seed(LOCALIZER_RANDOM_SEED)` with `LOCALIZER_RANDOM_SEED = 0` as a module constant. **Do not** enable `torch.backends.cudnn.deterministic` or `CUBLAS_WORKSPACE_CONFIG` — those carry a 10–30% latency cost and the residual non-determinism (last-digit drift in conv outputs) is below the discrete inlier-set threshold the fit cares about. The seed change is a localizer code change, so it bumps `pipeline_version` automatically; the cache key includes `pipeline_version`, so old non-deterministic rows from before this commit aren't treated as if they followed the new contract.
+9. Plumb features through `apply_global_calibration`: `build_metrics.py:66` currently passes `Features.zeros()`. The typed seam landed early (drive-by during chunk 4 review): `core.calibration.Features` Pydantic model with all 11 named float fields, `FEATURE_NAMES` derived from `Features.model_fields`, `apply_global_calibration(features: Features)` signature replacing the prior `dict[str, float]`, and load-time `_validate_feature_names` rejecting artifacts whose `logistic_feature_names` don't match. Remaining work: build a real `Features` instance at the `build_metrics.py` call site from transformed metrics + map features.
+10. Decouple `Σ_meas` from confidence in `build_metrics.py`: replace `PnP_cov / tight²` with `α · PnP_cov + β · I` (α, β read from the fitted calibration artifact). Confidence becomes a gate: `if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)` in `localize.py`.
+11. Remove the band-aids: `IDENTITY_BOOTSTRAP_SENTINEL` and its skip in `calibration.py`; `MIN_NUM_INLIERS` / `MIN_INLIER_COVERAGE` in `localize.py`; the hand-set `-4.595` intercept in `global.json`; the `CONFIDENCE_TIGHT_FLOOR` floor in `build_metrics.py`. These all happen once the starter calibration (next deliverable) is committed.
+12. Per-map calibration loader path: lazy MinIO fetch + cache, fall back to global-only if absent. **Per-map fitting (Algorithm 3) is deferred to a later phase.** Only the loader plumbing lands now.
 
 **Run-and-commit deliverables (single-capture starter calibration):**
 
-10. Run the harness in `--single-config` mode against the one capture we have today. Produces ~11 labeled rows. Run `fit_calibration.py` against those rows; commit the resulting `config/calibration/global.json` to the repo with a header comment that it is a known-bad single-capture starter, not a production calibration.
-11. Pick `TIGHT_MIN` from the starter fit's distribution of `tight` values on successful held-out localizations (e.g. some quantile of the success cluster). Bake into `localize.py` as a module constant.
+13. Upload the one capture we have via the normal API path (if not already in the backend); run `uv run fit-calibration --captures <id> --pipeline-version <sha>`. Produces ~11 labeled rows. Commit the resulting `config/calibration/global.json` to the repo with a header comment that it is a known-bad single-capture starter, not a production calibration.
+14. Pick `TIGHT_MIN` from the starter fit's distribution of `tight` values on successful held-out localizations (e.g. some quantile of the success cluster). Bake into `localize.py` as a module constant.
 
 **Documentation deliverable:**
 
-12. Corpus-gathering instructions (this file's "Corpus-gathering spec" section). Unambiguous enough to execute cold.
+15. Corpus-gathering instructions (this file's "Corpus-gathering spec" section). Unambiguous enough to execute cold.
 
 **Frontend follow-up (out of scope this initiative):**
 
@@ -105,62 +116,77 @@ Things hand-rolled (small, well-defined):
 
 ## Architecture
 
+Post-refactor (chunks 5–7 of plan.md). Captures live in the backend via the normal upload path; both scripts orchestrate over backend ids and write/read through the API. There is no sidecar JSON file and no parallel data store.
+
 ```
-                          ┌──────────────────────────────┐
-                          │ Corpus (offline, on disk)    │
-                          │ ../placeframe-test-captures/ │
-                          │   {location}/{device}/       │
-                          │     capture.tar              │
-                          └──────────────┬───────────────┘
-                                         │
-                                         ▼
-                       ┌──────────────────────────────────────┐
-                       │ scripts/test_placeframe_e2e.py       │
-                       │  Phase 1: discover                   │
-                       │  Phase 2: prepare (withhold frames)  │
-                       │  Phase 3: upload                     │
-                       │  Phase 4: generate config matrix     │
-                       │  Phase 5: reconstruct (per config)   │
-                       │  Phase 6: localize held-out frames   │
-                       │  Phase 7: label pose error           │
-                       │  Phase 8: persist rows               │
-                       └──────────────┬───────────────────────┘
-                                      │ rows: (metrics, map_features,
-                                      │        recon_config, loc_config,
-                                      │        device, err_t, err_r)
-                                      ▼
-                       ┌──────────────────────────────────────┐
-                       │ scripts/fit_calibration.py  *NEW*    │
-                       │  - pool rows                         │
-                       │  - fit logistic + isotonic           │
-                       │  - fit Σ_meas α, β                   │
-                       │  - emit fit report                   │
-                       │  - write config/calibration/         │
-                       │    global.json                       │
-                       └──────────────┬───────────────────────┘
-                                      │
-                                      ▼
-                       ┌──────────────────────────────────────┐
-                       │ Localizer (deployed)                 │
-                       │  - load_global_calibration() at boot │
-                       │  - features plumbed into             │
-                       │    apply_global_calibration()        │
-                       │  - returns calibrated Confidence     │
-                       └──────────────────────────────────────┘
+       ┌────────────────────────────────────────────────────────────────┐
+       │ Backend (PostgreSQL + MinIO)                                   │
+       │                                                                │
+       │  capture_sessions ─── tar in MinIO (frames.csv + images)       │
+       │       │                                                        │
+       │       ▼                                                        │
+       │  reconstructions                                               │
+       │       │                                                        │
+       │       ├── manifest in MinIO                                    │
+       │       │     - options (incl. held_out_frame_timestamps)        │
+       │       │     - metrics (incl. map quality)                      │
+       │       │                                                        │
+       │       ▼                                                        │
+       │  localization_evaluations  *NEW*                               │
+       │     keyed by (reconstruction_id, frame_timestamp bigint,       │
+       │                retrieval_top_k, ransac_threshold,              │
+       │                pipeline_version)                               │
+       │     stores localizer outputs + err_t_m/err_r_deg/se3_residual  │
+       └─────────────────────────▲─────────────────────▲────────────────┘
+                                 │                     │
+        write evaluations +      │                     │  read corpus
+        trigger reconstructions  │                     │  + fit + write
+                                 │                     │  global.json
+       ┌─────────────────────────┴────┐    ┌───────────┴────────────────┐
+       │ scripts/tune_reconstruction. │    │ scripts/fit_calibration.py │
+       │  py  *RENAMED from run_e2e* │    │                            │
+       │                              │    │  --captures <id>           │
+       │  --captures <id> [<id>...]   │    │    or                      │
+       │                              │    │  --reconstructions <id>    │
+       │  PB sweep over recon options │    │  --pipeline-version <sha>  │
+       │  (one recon per cell, no     │    │                            │
+       │  held-out frames here — pure │    │  - pick held-out frames    │
+       │  parameter tuning).          │    │  - create reconstructions  │
+       │                              │    │    with frames excluded    │
+       │  Emits a tuning report.      │    │  - localize held-out       │
+       │                              │    │    frames; cache to        │
+       │                              │    │    localization_evaluations│
+       │                              │    │  - read cache as corpus    │
+       │                              │    │  - fit logistic + isotonic │
+       │                              │    │  - fit Σ_meas α, β         │
+       │                              │    │  - write config/           │
+       │                              │    │    calibration/global.json │
+       └──────────────────────────────┘    └────────────┬───────────────┘
+                                                        │
+                                                        ▼
+                                       ┌────────────────────────────────┐
+                                       │ Localizer (deployed)           │
+                                       │  load_global_calibration() at  │
+                                       │  boot; features plumbed into   │
+                                       │  apply_global_calibration();   │
+                                       │  returns calibrated Confidence │
+                                       └────────────────────────────────┘
 ```
 
-The harness can run in two modes:
-- **Full sweep**: 17 recon configs × N captures × 9 loc configs per held-out frame. Many hours. Used to pick reconstruction defaults *and* fit calibration in one pass.
-- **Fit-only / single-config**: one recon config (server defaults), one loc config (server defaults), all captures. Much faster. Used during code iteration and for incremental calibration refits when the sweep hasn't recently been run.
+`fit_calibration.py` runs in two input modes:
+- **`--captures <id>`**: full pipeline — picks held-out frames, creates fresh reconstructions (default recon options) with `held_out_frame_timestamps` set, localizes held-out frames, writes evaluations to the cache, fits, writes artifact.
+- **`--reconstructions <id>`**: skips reconstruction; uses already-built reconstructions whose `held_out_frame_timestamps` are already set. Localizes held-out frames if not already cached, otherwise reads straight from `localization_evaluations`. Cheap re-fit path.
 
-Both modes produce the same row schema; `fit_calibration.py` is mode-agnostic.
+Plus `--no-fit` for "populate the cache, don't fit yet" (e.g. for offline inspection of evaluation rows).
+
+`tune_reconstruction.py` is unrelated to fit-calibration's flow. It exists to compare PB cells of recon options across captures and emit a report; no held-out frames, no calibration corpus, no `localization_evaluations` writes. The two scripts share the held-out-frames API (chunk 5) and the cache table (chunk 6) only as available infrastructure — `tune_reconstruction.py` doesn't use either.
 
 ## Algorithm 1: ZED held-out fitting
 
 Source: every capture session in the corpus that contributes a built map.
 
 Procedure per capture:
-1. **Hold out frames at map-build time.** Withhold every 9th frame (the harness's existing scheme — 1/9 ≈ 11% held-out). Rebuild the COLMAP map from the remaining 8/9.
+1. **Hold out frames at map-build time.** A pluggable selector (default `StrideHeldOutSelector`) chooses ~100 timestamps per capture (overridable via `--held-out-count`) at an even temporal stride: `stride = max(1, len(timestamps) // target_count)`, `selected = timestamps[stride // 2 :: stride]`. Those timestamps go into `ReconstructionOptions.held_out_frame_timestamps`; the reconstructor filters them out of `frames.csv` and skips the matching images at build time. Rebuild the COLMAP map from the remaining frames. The selector is intentionally pluggable so a more spatially-aware strategy (voxel-bin, post-build connectivity-aware filter) can land later without touching the orchestration loop.
 2. **Reconstructor aligns the map to truth.** The reconstructor pins the first registered frame's COLMAP pose to its `frames.csv` truth pose via single-anchor `Sim3d`; this places the rebuilt map in the capture's truth frame. Separately and only as a diagnostic, the reconstructor solves rigid (no-scale) Procrustes (Umeyama / Kabsch via numpy SVD) over all registered frames and emits per-capture residuals (`truth_alignment_rms_residual_m`, `truth_alignment_max_residual_m`); these ride the manifest and the operator (or the fit script in chunk 4) uses them to filter unreliable captures out of the corpus. The Procrustes transform itself is not applied to the reconstruction.
 3. **Per held-out frame**:
    - Run the localizer on the held-out frame against the rebuilt map. The map is already in truth-frame from the single-anchor alignment, so the localizer's `camera_from_map` Transform doubles as `camera_from_world`.
@@ -326,6 +352,7 @@ Per-map artifact has the same shape but only `tight.isotonic` and `loose.isotoni
 | Global calibration | `config/calibration/global.json` (git repo) | Engineer (PR after running fit pipeline) | Manual, on demand. Refit on every pipeline-affecting change to the localizer; otherwise refit when corpus grows meaningfully. |
 | Per-map calibrations | `s3://placeframe-maps/{map_id}/calibration.json` (MinIO) | Fit pipeline (automated upload) | Manual, on demand. Per map, once sample count clears the threshold and is materially out of date. |
 | Phone-side calibration data (raw logs) | `s3://placeframe-calibration-data/sessions/{session_id}.json` (MinIO) | AndroidMobile app (when dogfooding toggle is on) | Per session at session end |
+| Localization evaluations cache | `localization_evaluations` table (PostgreSQL) | `fit_calibration.py` writes; reads directly during fit | Per (reconstruction, frame, retrieval_top_k, ransac_threshold). Idempotent upsert; rows persist across fit runs so re-fits don't re-localize. |
 
 Updating global: run fit → `git diff` → review → PR → merge → deploy. No Docker rebuild (mounted as compose `configs:` volume).
 
@@ -335,39 +362,18 @@ Per-map: lazy load on first request, cached. Optional `POST /calibration/refresh
 
 When the time comes to gather the multi-capture corpus and run the *production* calibration (replacing the single-capture starter that ships at the end of this initiative), this is the spec.
 
-### Layout
+### Where captures live
 
-Create a directory **as a sibling of the placeframe repo root** (not inside it):
+Captures live in the backend, period. Upload via the normal API path (the same one Unity's capture tooling uses) — there is no sibling directory and no harness-side tar shuffling. Each capture becomes a row in `capture_sessions` with its tar in MinIO.
 
-```
-~/code/                      # or wherever the repo lives
-  placeframe/                # this repo
-  placeframe-test-captures/  # sibling — corpus lives here
-    {location}/
-      {device}/
-        capture.tar
-```
-
-The harness reads from `../placeframe-test-captures/` relative to the repo root — `REPO_ROOT.parent / "placeframe-test-captures"` in the script.
-
-### What `{location}` is
-
-A short string identifier for the physical scene. The harness uses it to pair captures across devices: a ZED capture and a phone capture with the same `{location}` directory name will be cross-device-localized against each other's maps. Use any human-readable name that's stable across captures of the same place. Example: `lab-east-corner`, `garage-bay-2`.
-
-### What `{device}` is
-
-Exactly one of:
-- `zed` — for ZED rig captures.
-- `arfoundation` — for AndroidMobile (ARFoundation) captures.
-
-These map to `DeviceType.ZED` and `DeviceType.ARFOUNDATION` in the API client. Other names are skipped with a warning.
+If you're seeding a fresh dev environment with a known set of captures, upload them however you like (the existing `placeframe_api_client.upload_capture_session_tar` works fine from a one-off Python script). What matters is that by the time you run `fit-calibration`, the captures exist in `capture_sessions` and you have their UUIDs.
 
 ### What `capture.tar` is
 
 A capture session tarball produced by the existing capture pipeline (ZED Capture for ZED, Capture Tool for ARFoundation). Inside:
 
 - `manifest.json` — `CaptureSessionManifest`: axis convention, rigs (with cameras and intrinsics), capture interval.
-- `rig0/frames.csv` — per-frame poses from the device's VIO/SLAM at capture time. Columns: `timestamp,tx,ty,tz,qx,qy,qz,qw`. **These are the truth poses Algorithm 1 Procrustes-aligns to the rebuilt map.**
+- `rig0/frames.csv` — per-frame poses from the device's VIO/SLAM at capture time. Columns: `timestamp,tx,ty,tz,qx,qy,qz,qw`. **These are the truth poses Algorithm 1 uses for held-out-frame error labeling.**
 - `rig0/camera0/{timestamp}.jpg` — frame images.
 - `rig0/camera1/{timestamp}.jpg` — second eye, ZED only.
 
@@ -377,37 +383,45 @@ The capture pipelines already produce this layout; you don't have to construct i
 
 Minimums for a meaningful run:
 - **At least 2 distinct ZED captures** (Algorithm 1 needs ZED truth poses; one capture alone gives no inter-capture variance).
-- **At least 2 distinct locations** so map-quality features have variance (otherwise they collapse to the intercept). Same scene captured twice doesn't count.
-- **For cross-device validation**: matched ARFoundation captures at the same locations.
+- **At least 2 distinct physical scenes** so map-quality features have variance (otherwise they collapse to the intercept). Same scene captured twice doesn't count.
+- **For cross-device validation**: matched ARFoundation captures at the same scenes. Cross-device localization happens automatically when both `is_indoor`-tagged maps exist for the same scene; the operator selects which captures share scenes via the `--captures` invocation.
 
 Per capture:
-- ≥ ~100 frames recommended (the harness withholds 1/9, so ~11 held-out queries per capture; 4 captures gives ~44 queries × 17 recon configs × 9 loc configs ≈ 6700 labeled rows).
+- ≥ ~200 frames recommended. `fit-calibration` defaults to selecting up to 100 held-out queries per capture via the stride selector (`--held-out-count` overrides; `--held-out-selector` swaps strategies once additional ones land).
 - Real scenes representative of deployment. Indoor for current target.
 - Standard capture practice: continuous motion, varied viewpoint, minimal motion blur. The capture pipelines enforce some of this; the rest is operator discipline.
 
 Stretch goals (for richer calibration):
-- Multiple lighting conditions per location (morning vs. evening).
+- Multiple lighting conditions per scene (morning vs. evening).
 - Indoor + outdoor mix once outdoor masking ships (Phase 2d).
 - A range of map sizes (small room, large room, multi-room) to give `map_*` features genuine variance.
 
 ### How to run
 
-Once the corpus is in place:
+Once the captures are uploaded:
 
 ```bash
-# Full sweep (~15 hours): 17 recon configs × N captures × 9 loc configs per held-out frame
-uv run test-placeframe-e2e
+# Optional first step: pick reconstruction defaults via the PB sweep.
+# Outputs a tuning report; doesn't write to the calibration cache.
+uv run tune-reconstruction --captures <id> [<id>...]
 
-# Fit-only / single-config (much faster): server-default recon + loc config, all captures
-uv run test-placeframe-e2e --single-config   # (flag TBD — see open question 7)
+# Fit calibration end-to-end. One command. Selects held-out frames per capture
+# (StrideHeldOutSelector by default), reuses existing reconstructions whose full
+# ReconstructionOptions blob (including held-out set) matches what is requested
+# — otherwise creates new ones — localizes held-out frames, caches evaluations
+# in localization_evaluations (keyed on pipeline_version), fits, writes
+# config/calibration/global.json.
+uv run fit-calibration --captures <id> [<id>...] --pipeline-version <sha>
 
-# Fit calibration from the harness's row output
-uv run fit-calibration
+# Cheap re-fit against already-built reconstructions (skips reconstruction
+# discovery; reuses cached localization_evaluations rows whose retrieval/ransac/
+# pipeline_version match):
+uv run fit-calibration --reconstructions <id> [<id>...] --pipeline-version <sha>
 
-# Review the diff in config/calibration/global.json, commit, deploy
+# Review the diff in config/calibration/global.json, commit, deploy.
 ```
 
-`fit_calibration.py` reads the localizer's git SHA at run time and embeds it as `pipeline_version`. The deploy after fitting must be from that same SHA. Refit on every pipeline-affecting change to the localizer.
+The `--pipeline-version` value should be the localizer's current git SHA; it's baked into the artifact and the runtime loader hard-fails if the deployed localizer's SHA doesn't match. Refit on every pipeline-affecting change to the localizer.
 
 ### Verifying the run before trusting the output
 
@@ -426,7 +440,7 @@ The questions that drove this document's design, and how each was resolved. Kept
 
 1. **Map-quality features live in the reconstruction's manifest** (S3), not as SQL columns on `reconstructions`. They're computed metrics, conceptually identical to the existing `ReconstructionMetrics` fields, so they share the same model and storage. Nullable columns would have leaked the "feature exists ↔ reconstruction succeeded" invariant into every reader; manifest-only avoids that. The harness fetches the manifest per reconstruction (single S3 GET each, sequential, negligible cost at corpus sizes through Phase 5). Runtime localizer reads from the same manifest. The user-controlled `is_indoor` boolean is the only column added to `reconstructions` since it isn't a reconstruction output.
 2. **Map-quality features are included in the fit feature vector unconditionally.** The regression weights them to zero when they're constants (single-capture corpus). No gating on map count.
-3. **Held-out frames stay implemented as harness-side tar surgery.** Already-implemented `_prepare_capture` keeps; no `held_out_image_ids` reconstructor option.
+3. **~~Held-out frames stay implemented as harness-side tar surgery.~~ Reversed — chunks 5–7 of plan.md.** Held-out frames are now a first-class `ReconstructionOptions.held_out_frame_timestamps: list[int]` field. The reconstructor filters them at build time. **No new database column** — `ReconstructionOptions` already round-trips through MinIO inside `ReconstructionManifest.options`, so the requested held-out set is durably recorded against the reconstruction without schema change. `fit_calibration.py` reads the manifest to know which frames a reconstruction was built without. Original rationale ("avoid an API addition; the harness already does the surgery") was wrong-weighted: the surgery forced the harness to own input data, output schema, and provenance bundling, which then had to be unwound. Net cost of the corrected API addition is smaller than the drift it causes when omitted.
 4. **Procrustes residuals are surfaced per-capture in the fit report.** Operator decides from the report whether to drop a capture; no auto-drop threshold in v1.
 5. **`pipeline_version` chicken-and-egg is handled by operator discipline.** No auto-commit; the loader's startup hard-fail surfaces any mismatch before traffic flows.
 6. **Σ_meas decoupled from confidence.** Replaced `PnP_cov / tight²` with `α · PnP_cov + β · I`, with α, β fit empirically in `fit_calibration.py` against held-out SE(3) residuals. Confidence becomes a binary gate (`tight < TIGHT_MIN` rejects); admitted measurements use Σ_meas regardless of confidence value.

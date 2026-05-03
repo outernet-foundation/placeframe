@@ -58,8 +58,8 @@ Move the codebase from "numpy/torch tensors annotated with dtype only" to "numpy
 
 The prototype landed under tight scope (the retrieval block in `localize.py` plus `Map.tile_descriptors`). Type-check passes. The runtime correctness of the refactor — particularly the `global_descriptor_extractor` wrapper (replacing the prior `dir` global) in `localize.py` and `run_reconstruction.py`, and the retrieval-block matmul rearrangement (now expressed as `torch_ops.transpose` + `torch_ops.matmul` + `torch_ops.permute`) — has not been confirmed against a full reconstruction + localization run.
 
-- Run the existing `test-placeframe-e2e` harness (or equivalent end-to-end smoke) against the post-prototype pipeline. Confirm reconstruction completes; confirm localization produces a non-degenerate pose against a ZED-built map.
-- If the harness is broken (Phase 2e backlog), do the smoke manually: full `uv run up`, build a small test map via the Capture Tool, query it from the Capture Tool with a different camera, verify the returned pose is sane.
+- Run an end-to-end smoke against the post-prototype pipeline. After Phase 3 chunk 7 lands, this means `uv run tune-reconstruction --captures <id>` (formerly `test-placeframe-e2e`; renamed) or `uv run fit-calibration --captures <id> --pipeline-version <sha>`. Confirm reconstruction completes; confirm localization produces a non-degenerate pose against a ZED-built map.
+- If the scripts aren't ready yet, do the smoke manually: full `uv run up`, build a small test map via the Capture Tool, query it from the Capture Tool with a different camera, verify the returned pose is sane.
 - Block widening the migration until this passes.
 
 ### 2. Move shared types to `core` and complete the localizer-scope coverage
@@ -80,7 +80,7 @@ Thirteen files import `NDArray` (per Ruff `TID251` enumeration). Migrate each:
 - `docker/localizer/src/{map,build_metrics}.py` — covered by piece 2.
 - `packages/python/core/src/core/{axis_convention,h5,opq}.py` — covered by piece 2 + h5 / opq specifics. (`core/lightglue.py` was already migrated off `NDArray` in the prototype.)
 - `packages/python/neural-networks/src/neural_networks/models.py` — DIR / ALIKED preprocessing arrays.
-- `scripts/src/scripts/{run_e2e,fit_calibration}.py` — harness rows and the calibration fit's feature/covariance arrays; small fixed shapes.
+- `scripts/src/scripts/{tune_reconstruction,fit_calibration}.py` (formerly `run_e2e.py`; renamed in Phase 3 chunk 7) — PB-sweep tabulation arrays and the calibration fit's feature/covariance arrays; small fixed shapes.
 
 End state: zero `from numpy.typing import NDArray` imports outside generated code (`packages/generated/` is `.dockerignore`-allowlisted for ruff exclusion already). Zero `# noqa: TID251`.
 
