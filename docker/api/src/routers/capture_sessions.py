@@ -285,6 +285,84 @@ async def download_capture_session_tar(session: AsyncSession, id: UUID) -> Strea
     )
 
 
+@get(
+    "/{id:uuid}/manifest.json",
+    media_type="application/json",
+    content_encoding="binary",
+    content_media_type="application/json",
+)
+async def get_capture_session_manifest_file(session: AsyncSession, id: UUID) -> Stream:
+    if await session.get(CaptureSession, id) is None:
+        raise NotFoundException(f"Capture session {id} not found")
+
+    contents = _extract_member_bytes(id, "manifest.json")
+    return Stream(iter([contents]), media_type="application/json")
+
+
+@get(
+    "/{id:uuid}/frames.csv",
+    media_type="text/csv",
+    content_encoding="binary",
+    content_media_type="text/csv",
+)
+async def get_capture_session_frames_csv(session: AsyncSession, id: UUID) -> Stream:
+    if await session.get(CaptureSession, id) is None:
+        raise NotFoundException(f"Capture session {id} not found")
+
+    contents = _extract_member_bytes(id, "rig0/frames.csv")
+    return Stream(iter([contents]), media_type="text/csv")
+
+
+@get(
+    "/{id:uuid}/images/{frame_timestamp:int}",
+    media_type="image/jpeg",
+    content_encoding="binary",
+    content_media_type="image/jpeg",
+)
+async def get_capture_session_image(session: AsyncSession, id: UUID, frame_timestamp: int) -> Stream:
+    if await session.get(CaptureSession, id) is None:
+        raise NotFoundException(f"Capture session {id} not found")
+
+    contents = _extract_member_bytes(id, f"rig0/camera0/{frame_timestamp}.jpg")
+    return Stream(iter([contents]), media_type="image/jpeg")
+
+
+def _extract_member_bytes(capture_id: UUID, member_name: str) -> bytes:
+    # Stream-mode tar (`r|*`) avoids loading the full capture tar into memory; fit-calibration
+    # calls /images/{ts} ~100x per capture and tars run 500MB–2GB. We still read sequentially
+    # to find the member, so worst case is one full pass per call. A future optimization could
+    # store frames.csv + images as separate MinIO objects to make these endpoints O(1).
+    try:
+        obj = get_storage().get_object(BUCKET, f"{capture_id}.tar")
+        body = obj["Body"]
+    except ReadTimeoutError as e:
+        raise HTTPException(status_code=HTTP_504_GATEWAY_TIMEOUT, detail="Download failed: storage timeout") from e
+    except Exception as e:
+        raise InternalServerException("Download failed") from e
+
+    try:
+        with tarfile.open(fileobj=cast(BinaryIO, body), mode="r|*") as tf:
+            for member in tf:
+                if member.name != member_name:
+                    continue
+                if not member.isfile():
+                    raise HTTPException(
+                        status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail=f"{member_name} in capture {capture_id} is not a regular file",
+                    )
+                extracted = tf.extractfile(member)
+                if extracted is None:
+                    raise HTTPException(
+                        status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail=f"Could not read {member_name} from capture {capture_id} tar",
+                    )
+                return extracted.read()
+    except tarfile.ReadError as e:
+        raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Invalid tar file: {e}") from e
+
+    raise NotFoundException(f"{member_name} not found in capture {capture_id} tar")
+
+
 # dummy method, just to get RigConfig into the OpenAPI schema
 @get("/{id:uuid}/rig_config")
 async def get_capture_session_rig_config(session: AsyncSession, id: UUID) -> CaptureSessionManifest:
@@ -325,6 +403,9 @@ router = Router(
         update_capture_sessions,
         upload_capture_session_tar,
         download_capture_session_tar,
+        get_capture_session_manifest_file,
+        get_capture_session_frames_csv,
+        get_capture_session_image,
         get_capture_session_rig_config,
     ],
 )
