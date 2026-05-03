@@ -3,8 +3,9 @@
 > Design intents:
 > - VPS redesign: [`vps-redesign-intent.md`](vps-redesign-intent.md) (Phases 0, 1, 2a, 3–6).
 > - Feature pipeline modernization: [`feature-pipeline-intent.md`](feature-pipeline-intent.md) (Phases 2b, 2c, 2c-fixup, 2d, 2e).
+> - Static tensor shape typing: [`static-tensor-typing-intent.md`](static-tensor-typing-intent.md) (Phase T).
 
-This file tracks execution of both in-flight initiatives: phase definitions, status, tradeoffs taken, and scaffolding deliberately left for later phases to replace. Deleted when both initiatives complete.
+This file tracks execution of all in-flight initiatives: phase definitions, status, tradeoffs taken, and scaffolding deliberately left for later phases to replace. Deleted when all initiatives complete.
 
 ## Phase status
 
@@ -16,6 +17,7 @@ This file tracks execution of both in-flight initiatives: phase definitions, sta
 | 2b | SuperPoint → ALIKED | Pipeline | ✅ Done |
 | 2c | Local-feature scale standardization (formerly "Aspect-ratio preprocessing") | Pipeline | ✅ Done — but the in-DIR letterbox added under this phase is misguided and is reverted in 2c-fixup |
 | 2c-fixup | Revert in-DIR letterbox; add square-tile retrieval aggregation | Pipeline | ✅ Done — optional `transform_image` rename deferred |
+| T | Static tensor shape typing | Typing | Active — localizer-scope prototype landed; e2e verification pending; repo-wide migration pending |
 | 2d | Semantic-segmentation masking (3-day time-box) | Pipeline | Not started |
 | 2e | Repair `test-placeframe-e2e` and rerun parameter sweep | Pipeline | Not started |
 | 3 | ZED-only global calibration | VPS | Not started |
@@ -26,7 +28,7 @@ This file tracks execution of both in-flight initiatives: phase definitions, sta
 ## Critical path
 
 ```
-Phase 0 ─► 1 ─► 2a ─► 2b ─► 2c ─► 2c-fixup ─► 2d ─► 2e ─► 3 ─► 4 ─► 5 ─► (6 opportunistic)
+Phase 0 ─► 1 ─► 2a ─► 2b ─► 2c ─► 2c-fixup ─► T ─► 2d ─► 2e ─► 3 ─► 4 ─► 5 ─► (6 opportunistic)
 ```
 
 Strictly serial. With ~2 known users, total wall-clock time is dominated by coding work and a single directed data-gathering session at Phase 5, not by passive accumulation. There's no parallelism to exploit.
@@ -129,6 +131,46 @@ Cross-aspect query/database mismatch makes whole-image DIR descriptors compare d
 - In-aspect regression risk: tiling could underperform single-window retrieval on same-aspect query/database pairs (less context per descriptor). Configurable `RETRIEVAL_TILES_PER_IMAGE = 1` falls back to single-window without removing the code path.
 
 End of Phase 2c-fixup: cross-aspect retrieval is correctly addressed. The pipeline now has two preprocessing paths sitting side-by-side with honest names: local features get aspect-preserved shorter-side resize; retrieval gets that plus square tiling.
+
+### Phase T — Static tensor shape typing
+
+A localizer-scope prototype landed alongside Phase 2c-fixup. `core/tensor_types.py` holds only the `TT[*Shape]` torch shim; dim brands sit next to the concept that defines them — `NumImages` / `MaxTiles` / `NumQueryTiles` in `core/image_preprocess.py`, `RetrievalDim` / `NumKeypoints` / `LocalDescDim` in `core/model_wrappers.py`, `NumMatches` in `core/lightglue.py`. `docker/localizer/src/torch_ops.py` exposes thin generic torch wrappers (`from_numpy`, `to`, `stack`, `permute`, `transpose`, `matmul`, `amax`) as `@overload`-driven, `Literal`-typed dim/axis functions so the runtime arg drives the output shape through the type system. `core/numpy_ops.py` is the numpy sibling (`zeros` per rank; rank-1 `nonzero` and `compress`); `Map.load_map` uses it with `NumImages(...) / MaxTiles(...) / RetrievalDim(...)` brand constructors at the shape tuple, and `lightglue_match_tensors` uses it to drop the match-index branding casts. `core/model_wrappers.py` houses four `make_*` factories — `make_global_descriptor_extractor` (DIR), `make_local_feature_extractor` (ALIKED), `make_local_feature_matcher_for_tensors` and `make_local_feature_matcher_for_arrays` (LightGlue, tensor-input and numpy-input variants) — consumed by both `localize.py` and `run_reconstruction.py` so their `load_models()` is three lines instead of hand-rolled inner closures. `core/lightglue.py` is fully off `NDArray` and exports `Keypoints` / `Descriptors` / `KeypointsArrays` / `DescriptorsArrays` `NewType` brands so positional swaps at the matcher are caught statically. The workspace venv now syncs with `--extra cpu` (`uv sync --all-packages --extra cpu`) so torch resolves locally; pyright shows zero errors introduced by Phase T (one residual upstream `from torch import from_numpy` stub-unknown that pre-dates the work). The remaining 11 `NDArray` imports across the codebase carry `# noqa: TID251 — Phase T piece 3 follow-up migration` to keep lint clean. Sits between 2c-fixup and 2d so the new code in 2d (semantic-segmentation masking) lands typed instead of paying retroactive migration cost.
+
+**E2E verification (gate before widening):**
+
+- Run `test-placeframe-e2e` (or manual smoke if the harness is broken — Phase 2e backlog) against the post-prototype pipeline. Confirm reconstruction completes and localization produces a non-degenerate pose.
+- The `global_descriptor_extractor` wrapper (replacing the prior `dir` global) in `localize.py` / `run_reconstruction.py` and the retrieval-block matmul rearrangement (`torch_ops.transpose` + `torch_ops.matmul` + `torch_ops.permute`) are mechanical translations of the prior code; bisecting against `403d9fd1` ("Add square-tile retrieval aggregation") isolates any regression.
+- Block widening migration until this passes.
+
+**Localizer / reconstructor full coverage:**
+
+- `Map.keypoints` and `Map.pq_codes` typed with rank-correct shapes (`NumKeypoints` brand acknowledging per-image variation; rank and last-axis size still meaningful).
+- ~~`aliked_output` typed via Protocol or TypedDict — analog of the `global_descriptor_extractor` wrapper, but for ALIKED's keypoint/descriptor output.~~ Done in the prototype: `local_feature_extractor` wrapper returns typed tuple.
+- ~~`lightglue_match_tensors` signature carries shape brands.~~ Done in the prototype: `local_feature_matcher` wrapper + `MatchIndices` type alias.
+- `axis_convention.py` translations / rotations / quaternions typed with `ndarray[tuple[Literal[3]], ...]` etc.
+
+**Repo-wide `NDArray` migration:**
+
+- Eleven files import `NDArray` (from Ruff `TID251` enumeration). Migrate each to `ndarray[tuple[..., ...], dtype[T]]` with explicit shape brands.
+- Per-file commits, grouped by module for reviewer-friendly diffs.
+- End state: zero `from numpy.typing import NDArray` outside generated code; zero `# noqa: TID251`.
+
+**Repo-wide `Tensor` migration:**
+
+- Replace bare `Tensor` with `TT[*Shape]` where shape is known. Grow `torch_ops.py` opportunistically as migration touches each file. `Tensor` survives only at boundaries with un-typable third-party calls (neural net outputs, pycolmap returns), wrapped at the seam.
+
+**Lint tightening:**
+
+- Add `reportExplicitAny` to basedpyright config to catch new `cast(Tensor, ...)` / `Any` escape hatches.
+- Add `flake8-tidy-imports` ban on bare `torch.Tensor` in domain modules; allow only in `torch_ops.py`-style wrappers via `per-file-ignores`.
+
+**Risks:**
+
+- Migration is large (~50+ usage sites across 11 files for the `NDArray` migration alone). Mitigation: per-file commits with a common pattern.
+- PEP 646 limits (no per-element bounds on `TypeVarTuple`) force per-rank `@overload` sets in `torch_ops.py`. Manageable; just verbose.
+- Pyright's PEP 646 support has rough edges on advanced unifications. We're pyright-only in basedpyright strict mode, so fine.
+
+End of Phase T: tensor shapes are statically checked at function/assignment boundaries throughout the localizer, reconstructor, `core`, and `neural-networks` packages. New tensor code in subsequent phases lands typed by default, with lint enforcing it. No runtime overhead; no library dependency.
 
 ### Phase 2d — Semantic-segmentation masking (3-day time-box)
 
