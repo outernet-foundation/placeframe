@@ -6,7 +6,6 @@ from time import perf_counter
 from typing import Any, cast
 
 from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
-from core.calibration import CalibrationArtifact
 from core.camera_config import PinholeCameraConfig
 from core.image_preprocess import canonicalize_image, canonicalize_intrinsics, tile_image
 from core.lightglue import Descriptors, Keypoints, MatchIndices
@@ -30,6 +29,7 @@ from scipy.spatial.transform import Rotation
 from torch import Tensor, cuda, manual_seed, topk  # type: ignore
 
 from .build_metrics import build_localization_metrics
+from core.calibration import CalibrationArtifact
 from .map import Map
 from .torch_ops import amax, from_numpy, matmul, permute, stack, to, transpose
 
