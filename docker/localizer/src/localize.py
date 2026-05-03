@@ -24,9 +24,9 @@ from core.transform import Float3, Float4, Transform
 from numpy import asarray, float32, vstack
 from pycolmap import AbsolutePoseEstimationOptions, RANSACOptions
 from pycolmap import Camera as ColmapCamera
-from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose  # type: ignore  # noqa: PLC2701 — no public API
+from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose, set_random_seed  # type: ignore  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
-from torch import Tensor, cuda, topk  # type: ignore
+from torch import Tensor, cuda, manual_seed, topk  # type: ignore
 
 from .build_metrics import build_localization_metrics
 from .map import Map
@@ -34,6 +34,12 @@ from .torch_ops import amax, from_numpy, matmul, permute, stack, to, transpose
 
 DEVICE = "cuda" if cuda.is_available() else "cpu"
 
+
+# Seeded each call so localization results are reproducible across invocations.
+# cudnn-deterministic and CUBLAS_WORKSPACE_CONFIG are deliberately not enabled: the 10–30%
+# latency cost outweighs the residual non-determinism, which is below the discrete inlier-set
+# threshold any downstream consumer cares about.
+LOCALIZER_RANDOM_SEED = 0
 
 global_descriptor_extractor: Callable[[Tensor], TT[RetrievalDim]]
 local_feature_extractor: Callable[[Tensor], LocalFeatureOutput]
@@ -73,6 +79,9 @@ def localize_image_against_reconstruction(
     retrieval_top_k: int | None,
     ransac_threshold: float | None,
 ) -> tuple[Transform, LocalizationMetrics]:
+
+    set_random_seed(LOCALIZER_RANDOM_SEED)
+    manual_seed(LOCALIZER_RANDOM_SEED)
 
     # Per-stage timing instrumentation. CUDA kernels are async, so each GPU-bound stage ends
     # with cuda.synchronize() to attribute its true wall time rather than just kernel-launch.
