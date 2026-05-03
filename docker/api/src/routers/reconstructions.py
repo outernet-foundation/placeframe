@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from io import BytesIO
 from struct import pack
-from typing import Annotated, Optional, cast
+from typing import TYPE_CHECKING, Annotated, Optional, cast
 from uuid import UUID
+
+if TYPE_CHECKING:
+    from mypy_boto3_s3.type_defs import ObjectIdentifierTypeDef
 
 from common.boto_clients import create_s3_client
 from core.axis_convention import (
@@ -104,6 +107,20 @@ async def delete_reconstruction(session: AsyncSession, id: UUID) -> None:
 
     if localization_map:
         raise NotFoundException(f"Reconstruction with id {id} has an associated localization map and cannot be deleted")
+
+    # Delete S3 objects before the row so a synchronous failure leaves a recoverable state.
+    # The row id is the only handle to find these objects in MinIO.
+    prefix = f"{id}/"
+    paginator = s3_client.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=settings.reconstructions_bucket, Prefix=prefix):
+        objects: list[ObjectIdentifierTypeDef] = [
+            {"Key": key} for obj in page.get("Contents", []) if (key := obj.get("Key")) is not None
+        ]
+        if objects:
+            response = s3_client.delete_objects(Bucket=settings.reconstructions_bucket, Delete={"Objects": objects})
+            errors = response.get("Errors", [])
+            if errors:
+                raise RuntimeError(f"S3 delete failed for {len(errors)} objects under {prefix}")
 
     await session.delete(row)
 
