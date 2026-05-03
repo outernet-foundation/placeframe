@@ -47,6 +47,8 @@ src/PlaceframeApiClient/Model/LayerCreate.cs
 src/PlaceframeApiClient/Model/LayerRead.cs
 src/PlaceframeApiClient/Model/LeaseResponse.cs
 src/PlaceframeApiClient/Model/LinkType.cs
+src/PlaceframeApiClient/Model/LocalizationEvaluationCreate.cs
+src/PlaceframeApiClient/Model/LocalizationEvaluationRead.cs
 src/PlaceframeApiClient/Model/LocalizationMapBatchUpdate.cs
 src/PlaceframeApiClient/Model/LocalizationMapCreate.cs
 src/PlaceframeApiClient/Model/LocalizationMapRead.cs

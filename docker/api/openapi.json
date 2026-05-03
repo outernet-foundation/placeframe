@@ -2359,6 +2359,183 @@
         "deprecated": false
       }
     },
+    "/reconstructions/{reconstruction_id}/localization-evaluations": {
+      "get": {
+        "tags": [
+          "Localization Evaluations"
+        ],
+        "summary": "ListLocalizationEvaluations",
+        "operationId": "list_localization_evaluations",
+        "parameters": [
+          {
+            "name": "reconstruction_id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          },
+          {
+            "name": "pipeline_version",
+            "in": "query",
+            "schema": {
+              "description": "Optional pipeline_version to filter by",
+              "nullable": true,
+              "type": "string"
+            },
+            "description": "Optional pipeline_version to filter by",
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LocalizationEvaluationRead"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      },
+      "post": {
+        "tags": [
+          "Localization Evaluations"
+        ],
+        "summary": "UpsertLocalizationEvaluation",
+        "operationId": "upsert_localization_evaluation",
+        "parameters": [
+          {
+            "name": "reconstruction_id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocalizationEvaluationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Document created, URL follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalizationEvaluationRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
     "/localize": {
       "post": {
         "tags": [
@@ -4254,6 +4431,224 @@
           "image_list"
         ],
         "title": "LinkType"
+      },
+      "LocalizationEvaluationCreate": {
+        "properties": {
+          "reconstruction_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Reconstruction Id"
+          },
+          "id": {
+            "title": "Id",
+            "nullable": true,
+            "type": "string",
+            "format": "uuid"
+          },
+          "ransac_threshold": {
+            "type": "number",
+            "title": "Ransac Threshold"
+          },
+          "frame_timestamp": {
+            "type": "integer",
+            "title": "Frame Timestamp"
+          },
+          "inlier_coverage": {
+            "type": "number",
+            "title": "Inlier Coverage"
+          },
+          "query_image_diagonal_px": {
+            "type": "number",
+            "title": "Query Image Diagonal Px"
+          },
+          "reproj_error_median": {
+            "type": "number",
+            "title": "Reproj Error Median"
+          },
+          "inlier_ratio": {
+            "type": "number",
+            "title": "Inlier Ratio"
+          },
+          "retrieval_top_k": {
+            "type": "integer",
+            "title": "Retrieval Top K"
+          },
+          "num_inliers": {
+            "type": "integer",
+            "title": "Num Inliers"
+          },
+          "num_matches": {
+            "type": "integer",
+            "title": "Num Matches"
+          },
+          "num_correspondences": {
+            "type": "integer",
+            "title": "Num Correspondences"
+          },
+          "succeeded": {
+            "type": "boolean",
+            "title": "Succeeded"
+          },
+          "pipeline_version": {
+            "type": "string",
+            "title": "Pipeline Version"
+          },
+          "err_r_deg": {
+            "title": "Err R Deg",
+            "nullable": true,
+            "type": "number"
+          },
+          "err_t_m": {
+            "title": "Err T M",
+            "nullable": true,
+            "type": "number"
+          },
+          "pnp_covariance": {
+            "title": "Pnp Covariance",
+            "nullable": true,
+            "items": {},
+            "type": "array"
+          },
+          "se3_residual": {
+            "title": "Se3 Residual",
+            "nullable": true,
+            "items": {},
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "frame_timestamp",
+          "inlier_coverage",
+          "inlier_ratio",
+          "num_correspondences",
+          "num_inliers",
+          "num_matches",
+          "pipeline_version",
+          "query_image_diagonal_px",
+          "ransac_threshold",
+          "reconstruction_id",
+          "reproj_error_median",
+          "retrieval_top_k",
+          "succeeded"
+        ],
+        "title": "LocalizationEvaluationCreate"
+      },
+      "LocalizationEvaluationRead": {
+        "properties": {
+          "reconstruction_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Reconstruction Id"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "ransac_threshold": {
+            "type": "number",
+            "title": "Ransac Threshold"
+          },
+          "frame_timestamp": {
+            "type": "integer",
+            "title": "Frame Timestamp"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "datetime with the constraint that the value must have timezone info"
+          },
+          "inlier_coverage": {
+            "type": "number",
+            "title": "Inlier Coverage"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "datetime with the constraint that the value must have timezone info"
+          },
+          "query_image_diagonal_px": {
+            "type": "number",
+            "title": "Query Image Diagonal Px"
+          },
+          "reproj_error_median": {
+            "type": "number",
+            "title": "Reproj Error Median"
+          },
+          "inlier_ratio": {
+            "type": "number",
+            "title": "Inlier Ratio"
+          },
+          "retrieval_top_k": {
+            "type": "integer",
+            "title": "Retrieval Top K"
+          },
+          "num_inliers": {
+            "type": "integer",
+            "title": "Num Inliers"
+          },
+          "num_matches": {
+            "type": "integer",
+            "title": "Num Matches"
+          },
+          "num_correspondences": {
+            "type": "integer",
+            "title": "Num Correspondences"
+          },
+          "succeeded": {
+            "type": "boolean",
+            "title": "Succeeded"
+          },
+          "pipeline_version": {
+            "type": "string",
+            "title": "Pipeline Version"
+          },
+          "err_r_deg": {
+            "title": "Err R Deg",
+            "nullable": true,
+            "type": "number"
+          },
+          "err_t_m": {
+            "title": "Err T M",
+            "nullable": true,
+            "type": "number"
+          },
+          "pnp_covariance": {
+            "title": "Pnp Covariance",
+            "nullable": true,
+            "items": {},
+            "type": "array"
+          },
+          "se3_residual": {
+            "title": "Se3 Residual",
+            "nullable": true,
+            "items": {},
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created_at",
+          "frame_timestamp",
+          "id",
+          "inlier_coverage",
+          "inlier_ratio",
+          "num_correspondences",
+          "num_inliers",
+          "num_matches",
+          "pipeline_version",
+          "query_image_diagonal_px",
+          "ransac_threshold",
+          "reconstruction_id",
+          "reproj_error_median",
+          "retrieval_top_k",
+          "succeeded",
+          "updated_at"
+        ],
+        "title": "LocalizationEvaluationRead"
       },
       "LocalizationMapBatchUpdate": {
         "properties": {

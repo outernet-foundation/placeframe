@@ -119,6 +119,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**get_reconstruction_points**](docs/DefaultApi.md#get_reconstruction_points) | **GET** /reconstructions/{id}/points | GetReconstructionPoints
 *DefaultApi* | [**get_reconstruction_status**](docs/DefaultApi.md#get_reconstruction_status) | **GET** /reconstructions/{id}/status | GetReconstructionStatus
 *DefaultApi* | [**get_reconstructions**](docs/DefaultApi.md#get_reconstructions) | **GET** /reconstructions | GetReconstructions
+*DefaultApi* | [**list_localization_evaluations**](docs/DefaultApi.md#list_localization_evaluations) | **GET** /reconstructions/{reconstruction_id}/localization-evaluations | ListLocalizationEvaluations
 *DefaultApi* | [**localize_image**](docs/DefaultApi.md#localize_image) | **POST** /localize | LocalizeImage
 *DefaultApi* | [**push_zed_box_logs**](docs/DefaultApi.md#push_zed_box_logs) | **POST** /zed-boxes/logs | PushZedBoxLogs
 *DefaultApi* | [**request_lease**](docs/DefaultApi.md#request_lease) | **POST** /internal/leases/request | RequestLease
@@ -130,6 +131,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**update_localization_maps**](docs/DefaultApi.md#update_localization_maps) | **PATCH** /localization-maps | UpdateLocalizationMaps
 *DefaultApi* | [**update_nodes**](docs/DefaultApi.md#update_nodes) | **PATCH** /nodes | UpdateNodes
 *DefaultApi* | [**upload_capture_session_tar**](docs/DefaultApi.md#upload_capture_session_tar) | **PUT** /capture_sessions/{id}/tar | UploadCaptureSessionTar
+*DefaultApi* | [**upsert_localization_evaluation**](docs/DefaultApi.md#upsert_localization_evaluation) | **POST** /reconstructions/{reconstruction_id}/localization-evaluations | UpsertLocalizationEvaluation
 
 
 ## Documentation For Models
@@ -158,6 +160,8 @@ Class | Method | HTTP request | Description
  - [LayerRead](docs/LayerRead.md)
  - [LeaseResponse](docs/LeaseResponse.md)
  - [LinkType](docs/LinkType.md)
+ - [LocalizationEvaluationCreate](docs/LocalizationEvaluationCreate.md)
+ - [LocalizationEvaluationRead](docs/LocalizationEvaluationRead.md)
  - [LocalizationMapBatchUpdate](docs/LocalizationMapBatchUpdate.md)
  - [LocalizationMapCreate](docs/LocalizationMapCreate.md)
  - [LocalizationMapRead](docs/LocalizationMapRead.md)
