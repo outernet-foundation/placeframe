@@ -18,13 +18,13 @@ Phases 0, 1, and 2a have shipped and the system has been used end-to-end against
 
 **2. Σ_meas scaling collapses** — `Σ_meas = PnP_cov / tight²` with constant `tight = 0.5` gives only 4× inflation. PnP's analytic Hessian covariance is wildly tight (~1e-6 variance, σ ≈ 0.3mm), so post-scaling Σ_meas is still absurdly tight. The Bayesian filter's innovation gate then rejects nearly every measurement as implausibly far. *Band-aid*: the bootstrap calibration's `tight.logistic.intercept` is set to `ln(0.01/0.99) ≈ -4.595` so `sigmoid(intercept) = tight = 0.01`, producing 10000× covariance inflation and effective σ_meas ≈ 10cm. Runtime logic in `build_metrics.py` is unchanged — the `Σ_meas / tight²` formula does the right thing once `tight` is a sensible constant. Replaced in Phase 3 by per-localization tight values from a fitted model.
 
-### Σ_posterior lock-in
+### Σ_posterior lock-in (fixed)
 
-Observed in production: once the filter has accepted ~30 measurements during a stable session, σ_posterior shrinks to ~σ_meas/√N (~2cm on each axis). Subsequent measurements that disagree with the converged posterior by more than ~3σ get rejected by the innovation gate, even when their quality metrics are statistically identical to accepted ones. The filter "locks in" to its first cluster of measurements and can't absorb new evidence.
+Observed in production: once the filter had accepted ~30 measurements during a stable session, σ_posterior shrank to ~σ_meas/√N (~2cm on each axis). Subsequent measurements that disagreed with the converged posterior by more than ~3σ got rejected by the innovation gate, even when their quality metrics were statistically identical to accepted ones. The filter "locked in" to its first cluster of measurements and couldn't absorb new evidence.
 
-This is the textbook "no process noise" failure mode. The codebase has `ProcessNoise(currentVioPosition, lastAcceptedVioPosition)` that adds Σ proportional to translated distance, but it adds nothing when the device is stationary. Stationary observation → unbounded σ_posterior shrinkage → over-confident filter.
+This was the textbook "no process noise" failure mode. The pre-fix `ProcessNoise(currentVioPosition, lastAcceptedVioPosition)` added Σ proportional to translated distance and nothing when the device was stationary. Stationary observation → unbounded σ_posterior shrinkage → over-confident filter.
 
-**Phase 3 candidate fix**: add either a constant per-tick process noise term (textbook KF approach) or a hard σ_posterior floor (cruder but equivalent for our purposes). Sized so σ_posterior never shrinks below ~σ_meas/3. Cost: visible micro-jitter in steady-state instead of full stop. Tradeoff is product-dependent — for "place a virtual object on a surface" UX, the current rock-solid behavior may be preferable; for "produce ground-truth pose telemetry", the floor is better.
+**Fix shipped**: added `BaseProcessNoise{Translation,Rotation}VariancePerTick` constants (1e-4 m², 1e-6 rad²) to `RelocalizationFilter`, applied unconditionally in `ProcessNoise()`. Sized so steady-state σ_posterior stays roughly σ_meas/3 at the current 1Hz query cadence and bootstrap σ_meas. The numbers are coarse band-aids — they're re-tuned in Phase 3 once σ_meas comes from a fitted model rather than the bootstrap intercept. Cost: visible micro-jitter in steady-state instead of full stop. Tradeoff is product-dependent — for "place a virtual object on a surface" UX, the prior rock-solid behavior may be preferable; for "produce ground-truth pose telemetry", the per-tick noise is correct. Re-evaluate after Phase 3.
 
 ### Frontend metrics-event design gap
 
@@ -607,7 +607,7 @@ These are values the design depends on but where the right number is empirical a
 | Per-map calibration refit cadence | weekly OR +50% samples | Offline pipeline |
 | Phone pair distance cap | 1.0 m | Algorithm 2 pairwise interval |
 | Frontend tight-confidence gating threshold | n/a (use confidence as Σ_meas weight, no hard threshold) | VPS measurement processing |
-| σ_posterior floor / per-tick process noise | None today (filter shrinks unboundedly) — Phase 3 to add, sized at ~σ_meas/3 | VPS measurement processing — see "Σ_posterior lock-in" finding |
+| Base per-tick process noise | 1e-4 m² translation, 1e-6 rad² rotation (coarse — re-tuned in Phase 3 against fitted σ_meas) | VPS measurement processing — see "Σ_posterior lock-in" finding |
 
 The frontend NOTABLY does not have a "reject if confidence < X" hard threshold (other than the `LooseLowerBound = 0.1` floor). Confidence flows into measurement processing as a measurement-covariance scaling — a low-confidence measurement is treated as a wide-σ measurement and naturally gets little weight in the Bayesian update, while a high-confidence measurement gets tight σ and dominates. This is the textbook Bayesian way to use a calibrated probability and avoids picking a magic threshold.
 

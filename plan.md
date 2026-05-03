@@ -205,7 +205,7 @@ The calibration pipeline goes live with bulk-only data (Algorithm 1). Phone quer
 - `scripts/src/scripts/fit_calibration.py` with Algorithm 1 (ZED held-out) implemented.
 - Commit the first non-identity `config/calibration/global.json`. Deploy.
 - Remove the `IDENTITY_BOOTSTRAP_SENTINEL` skip in the calibration loader; real artifacts carry real pipeline versions and the equality check enforces match.
-- Re-tune Phase 1's heuristic Σ_meas weighting now that confidence is meaningful (snap threshold, process noise, confidence-to-Σ_meas scaling).
+- Re-tune Phase 1's heuristic Σ_meas weighting now that confidence is meaningful (snap threshold, base per-tick process noise, confidence-to-Σ_meas scaling). The base process noise constants shipped early to fix the lock-in bug; this phase replaces the coarse defaults with values informed by the fitted σ_meas.
 - Implement the per-map calibration loader path (lazy MinIO fetch + cache), but defer the per-map fitting code to Phase 6.
 
 End of Phase 3: confidence is well-calibrated for ZED-source queries; phone queries still suffer device shift but are meaningfully better than identity.
@@ -261,5 +261,5 @@ Placeholders deliberately left by earlier phases, with the trigger for replaceme
 - `config/calibration/global.json` — identity calibration: empty logistic weights, intercept-only, identity isotonic, `pipeline_version: "identity-bootstrap"`. The `tight.logistic.intercept` was tweaked from `0.0` to `-4.59511985013459` (so `sigmoid → 0.01`) as a band-aid to give the `Σ_meas / tight²` formula sensible 10000× covariance inflation; runtime logic is unchanged from the proper-Phase-3 design. Replaced wholesale by output of `scripts/fit_calibration.py` in Phase 3.
 - `docker/localizer/src/localize.py` — `MIN_NUM_INLIERS = 50` / `MIN_INLIER_COVERAGE = 0.15` raw quality floor band-aid. Rejects garbage localizations that the broken confidence stub can't filter. Replaced in Phase 3 by `if metrics.confidence.tight < TIGHT_MIN: raise LocalizationError(...)` — see the BAND-AID comment block in `localize_image_against_reconstruction`.
 - `docker/localizer/src/calibration.py:56` — `IDENTITY_BOOTSTRAP_SENTINEL` and the equality-check skip in `load_global_calibration`. Both removed once Phase 3's first real calibration ships.
-- VPS frontend lacks σ_posterior floor / per-tick process noise. Filter locks in after ~30 stationary measurements. Phase 3 adds either approach, sized at ~σ_meas/3. See `vps-redesign-intent.md` "Σ_posterior lock-in" finding.
+- ~~VPS frontend lacks σ_posterior floor / per-tick process noise. Filter locks in after ~30 stationary measurements.~~ Shipped early as a per-tick base process noise term in `RelocalizationFilter.ProcessNoise()` — `BaseProcessNoise{Translation,Rotation}VariancePerTick` added unconditionally. Numbers (1e-4 m², 1e-6 rad²) are coarse and will be re-tuned in Phase 3 once σ_meas is fit from real data.
 - Phase 1 inline math in `packages/unity/Placeframe/Assets/Package/Core/Runtime/` (SE(3) Log/Exp, 6×6 covariance algebra, `RelocalizationFilter`) stays here permanently. Tested in-place via Unity Test Framework in Phase 2a.
