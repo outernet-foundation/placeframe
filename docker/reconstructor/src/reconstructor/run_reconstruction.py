@@ -4,6 +4,7 @@ import tarfile
 from collections.abc import Callable
 from io import BytesIO
 from pathlib import Path
+from time import perf_counter
 from typing import Any
 from uuid import UUID
 
@@ -208,7 +209,9 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
 
     # Match features
     _set_phase("matching_features")
+    matching_t0 = perf_counter()
     match_indices = local_feature_matcher(pairs, keypoints, descriptors, sizes, options.lightglue_batch_size())
+    print(f"matching_features wall_time={perf_counter() - matching_t0:.2f}s pairs={len(pairs)}")
     if cuda.is_available():
         cuda.empty_cache()
 
