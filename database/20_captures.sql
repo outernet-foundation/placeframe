@@ -9,13 +9,16 @@ CREATE TABLE capture_sessions(
     REFERENCES auth.tenants(id) 
     ON DELETE RESTRICT 
     DEFAULT current_tenant(),
-  created_at timestamptz 
-    NOT NULL 
+  created_at timestamptz
+    NOT NULL
     DEFAULT now(),
-  updated_at timestamptz 
-    NOT NULL 
+  updated_at timestamptz
+    NOT NULL
     DEFAULT now(),
-  name text 
+  recorded_at timestamptz
+    NOT NULL
+    DEFAULT now(),
+  name text
     NOT NULL,
   device_type device_type 
     NOT NULL,

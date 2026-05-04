@@ -96,6 +96,11 @@ namespace Placeframe.Core
                 .Select(name => Guid.Parse(name));
         }
 
+        public static DateTime GetCaptureRecordedAtUtc(Guid captureId)
+        {
+            return Directory.GetCreationTimeUtc(SessionDir(captureId.ToString()));
+        }
+
         public static async UniTask<Stream> GetCaptureTar(Guid captureId)
         {
             var directoryPath = SessionDir(captureId.ToString());

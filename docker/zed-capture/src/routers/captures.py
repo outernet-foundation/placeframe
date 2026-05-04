@@ -1,5 +1,6 @@
 import pathlib
 from asyncio import to_thread
+from datetime import UTC, datetime
 from os import environ
 from shutil import rmtree
 from typing import List, cast
@@ -10,6 +11,7 @@ from litestar import Router, delete, get, post
 from litestar.exceptions import ClientException, NotFoundException
 from litestar.response import Stream
 from litestar.status_codes import HTTP_409_CONFLICT
+from pydantic import AwareDatetime, BaseModel
 
 CAPTURES_DIRECTORY = pathlib.Path.home() / "captures"
 
@@ -47,9 +49,28 @@ async def stop_capture() -> None:
         raise ClientException(detail=str(e), status_code=HTTP_409_CONFLICT)
 
 
+class ZedCapture(BaseModel):
+    id: UUID
+    recorded_at: AwareDatetime
+
+
 @get("")
-async def get_captures() -> List[UUID]:
-    return sorted([cast(UUID, capture.name) for capture in CAPTURES_DIRECTORY.glob("*") if capture.is_dir()])
+async def get_captures() -> List[ZedCapture]:
+    captures = [
+        ZedCapture(
+            id=cast(UUID, capture.name),
+            # st_ctime is the directory's inode-change time. The directory is
+            # created at recording-start and its child rig0/cameraN subdirs are
+            # created within the same start_capture() call (see zed.py _start),
+            # so st_ctime settles within ~ms of recording-start and is stable
+            # for the rest of the session — close enough to "when recording
+            # began" to display in the UI without writing a sidecar timestamp.
+            recorded_at=datetime.fromtimestamp(capture.stat().st_ctime, tz=UTC),
+        )
+        for capture in CAPTURES_DIRECTORY.glob("*")
+        if capture.is_dir()
+    ]
+    return sorted(captures, key=lambda c: c.id)
 
 
 @get(

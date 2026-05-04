@@ -107,7 +107,7 @@ namespace Placeframe.Client
 
         public StateValue<string> name { get; private set; }
         public StateValue<DeviceType> type { get; private set; }
-        public StateValue<DateTime> createdAt { get; private set; }
+        public StateValue<DateTime> recordedAt { get; private set; }
         public StateValue<CaptureUploadStatus> status { get; private set; }
         public StateValue<float> statusPercentage { get; private set; }
         public StateValue<Guid> reconstructionId { get; private set; }

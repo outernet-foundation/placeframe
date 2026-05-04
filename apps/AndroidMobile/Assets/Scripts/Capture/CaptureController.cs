@@ -133,7 +133,7 @@ namespace Placeframe.Client
                                                         capture.status.value = progress.Item1
                                                     )
                                                 )
-                                                .Forget(exception => capture.status.ScheduleSet(CaptureUploadStatus.Failed));
+                                                .Forget(exception => capture.status.value = CaptureUploadStatus.Failed);
                                         },
                                         onDialogCancelled = () =>
                                             capture.status.value = CaptureUploadStatus.NotUploaded,
@@ -352,13 +352,14 @@ namespace Placeframe.Client
                     .ContinueWith(x => remoteCaptureLocalizationMaps = x)
             );
 
-            List<Guid> zedCaptures = new List<Guid>();
+            Dictionary<Guid, DateTime> zedCaptures = new Dictionary<Guid, DateTime>();
 
             try
             {
                 using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(1));
                 var captures = await ZedCaptureController.GetCaptures(cancellationTokenSource.Token);
-                zedCaptures.AddRange(captures);
+                foreach (var capture in captures)
+                    zedCaptures[capture.Id] = capture.RecordedAt;
             }
             catch
             {
@@ -388,27 +389,29 @@ namespace Placeframe.Client
                         deviceType: x.DeviceType,
                         reconstruction,
                         localizationMap,
-                        hasLocalFiles: zedCaptures.Contains(x.Id) || arFoundationCaptures.Contains(x.Id),
-                        reconstructionManifest: reconstructionManifest
+                        hasLocalFiles: zedCaptures.ContainsKey(x.Id) || arFoundationCaptures.Contains(x.Id),
+                        reconstructionManifest: reconstructionManifest,
+                        recordedAt: x.RecordedAt
                     );
                 }
             );
 
-            foreach (var zedCapture in zedCaptures)
+            foreach (var (zedCaptureId, zedCaptureRecordedAt) in zedCaptures)
             {
-                if (captureData.ContainsKey(zedCapture))
+                if (captureData.ContainsKey(zedCaptureId))
                     continue;
 
                 captureData.Add(
-                    zedCapture,
+                    zedCaptureId,
                     (
-                        name: captureNames.TryGetValue(zedCapture, out var name) ? name : null,
+                        name: captureNames.TryGetValue(zedCaptureId, out var name) ? name : null,
                         capture: null,
                         deviceType: DeviceType.Zed,
                         reconstruction: null,
                         localizationMap: null,
                         hasLocalFiles: true,
-                        reconstructionManifest: null
+                        reconstructionManifest: null,
+                        recordedAt: zedCaptureRecordedAt
                     )
                 );
             }
@@ -427,7 +430,8 @@ namespace Placeframe.Client
                         reconstruction: null,
                         localizationMap: null,
                         hasLocalFiles: true,
-                        reconstructionManifest: null
+                        reconstructionManifest: null,
+                        recordedAt: CaptureManager.GetCaptureRecordedAtUtc(arFoundationCapture)
                     )
                 );
             }
@@ -445,16 +449,13 @@ namespace Placeframe.Client
                         state.name.value = entry.name;
                         state.hasLocalFiles.value = entry.hasLocalFiles;
                         state.manifest.value = entry.reconstructionManifest;
+                        state.recordedAt.value = entry.recordedAt;
+                        state.type.value = entry.deviceType;
 
                         if (entry.capture == null) //capture is local only
                         {
-                            state.type.value = entry.deviceType;
                             state.status.value = CaptureUploadStatus.NotUploaded;
                             return;
-                        }
-                        else
-                        {
-                            state.type.value = entry.deviceType;
                         }
 
                         if (entry.reconstruction == null)
@@ -545,7 +546,7 @@ namespace Placeframe.Client
             {
                 captureData = await ZedCaptureController.GetCapture(id, cancellationToken);
                 captureSession = await VisualPositioningSystem.Api
-                    .CreateCaptureSessionAsync(new CaptureSessionCreate(DeviceType.Zed, name) { Id = id })
+                    .CreateCaptureSessionAsync(new CaptureSessionCreate(DeviceType.Zed, name) { Id = id, RecordedAt = capture.recordedAt.value })
                     .AsUniTask();
             }
             else if (type == DeviceType.ARFoundation)
@@ -564,7 +565,7 @@ namespace Placeframe.Client
                 {
                     await UniTask.SwitchToMainThread();
                     captureSession = await VisualPositioningSystem.Api
-                        .CreateCaptureSessionAsync(new CaptureSessionCreate(DeviceType.ARFoundation, name) { Id = id })
+                        .CreateCaptureSessionAsync(new CaptureSessionCreate(DeviceType.ARFoundation, name) { Id = id, RecordedAt = capture.recordedAt.value })
                         .AsUniTask();
                 }
                 catch (Exception e)
