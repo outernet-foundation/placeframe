@@ -17,7 +17,8 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictStr
+from datetime import datetime
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
 from uuid import UUID
 from placeframe_api_client.models.device_type import DeviceType
@@ -32,8 +33,9 @@ class CaptureSessionCreate(BaseModel):
     id: Optional[UUID] = None
     device_type: DeviceType
     name: StrictStr
+    recorded_at: Optional[datetime] = Field(default=None, description="datetime with the constraint that the value must have timezone info")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "device_type", "name"]
+    __properties: ClassVar[List[str]] = ["id", "device_type", "name", "recorded_at"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -86,6 +88,11 @@ class CaptureSessionCreate(BaseModel):
         if self.id is None and "id" in self.model_fields_set:
             _dict['id'] = None
 
+        # set to None if recorded_at (nullable) is None
+        # and model_fields_set contains the field
+        if self.recorded_at is None and "recorded_at" in self.model_fields_set:
+            _dict['recorded_at'] = None
+
         return _dict
 
     @classmethod
@@ -100,7 +107,8 @@ class CaptureSessionCreate(BaseModel):
         _obj = cls.model_validate({
             "id": obj.get("id"),
             "device_type": obj.get("device_type"),
-            "name": obj.get("name")
+            "name": obj.get("name"),
+            "recorded_at": obj.get("recorded_at")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

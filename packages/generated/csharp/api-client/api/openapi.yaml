@@ -1838,6 +1838,7 @@ components:
       type: string
     CaptureSessionBatchUpdate:
       example:
+        recorded_at: 2000-01-23T04:56:07.000+00:00
         name: name
         device_type: ARFoundation
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -1851,6 +1852,13 @@ components:
         name:
           nullable: true
           title: Name
+          type: string
+        recorded_at:
+          description: datetime with the constraint that the value must have timezone
+            info
+          format: date-time
+          nullable: true
+          title: Recorded At
           type: string
       required:
       - id
@@ -1858,6 +1866,7 @@ components:
       type: object
     CaptureSessionCreate:
       example:
+        recorded_at: 2000-01-23T04:56:07.000+00:00
         name: name
         device_type: ARFoundation
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -1871,6 +1880,13 @@ components:
           $ref: "#/components/schemas/DeviceType"
         name:
           title: Name
+          type: string
+        recorded_at:
+          description: datetime with the constraint that the value must have timezone
+            info
+          format: date-time
+          nullable: true
+          title: Recorded At
           type: string
       required:
       - device_type
@@ -1979,6 +1995,7 @@ components:
       type: object
     CaptureSessionRead:
       example:
+        recorded_at: 2000-01-23T04:56:07.000+00:00
         updated_at: 2000-01-23T04:56:07.000+00:00
         name: name
         created_at: 2000-01-23T04:56:07.000+00:00
@@ -2006,16 +2023,24 @@ components:
         name:
           title: Name
           type: string
+        recorded_at:
+          description: datetime with the constraint that the value must have timezone
+            info
+          format: date-time
+          title: Created At
+          type: string
       required:
       - created_at
       - device_type
       - id
       - name
+      - recorded_at
       - updated_at
       title: CaptureSessionRead
       type: object
     CaptureSessionUpdate:
       example:
+        recorded_at: 2000-01-23T04:56:07.000+00:00
         name: name
         device_type: ARFoundation
       properties:
@@ -2024,6 +2049,13 @@ components:
         name:
           nullable: true
           title: Name
+          type: string
+        recorded_at:
+          description: datetime with the constraint that the value must have timezone
+            info
+          format: date-time
+          nullable: true
+          title: Recorded At
           type: string
       title: CaptureSessionUpdate
       type: object

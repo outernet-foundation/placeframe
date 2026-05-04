@@ -120,8 +120,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "type": "string",
-                    "format": "uuid"
+                    "$ref": "#/components/schemas/ZedCapture"
                   },
                   "type": "array"
                 }
@@ -453,6 +452,25 @@
           "next_cursor"
         ],
         "title": "LogBatch"
+      },
+      "ZedCapture": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "datetime with the constraint that the value must have timezone info"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "recorded_at"
+        ],
+        "title": "ZedCapture"
       },
       "ZedStatus": {
         "properties": {

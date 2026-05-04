@@ -85,8 +85,8 @@ namespace PlaceframeZedCaptureClient.Api
         /// GetCaptures
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <returns>List&lt;Guid&gt;</returns>
-        List<Guid> GetCaptures();
+        /// <returns>List&lt;ZedCapture&gt;</returns>
+        List<ZedCapture> GetCaptures();
 
         /// <summary>
         /// GetCaptures
@@ -95,8 +95,8 @@ namespace PlaceframeZedCaptureClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <returns>ApiResponse of List&lt;Guid&gt;</returns>
-        ApiResponse<List<Guid>> GetCapturesWithHttpInfo();
+        /// <returns>ApiResponse of List&lt;ZedCapture&gt;</returns>
+        ApiResponse<List<ZedCapture>> GetCapturesWithHttpInfo();
         /// <summary>
         /// GetLogs
         /// </summary>
@@ -253,8 +253,8 @@ namespace PlaceframeZedCaptureClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of List&lt;Guid&gt;</returns>
-        System.Threading.Tasks.Task<List<Guid>> GetCapturesAsync(System.Threading.CancellationToken cancellationToken = default);
+        /// <returns>Task of List&lt;ZedCapture&gt;</returns>
+        System.Threading.Tasks.Task<List<ZedCapture>> GetCapturesAsync(System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetCaptures
@@ -264,8 +264,8 @@ namespace PlaceframeZedCaptureClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (List&lt;Guid&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<Guid>>> GetCapturesWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
+        /// <returns>Task of ApiResponse (List&lt;ZedCapture&gt;)</returns>
+        System.Threading.Tasks.Task<ApiResponse<List<ZedCapture>>> GetCapturesWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetLogs
         /// </summary>
@@ -896,10 +896,10 @@ namespace PlaceframeZedCaptureClient.Api
         /// GetCaptures 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <returns>List&lt;Guid&gt;</returns>
-        public List<Guid> GetCaptures()
+        /// <returns>List&lt;ZedCapture&gt;</returns>
+        public List<ZedCapture> GetCaptures()
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<List<Guid>> localVarResponse = GetCapturesWithHttpInfo();
+            PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>> localVarResponse = GetCapturesWithHttpInfo();
             return localVarResponse.Data;
         }
 
@@ -907,8 +907,8 @@ namespace PlaceframeZedCaptureClient.Api
         /// GetCaptures 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <returns>ApiResponse of List&lt;Guid&gt;</returns>
-        public PlaceframeZedCaptureClient.Client.ApiResponse<List<Guid>> GetCapturesWithHttpInfo()
+        /// <returns>ApiResponse of List&lt;ZedCapture&gt;</returns>
+        public PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>> GetCapturesWithHttpInfo()
         {
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
 
@@ -929,7 +929,7 @@ namespace PlaceframeZedCaptureClient.Api
 
 
             // make the HTTP request
-            var localVarResponse = this.Client.Get<List<Guid>>("/captures", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Get<List<ZedCapture>>("/captures", localVarRequestOptions, this.Configuration);
 
             if (this.ExceptionFactory != null)
             {
@@ -945,10 +945,10 @@ namespace PlaceframeZedCaptureClient.Api
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of List&lt;Guid&gt;</returns>
-        public async System.Threading.Tasks.Task<List<Guid>> GetCapturesAsync(System.Threading.CancellationToken cancellationToken = default)
+        /// <returns>Task of List&lt;ZedCapture&gt;</returns>
+        public async System.Threading.Tasks.Task<List<ZedCapture>> GetCapturesAsync(System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<List<Guid>> localVarResponse = await GetCapturesWithHttpInfoAsync(cancellationToken).ConfigureAwait(false);
+            PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>> localVarResponse = await GetCapturesWithHttpInfoAsync(cancellationToken).ConfigureAwait(false);
             return localVarResponse.Data;
         }
 
@@ -957,8 +957,8 @@ namespace PlaceframeZedCaptureClient.Api
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (List&lt;Guid&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeZedCaptureClient.Client.ApiResponse<List<Guid>>> GetCapturesWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
+        /// <returns>Task of ApiResponse (List&lt;ZedCapture&gt;)</returns>
+        public async System.Threading.Tasks.Task<PlaceframeZedCaptureClient.Client.ApiResponse<List<ZedCapture>>> GetCapturesWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
@@ -982,7 +982,7 @@ namespace PlaceframeZedCaptureClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<List<Guid>>("/captures", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<List<ZedCapture>>("/captures", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
 
             if (this.ExceptionFactory != null)
             {

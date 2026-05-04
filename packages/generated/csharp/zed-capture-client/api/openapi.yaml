@@ -67,8 +67,7 @@ paths:
             application/json:
               schema:
                 items:
-                  format: uuid
-                  type: string
+                  $ref: "#/components/schemas/ZedCapture"
                 type: array
           description: "Request fulfilled, document follows"
       summary: GetCaptures
@@ -236,6 +235,24 @@ components:
       - has_more
       - next_cursor
       title: LogBatch
+      type: object
+    ZedCapture:
+      example:
+        recorded_at: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          type: string
+        recorded_at:
+          description: datetime with the constraint that the value must have timezone
+            info
+          format: date-time
+          type: string
+      required:
+      - id
+      - recorded_at
+      title: ZedCapture
       type: object
     ZedStatus:
       example:

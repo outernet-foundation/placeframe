@@ -70,7 +70,8 @@ namespace PlaceframeApiClient.Model
         /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="deviceType">deviceType (required).</param>
         /// <param name="name">name (required).</param>
-        public CaptureSessionRead(Guid id, DateTime createdAt, DateTime updatedAt, DeviceType deviceType, string name)
+        /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (required).</param>
+        public CaptureSessionRead(Guid id, DateTime createdAt, DateTime updatedAt, DeviceType deviceType, string name, DateTime recordedAt)
         {
             this.Id = id;
             this.CreatedAt = createdAt;
@@ -82,6 +83,7 @@ namespace PlaceframeApiClient.Model
                 throw new ArgumentNullException("name is a required property for CaptureSessionRead and cannot be null");
             }
             this.Name = name;
+            this.RecordedAt = recordedAt;
         }
 
         /// <summary>
@@ -183,6 +185,31 @@ namespace PlaceframeApiClient.Model
             return _flagName;
         }
         /// <summary>
+        /// datetime with the constraint that the value must have timezone info
+        /// </summary>
+        /// <value>datetime with the constraint that the value must have timezone info</value>
+        [DataMember(Name = "recorded_at", IsRequired = true, EmitDefaultValue = true)]
+        public DateTime RecordedAt
+        {
+            get{ return _RecordedAt;}
+            set
+            {
+                _RecordedAt = value;
+                _flagRecordedAt = true;
+            }
+        }
+        private DateTime _RecordedAt;
+        private bool _flagRecordedAt;
+
+        /// <summary>
+        /// Returns false as RecordedAt should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeRecordedAt()
+        {
+            return _flagRecordedAt;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -195,6 +222,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  UpdatedAt: ").Append(UpdatedAt).Append("\n");
             sb.Append("  DeviceType: ").Append(DeviceType).Append("\n");
             sb.Append("  Name: ").Append(Name).Append("\n");
+            sb.Append("  RecordedAt: ").Append(RecordedAt).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

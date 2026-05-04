@@ -35,8 +35,9 @@ class CaptureSessionRead(BaseModel):
     updated_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     device_type: DeviceType
     name: StrictStr
+    recorded_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "created_at", "updated_at", "device_type", "name"]
+    __properties: ClassVar[List[str]] = ["id", "created_at", "updated_at", "device_type", "name", "recorded_at"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -100,7 +101,8 @@ class CaptureSessionRead(BaseModel):
             "created_at": obj.get("created_at"),
             "updated_at": obj.get("updated_at"),
             "device_type": obj.get("device_type"),
-            "name": obj.get("name")
+            "name": obj.get("name"),
+            "recorded_at": obj.get("recorded_at")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

@@ -4253,6 +4253,13 @@
             "title": "Name",
             "nullable": true,
             "type": "string"
+          },
+          "recorded_at": {
+            "title": "Recorded At",
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "description": "datetime with the constraint that the value must have timezone info"
           }
         },
         "type": "object",
@@ -4275,6 +4282,13 @@
           "name": {
             "type": "string",
             "title": "Name"
+          },
+          "recorded_at": {
+            "title": "Recorded At",
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "description": "datetime with the constraint that the value must have timezone info"
           }
         },
         "type": "object",
@@ -4332,6 +4346,12 @@
           "name": {
             "type": "string",
             "title": "Name"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "datetime with the constraint that the value must have timezone info"
           }
         },
         "type": "object",
@@ -4340,6 +4360,7 @@
           "device_type",
           "id",
           "name",
+          "recorded_at",
           "updated_at"
         ],
         "title": "CaptureSessionRead"
@@ -4354,6 +4375,13 @@
             "title": "Name",
             "nullable": true,
             "type": "string"
+          },
+          "recorded_at": {
+            "title": "Recorded At",
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "description": "datetime with the constraint that the value must have timezone info"
           }
         },
         "type": "object",
