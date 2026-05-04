@@ -133,7 +133,7 @@ namespace Placeframe.Client
                                                         capture.status.value = progress.Item1
                                                     )
                                                 )
-                                                .Forget();
+                                                .Forget(exception => capture.status.ScheduleSet(CaptureUploadStatus.Failed));
                                         },
                                         onDialogCancelled = () =>
                                             capture.status.value = CaptureUploadStatus.NotUploaded,
