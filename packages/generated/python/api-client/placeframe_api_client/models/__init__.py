@@ -50,6 +50,7 @@ from placeframe_api_client.models.node_batch_update import NodeBatchUpdate
 from placeframe_api_client.models.node_create import NodeCreate
 from placeframe_api_client.models.node_read import NodeRead
 from placeframe_api_client.models.orchestration_status import OrchestrationStatus
+from placeframe_api_client.models.phase_progress import PhaseProgress
 from placeframe_api_client.models.pinhole_camera_config import PinholeCameraConfig
 from placeframe_api_client.models.reconstruction_create import ReconstructionCreate
 from placeframe_api_client.models.reconstruction_create_with_options import ReconstructionCreateWithOptions

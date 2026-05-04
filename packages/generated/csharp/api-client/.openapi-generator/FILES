@@ -60,6 +60,7 @@ src/PlaceframeApiClient/Model/NodeBatchUpdate.cs
 src/PlaceframeApiClient/Model/NodeCreate.cs
 src/PlaceframeApiClient/Model/NodeRead.cs
 src/PlaceframeApiClient/Model/OrchestrationStatus.cs
+src/PlaceframeApiClient/Model/PhaseProgress.cs
 src/PlaceframeApiClient/Model/PinholeCameraConfig.cs
 src/PlaceframeApiClient/Model/ReconstructionCreate.cs
 src/PlaceframeApiClient/Model/ReconstructionCreateWithOptions.cs

@@ -5816,6 +5816,26 @@
         ],
         "title": "OrchestrationStatus"
       },
+      "PhaseProgress": {
+        "properties": {
+          "current": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "attempt": {
+            "type": "integer",
+            "default": 1
+          }
+        },
+        "type": "object",
+        "required": [
+          "current",
+          "total"
+        ],
+        "title": "PhaseProgress"
+      },
       "PinholeCameraConfig": {
         "properties": {
           "width": {
@@ -5927,6 +5947,10 @@
           "error": {
             "nullable": true,
             "type": "string"
+          },
+          "phase_progress": {
+            "nullable": true,
+            "$ref": "#/components/schemas/PhaseProgress"
           },
           "options": {
             "$ref": "#/components/schemas/ReconstructionOptions"

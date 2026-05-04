@@ -141,6 +141,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="captureId">captureId (required).</param>
         /// <param name="status">status (required).</param>
         /// <param name="error">error.</param>
+        /// <param name="phaseProgress">phaseProgress.</param>
         /// <param name="options">options (required).</param>
         /// <param name="metrics">metrics (required).</param>
         public ReconstructionManifest(string captureId, StatusEnum status, ReconstructionOptions options, ReconstructionMetrics metrics)
@@ -263,6 +264,30 @@ namespace PlaceframeApiClient.Model
             return _flagError;
         }
         /// <summary>
+        /// Gets or Sets PhaseProgress
+        /// </summary>
+        [DataMember(Name = "phase_progress", EmitDefaultValue = false)]
+        public PhaseProgress PhaseProgress
+        {
+            get{ return _PhaseProgress;}
+            set
+            {
+                _PhaseProgress = value;
+                _flagPhaseProgress = true;
+            }
+        }
+        private PhaseProgress _PhaseProgress;
+        private bool _flagPhaseProgress;
+
+        /// <summary>
+        /// Returns false as PhaseProgress should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePhaseProgress()
+        {
+            return _flagPhaseProgress;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -275,6 +300,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  Options: ").Append(Options).Append("\n");
             sb.Append("  Metrics: ").Append(Metrics).Append("\n");
             sb.Append("  Error: ").Append(Error).Append("\n");
+            sb.Append("  PhaseProgress: ").Append(PhaseProgress).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

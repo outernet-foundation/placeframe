@@ -219,6 +219,7 @@ Class | Method | HTTP request | Description
  - [Model.NodeCreate](docs/NodeCreate.md)
  - [Model.NodeRead](docs/NodeRead.md)
  - [Model.OrchestrationStatus](docs/OrchestrationStatus.md)
+ - [Model.PhaseProgress](docs/PhaseProgress.md)
  - [Model.PinholeCameraConfig](docs/PinholeCameraConfig.md)
  - [Model.ReconstructionCreate](docs/ReconstructionCreate.md)
  - [Model.ReconstructionCreateWithOptions](docs/ReconstructionCreateWithOptions.md)

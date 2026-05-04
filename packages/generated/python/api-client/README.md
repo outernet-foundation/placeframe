@@ -177,6 +177,7 @@ Class | Method | HTTP request | Description
  - [NodeCreate](docs/NodeCreate.md)
  - [NodeRead](docs/NodeRead.md)
  - [OrchestrationStatus](docs/OrchestrationStatus.md)
+ - [PhaseProgress](docs/PhaseProgress.md)
  - [PinholeCameraConfig](docs/PinholeCameraConfig.md)
  - [ReconstructionCreate](docs/ReconstructionCreate.md)
  - [ReconstructionCreateWithOptions](docs/ReconstructionCreateWithOptions.md)

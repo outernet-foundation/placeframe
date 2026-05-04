@@ -3570,6 +3570,24 @@ components:
       - failed
       title: OrchestrationStatus
       type: string
+    PhaseProgress:
+      example:
+        current: 0
+        total: 6
+        attempt: 1
+      properties:
+        current:
+          type: integer
+        total:
+          type: integer
+        attempt:
+          default: 1
+          type: integer
+      required:
+      - current
+      - total
+      title: PhaseProgress
+      type: object
     PinholeCameraConfig:
       example:
         orientation: TOP_LEFT
@@ -3677,6 +3695,10 @@ components:
       type: object
     ReconstructionManifest:
       example:
+        phase_progress:
+          current: 0
+          total: 6
+          attempt: 1
         options:
           random_seed: 0
           ransac_max_error: 5.637376656633329
@@ -3704,38 +3726,38 @@ components:
           single_threaded: true
           rig_verification: true
         metrics:
-          truth_alignment_max_residual_m: 6.878052220127876
-          all_verified_match_inliers_median: 1.2315135367772556
+          truth_alignment_max_residual_m: 3.353193347011243
+          all_verified_match_inliers_median: 6.84685269835264
           cross_sensor_verified_matches: 9
-          reprojection_pixel_error_50th_percentile: 2.3021358869347655
-          stereo_verified_match_rate: 1.4894159098541704
-          same_sensor_verified_match_inliers_median: 9.965781217890562
-          num_3d_points: 5
-          same_sensor_verified_match_rate: 4.965218492984954
-          truth_alignment_rms_residual_m: 6.778324963048013
-          all_verified_match_inliers_mean: 7.386281948385884
-          cross_sensor_verified_match_inliers_mean: 8.762042012749001
-          stereo_verified_match_inliers_median: 7.457744773683766
-          all_verified_matches: 2
-          average_keypoints_per_image: 5.637376656633329
-          map_viewpoint_diversity: 2.8841621266687802
-          cross_sensor_verified_match_rate: 6.683562403749608
-          registration_rate: 1.4658129805029452
-          map_bounding_volume_m3: 1.284659006116532
-          same_sensor_verified_match_inliers_mean: 5.025004791520295
-          registered_images: 6
-          percent_tracks_with_length_greater_than_or_equal_to_3: 3.616076749251911
-          same_sensor_verified_matches: 1
-          map_image_count: 6
-          track_length_50th_percentile: 9.301444243932576
-          cross_sensor_verified_match_inliers_median: 9.018348186070783
-          all_verified_match_rate: 4.145608029883936
-          total_images: 0
-          reprojection_pixel_error_90th_percentile: 7.061401241503109
-          stereo_verified_matches: 1
-          map_point_count: 3
-          stereo_verified_match_inliers_mean: 6.84685269835264
-          map_avg_track_length: 6.965117697638846
+          reprojection_pixel_error_50th_percentile: 3.616076749251911
+          stereo_verified_match_rate: 1.1730742509559433
+          same_sensor_verified_match_inliers_median: 8.762042012749001
+          num_3d_points: 7
+          same_sensor_verified_match_rate: 9.369310271410669
+          truth_alignment_rms_residual_m: 6.704019297950036
+          all_verified_match_inliers_mean: 1.4894159098541704
+          cross_sensor_verified_match_inliers_mean: 3.5571952270680973
+          stereo_verified_match_inliers_median: 5.025004791520295
+          all_verified_matches: 1
+          average_keypoints_per_image: 9.301444243932576
+          map_viewpoint_diversity: 5.944895607614016
+          cross_sensor_verified_match_rate: 6.438423552598547
+          registration_rate: 2.3021358869347655
+          map_bounding_volume_m3: 6.878052220127876
+          same_sensor_verified_match_inliers_mean: 6.683562403749608
+          registered_images: 5
+          percent_tracks_with_length_greater_than_or_equal_to_3: 7.386281948385884
+          same_sensor_verified_matches: 9
+          map_image_count: 1
+          track_length_50th_percentile: 4.145608029883936
+          cross_sensor_verified_match_inliers_median: 6.965117697638846
+          all_verified_match_rate: 1.0246457001441578
+          total_images: 5
+          reprojection_pixel_error_90th_percentile: 2.027123023002322
+          stereo_verified_matches: 7
+          map_point_count: 2
+          stereo_verified_match_inliers_mean: 4.965218492984954
+          map_avg_track_length: 6.778324963048013
         capture_id: capture_id
         error: error
         status: queued
@@ -3759,6 +3781,8 @@ components:
         error:
           nullable: true
           type: string
+        phase_progress:
+          $ref: "#/components/schemas/PhaseProgress"
         options:
           $ref: "#/components/schemas/ReconstructionOptions"
         metrics:
@@ -3772,38 +3796,38 @@ components:
       type: object
     ReconstructionMetrics:
       example:
-        truth_alignment_max_residual_m: 6.878052220127876
-        all_verified_match_inliers_median: 1.2315135367772556
+        truth_alignment_max_residual_m: 3.353193347011243
+        all_verified_match_inliers_median: 6.84685269835264
         cross_sensor_verified_matches: 9
-        reprojection_pixel_error_50th_percentile: 2.3021358869347655
-        stereo_verified_match_rate: 1.4894159098541704
-        same_sensor_verified_match_inliers_median: 9.965781217890562
-        num_3d_points: 5
-        same_sensor_verified_match_rate: 4.965218492984954
-        truth_alignment_rms_residual_m: 6.778324963048013
-        all_verified_match_inliers_mean: 7.386281948385884
-        cross_sensor_verified_match_inliers_mean: 8.762042012749001
-        stereo_verified_match_inliers_median: 7.457744773683766
-        all_verified_matches: 2
-        average_keypoints_per_image: 5.637376656633329
-        map_viewpoint_diversity: 2.8841621266687802
-        cross_sensor_verified_match_rate: 6.683562403749608
-        registration_rate: 1.4658129805029452
-        map_bounding_volume_m3: 1.284659006116532
-        same_sensor_verified_match_inliers_mean: 5.025004791520295
-        registered_images: 6
-        percent_tracks_with_length_greater_than_or_equal_to_3: 3.616076749251911
-        same_sensor_verified_matches: 1
-        map_image_count: 6
-        track_length_50th_percentile: 9.301444243932576
-        cross_sensor_verified_match_inliers_median: 9.018348186070783
-        all_verified_match_rate: 4.145608029883936
-        total_images: 0
-        reprojection_pixel_error_90th_percentile: 7.061401241503109
-        stereo_verified_matches: 1
-        map_point_count: 3
-        stereo_verified_match_inliers_mean: 6.84685269835264
-        map_avg_track_length: 6.965117697638846
+        reprojection_pixel_error_50th_percentile: 3.616076749251911
+        stereo_verified_match_rate: 1.1730742509559433
+        same_sensor_verified_match_inliers_median: 8.762042012749001
+        num_3d_points: 7
+        same_sensor_verified_match_rate: 9.369310271410669
+        truth_alignment_rms_residual_m: 6.704019297950036
+        all_verified_match_inliers_mean: 1.4894159098541704
+        cross_sensor_verified_match_inliers_mean: 3.5571952270680973
+        stereo_verified_match_inliers_median: 5.025004791520295
+        all_verified_matches: 1
+        average_keypoints_per_image: 9.301444243932576
+        map_viewpoint_diversity: 5.944895607614016
+        cross_sensor_verified_match_rate: 6.438423552598547
+        registration_rate: 2.3021358869347655
+        map_bounding_volume_m3: 6.878052220127876
+        same_sensor_verified_match_inliers_mean: 6.683562403749608
+        registered_images: 5
+        percent_tracks_with_length_greater_than_or_equal_to_3: 7.386281948385884
+        same_sensor_verified_matches: 9
+        map_image_count: 1
+        track_length_50th_percentile: 4.145608029883936
+        cross_sensor_verified_match_inliers_median: 6.965117697638846
+        all_verified_match_rate: 1.0246457001441578
+        total_images: 5
+        reprojection_pixel_error_90th_percentile: 2.027123023002322
+        stereo_verified_matches: 7
+        map_point_count: 2
+        stereo_verified_match_inliers_mean: 4.965218492984954
+        map_avg_track_length: 6.778324963048013
       properties:
         total_images:
           description: Total number of input images considered for this reconstruction
