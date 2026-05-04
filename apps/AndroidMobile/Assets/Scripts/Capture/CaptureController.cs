@@ -85,6 +85,20 @@ namespace Placeframe.Client
             );
         }
 
+        public static void RequestRetry(CaptureState capture)
+        {
+            RetryReconstruction(capture).Forget(_ => capture.status.ScheduleSet(CaptureUploadStatus.Failed));
+        }
+
+        private static async UniTask RetryReconstruction(CaptureState capture)
+        {
+            await VisualPositioningSystem.Api
+                .RetryReconstructionAsync(capture.reconstructionId.value)
+                .AsUniTask();
+            capture.manifest.ScheduleSet(null);
+            capture.status.ScheduleSet(CaptureUploadStatus.Reconstructing);
+        }
+
         public static void RequestCreateMap(CaptureState capture)
         {
             VisualPositioningSystem.Api

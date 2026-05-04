@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from uuid import UUID
 
 from datamodels.public_tables import OrchestrationStatus, Reconstruction
@@ -7,10 +8,13 @@ from litestar import Router, post, put
 from litestar.di import Provide
 from litestar.exceptions import NotFoundException
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import func
 
 from ..database import get_worker_session
+
+LEASE_TIMEOUT = timedelta(minutes=30)
 
 
 class LeaseResponse(BaseModel):
@@ -20,6 +24,16 @@ class LeaseResponse(BaseModel):
 
 @post("/request")
 async def request_lease(session: AsyncSession) -> LeaseResponse:
+    # Reap stale leases — a worker crash skips complete_lease and would otherwise stall the queue.
+    await session.execute(
+        update(Reconstruction)
+        .where(
+            Reconstruction.orchestration_status == OrchestrationStatus.PENDING,
+            Reconstruction.updated_at < func.now() - LEASE_TIMEOUT,
+        )
+        .values(orchestration_status=OrchestrationStatus.FAILED)
+    )
+
     # Find the oldest queued reconstruction and lock the row
     result = await session.execute(
         select(Reconstruction)
