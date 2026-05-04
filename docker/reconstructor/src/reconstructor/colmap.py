@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 from shutil import rmtree
-from typing import Any, Iterator, ValuesView, cast
+from typing import Any, Iterator, Literal, ValuesView, cast
 
 from numpy import (
     asarray,
@@ -46,6 +46,7 @@ def run_colmap_reconstruction(
     pairs: list[tuple[str, str]],
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
     on_progress: Callable[[int, int], None] | None = None,
+    on_phase: Callable[[Literal["verifying_geometry", "reconstructing"], int | None], None] | None = None,
 ):
     colmap_db_path = root_path / COLMAP_DB_FILE
     if colmap_db_path.exists():
@@ -102,6 +103,8 @@ def run_colmap_reconstruction(
     database.close()
 
     # Perform rig-aware geometric verification of matches
+    if on_phase is not None:
+        on_phase("verifying_geometry", None)
     print("Verifying geometry for matches")
     match_spatial(
         database_path=str(colmap_db_path),
@@ -114,7 +117,10 @@ def run_colmap_reconstruction(
 
     progress = _IncrementalMappingProgress(on_progress)
 
-    # Run incremental mapping
+    # Phase total is the candidate image count — an upper bound, since COLMAP may drop images that
+    # fail to register or get filtered after bundle adjustment.
+    if on_phase is not None:
+        on_phase("reconstructing", len(colmap_image_ids))
     print("Running incremental mapping")
     reconstructions = incremental_mapping(
         database_path=str(colmap_db_path),
