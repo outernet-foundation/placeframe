@@ -1,0 +1,18 @@
+x-base-images:
+  ZED_BASE_DIGEST: "stereolabs/zed:5.2-runtime-jetson-jp6.1.0"
+
+x-base-args: &base-args
+  ZED_BASE_DIGEST: "${ZED_BASE_DIGEST:-}"
+
+x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache
+
+services:
+  zed-capture:
+    build:
+      context: .
+      dockerfile: docker/zed-capture/Dockerfile
+      platforms: [ "linux/arm64" ]
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/zed-capture:latest"
+        - "ghcr.io/outernet-foundation/placeframe/zed-capture:${ZED_CAPTURE_SHA}"

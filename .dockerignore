@@ -9,3 +9,4 @@
 !legacy/
 legacy/Outernet.Client/
 !compose.bake.yml
+!compose.zed.bake.yml

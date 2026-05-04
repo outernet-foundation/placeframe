@@ -10,7 +10,7 @@ from common.bash import bash, bash_check, bash_output
 app = typer.Typer()
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-BAKE_FILE = REPO_ROOT / "compose.bake.yml"
+BAKE_FILE = REPO_ROOT / "compose.zed.bake.yml"
 COMPOSE_SOURCE = REPO_ROOT / "docker" / "zed-capture" / "compose.rig.yml"
 CAPTIVE_PORTAL_SOURCE = REPO_ROOT / "docker" / "zed-capture" / "captive_portal.py"
 SYSTEMD_UNIT_SOURCE = REPO_ROOT / "docker" / "zed-capture" / "placeframe-zed.service"
