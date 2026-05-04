@@ -21,7 +21,7 @@ from core.model_wrappers import (
     make_local_feature_matcher_for_arrays,
 )
 from core.opq import encode_descriptors, train_opq_matrix, train_pq_quantizer, write_opq_matrix, write_pq_quantizer
-from core.reconstruction_manifest import ReconstructionManifest, ReconstructionStatus
+from core.reconstruction_manifest import PhaseProgress, ReconstructionManifest, ReconstructionStatus
 from core.model_wrappers import RetrievalDim
 from core.tensor_types import TT
 from neural_networks.models import load_aliked, load_DIR, load_lightglue
@@ -45,7 +45,14 @@ CAPTURE_SESSION_DIRECTORY = WORK_DIR / "capture_session"
 global_descriptor_extractor: Callable[[Tensor], TT[RetrievalDim]]
 local_feature_extractor: Callable[[Tensor], LocalFeatureOutput]
 local_feature_matcher: Callable[
-    [list[tuple[str, str]], KeypointsArrays, DescriptorsArrays, dict[str, tuple[int, int]], int],
+    [
+        list[tuple[str, str]],
+        KeypointsArrays,
+        DescriptorsArrays,
+        dict[str, tuple[int, int]],
+        int,
+        Callable[[int], None] | None,
+    ],
     MatchIndices,
 ]
 
@@ -76,10 +83,6 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         minio_secret_key=settings.minio_secret_key,
     )
 
-    def _put_reconstruction_object(key: str, body: bytes):
-        print(f"Putting object in bucket {settings.reconstructions_bucket} with key {reconstruction_id}/{key}")
-        s3_client.put_object(Bucket=settings.reconstructions_bucket, Key=f"{reconstruction_id}/{key}", Body=body)
-
     # Load reconstruction manifest first so phase updates can publish through it as work proceeds.
     manifest = ReconstructionManifest.model_validate_json(
         s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{reconstruction_id}/manifest.json")[
@@ -87,11 +90,9 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         ].read()
     )
 
-    def _set_phase(status: ReconstructionStatus) -> None:
-        manifest.status = status
-        _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
+    publisher = _ReconstructionPublisher(s3_client, settings.reconstructions_bucket, reconstruction_id, manifest)
 
-    _set_phase("downloading")
+    publisher.set_phase("downloading")
     print(
         f"Downloading capture session archive for capture session ID: {capture_id} from bucket {settings.captures_bucket}"
     )
@@ -131,10 +132,9 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
     # Generate image pairs
     pairs = generate_image_pairs(rigs, options.neighbors_count(), options.rotation_threshold_deg())
     file_name, file_bytes = write_pairs(pairs, WORK_DIR)
-    _put_reconstruction_object(key=file_name, body=file_bytes)
+    publisher.put_object(file_name, file_bytes)
 
     # Extract features
-    _set_phase("extracting_features")
     global_descriptors: dict[str, NDArray[float32]] = {}  # noqa: TID251 — Phase T piece 3 follow-up migration
     keypoints = KeypointsArrays({})
     descriptors = DescriptorsArrays({})
@@ -145,8 +145,10 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         for camera in rig.cameras.values()
         for frame_id in rig.frame_poses.keys()
     ]
+    publisher.set_phase("extracting_features", total=len(image_list))
     for index, (image_name, camera_config) in enumerate(image_list):
         print(f"Extracting features: image {index + 1} of {len(image_list)}")
+        publisher.on_progress(index + 1)
 
         image_path = CAPTURE_SESSION_DIRECTORY / image_name
         image = canonicalize_image(image_path.read_bytes(), camera_config.orientation)
@@ -171,7 +173,7 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
 
     # Write global descriptors to storage
     file_name, file_bytes = write_global_descriptors(WORK_DIR, global_descriptors)
-    _put_reconstruction_object(key=file_name, body=file_bytes)
+    publisher.put_object(file_name, file_bytes)
 
     # Update metrics
     metrics.metrics.average_keypoints_per_image = float(
@@ -182,17 +184,17 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
     descriptor_array = ascontiguousarray(vstack([descriptor for descriptor in descriptors.values()]), dtype=float32)
 
     # Train OPQ matrix
-    _set_phase("training_opq_matrix")
+    publisher.set_phase("training_opq_matrix")
     opq_matrix = train_opq_matrix(
         options.compression_opq_number_of_subvectors(),
         options.compression_opq_number_of_training_iterations(),
         descriptor_array,
     )
     file_name, file_bytes = write_opq_matrix(opq_matrix, WORK_DIR)
-    _put_reconstruction_object(key=file_name, body=file_bytes)
+    publisher.put_object(file_name, file_bytes)
 
     # Train PQ quantizer
-    _set_phase("training_product_quantizer")
+    publisher.set_phase("training_product_quantizer")
     product_quantizer = train_pq_quantizer(
         options.compression_opq_number_of_subvectors(),
         options.compression_opq_number_of_bits_per_subvector(),
@@ -200,27 +202,43 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         descriptor_array,
     )
     file_name, file_bytes = write_pq_quantizer(product_quantizer, WORK_DIR)
-    _put_reconstruction_object(key=file_name, body=file_bytes)
+    publisher.put_object(file_name, file_bytes)
 
     # Encode image descriptors
     image_codes = encode_descriptors(opq_matrix, product_quantizer, descriptors)
     file_name, file_bytes = write_features(WORK_DIR, keypoints, image_codes)
-    _put_reconstruction_object(key=file_name, body=file_bytes)
+    publisher.put_object(file_name, file_bytes)
 
     # Match features
-    _set_phase("matching_features")
+    publisher.set_phase("matching_features", total=len(pairs))
     matching_t0 = perf_counter()
-    match_indices = local_feature_matcher(pairs, keypoints, descriptors, sizes, options.lightglue_batch_size())
+    match_indices = local_feature_matcher(
+        pairs,
+        keypoints,
+        descriptors,
+        sizes,
+        options.lightglue_batch_size(),
+        publisher.on_progress,
+    )
     print(f"matching_features wall_time={perf_counter() - matching_t0:.2f}s pairs={len(pairs)}")
     if cuda.is_available():
         cuda.empty_cache()
 
     # Run COLMAP reconstruction
-    _set_phase("reconstructing")
+    publisher.set_phase("reconstructing", total=len(image_list))
     sfm_output_path = WORK_DIR / "sfm_output"
     sfm_output_path.mkdir(parents=True, exist_ok=True)
     reconstruction = run_colmap_reconstruction(
-        WORK_DIR, sfm_output_path, CAPTURE_SESSION_DIRECTORY, options, metrics, rigs, keypoints, pairs, match_indices
+        WORK_DIR,
+        sfm_output_path,
+        CAPTURE_SESSION_DIRECTORY,
+        options,
+        metrics,
+        rigs,
+        keypoints,
+        pairs,
+        match_indices,
+        on_progress=publisher.on_progress,
     )
 
     # Verify reconstruction was successful and write to storage
@@ -230,14 +248,57 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         manifest.status = "failed"
         manifest.error = "No model was created"
     else:
-        _set_phase("uploading")
+        publisher.set_phase("uploading")
         for file_path in sfm_output_path.rglob("*"):
             if file_path.is_file():
-                _put_reconstruction_object(
-                    key=f"sfm_model/{file_path.relative_to(sfm_output_path)}", body=file_path.read_bytes()
-                )
+                publisher.put_object(f"sfm_model/{file_path.relative_to(sfm_output_path)}", file_path.read_bytes())
         manifest.status = "succeeded"
 
     # Update and write reconstruction manifest
     manifest.metrics = metrics.metrics
-    _put_reconstruction_object(key="manifest.json", body=manifest.model_dump_json().encode("utf-8"))
+    publisher.flush_manifest()
+
+
+class _ReconstructionPublisher:
+    # Owns the S3 destination and the throttle clock for a single reconstruction job.
+
+    def __init__(
+        self,
+        s3_client: Any,
+        bucket: str,
+        reconstruction_id: UUID,
+        manifest: ReconstructionManifest,
+    ) -> None:
+        self._s3_client = s3_client
+        self._bucket = bucket
+        self._reconstruction_id = reconstruction_id
+        self._manifest = manifest
+        self._last_emit = 0.0
+
+    def set_phase(self, status: ReconstructionStatus, total: int | None = None) -> None:
+        self._manifest.status = status
+        self._manifest.phase_progress = PhaseProgress(current=0, total=total) if total is not None else None
+        self.flush_manifest()
+        self._last_emit = perf_counter()
+
+    # Throttle to ~1 Hz so per-image callbacks don't trigger one S3 put each.
+    def on_progress(self, current: int, attempt: int = 1) -> None:
+        if self._manifest.phase_progress is None:
+            return
+        self._manifest.phase_progress.current = current
+        self._manifest.phase_progress.attempt = attempt
+        now = perf_counter()
+        if now - self._last_emit >= 1.0:
+            self.flush_manifest()
+            self._last_emit = now
+
+    def flush_manifest(self) -> None:
+        self.put_object("manifest.json", self._manifest.model_dump_json().encode("utf-8"))
+
+    def put_object(self, key: str, body: bytes) -> None:
+        print(f"Putting object in bucket {self._bucket} with key {self._reconstruction_id}/{key}")
+        self._s3_client.put_object(
+            Bucket=self._bucket,
+            Key=f"{self._reconstruction_id}/{key}",
+            Body=body,
+        )

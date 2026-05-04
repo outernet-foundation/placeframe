@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from shutil import rmtree
 from typing import Any, Iterator, ValuesView, cast
@@ -34,23 +35,6 @@ COLMAP_DB_FILE = "database.db"
 COLMAP_SFM_DIRECTORY = "sfm_model"
 
 
-def _registered_frames(
-    rigs: dict[str, Rig],
-    colmap_image_ids: dict[str, int],
-    reconstruction: Reconstruction,
-) -> Iterator[tuple[Transform, Rigid3d]]:
-    # Multi-camera rigs (e.g. ZED stereo) share one Frame per rig+frame, so any registered
-    # image of any camera in that frame yields the Frame's rig_from_world.
-    for rig_id, rig in rigs.items():
-        for frame_id, transform in rig.frame_poses.items():
-            for camera_id in rig.cameras.keys():
-                image_id = colmap_image_ids[f"{rig_id}/{camera_id}/{frame_id}.jpg"]
-                if image_id in reconstruction.images:
-                    rig_from_world = cast(Rigid3d, cast(Frame, reconstruction.images[image_id].frame).rig_from_world)  # type: ignore
-                    yield transform, rig_from_world
-                    break
-
-
 def run_colmap_reconstruction(
     root_path: Path,
     output_path: Path,
@@ -61,6 +45,7 @@ def run_colmap_reconstruction(
     keypoints: dict[str, Any],
     pairs: list[tuple[str, str]],
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
+    on_progress: Callable[[int, int], None] | None = None,
 ):
     colmap_db_path = root_path / COLMAP_DB_FILE
     if colmap_db_path.exists():
@@ -127,6 +112,8 @@ def run_colmap_reconstruction(
     # Compute and store verified matches metrics
     metrics.build_verified_matches_metrics(colmap_db_path, pairs)
 
+    progress = _IncrementalMappingProgress(on_progress)
+
     # Run incremental mapping
     print("Running incremental mapping")
     reconstructions = incremental_mapping(
@@ -134,6 +121,8 @@ def run_colmap_reconstruction(
         image_path=str(images_path),
         output_path=str(colmap_sfm_directory),
         options=options.incremental_pipeline_options(),
+        initial_image_pair_callback=progress.on_initial_image_pair,
+        next_image_callback=progress.on_next_image,
     )
 
     # Check that at least one reconstruction was created
@@ -224,3 +213,45 @@ def run_colmap_reconstruction(
     savez_compressed(str(frame_poses_npz_file_path), positions=frame_positions, orientations=frame_orientations)
 
     return best_reconstruction
+
+
+def _registered_frames(
+    rigs: dict[str, Rig],
+    colmap_image_ids: dict[str, int],
+    reconstruction: Reconstruction,
+) -> Iterator[tuple[Transform, Rigid3d]]:
+    # Multi-camera rigs (e.g. ZED stereo) share one Frame per rig+frame, so any registered
+    # image of any camera in that frame yields the Frame's rig_from_world.
+    for rig_id, rig in rigs.items():
+        for frame_id, transform in rig.frame_poses.items():
+            for camera_id in rig.cameras.keys():
+                image_id = colmap_image_ids[f"{rig_id}/{camera_id}/{frame_id}.jpg"]
+                if image_id in reconstruction.images:
+                    rig_from_world = cast(Rigid3d, cast(Frame, reconstruction.images[image_id].frame).rig_from_world)  # type: ignore
+                    yield transform, rig_from_world
+                    break
+
+
+class _IncrementalMappingProgress:
+    # Tracks per-image registration count across COLMAP's multi-model retries.
+    # Each new model attempt begins with the seed pair (count = 2); attempt index
+    # bumps when initial_image_pair fires after a previous attempt has registered.
+
+    def __init__(self, on_progress: Callable[[int, int], None] | None) -> None:
+        self._on_progress = on_progress
+        self._registered = 0
+        self._attempt = 1
+
+    def on_initial_image_pair(self) -> None:
+        if self._registered > 0:
+            self._attempt += 1
+        self._registered = 2
+        self._emit()
+
+    def on_next_image(self) -> None:
+        self._registered += 1
+        self._emit()
+
+    def _emit(self) -> None:
+        if self._on_progress is not None:
+            self._on_progress(self._registered, self._attempt)
