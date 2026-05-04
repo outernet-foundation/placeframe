@@ -89,14 +89,11 @@ namespace Placeframe.Client
     public enum CaptureUploadStatus
     {
         NotUploaded,
-        UploadRequested,
         Initializing,
         Uploading,
         ReconstructionNotStarted,
-        ReconstructRequested,
         Reconstructing,
         Uploaded,
-        CreateMapRequested,
         MapCreated,
         Failed,
     }

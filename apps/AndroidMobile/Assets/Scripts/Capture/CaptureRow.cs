@@ -22,14 +22,11 @@ namespace Placeframe.Client
             status switch
             {
                 CaptureUploadStatus.NotUploaded => "Upload",
-                CaptureUploadStatus.UploadRequested => "Initializing",
                 CaptureUploadStatus.Initializing => "Initializing",
                 CaptureUploadStatus.Uploading => "Uploading",
                 CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
-                CaptureUploadStatus.ReconstructRequested => "Constructing",
                 CaptureUploadStatus.Reconstructing => ReconstructingPhaseLabel(manifest),
                 CaptureUploadStatus.Uploaded => "Create Map",
-                CaptureUploadStatus.CreateMapRequested => "Create Map",
                 CaptureUploadStatus.MapCreated => "Map Created",
                 CaptureUploadStatus.Failed => "Failed",
                 _ => throw new ArgumentOutOfRangeException(nameof(status), status, null)
@@ -42,17 +39,17 @@ namespace Placeframe.Client
 
         public static void OnCaptureActionClicked(CaptureState capture)
         {
-            if (capture.status.value == CaptureUploadStatus.NotUploaded)
+            switch (capture.status.value)
             {
-                capture.status.value = CaptureUploadStatus.UploadRequested;
-            }
-            else if (capture.status.value == CaptureUploadStatus.ReconstructionNotStarted)
-            {
-                capture.status.value = CaptureUploadStatus.ReconstructRequested;
-            }
-            else if (capture.status.value == CaptureUploadStatus.Uploaded)
-            {
-                capture.status.value = CaptureUploadStatus.CreateMapRequested;
+                case CaptureUploadStatus.NotUploaded:
+                    CaptureController.RequestUpload(capture);
+                    break;
+                case CaptureUploadStatus.ReconstructionNotStarted:
+                    CaptureController.RequestReconstruct(capture);
+                    break;
+                case CaptureUploadStatus.Uploaded:
+                    CaptureController.RequestCreateMap(capture);
+                    break;
             }
         }
 
