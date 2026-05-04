@@ -47,6 +47,62 @@ namespace Placeframe.Client
             return ZedCaptureController.DeleteCapture(id);
         }
 
+        public static void RequestUpload(CaptureState capture)
+        {
+            ReconstructionOptionsDialog(
+                new ReconstructionOptionsDialogProps()
+                {
+                    capture = capture,
+                    options = LoadOrCreateReconstructionOptions(),
+                    onDialogComplete = reconstructionOptions =>
+                    {
+                        SaveReconstructionOptions(reconstructionOptions);
+                        UploadCapture(
+                                capture,
+                                reconstructionOptions,
+                                Progress.Create<(CaptureUploadStatus, float?)>(progress =>
+                                    capture.status.value = progress.Item1
+                                )
+                            )
+                            .Forget(exception => capture.status.value = CaptureUploadStatus.Failed);
+                    },
+                }
+            );
+        }
+
+        public static void RequestReconstruct(CaptureState capture)
+        {
+            ReconstructionOptionsDialog(
+                new ReconstructionOptionsDialogProps()
+                {
+                    capture = capture,
+                    onDialogComplete = reconstructionOptions =>
+                    {
+                        CreateReconstruction(capture.id, reconstructionOptions).Forget();
+                        capture.status.value = CaptureUploadStatus.Reconstructing;
+                    },
+                }
+            );
+        }
+
+        public static void RequestCreateMap(CaptureState capture)
+        {
+            VisualPositioningSystem.Api
+                .CreateLocalizationMapAsync(
+                    new LocalizationMapCreate(
+                        capture.reconstructionId.value, 0, 0, 0, 0, 0, 0, 1, 0
+                    )
+                    {
+                        Name = capture.name.value,
+                    }
+                )
+                .ContinueWith(x =>
+                {
+                    capture.localizationMapId.value = x.Result.Id;
+                    capture.status.value = CaptureUploadStatus.MapCreated;
+                });
+        }
+
         void Awake()
         {
             ZedCaptureController.Initialize();
@@ -116,97 +172,25 @@ namespace Placeframe.Client
                                 awaitReconstructionTasks.Remove(capture.id);
                             }
 
-                            if (x == CaptureUploadStatus.UploadRequested)
+                            if (x == CaptureUploadStatus.Reconstructing
+                                && !awaitReconstructionTasks.ContainsKey(capture.id))
                             {
-                                ReconstructionOptionsDialog(
-                                    new ReconstructionOptionsDialogProps()
-                                    {
-                                        capture = capture,
-                                        options = LoadOrCreateReconstructionOptions(),
-                                        onDialogComplete = reconstructionOptions =>
-                                        {
-                                            SaveReconstructionOptions(reconstructionOptions);
-                                            UploadCapture(
-                                                    capture,
-                                                    reconstructionOptions,
-                                                    Progress.Create<(CaptureUploadStatus, float?)>(progress =>
-                                                        capture.status.value = progress.Item1
-                                                    )
-                                                )
-                                                .Forget(exception => capture.status.value = CaptureUploadStatus.Failed);
-                                        },
-                                        onDialogCancelled = () =>
-                                            capture.status.value = CaptureUploadStatus.NotUploaded,
-                                    }
+                                var progress = Progress.Create<CaptureUploadStatus>(progress =>
+                                    capture.status.value = progress
                                 );
 
-                                return;
-                            }
-                            else if (x == CaptureUploadStatus.ReconstructRequested)
-                            {
-                                ReconstructionOptionsDialog(
-                                    new ReconstructionOptionsDialogProps()
-                                    {
-                                        capture = capture,
-                                        onDialogComplete = reconstructionOptions =>
-                                        {
-                                            CreateReconstruction(capture.id, reconstructionOptions).Forget();
-
-                                            capture.status.value = CaptureUploadStatus.Reconstructing;
-                                        },
-                                        onDialogCancelled = () =>
-                                            capture.status.value = CaptureUploadStatus.ReconstructionNotStarted,
-                                    }
-                                );
-
-                                return;
-                            }
-                            else if (x == CaptureUploadStatus.CreateMapRequested)
-                            {
-                                VisualPositioningSystem.Api
-                                    .CreateLocalizationMapAsync(
-                                        new LocalizationMapCreate(
-                                            capture.reconstructionId.value,
-                                            0,
-                                            0,
-                                            0,
-                                            0,
-                                            0,
-                                            0,
-                                            1,
-                                            0
-                                        )
-                                        {
-                                            Name = capture.name.value,
-                                        }
+                                awaitReconstructionTasks.Add(
+                                    capture.id,
+                                    TaskHandle.Execute(token =>
+                                        AwaitReconstructionComplete(capture.id, progress, token)
                                     )
-                                    .ContinueWith(x =>
-                                    {
-                                        capture.localizationMapId.value = x.Result.Id;
-                                        capture.status.value = CaptureUploadStatus.MapCreated;
-                                    });
-                            }
-                            else if (x == CaptureUploadStatus.Reconstructing)
-                            {
-                                if (!awaitReconstructionTasks.ContainsKey(capture.id))
-                                {
-                                    var progress = Progress.Create<CaptureUploadStatus>(progress =>
-                                        capture.status.value = progress
-                                    );
-
-                                    awaitReconstructionTasks.Add(
-                                        capture.id,
-                                        TaskHandle.Execute(token =>
-                                            AwaitReconstructionComplete(capture.id, progress, token)
-                                        )
-                                    );
-                                }
+                                );
                             }
                         })
                 );
         }
 
-        private void SaveReconstructionOptions(ReconstructionOptions reconstructionOptions)
+        private static void SaveReconstructionOptions(ReconstructionOptions reconstructionOptions)
         {
             File.WriteAllText(
                 Path.Join(Application.persistentDataPath, "reconstructionOptions.json"),
@@ -214,7 +198,7 @@ namespace Placeframe.Client
             );
         }
 
-        private ReconstructionOptions LoadOrCreateReconstructionOptions()
+        private static ReconstructionOptions LoadOrCreateReconstructionOptions()
         {
             var path = Path.Join(Application.persistentDataPath, "reconstructionOptions.json");
 
@@ -526,7 +510,7 @@ namespace Placeframe.Client
             return result;
         }
 
-        private async UniTask UploadCapture(
+        private static async UniTask UploadCapture(
             CaptureState capture,
             ReconstructionOptions reconstructionOptions,
             IProgress<(CaptureUploadStatus, float?)> progress = default,
@@ -657,7 +641,7 @@ namespace Placeframe.Client
             await UpdateCaptureList();
         }
 
-        private async UniTask CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions)
+        private static async UniTask CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions)
         {
             await VisualPositioningSystem.Api
                 .CreateReconstructionAsync(
