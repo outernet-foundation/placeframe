@@ -586,6 +586,22 @@ namespace PlaceframeApiClient.Api
         /// <returns>ApiResponse of List&lt;LocalizationMapRead&gt;</returns>
         ApiResponse<List<LocalizationMapRead>> GetLocalizationMapsWithHttpInfo(List<Guid>? ids = default, List<Guid>? reconstructionIds = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default);
         /// <summary>
+        /// GetLocalizerVersion
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>string</returns>
+        string GetLocalizerVersion();
+
+        /// <summary>
+        /// GetLocalizerVersion
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>ApiResponse of string</returns>
+        ApiResponse<string> GetLocalizerVersionWithHttpInfo();
+        /// <summary>
         /// GetNodes
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -745,6 +761,26 @@ namespace PlaceframeApiClient.Api
         /// <param name="captureSessionName">Optional capture session name to filter by (optional)</param>
         /// <returns>ApiResponse of List&lt;ReconstructionRead&gt;</returns>
         ApiResponse<List<ReconstructionRead>> GetReconstructionsWithHttpInfo(List<Guid>? ids = default, Guid? captureSessionId = default, string? captureSessionName = default);
+        /// <summary>
+        /// ListLocalizationEvaluations
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <returns>List&lt;LocalizationEvaluationRead&gt;</returns>
+        List<LocalizationEvaluationRead> ListLocalizationEvaluations(Guid reconstructionId, string? pipelineVersion = default);
+
+        /// <summary>
+        /// ListLocalizationEvaluations
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <returns>ApiResponse of List&lt;LocalizationEvaluationRead&gt;</returns>
+        ApiResponse<List<LocalizationEvaluationRead>> ListLocalizationEvaluationsWithHttpInfo(Guid reconstructionId, string? pipelineVersion = default);
         /// <summary>
         /// LocalizeImage
         /// </summary>
@@ -967,6 +1003,26 @@ namespace PlaceframeApiClient.Api
         /// <param name="file"> (optional)</param>
         /// <returns>ApiResponse of Object(void)</returns>
         ApiResponse<Object> UploadCaptureSessionTarWithHttpInfo(Guid id, FileParameter? file = default);
+        /// <summary>
+        /// UpsertLocalizationEvaluation
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <returns>LocalizationEvaluationRead</returns>
+        LocalizationEvaluationRead UpsertLocalizationEvaluation(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate);
+
+        /// <summary>
+        /// UpsertLocalizationEvaluation
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <returns>ApiResponse of LocalizationEvaluationRead</returns>
+        ApiResponse<LocalizationEvaluationRead> UpsertLocalizationEvaluationWithHttpInfo(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate);
         #endregion Synchronous Operations
     }
 
@@ -1685,6 +1741,27 @@ namespace PlaceframeApiClient.Api
         /// <returns>Task of ApiResponse (List&lt;LocalizationMapRead&gt;)</returns>
         System.Threading.Tasks.Task<ApiResponse<List<LocalizationMapRead>>> GetLocalizationMapsWithHttpInfoAsync(List<Guid>? ids = default, List<Guid>? reconstructionIds = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
+        /// GetLocalizerVersion
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of string</returns>
+        System.Threading.Tasks.Task<string> GetLocalizerVersionAsync(System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// GetLocalizerVersion
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (string)</returns>
+        System.Threading.Tasks.Task<ApiResponse<string>> GetLocalizerVersionWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
         /// GetNodes
         /// </summary>
         /// <remarks>
@@ -1884,6 +1961,31 @@ namespace PlaceframeApiClient.Api
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;ReconstructionRead&gt;)</returns>
         System.Threading.Tasks.Task<ApiResponse<List<ReconstructionRead>>> GetReconstructionsWithHttpInfoAsync(List<Guid>? ids = default, Guid? captureSessionId = default, string? captureSessionName = default, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// ListLocalizationEvaluations
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of List&lt;LocalizationEvaluationRead&gt;</returns>
+        System.Threading.Tasks.Task<List<LocalizationEvaluationRead>> ListLocalizationEvaluationsAsync(Guid reconstructionId, string? pipelineVersion = default, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// ListLocalizationEvaluations
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (List&lt;LocalizationEvaluationRead&gt;)</returns>
+        System.Threading.Tasks.Task<ApiResponse<List<LocalizationEvaluationRead>>> ListLocalizationEvaluationsWithHttpInfoAsync(Guid reconstructionId, string? pipelineVersion = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// LocalizeImage
         /// </summary>
@@ -2161,6 +2263,31 @@ namespace PlaceframeApiClient.Api
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
         System.Threading.Tasks.Task<ApiResponse<Object>> UploadCaptureSessionTarWithHttpInfoAsync(Guid id, FileParameter? file = default, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// UpsertLocalizationEvaluation
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of LocalizationEvaluationRead</returns>
+        System.Threading.Tasks.Task<LocalizationEvaluationRead> UpsertLocalizationEvaluationAsync(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// UpsertLocalizationEvaluation
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (LocalizationEvaluationRead)</returns>
+        System.Threading.Tasks.Task<ApiResponse<LocalizationEvaluationRead>> UpsertLocalizationEvaluationWithHttpInfoAsync(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate, System.Threading.CancellationToken cancellationToken = default);
         #endregion Asynchronous Operations
     }
 
@@ -5837,6 +5964,107 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
+        /// GetLocalizerVersion 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>string</returns>
+        public string GetLocalizerVersion()
+        {
+            PlaceframeApiClient.Client.ApiResponse<string> localVarResponse = GetLocalizerVersionWithHttpInfo();
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetLocalizerVersion 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>ApiResponse of string</returns>
+        public PlaceframeApiClient.Client.ApiResponse<string> GetLocalizerVersionWithHttpInfo()
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "text/plain"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<string>("/localize/version", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetLocalizerVersion", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetLocalizerVersion 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of string</returns>
+        public async System.Threading.Tasks.Task<string> GetLocalizerVersionAsync(System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<string> localVarResponse = await GetLocalizerVersionWithHttpInfoAsync(cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetLocalizerVersion 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (string)</returns>
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<string>> GetLocalizerVersionWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "text/plain"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.GetAsync<string>("/localize/version", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetLocalizerVersion", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
         /// GetNodes 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -6786,6 +7014,125 @@ namespace PlaceframeApiClient.Api
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("GetReconstructions", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// ListLocalizationEvaluations 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <returns>List&lt;LocalizationEvaluationRead&gt;</returns>
+        public List<LocalizationEvaluationRead> ListLocalizationEvaluations(Guid reconstructionId, string? pipelineVersion = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<List<LocalizationEvaluationRead>> localVarResponse = ListLocalizationEvaluationsWithHttpInfo(reconstructionId, pipelineVersion);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// ListLocalizationEvaluations 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <returns>ApiResponse of List&lt;LocalizationEvaluationRead&gt;</returns>
+        public PlaceframeApiClient.Client.ApiResponse<List<LocalizationEvaluationRead>> ListLocalizationEvaluationsWithHttpInfo(Guid reconstructionId, string? pipelineVersion = default)
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("reconstruction_id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(reconstructionId)); // path parameter
+            if (pipelineVersion != null)
+            {
+                localVarRequestOptions.QueryParameters.Add(PlaceframeApiClient.Client.ClientUtils.ParameterToMultiMap("", "pipeline_version", pipelineVersion));
+            }
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<List<LocalizationEvaluationRead>>("/reconstructions/{reconstruction_id}/localization-evaluations", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("ListLocalizationEvaluations", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// ListLocalizationEvaluations 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of List&lt;LocalizationEvaluationRead&gt;</returns>
+        public async System.Threading.Tasks.Task<List<LocalizationEvaluationRead>> ListLocalizationEvaluationsAsync(Guid reconstructionId, string? pipelineVersion = default, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<List<LocalizationEvaluationRead>> localVarResponse = await ListLocalizationEvaluationsWithHttpInfoAsync(reconstructionId, pipelineVersion, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// ListLocalizationEvaluations 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (List&lt;LocalizationEvaluationRead&gt;)</returns>
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<LocalizationEvaluationRead>>> ListLocalizationEvaluationsWithHttpInfoAsync(Guid reconstructionId, string? pipelineVersion = default, System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("reconstruction_id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(reconstructionId)); // path parameter
+            if (pipelineVersion != null)
+            {
+                localVarRequestOptions.QueryParameters.Add(PlaceframeApiClient.Client.ClientUtils.ParameterToMultiMap("", "pipeline_version", pipelineVersion));
+            }
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.GetAsync<List<LocalizationEvaluationRead>>("/reconstructions/{reconstruction_id}/localization-evaluations", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("ListLocalizationEvaluations", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -8225,6 +8572,129 @@ namespace PlaceframeApiClient.Api
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("UploadCaptureSessionTar", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// UpsertLocalizationEvaluation 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <returns>LocalizationEvaluationRead</returns>
+        public LocalizationEvaluationRead UpsertLocalizationEvaluation(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate)
+        {
+            PlaceframeApiClient.Client.ApiResponse<LocalizationEvaluationRead> localVarResponse = UpsertLocalizationEvaluationWithHttpInfo(reconstructionId, localizationEvaluationCreate);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// UpsertLocalizationEvaluation 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <returns>ApiResponse of LocalizationEvaluationRead</returns>
+        public PlaceframeApiClient.Client.ApiResponse<LocalizationEvaluationRead> UpsertLocalizationEvaluationWithHttpInfo(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate)
+        {
+            // verify the required parameter 'localizationEvaluationCreate' is set
+            if (localizationEvaluationCreate == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'localizationEvaluationCreate' when calling DefaultApi->UpsertLocalizationEvaluation");
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("reconstruction_id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(reconstructionId)); // path parameter
+            localVarRequestOptions.Data = localizationEvaluationCreate;
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Post<LocalizationEvaluationRead>("/reconstructions/{reconstruction_id}/localization-evaluations", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("UpsertLocalizationEvaluation", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// UpsertLocalizationEvaluation 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of LocalizationEvaluationRead</returns>
+        public async System.Threading.Tasks.Task<LocalizationEvaluationRead> UpsertLocalizationEvaluationAsync(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<LocalizationEvaluationRead> localVarResponse = await UpsertLocalizationEvaluationWithHttpInfoAsync(reconstructionId, localizationEvaluationCreate, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// UpsertLocalizationEvaluation 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (LocalizationEvaluationRead)</returns>
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<LocalizationEvaluationRead>> UpsertLocalizationEvaluationWithHttpInfoAsync(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate, System.Threading.CancellationToken cancellationToken = default)
+        {
+            // verify the required parameter 'localizationEvaluationCreate' is set
+            if (localizationEvaluationCreate == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'localizationEvaluationCreate' when calling DefaultApi->UpsertLocalizationEvaluation");
+
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("reconstruction_id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(reconstructionId)); // path parameter
+            localVarRequestOptions.Data = localizationEvaluationCreate;
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PostAsync<LocalizationEvaluationRead>("/reconstructions/{reconstruction_id}/localization-evaluations", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("UpsertLocalizationEvaluation", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 

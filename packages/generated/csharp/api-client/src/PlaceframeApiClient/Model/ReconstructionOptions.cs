@@ -56,6 +56,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="compressionOpqNumberOfTrainingIterations">Number of training iterations for OPQ compression..</param>
         /// <param name="posePriorPositionSigmaM">Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values &#x3D; stronger priors..</param>
         /// <param name="maxKeypointsPerImage">Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode). If None, a sensible default is used..</param>
+        /// <param name="heldOutFrameTimestamps">Frame timestamps (Unix milliseconds, matching the first column of each rig&#39;s frames.csv) to exclude from this reconstruction. Held-out frames never enter the rig&#39;s frame_poses, so their images are skipped during feature extraction, pair generation, and SfM. Used by calibration to build a map without specific frames so those frames can later be localized as held-out queries..</param>
         public ReconstructionOptions()
         {
         }
@@ -611,6 +612,31 @@ namespace PlaceframeApiClient.Model
             return _flagMaxKeypointsPerImage;
         }
         /// <summary>
+        /// Frame timestamps (Unix milliseconds, matching the first column of each rig&#39;s frames.csv) to exclude from this reconstruction. Held-out frames never enter the rig&#39;s frame_poses, so their images are skipped during feature extraction, pair generation, and SfM. Used by calibration to build a map without specific frames so those frames can later be localized as held-out queries.
+        /// </summary>
+        /// <value>Frame timestamps (Unix milliseconds, matching the first column of each rig&#39;s frames.csv) to exclude from this reconstruction. Held-out frames never enter the rig&#39;s frame_poses, so their images are skipped during feature extraction, pair generation, and SfM. Used by calibration to build a map without specific frames so those frames can later be localized as held-out queries.</value>
+        [DataMember(Name = "held_out_frame_timestamps", EmitDefaultValue = true)]
+        public List<int> HeldOutFrameTimestamps
+        {
+            get{ return _HeldOutFrameTimestamps;}
+            set
+            {
+                _HeldOutFrameTimestamps = value;
+                _flagHeldOutFrameTimestamps = true;
+            }
+        }
+        private List<int> _HeldOutFrameTimestamps;
+        private bool _flagHeldOutFrameTimestamps;
+
+        /// <summary>
+        /// Returns false as HeldOutFrameTimestamps should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeHeldOutFrameTimestamps()
+        {
+            return _flagHeldOutFrameTimestamps;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -640,6 +666,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  CompressionOpqNumberOfTrainingIterations: ").Append(CompressionOpqNumberOfTrainingIterations).Append("\n");
             sb.Append("  PosePriorPositionSigmaM: ").Append(PosePriorPositionSigmaM).Append("\n");
             sb.Append("  MaxKeypointsPerImage: ").Append(MaxKeypointsPerImage).Append("\n");
+            sb.Append("  HeldOutFrameTimestamps: ").Append(HeldOutFrameTimestamps).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

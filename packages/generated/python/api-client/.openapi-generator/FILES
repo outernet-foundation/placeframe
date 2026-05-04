@@ -35,6 +35,8 @@ placeframe_api_client/models/layer_create.py
 placeframe_api_client/models/layer_read.py
 placeframe_api_client/models/lease_response.py
 placeframe_api_client/models/link_type.py
+placeframe_api_client/models/localization_evaluation_create.py
+placeframe_api_client/models/localization_evaluation_read.py
 placeframe_api_client/models/localization_map_batch_update.py
 placeframe_api_client/models/localization_map_create.py
 placeframe_api_client/models/localization_map_read.py
