@@ -4,6 +4,7 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    restart: on-failure
     expose:
       - "5678"
     volumes:

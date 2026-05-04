@@ -28,14 +28,15 @@ namespace Placeframe.Client
                 CaptureUploadStatus.Reconstructing => ReconstructingPhaseLabel(manifest),
                 CaptureUploadStatus.Uploaded => "Create Map",
                 CaptureUploadStatus.MapCreated => "Map Created",
-                CaptureUploadStatus.Failed => "Failed",
+                CaptureUploadStatus.Failed => "Retry",
                 _ => throw new ArgumentOutOfRangeException(nameof(status), status, null)
             };
 
         public static bool CaptureStatusIsActionable(CaptureUploadStatus status) =>
             status == CaptureUploadStatus.NotUploaded
             || status == CaptureUploadStatus.ReconstructionNotStarted
-            || status == CaptureUploadStatus.Uploaded;
+            || status == CaptureUploadStatus.Uploaded
+            || status == CaptureUploadStatus.Failed;
 
         public static void OnCaptureActionClicked(CaptureState capture)
         {
@@ -49,6 +50,9 @@ namespace Placeframe.Client
                     break;
                 case CaptureUploadStatus.Uploaded:
                     CaptureController.RequestCreateMap(capture);
+                    break;
+                case CaptureUploadStatus.Failed:
+                    CaptureController.RequestRetry(capture);
                     break;
             }
         }

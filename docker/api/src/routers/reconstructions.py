@@ -24,7 +24,7 @@ from datamodels.public_dtos import (
     reconstruction_to_dto,
 )
 from datamodels.public_tables import CaptureSession, LocalizationMap, OrchestrationStatus, Reconstruction
-from litestar import Router, delete, get, post
+from litestar import Router, delete, get, post, put
 from litestar.di import Provide
 from litestar.exceptions import ClientException, HTTPException, InternalServerException, NotFoundException
 from litestar.params import KwargDefinition, Parameter
@@ -222,6 +222,41 @@ async def get_reconstruction_status(session: AsyncSession, id: UUID) -> Orchestr
     return await fetch_reconstruction_status(session, id)
 
 
+@put("/{id:uuid}/retry")
+async def retry_reconstruction(session: AsyncSession, id: UUID) -> ReconstructionRead:
+    row = await session.get(Reconstruction, id)
+
+    if not row:
+        raise NotFoundException(f"Reconstruction with id {id} not found")
+
+    if row.orchestration_status not in (OrchestrationStatus.FAILED, OrchestrationStatus.CANCELLED):
+        raise HTTPException(
+            status_code=HTTP_409_CONFLICT,
+            detail=f"Reconstruction with id {id} is in state {row.orchestration_status.value} and cannot be retried",
+        )
+
+    existing_manifest = await fetch_reconstruction_manifest(session, id)
+    fresh_manifest = ReconstructionManifest(
+        capture_id=existing_manifest.capture_id,
+        status="pending",
+        options=existing_manifest.options,
+        metrics=ReconstructionMetrics(),
+    )
+    s3_client.put_object(
+        Bucket=settings.reconstructions_bucket,
+        Key=f"{id}/manifest.json",
+        Body=fresh_manifest.model_dump_json().encode("utf-8"),
+        ContentType="application/json",
+    )
+
+    row.orchestration_status = OrchestrationStatus.QUEUED
+
+    await session.flush()
+    await session.refresh(row)
+
+    return reconstruction_to_dto(row)
+
+
 @get("/{id:uuid}/points", media_type="application/octet-stream")
 async def get_reconstruction_points(
     session: AsyncSession,
@@ -312,6 +347,7 @@ router = Router(
         get_reconstruction_manifest,
         get_reconstruction_localization_map,
         get_reconstruction_status,
+        retry_reconstruction,
         get_reconstruction_points,
         get_reconstruction_frame_poses,
     ],
