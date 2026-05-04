@@ -844,6 +844,24 @@ namespace PlaceframeApiClient.Api
         /// <returns>ApiResponse of LeaseResponse</returns>
         ApiResponse<LeaseResponse> RequestLeaseWithHttpInfo();
         /// <summary>
+        /// RetryReconstruction
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ReconstructionRead</returns>
+        ReconstructionRead RetryReconstruction(Guid id);
+
+        /// <summary>
+        /// RetryReconstruction
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of ReconstructionRead</returns>
+        ApiResponse<ReconstructionRead> RetryReconstructionWithHttpInfo(Guid id);
+        /// <summary>
         /// UpdateCaptureSession
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -2063,6 +2081,29 @@ namespace PlaceframeApiClient.Api
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (LeaseResponse)</returns>
         System.Threading.Tasks.Task<ApiResponse<LeaseResponse>> RequestLeaseWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// RetryReconstruction
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ReconstructionRead</returns>
+        System.Threading.Tasks.Task<ReconstructionRead> RetryReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// RetryReconstruction
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (ReconstructionRead)</returns>
+        System.Threading.Tasks.Task<ApiResponse<ReconstructionRead>> RetryReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UpdateCaptureSession
         /// </summary>
@@ -7562,6 +7603,113 @@ namespace PlaceframeApiClient.Api
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("RequestLease", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// RetryReconstruction 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ReconstructionRead</returns>
+        public ReconstructionRead RetryReconstruction(Guid id)
+        {
+            PlaceframeApiClient.Client.ApiResponse<ReconstructionRead> localVarResponse = RetryReconstructionWithHttpInfo(id);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// RetryReconstruction 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of ReconstructionRead</returns>
+        public PlaceframeApiClient.Client.ApiResponse<ReconstructionRead> RetryReconstructionWithHttpInfo(Guid id)
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Put<ReconstructionRead>("/reconstructions/{id}/retry", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("RetryReconstruction", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// RetryReconstruction 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ReconstructionRead</returns>
+        public async System.Threading.Tasks.Task<ReconstructionRead> RetryReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<ReconstructionRead> localVarResponse = await RetryReconstructionWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// RetryReconstruction 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (ReconstructionRead)</returns>
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<ReconstructionRead>> RetryReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PutAsync<ReconstructionRead>("/reconstructions/{id}/retry", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("RetryReconstruction", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 

@@ -751,6 +751,36 @@ paths:
       summary: GetReconstructionStatus
       tags:
       - Default
+  /reconstructions/{id}/retry:
+    put:
+      deprecated: false
+      operationId: retry_reconstruction
+      parameters:
+      - deprecated: false
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconstructionRead"
+          description: "Request fulfilled, document follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: RetryReconstruction
+      tags:
+      - Default
   /reconstructions/{id}/points:
     get:
       deprecated: false
@@ -3771,9 +3801,10 @@ components:
           - downloading
           - extracting_features
           - matching_features
-          - reconstructing
           - training_opq_matrix
           - training_product_quantizer
+          - verifying_geometry
+          - reconstructing
           - uploading
           - succeeded
           - failed

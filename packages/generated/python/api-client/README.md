@@ -127,6 +127,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**localize_image**](docs/DefaultApi.md#localize_image) | **POST** /localize | LocalizeImage
 *DefaultApi* | [**push_zed_box_logs**](docs/DefaultApi.md#push_zed_box_logs) | **POST** /zed-boxes/logs | PushZedBoxLogs
 *DefaultApi* | [**request_lease**](docs/DefaultApi.md#request_lease) | **POST** /internal/leases/request | RequestLease
+*DefaultApi* | [**retry_reconstruction**](docs/DefaultApi.md#retry_reconstruction) | **PUT** /reconstructions/{id}/retry | RetryReconstruction
 *DefaultApi* | [**update_capture_session**](docs/DefaultApi.md#update_capture_session) | **PATCH** /capture_sessions/{id} | UpdateCaptureSession
 *DefaultApi* | [**update_capture_sessions**](docs/DefaultApi.md#update_capture_sessions) | **PATCH** /capture_sessions | UpdateCaptureSessions
 *DefaultApi* | [**update_groups**](docs/DefaultApi.md#update_groups) | **PATCH** /groups | UpdateGroups

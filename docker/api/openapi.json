@@ -1803,6 +1803,82 @@
         "deprecated": false
       }
     },
+    "/reconstructions/{id}/retry": {
+      "put": {
+        "tags": [
+          "Reconstructions"
+        ],
+        "summary": "RetryReconstruction",
+        "operationId": "retry_reconstruction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconstructionRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
     "/reconstructions/{id}/points": {
       "get": {
         "tags": [
@@ -5936,9 +6012,10 @@
               "downloading",
               "extracting_features",
               "matching_features",
-              "reconstructing",
               "training_opq_matrix",
               "training_product_quantizer",
+              "verifying_geometry",
+              "reconstructing",
               "uploading",
               "succeeded",
               "failed"

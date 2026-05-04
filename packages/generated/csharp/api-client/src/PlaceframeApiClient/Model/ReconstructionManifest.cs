@@ -68,40 +68,46 @@ namespace PlaceframeApiClient.Model
             MatchingFeatures = 5,
 
             /// <summary>
-            /// Enum Reconstructing for value: reconstructing
-            /// </summary>
-            [EnumMember(Value = "reconstructing")]
-            Reconstructing = 6,
-
-            /// <summary>
             /// Enum TrainingOpqMatrix for value: training_opq_matrix
             /// </summary>
             [EnumMember(Value = "training_opq_matrix")]
-            TrainingOpqMatrix = 7,
+            TrainingOpqMatrix = 6,
 
             /// <summary>
             /// Enum TrainingProductQuantizer for value: training_product_quantizer
             /// </summary>
             [EnumMember(Value = "training_product_quantizer")]
-            TrainingProductQuantizer = 8,
+            TrainingProductQuantizer = 7,
+
+            /// <summary>
+            /// Enum VerifyingGeometry for value: verifying_geometry
+            /// </summary>
+            [EnumMember(Value = "verifying_geometry")]
+            VerifyingGeometry = 8,
+
+            /// <summary>
+            /// Enum Reconstructing for value: reconstructing
+            /// </summary>
+            [EnumMember(Value = "reconstructing")]
+            Reconstructing = 9,
 
             /// <summary>
             /// Enum Uploading for value: uploading
             /// </summary>
             [EnumMember(Value = "uploading")]
-            Uploading = 9,
+            Uploading = 10,
 
             /// <summary>
             /// Enum Succeeded for value: succeeded
             /// </summary>
             [EnumMember(Value = "succeeded")]
-            Succeeded = 10,
+            Succeeded = 11,
 
             /// <summary>
             /// Enum Failed for value: failed
             /// </summary>
             [EnumMember(Value = "failed")]
-            Failed = 11
+            Failed = 12
         }
 
 

@@ -42,8 +42,8 @@ class ReconstructionManifest(BaseModel):
     @field_validator('status')
     def status_validate_enum(cls, value):
         """Validates the enum"""
-        if value not in set(['queued', 'pending', 'downloading', 'extracting_features', 'matching_features', 'reconstructing', 'training_opq_matrix', 'training_product_quantizer', 'uploading', 'succeeded', 'failed']):
-            raise ValueError("must be one of enum values ('queued', 'pending', 'downloading', 'extracting_features', 'matching_features', 'reconstructing', 'training_opq_matrix', 'training_product_quantizer', 'uploading', 'succeeded', 'failed')")
+        if value not in set(['queued', 'pending', 'downloading', 'extracting_features', 'matching_features', 'training_opq_matrix', 'training_product_quantizer', 'verifying_geometry', 'reconstructing', 'uploading', 'succeeded', 'failed']):
+            raise ValueError("must be one of enum values ('queued', 'pending', 'downloading', 'extracting_features', 'matching_features', 'training_opq_matrix', 'training_product_quantizer', 'verifying_geometry', 'reconstructing', 'uploading', 'succeeded', 'failed')")
         return value
 
     model_config = ConfigDict(
