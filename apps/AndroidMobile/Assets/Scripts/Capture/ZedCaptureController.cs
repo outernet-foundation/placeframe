@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LogBatchModel = PlaceframeZedCaptureClient.Model.LogBatch;
+using ZedCaptureModel = PlaceframeZedCaptureClient.Model.ZedCapture;
 using ZedStatusModel = PlaceframeZedCaptureClient.Model.ZedStatus;
 
 #if !UNITY_EDITOR && UNITY_ANDROID
@@ -39,7 +40,7 @@ public static class ZedCaptureController
     public static UniTask StopCapture(CancellationToken cancellationToken = default) =>
         throw new PlatformNotSupportedException(unsupportedMessage);
 
-    public static UniTask<IEnumerable<Guid>> GetCaptures(CancellationToken cancellationToken = default) =>
+    public static UniTask<IEnumerable<ZedCaptureModel>> GetCaptures(CancellationToken cancellationToken = default) =>
         throw new PlatformNotSupportedException(unsupportedMessage);
 
     public static UniTask<Stream> GetCapture(Guid captureId, CancellationToken cancellationToken = default) =>
@@ -116,7 +117,7 @@ public static class ZedCaptureController
         App.state.zedStatus.value = ZedStatusKind.Ready;
     }
 
-    public static async UniTask<IEnumerable<Guid>> GetCaptures(CancellationToken cancellationToken = default) =>
+    public static async UniTask<IEnumerable<ZedCaptureModel>> GetCaptures(CancellationToken cancellationToken = default) =>
         await capturesApi.GetCapturesAsync(cancellationToken);
 
     public static async UniTask<Stream> GetCapture(Guid captureId, CancellationToken cancellationToken = default) =>

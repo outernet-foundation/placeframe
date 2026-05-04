@@ -694,12 +694,12 @@ namespace Placeframe.Client
                                                 }),
                                                 LabeledControl(new LabeledControlProps()
                                                 {
-                                                    label = Props.Value("Created At"),
+                                                    label = Props.Value("Recorded At"),
                                                     labelWidth = Props.Value(240f),
                                                     control = Text(new TextProps()
                                                     {
                                                         layout = new() { flexibleWidth = Props.Value(1f) },
-                                                        value = capture.createdAt.ObservableSelect(x => x.ToString()),
+                                                        value = capture.recordedAt.ObservableSelect(x => x.ToString()),
                                                         style = new TextStyleProps()
                                                         {
                                                             verticalAlignment = Props.Value(TMPro.VerticalAlignmentOptions.Capline),
