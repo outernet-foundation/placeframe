@@ -53,18 +53,34 @@ namespace Placeframe.Client
             }
         }
 
-        private static string ReconstructingPhaseLabel(ReconstructionManifest manifest) =>
-            manifest?.Status switch
+        private static string ReconstructingPhaseLabel(ReconstructionManifest manifest)
+        {
+            if (manifest == null)
+                return "Queued";
+
+            return manifest.Status switch
             {
+                ReconstructionManifest.StatusEnum.Queued => "Queued",
+                ReconstructionManifest.StatusEnum.Pending => "Queued",
                 ReconstructionManifest.StatusEnum.Downloading => "Downloading",
-                ReconstructionManifest.StatusEnum.ExtractingFeatures => "Extracting features",
-                ReconstructionManifest.StatusEnum.MatchingFeatures => "Matching features",
+                ReconstructionManifest.StatusEnum.ExtractingFeatures => $"Extracting features{ProgressSuffix(manifest.PhaseProgress)}",
+                ReconstructionManifest.StatusEnum.MatchingFeatures => $"Matching features{ProgressSuffix(manifest.PhaseProgress)}",
+                ReconstructionManifest.StatusEnum.VerifyingGeometry => "Verifying geometry",
+                ReconstructionManifest.StatusEnum.Reconstructing => $"Reconstructing{ProgressSuffix(manifest.PhaseProgress)}{AttemptSuffix(manifest.PhaseProgress)}",
                 ReconstructionManifest.StatusEnum.TrainingOpqMatrix => "Training index",
                 ReconstructionManifest.StatusEnum.TrainingProductQuantizer => "Training index",
-                ReconstructionManifest.StatusEnum.Reconstructing => "Reconstructing",
                 ReconstructionManifest.StatusEnum.Uploading => "Uploading model",
-                _ => "Constructing",
+                ReconstructionManifest.StatusEnum.Succeeded => "Finalizing",
+                ReconstructionManifest.StatusEnum.Failed => "Failed",
+                _ => throw new ArgumentOutOfRangeException(nameof(manifest.Status), manifest.Status, null)
             };
+        }
+
+        private static string ProgressSuffix(PhaseProgress progress) =>
+            progress == null ? "" : $" [{progress.Current}/{progress.Total}]";
+
+        private static string AttemptSuffix(PhaseProgress progress) =>
+            progress == null || progress.Attempt <= 1 ? "" : $" (attempt {progress.Attempt})";
 
         public static IControl CaptureRow(CaptureState capture)
         {

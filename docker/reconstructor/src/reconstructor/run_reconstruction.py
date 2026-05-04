@@ -225,7 +225,6 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         cuda.empty_cache()
 
     # Run COLMAP reconstruction
-    publisher.set_phase("reconstructing", total=len(image_list))
     sfm_output_path = WORK_DIR / "sfm_output"
     sfm_output_path.mkdir(parents=True, exist_ok=True)
     reconstruction = run_colmap_reconstruction(
@@ -239,6 +238,7 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         pairs,
         match_indices,
         on_progress=publisher.on_progress,
+        on_phase=publisher.set_phase,
     )
 
     # Verify reconstruction was successful and write to storage
