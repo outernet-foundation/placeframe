@@ -595,7 +595,7 @@ namespace Placeframe.Client
                                 {
                                     childControlWidth = Props.Value(true),
                                     childControlHeight = Props.Value(true),
-                                    spacing = Props.Value(10f),
+                                    spacing = Props.Value(30f),
                                     childAlignment = Props.Value(TextAnchor.MiddleRight),
                                     layout = new() { flexibleWidth = Props.Value(1f) },
                                     children = Props.List(
