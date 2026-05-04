@@ -22,9 +22,16 @@ ReconstructionStatus = Literal[
 ]
 
 
+class PhaseProgress(BaseModel):
+    current: int
+    total: int
+    attempt: int = 1
+
+
 class ReconstructionManifest(BaseModel):
     capture_id: str
     status: ReconstructionStatus
     error: Optional[str] = Field(default=None)
+    phase_progress: Optional[PhaseProgress] = Field(default=None)
     options: ReconstructionOptions
     metrics: ReconstructionMetrics

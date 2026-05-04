@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import NewType
 
 from lightglue import LightGlue  # type: ignore
@@ -33,11 +34,14 @@ def lightglue_match(
     sizes: dict[str, tuple[int, int]],
     batch_size: int,
     device: str,
+    on_progress: Callable[[int], None] | None = None,
 ) -> MatchIndices:
     keypoints_tensors = Keypoints({name: from_numpy(kp).to(device) for name, kp in keypoints.items()})
     descriptors_tensors = Descriptors({name: from_numpy(desc).to(device) for name, desc in descriptors.items()})
 
-    return lightglue_match_tensors(lightglue, pairs, keypoints_tensors, descriptors_tensors, sizes, batch_size, device)
+    return lightglue_match_tensors(
+        lightglue, pairs, keypoints_tensors, descriptors_tensors, sizes, batch_size, device, on_progress
+    )
 
 
 def lightglue_match_tensors(
@@ -48,6 +52,7 @@ def lightglue_match_tensors(
     sizes: dict[str, tuple[int, int]],
     batch_size: int,
     device: str,
+    on_progress: Callable[[int], None] | None = None,
 ) -> MatchIndices:
     num_batches = (len(pairs) + batch_size - 1) // batch_size
     match_indices: MatchIndices = {}
@@ -78,5 +83,8 @@ def lightglue_match_tensors(
             # Mask out non-matches (-1)
             mask: ndarray[tuple[int], dtype[bool_]] = batch_matches >= 0
             match_indices[(image_a, image_b)] = (nonzero(mask)[0], compress(mask, batch_matches))
+
+        if on_progress is not None:
+            on_progress(batch_start + len(batch_pairs))
 
     return match_indices
