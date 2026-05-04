@@ -18,6 +18,44 @@ namespace Placeframe.Client
 {
     public static partial class UIElements
     {
+        public static string CaptureStatusLabel(CaptureUploadStatus status, ReconstructionManifest manifest) =>
+            status switch
+            {
+                CaptureUploadStatus.NotUploaded => "Upload",
+                CaptureUploadStatus.UploadRequested => "Initializing",
+                CaptureUploadStatus.Initializing => "Initializing",
+                CaptureUploadStatus.Uploading => "Uploading",
+                CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
+                CaptureUploadStatus.ReconstructRequested => "Constructing",
+                CaptureUploadStatus.Reconstructing => ReconstructingPhaseLabel(manifest),
+                CaptureUploadStatus.Uploaded => "Create Map",
+                CaptureUploadStatus.CreateMapRequested => "Create Map",
+                CaptureUploadStatus.MapCreated => "Map Created",
+                CaptureUploadStatus.Failed => "Failed",
+                _ => throw new ArgumentOutOfRangeException(nameof(status), status, null)
+            };
+
+        public static bool CaptureStatusIsActionable(CaptureUploadStatus status) =>
+            status == CaptureUploadStatus.NotUploaded
+            || status == CaptureUploadStatus.ReconstructionNotStarted
+            || status == CaptureUploadStatus.Uploaded;
+
+        public static void OnCaptureActionClicked(CaptureState capture)
+        {
+            if (capture.status.value == CaptureUploadStatus.NotUploaded)
+            {
+                capture.status.value = CaptureUploadStatus.UploadRequested;
+            }
+            else if (capture.status.value == CaptureUploadStatus.ReconstructionNotStarted)
+            {
+                capture.status.value = CaptureUploadStatus.ReconstructRequested;
+            }
+            else if (capture.status.value == CaptureUploadStatus.Uploaded)
+            {
+                capture.status.value = CaptureUploadStatus.CreateMapRequested;
+            }
+        }
+
         private static string ReconstructingPhaseLabel(ReconstructionManifest manifest) =>
             manifest?.Status switch
             {
@@ -124,42 +162,10 @@ namespace Placeframe.Client
                                 label = Observables.Combine(
                                     capture.status,
                                     capture.manifest,
-                                    (x, manifest) => x switch
-                                    {
-                                        CaptureUploadStatus.NotUploaded => "Upload",
-                                        CaptureUploadStatus.UploadRequested => "Initializing",
-                                        CaptureUploadStatus.Initializing => "Initializing",
-                                        CaptureUploadStatus.Uploading => "Uploading",
-                                        CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
-                                        CaptureUploadStatus.ReconstructRequested => "Constructing",
-                                        CaptureUploadStatus.Reconstructing => ReconstructingPhaseLabel(manifest),
-                                        CaptureUploadStatus.Uploaded => "Create Map",
-                                        CaptureUploadStatus.CreateMapRequested => "Create Map",
-                                        CaptureUploadStatus.MapCreated => "Map Created",
-                                        CaptureUploadStatus.Failed => "Failed",
-                                        _ => throw new ArgumentOutOfRangeException(nameof(x), x, null)
-                                    }
+                                    CaptureStatusLabel
                                 ),
-                                interactable = capture.status.ObservableSelect(x =>
-                                    x == CaptureUploadStatus.NotUploaded ||
-                                    x == CaptureUploadStatus.ReconstructionNotStarted ||
-                                    x == CaptureUploadStatus.Uploaded
-                                ),
-                                onClick = () =>
-                                {
-                                    if (capture.status.value == CaptureUploadStatus.NotUploaded)
-                                    {
-                                        capture.status.value = CaptureUploadStatus.UploadRequested;
-                                    }
-                                    else if (capture.status.value == CaptureUploadStatus.ReconstructionNotStarted)
-                                    {
-                                        capture.status.value = CaptureUploadStatus.ReconstructRequested;
-                                    }
-                                    else if (capture.status.value == CaptureUploadStatus.Uploaded)
-                                    {
-                                        capture.status.value = CaptureUploadStatus.CreateMapRequested;
-                                    }
-                                }
+                                interactable = capture.status.ObservableSelect(CaptureStatusIsActionable),
+                                onClick = () => OnCaptureActionClicked(capture)
                             })
                         )
                     })
