@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from asyncio import Lock
+from logging import getLogger
 from time import time
 from typing import Any
 
@@ -15,6 +16,7 @@ from litestar.types import ASGIApp
 from .settings import get_settings
 
 settings = get_settings()
+logger = getLogger(__name__)
 
 
 class AuthMiddleware(AbstractAuthenticationMiddleware):
@@ -55,7 +57,21 @@ class AuthMiddleware(AbstractAuthenticationMiddleware):
             # Get json web key by ID
             json_web_key = self._keys.get(kid)
 
-            # Refresh if missing or expired
+            # Refresh if missing or expired. On refresh failure, fall back to
+            # the cached key (if any) instead of failing the request — the
+            # cached key is still cryptographically valid and Keycloak's
+            # signing keys rotate rarely. Without this fallback, a single
+            # JWKS fetch failure bricks auth for every cached kid until the
+            # API process restarts (every subsequent request keeps retrying
+            # the same broken refresh because `_expires_at` never advances).
+            #
+            # TODO: settings.auth_certs_url currently points at the public
+            # ngrok URL, so JWKS fetches loop back through the gateway and
+            # occasionally TLS-blip. Fetching from the in-cluster keycloak
+            # host (http://placeframe-keycloak-1:8080/...) would remove the
+            # blip entirely. Defer until the planned auth refactor — JWKS
+            # URI is decoupled from the issuer claim, so it can change
+            # without invalidating tokens.
             if not json_web_key or time() >= self._expires_at:
                 try:
                     async with AsyncClient() as client:
@@ -63,12 +79,19 @@ class AuthMiddleware(AbstractAuthenticationMiddleware):
                         resp.raise_for_status()
                         json_web_key_set = resp.json()
                 except Exception as exception:
-                    raise NotAuthorizedException(f"JWKS fetch failed: {exception}")
+                    if json_web_key is None:
+                        raise NotAuthorizedException(f"JWKS fetch failed: {type(exception).__name__}: {exception}")
+                    logger.warning(
+                        "JWKS refresh failed, serving cached key for kid=%s: %s: %s",
+                        kid,
+                        type(exception).__name__,
+                        exception,
+                    )
+                else:
+                    self._keys = {key["kid"]: key for key in json_web_key_set.get("keys", []) if "kid" in key}
+                    self._expires_at = time() + self._time_to_live
 
-                self._keys = {key["kid"]: key for key in json_web_key_set.get("keys", []) if "kid" in key}
-                self._expires_at = time() + self._time_to_live
-
-                json_web_key = self._keys.get(kid)
+                    json_web_key = self._keys.get(kid)
 
             if json_web_key is None:
                 raise NotAuthorizedException("Unknown key id")
