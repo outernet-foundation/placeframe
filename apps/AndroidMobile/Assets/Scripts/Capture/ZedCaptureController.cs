@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Placeframe.Client;
 using LogBatchModel = PlaceframeZedCaptureClient.Model.LogBatch;
 using ZedCaptureModel = PlaceframeZedCaptureClient.Model.ZedCapture;
 using ZedStatusModel = PlaceframeZedCaptureClient.Model.ZedStatus;
@@ -22,6 +23,15 @@ using DeviceType = PlaceframeApiClient.Model.DeviceType;
 
 public static class ZedCaptureController
 {
+    public static bool IsZedReachable(ZedStatusKind status) => status switch
+    {
+        ZedStatusKind.Ready => true,
+        ZedStatusKind.Recording => true,
+        ZedStatusKind.DegradedDiskLow => true,
+        ZedStatusKind.DegradedError => true,
+        _ => false,
+    };
+
 #if UNITY_EDITOR || !UNITY_ANDROID
 
     private const string unsupportedMessage = "ZedCaptureController is only supported on non-Editor Android builds";
@@ -222,15 +232,6 @@ public static class ZedCaptureController
             logDrainTask = TaskHandle.Execute(LogDrainLoop);
         }
     }
-
-    private static bool IsZedReachable(ZedStatusKind status) => status switch
-    {
-        ZedStatusKind.Ready => true,
-        ZedStatusKind.Recording => true,
-        ZedStatusKind.DegradedDiskLow => true,
-        ZedStatusKind.DegradedError => true,
-        _ => false,
-    };
 
     private static async UniTask LogDrainLoop(CancellationToken cancellationToken)
     {
