@@ -1,3 +1,4 @@
+import asyncio
 from asyncio import CancelledError, run, sleep
 from pathlib import Path
 from signal import SIGTERM, signal
@@ -22,6 +23,7 @@ async def worker_loop() -> None:
 
     async with ApiClient(configuration) as api_client:
         api = DefaultApi(api_client)
+        loop = asyncio.get_running_loop()
         while True:
             try:
                 token = await auth.get_token()
@@ -46,7 +48,9 @@ async def worker_loop() -> None:
                 print(f"[{lease_id}] Acquired lease")
 
                 try:
-                    run_reconstruction(reconstruction_id, capture_id)
+                    # run_reconstruction is sync and CPU/GPU-bound (~50s); push it to a thread
+                    # so the event loop stays responsive to signals and concurrent work.
+                    await loop.run_in_executor(None, run_reconstruction, reconstruction_id, capture_id)
                     print(f"[{lease_id}] Reconstruction succeeded")
 
                     await api.complete_lease(lease_id, OrchestrationStatus.SUCCEEDED)
