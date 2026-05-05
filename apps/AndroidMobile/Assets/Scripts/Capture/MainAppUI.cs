@@ -255,8 +255,7 @@ namespace Placeframe.Client
                                                 pivot = Props.Value(new Vector2(0, 1))
                                             }),
                                             children = App.state.captures
-
-                                                .ObservableOrderBy(x => x.Value.name)
+                                                .ObservableOrderBy(x => x.Value.recordedAt.ObservableSelect(t => -t.Ticks))
                                                 .ObservableCreate(x => CaptureRow(x.Value))
                                         })
                                     )
@@ -513,12 +512,11 @@ namespace Placeframe.Client
                                                 fitContentVertical = Props.Value(ContentSizeFitter.FitMode.PreferredSize)
                                             }),
                                             children = App.state.captures
-
                                                 .ObservableWhere(x => x.Value.localizationMapId.ObservableSelect(x => x != Guid.Empty))
-                                                .ObservableOrderBy(x => x.Value.name)
+                                                .ObservableOrderBy(x => x.Value.recordedAt.ObservableSelect(t => -t.Ticks))
                                                 .ObservableSelect(x => LabeledButton(new LabeledButtonProps()
                                                 {
-                                                    label = x.Value.name,
+                                                    label = x.Value.name.ObservableSelect(n => n ?? $"Unnamed [{x.Value.id}]"),
                                                     onClick = () => props.onValidationTargetSelected?.Invoke(x.Value.localizationMapId.value)
                                                 }))
                                         })

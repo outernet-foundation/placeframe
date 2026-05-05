@@ -537,7 +537,7 @@ namespace Placeframe.Client
         )
         {
             var id = capture.id;
-            var name = capture.name.value ?? capture.id.ToString();
+            var name = capture.name.value;
             var type = capture.type.value;
 
             progress?.Report((CaptureUploadStatus.Initializing, null));
@@ -549,7 +549,7 @@ namespace Placeframe.Client
             {
                 captureData = await ZedCaptureController.GetCapture(id, cancellationToken);
                 captureSession = await VisualPositioningSystem.Api
-                    .CreateCaptureSessionAsync(new CaptureSessionCreate(DeviceType.Zed, name) { Id = id, RecordedAt = capture.recordedAt.value })
+                    .CreateCaptureSessionAsync(new CaptureSessionCreate(DeviceType.Zed) { Id = id, Name = name, RecordedAt = capture.recordedAt.value })
                     .AsUniTask();
             }
             else if (type == DeviceType.ARFoundation)
@@ -568,7 +568,7 @@ namespace Placeframe.Client
                 {
                     await UniTask.SwitchToMainThread();
                     captureSession = await VisualPositioningSystem.Api
-                        .CreateCaptureSessionAsync(new CaptureSessionCreate(DeviceType.ARFoundation, name) { Id = id, RecordedAt = capture.recordedAt.value })
+                        .CreateCaptureSessionAsync(new CaptureSessionCreate(DeviceType.ARFoundation) { Id = id, Name = name, RecordedAt = capture.recordedAt.value })
                         .AsUniTask();
                 }
                 catch (Exception e)
