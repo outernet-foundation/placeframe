@@ -77,17 +77,22 @@ namespace Placeframe.Client
                 {
                     capture = capture,
                     onDialogComplete = reconstructionOptions =>
-                    {
-                        CreateReconstruction(capture.id, reconstructionOptions).Forget();
-                        capture.status.value = CaptureUploadStatus.Reconstructing;
-                    },
+                        DoReconstruct(capture, reconstructionOptions)
+                            .Forget(_ => capture.status.value = CaptureUploadStatus.Failed),
                 }
             );
         }
 
+        private static async UniTask DoReconstruct(CaptureState capture, ReconstructionOptions reconstructionOptions)
+        {
+            var reconstructionId = await CreateReconstruction(capture.id, reconstructionOptions);
+            capture.reconstructionId.value = reconstructionId;
+            capture.status.value = CaptureUploadStatus.Reconstructing;
+        }
+
         public static void RequestRetry(CaptureState capture)
         {
-            RetryReconstruction(capture).Forget(_ => capture.status.ScheduleSet(CaptureUploadStatus.Failed));
+            RetryReconstruction(capture).Forget(_ => capture.status.value = CaptureUploadStatus.Failed);
         }
 
         private static async UniTask RetryReconstruction(CaptureState capture)
@@ -95,8 +100,8 @@ namespace Placeframe.Client
             await VisualPositioningSystem.Api
                 .RetryReconstructionAsync(capture.reconstructionId.value)
                 .AsUniTask();
-            capture.manifest.ScheduleSet(null);
-            capture.status.ScheduleSet(CaptureUploadStatus.Reconstructing);
+            capture.manifest.value = null;
+            capture.status.value = CaptureUploadStatus.Reconstructing;
         }
 
         public static void RequestCreateMap(CaptureState capture)
@@ -587,28 +592,9 @@ namespace Placeframe.Client
                 throw;
             }
 
+            var reconstructionId = await CreateReconstruction(captureSession.Id, reconstructionOptions);
+            capture.reconstructionId.value = reconstructionId;
             progress?.Report((CaptureUploadStatus.Reconstructing, null));
-
-            capture.status.value = CaptureUploadStatus.Reconstructing;
-
-            await CreateReconstruction(captureSession.Id, reconstructionOptions);
-        }
-
-        private async UniTask<Guid> AwaitReconstructionID(
-            Guid captureSessionId,
-            CancellationToken cancellationToken = default
-        )
-        {
-            while (true)
-            {
-                var reconstructions = await VisualPositioningSystem.Api.GetCaptureSessionReconstructionsAsync(captureSessionId);
-                if (reconstructions.Count > 0)
-                {
-                    return reconstructions[0];
-                }
-
-                await UniTask.WaitForSeconds(10, cancellationToken: cancellationToken);
-            }
         }
 
         private async UniTask AwaitReconstructionComplete(
@@ -617,34 +603,35 @@ namespace Placeframe.Client
             CancellationToken cancellationToken = default
         )
         {
-            var reconstructionId = await AwaitReconstructionID(captureSessionId, cancellationToken);
-
-            //HACK: Pushing directly to state for convenience
-            App.state.captures[captureSessionId].reconstructionId.value = reconstructionId;
+            var reconstructionId = App.state.captures[captureSessionId].reconstructionId.value;
 
             progress?.Report(CaptureUploadStatus.Reconstructing);
 
             while (true)
             {
-                var status = await VisualPositioningSystem.Api.GetReconstructionStatusAsync(reconstructionId, cancellationToken);
-
-                if (status == OrchestrationStatus.Succeeded)
-                    break;
-
-                if (status == OrchestrationStatus.Failed || status == OrchestrationStatus.Cancelled)
-                {
-                    progress?.Report(CaptureUploadStatus.Failed);
-                    throw new Exception("Capture reconstruction failed.");
-                }
-
                 try
                 {
+                    var status = await VisualPositioningSystem.Api.GetReconstructionStatusAsync(reconstructionId, cancellationToken);
+
+                    if (status == OrchestrationStatus.Succeeded)
+                        break;
+
+                    if (status == OrchestrationStatus.Failed || status == OrchestrationStatus.Cancelled)
+                    {
+                        progress?.Report(CaptureUploadStatus.Failed);
+                        return;
+                    }
+
                     var manifest = await VisualPositioningSystem.Api.GetReconstructionManifestAsync(reconstructionId, cancellationToken);
                     App.state.captures[captureSessionId].manifest.value = manifest;
                 }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
                 catch (Exception exception)
                 {
-                    Log.Warn(LogGroup.Capture, $"Manifest poll failed for reconstruction {reconstructionId}: {exception.Message}");
+                    Log.Warn(LogGroup.Capture, $"Reconstruction poll failed for {reconstructionId}: {exception.Message}");
                 }
 
                 await UniTask.WaitForSeconds(3, cancellationToken: cancellationToken);
@@ -655,9 +642,9 @@ namespace Placeframe.Client
             await UpdateCaptureList();
         }
 
-        private static async UniTask CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions)
+        private static async UniTask<Guid> CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions)
         {
-            await VisualPositioningSystem.Api
+            var result = await VisualPositioningSystem.Api
                 .CreateReconstructionAsync(
                     new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId))
                     {
@@ -665,6 +652,7 @@ namespace Placeframe.Client
                     }
                 )
                 .AsUniTask();
+            return result.Id;
         }
     }
 }
