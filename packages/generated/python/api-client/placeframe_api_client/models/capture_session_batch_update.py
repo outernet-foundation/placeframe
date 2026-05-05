@@ -31,11 +31,11 @@ class CaptureSessionBatchUpdate(BaseModel):
     CaptureSessionBatchUpdate
     """ # noqa: E501
     id: UUID
+    recorded_at: Optional[datetime] = Field(default=None, description="datetime with the constraint that the value must have timezone info")
     device_type: Optional[DeviceType] = None
     name: Optional[StrictStr] = None
-    recorded_at: Optional[datetime] = Field(default=None, description="datetime with the constraint that the value must have timezone info")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "device_type", "name", "recorded_at"]
+    __properties: ClassVar[List[str]] = ["id", "recorded_at", "device_type", "name"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -83,15 +83,15 @@ class CaptureSessionBatchUpdate(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
-        # set to None if name (nullable) is None
-        # and model_fields_set contains the field
-        if self.name is None and "name" in self.model_fields_set:
-            _dict['name'] = None
-
         # set to None if recorded_at (nullable) is None
         # and model_fields_set contains the field
         if self.recorded_at is None and "recorded_at" in self.model_fields_set:
             _dict['recorded_at'] = None
+
+        # set to None if name (nullable) is None
+        # and model_fields_set contains the field
+        if self.name is None and "name" in self.model_fields_set:
+            _dict['name'] = None
 
         return _dict
 
@@ -106,9 +106,9 @@ class CaptureSessionBatchUpdate(BaseModel):
 
         _obj = cls.model_validate({
             "id": obj.get("id"),
+            "recorded_at": obj.get("recorded_at"),
             "device_type": obj.get("device_type"),
-            "name": obj.get("name"),
-            "recorded_at": obj.get("recorded_at")
+            "name": obj.get("name")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

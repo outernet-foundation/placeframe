@@ -397,38 +397,38 @@ class TenantRead(BaseModel):
 
 class CaptureSessionCreate(BaseModel):
     id: UUID | None = Field(None, title="Id")
-    device_type: DeviceType
-    name: str = Field(..., title="Name")
     recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
+    device_type: DeviceType
+    name: str | None = Field(None, title="Name")
 
 
 class CaptureSessionBatchCreate(BaseModel):
     id: UUID = Field(..., title="Id")
-    device_type: DeviceType
-    name: str = Field(..., title="Name")
     recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
+    device_type: DeviceType
+    name: str | None = Field(None, title="Name")
 
 
 class CaptureSessionUpdate(BaseModel):
+    recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
     device_type: DeviceType | None = None
     name: str | None = Field(None, title="Name")
-    recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
 
 
 class CaptureSessionBatchUpdate(BaseModel):
     id: UUID = Field(..., title="Id")
+    recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
     device_type: DeviceType | None = None
     name: str | None = Field(None, title="Name")
-    recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
 
 
 class CaptureSessionRead(BaseModel):
     id: UUID = Field(..., title="Id")
     created_at: AwareDatetime = Field(..., title="Created At")
     updated_at: AwareDatetime = Field(..., title="Updated At")
-    device_type: DeviceType
-    name: str = Field(..., title="Name")
     recorded_at: AwareDatetime = Field(..., title="Recorded At")
+    device_type: DeviceType
+    name: str | None = Field(None, title="Name")
 
 
 class NodeCreate(BaseModel):

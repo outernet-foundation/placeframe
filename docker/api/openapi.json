@@ -4321,6 +4321,13 @@
             "format": "uuid",
             "title": "Id"
           },
+          "recorded_at": {
+            "title": "Recorded At",
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "description": "datetime with the constraint that the value must have timezone info"
+          },
           "device_type": {
             "nullable": true,
             "$ref": "#/components/schemas/DeviceType"
@@ -4329,13 +4336,6 @@
             "title": "Name",
             "nullable": true,
             "type": "string"
-          },
-          "recorded_at": {
-            "title": "Recorded At",
-            "nullable": true,
-            "type": "string",
-            "format": "date-time",
-            "description": "datetime with the constraint that the value must have timezone info"
           }
         },
         "type": "object",
@@ -4352,25 +4352,25 @@
             "type": "string",
             "format": "uuid"
           },
-          "device_type": {
-            "$ref": "#/components/schemas/DeviceType"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
           "recorded_at": {
             "title": "Recorded At",
             "nullable": true,
             "type": "string",
             "format": "date-time",
             "description": "datetime with the constraint that the value must have timezone info"
+          },
+          "device_type": {
+            "$ref": "#/components/schemas/DeviceType"
+          },
+          "name": {
+            "title": "Name",
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object",
         "required": [
-          "device_type",
-          "name"
+          "device_type"
         ],
         "title": "CaptureSessionCreate"
       },
@@ -4416,18 +4416,19 @@
             "title": "Created At",
             "description": "datetime with the constraint that the value must have timezone info"
           },
-          "device_type": {
-            "$ref": "#/components/schemas/DeviceType"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
           "recorded_at": {
             "type": "string",
             "format": "date-time",
             "title": "Created At",
             "description": "datetime with the constraint that the value must have timezone info"
+          },
+          "device_type": {
+            "$ref": "#/components/schemas/DeviceType"
+          },
+          "name": {
+            "title": "Name",
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object",
@@ -4435,7 +4436,6 @@
           "created_at",
           "device_type",
           "id",
-          "name",
           "recorded_at",
           "updated_at"
         ],
@@ -4443,6 +4443,13 @@
       },
       "CaptureSessionUpdate": {
         "properties": {
+          "recorded_at": {
+            "title": "Recorded At",
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "description": "datetime with the constraint that the value must have timezone info"
+          },
           "device_type": {
             "nullable": true,
             "$ref": "#/components/schemas/DeviceType"
@@ -4451,13 +4458,6 @@
             "title": "Name",
             "nullable": true,
             "type": "string"
-          },
-          "recorded_at": {
-            "title": "Recorded At",
-            "nullable": true,
-            "type": "string",
-            "format": "date-time",
-            "description": "datetime with the constraint that the value must have timezone info"
           }
         },
         "type": "object",

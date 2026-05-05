@@ -68,22 +68,16 @@ namespace PlaceframeApiClient.Model
         /// <param name="id">id (required).</param>
         /// <param name="createdAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
-        /// <param name="deviceType">deviceType (required).</param>
-        /// <param name="name">name (required).</param>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (required).</param>
-        public CaptureSessionRead(Guid id, DateTime createdAt, DateTime updatedAt, DeviceType deviceType, string name, DateTime recordedAt)
+        /// <param name="deviceType">deviceType (required).</param>
+        /// <param name="name">name.</param>
+        public CaptureSessionRead(Guid id, DateTime createdAt, DateTime updatedAt, DateTime recordedAt, DeviceType deviceType)
         {
             this.Id = id;
             this.CreatedAt = createdAt;
             this.UpdatedAt = updatedAt;
-            this.DeviceType = deviceType;
-            // to ensure "name" is required (not null)
-            if (name == null)
-            {
-                throw new ArgumentNullException("name is a required property for CaptureSessionRead and cannot be null");
-            }
-            this.Name = name;
             this.RecordedAt = recordedAt;
+            this.DeviceType = deviceType;
         }
 
         /// <summary>
@@ -161,30 +155,6 @@ namespace PlaceframeApiClient.Model
             return _flagUpdatedAt;
         }
         /// <summary>
-        /// Gets or Sets Name
-        /// </summary>
-        [DataMember(Name = "name", IsRequired = true, EmitDefaultValue = true)]
-        public string Name
-        {
-            get{ return _Name;}
-            set
-            {
-                _Name = value;
-                _flagName = true;
-            }
-        }
-        private string _Name;
-        private bool _flagName;
-
-        /// <summary>
-        /// Returns false as Name should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeName()
-        {
-            return _flagName;
-        }
-        /// <summary>
         /// datetime with the constraint that the value must have timezone info
         /// </summary>
         /// <value>datetime with the constraint that the value must have timezone info</value>
@@ -210,6 +180,30 @@ namespace PlaceframeApiClient.Model
             return _flagRecordedAt;
         }
         /// <summary>
+        /// Gets or Sets Name
+        /// </summary>
+        [DataMember(Name = "name", EmitDefaultValue = true)]
+        public string Name
+        {
+            get{ return _Name;}
+            set
+            {
+                _Name = value;
+                _flagName = true;
+            }
+        }
+        private string _Name;
+        private bool _flagName;
+
+        /// <summary>
+        /// Returns false as Name should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeName()
+        {
+            return _flagName;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -220,9 +214,9 @@ namespace PlaceframeApiClient.Model
             sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  CreatedAt: ").Append(CreatedAt).Append("\n");
             sb.Append("  UpdatedAt: ").Append(UpdatedAt).Append("\n");
+            sb.Append("  RecordedAt: ").Append(RecordedAt).Append("\n");
             sb.Append("  DeviceType: ").Append(DeviceType).Append("\n");
             sb.Append("  Name: ").Append(Name).Append("\n");
-            sb.Append("  RecordedAt: ").Append(RecordedAt).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

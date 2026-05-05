@@ -1877,18 +1877,18 @@ components:
           format: uuid
           title: Id
           type: string
-        device_type:
-          $ref: "#/components/schemas/DeviceType"
-        name:
-          nullable: true
-          title: Name
-          type: string
         recorded_at:
           description: datetime with the constraint that the value must have timezone
             info
           format: date-time
           nullable: true
           title: Recorded At
+          type: string
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
+        name:
+          nullable: true
+          title: Name
           type: string
       required:
       - id
@@ -1906,11 +1906,6 @@ components:
           nullable: true
           title: Id
           type: string
-        device_type:
-          $ref: "#/components/schemas/DeviceType"
-        name:
-          title: Name
-          type: string
         recorded_at:
           description: datetime with the constraint that the value must have timezone
             info
@@ -1918,9 +1913,14 @@ components:
           nullable: true
           title: Recorded At
           type: string
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
+        name:
+          nullable: true
+          title: Name
+          type: string
       required:
       - device_type
-      - name
       title: CaptureSessionCreate
       type: object
     CaptureSessionManifest:
@@ -2048,22 +2048,22 @@ components:
           format: date-time
           title: Created At
           type: string
-        device_type:
-          $ref: "#/components/schemas/DeviceType"
-        name:
-          title: Name
-          type: string
         recorded_at:
           description: datetime with the constraint that the value must have timezone
             info
           format: date-time
           title: Created At
           type: string
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
+        name:
+          nullable: true
+          title: Name
+          type: string
       required:
       - created_at
       - device_type
       - id
-      - name
       - recorded_at
       - updated_at
       title: CaptureSessionRead
@@ -2074,18 +2074,18 @@ components:
         name: name
         device_type: ARFoundation
       properties:
-        device_type:
-          $ref: "#/components/schemas/DeviceType"
-        name:
-          nullable: true
-          title: Name
-          type: string
         recorded_at:
           description: datetime with the constraint that the value must have timezone
             info
           format: date-time
           nullable: true
           title: Recorded At
+          type: string
+        device_type:
+          $ref: "#/components/schemas/DeviceType"
+        name:
+          nullable: true
+          title: Name
           type: string
       title: CaptureSessionUpdate
       type: object

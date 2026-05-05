@@ -142,11 +142,11 @@ class CaptureSession(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    recorded_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     device_type: Mapped[DeviceType] = mapped_column(
         Enum(DeviceType, name="device_type", values_callable=enum_values), nullable=False
     )
-    name: Mapped[str] = mapped_column(Text, nullable=False)
-    recorded_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    name: Mapped[Optional[str]] = mapped_column(Text)
 
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="capture_sessions")
     reconstructions: Mapped[list["Reconstruction"]] = relationship("Reconstruction", back_populates="capture_session")
