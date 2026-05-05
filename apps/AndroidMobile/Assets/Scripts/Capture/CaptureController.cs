@@ -34,6 +34,7 @@ namespace Placeframe.Client
 
         private Dictionary<Guid, TaskHandle> awaitReconstructionTasks = new Dictionary<Guid, TaskHandle>();
         private IDisposable captureStatusStream;
+        private bool wasZedReachable;
 
         private IDisposable _subscription;
 
@@ -167,9 +168,12 @@ namespace Placeframe.Client
                 }
             );
 
+            wasZedReachable = ZedCaptureController.IsZedReachable(App.state.zedStatus.value);
+
             _subscription = new ComposedDisposable(
                 StateObservables.SubscribeOperations(HandleCaptureStatusChanged, App.state.loggedIn, App.state.captureStatus),
-                App.state.captures.SubscribeOperations(HandleCapturesChanged)
+                App.state.captures.SubscribeOperations(HandleCapturesChanged),
+                StateObservables.SubscribeOperations(HandleZedReachabilityChanged, App.state.zedStatus)
             );
 
             captureStatusStream = App
@@ -274,6 +278,20 @@ namespace Placeframe.Client
                         App.ExecuteTransaction(new SetCaptureStatusAction(CaptureStatus.Idle));
                     });
                     break;
+            }
+        }
+
+        private void HandleZedReachabilityChanged(IReadOnlyList<IStateOperation> ops)
+        {
+            var nowReachable = ZedCaptureController.IsZedReachable(App.state.zedStatus.value);
+            var becameReachable = nowReachable && !wasZedReachable;
+            wasZedReachable = nowReachable;
+
+            if (becameReachable
+                && App.state.loggedIn.value
+                && App.state.captureStatus.value == CaptureStatus.Idle)
+            {
+                UpdateCaptureList().Forget();
             }
         }
 
