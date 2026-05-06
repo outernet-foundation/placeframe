@@ -75,14 +75,7 @@ namespace Placeframe.Client
                     onDialogComplete = reconstructionOptions =>
                     {
                         SaveReconstructionOptions(reconstructionOptions);
-                        UploadCapture(
-                                capture,
-                                reconstructionOptions,
-                                Progress.Create<(CaptureUploadStatus, float?)>(progress =>
-                                    capture.status.value = progress.Item1
-                                )
-                            )
-                            .Forget(exception => capture.status.value = CaptureUploadStatus.Failed);
+                        UploadCapture(capture, reconstructionOptions).Forget(e => OnPipelineFailed(capture, "Upload", e));
                     },
                 }
             );
@@ -95,31 +88,31 @@ namespace Placeframe.Client
                 {
                     capture = capture,
                     onDialogComplete = reconstructionOptions =>
-                        DoReconstruct(capture, reconstructionOptions)
-                            .Forget(_ => capture.status.value = CaptureUploadStatus.Failed),
+                        DoReconstruct(capture, reconstructionOptions).Forget(e => OnPipelineFailed(capture, "Reconstruct", e)),
                 }
             );
         }
 
         private static async UniTask DoReconstruct(CaptureState capture, ReconstructionOptions reconstructionOptions)
         {
-            var reconstructionId = await CreateReconstruction(capture.id, reconstructionOptions);
-            capture.reconstructionId.value = reconstructionId;
-            capture.status.value = CaptureUploadStatus.Reconstructing;
+            var reconstruction = await CreateReconstruction(capture.id, reconstructionOptions);
+            capture.reconstructionId.value = reconstruction.Id;
+            capture.reconstruction.value = reconstruction;
+            capture.clientPhase.value = CaptureClientPhase.Idle;
         }
 
         public static void RequestRetry(CaptureState capture)
         {
-            RetryReconstruction(capture).Forget(_ => capture.status.value = CaptureUploadStatus.Failed);
+            RetryReconstruction(capture).Forget(e => OnPipelineFailed(capture, "Retry", e));
         }
 
         private static async UniTask RetryReconstruction(CaptureState capture)
         {
-            await VisualPositioningSystem.Api
+            var reconstruction = await VisualPositioningSystem.Api
                 .RetryReconstructionAsync(capture.reconstructionId.value)
                 .AsUniTask();
-            capture.reconstruction.value = null;
-            capture.status.value = CaptureUploadStatus.Reconstructing;
+            capture.reconstruction.value = reconstruction;
+            capture.clientPhase.value = CaptureClientPhase.Idle;
         }
 
         public static void RequestCreateMap(CaptureState capture)
@@ -133,11 +126,13 @@ namespace Placeframe.Client
                         Name = capture.name.value,
                     }
                 )
-                .ContinueWith(x =>
-                {
-                    capture.localizationMapId.value = x.Result.Id;
-                    capture.status.value = CaptureUploadStatus.MapCreated;
-                });
+                .ContinueWith(x => capture.localizationMapId.value = x.Result.Id);
+        }
+
+        private static void OnPipelineFailed(CaptureState capture, string stage, Exception exception)
+        {
+            Log.Error(LogGroup.Capture, $"{stage} failed for capture {capture.id}: {exception}");
+            capture.clientPhase.value = CaptureClientPhase.Failed;
         }
 
         void Awake()
@@ -215,14 +210,10 @@ namespace Placeframe.Client
                             if (x == CaptureUploadStatus.Reconstructing
                                 && !awaitReconstructionTasks.ContainsKey(capture.id))
                             {
-                                var progress = Progress.Create<CaptureUploadStatus>(progress =>
-                                    capture.status.value = progress
-                                );
-
                                 awaitReconstructionTasks.Add(
                                     capture.id,
                                     TaskHandle.Execute(token =>
-                                        AwaitReconstructionComplete(capture.id, progress, token)
+                                        AwaitReconstructionComplete(capture.id, token)
                                     )
                                 );
                             }
@@ -423,43 +414,12 @@ namespace Placeframe.Client
                     {
                         state.name.value = entry.name;
                         state.hasLocalFiles.value = entry.hasLocalFiles;
-                        state.reconstruction.value = entry.reconstruction;
                         state.recordedAt.value = entry.recordedAt;
                         state.type.value = entry.deviceType;
-
-                        if (entry.capture == null) //capture is local only
-                        {
-                            state.status.value = CaptureUploadStatus.NotUploaded;
-                            return;
-                        }
-
-                        if (entry.reconstruction == null)
-                        {
-                            state.status.value = CaptureUploadStatus.ReconstructionNotStarted;
-                            return;
-                        }
-
-                        state.reconstructionId.value = entry.reconstruction.Id;
-
-                        switch (entry.reconstruction.Status)
-                        {
-                            case ReconstructionStatus.Succeeded:
-                                state.status.value = CaptureUploadStatus.Uploaded;
-                                break;
-                            case ReconstructionStatus.Cancelled:
-                            case ReconstructionStatus.Failed:
-                                state.status.value = CaptureUploadStatus.Failed;
-                                break;
-                            default:
-                                state.status.value = CaptureUploadStatus.Reconstructing;
-                                break;
-                        }
-
-                        if (entry.localizationMap != null)
-                        {
-                            state.status.value = CaptureUploadStatus.MapCreated;
-                            state.localizationMapId.value = entry.localizationMap.Id;
-                        }
+                        state.serverCaptureExists.value = entry.capture != null;
+                        state.reconstruction.value = entry.reconstruction;
+                        state.reconstructionId.value = entry.reconstruction?.Id ?? Guid.Empty;
+                        state.localizationMapId.value = entry.localizationMap?.Id ?? Guid.Empty;
                     }
                 );
             });
@@ -518,64 +478,43 @@ namespace Placeframe.Client
         private static async UniTask UploadCapture(
             CaptureState capture,
             ReconstructionOptions reconstructionOptions,
-            IProgress<(CaptureUploadStatus, float?)> progress = default,
             CancellationToken cancellationToken = default
         )
         {
             var id = capture.id;
             var type = capture.type.value;
 
-            progress?.Report((CaptureUploadStatus.Initializing, null));
+            capture.clientPhase.value = CaptureClientPhase.Initializing;
 
-            Stream captureData;
-            CaptureSessionRead captureSession;
-            try
+            var captureData = type switch
             {
-                captureData = type switch
-                {
-                    DeviceType.Zed => await ZedCaptureController.GetCapture(id, cancellationToken),
-                    DeviceType.ARFoundation => await CaptureManager.GetCaptureTar(id),
-                    _ => throw new ArgumentException($"Unknown DeviceType {type}"),
-                };
-                await UniTask.SwitchToMainThread();
-                captureSession = await VisualPositioningSystem.Api
-                    .CreateCaptureSessionAsync(new CaptureSessionCreate(type) { Id = id, Name = capture.name.value, RecordedAt = capture.recordedAt.value })
-                    .AsUniTask();
-            }
-            catch (Exception e)
-            {
-                Log.Error(LogGroup.Capture, $"Failed to prepare capture {id} for upload: {e}");
-                throw;
-            }
+                DeviceType.Zed => await ZedCaptureController.GetCapture(id, cancellationToken),
+                DeviceType.ARFoundation => await CaptureManager.GetCaptureTar(id),
+                _ => throw new ArgumentException($"Unknown DeviceType {type}"),
+            };
 
-            progress?.Report((CaptureUploadStatus.Uploading, null));
+            await UniTask.SwitchToMainThread();
+            var captureSession = await VisualPositioningSystem.Api
+                .CreateCaptureSessionAsync(new CaptureSessionCreate(type) { Id = id, Name = capture.name.value, RecordedAt = capture.recordedAt.value })
+                .AsUniTask();
 
-            try
-            {
-                await VisualPositioningSystem.Api
-                    .UploadCaptureSessionTarAsync(captureSession.Id, captureData, cancellationToken: cancellationToken)
-                    .AsUniTask();
-            }
-            catch (Exception exception)
-            {
-                Log.Error(LogGroup.Capture, $"Upload failed: {exception}");
-                throw;
-            }
+            capture.clientPhase.value = CaptureClientPhase.Uploading;
 
-            var reconstructionId = await CreateReconstruction(captureSession.Id, reconstructionOptions);
-            capture.reconstructionId.value = reconstructionId;
-            progress?.Report((CaptureUploadStatus.Reconstructing, null));
+            await VisualPositioningSystem.Api
+                .UploadCaptureSessionTarAsync(captureSession.Id, captureData, cancellationToken: cancellationToken)
+                .AsUniTask();
+
+            capture.serverCaptureExists.value = true;
+
+            var reconstruction = await CreateReconstruction(captureSession.Id, reconstructionOptions);
+            capture.reconstructionId.value = reconstruction.Id;
+            capture.reconstruction.value = reconstruction;
+            capture.clientPhase.value = CaptureClientPhase.Idle;
         }
 
-        private async UniTask AwaitReconstructionComplete(
-            Guid captureSessionId,
-            IProgress<CaptureUploadStatus> progress = default,
-            CancellationToken cancellationToken = default
-        )
+        private async UniTask AwaitReconstructionComplete(Guid captureSessionId, CancellationToken cancellationToken)
         {
             var reconstructionId = App.state.captures[captureSessionId].reconstructionId.value;
-
-            progress?.Report(CaptureUploadStatus.Reconstructing);
 
             while (true)
             {
@@ -584,13 +523,11 @@ namespace Placeframe.Client
                     var reconstruction = await VisualPositioningSystem.Api.GetReconstructionAsync(reconstructionId, cancellationToken);
                     App.state.captures[captureSessionId].reconstruction.value = reconstruction;
 
-                    if (reconstruction.Status == ReconstructionStatus.Succeeded)
-                        break;
-
-                    if (reconstruction.Status == ReconstructionStatus.Failed || reconstruction.Status == ReconstructionStatus.Cancelled)
+                    if (reconstruction.Status == ReconstructionStatus.Succeeded
+                        || reconstruction.Status == ReconstructionStatus.Failed
+                        || reconstruction.Status == ReconstructionStatus.Cancelled)
                     {
-                        progress?.Report(CaptureUploadStatus.Failed);
-                        return;
+                        break;
                     }
                 }
                 catch (OperationCanceledException)
@@ -605,14 +542,11 @@ namespace Placeframe.Client
                 await UniTask.WaitForSeconds(0.5f, cancellationToken: cancellationToken);
             }
 
-            progress?.Report(CaptureUploadStatus.Uploaded);
-
             await UpdateCaptureList();
         }
 
-        private static async UniTask<Guid> CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions)
-        {
-            var result = await VisualPositioningSystem.Api
+        private static UniTask<ReconstructionRead> CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions) =>
+            VisualPositioningSystem.Api
                 .CreateReconstructionAsync(
                     new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId))
                     {
@@ -620,7 +554,5 @@ namespace Placeframe.Client
                     }
                 )
                 .AsUniTask();
-            return result.Id;
-        }
     }
 }

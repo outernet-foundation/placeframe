@@ -74,6 +74,7 @@ namespace Placeframe.Client
 
         public StateValue<ZedStatusKind> zedStatus { get; private set; } =
             new StateValue<ZedStatusKind>(ZedStatusKind.Unknown);
+        public StateValue<bool> zedReachable { get; private set; }
 
         public StateValue<bool> localizing { get; private set; }
         public StateValue<Guid> mapForLocalization { get; private set; }
@@ -83,7 +84,19 @@ namespace Placeframe.Client
             loggedIn.Derive(
                 authStatus.ObservableSelect(status => status == AuthStatus.LoggedIn)
             );
+            zedReachable.Derive(
+                zedStatus.ObservableSelect(IsZedReachable)
+            );
         }
+
+        private static bool IsZedReachable(ZedStatusKind status) => status switch
+        {
+            ZedStatusKind.Ready => true,
+            ZedStatusKind.Recording => true,
+            ZedStatusKind.DegradedDiskLow => true,
+            ZedStatusKind.DegradedError => true,
+            _ => false,
+        };
     }
 
     public enum CaptureUploadStatus
@@ -98,6 +111,14 @@ namespace Placeframe.Client
         Failed,
     }
 
+    public enum CaptureClientPhase
+    {
+        Idle,
+        Initializing,
+        Uploading,
+        Failed,
+    }
+
     public class CaptureState : StateObject, IKeyedStateNode<Guid>
     {
         public Guid id { get; private set; }
@@ -106,6 +127,8 @@ namespace Placeframe.Client
         public StateValue<DeviceType> type { get; private set; }
         public StateValue<DateTime> recordedAt { get; private set; }
         public StateValue<CaptureUploadStatus> status { get; private set; }
+        public StateValue<CaptureClientPhase> clientPhase { get; private set; }
+        public StateValue<bool> serverCaptureExists { get; private set; }
         public StateValue<float> statusPercentage { get; private set; }
         public StateValue<Guid> reconstructionId { get; private set; }
         public StateValue<Guid> localizationMapId { get; private set; }
@@ -113,5 +136,48 @@ namespace Placeframe.Client
         public StateValue<ReconstructionRead> reconstruction { get; private set; }
 
         void IKeyedStateNode<Guid>.AssignKey(Guid key) => id = key;
+
+        protected override void PostInitializeInternal()
+        {
+            status.Derive(
+                Observables.Combine(
+                    clientPhase, serverCaptureExists, reconstruction, localizationMapId,
+                    ComputeStatus
+                )
+            );
+        }
+
+        private static CaptureUploadStatus ComputeStatus(
+            CaptureClientPhase clientPhase,
+            bool serverCaptureExists,
+            ReconstructionRead reconstruction,
+            Guid localizationMapId
+        )
+        {
+            switch (clientPhase)
+            {
+                case CaptureClientPhase.Initializing: return CaptureUploadStatus.Initializing;
+                case CaptureClientPhase.Uploading: return CaptureUploadStatus.Uploading;
+                case CaptureClientPhase.Failed: return CaptureUploadStatus.Failed;
+            }
+
+            if (localizationMapId != Guid.Empty)
+                return CaptureUploadStatus.MapCreated;
+
+            if (reconstruction != null)
+            {
+                switch (reconstruction.Status)
+                {
+                    case ReconstructionStatus.Succeeded: return CaptureUploadStatus.Uploaded;
+                    case ReconstructionStatus.Failed:
+                    case ReconstructionStatus.Cancelled: return CaptureUploadStatus.Failed;
+                    default: return CaptureUploadStatus.Reconstructing;
+                }
+            }
+
+            return serverCaptureExists
+                ? CaptureUploadStatus.ReconstructionNotStarted
+                : CaptureUploadStatus.NotUploaded;
+        }
     }
 }
