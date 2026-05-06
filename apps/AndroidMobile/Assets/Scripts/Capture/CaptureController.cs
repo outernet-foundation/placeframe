@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using Cysharp.Threading.Tasks;
 using FofX.Stateful;
 using ObserveThing;
@@ -33,7 +32,6 @@ namespace Placeframe.Client
     {
         private float captureIntervalSeconds = 0.2f;
 
-        private CancellationTokenSource currentCaptureCts;
         private bool capturesLoaded;
         private string localCaptureNamePath;
         private readonly HashSet<Guid> activeReconstructionPolls = new HashSet<Guid>();
@@ -65,8 +63,6 @@ namespace Placeframe.Client
 
         void OnDestroy()
         {
-            currentCaptureCts?.Cancel();
-            currentCaptureCts?.Dispose();
             captureStatusStream?.Dispose();
         }
 
@@ -201,51 +197,47 @@ namespace Placeframe.Client
                     break;
 
                 case CaptureStatus.Starting:
-                    currentCaptureCts?.Cancel();
-                    currentCaptureCts?.Dispose();
-                    currentCaptureCts = new CancellationTokenSource();
-                    var startToken = currentCaptureCts.Token;
-                    UniTask.Create(async () =>
-                    {
-                        var deviceType = App.state.captureMode.value;
-                        switch (deviceType)
-                        {
-                            case DeviceType.ARFoundation:
-                                CaptureManager.StartCapture(captureIntervalSeconds);
-                                break;
-                            case DeviceType.Zed:
-                                await ZedCaptureController.StartCapture(captureIntervalSeconds, startToken);
-                                break;
-                            default:
-                                throw new ArgumentException($"Unknown DeviceType {deviceType}");
-                        }
-                        App.ExecuteTransaction(new SetCaptureStatusAction(CaptureStatus.Capturing));
-                    }).Forget();
+                    StartCaptureForCurrentDevice().Forget();
                     break;
 
                 case CaptureStatus.Stopping:
-                    currentCaptureCts?.Cancel();
-                    currentCaptureCts?.Dispose();
-                    currentCaptureCts = new CancellationTokenSource();
-                    var stopToken = currentCaptureCts.Token;
-                    UniTask.Create(async () =>
-                    {
-                        var deviceType = App.state.captureMode.value;
-                        switch (deviceType)
-                        {
-                            case DeviceType.ARFoundation:
-                                CaptureManager.StopCapture();
-                                break;
-                            case DeviceType.Zed:
-                                await ZedCaptureController.StopCapture(stopToken);
-                                break;
-                            default:
-                                throw new ArgumentException($"Unknown DeviceType {deviceType}");
-                        }
-                        App.ExecuteTransaction(new SetCaptureStatusAction(CaptureStatus.Idle));
-                    }).Forget();
+                    StopCaptureForCurrentDevice().Forget();
                     break;
             }
+        }
+
+        private async UniTask StartCaptureForCurrentDevice()
+        {
+            var deviceType = App.state.captureMode.value;
+            switch (deviceType)
+            {
+                case DeviceType.ARFoundation:
+                    CaptureManager.StartCapture(captureIntervalSeconds);
+                    break;
+                case DeviceType.Zed:
+                    await ZedCaptureController.StartCapture(captureIntervalSeconds);
+                    break;
+                default:
+                    throw new ArgumentException($"Unknown DeviceType {deviceType}");
+            }
+            App.state.captureStatus.value = CaptureStatus.Capturing;
+        }
+
+        private async UniTask StopCaptureForCurrentDevice()
+        {
+            var deviceType = App.state.captureMode.value;
+            switch (deviceType)
+            {
+                case DeviceType.ARFoundation:
+                    CaptureManager.StopCapture();
+                    break;
+                case DeviceType.Zed:
+                    await ZedCaptureController.StopCapture();
+                    break;
+                default:
+                    throw new ArgumentException($"Unknown DeviceType {deviceType}");
+            }
+            App.state.captureStatus.value = CaptureStatus.Idle;
         }
 
         private void HandleCapturesChanged(IReadOnlyList<IStateOperation> ops)
