@@ -291,12 +291,8 @@ namespace Placeframe.Client
 
             var remoteCaptureList = await VisualPositioningSystem.Api.GetCaptureSessionsAsync();
 
-            var remoteCaptureReconstructions = new List<ReconstructionRead>();
-            await UniTask.WhenAll(
-                remoteCaptureList.Select(c =>
-                    VisualPositioningSystem.Api
-                        .GetReconstructionsAsync(captureSessionId: c.Id)
-                        .ContinueWith(x => remoteCaptureReconstructions.AddRange(x))));
+            var remoteCaptureReconstructions = await VisualPositioningSystem.Api
+                .GetReconstructionsAsync(captureSessionIds: remoteCaptureList.Select(c => c.Id).ToList());
 
             List<LocalizationMapRead> remoteCaptureLocalizationMaps = await VisualPositioningSystem.Api
                 .GetLocalizationMapsAsync(

@@ -124,23 +124,23 @@ async def delete_reconstruction(session: AsyncSession, id: UUID) -> None:
 async def get_reconstructions(
     session: AsyncSession,
     ids: Annotated[list[UUID] | None, Parameter(description="Optional list of Ids to filter by")] = None,
-    capture_session_id: Annotated[
-        Optional[UUID], Parameter(description="Optional capture session Id to filter by")
+    capture_session_ids: Annotated[
+        list[UUID] | None, Parameter(description="Optional list of capture session Ids to filter by")
     ] = None,
     capture_session_name: Annotated[
         Optional[str], Parameter(description="Optional capture session name to filter by")
     ] = None,
 ) -> list[ReconstructionRead]:
-    if capture_session_name and capture_session_id:
-        raise ClientException("Cannot provide both capture_session_id and capture_session_name")
+    if capture_session_name and capture_session_ids:
+        raise ClientException("Cannot provide both capture_session_ids and capture_session_name")
 
     query = select(Reconstruction)
 
     if ids:
         query = query.where(Reconstruction.id.in_(ids))
 
-    if capture_session_id:
-        query = query.where(Reconstruction.capture_session_id == capture_session_id)
+    if capture_session_ids:
+        query = query.where(Reconstruction.capture_session_id.in_(capture_session_ids))
 
     if capture_session_name:
         result = await session.execute(select(CaptureSession.id).where(CaptureSession.name == capture_session_name))
