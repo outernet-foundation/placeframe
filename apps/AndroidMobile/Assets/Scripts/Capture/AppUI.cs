@@ -132,7 +132,7 @@ namespace Placeframe.Client
                         },
                         element = new()
                         {
-                            active = Observables.Combine(
+                            active = Observables.ObservableCombineValues(
                                 App.state.captureMode,
                                 zedStatusObservable,
                                 (mode, status) => mode == DeviceType.Zed && IsBannerState(status))
@@ -197,7 +197,7 @@ namespace Placeframe.Client
                             {
                                 value = App.state.captureStatus
                                     .ObservableSelect(x => x == CaptureStatus.Capturing || x == CaptureStatus.Starting),
-                                interactable = Observables.Combine(
+                                interactable = Observables.ObservableCombineValues(
                                     App.state.captureStatus,
                                     App.state.captureMode,
                                     zedStatusObservable,
@@ -761,7 +761,7 @@ namespace Placeframe.Client
                                                         }),
                                                         LabeledButton(new LabeledButtonProps()
                                                         {
-                                                            label = Observables.Combine(
+                                                            label = Observables.ObservableCombineValues(
                                                                 capture.status,
                                                                 capture.reconstruction,
                                                                 CaptureStatusLabel

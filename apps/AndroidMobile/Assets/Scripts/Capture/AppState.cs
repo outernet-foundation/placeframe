@@ -140,7 +140,7 @@ namespace Placeframe.Client
         protected override void PostInitializeInternal()
         {
             status.Derive(
-                Observables.Combine(
+                Observables.ObservableCombineValues(
                     clientPhase, serverCaptureExists, reconstruction, localizationMapId,
                     ComputeStatus
                 )

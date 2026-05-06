@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Placeframe.Client;
@@ -50,8 +51,8 @@ public static class ZedCaptureController
     public static UniTask StopCapture(CancellationToken cancellationToken = default) =>
         throw new PlatformNotSupportedException(unsupportedMessage);
 
-    public static UniTask<IEnumerable<ZedCaptureModel>> GetCaptures(CancellationToken cancellationToken = default) =>
-        throw new PlatformNotSupportedException(unsupportedMessage);
+    public static UniTask<IEnumerable<ZedCaptureModel>> EnumerateCaptures() =>
+        UniTask.FromResult(Enumerable.Empty<ZedCaptureModel>());
 
     public static UniTask<Stream> GetCapture(Guid captureId, CancellationToken cancellationToken = default) =>
         throw new PlatformNotSupportedException(unsupportedMessage);
@@ -127,8 +128,22 @@ public static class ZedCaptureController
         App.state.zedStatus.value = ZedStatusKind.Ready;
     }
 
-    public static async UniTask<IEnumerable<ZedCaptureModel>> GetCaptures(CancellationToken cancellationToken = default) =>
-        await capturesApi.GetCapturesAsync(cancellationToken);
+    // Bound enumerate so refreshes don't stall on a long socket timeout when the
+    // ZED box is unreachable. An absent box is indistinguishable from an empty one.
+    private static readonly TimeSpan enumerateTimeout = TimeSpan.FromSeconds(1);
+
+    public static async UniTask<IEnumerable<ZedCaptureModel>> EnumerateCaptures()
+    {
+        try
+        {
+            using var cts = new CancellationTokenSource(enumerateTimeout);
+            return await capturesApi.GetCapturesAsync(cts.Token);
+        }
+        catch
+        {
+            return Enumerable.Empty<ZedCaptureModel>();
+        }
+    }
 
     public static async UniTask<Stream> GetCapture(Guid captureId, CancellationToken cancellationToken = default) =>
         (await capturesApi.DownloadCaptureTarAsync(captureId, cancellationToken: cancellationToken)).Content;
