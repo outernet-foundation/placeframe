@@ -369,9 +369,11 @@ namespace Placeframe.Client
 
             while (true)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 try
                 {
-                    var reconstruction = await VisualPositioningSystem.Api.GetReconstructionAsync(reconstructionId, cancellationToken);
+                    var reconstruction = await VisualPositioningSystem.Api.GetReconstructionAsync(reconstructionId);
                     App.state.captures[captureSessionId].reconstruction.value = reconstruction;
 
                     if (reconstruction.Status == ReconstructionStatus.Succeeded
@@ -381,13 +383,9 @@ namespace Placeframe.Client
                         break;
                     }
                 }
-                catch (OperationCanceledException)
+                catch
                 {
-                    throw;
-                }
-                catch (Exception exception)
-                {
-                    Log.Warn(LogGroup.Capture, $"Reconstruction poll failed for {reconstructionId}: {exception.Message}");
+                    // Transient — retry on the next tick. HTTP-layer logging surfaces the underlying cause.
                 }
 
                 await UniTask.WaitForSeconds(0.5f, cancellationToken: cancellationToken);
@@ -528,7 +526,7 @@ namespace Placeframe.Client
             return result;
         }
 
-        private static async UniTask<IReadOnlyList<LocalCapture>> GetAllLocalCaptures(CancellationToken cancellationToken = default)
+        private static async UniTask<IReadOnlyList<LocalCapture>> GetAllLocalCaptures()
         {
             var arFoundation = CaptureManager.GetCaptures()
                 .Select(id => new LocalCapture(id, CaptureManager.GetCaptureRecordedAtUtc(id), DeviceType.ARFoundation));
@@ -536,18 +534,12 @@ namespace Placeframe.Client
             IEnumerable<LocalCapture> zed;
             try
             {
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(ZedEnumerateTimeout);
+                using var cts = new CancellationTokenSource(ZedEnumerateTimeout);
                 var zedCaptures = await ZedCaptureController.GetCaptures(cts.Token);
                 zed = zedCaptures.Select(c => new LocalCapture(c.Id, c.RecordedAt, DeviceType.Zed));
             }
-            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            catch
             {
-                zed = Array.Empty<LocalCapture>();
-            }
-            catch (Exception exception)
-            {
-                Log.Warn(LogGroup.Capture, $"Failed to enumerate ZED captures: {exception.Message}");
                 zed = Array.Empty<LocalCapture>();
             }
 
