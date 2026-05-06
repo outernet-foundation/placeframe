@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 
+using Cysharp.Threading.Tasks;
+
 using UnityEngine;
 
 using TMPro;
@@ -46,23 +48,23 @@ namespace Placeframe.Client
             switch (capture.status.value)
             {
                 case CaptureUploadStatus.NotUploaded:
-                    PromptOptionsThen(capture, options => CaptureController.Upload(capture, options));
+                    PromptOptionsThen(capture, options => CaptureController.Upload(capture, options).Forget());
                     break;
                 case CaptureUploadStatus.ReconstructionNotStarted:
-                    PromptOptionsThen(capture, options => CaptureController.Reconstruct(capture, options));
+                    PromptOptionsThen(capture, options => CaptureController.Reconstruct(capture, options).Forget());
                     break;
                 case CaptureUploadStatus.Uploaded:
-                    CaptureController.CreateMap(capture);
+                    CaptureController.CreateMap(capture).Forget();
                     break;
                 case CaptureUploadStatus.Failed:
                     if (!capture.serverCaptureExists.value)
-                        PromptOptionsThen(capture, options => CaptureController.Upload(capture, options));
+                        PromptOptionsThen(capture, options => CaptureController.Upload(capture, options).Forget());
                     else if (capture.reconstructionId.value == Guid.Empty)
-                        PromptOptionsThen(capture, options => CaptureController.Reconstruct(capture, options));
+                        PromptOptionsThen(capture, options => CaptureController.Reconstruct(capture, options).Forget());
                     else if (capture.reconstruction.value?.Status == ReconstructionStatus.Succeeded)
-                        CaptureController.CreateMap(capture);
+                        CaptureController.CreateMap(capture).Forget();
                     else
-                        CaptureController.Retry(capture);
+                        CaptureController.Retry(capture).Forget();
                     break;
             }
         }
@@ -211,7 +213,7 @@ namespace Placeframe.Client
                         children = Props.List(
                             LabeledButton(new LabeledButtonProps()
                             {
-                                label = Observables.Combine(
+                                label = Observables.ObservableCombineValues(
                                     capture.status,
                                     capture.reconstruction,
                                     CaptureStatusLabel
