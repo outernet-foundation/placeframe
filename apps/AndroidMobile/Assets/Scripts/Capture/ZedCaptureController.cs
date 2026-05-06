@@ -24,15 +24,6 @@ using DeviceType = PlaceframeApiClient.Model.DeviceType;
 
 public static class ZedCaptureController
 {
-    public static bool IsZedReachable(ZedStatusKind status) => status switch
-    {
-        ZedStatusKind.Ready => true,
-        ZedStatusKind.Recording => true,
-        ZedStatusKind.DegradedDiskLow => true,
-        ZedStatusKind.DegradedError => true,
-        _ => false,
-    };
-
 #if UNITY_EDITOR || !UNITY_ANDROID
 
     private const string unsupportedMessage = "ZedCaptureController is only supported on non-Editor Android builds";
@@ -242,7 +233,7 @@ public static class ZedCaptureController
     private static void EvaluateLogDrainState()
     {
         logDrainTask.Cancel();
-        if (App.state.loggedIn.value && IsZedReachable(App.state.zedStatus.value))
+        if (App.state.loggedIn.value && App.state.zedReachable.value)
         {
             logDrainTask = TaskHandle.Execute(LogDrainLoop);
         }

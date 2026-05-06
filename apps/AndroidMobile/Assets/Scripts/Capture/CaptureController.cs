@@ -5,6 +5,7 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using FofX.Stateful;
 using ObserveThing;
+using static ObserveThing.Observables;
 using Placeframe.Core;
 using PlaceframeApiClient.Api;
 using PlaceframeApiClient.Client;
@@ -34,10 +35,7 @@ namespace Placeframe.Client
 
         private bool capturesLoaded;
         private string localCaptureNamePath;
-        private readonly HashSet<Guid> activeReconstructionPolls = new HashSet<Guid>();
-        private IDisposable captureStatusStream;
         private IDisposable _subscription;
-        private bool wasZedReachable;
 
         void Awake()
         {
@@ -45,25 +43,50 @@ namespace Placeframe.Client
 
             localCaptureNamePath = $"{Application.persistentDataPath}/LocalCaptureNames.json";
 
-            wasZedReachable = ZedCaptureController.IsZedReachable(App.state.zedStatus.value);
-
             _subscription = new ComposedDisposable(
-                StateObservables.SubscribeOperations(HandleCaptureStatusChanged, App.state.loggedIn, App.state.captureStatus),
+                ObservableCombineValues(
+                    App.state.loggedIn,
+                    App.state.captureStatus,
+                    (loggedIn, captureStatus) => loggedIn && captureStatus == CaptureStatus.Idle)
+                    .Subscribe(isIdleAndLoggedIn =>
+                    {
+                        if (isIdleAndLoggedIn) UpdateCaptureList().Forget();
+                    }),
+                ObservableCombineValues(
+                    App.state.loggedIn,
+                    App.state.captureStatus,
+                    (loggedIn, captureStatus) => loggedIn && captureStatus == CaptureStatus.Starting)
+                    .Subscribe(isStartingAndLoggedIn =>
+                    {
+                        if (isStartingAndLoggedIn) StartCaptureForCurrentDevice().Forget();
+                    }),
+                ObservableCombineValues(
+                    App.state.loggedIn,
+                    App.state.captureStatus,
+                    (loggedIn, captureStatus) => loggedIn && captureStatus == CaptureStatus.Stopping)
+                    .Subscribe(isStoppingAndLoggedIn =>
+                    {
+                        if (isStoppingAndLoggedIn) StopCaptureForCurrentDevice().Forget();
+                    }),
+                App.state.zedReachable.Subscribe(isReachable =>
+                {
+                    if (isReachable
+                        && App.state.loggedIn.value
+                        && App.state.captureStatus.value == CaptureStatus.Idle)
+                        UpdateCaptureList().Forget();
+                }),
                 App.state.captures.SubscribeOperations(HandleCapturesChanged),
-                StateObservables.SubscribeOperations(HandleZedReachabilityChanged, App.state.zedStatus)
+                App.state.captures
+                    .ObservableSelect(entry => entry.Value)
+                    .ObservableWhere(capture => capture.status
+                        .ObservableSelect(status => status == CaptureUploadStatus.Reconstructing))
+                    .Subscribe(onAdd: capture => PollReconstructionUntilTerminal(capture).Forget())
             );
-
-            captureStatusStream = App
-                .state.captures
-                .ObservableSelect(x => x.Value)
-                .SubscribeEach(capture =>
-                    capture.status.Subscribe(status => HandleCaptureUploadStatusChanged(capture, status))
-                );
         }
 
         void OnDestroy()
         {
-            captureStatusStream?.Dispose();
+            _subscription?.Dispose();
         }
 
         public static async UniTask Upload(CaptureState capture, ReconstructionOptions reconstructionOptions)
@@ -146,8 +169,7 @@ namespace Placeframe.Client
                         new LocalizationMapCreate(capture.reconstructionId.value, 0, 0, 0, 0, 0, 0, 1, 0)
                         {
                             Name = capture.name.value,
-                        }
-                    );
+                        });
                 capture.localizationMapId.value = map.Id;
             }
             catch
@@ -177,29 +199,7 @@ namespace Placeframe.Client
                     new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId))
                     {
                         Options = reconstructionOptions,
-                    }
-                );
-
-        private void HandleCaptureStatusChanged(IReadOnlyList<IStateOperation> ops)
-        {
-            if (!App.state.loggedIn.value)
-                return;
-
-            switch (App.state.captureStatus.value)
-            {
-                case CaptureStatus.Idle:
-                    UpdateCaptureList().Forget();
-                    break;
-
-                case CaptureStatus.Starting:
-                    StartCaptureForCurrentDevice().Forget();
-                    break;
-
-                case CaptureStatus.Stopping:
-                    StopCaptureForCurrentDevice().Forget();
-                    break;
-            }
-        }
+                    });
 
         private async UniTask StartCaptureForCurrentDevice()
         {
@@ -248,68 +248,34 @@ namespace Placeframe.Client
             File.WriteAllText(localCaptureNamePath, json.ToString());
         }
 
-        private void HandleZedReachabilityChanged(IReadOnlyList<IStateOperation> ops)
-        {
-            var nowReachable = ZedCaptureController.IsZedReachable(App.state.zedStatus.value);
-
-            if (nowReachable
-                && !wasZedReachable
-                && App.state.loggedIn.value
-                && App.state.captureStatus.value == CaptureStatus.Idle)
-            {
-                UpdateCaptureList().Forget();
-            }
-
-            wasZedReachable = nowReachable;
-        }
-
-        private void HandleCaptureUploadStatusChanged(CaptureState capture, CaptureUploadStatus status)
-        {
-            if (status != CaptureUploadStatus.Reconstructing
-                || activeReconstructionPolls.Contains(capture.id))
-            {
-                return;
-            }
-
-            activeReconstructionPolls.Add(capture.id);
-            PollReconstructionUntilTerminal(capture).Forget();
-        }
-
         private async UniTask PollReconstructionUntilTerminal(CaptureState capture)
         {
-            try
+            while (this != null && capture.status.value == CaptureUploadStatus.Reconstructing)
             {
-                while (this != null && capture.status.value == CaptureUploadStatus.Reconstructing)
+                try
                 {
-                    try
+                    var reconstruction = await VisualPositioningSystem.Api
+                        .GetReconstructionAsync(App.state.captures[capture.id].reconstructionId.value);
+
+                    if (this == null || capture.status.value != CaptureUploadStatus.Reconstructing)
+                        return;
+
+                    App.state.captures[capture.id].reconstruction.value = reconstruction;
+
+                    if (reconstruction.Status == ReconstructionStatus.Succeeded
+                        || reconstruction.Status == ReconstructionStatus.Failed
+                        || reconstruction.Status == ReconstructionStatus.Cancelled)
                     {
-                        var reconstruction = await VisualPositioningSystem.Api
-                            .GetReconstructionAsync(App.state.captures[capture.id].reconstructionId.value);
-
-                        if (this == null || capture.status.value != CaptureUploadStatus.Reconstructing)
-                            return;
-
-                        App.state.captures[capture.id].reconstruction.value = reconstruction;
-
-                        if (reconstruction.Status == ReconstructionStatus.Succeeded
-                            || reconstruction.Status == ReconstructionStatus.Failed
-                            || reconstruction.Status == ReconstructionStatus.Cancelled)
-                        {
-                            await UpdateCaptureList();
-                            return;
-                        }
+                        await UpdateCaptureList();
+                        return;
                     }
-                    catch
-                    {
-                        // Transient — retry on the next tick. HTTP-layer logging surfaces the underlying cause.
-                    }
-
-                    await UniTask.WaitForSeconds(0.5f);
                 }
-            }
-            finally
-            {
-                activeReconstructionPolls.Remove(capture.id);
+                catch
+                {
+                    // Transient — retry on the next tick. HTTP-layer logging surfaces the underlying cause.
+                }
+
+                await UniTask.WaitForSeconds(0.5f);
             }
         }
 
@@ -330,17 +296,14 @@ namespace Placeframe.Client
                 remoteCaptureList.Select(c =>
                     VisualPositioningSystem.Api
                         .GetReconstructionsAsync(captureSessionId: c.Id)
-                        .ContinueWith(x => remoteCaptureReconstructions.AddRange(x))
-                )
-            );
+                        .ContinueWith(x => remoteCaptureReconstructions.AddRange(x))));
 
             List<LocalizationMapRead> remoteCaptureLocalizationMaps = await VisualPositioningSystem.Api
                 .GetLocalizationMapsAsync(
                     reconstructionIds: remoteCaptureReconstructions
                         .Where(x => x.Status == ReconstructionStatus.Succeeded)
                         .Select(x => x.Id)
-                        .ToList()
-                );
+                        .ToList());
 
             var zedCaptures = await ZedCaptureController.EnumerateCaptures();
             var zed = zedCaptures.Select(c => new LocalCapture(c.Id, c.RecordedAt, DeviceType.Zed));
@@ -364,10 +327,8 @@ namespace Placeframe.Client
                             ? default
                             : remoteCaptureLocalizationMaps.FirstOrDefault(y => y.ReconstructionId == reconstruction.Id),
                         hasLocalFiles: localCaptures.ContainsKey(x.Id),
-                        recordedAt: x.RecordedAt
-                    );
-                }
-            );
+                        recordedAt: x.RecordedAt);
+                });
 
             foreach (var (id, local) in localCaptures)
             {
@@ -383,9 +344,7 @@ namespace Placeframe.Client
                         reconstruction: null,
                         localizationMap: null,
                         hasLocalFiles: true,
-                        recordedAt: local.RecordedAt
-                    )
-                );
+                        recordedAt: local.RecordedAt));
             }
 
             await UniTask.SwitchToMainThread();
@@ -405,8 +364,7 @@ namespace Placeframe.Client
                         state.reconstruction.value = entry.reconstruction;
                         state.reconstructionId.value = entry.reconstruction?.Id ?? Guid.Empty;
                         state.localizationMapId.value = entry.localizationMap?.Id ?? Guid.Empty;
-                    }
-                );
+                    });
             });
 
             capturesLoaded = true;
