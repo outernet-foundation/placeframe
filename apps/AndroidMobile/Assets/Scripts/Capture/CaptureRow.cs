@@ -52,7 +52,14 @@ namespace Placeframe.Client
                     CaptureController.RequestCreateMap(capture);
                     break;
                 case CaptureUploadStatus.Failed:
-                    CaptureController.RequestRetry(capture);
+                    if (!capture.serverCaptureExists.value)
+                        CaptureController.RequestUpload(capture);
+                    else if (capture.reconstructionId.value == Guid.Empty)
+                        CaptureController.RequestReconstruct(capture);
+                    else if (capture.reconstruction.value?.Status == ReconstructionStatus.Succeeded)
+                        CaptureController.RequestCreateMap(capture);
+                    else
+                        CaptureController.RequestRetry(capture);
                     break;
             }
         }
