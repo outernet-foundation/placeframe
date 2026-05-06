@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 
 using UnityEngine;
 
@@ -7,6 +8,8 @@ using TMPro;
 using FofX.Stateful;
 
 using Nessle;
+
+using Newtonsoft.Json;
 
 using ObserveThing;
 
@@ -43,26 +46,51 @@ namespace Placeframe.Client
             switch (capture.status.value)
             {
                 case CaptureUploadStatus.NotUploaded:
-                    CaptureController.RequestUpload(capture);
+                    PromptOptionsThen(capture, options => CaptureController.Upload(capture, options));
                     break;
                 case CaptureUploadStatus.ReconstructionNotStarted:
-                    CaptureController.RequestReconstruct(capture);
+                    PromptOptionsThen(capture, options => CaptureController.Reconstruct(capture, options));
                     break;
                 case CaptureUploadStatus.Uploaded:
-                    CaptureController.RequestCreateMap(capture);
+                    CaptureController.CreateMap(capture);
                     break;
                 case CaptureUploadStatus.Failed:
                     if (!capture.serverCaptureExists.value)
-                        CaptureController.RequestUpload(capture);
+                        PromptOptionsThen(capture, options => CaptureController.Upload(capture, options));
                     else if (capture.reconstructionId.value == Guid.Empty)
-                        CaptureController.RequestReconstruct(capture);
+                        PromptOptionsThen(capture, options => CaptureController.Reconstruct(capture, options));
                     else if (capture.reconstruction.value?.Status == ReconstructionStatus.Succeeded)
-                        CaptureController.RequestCreateMap(capture);
+                        CaptureController.CreateMap(capture);
                     else
-                        CaptureController.RequestRetry(capture);
+                        CaptureController.Retry(capture);
                     break;
             }
         }
+
+        private static void PromptOptionsThen(CaptureState capture, Action<ReconstructionOptions> onConfirmed) =>
+            ReconstructionOptionsDialog(new ReconstructionOptionsDialogProps()
+            {
+                capture = capture,
+                options = File.Exists(Path.Join(Application.persistentDataPath, "reconstructionOptions.json"))
+                    ? JsonConvert.DeserializeObject<ReconstructionOptions>(File.ReadAllText(Path.Join(Application.persistentDataPath, "reconstructionOptions.json")))
+                    : new ReconstructionOptions()
+                    {
+                        NeighborsCount = 12,
+                        RansacMaxError = 2.0,
+                        RansacMinInlierRatio = 0.15,
+                        TriangulationMinimumAngle = 3.0,
+                        TriangulationCompleteMaxReprojectionError = 2.0,
+                        TriangulationMergeMaxReprojectionError = 4.0,
+                        MapperFilterMaxReprojectionError = 2.0,
+                        UsePriorPosition = true,
+                        RigVerification = true,
+                    },
+                onDialogComplete = updated =>
+                {
+                    File.WriteAllText(Path.Join(Application.persistentDataPath, "reconstructionOptions.json"), updated.ToJson());
+                    onConfirmed(updated);
+                },
+            });
 
         private static string ReconstructingPhaseLabel(ReconstructionRead reconstruction)
         {
