@@ -18,24 +18,30 @@ from enum import Enum
 from typing_extensions import Self
 
 
-class OrchestrationStatus(str, Enum):
+class ReconstructionStatus(str, Enum):
     """
-    OrchestrationStatus
+    ReconstructionStatus
     """
 
     """
     allowed enum values
     """
     QUEUED = 'queued'
-    PENDING = 'pending'
-    RUNNING = 'running'
+    DOWNLOADING = 'downloading'
+    EXTRACTING_FEATURES = 'extracting_features'
+    MATCHING_FEATURES = 'matching_features'
+    TRAINING_OPQ_MATRIX = 'training_opq_matrix'
+    TRAINING_PRODUCT_QUANTIZER = 'training_product_quantizer'
+    VERIFYING_GEOMETRY = 'verifying_geometry'
+    RECONSTRUCTING = 'reconstructing'
+    UPLOADING = 'uploading'
     SUCCEEDED = 'succeeded'
-    CANCELLED = 'cancelled'
     FAILED = 'failed'
+    CANCELLED = 'cancelled'
 
     @classmethod
     def from_json(cls, json_str: str) -> Self:
-        """Create an instance of OrchestrationStatus from a JSON string"""
+        """Create an instance of ReconstructionStatus from a JSON string"""
         return cls(json.loads(json_str))
 
 

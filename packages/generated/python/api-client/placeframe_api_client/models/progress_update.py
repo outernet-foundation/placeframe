@@ -17,21 +17,24 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictInt
+from pydantic import BaseModel, ConfigDict, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
+from placeframe_api_client.models.reconstruction_status import ReconstructionStatus
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class PhaseProgress(BaseModel):
+class ProgressUpdate(BaseModel):
     """
-    PhaseProgress
+    ProgressUpdate
     """ # noqa: E501
-    current: StrictInt
-    total: StrictInt
-    attempt: Optional[StrictInt] = 1
+    status: ReconstructionStatus
+    progress_current: Optional[StrictInt] = None
+    progress_total: Optional[StrictInt] = None
+    progress_attempt: Optional[StrictInt] = None
+    error: Optional[StrictStr] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["current", "total", "attempt"]
+    __properties: ClassVar[List[str]] = ["status", "progress_current", "progress_total", "progress_attempt", "error"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -51,7 +54,7 @@ class PhaseProgress(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of PhaseProgress from a JSON string"""
+        """Create an instance of ProgressUpdate from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -79,11 +82,31 @@ class PhaseProgress(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
+        # set to None if progress_current (nullable) is None
+        # and model_fields_set contains the field
+        if self.progress_current is None and "progress_current" in self.model_fields_set:
+            _dict['progress_current'] = None
+
+        # set to None if progress_total (nullable) is None
+        # and model_fields_set contains the field
+        if self.progress_total is None and "progress_total" in self.model_fields_set:
+            _dict['progress_total'] = None
+
+        # set to None if progress_attempt (nullable) is None
+        # and model_fields_set contains the field
+        if self.progress_attempt is None and "progress_attempt" in self.model_fields_set:
+            _dict['progress_attempt'] = None
+
+        # set to None if error (nullable) is None
+        # and model_fields_set contains the field
+        if self.error is None and "error" in self.model_fields_set:
+            _dict['error'] = None
+
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of PhaseProgress from a dict"""
+        """Create an instance of ProgressUpdate from a dict"""
         if obj is None:
             return None
 
@@ -91,9 +114,11 @@ class PhaseProgress(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "current": obj.get("current"),
-            "total": obj.get("total"),
-            "attempt": obj.get("attempt") if obj.get("attempt") is not None else 1
+            "status": obj.get("status"),
+            "progress_current": obj.get("progress_current"),
+            "progress_total": obj.get("progress_total"),
+            "progress_attempt": obj.get("progress_attempt"),
+            "error": obj.get("error")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

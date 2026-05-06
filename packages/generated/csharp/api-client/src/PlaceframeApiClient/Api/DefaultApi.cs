@@ -28,26 +28,6 @@ namespace PlaceframeApiClient.Api
     {
         #region Synchronous Operations
         /// <summary>
-        /// CompleteLease
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <returns></returns>
-        void CompleteLease(Guid id, string body);
-
-        /// <summary>
-        /// CompleteLease
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> CompleteLeaseWithHttpInfo(Guid id, string body);
-        /// <summary>
         /// CreateCaptureSession
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -376,6 +356,26 @@ namespace PlaceframeApiClient.Api
         /// <returns>ApiResponse of FileParameter</returns>
         ApiResponse<FileParameter> DownloadCaptureSessionTarWithHttpInfo(Guid id);
         /// <summary>
+        /// FailLease
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <returns></returns>
+        void FailLease(Guid id, string body);
+
+        /// <summary>
+        /// FailLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        ApiResponse<Object> FailLeaseWithHttpInfo(Guid id, string body);
+        /// <summary>
         /// GetCaptureSession
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -684,24 +684,6 @@ namespace PlaceframeApiClient.Api
         /// <returns>ApiResponse of Guid</returns>
         ApiResponse<Guid> GetReconstructionLocalizationMapWithHttpInfo(Guid id);
         /// <summary>
-        /// GetReconstructionManifest
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>ReconstructionManifest</returns>
-        ReconstructionManifest GetReconstructionManifest(Guid id);
-
-        /// <summary>
-        /// GetReconstructionManifest
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>ApiResponse of ReconstructionManifest</returns>
-        ApiResponse<ReconstructionManifest> GetReconstructionManifestWithHttpInfo(Guid id);
-        /// <summary>
         /// GetReconstructionPoints
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -721,24 +703,6 @@ namespace PlaceframeApiClient.Api
         /// <param name="axisConvention">List of Ids to delete</param>
         /// <returns>ApiResponse of FileParameter</returns>
         ApiResponse<FileParameter> GetReconstructionPointsWithHttpInfo(Guid id, AxisConvention axisConvention);
-        /// <summary>
-        /// GetReconstructionStatus
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>OrchestrationStatus</returns>
-        OrchestrationStatus GetReconstructionStatus(Guid id);
-
-        /// <summary>
-        /// GetReconstructionStatus
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>ApiResponse of OrchestrationStatus</returns>
-        ApiResponse<OrchestrationStatus> GetReconstructionStatusWithHttpInfo(Guid id);
         /// <summary>
         /// GetReconstructions
         /// </summary>
@@ -861,6 +825,26 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <returns>ApiResponse of ReconstructionRead</returns>
         ApiResponse<ReconstructionRead> RetryReconstructionWithHttpInfo(Guid id);
+        /// <summary>
+        /// SucceedLease
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <returns></returns>
+        void SucceedLease(Guid id, ReconstructionMetrics reconstructionMetrics);
+
+        /// <summary>
+        /// SucceedLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        ApiResponse<Object> SucceedLeaseWithHttpInfo(Guid id, ReconstructionMetrics reconstructionMetrics);
         /// <summary>
         /// UpdateCaptureSession
         /// </summary>
@@ -1002,6 +986,26 @@ namespace PlaceframeApiClient.Api
         /// <returns>ApiResponse of List&lt;NodeRead&gt;</returns>
         ApiResponse<List<NodeRead>> UpdateNodesWithHttpInfo(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default);
         /// <summary>
+        /// UpdateProgress
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="progressUpdate"></param>
+        /// <returns></returns>
+        void UpdateProgress(Guid id, ProgressUpdate progressUpdate);
+
+        /// <summary>
+        /// UpdateProgress
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="progressUpdate"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        ApiResponse<Object> UpdateProgressWithHttpInfo(Guid id, ProgressUpdate progressUpdate);
+        /// <summary>
         /// UploadCaptureSessionTar
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -1050,31 +1054,6 @@ namespace PlaceframeApiClient.Api
     public interface IDefaultApiAsync : IApiAccessor
     {
         #region Asynchronous Operations
-        /// <summary>
-        /// CompleteLease
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task CompleteLeaseAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// CompleteLease
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> CompleteLeaseWithHttpInfoAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateCaptureSession
         /// </summary>
@@ -1494,6 +1473,31 @@ namespace PlaceframeApiClient.Api
         /// <returns>Task of ApiResponse (FileParameter)</returns>
         System.Threading.Tasks.Task<ApiResponse<FileParameter>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
+        /// FailLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        System.Threading.Tasks.Task FailLeaseAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// FailLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        System.Threading.Tasks.Task<ApiResponse<Object>> FailLeaseWithHttpInfoAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
         /// GetCaptureSession
         /// </summary>
         /// <remarks>
@@ -1882,29 +1886,6 @@ namespace PlaceframeApiClient.Api
         /// <returns>Task of ApiResponse (Guid)</returns>
         System.Threading.Tasks.Task<ApiResponse<Guid>> GetReconstructionLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
-        /// GetReconstructionManifest
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ReconstructionManifest</returns>
-        System.Threading.Tasks.Task<ReconstructionManifest> GetReconstructionManifestAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// GetReconstructionManifest
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (ReconstructionManifest)</returns>
-        System.Threading.Tasks.Task<ApiResponse<ReconstructionManifest>> GetReconstructionManifestWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
-        /// <summary>
         /// GetReconstructionPoints
         /// </summary>
         /// <remarks>
@@ -1929,29 +1910,6 @@ namespace PlaceframeApiClient.Api
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
         System.Threading.Tasks.Task<ApiResponse<FileParameter>> GetReconstructionPointsWithHttpInfoAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default);
-        /// <summary>
-        /// GetReconstructionStatus
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of OrchestrationStatus</returns>
-        System.Threading.Tasks.Task<OrchestrationStatus> GetReconstructionStatusAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// GetReconstructionStatus
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (OrchestrationStatus)</returns>
-        System.Threading.Tasks.Task<ApiResponse<OrchestrationStatus>> GetReconstructionStatusWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetReconstructions
         /// </summary>
@@ -2104,6 +2062,31 @@ namespace PlaceframeApiClient.Api
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (ReconstructionRead)</returns>
         System.Threading.Tasks.Task<ApiResponse<ReconstructionRead>> RetryReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// SucceedLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        System.Threading.Tasks.Task SucceedLeaseAsync(Guid id, ReconstructionMetrics reconstructionMetrics, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// SucceedLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        System.Threading.Tasks.Task<ApiResponse<Object>> SucceedLeaseWithHttpInfoAsync(Guid id, ReconstructionMetrics reconstructionMetrics, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UpdateCaptureSession
         /// </summary>
@@ -2279,6 +2262,31 @@ namespace PlaceframeApiClient.Api
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;NodeRead&gt;)</returns>
         System.Threading.Tasks.Task<ApiResponse<List<NodeRead>>> UpdateNodesWithHttpInfoAsync(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// UpdateProgress
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="progressUpdate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        System.Threading.Tasks.Task UpdateProgressAsync(Guid id, ProgressUpdate progressUpdate, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// UpdateProgress
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="progressUpdate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        System.Threading.Tasks.Task<ApiResponse<Object>> UpdateProgressWithHttpInfoAsync(Guid id, ProgressUpdate progressUpdate, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UploadCaptureSessionTar
         /// </summary>
@@ -2540,127 +2548,6 @@ namespace PlaceframeApiClient.Api
                 return _exceptionFactory;
             }
             set { _exceptionFactory = value; }
-        }
-
-        /// <summary>
-        /// CompleteLease 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <returns></returns>
-        public void CompleteLease(Guid id, string body)
-        {
-            CompleteLeaseWithHttpInfo(id, body);
-        }
-
-        /// <summary>
-        /// CompleteLease 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <returns>ApiResponse of Object(void)</returns>
-        public PlaceframeApiClient.Client.ApiResponse<Object> CompleteLeaseWithHttpInfo(Guid id, string body)
-        {
-            // verify the required parameter 'body' is set
-            if (body == null)
-                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'body' when calling DefaultApi->CompleteLease");
-
-            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-                "application/json"
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-            localVarRequestOptions.Data = body;
-
-
-            // make the HTTP request
-            var localVarResponse = this.Client.Put<Object>("/internal/leases/{id}/complete", localVarRequestOptions, this.Configuration);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("CompleteLease", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// CompleteLease 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task CompleteLeaseAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default)
-        {
-            await CompleteLeaseWithHttpInfoAsync(id, body, cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// CompleteLease 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<Object>> CompleteLeaseWithHttpInfoAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default)
-        {
-            // verify the required parameter 'body' is set
-            if (body == null)
-                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'body' when calling DefaultApi->CompleteLease");
-
-
-            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-                "application/json"
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-
-            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-            localVarRequestOptions.Data = body;
-
-
-            // make the HTTP request
-
-            var localVarResponse = await this.AsynchronousClient.PutAsync<Object>("/internal/leases/{id}/complete", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("CompleteLease", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
         }
 
         /// <summary>
@@ -4734,6 +4621,127 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
+        /// FailLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <returns></returns>
+        public void FailLease(Guid id, string body)
+        {
+            FailLeaseWithHttpInfo(id, body);
+        }
+
+        /// <summary>
+        /// FailLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        public PlaceframeApiClient.Client.ApiResponse<Object> FailLeaseWithHttpInfo(Guid id, string body)
+        {
+            // verify the required parameter 'body' is set
+            if (body == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'body' when calling DefaultApi->FailLease");
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.Data = body;
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Put<Object>("/internal/leases/{id}/fail", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("FailLease", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// FailLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        public async System.Threading.Tasks.Task FailLeaseAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default)
+        {
+            await FailLeaseWithHttpInfoAsync(id, body, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// FailLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<Object>> FailLeaseWithHttpInfoAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default)
+        {
+            // verify the required parameter 'body' is set
+            if (body == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'body' when calling DefaultApi->FailLease");
+
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.Data = body;
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PutAsync<Object>("/internal/leases/{id}/fail", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("FailLease", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
         /// GetCaptureSession 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -6596,113 +6604,6 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
-        /// GetReconstructionManifest 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>ReconstructionManifest</returns>
-        public ReconstructionManifest GetReconstructionManifest(Guid id)
-        {
-            PlaceframeApiClient.Client.ApiResponse<ReconstructionManifest> localVarResponse = GetReconstructionManifestWithHttpInfo(id);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// GetReconstructionManifest 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>ApiResponse of ReconstructionManifest</returns>
-        public PlaceframeApiClient.Client.ApiResponse<ReconstructionManifest> GetReconstructionManifestWithHttpInfo(Guid id)
-        {
-            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-
-
-            // make the HTTP request
-            var localVarResponse = this.Client.Get<ReconstructionManifest>("/reconstructions/{id}/manifest", localVarRequestOptions, this.Configuration);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("GetReconstructionManifest", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// GetReconstructionManifest 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ReconstructionManifest</returns>
-        public async System.Threading.Tasks.Task<ReconstructionManifest> GetReconstructionManifestAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
-        {
-            PlaceframeApiClient.Client.ApiResponse<ReconstructionManifest> localVarResponse = await GetReconstructionManifestWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// GetReconstructionManifest 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (ReconstructionManifest)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<ReconstructionManifest>> GetReconstructionManifestWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
-        {
-
-            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-
-            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-
-
-            // make the HTTP request
-
-            var localVarResponse = await this.AsynchronousClient.GetAsync<ReconstructionManifest>("/reconstructions/{id}/manifest", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("GetReconstructionManifest", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
         /// GetReconstructionPoints 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -6811,113 +6712,6 @@ namespace PlaceframeApiClient.Api
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("GetReconstructionPoints", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// GetReconstructionStatus 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>OrchestrationStatus</returns>
-        public OrchestrationStatus GetReconstructionStatus(Guid id)
-        {
-            PlaceframeApiClient.Client.ApiResponse<OrchestrationStatus> localVarResponse = GetReconstructionStatusWithHttpInfo(id);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// GetReconstructionStatus 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>ApiResponse of OrchestrationStatus</returns>
-        public PlaceframeApiClient.Client.ApiResponse<OrchestrationStatus> GetReconstructionStatusWithHttpInfo(Guid id)
-        {
-            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-
-
-            // make the HTTP request
-            var localVarResponse = this.Client.Get<OrchestrationStatus>("/reconstructions/{id}/status", localVarRequestOptions, this.Configuration);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("GetReconstructionStatus", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// GetReconstructionStatus 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of OrchestrationStatus</returns>
-        public async System.Threading.Tasks.Task<OrchestrationStatus> GetReconstructionStatusAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
-        {
-            PlaceframeApiClient.Client.ApiResponse<OrchestrationStatus> localVarResponse = await GetReconstructionStatusWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// GetReconstructionStatus 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (OrchestrationStatus)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<OrchestrationStatus>> GetReconstructionStatusWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
-        {
-
-            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-
-            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-
-
-            // make the HTTP request
-
-            var localVarResponse = await this.AsynchronousClient.GetAsync<OrchestrationStatus>("/reconstructions/{id}/status", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("GetReconstructionStatus", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -7710,6 +7504,127 @@ namespace PlaceframeApiClient.Api
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("RetryReconstruction", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// SucceedLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <returns></returns>
+        public void SucceedLease(Guid id, ReconstructionMetrics reconstructionMetrics)
+        {
+            SucceedLeaseWithHttpInfo(id, reconstructionMetrics);
+        }
+
+        /// <summary>
+        /// SucceedLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        public PlaceframeApiClient.Client.ApiResponse<Object> SucceedLeaseWithHttpInfo(Guid id, ReconstructionMetrics reconstructionMetrics)
+        {
+            // verify the required parameter 'reconstructionMetrics' is set
+            if (reconstructionMetrics == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'reconstructionMetrics' when calling DefaultApi->SucceedLease");
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.Data = reconstructionMetrics;
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Put<Object>("/internal/leases/{id}/succeed", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("SucceedLease", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// SucceedLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        public async System.Threading.Tasks.Task SucceedLeaseAsync(Guid id, ReconstructionMetrics reconstructionMetrics, System.Threading.CancellationToken cancellationToken = default)
+        {
+            await SucceedLeaseWithHttpInfoAsync(id, reconstructionMetrics, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// SucceedLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<Object>> SucceedLeaseWithHttpInfoAsync(Guid id, ReconstructionMetrics reconstructionMetrics, System.Threading.CancellationToken cancellationToken = default)
+        {
+            // verify the required parameter 'reconstructionMetrics' is set
+            if (reconstructionMetrics == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'reconstructionMetrics' when calling DefaultApi->SucceedLease");
+
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.Data = reconstructionMetrics;
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PutAsync<Object>("/internal/leases/{id}/succeed", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("SucceedLease", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -8601,6 +8516,127 @@ namespace PlaceframeApiClient.Api
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("UpdateNodes", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// UpdateProgress 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="progressUpdate"></param>
+        /// <returns></returns>
+        public void UpdateProgress(Guid id, ProgressUpdate progressUpdate)
+        {
+            UpdateProgressWithHttpInfo(id, progressUpdate);
+        }
+
+        /// <summary>
+        /// UpdateProgress 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="progressUpdate"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        public PlaceframeApiClient.Client.ApiResponse<Object> UpdateProgressWithHttpInfo(Guid id, ProgressUpdate progressUpdate)
+        {
+            // verify the required parameter 'progressUpdate' is set
+            if (progressUpdate == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'progressUpdate' when calling DefaultApi->UpdateProgress");
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.Data = progressUpdate;
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Put<Object>("/internal/leases/{id}/progress", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("UpdateProgress", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// UpdateProgress 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="progressUpdate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        public async System.Threading.Tasks.Task UpdateProgressAsync(Guid id, ProgressUpdate progressUpdate, System.Threading.CancellationToken cancellationToken = default)
+        {
+            await UpdateProgressWithHttpInfoAsync(id, progressUpdate, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// UpdateProgress 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="progressUpdate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<Object>> UpdateProgressWithHttpInfoAsync(Guid id, ProgressUpdate progressUpdate, System.Threading.CancellationToken cancellationToken = default)
+        {
+            // verify the required parameter 'progressUpdate' is set
+            if (progressUpdate == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'progressUpdate' when calling DefaultApi->UpdateProgress");
+
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.Data = progressUpdate;
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PutAsync<Object>("/internal/leases/{id}/progress", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("UpdateProgress", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 

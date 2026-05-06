@@ -98,17 +98,17 @@ namespace Example
             HttpClient httpClient = new HttpClient();
             HttpClientHandler httpClientHandler = new HttpClientHandler();
             var apiInstance = new DefaultApi(httpClient, config, httpClientHandler);
-            var id = "id_example";  // Guid | 
-            var body = null;  // string | 
+            var captureSessionCreate = new CaptureSessionCreate(); // CaptureSessionCreate | 
 
             try
             {
-                // CompleteLease
-                apiInstance.CompleteLease(id, body);
+                // CreateCaptureSession
+                CaptureSessionRead result = apiInstance.CreateCaptureSession(captureSessionCreate);
+                Debug.WriteLine(result);
             }
             catch (ApiException e)
             {
-                Debug.Print("Exception when calling DefaultApi.CompleteLease: " + e.Message );
+                Debug.Print("Exception when calling DefaultApi.CreateCaptureSession: " + e.Message );
                 Debug.Print("Status Code: "+ e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -125,7 +125,6 @@ All URIs are relative to *http://localhost:8000*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
-*DefaultApi* | [**CompleteLease**](docs/DefaultApi.md#completelease) | **PUT** /internal/leases/{id}/complete | CompleteLease
 *DefaultApi* | [**CreateCaptureSession**](docs/DefaultApi.md#createcapturesession) | **POST** /capture_sessions | CreateCaptureSession
 *DefaultApi* | [**CreateCaptureSessions**](docs/DefaultApi.md#createcapturesessions) | **POST** /capture_sessions/bulk | CreateCaptureSessions
 *DefaultApi* | [**CreateGraph**](docs/DefaultApi.md#creategraph) | **POST** /graph | CreateGraph
@@ -144,6 +143,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**DeleteNodes**](docs/DefaultApi.md#deletenodes) | **DELETE** /nodes | DeleteNodes
 *DefaultApi* | [**DeleteReconstruction**](docs/DefaultApi.md#deletereconstruction) | **DELETE** /reconstructions/{id} | DeleteReconstruction
 *DefaultApi* | [**DownloadCaptureSessionTar**](docs/DefaultApi.md#downloadcapturesessiontar) | **GET** /capture_sessions/{id}/tar | DownloadCaptureSessionTar
+*DefaultApi* | [**FailLease**](docs/DefaultApi.md#faillease) | **PUT** /internal/leases/{id}/fail | FailLease
 *DefaultApi* | [**GetCaptureSession**](docs/DefaultApi.md#getcapturesession) | **GET** /capture_sessions/{id} | GetCaptureSession
 *DefaultApi* | [**GetCaptureSessionFramesCsv**](docs/DefaultApi.md#getcapturesessionframescsv) | **GET** /capture_sessions/{id}/frames.csv | GetCaptureSessionFramesCsv
 *DefaultApi* | [**GetCaptureSessionImage**](docs/DefaultApi.md#getcapturesessionimage) | **GET** /capture_sessions/{id}/images/{frame_timestamp} | GetCaptureSessionImage
@@ -160,15 +160,14 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**GetReconstruction**](docs/DefaultApi.md#getreconstruction) | **GET** /reconstructions/{id} | GetReconstruction
 *DefaultApi* | [**GetReconstructionFramePoses**](docs/DefaultApi.md#getreconstructionframeposes) | **GET** /reconstructions/{id}/frame_poses | GetReconstructionFramePoses
 *DefaultApi* | [**GetReconstructionLocalizationMap**](docs/DefaultApi.md#getreconstructionlocalizationmap) | **GET** /reconstructions/{id}/localization_map | GetReconstructionLocalizationMap
-*DefaultApi* | [**GetReconstructionManifest**](docs/DefaultApi.md#getreconstructionmanifest) | **GET** /reconstructions/{id}/manifest | GetReconstructionManifest
 *DefaultApi* | [**GetReconstructionPoints**](docs/DefaultApi.md#getreconstructionpoints) | **GET** /reconstructions/{id}/points | GetReconstructionPoints
-*DefaultApi* | [**GetReconstructionStatus**](docs/DefaultApi.md#getreconstructionstatus) | **GET** /reconstructions/{id}/status | GetReconstructionStatus
 *DefaultApi* | [**GetReconstructions**](docs/DefaultApi.md#getreconstructions) | **GET** /reconstructions | GetReconstructions
 *DefaultApi* | [**ListLocalizationEvaluations**](docs/DefaultApi.md#listlocalizationevaluations) | **GET** /reconstructions/{reconstruction_id}/localization-evaluations | ListLocalizationEvaluations
 *DefaultApi* | [**LocalizeImage**](docs/DefaultApi.md#localizeimage) | **POST** /localize | LocalizeImage
 *DefaultApi* | [**PushZedBoxLogs**](docs/DefaultApi.md#pushzedboxlogs) | **POST** /zed-boxes/logs | PushZedBoxLogs
 *DefaultApi* | [**RequestLease**](docs/DefaultApi.md#requestlease) | **POST** /internal/leases/request | RequestLease
 *DefaultApi* | [**RetryReconstruction**](docs/DefaultApi.md#retryreconstruction) | **PUT** /reconstructions/{id}/retry | RetryReconstruction
+*DefaultApi* | [**SucceedLease**](docs/DefaultApi.md#succeedlease) | **PUT** /internal/leases/{id}/succeed | SucceedLease
 *DefaultApi* | [**UpdateCaptureSession**](docs/DefaultApi.md#updatecapturesession) | **PATCH** /capture_sessions/{id} | UpdateCaptureSession
 *DefaultApi* | [**UpdateCaptureSessions**](docs/DefaultApi.md#updatecapturesessions) | **PATCH** /capture_sessions | UpdateCaptureSessions
 *DefaultApi* | [**UpdateGroups**](docs/DefaultApi.md#updategroups) | **PATCH** /groups | UpdateGroups
@@ -176,6 +175,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**UpdateLocalizationMap**](docs/DefaultApi.md#updatelocalizationmap) | **PATCH** /localization-maps/{id} | UpdateLocalizationMap
 *DefaultApi* | [**UpdateLocalizationMaps**](docs/DefaultApi.md#updatelocalizationmaps) | **PATCH** /localization-maps | UpdateLocalizationMaps
 *DefaultApi* | [**UpdateNodes**](docs/DefaultApi.md#updatenodes) | **PATCH** /nodes | UpdateNodes
+*DefaultApi* | [**UpdateProgress**](docs/DefaultApi.md#updateprogress) | **PUT** /internal/leases/{id}/progress | UpdateProgress
 *DefaultApi* | [**UploadCaptureSessionTar**](docs/DefaultApi.md#uploadcapturesessiontar) | **PUT** /capture_sessions/{id}/tar | UploadCaptureSessionTar
 *DefaultApi* | [**UpsertLocalizationEvaluation**](docs/DefaultApi.md#upsertlocalizationevaluation) | **POST** /reconstructions/{reconstruction_id}/localization-evaluations | UpsertLocalizationEvaluation
 
@@ -219,15 +219,14 @@ Class | Method | HTTP request | Description
  - [Model.NodeBatchUpdate](docs/NodeBatchUpdate.md)
  - [Model.NodeCreate](docs/NodeCreate.md)
  - [Model.NodeRead](docs/NodeRead.md)
- - [Model.OrchestrationStatus](docs/OrchestrationStatus.md)
- - [Model.PhaseProgress](docs/PhaseProgress.md)
  - [Model.PinholeCameraConfig](docs/PinholeCameraConfig.md)
+ - [Model.ProgressUpdate](docs/ProgressUpdate.md)
  - [Model.ReconstructionCreate](docs/ReconstructionCreate.md)
  - [Model.ReconstructionCreateWithOptions](docs/ReconstructionCreateWithOptions.md)
- - [Model.ReconstructionManifest](docs/ReconstructionManifest.md)
  - [Model.ReconstructionMetrics](docs/ReconstructionMetrics.md)
  - [Model.ReconstructionOptions](docs/ReconstructionOptions.md)
  - [Model.ReconstructionRead](docs/ReconstructionRead.md)
+ - [Model.ReconstructionStatus](docs/ReconstructionStatus.md)
  - [Model.RigCameraConfig](docs/RigCameraConfig.md)
  - [Model.RigConfig](docs/RigConfig.md)
  - [Model.Transform](docs/Transform.md)

@@ -1163,14 +1163,14 @@
         "deprecated": false
       }
     },
-    "/internal/leases/{id}/complete": {
+    "/internal/leases/{id}/progress": {
       "put": {
         "tags": [
           "Internal",
           "Leases"
         ],
-        "summary": "CompleteLease",
-        "operationId": "complete_lease",
+        "summary": "UpdateProgress",
+        "operationId": "update_progress",
         "parameters": [
           {
             "name": "id",
@@ -1187,7 +1187,167 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OrchestrationStatus"
+                "$ref": "#/components/schemas/ProgressUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/internal/leases/{id}/succeed": {
+      "put": {
+        "tags": [
+          "Internal",
+          "Leases"
+        ],
+        "summary": "SucceedLease",
+        "operationId": "succeed_lease",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconstructionMetrics"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/internal/leases/{id}/fail": {
+      "put": {
+        "tags": [
+          "Internal",
+          "Leases"
+        ],
+        "summary": "FailLease",
+        "operationId": "fail_lease",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
               }
             }
           },
@@ -1574,82 +1734,6 @@
         "deprecated": false
       }
     },
-    "/reconstructions/{id}/manifest": {
-      "get": {
-        "tags": [
-          "Reconstructions"
-        ],
-        "summary": "GetReconstructionManifest",
-        "operationId": "get_reconstruction_manifest",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "deprecated": false
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Request fulfilled, document follows",
-            "headers": {},
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReconstructionManifest"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request syntax or unsupported method",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "status_code": {
-                      "type": "integer"
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "extra": {
-                      "additionalProperties": {},
-                      "anyOf": [
-                        {
-                          "type": "object"
-                        },
-                        {
-                          "type": "array",
-                          "items": {}
-                        }
-                      ],
-                      "nullable": true
-                    }
-                  },
-                  "type": "object",
-                  "required": [
-                    "detail",
-                    "status_code"
-                  ],
-                  "description": "Validation Exception",
-                  "example": {
-                    "status_code": 400,
-                    "detail": "Bad Request",
-                    "extra": {}
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
-    },
     "/reconstructions/{id}/localization_map": {
       "get": {
         "tags": [
@@ -1678,82 +1762,6 @@
                 "schema": {
                   "type": "string",
                   "format": "uuid"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request syntax or unsupported method",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "status_code": {
-                      "type": "integer"
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "extra": {
-                      "additionalProperties": {},
-                      "anyOf": [
-                        {
-                          "type": "object"
-                        },
-                        {
-                          "type": "array",
-                          "items": {}
-                        }
-                      ],
-                      "nullable": true
-                    }
-                  },
-                  "type": "object",
-                  "required": [
-                    "detail",
-                    "status_code"
-                  ],
-                  "description": "Validation Exception",
-                  "example": {
-                    "status_code": 400,
-                    "detail": "Bad Request",
-                    "extra": {}
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
-    },
-    "/reconstructions/{id}/status": {
-      "get": {
-        "tags": [
-          "Reconstructions"
-        ],
-        "summary": "GetReconstructionStatus",
-        "operationId": "get_reconstruction_status",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "deprecated": false
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Request fulfilled, document follows",
-            "headers": {},
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OrchestrationStatus"
                 }
               }
             }
@@ -4760,11 +4768,15 @@
           "capture_session_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "options": {
+            "$ref": "#/components/schemas/ReconstructionOptions"
           }
         },
         "type": "object",
         "required": [
           "capture_session_id",
+          "options",
           "reconstruction_id"
         ],
         "title": "LeaseResponse"
@@ -5880,38 +5892,6 @@
         ],
         "title": "NodeRead"
       },
-      "OrchestrationStatus": {
-        "type": "string",
-        "enum": [
-          "queued",
-          "pending",
-          "running",
-          "succeeded",
-          "cancelled",
-          "failed"
-        ],
-        "title": "OrchestrationStatus"
-      },
-      "PhaseProgress": {
-        "properties": {
-          "current": {
-            "type": "integer"
-          },
-          "total": {
-            "type": "integer"
-          },
-          "attempt": {
-            "type": "integer",
-            "default": 1
-          }
-        },
-        "type": "object",
-        "required": [
-          "current",
-          "total"
-        ],
-        "title": "PhaseProgress"
-      },
       "PinholeCameraConfig": {
         "properties": {
           "width": {
@@ -5958,6 +5938,34 @@
         ],
         "title": "PinholeCameraConfig"
       },
+      "ProgressUpdate": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ReconstructionStatus"
+          },
+          "progress_current": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "progress_total": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "progress_attempt": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "error": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ProgressUpdate"
+      },
       "ReconstructionCreate": {
         "properties": {
           "capture_session_id": {
@@ -5970,10 +5978,6 @@
             "nullable": true,
             "type": "string",
             "format": "uuid"
-          },
-          "orchestration_status": {
-            "nullable": true,
-            "$ref": "#/components/schemas/OrchestrationStatus"
           }
         },
         "type": "object",
@@ -5998,52 +6002,6 @@
           "create"
         ],
         "title": "ReconstructionCreateWithOptions"
-      },
-      "ReconstructionManifest": {
-        "properties": {
-          "capture_id": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "queued",
-              "pending",
-              "downloading",
-              "extracting_features",
-              "matching_features",
-              "training_opq_matrix",
-              "training_product_quantizer",
-              "verifying_geometry",
-              "reconstructing",
-              "uploading",
-              "succeeded",
-              "failed"
-            ]
-          },
-          "error": {
-            "nullable": true,
-            "type": "string"
-          },
-          "phase_progress": {
-            "nullable": true,
-            "$ref": "#/components/schemas/PhaseProgress"
-          },
-          "options": {
-            "$ref": "#/components/schemas/ReconstructionOptions"
-          },
-          "metrics": {
-            "$ref": "#/components/schemas/ReconstructionMetrics"
-          }
-        },
-        "type": "object",
-        "required": [
-          "capture_id",
-          "metrics",
-          "options",
-          "status"
-        ],
-        "title": "ReconstructionManifest"
       },
       "ReconstructionMetrics": {
         "properties": {
@@ -6361,8 +6319,37 @@
             "title": "Created At",
             "description": "datetime with the constraint that the value must have timezone info"
           },
-          "orchestration_status": {
-            "$ref": "#/components/schemas/OrchestrationStatus"
+          "status": {
+            "$ref": "#/components/schemas/ReconstructionStatus"
+          },
+          "manifest_version": {
+            "type": "integer",
+            "title": "Manifest Version"
+          },
+          "manifest": {
+            "additionalProperties": {},
+            "type": "object",
+            "title": "Manifest"
+          },
+          "progress_current": {
+            "title": "Progress Current",
+            "nullable": true,
+            "type": "integer"
+          },
+          "progress_total": {
+            "title": "Progress Total",
+            "nullable": true,
+            "type": "integer"
+          },
+          "progress_attempt": {
+            "title": "Progress Attempt",
+            "nullable": true,
+            "type": "integer"
+          },
+          "error": {
+            "title": "Error",
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object",
@@ -6370,10 +6357,30 @@
           "capture_session_id",
           "created_at",
           "id",
-          "orchestration_status",
+          "manifest",
+          "manifest_version",
+          "status",
           "updated_at"
         ],
         "title": "ReconstructionRead"
+      },
+      "ReconstructionStatus": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "downloading",
+          "extracting_features",
+          "matching_features",
+          "training_opq_matrix",
+          "training_product_quantizer",
+          "verifying_geometry",
+          "reconstructing",
+          "uploading",
+          "succeeded",
+          "failed",
+          "cancelled"
+        ],
+        "title": "ReconstructionStatus"
       },
       "RigCameraConfig": {
         "properties": {

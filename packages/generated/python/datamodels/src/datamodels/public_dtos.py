@@ -18,8 +18,8 @@ from .public_tables import (
     LocalizationMapCameraPosition,
     LocalizationSession,
     Node,
-    OrchestrationStatus,
     Reconstruction,
+    ReconstructionStatus,
     SpatialRefSy,
     Tenant,
 )
@@ -335,6 +335,25 @@ class LocalizationSessionRead(BaseModel):
     container_url: str = Field(..., title="Container Url")
 
 
+class ReconstructionCreate(BaseModel):
+    capture_session_id: UUID = Field(..., title="Capture Session Id")
+    id: UUID | None = Field(None, title="Id")
+
+
+class ReconstructionBatchCreate(BaseModel):
+    capture_session_id: UUID = Field(..., title="Capture Session Id")
+    id: UUID = Field(..., title="Id")
+
+
+class ReconstructionUpdate(BaseModel):
+    capture_session_id: UUID | None = Field(None, title="Capture Session Id")
+
+
+class ReconstructionBatchUpdate(BaseModel):
+    capture_session_id: UUID | None = Field(None, title="Capture Session Id")
+    id: UUID = Field(..., title="Id")
+
+
 class SpatialRefSyCreate(BaseModel):
     srid: int = Field(..., title="Srid")
     auth_name: str | None = Field(None, title="Auth Name")
@@ -542,35 +561,18 @@ class NodeRead(BaseModel):
     name: str | None = Field(None, title="Name")
 
 
-class ReconstructionCreate(BaseModel):
-    capture_session_id: UUID = Field(..., title="Capture Session Id")
-    id: UUID | None = Field(None, title="Id")
-    orchestration_status: OrchestrationStatus | None = None
-
-
-class ReconstructionBatchCreate(BaseModel):
-    capture_session_id: UUID = Field(..., title="Capture Session Id")
-    id: UUID = Field(..., title="Id")
-    orchestration_status: OrchestrationStatus | None = None
-
-
-class ReconstructionUpdate(BaseModel):
-    capture_session_id: UUID | None = Field(None, title="Capture Session Id")
-    orchestration_status: OrchestrationStatus | None = None
-
-
-class ReconstructionBatchUpdate(BaseModel):
-    capture_session_id: UUID | None = Field(None, title="Capture Session Id")
-    id: UUID = Field(..., title="Id")
-    orchestration_status: OrchestrationStatus | None = None
-
-
 class ReconstructionRead(BaseModel):
     capture_session_id: UUID = Field(..., title="Capture Session Id")
     id: UUID = Field(..., title="Id")
     created_at: AwareDatetime = Field(..., title="Created At")
     updated_at: AwareDatetime = Field(..., title="Updated At")
-    orchestration_status: OrchestrationStatus
+    status: ReconstructionStatus
+    manifest_version: int = Field(..., title="Manifest Version")
+    manifest: dict[str, Any] = Field(..., title="Manifest")
+    progress_current: int | None = Field(None, title="Progress Current")
+    progress_total: int | None = Field(None, title="Progress Total")
+    progress_attempt: int | None = Field(None, title="Progress Attempt")
+    error: str | None = Field(None, title="Error")
 
 
 def capture_session_from_dto(create: CaptureSessionCreate) -> CaptureSession:

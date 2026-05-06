@@ -1,7 +1,7 @@
 import datetime
 import enum
 import uuid
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy import (
     ARRAY,
@@ -16,6 +16,7 @@ from sqlalchemy import (
     Index,
     Integer,
     PrimaryKeyConstraint,
+    SmallInteger,
     String,
     Table,
     Text,
@@ -23,6 +24,7 @@ from sqlalchemy import (
     Uuid,
     text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -48,13 +50,19 @@ class LabelType(enum.Enum):
     IMAGE = "image"
 
 
-class OrchestrationStatus(enum.Enum):
+class ReconstructionStatus(enum.Enum):
     QUEUED = "queued"
-    PENDING = "pending"
-    RUNNING = "running"
+    DOWNLOADING = "downloading"
+    EXTRACTING_FEATURES = "extracting_features"
+    MATCHING_FEATURES = "matching_features"
+    TRAINING_OPQ_MATRIX = "training_opq_matrix"
+    TRAINING_PRODUCT_QUANTIZER = "training_product_quantizer"
+    VERIFYING_GEOMETRY = "verifying_geometry"
+    RECONSTRUCTING = "reconstructing"
+    UPLOADING = "uploading"
     SUCCEEDED = "succeeded"
-    CANCELLED = "cancelled"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 class Base(DeclarativeBase):
@@ -275,11 +283,17 @@ class Reconstruction(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
-    orchestration_status: Mapped[OrchestrationStatus] = mapped_column(
-        Enum(OrchestrationStatus, name="orchestration_status", values_callable=enum_values),
+    status: Mapped[ReconstructionStatus] = mapped_column(
+        Enum(ReconstructionStatus, name="reconstruction_status", values_callable=enum_values),
         nullable=False,
-        server_default=text("'queued'::orchestration_status"),
+        server_default=text("'queued'::reconstruction_status"),
     )
+    manifest_version: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    manifest: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    progress_current: Mapped[Optional[int]] = mapped_column(Integer)
+    progress_total: Mapped[Optional[int]] = mapped_column(Integer)
+    progress_attempt: Mapped[Optional[int]] = mapped_column(Integer)
+    error: Mapped[Optional[str]] = mapped_column(Text)
 
     capture_session: Mapped["CaptureSession"] = relationship("CaptureSession", back_populates="reconstructions")
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="reconstructions")

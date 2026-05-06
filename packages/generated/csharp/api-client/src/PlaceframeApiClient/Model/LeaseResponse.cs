@@ -41,10 +41,17 @@ namespace PlaceframeApiClient.Model
         /// </summary>
         /// <param name="reconstructionId">reconstructionId (required).</param>
         /// <param name="captureSessionId">captureSessionId (required).</param>
-        public LeaseResponse(Guid reconstructionId, Guid captureSessionId)
+        /// <param name="options">options (required).</param>
+        public LeaseResponse(Guid reconstructionId, Guid captureSessionId, ReconstructionOptions options)
         {
             this.ReconstructionId = reconstructionId;
             this.CaptureSessionId = captureSessionId;
+            // to ensure "options" is required (not null)
+            if (options == null)
+            {
+                throw new ArgumentNullException("options is a required property for LeaseResponse and cannot be null");
+            }
+            this.Options = options;
         }
 
         /// <summary>
@@ -96,6 +103,30 @@ namespace PlaceframeApiClient.Model
             return _flagCaptureSessionId;
         }
         /// <summary>
+        /// Gets or Sets Options
+        /// </summary>
+        [DataMember(Name = "options", IsRequired = true, EmitDefaultValue = true)]
+        public ReconstructionOptions Options
+        {
+            get{ return _Options;}
+            set
+            {
+                _Options = value;
+                _flagOptions = true;
+            }
+        }
+        private ReconstructionOptions _Options;
+        private bool _flagOptions;
+
+        /// <summary>
+        /// Returns false as Options should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeOptions()
+        {
+            return _flagOptions;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -105,6 +136,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("class LeaseResponse {\n");
             sb.Append("  ReconstructionId: ").Append(ReconstructionId).Append("\n");
             sb.Append("  CaptureSessionId: ").Append(CaptureSessionId).Append("\n");
+            sb.Append("  Options: ").Append(Options).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

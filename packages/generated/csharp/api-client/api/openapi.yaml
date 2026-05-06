@@ -482,10 +482,10 @@ paths:
       summary: RequestLease
       tags:
       - Default
-  /internal/leases/{id}/complete:
+  /internal/leases/{id}/progress:
     put:
       deprecated: false
-      operationId: complete_lease
+      operationId: update_progress
       parameters:
       - deprecated: false
         explode: false
@@ -500,7 +500,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/OrchestrationStatus"
+              $ref: "#/components/schemas/ProgressUpdate"
         required: true
       responses:
         "200":
@@ -511,7 +511,71 @@ paths:
               schema:
                 $ref: "#/components/schemas/get_capture_sessions_400_response"
           description: Bad request syntax or unsupported method
-      summary: CompleteLease
+      summary: UpdateProgress
+      tags:
+      - Default
+  /internal/leases/{id}/succeed:
+    put:
+      deprecated: false
+      operationId: succeed_lease
+      parameters:
+      - deprecated: false
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReconstructionMetrics"
+        required: true
+      responses:
+        "200":
+          description: "Request fulfilled, document follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: SucceedLease
+      tags:
+      - Default
+  /internal/leases/{id}/fail:
+    put:
+      deprecated: false
+      operationId: fail_lease
+      parameters:
+      - deprecated: false
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+        required: true
+      responses:
+        "200":
+          description: "Request fulfilled, document follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: FailLease
       tags:
       - Default
   /reconstructions:
@@ -660,36 +724,6 @@ paths:
       summary: GetReconstruction
       tags:
       - Default
-  /reconstructions/{id}/manifest:
-    get:
-      deprecated: false
-      operationId: get_reconstruction_manifest
-      parameters:
-      - deprecated: false
-        explode: false
-        in: path
-        name: id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ReconstructionManifest"
-          description: "Request fulfilled, document follows"
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/get_capture_sessions_400_response"
-          description: Bad request syntax or unsupported method
-      summary: GetReconstructionManifest
-      tags:
-      - Default
   /reconstructions/{id}/localization_map:
     get:
       deprecated: false
@@ -719,36 +753,6 @@ paths:
                 $ref: "#/components/schemas/get_capture_sessions_400_response"
           description: Bad request syntax or unsupported method
       summary: GetReconstructionLocalizationMap
-      tags:
-      - Default
-  /reconstructions/{id}/status:
-    get:
-      deprecated: false
-      operationId: get_reconstruction_status
-      parameters:
-      - deprecated: false
-        explode: false
-        in: path
-        name: id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/OrchestrationStatus"
-          description: "Request fulfilled, document follows"
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/get_capture_sessions_400_response"
-          description: Bad request syntax or unsupported method
-      summary: GetReconstructionStatus
       tags:
       - Default
   /reconstructions/{id}/retry:
@@ -2449,6 +2453,32 @@ components:
     LeaseResponse:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        options:
+          random_seed: 0
+          ransac_max_error: 5.637376656633329
+          triangulation_merge_max_reprojection_error: 3.616076749251911
+          ransac_min_inlier_ratio: 2.3021358869347655
+          held_out_frame_timestamps:
+          - 6
+          - 6
+          bundle_adjustment_refine_sensor_from_rig: true
+          bundle_adjustment_refine_principal_point: true
+          compression_opq_number_of_subvectors: 4
+          rotation_threshold: 1.4658129805029452
+          compression_opq_number_of_bits_per_subvector: 7
+          use_prior_position: true
+          pose_prior_position_sigma_m: 1.0246457001441578
+          lightglue_batch_size: 5
+          compression_opq_number_of_training_iterations: 1
+          max_keypoints_per_image: 1
+          neighbors_count: 6
+          triangulation_complete_max_reprojection_error: 9.301444243932576
+          mapper_filter_max_reprojection_error: 2.027123023002322
+          triangulation_minimum_angle: 7.061401241503109
+          bundle_adjustment_refine_additional_params: true
+          bundle_adjustment_refine_focal_length: true
+          single_threaded: true
+          rig_verification: true
         reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         reconstruction_id:
@@ -2457,8 +2487,11 @@ components:
         capture_session_id:
           format: uuid
           type: string
+        options:
+          $ref: "#/components/schemas/ReconstructionOptions"
       required:
       - capture_session_id
+      - options
       - reconstruction_id
       title: LeaseResponse
       type: object
@@ -3590,34 +3623,6 @@ components:
       - updated_at
       title: NodeRead
       type: object
-    OrchestrationStatus:
-      enum:
-      - queued
-      - pending
-      - running
-      - succeeded
-      - cancelled
-      - failed
-      title: OrchestrationStatus
-      type: string
-    PhaseProgress:
-      example:
-        current: 0
-        total: 6
-        attempt: 1
-      properties:
-        current:
-          type: integer
-        total:
-          type: integer
-        attempt:
-          default: 1
-          type: integer
-      required:
-      - current
-      - total
-      title: PhaseProgress
-      type: object
     PinholeCameraConfig:
       example:
         orientation: TOP_LEFT
@@ -3661,10 +3666,35 @@ components:
       - width
       title: PinholeCameraConfig
       type: object
+    ProgressUpdate:
+      example:
+        progress_attempt: 1
+        progress_current: 0
+        progress_total: 6
+        error: error
+        status: queued
+      properties:
+        status:
+          $ref: "#/components/schemas/ReconstructionStatus"
+        progress_current:
+          nullable: true
+          type: integer
+        progress_total:
+          nullable: true
+          type: integer
+        progress_attempt:
+          nullable: true
+          type: integer
+        error:
+          nullable: true
+          type: string
+      required:
+      - status
+      title: ProgressUpdate
+      type: object
     ReconstructionCreate:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        orchestration_status: queued
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         capture_session_id:
@@ -3676,8 +3706,6 @@ components:
           nullable: true
           title: Id
           type: string
-        orchestration_status:
-          $ref: "#/components/schemas/OrchestrationStatus"
       required:
       - capture_session_id
       title: ReconstructionCreate
@@ -3712,7 +3740,6 @@ components:
           rig_verification: true
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-          orchestration_status: queued
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         create:
@@ -3723,142 +3750,40 @@ components:
       - create
       title: ReconstructionCreateWithOptions
       type: object
-    ReconstructionManifest:
-      example:
-        phase_progress:
-          current: 0
-          total: 6
-          attempt: 1
-        options:
-          random_seed: 0
-          ransac_max_error: 5.637376656633329
-          triangulation_merge_max_reprojection_error: 3.616076749251911
-          ransac_min_inlier_ratio: 2.3021358869347655
-          held_out_frame_timestamps:
-          - 6
-          - 6
-          bundle_adjustment_refine_sensor_from_rig: true
-          bundle_adjustment_refine_principal_point: true
-          compression_opq_number_of_subvectors: 4
-          rotation_threshold: 1.4658129805029452
-          compression_opq_number_of_bits_per_subvector: 7
-          use_prior_position: true
-          pose_prior_position_sigma_m: 1.0246457001441578
-          lightglue_batch_size: 5
-          compression_opq_number_of_training_iterations: 1
-          max_keypoints_per_image: 1
-          neighbors_count: 6
-          triangulation_complete_max_reprojection_error: 9.301444243932576
-          mapper_filter_max_reprojection_error: 2.027123023002322
-          triangulation_minimum_angle: 7.061401241503109
-          bundle_adjustment_refine_additional_params: true
-          bundle_adjustment_refine_focal_length: true
-          single_threaded: true
-          rig_verification: true
-        metrics:
-          truth_alignment_max_residual_m: 3.353193347011243
-          all_verified_match_inliers_median: 6.84685269835264
-          cross_sensor_verified_matches: 9
-          reprojection_pixel_error_50th_percentile: 3.616076749251911
-          stereo_verified_match_rate: 1.1730742509559433
-          same_sensor_verified_match_inliers_median: 8.762042012749001
-          num_3d_points: 7
-          same_sensor_verified_match_rate: 9.369310271410669
-          truth_alignment_rms_residual_m: 6.704019297950036
-          all_verified_match_inliers_mean: 1.4894159098541704
-          cross_sensor_verified_match_inliers_mean: 3.5571952270680973
-          stereo_verified_match_inliers_median: 5.025004791520295
-          all_verified_matches: 1
-          average_keypoints_per_image: 9.301444243932576
-          map_viewpoint_diversity: 5.944895607614016
-          cross_sensor_verified_match_rate: 6.438423552598547
-          registration_rate: 2.3021358869347655
-          map_bounding_volume_m3: 6.878052220127876
-          same_sensor_verified_match_inliers_mean: 6.683562403749608
-          registered_images: 5
-          percent_tracks_with_length_greater_than_or_equal_to_3: 7.386281948385884
-          same_sensor_verified_matches: 9
-          map_image_count: 1
-          track_length_50th_percentile: 4.145608029883936
-          cross_sensor_verified_match_inliers_median: 6.965117697638846
-          all_verified_match_rate: 1.0246457001441578
-          total_images: 5
-          reprojection_pixel_error_90th_percentile: 2.027123023002322
-          stereo_verified_matches: 7
-          map_point_count: 2
-          stereo_verified_match_inliers_mean: 4.965218492984954
-          map_avg_track_length: 6.778324963048013
-        capture_id: capture_id
-        error: error
-        status: queued
-      properties:
-        capture_id:
-          type: string
-        status:
-          enum:
-          - queued
-          - pending
-          - downloading
-          - extracting_features
-          - matching_features
-          - training_opq_matrix
-          - training_product_quantizer
-          - verifying_geometry
-          - reconstructing
-          - uploading
-          - succeeded
-          - failed
-          type: string
-        error:
-          nullable: true
-          type: string
-        phase_progress:
-          $ref: "#/components/schemas/PhaseProgress"
-        options:
-          $ref: "#/components/schemas/ReconstructionOptions"
-        metrics:
-          $ref: "#/components/schemas/ReconstructionMetrics"
-      required:
-      - capture_id
-      - metrics
-      - options
-      - status
-      title: ReconstructionManifest
-      type: object
     ReconstructionMetrics:
       example:
-        truth_alignment_max_residual_m: 3.353193347011243
-        all_verified_match_inliers_median: 6.84685269835264
+        truth_alignment_max_residual_m: 6.878052220127876
+        all_verified_match_inliers_median: 1.2315135367772556
         cross_sensor_verified_matches: 9
-        reprojection_pixel_error_50th_percentile: 3.616076749251911
-        stereo_verified_match_rate: 1.1730742509559433
-        same_sensor_verified_match_inliers_median: 8.762042012749001
-        num_3d_points: 7
-        same_sensor_verified_match_rate: 9.369310271410669
-        truth_alignment_rms_residual_m: 6.704019297950036
-        all_verified_match_inliers_mean: 1.4894159098541704
-        cross_sensor_verified_match_inliers_mean: 3.5571952270680973
-        stereo_verified_match_inliers_median: 5.025004791520295
-        all_verified_matches: 1
-        average_keypoints_per_image: 9.301444243932576
-        map_viewpoint_diversity: 5.944895607614016
-        cross_sensor_verified_match_rate: 6.438423552598547
-        registration_rate: 2.3021358869347655
-        map_bounding_volume_m3: 6.878052220127876
-        same_sensor_verified_match_inliers_mean: 6.683562403749608
-        registered_images: 5
-        percent_tracks_with_length_greater_than_or_equal_to_3: 7.386281948385884
-        same_sensor_verified_matches: 9
-        map_image_count: 1
-        track_length_50th_percentile: 4.145608029883936
-        cross_sensor_verified_match_inliers_median: 6.965117697638846
-        all_verified_match_rate: 1.0246457001441578
-        total_images: 5
-        reprojection_pixel_error_90th_percentile: 2.027123023002322
-        stereo_verified_matches: 7
-        map_point_count: 2
-        stereo_verified_match_inliers_mean: 4.965218492984954
-        map_avg_track_length: 6.778324963048013
+        reprojection_pixel_error_50th_percentile: 2.3021358869347655
+        stereo_verified_match_rate: 1.4894159098541704
+        same_sensor_verified_match_inliers_median: 9.965781217890562
+        num_3d_points: 5
+        same_sensor_verified_match_rate: 4.965218492984954
+        truth_alignment_rms_residual_m: 6.778324963048013
+        all_verified_match_inliers_mean: 7.386281948385884
+        cross_sensor_verified_match_inliers_mean: 8.762042012749001
+        stereo_verified_match_inliers_median: 7.457744773683766
+        all_verified_matches: 2
+        average_keypoints_per_image: 5.637376656633329
+        map_viewpoint_diversity: 2.8841621266687802
+        cross_sensor_verified_match_rate: 6.683562403749608
+        registration_rate: 1.4658129805029452
+        map_bounding_volume_m3: 1.284659006116532
+        same_sensor_verified_match_inliers_mean: 5.025004791520295
+        registered_images: 6
+        percent_tracks_with_length_greater_than_or_equal_to_3: 3.616076749251911
+        same_sensor_verified_matches: 1
+        map_image_count: 6
+        track_length_50th_percentile: 9.301444243932576
+        cross_sensor_verified_match_inliers_median: 9.018348186070783
+        all_verified_match_rate: 4.145608029883936
+        total_images: 0
+        reprojection_pixel_error_90th_percentile: 7.061401241503109
+        stereo_verified_matches: 1
+        map_point_count: 3
+        stereo_verified_match_inliers_mean: 6.84685269835264
+        map_avg_track_length: 6.965117697638846
       properties:
         total_images:
           description: Total number of input images considered for this reconstruction
@@ -4175,10 +4100,17 @@ components:
     ReconstructionRead:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        progress_attempt: 5
+        progress_current: 6
         updated_at: 2000-01-23T04:56:07.000+00:00
-        orchestration_status: queued
+        progress_total: 1
+        manifest:
+          key: ""
+        manifest_version: 0
         created_at: 2000-01-23T04:56:07.000+00:00
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        error: error
+        status: queued
       properties:
         capture_session_id:
           format: uuid
@@ -4200,16 +4132,57 @@ components:
           format: date-time
           title: Created At
           type: string
-        orchestration_status:
-          $ref: "#/components/schemas/OrchestrationStatus"
+        status:
+          $ref: "#/components/schemas/ReconstructionStatus"
+        manifest_version:
+          title: Manifest Version
+          type: integer
+        manifest:
+          additionalProperties: {}
+          title: Manifest
+          type: object
+        progress_current:
+          nullable: true
+          title: Progress Current
+          type: integer
+        progress_total:
+          nullable: true
+          title: Progress Total
+          type: integer
+        progress_attempt:
+          nullable: true
+          title: Progress Attempt
+          type: integer
+        error:
+          nullable: true
+          title: Error
+          type: string
       required:
       - capture_session_id
       - created_at
       - id
-      - orchestration_status
+      - manifest
+      - manifest_version
+      - status
       - updated_at
       title: ReconstructionRead
       type: object
+    ReconstructionStatus:
+      enum:
+      - queued
+      - downloading
+      - extracting_features
+      - matching_features
+      - training_opq_matrix
+      - training_product_quantizer
+      - verifying_geometry
+      - reconstructing
+      - uploading
+      - succeeded
+      - failed
+      - cancelled
+      title: ReconstructionStatus
+      type: string
     RigCameraConfig:
       example:
         camera_config:

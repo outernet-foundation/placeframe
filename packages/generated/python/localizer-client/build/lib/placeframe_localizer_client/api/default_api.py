@@ -16,11 +16,12 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
 from pydantic import StrictBytes, StrictFloat, StrictInt, StrictStr
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 from uuid import UUID
 from placeframe_localizer_client.models.axis_convention import AxisConvention
 from placeframe_localizer_client.models.localization import Localization
 from placeframe_localizer_client.models.pinhole_camera_config import PinholeCameraConfig
+from placeframe_localizer_client.models.reconstruction_metrics import ReconstructionMetrics
 
 from placeframe_localizer_client.api_client import ApiClient, RequestSerialized
 from placeframe_localizer_client.api_response import ApiResponse
@@ -286,6 +287,7 @@ class DefaultApi:
     async def localize_image(
         self,
         reconstruction_ids: List[UUID],
+        metrics: Dict[str, ReconstructionMetrics],
         camera_config: PinholeCameraConfig,
         axis_convention: AxisConvention,
         image: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
@@ -309,6 +311,8 @@ class DefaultApi:
 
         :param reconstruction_ids: (required)
         :type reconstruction_ids: List[UUID]
+        :param metrics: (required)
+        :type metrics: Dict[str, ReconstructionMetrics]
         :param camera_config: (required)
         :type camera_config: PinholeCameraConfig
         :param axis_convention: (required)
@@ -343,6 +347,7 @@ class DefaultApi:
 
         _param = self._localize_image_serialize(
             reconstruction_ids=reconstruction_ids,
+            metrics=metrics,
             camera_config=camera_config,
             axis_convention=axis_convention,
             image=image,
@@ -373,6 +378,7 @@ class DefaultApi:
     async def localize_image_with_http_info(
         self,
         reconstruction_ids: List[UUID],
+        metrics: Dict[str, ReconstructionMetrics],
         camera_config: PinholeCameraConfig,
         axis_convention: AxisConvention,
         image: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
@@ -396,6 +402,8 @@ class DefaultApi:
 
         :param reconstruction_ids: (required)
         :type reconstruction_ids: List[UUID]
+        :param metrics: (required)
+        :type metrics: Dict[str, ReconstructionMetrics]
         :param camera_config: (required)
         :type camera_config: PinholeCameraConfig
         :param axis_convention: (required)
@@ -430,6 +438,7 @@ class DefaultApi:
 
         _param = self._localize_image_serialize(
             reconstruction_ids=reconstruction_ids,
+            metrics=metrics,
             camera_config=camera_config,
             axis_convention=axis_convention,
             image=image,
@@ -460,6 +469,7 @@ class DefaultApi:
     async def localize_image_without_preload_content(
         self,
         reconstruction_ids: List[UUID],
+        metrics: Dict[str, ReconstructionMetrics],
         camera_config: PinholeCameraConfig,
         axis_convention: AxisConvention,
         image: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
@@ -483,6 +493,8 @@ class DefaultApi:
 
         :param reconstruction_ids: (required)
         :type reconstruction_ids: List[UUID]
+        :param metrics: (required)
+        :type metrics: Dict[str, ReconstructionMetrics]
         :param camera_config: (required)
         :type camera_config: PinholeCameraConfig
         :param axis_convention: (required)
@@ -517,6 +529,7 @@ class DefaultApi:
 
         _param = self._localize_image_serialize(
             reconstruction_ids=reconstruction_ids,
+            metrics=metrics,
             camera_config=camera_config,
             axis_convention=axis_convention,
             image=image,
@@ -542,6 +555,7 @@ class DefaultApi:
     def _localize_image_serialize(
         self,
         reconstruction_ids,
+        metrics,
         camera_config,
         axis_convention,
         image,
@@ -574,6 +588,8 @@ class DefaultApi:
         # process the form parameters
         if reconstruction_ids is not None:
             _form_params.append(('reconstruction_ids', reconstruction_ids))
+        if metrics is not None:
+            _form_params.append(('metrics', metrics))
         if camera_config is not None:
             _form_params.append(('camera_config', camera_config))
         if axis_convention is not None:

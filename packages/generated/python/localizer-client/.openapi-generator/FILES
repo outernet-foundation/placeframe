@@ -20,6 +20,7 @@ placeframe_localizer_client/models/localization_metrics.py
 placeframe_localizer_client/models/localize_image400_response.py
 placeframe_localizer_client/models/localize_image400_response_extra.py
 placeframe_localizer_client/models/pinhole_camera_config.py
+placeframe_localizer_client/models/reconstruction_metrics.py
 placeframe_localizer_client/models/transform.py
 placeframe_localizer_client/py.typed
 placeframe_localizer_client/rest.py

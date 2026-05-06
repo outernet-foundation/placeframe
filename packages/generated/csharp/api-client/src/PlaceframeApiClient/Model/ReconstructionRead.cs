@@ -33,29 +33,29 @@ namespace PlaceframeApiClient.Model
     {
 
         /// <summary>
-        /// Gets or Sets OrchestrationStatus
+        /// Gets or Sets Status
         /// </summary>
 
-        [DataMember(Name = "orchestration_status", IsRequired = true, EmitDefaultValue = true)]
-        public OrchestrationStatus OrchestrationStatus
+        [DataMember(Name = "status", IsRequired = true, EmitDefaultValue = true)]
+        public ReconstructionStatus Status
         {
-            get{ return _OrchestrationStatus;}
+            get{ return _Status;}
             set
             {
-                _OrchestrationStatus = value;
-                _flagOrchestrationStatus = true;
+                _Status = value;
+                _flagStatus = true;
             }
         }
-        private OrchestrationStatus _OrchestrationStatus;
-        private bool _flagOrchestrationStatus;
+        private ReconstructionStatus _Status;
+        private bool _flagStatus;
 
         /// <summary>
-        /// Returns false as OrchestrationStatus should not be serialized given that it's read-only.
+        /// Returns false as Status should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeOrchestrationStatus()
+        public bool ShouldSerializeStatus()
         {
-            return _flagOrchestrationStatus;
+            return _flagStatus;
         }
         /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionRead" /> class.
@@ -69,14 +69,27 @@ namespace PlaceframeApiClient.Model
         /// <param name="id">id (required).</param>
         /// <param name="createdAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
-        /// <param name="orchestrationStatus">orchestrationStatus (required).</param>
-        public ReconstructionRead(Guid captureSessionId, Guid id, DateTime createdAt, DateTime updatedAt, OrchestrationStatus orchestrationStatus)
+        /// <param name="status">status (required).</param>
+        /// <param name="manifestVersion">manifestVersion (required).</param>
+        /// <param name="manifest">manifest (required).</param>
+        /// <param name="progressCurrent">progressCurrent.</param>
+        /// <param name="progressTotal">progressTotal.</param>
+        /// <param name="progressAttempt">progressAttempt.</param>
+        /// <param name="error">error.</param>
+        public ReconstructionRead(Guid captureSessionId, Guid id, DateTime createdAt, DateTime updatedAt, ReconstructionStatus status, int manifestVersion, Dictionary<string, Object> manifest)
         {
             this.CaptureSessionId = captureSessionId;
             this.Id = id;
             this.CreatedAt = createdAt;
             this.UpdatedAt = updatedAt;
-            this.OrchestrationStatus = orchestrationStatus;
+            this.Status = status;
+            this.ManifestVersion = manifestVersion;
+            // to ensure "manifest" is required (not null)
+            if (manifest == null)
+            {
+                throw new ArgumentNullException("manifest is a required property for ReconstructionRead and cannot be null");
+            }
+            this.Manifest = manifest;
         }
 
         /// <summary>
@@ -178,6 +191,150 @@ namespace PlaceframeApiClient.Model
             return _flagUpdatedAt;
         }
         /// <summary>
+        /// Gets or Sets ManifestVersion
+        /// </summary>
+        [DataMember(Name = "manifest_version", IsRequired = true, EmitDefaultValue = true)]
+        public int ManifestVersion
+        {
+            get{ return _ManifestVersion;}
+            set
+            {
+                _ManifestVersion = value;
+                _flagManifestVersion = true;
+            }
+        }
+        private int _ManifestVersion;
+        private bool _flagManifestVersion;
+
+        /// <summary>
+        /// Returns false as ManifestVersion should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeManifestVersion()
+        {
+            return _flagManifestVersion;
+        }
+        /// <summary>
+        /// Gets or Sets Manifest
+        /// </summary>
+        [DataMember(Name = "manifest", IsRequired = true, EmitDefaultValue = true)]
+        public Dictionary<string, Object> Manifest
+        {
+            get{ return _Manifest;}
+            set
+            {
+                _Manifest = value;
+                _flagManifest = true;
+            }
+        }
+        private Dictionary<string, Object> _Manifest;
+        private bool _flagManifest;
+
+        /// <summary>
+        /// Returns false as Manifest should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeManifest()
+        {
+            return _flagManifest;
+        }
+        /// <summary>
+        /// Gets or Sets ProgressCurrent
+        /// </summary>
+        [DataMember(Name = "progress_current", EmitDefaultValue = true)]
+        public int? ProgressCurrent
+        {
+            get{ return _ProgressCurrent;}
+            set
+            {
+                _ProgressCurrent = value;
+                _flagProgressCurrent = true;
+            }
+        }
+        private int? _ProgressCurrent;
+        private bool _flagProgressCurrent;
+
+        /// <summary>
+        /// Returns false as ProgressCurrent should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeProgressCurrent()
+        {
+            return _flagProgressCurrent;
+        }
+        /// <summary>
+        /// Gets or Sets ProgressTotal
+        /// </summary>
+        [DataMember(Name = "progress_total", EmitDefaultValue = true)]
+        public int? ProgressTotal
+        {
+            get{ return _ProgressTotal;}
+            set
+            {
+                _ProgressTotal = value;
+                _flagProgressTotal = true;
+            }
+        }
+        private int? _ProgressTotal;
+        private bool _flagProgressTotal;
+
+        /// <summary>
+        /// Returns false as ProgressTotal should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeProgressTotal()
+        {
+            return _flagProgressTotal;
+        }
+        /// <summary>
+        /// Gets or Sets ProgressAttempt
+        /// </summary>
+        [DataMember(Name = "progress_attempt", EmitDefaultValue = true)]
+        public int? ProgressAttempt
+        {
+            get{ return _ProgressAttempt;}
+            set
+            {
+                _ProgressAttempt = value;
+                _flagProgressAttempt = true;
+            }
+        }
+        private int? _ProgressAttempt;
+        private bool _flagProgressAttempt;
+
+        /// <summary>
+        /// Returns false as ProgressAttempt should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeProgressAttempt()
+        {
+            return _flagProgressAttempt;
+        }
+        /// <summary>
+        /// Gets or Sets Error
+        /// </summary>
+        [DataMember(Name = "error", EmitDefaultValue = true)]
+        public string Error
+        {
+            get{ return _Error;}
+            set
+            {
+                _Error = value;
+                _flagError = true;
+            }
+        }
+        private string _Error;
+        private bool _flagError;
+
+        /// <summary>
+        /// Returns false as Error should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeError()
+        {
+            return _flagError;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -189,7 +346,13 @@ namespace PlaceframeApiClient.Model
             sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  CreatedAt: ").Append(CreatedAt).Append("\n");
             sb.Append("  UpdatedAt: ").Append(UpdatedAt).Append("\n");
-            sb.Append("  OrchestrationStatus: ").Append(OrchestrationStatus).Append("\n");
+            sb.Append("  Status: ").Append(Status).Append("\n");
+            sb.Append("  ManifestVersion: ").Append(ManifestVersion).Append("\n");
+            sb.Append("  Manifest: ").Append(Manifest).Append("\n");
+            sb.Append("  ProgressCurrent: ").Append(ProgressCurrent).Append("\n");
+            sb.Append("  ProgressTotal: ").Append(ProgressTotal).Append("\n");
+            sb.Append("  ProgressAttempt: ").Append(ProgressAttempt).Append("\n");
+            sb.Append("  Error: ").Append(Error).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }
