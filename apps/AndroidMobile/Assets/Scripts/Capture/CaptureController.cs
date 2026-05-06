@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using FofX;
@@ -39,7 +38,6 @@ namespace Placeframe.Client
     {
         private float captureIntervalSeconds = 0.2f;
 
-        // private DefaultApi capturesApi;
         private IControl ui;
         private TaskHandle currentCaptureTask = TaskHandle.Complete;
         private bool capturesLoaded;
@@ -140,16 +138,6 @@ namespace Placeframe.Client
             ZedCaptureController.Initialize();
 
             localCaptureNamePath = $"{Application.persistentDataPath}/LocalCaptureNames.json";
-
-            // var placeframeApiUrl = $"https://{App.state.domain.value}";
-            // capturesApi = new DefaultApi(
-            //     new HttpClient(new AuthHttpHandler() { InnerHandler = new HttpClientHandler() })
-            //     {
-            //         BaseAddress = new Uri(placeframeApiUrl),
-            //         Timeout = TimeSpan.FromSeconds(600),
-            //     },
-            //     new Configuration() { BasePath = placeframeApiUrl, Timeout = TimeSpan.FromSeconds(600) }
-            // );
 
             ui = OrderedCanvas(
                 new()
