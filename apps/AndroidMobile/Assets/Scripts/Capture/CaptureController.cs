@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using FofX;
 using FofX.Stateful;
 using Nessle;
 using ObserveThing;
@@ -43,10 +42,10 @@ namespace Placeframe.Client
         private static readonly TimeSpan ZedEnumerateTimeout = TimeSpan.FromSeconds(1);
 
         private IControl ui;
-        private TaskHandle currentCaptureTask = TaskHandle.Complete;
+        private CancellationTokenSource currentCaptureCts;
         private bool capturesLoaded;
         private string localCaptureNamePath;
-        private Dictionary<Guid, TaskHandle> awaitReconstructionTasks = new Dictionary<Guid, TaskHandle>();
+        private readonly Dictionary<Guid, CancellationTokenSource> awaitReconstructionCts = new Dictionary<Guid, CancellationTokenSource>();
         private IDisposable captureStatusStream;
         private IDisposable _subscription;
         private bool wasZedReachable;
@@ -106,22 +105,20 @@ namespace Placeframe.Client
                                 x != CaptureUploadStatus.Initializing
                                 && x != CaptureUploadStatus.Uploading
                                 && x != CaptureUploadStatus.Reconstructing
-                                && awaitReconstructionTasks.TryGetValue(capture.id, out var taskHandle)
+                                && awaitReconstructionCts.TryGetValue(capture.id, out var existingCts)
                             )
                             {
-                                taskHandle.Cancel();
-                                awaitReconstructionTasks.Remove(capture.id);
+                                existingCts.Cancel();
+                                existingCts.Dispose();
+                                awaitReconstructionCts.Remove(capture.id);
                             }
 
                             if (x == CaptureUploadStatus.Reconstructing
-                                && !awaitReconstructionTasks.ContainsKey(capture.id))
+                                && !awaitReconstructionCts.ContainsKey(capture.id))
                             {
-                                awaitReconstructionTasks.Add(
-                                    capture.id,
-                                    TaskHandle.Execute(token =>
-                                        AwaitReconstructionComplete(capture.id, token)
-                                    )
-                                );
+                                var cts = new CancellationTokenSource();
+                                awaitReconstructionCts.Add(capture.id, cts);
+                                UniTask.Create(() => AwaitReconstructionComplete(capture.id, cts.Token)).Forget();
                             }
                         })
                 );
@@ -130,11 +127,15 @@ namespace Placeframe.Client
         void OnDestroy()
         {
             ui?.Dispose();
-            currentCaptureTask?.Cancel();
+            currentCaptureCts?.Cancel();
+            currentCaptureCts?.Dispose();
             captureStatusStream?.Dispose();
-            foreach (var task in awaitReconstructionTasks.Values)
-                task.Cancel();
-            awaitReconstructionTasks.Clear();
+            foreach (var cts in awaitReconstructionCts.Values)
+            {
+                cts.Cancel();
+                cts.Dispose();
+            }
+            awaitReconstructionCts.Clear();
         }
 
         public static void RequestUpload(CaptureState capture)
@@ -319,19 +320,27 @@ namespace Placeframe.Client
                     break;
 
                 case CaptureStatus.Starting:
-                    currentCaptureTask = TaskHandle.Execute(async token =>
+                    currentCaptureCts?.Cancel();
+                    currentCaptureCts?.Dispose();
+                    currentCaptureCts = new CancellationTokenSource();
+                    var startToken = currentCaptureCts.Token;
+                    UniTask.Create(async () =>
                     {
-                        await StartCapture(App.state.captureMode.value, token);
+                        await StartCapture(App.state.captureMode.value, startToken);
                         App.ExecuteTransaction(new SetCaptureStatusAction(CaptureStatus.Capturing));
-                    });
+                    }).Forget();
                     break;
 
                 case CaptureStatus.Stopping:
-                    currentCaptureTask = TaskHandle.Execute(async token =>
+                    currentCaptureCts?.Cancel();
+                    currentCaptureCts?.Dispose();
+                    currentCaptureCts = new CancellationTokenSource();
+                    var stopToken = currentCaptureCts.Token;
+                    UniTask.Create(async () =>
                     {
-                        await StopCapture(App.state.captureMode.value, token);
+                        await StopCapture(App.state.captureMode.value, stopToken);
                         App.ExecuteTransaction(new SetCaptureStatusAction(CaptureStatus.Idle));
-                    });
+                    }).Forget();
                     break;
             }
         }
