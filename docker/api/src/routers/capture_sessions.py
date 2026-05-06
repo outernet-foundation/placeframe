@@ -1,10 +1,11 @@
 import csv
 import io
 import tarfile
-from typing import Annotated, BinaryIO, cast
+from typing import IO, Annotated, BinaryIO, cast
 from uuid import UUID
 
 from botocore.exceptions import ReadTimeoutError
+from common.multipart_requests import MultipartRequestModel, MultipartRequestOperation
 from core.axis_convention import AxisConvention
 from core.capture_session_manifest import CaptureSessionManifest
 from datamodels.public_dtos import (
@@ -18,16 +19,16 @@ from datamodels.public_dtos import (
     capture_session_from_dto_overwrite,
     capture_session_to_dto,
 )
-from datamodels.public_tables import CaptureSession, Reconstruction
-from litestar import Router, delete, get, patch, post, put
+from datamodels.public_tables import CaptureSession, DeviceType, Reconstruction
+from litestar import Router, delete, get, patch, post
 from litestar.datastructures import UploadFile
 from litestar.di import Provide
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import HTTPException, InternalServerException, NotFoundException
-from litestar.openapi.spec import Schema
 from litestar.params import Body, Parameter
 from litestar.response import Stream
 from litestar.status_codes import HTTP_409_CONFLICT, HTTP_422_UNPROCESSABLE_ENTITY, HTTP_504_GATEWAY_TIMEOUT
+from pydantic import AwareDatetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -72,14 +73,40 @@ def _validate_temporal_coverage(tf: tarfile.TarFile, capture_interval_seconds: f
     )
 
 
-@post("")
-async def create_capture_session(session: AsyncSession, data: CaptureSessionCreate) -> CaptureSessionRead:
-    row = await _create_capture(session, data, False)
+class CaptureSessionUploadRequest(MultipartRequestModel):
+    device_type: DeviceType
+    data: UploadFile
+    id: UUID | None = None
+    name: str | None = None
+    recorded_at: AwareDatetime | None = None
 
+
+@post("", operation_class=MultipartRequestOperation)
+async def create_capture_session(
+    session: AsyncSession,
+    data: Annotated[CaptureSessionUploadRequest, Body(media_type=RequestEncodingType.MULTI_PART)],
+) -> CaptureSessionRead:
+    fileobj = data.data.file
+    _validate_capture_session_tar(fileobj)
+
+    row = await _create_capture(
+        session,
+        CaptureSessionCreate(id=data.id, recorded_at=data.recorded_at, device_type=data.device_type, name=data.name),
+        overwrite=False,
+    )
     session.add(row)
-
     await session.flush()
     await session.refresh(row)
+
+    try:
+        get_storage().upload_fileobj(
+            BUCKET, f"{row.id}.tar", cast(BinaryIO, fileobj), data.data.content_type or "application/x-tar"
+        )
+    except ReadTimeoutError as e:
+        raise HTTPException(status_code=HTTP_504_GATEWAY_TIMEOUT, detail="Upload failed: storage timeout") from e
+    except Exception as e:
+        raise InternalServerException(detail="Upload failed") from e
+
     return capture_session_to_dto(row)
 
 
@@ -187,26 +214,7 @@ async def update_capture_sessions(
     return [capture_session_to_dto(r) for r in rows]
 
 
-@put("/{id:uuid}/tar")
-async def upload_capture_session_tar(
-    session: AsyncSession,
-    id: UUID,
-    data: Annotated[
-        UploadFile,
-        Body(media_type=RequestEncodingType.MULTI_PART, description="Capture session tar archive"),
-        Schema(
-            content_media_type="application/x-tar",
-            description="Tar archive containing manifest.json and capture session data",
-        ),
-    ],
-) -> None:
-    # Validate capture session exists
-    if await session.get(CaptureSession, id) is None:
-        raise NotFoundException(f"Capture session {id} not found")
-
-    fileobj = data.file
-
-    # Validate tar + manifest.json
+def _validate_capture_session_tar(fileobj: IO[bytes]) -> None:
     try:
         fileobj.seek(0)
         with tarfile.open(fileobj=fileobj, mode="r:*") as tf:
@@ -240,22 +248,8 @@ async def upload_capture_session_tar(
                 _validate_temporal_coverage(tf, manifest.capture_interval_seconds)
 
         fileobj.seek(0)
-
     except tarfile.ReadError as e:
         raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Invalid tar file: {e}") from e
-
-    # Upload tar to storage
-    try:
-        get_storage().upload_fileobj(
-            BUCKET, f"{id}.tar", cast(BinaryIO, fileobj), data.content_type or "application/x-tar"
-        )
-    except ReadTimeoutError as e:
-        raise HTTPException(status_code=HTTP_504_GATEWAY_TIMEOUT, detail="Upload failed: storage timeout") from e
-    except Exception as e:
-        # Any other failure is an internal error
-        raise InternalServerException(detail="Upload failed") from e
-
-    return None
 
 
 @get(
@@ -401,7 +395,6 @@ router = Router(
         delete_capture_session,
         update_capture_session,
         update_capture_sessions,
-        upload_capture_session_tar,
         download_capture_session_tar,
         get_capture_session_manifest_file,
         get_capture_session_frames_csv,

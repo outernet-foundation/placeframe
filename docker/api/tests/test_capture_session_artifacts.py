@@ -144,16 +144,11 @@ def capture_with_tar(api_client: httpx.Client) -> tuple[str, list[int], bytes, b
 
     capture = api_client.post(
         "/capture_sessions",
-        json={"name": f"pytest-artifacts-{uuid.uuid4()}", "device_type": "Zed"},
+        data={"name": f"pytest-artifacts-{uuid.uuid4()}", "device_type": "Zed"},
+        files={"data": ("capture.tar", tar_bytes, "application/x-tar")},
     )
     capture.raise_for_status()
     capture_id = capture.json()["id"]
-
-    upload = api_client.put(
-        f"/capture_sessions/{capture_id}/tar",
-        files={"data": ("capture.tar", tar_bytes, "application/x-tar")},
-    )
-    upload.raise_for_status()
 
     expected_csv = "timestamp,tx,ty,tz,qx,qy,qz,qw\n" + "".join(
         f"{ts},{i * 0.1},{0.0},{0.0},0,0,0,1\n" for i, ts in enumerate(timestamps_ms)

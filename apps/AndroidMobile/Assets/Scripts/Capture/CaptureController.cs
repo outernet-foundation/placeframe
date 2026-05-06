@@ -106,13 +106,15 @@ namespace Placeframe.Client
                 };
 
                 await UniTask.SwitchToMainThread();
-                var captureSession = await VisualPositioningSystem.Api
-                    .CreateCaptureSessionAsync(new CaptureSessionCreate(type) { Id = id, Name = capture.name.value, RecordedAt = capture.recordedAt.value });
-
                 capture.clientPhase.value = CaptureClientPhase.Uploading;
 
-                await VisualPositioningSystem.Api
-                    .UploadCaptureSessionTarAsync(captureSession.Id, captureData);
+                var captureSession = await VisualPositioningSystem.Api
+                    .CreateCaptureSessionAsync(
+                        type,
+                        new FileParameter(captureData),
+                        id: id,
+                        name: capture.name.value,
+                        recordedAt: capture.recordedAt.value);
 
                 capture.serverCaptureExists.value = true;
 
