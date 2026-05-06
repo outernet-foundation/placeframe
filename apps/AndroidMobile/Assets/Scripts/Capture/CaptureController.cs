@@ -231,7 +231,7 @@ namespace Placeframe.Client
                             default:
                                 throw new ArgumentException($"Unknown DeviceType {deviceType}");
                         }
-                        App.ExecuteTransaction(new SetCaptureStatusAction(CaptureStatus.Capturing));
+                        App.state.captureStatus.value = CaptureStatus.Capturing;
                     }).Forget();
                     break;
 
@@ -254,7 +254,7 @@ namespace Placeframe.Client
                             default:
                                 throw new ArgumentException($"Unknown DeviceType {deviceType}");
                         }
-                        App.ExecuteTransaction(new SetCaptureStatusAction(CaptureStatus.Idle));
+                        App.state.captureStatus.value = CaptureStatus.Idle;
                     }).Forget();
                     break;
             }
