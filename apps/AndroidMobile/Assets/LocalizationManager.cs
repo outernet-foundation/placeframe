@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using FofX.Stateful;
 using ObserveThing;
 using Placeframe.Core;
@@ -19,7 +20,7 @@ namespace Placeframe.Client
                 message => Log.Info(LogGroup.Localizer, message),
                 message => Log.Warn(LogGroup.Localizer, message),
                 message => Log.Error(LogGroup.Localizer, message),
-                httpHandlerFactory: InternetBoundHandler.Create
+                httpHandlerFactory: () => new LoggingHttpHandler { InnerHandler = InternetBoundHandler.Create() ?? new HttpClientHandler() }
             );
 
             _intializing = true;
