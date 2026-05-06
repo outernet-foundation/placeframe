@@ -8,7 +8,7 @@ from uuid import UUID
 from core.calibration import RawMapMetrics
 from core.h5 import FEATURES_FILE, GLOBAL_DESCRIPTORS_FILE, read_features, read_global_descriptors
 from core.opq import OPQ_MATRIX_FILE, PQ_QUANTIZER_FILE, read_opq_matrix, read_pq_quantizer
-from core.reconstruction_manifest import ReconstructionManifest
+from core.reconstruction_metrics import ReconstructionMetrics
 from faiss import OPQMatrix, ProductQuantizer  # type: ignore
 from numpy import dtype, float32, ndarray, uint8
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
@@ -39,7 +39,13 @@ class Map:
     map_metrics: RawMapMetrics
 
 
-def load_map(id: UUID, s3_client: S3Client, reconstruction_bucket: str, reconstructions_dir: Path) -> Map:
+def load_map(
+    id: UUID,
+    s3_client: S3Client,
+    reconstruction_bucket: str,
+    reconstructions_dir: Path,
+    raw_metrics: ReconstructionMetrics,
+) -> Map:
     for page in s3_client.get_paginator("list_objects_v2").paginate(Bucket=reconstruction_bucket, Prefix=f"{id}/"):
         for obj in page.get("Contents", []):
             key = obj["Key"]  # type: ignore
@@ -60,10 +66,6 @@ def load_map(id: UUID, s3_client: S3Client, reconstruction_bucket: str, reconstr
             print(f"Downloading s3://{reconstruction_bucket}/{key} to {local_path}")
             s3_client.download_file(reconstruction_bucket, key, str(local_path))
 
-    manifest = ReconstructionManifest.model_validate_json(
-        s3_client.get_object(Bucket=reconstruction_bucket, Key=f"{id}/manifest.json")["Body"].read()
-    )
-    raw_metrics = manifest.metrics
     assert raw_metrics.map_image_count is not None
     assert raw_metrics.map_point_count is not None
     assert raw_metrics.map_avg_track_length is not None

@@ -25,6 +25,7 @@ from typing import Any, cast
 
 from humps import pascalize
 from sqlalchemy import Column, Connection, Engine, MetaData
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql.sqltypes import ARRAY
 from sqlalchemy.sql.sqltypes import Enum as SAEnum
 from sqlalchemy.types import TypeEngine
@@ -67,6 +68,17 @@ class PlaceframeDeclarativeGenerator(DeclarativeGenerator):
         return render_callable("Enum", class_name, kwargs=kwargs)
 
     def render_column_python_type(self, column: Column[Any]) -> str:
+        # JSONB columns: stock sqlacodegen emits Mapped[dict] (no parameter), which trips
+        # basedpyright's reportMissingTypeArgument. Bind to dict[str, Any] explicitly so
+        # consumers get a concrete type for the opaque payload.
+        if isinstance(column.type, JSONB):
+            self.add_literal_import("typing", "Any")
+            inner = "dict[str, Any]"
+            if column.nullable:
+                self.add_literal_import("typing", "Optional")
+                return f"Optional[{inner}]"
+            return inner
+
         if not isinstance(column.type, SAEnum):
             return super().render_column_python_type(column)
 

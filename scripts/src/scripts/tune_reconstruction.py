@@ -19,14 +19,15 @@ from pathlib import Path
 from typing import Annotated
 from uuid import UUID
 
+from core.reconstruction_metrics import ReconstructionMetrics
 from typer import Exit, Option, Typer, echo
 
 from placeframe_api_client import (
     DefaultApi,
-    OrchestrationStatus,
     ReconstructionCreate,
     ReconstructionCreateWithOptions,
     ReconstructionOptions,
+    ReconstructionStatus,
 )
 
 from .api_auth import authenticated_api_client
@@ -109,11 +110,11 @@ async def _run_cell(
 
     while True:
         await sleep(POLL_INTERVAL_S)
-        status = await api.get_reconstruction_status(id=recon.id)
-        if status == OrchestrationStatus.SUCCEEDED:
+        current = await api.get_reconstruction(id=recon.id)
+        if current.status == ReconstructionStatus.SUCCEEDED:
             break
-        if status in (OrchestrationStatus.FAILED, OrchestrationStatus.CANCELLED):
-            echo(f"    {status.value}")
+        if current.status in (ReconstructionStatus.FAILED, ReconstructionStatus.CANCELLED):
+            echo(f"    {current.status.value}")
             return {
                 "capture_id": str(capture_id),
                 "config_idx": config_idx,
@@ -122,7 +123,7 @@ async def _run_cell(
                 "succeeded": False,
             }
 
-    metrics = (await api.get_reconstruction_manifest(id=recon.id)).metrics
+    metrics = ReconstructionMetrics.model_validate(current.manifest["metrics"])
     echo(f"    Succeeded, {metrics.registered_images}/{metrics.total_images} images")
     return {
         "capture_id": str(capture_id),

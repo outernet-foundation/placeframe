@@ -748,7 +748,7 @@ namespace Placeframe.Client
                                                         {
                                                             label = Observables.Combine(
                                                                 capture.status,
-                                                                capture.manifest,
+                                                                capture.reconstruction,
                                                                 CaptureStatusLabel
                                                             ),
                                                             interactable = capture.status.ObservableSelect(CaptureStatusIsActionable),
@@ -758,23 +758,23 @@ namespace Placeframe.Client
                                                 }),
                                                 ObjectInspector(new ObjectInspectorProps()
                                                 {
-                                                    target = capture.manifest.value?.Options ?? new ReconstructionOptions(),
+                                                    target = ManifestHelpers.ExtractOptions(capture.reconstruction.value),
                                                     foldout = new FoldoutProps()
                                                     {
                                                         label = new TextProps() { value = Props.Value("Reconstruction Options") },
                                                         isOpen = Props.Value(false),
-                                                        interactable = capture.manifest.ObservableSelect(x => x != null)
+                                                        interactable = capture.reconstruction.ObservableSelect(x => x != null)
                                                     },
                                                     isReadonly = Props.Value(true)
                                                 }),
                                                 ObjectInspector(new ObjectInspectorProps()
                                                 {
-                                                    target = capture.manifest.value?.Metrics ?? new ReconstructionMetrics(),
+                                                    target = ManifestHelpers.ExtractMetrics(capture.reconstruction.value),
                                                     foldout = new FoldoutProps()
                                                     {
                                                         label = new TextProps() { value = Props.Value("Reconstruction Metrics") },
                                                         isOpen = Props.Value(false),
-                                                        interactable = capture.manifest.ObservableSelect(x => x != null)
+                                                        interactable = capture.reconstruction.ObservableSelect(x => x != null)
                                                     },
                                                     isReadonly = Props.Value(true)
                                                 })

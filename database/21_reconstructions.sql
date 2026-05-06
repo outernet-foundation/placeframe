@@ -1,31 +1,44 @@
-CREATE TYPE orchestration_status AS ENUM (
+CREATE TYPE reconstruction_status AS ENUM (
   'queued',
-  'pending',
-  'running',
+  'downloading',
+  'extracting_features',
+  'matching_features',
+  'training_opq_matrix',
+  'training_product_quantizer',
+  'verifying_geometry',
+  'reconstructing',
+  'uploading',
   'succeeded',
-  'cancelled',
-  'failed'
+  'failed',
+  'cancelled'
 );
 
 CREATE TABLE reconstructions(
-  tenant_id uuid 
-    NOT NULL 
-    REFERENCES auth.tenants(id) 
-    ON DELETE RESTRICT 
+  tenant_id uuid
+    NOT NULL
+    REFERENCES auth.tenants(id)
+    ON DELETE RESTRICT
     DEFAULT current_tenant(),
-  created_at timestamptz 
-    NOT NULL 
+  created_at timestamptz
+    NOT NULL
     DEFAULT now(),
-  updated_at timestamptz 
-    NOT NULL 
+  updated_at timestamptz
+    NOT NULL
     DEFAULT now(),
   capture_session_id uuid
     NOT NULL
     REFERENCES capture_sessions(id)
     ON DELETE RESTRICT,
-  orchestration_status orchestration_status
+  status reconstruction_status
     NOT NULL
     DEFAULT 'queued',
+  error text,
+  progress_current integer,
+  progress_total integer,
+  progress_attempt integer,
+
+  manifest jsonb NOT NULL,
+  manifest_version smallint NOT NULL,
 
   id uuid
     PRIMARY KEY
@@ -49,4 +62,3 @@ CREATE POLICY reconstructions_orchestrator_rls_policy ON reconstructions
 CREATE TRIGGER reconstructions_touch_updated_at_trigger
   BEFORE UPDATE ON reconstructions
   FOR EACH ROW EXECUTE FUNCTION touch_updated_at();
-

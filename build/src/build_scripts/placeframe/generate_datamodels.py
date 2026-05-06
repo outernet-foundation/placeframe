@@ -99,7 +99,19 @@ def _generate_datamodels_for_schema(database_schema: str, models_path: Path, eng
             # Ideally we would infer these per table directly from the database schema based on
             # column privileges, but column privileges are not currently used in our schemas
             # because pg-schema-diff does not support them.
-            if column.name in ("created_at", "updated_at", "status", "container_id", "container_url"):
+            if column.name in (
+                "created_at",
+                "updated_at",
+                "status",
+                "container_id",
+                "container_url",
+                "manifest",
+                "manifest_version",
+                "progress_current",
+                "progress_total",
+                "progress_attempt",
+                "error",
+            ):
                 continue
 
             if column.name in primary_keys:

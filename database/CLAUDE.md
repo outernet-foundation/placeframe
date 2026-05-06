@@ -31,7 +31,11 @@ The schema files in this directory are the source of truth — `uv run generate-
 
 CHECK constraints enforce **labels-iff-succeeded**: `succeeded = (err_t_m IS NOT NULL) AND succeeded = (err_r_deg IS NOT NULL) AND succeeded = (se3_residual IS NOT NULL) AND succeeded = (pnp_covariance IS NOT NULL)`. Plus array-length CHECKs on `se3_residual` (=6) and `pnp_covariance` (6×6) when present.
 
-Typed arrays rather than `jsonb` because the existing schema has zero `json`/`jsonb` columns and stays uniformly typed.
+Typed arrays rather than `jsonb` here because every field has a fixed shape and Postgres has no reason to treat the payload as opaque. The schema's general policy (see "Use typed columns by default" below) is that `jsonb` is reserved for opaque, version-evolving payloads; that doesn't apply to these fixed-shape numeric fields.
+
+## Use typed columns by default
+
+Default to typed columns (including typed arrays) for any field with a stable shape the database might reasonably read into. Reach for `jsonb` only when the column carries an opaque, version-evolving payload that the database has no reason to query into — for example, a manifest blob whose shape lives in repo-side Pydantic classes and changes across releases. When you do, pair it with a `*_version smallint NOT NULL` column so older rows remain readable after the shape changes, and document the rationale at the column declaration. Don't reach for `jsonb` as a shortcut to skip schema design.
 
 ### Upsert semantics
 

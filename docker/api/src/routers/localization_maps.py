@@ -13,7 +13,7 @@ from datamodels.public_dtos import (
     localization_map_from_dto,
     localization_map_to_dto,
 )
-from datamodels.public_tables import LocalizationMap, LocalizationMapCameraPosition, OrchestrationStatus
+from datamodels.public_tables import LocalizationMap, LocalizationMapCameraPosition, ReconstructionStatus
 from litestar import Router, delete, get, patch, post
 from litestar.di import Provide
 from litestar.exceptions import ClientException, HTTPException, NotFoundException
@@ -79,7 +79,7 @@ async def _sync_camera_positions(session: AsyncSession, row: LocalizationMap) ->
 async def create_localization_map(session: AsyncSession, data: LocalizationMapCreate) -> LocalizationMapRead:
     reconstruction_status = await fetch_reconstruction_status(session, data.reconstruction_id)
 
-    if reconstruction_status != OrchestrationStatus.SUCCEEDED:
+    if reconstruction_status != ReconstructionStatus.SUCCEEDED:
         raise HTTPException(
             HTTP_409_CONFLICT, f"Reconstruction with id {data.reconstruction_id} is not in 'succeeded' state"
         )

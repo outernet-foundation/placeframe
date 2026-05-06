@@ -110,7 +110,7 @@ namespace Placeframe.Client
         public StateValue<Guid> reconstructionId { get; private set; }
         public StateValue<Guid> localizationMapId { get; private set; }
         public StateValue<bool> hasLocalFiles { get; private set; }
-        public StateValue<ReconstructionManifest> manifest { get; private set; }
+        public StateValue<ReconstructionRead> reconstruction { get; private set; }
 
         void IKeyedStateNode<Guid>.AssignKey(Guid key) => id = key;
     }
