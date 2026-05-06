@@ -10,6 +10,7 @@ using ICSharpCode.SharpZipLib.Tar;
 using PlaceframeApiClient.Model;
 using R3;
 using UnityEngine;
+using DeviceType = PlaceframeApiClient.Model.DeviceType;
 
 namespace Placeframe.Core
 {
@@ -85,18 +86,18 @@ namespace Placeframe.Core
             _poseWriter = null;
         }
 
-        public static IEnumerable<Guid> GetCaptures()
+        public static IEnumerable<LocalCapture> GetCaptures()
         {
             if (!Directory.Exists(_recordingsRoot))
-                return Array.Empty<Guid>();
+                return Array.Empty<LocalCapture>();
 
             return new DirectoryInfo(_recordingsRoot)
                 .GetDirectories()
-                .Select(d => d.Name)
-                .Select(name => Guid.Parse(name));
+                .Select(d => Guid.Parse(d.Name))
+                .Select(id => new LocalCapture(id, GetCaptureRecordedAtUtc(id), DeviceType.ARFoundation));
         }
 
-        public static DateTime GetCaptureRecordedAtUtc(Guid captureId)
+        private static DateTime GetCaptureRecordedAtUtc(Guid captureId)
         {
             return Directory.GetCreationTimeUtc(SessionDir(captureId.ToString()));
         }

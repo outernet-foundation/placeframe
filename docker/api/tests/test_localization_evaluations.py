@@ -97,11 +97,11 @@ def api_client() -> httpx.Client:
 @pytest.fixture(scope="module")
 def reconstruction_id(api_client: httpx.Client) -> str:
     capture = api_client.post(
-        "/capture_sessions",
-        json={"name": f"pytest-loceval-{uuid.uuid4()}", "device_type": "Zed"},
+        "/capture_sessions/bulk",
+        json=[{"id": str(uuid.uuid4()), "name": f"pytest-loceval-{uuid.uuid4()}", "device_type": "Zed"}],
     )
     capture.raise_for_status()
-    capture_session_id = capture.json()["id"]
+    capture_session_id = capture.json()[0]["id"]
 
     recon = api_client.post(
         "/reconstructions",

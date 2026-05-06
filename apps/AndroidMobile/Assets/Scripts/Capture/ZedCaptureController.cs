@@ -5,8 +5,9 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Placeframe.Client;
+using Placeframe.Core;
+using PlaceframeApiClient.Model;
 using LogBatchModel = PlaceframeZedCaptureClient.Model.LogBatch;
-using ZedCaptureModel = PlaceframeZedCaptureClient.Model.ZedCapture;
 using ZedStatusModel = PlaceframeZedCaptureClient.Model.ZedStatus;
 
 #if !UNITY_EDITOR && UNITY_ANDROID
@@ -42,8 +43,8 @@ public static class ZedCaptureController
     public static UniTask StopCapture(CancellationToken cancellationToken = default) =>
         throw new PlatformNotSupportedException(unsupportedMessage);
 
-    public static UniTask<IEnumerable<ZedCaptureModel>> EnumerateCaptures() =>
-        UniTask.FromResult(Enumerable.Empty<ZedCaptureModel>());
+    public static UniTask<IEnumerable<LocalCapture>> EnumerateCaptures() =>
+        UniTask.FromResult(Enumerable.Empty<LocalCapture>());
 
     public static UniTask<Stream> GetCapture(Guid captureId, CancellationToken cancellationToken = default) =>
         throw new PlatformNotSupportedException(unsupportedMessage);
@@ -123,16 +124,17 @@ public static class ZedCaptureController
     // ZED box is unreachable. An absent box is indistinguishable from an empty one.
     private static readonly TimeSpan enumerateTimeout = TimeSpan.FromSeconds(1);
 
-    public static async UniTask<IEnumerable<ZedCaptureModel>> EnumerateCaptures()
+    public static async UniTask<IEnumerable<LocalCapture>> EnumerateCaptures()
     {
         try
         {
             using var cts = new CancellationTokenSource(enumerateTimeout);
-            return await capturesApi.GetCapturesAsync(cts.Token);
+            var captures = await capturesApi.GetCapturesAsync(cts.Token);
+            return captures.Select(c => new LocalCapture(c.Id, c.RecordedAt, DeviceType.Zed));
         }
         catch
         {
-            return Enumerable.Empty<ZedCaptureModel>();
+            return Enumerable.Empty<LocalCapture>();
         }
     }
 

@@ -13,13 +13,15 @@ from datamodels.public_dtos import (
     CaptureSessionCreate,
     CaptureSessionRead,
     CaptureSessionUpdate,
+    ReconstructionRead,
     capture_session_apply_batch_update_dto,
     capture_session_apply_dto,
     capture_session_from_dto,
     capture_session_from_dto_overwrite,
     capture_session_to_dto,
+    reconstruction_to_dto,
 )
-from datamodels.public_tables import CaptureSession, DeviceType, Reconstruction
+from datamodels.public_tables import CaptureSession, DeviceType, LocalizationMap, Reconstruction
 from litestar import Router, delete, get, patch, post
 from litestar.datastructures import UploadFile
 from litestar.di import Provide
@@ -28,7 +30,7 @@ from litestar.exceptions import HTTPException, InternalServerException, NotFound
 from litestar.params import Body, Parameter
 from litestar.response import Stream
 from litestar.status_codes import HTTP_409_CONFLICT, HTTP_422_UNPROCESSABLE_ENTITY, HTTP_504_GATEWAY_TIMEOUT
-from pydantic import AwareDatetime
+from pydantic import AwareDatetime, BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -141,6 +143,61 @@ async def get_capture_sessions(
 
     results = [capture_session_to_dto(row) for row in result.scalars().all()]
     return results
+
+
+class ExpandedReconstruction(BaseModel):
+    reconstruction: ReconstructionRead
+    localization_map_id: UUID | None = None
+
+
+class ExpandedCaptureSession(BaseModel):
+    capture_session: CaptureSessionRead
+    reconstructions: list[ExpandedReconstruction]
+
+
+class CaptureSessionsExpanded(BaseModel):
+    capture_sessions: list[ExpandedCaptureSession]
+
+
+@get("/expanded")
+async def get_capture_sessions_expanded(session: AsyncSession) -> CaptureSessionsExpanded:
+    captures = list((await session.execute(select(CaptureSession))).scalars().all())
+    capture_ids = [c.id for c in captures]
+
+    reconstructions: list[Reconstruction] = []
+    if capture_ids:
+        reconstructions = list(
+            (await session.execute(select(Reconstruction).where(Reconstruction.capture_session_id.in_(capture_ids))))
+            .scalars()
+            .all()
+        )
+
+    map_by_reconstruction: dict[UUID, UUID] = {}
+    reconstruction_ids = [r.id for r in reconstructions]
+    if reconstruction_ids:
+        map_result = await session.execute(
+            select(LocalizationMap).where(LocalizationMap.reconstruction_id.in_(reconstruction_ids))
+        )
+        map_by_reconstruction = {row.reconstruction_id: row.id for row in map_result.scalars().all()}
+
+    reconstructions_by_capture: dict[UUID, list[ExpandedReconstruction]] = {}
+    for r in reconstructions:
+        reconstructions_by_capture.setdefault(r.capture_session_id, []).append(
+            ExpandedReconstruction(
+                reconstruction=reconstruction_to_dto(r),
+                localization_map_id=map_by_reconstruction.get(r.id),
+            )
+        )
+
+    return CaptureSessionsExpanded(
+        capture_sessions=[
+            ExpandedCaptureSession(
+                capture_session=capture_session_to_dto(c),
+                reconstructions=reconstructions_by_capture.get(c.id, []),
+            )
+            for c in captures
+        ],
+    )
 
 
 @get("/{id:uuid}")
@@ -390,6 +447,7 @@ router = Router(
         create_capture_session,
         create_capture_sessions,
         get_capture_sessions,
+        get_capture_sessions_expanded,
         get_capture_session,
         get_capture_session_reconstructions,
         delete_capture_session,

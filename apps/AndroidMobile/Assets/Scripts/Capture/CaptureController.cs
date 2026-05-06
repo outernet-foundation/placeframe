@@ -15,26 +15,13 @@ using DeviceType = PlaceframeApiClient.Model.DeviceType;
 
 namespace Placeframe.Client
 {
-    public readonly struct LocalCapture
-    {
-        public readonly Guid Id;
-        public readonly DateTime RecordedAt;
-        public readonly DeviceType Type;
-
-        public LocalCapture(Guid id, DateTime recordedAt, DeviceType type)
-        {
-            Id = id;
-            RecordedAt = recordedAt;
-            Type = type;
-        }
-    }
-
     public class CaptureController : MonoBehaviour
     {
         private float captureIntervalSeconds = 0.2f;
 
         private bool capturesLoaded;
         private string localCaptureNamePath;
+        private Dictionary<Guid, string> _localCaptureNames = new();
         private IDisposable _subscription;
 
         void Awake()
@@ -42,6 +29,10 @@ namespace Placeframe.Client
             ZedCaptureController.Initialize();
 
             localCaptureNamePath = $"{Application.persistentDataPath}/LocalCaptureNames.json";
+
+            if (File.Exists(localCaptureNamePath))
+                foreach (var kvp in SimpleJSON.JSONNode.Parse(File.ReadAllText(localCaptureNamePath)))
+                    _localCaptureNames[Guid.Parse(kvp.Key)] = kvp.Value;
 
             _subscription = new ComposedDisposable(
                 ObservableCombineValues(
@@ -242,10 +233,14 @@ namespace Placeframe.Client
             if (!capturesLoaded)
                 return;
 
+            _localCaptureNames.Clear();
             var json = new SimpleJSON.JSONObject();
-
             foreach (var kvp in App.state.captures.Where(x => x.Value.status.value == CaptureUploadStatus.NotUploaded))
-                json[kvp.Key.ToString()] = kvp.Value.name.value;
+            {
+                var name = kvp.Value.name.value;
+                _localCaptureNames[kvp.Key] = name;
+                json[kvp.Key.ToString()] = name;
+            }
 
             File.WriteAllText(localCaptureNamePath, json.ToString());
         }
@@ -283,85 +278,31 @@ namespace Placeframe.Client
 
         private async UniTask UpdateCaptureList()
         {
-            Dictionary<Guid, string> captureNames = new Dictionary<Guid, string>();
-
-            if (File.Exists(localCaptureNamePath))
-            {
-                foreach (var kvp in SimpleJSON.JSONNode.Parse(File.ReadAllText(localCaptureNamePath)))
-                    captureNames.Add(Guid.Parse(kvp.Key), kvp.Value);
-            }
-
-            var remoteCaptureList = await VisualPositioningSystem.Api.GetCaptureSessionsAsync();
-
-            var remoteCaptureReconstructions = await VisualPositioningSystem.Api
-                .GetReconstructionsAsync(captureSessionIds: remoteCaptureList.Select(c => c.Id).ToList());
-
-            List<LocalizationMapRead> remoteCaptureLocalizationMaps = await VisualPositioningSystem.Api
-                .GetLocalizationMapsAsync(
-                    reconstructionIds: remoteCaptureReconstructions
-                        .Where(x => x.Status == ReconstructionStatus.Succeeded)
-                        .Select(x => x.Id)
-                        .ToList());
-
             var zedCaptures = await ZedCaptureController.EnumerateCaptures();
-            var zed = zedCaptures.Select(c => new LocalCapture(c.Id, c.RecordedAt, DeviceType.Zed));
-
-            var localCaptures = CaptureManager.GetCaptures()
-                .Select(id => new LocalCapture(id, CaptureManager.GetCaptureRecordedAtUtc(id), DeviceType.ARFoundation))
-                .Concat(zed)
-                .ToDictionary(x => x.Id);
-
-            var captureData = remoteCaptureList.ToDictionary(
-                x => x.Id,
-                x =>
-                {
-                    var reconstruction = remoteCaptureReconstructions.FirstOrDefault(y => y.CaptureSessionId == x.Id);
-                    return (
-                        name: x.Name,
-                        capture: x,
-                        deviceType: x.DeviceType,
-                        reconstruction,
-                        localizationMap: reconstruction == null
-                            ? default
-                            : remoteCaptureLocalizationMaps.FirstOrDefault(y => y.ReconstructionId == reconstruction.Id),
-                        hasLocalFiles: localCaptures.ContainsKey(x.Id),
-                        recordedAt: x.RecordedAt);
-                });
-
-            foreach (var (id, local) in localCaptures)
-            {
-                if (captureData.ContainsKey(id))
-                    continue;
-
-                captureData.Add(
-                    id,
-                    (
-                        name: captureNames.TryGetValue(id, out var name) ? name : null,
-                        capture: null,
-                        deviceType: local.Type,
-                        reconstruction: null,
-                        localizationMap: null,
-                        hasLocalFiles: true,
-                        recordedAt: local.RecordedAt));
-            }
+            var locals = CaptureManager.GetCaptures().Concat(zedCaptures).ToDictionary(c => c.Id);
+            var remotes = (await VisualPositioningSystem.Api.GetCaptureSessionsExpandedAsync())
+                .CaptureSessions.ToDictionary(c => c.CaptureSession.Id);
 
             await UniTask.SwitchToMainThread();
 
             App.ExecuteTransaction(appState =>
             {
                 appState.captures.SetFrom(
-                    captureData,
+                    locals.Keys.Union(remotes.Keys).ToDictionary(id => id, id => id),
                     refreshOldEntries: true,
-                    copy: (key, entry, state) =>
+                    copy: (id, _, state) =>
                     {
-                        state.name.value = entry.name;
-                        state.hasLocalFiles.value = entry.hasLocalFiles;
-                        state.recordedAt.value = entry.recordedAt;
-                        state.type.value = entry.deviceType;
-                        state.serverCaptureExists.value = entry.capture != null;
-                        state.reconstruction.value = entry.reconstruction;
-                        state.reconstructionId.value = entry.reconstruction?.Id ?? Guid.Empty;
-                        state.localizationMapId.value = entry.localizationMap?.Id ?? Guid.Empty;
+                        var remote = remotes.GetValueOrDefault(id);
+                        var primary = remote?.Reconstructions.FirstOrDefault();
+                        var hasLocal = locals.TryGetValue(id, out var local);
+                        state.name.value = remote?.CaptureSession.Name ?? _localCaptureNames.GetValueOrDefault(id);
+                        state.hasLocalFiles.value = hasLocal;
+                        state.recordedAt.value = remote?.CaptureSession.RecordedAt ?? local.RecordedAt;
+                        state.type.value = remote?.CaptureSession.DeviceType ?? local.Type;
+                        state.serverCaptureExists.value = remote != null;
+                        state.reconstruction.value = primary?.Reconstruction;
+                        state.reconstructionId.value = primary?.Reconstruction.Id ?? Guid.Empty;
+                        state.localizationMapId.value = primary?.LocalizationMapId ?? Guid.Empty;
                     });
             });
 
