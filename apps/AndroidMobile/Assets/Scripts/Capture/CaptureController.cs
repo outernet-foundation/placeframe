@@ -177,12 +177,19 @@ namespace Placeframe.Client
             }
         }
 
-        public static UniTask DeleteCapture(Guid id, DeviceType type) => type switch
+        public static UniTask DeleteCapture(Guid id, DeviceType type)
         {
-            DeviceType.ARFoundation => Sync(() => CaptureManager.DeleteCapture(id)),
-            DeviceType.Zed => ZedCaptureController.DeleteCapture(id),
-            _ => throw new ArgumentException($"Unknown DeviceType {type}"),
-        };
+            switch (type)
+            {
+                case DeviceType.ARFoundation:
+                    CaptureManager.DeleteCapture(id);
+                    return UniTask.CompletedTask;
+                case DeviceType.Zed:
+                    return ZedCaptureController.DeleteCapture(id);
+                default:
+                    throw new ArgumentException($"Unknown DeviceType {type}");
+            }
+        }
 
         private static UniTask<ReconstructionRead> CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions) =>
             VisualPositioningSystem.Api
@@ -213,12 +220,17 @@ namespace Placeframe.Client
                     UniTask.Create(async () =>
                     {
                         var deviceType = App.state.captureMode.value;
-                        await (deviceType switch
+                        switch (deviceType)
                         {
-                            DeviceType.ARFoundation => Sync(() => CaptureManager.StartCapture(captureIntervalSeconds)),
-                            DeviceType.Zed => ZedCaptureController.StartCapture(captureIntervalSeconds, startToken),
-                            _ => throw new ArgumentException($"Unknown DeviceType {deviceType}"),
-                        });
+                            case DeviceType.ARFoundation:
+                                CaptureManager.StartCapture(captureIntervalSeconds);
+                                break;
+                            case DeviceType.Zed:
+                                await ZedCaptureController.StartCapture(captureIntervalSeconds, startToken);
+                                break;
+                            default:
+                                throw new ArgumentException($"Unknown DeviceType {deviceType}");
+                        }
                         App.ExecuteTransaction(new SetCaptureStatusAction(CaptureStatus.Capturing));
                     }).Forget();
                     break;
@@ -231,12 +243,17 @@ namespace Placeframe.Client
                     UniTask.Create(async () =>
                     {
                         var deviceType = App.state.captureMode.value;
-                        await (deviceType switch
+                        switch (deviceType)
                         {
-                            DeviceType.ARFoundation => Sync(CaptureManager.StopCapture),
-                            DeviceType.Zed => ZedCaptureController.StopCapture(stopToken),
-                            _ => throw new ArgumentException($"Unknown DeviceType {deviceType}"),
-                        });
+                            case DeviceType.ARFoundation:
+                                CaptureManager.StopCapture();
+                                break;
+                            case DeviceType.Zed:
+                                await ZedCaptureController.StopCapture(stopToken);
+                                break;
+                            default:
+                                throw new ArgumentException($"Unknown DeviceType {deviceType}");
+                        }
                         App.ExecuteTransaction(new SetCaptureStatusAction(CaptureStatus.Idle));
                     }).Forget();
                     break;
@@ -317,12 +334,6 @@ namespace Placeframe.Client
                     await UpdateCaptureList();
                 }).Forget();
             }
-        }
-
-        private static UniTask Sync(Action action)
-        {
-            action();
-            return UniTask.CompletedTask;
         }
 
         private async UniTask UpdateCaptureList()
