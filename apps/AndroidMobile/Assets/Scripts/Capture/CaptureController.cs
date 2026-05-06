@@ -5,14 +5,12 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using FofX.Stateful;
-using Nessle;
 using ObserveThing;
 using Placeframe.Core;
 using PlaceframeApiClient.Api;
 using PlaceframeApiClient.Client;
 using PlaceframeApiClient.Model;
 using UnityEngine;
-using static Placeframe.Client.UIElements;
 using DeviceType = PlaceframeApiClient.Model.DeviceType;
 
 namespace Placeframe.Client
@@ -41,7 +39,6 @@ namespace Placeframe.Client
         // health poll, not by this method.
         private static readonly TimeSpan ZedEnumerateTimeout = TimeSpan.FromSeconds(1);
 
-        private IControl ui;
         private CancellationTokenSource currentCaptureCts;
         private bool capturesLoaded;
         private string localCaptureNamePath;
@@ -55,35 +52,6 @@ namespace Placeframe.Client
             ZedCaptureController.Initialize();
 
             localCaptureNamePath = $"{Application.persistentDataPath}/LocalCaptureNames.json";
-
-            ui = OrderedCanvas(
-                new()
-                {
-                    children = Props.List(
-                        App.state.loggedIn
-                            .ObservableCreate(loggedIn =>
-                            {
-                                IControl screen = default;
-                                if (loggedIn)
-                                {
-                                    screen = MainAppUI(
-                                        new MainAppUIProps()
-                                        {
-                                            mode = App.state.mode,
-                                            onModeChanged = x => App.state.mode.value = x,
-                                        }
-                                    );
-                                }
-                                else
-                                {
-                                    screen = LoginUI();
-                                }
-
-                                return screen;
-                            })
-                    ),
-                }
-            );
 
             wasZedReachable = ZedCaptureController.IsZedReachable(App.state.zedStatus.value);
 
@@ -126,7 +94,6 @@ namespace Placeframe.Client
 
         void OnDestroy()
         {
-            ui?.Dispose();
             currentCaptureCts?.Cancel();
             currentCaptureCts?.Dispose();
             captureStatusStream?.Dispose();
