@@ -23,6 +23,21 @@ namespace Placeframe.Client
 {
     public static partial class UIElements
     {
+        public static IControl AppUI() =>
+            OrderedCanvas(new()
+            {
+                children = Props.List(
+                    App.state.loggedIn
+                        .ObservableCreate(loggedIn => loggedIn
+                            ? MainAppUI(new MainAppUIProps()
+                            {
+                                mode = App.state.mode,
+                                onModeChanged = x => App.state.mode.value = x,
+                            })
+                            : LoginUI())
+                ),
+            });
+
         public struct MainAppUIProps
         {
             public IValueObservable<AppMode> mode;
