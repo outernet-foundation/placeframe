@@ -66,19 +66,6 @@ def load_map(
             print(f"Downloading s3://{reconstruction_bucket}/{key} to {local_path}")
             s3_client.download_file(reconstruction_bucket, key, str(local_path))
 
-    assert raw_metrics.map_image_count is not None
-    assert raw_metrics.map_point_count is not None
-    assert raw_metrics.map_avg_track_length is not None
-    assert raw_metrics.map_bounding_volume_m3 is not None
-    assert raw_metrics.map_viewpoint_diversity is not None
-    map_metrics = RawMapMetrics(
-        map_image_count=raw_metrics.map_image_count,
-        map_point_count=raw_metrics.map_point_count,
-        map_avg_track_length=raw_metrics.map_avg_track_length,
-        map_bounding_volume_m3=raw_metrics.map_bounding_volume_m3,
-        map_viewpoint_diversity=raw_metrics.map_viewpoint_diversity,
-    )
-
     reconstruction_path = reconstructions_dir / str(id)
     reconstruction = Reconstruction(str(reconstruction_path / "sfm_model"))
     ordered_image_ids: list[int] = sorted(cast(Mapping[int, Any], reconstruction.images).keys())
@@ -121,5 +108,5 @@ def load_map(
         padded_tile_descriptors,
         read_opq_matrix(reconstruction_path),
         read_pq_quantizer(reconstruction_path),
-        map_metrics=map_metrics,
+        map_metrics=RawMapMetrics.model_validate(raw_metrics.model_dump()),
     )
