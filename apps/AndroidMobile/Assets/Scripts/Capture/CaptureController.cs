@@ -246,6 +246,9 @@ namespace Placeframe.Client
             ui?.Dispose();
             currentCaptureTask?.Cancel();
             captureStatusStream?.Dispose();
+            foreach (var task in awaitReconstructionTasks.Values)
+                task.Cancel();
+            awaitReconstructionTasks.Clear();
         }
 
         private void HandleCaptureStatusChanged(IReadOnlyList<IStateOperation> ops)
