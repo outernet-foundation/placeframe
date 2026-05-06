@@ -269,11 +269,11 @@ namespace Placeframe.Core
         }
 
         public static UniTask<List<LocalizationMapRead>> GetLocalizationMaps(List<Guid> ids = default, List<Guid> reconstructionIds = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, CancellationToken cancellationToken = default)
-            => Api.GetLocalizationMapsAsync(ids, reconstructionIds, positionX, positionY, positionZ, radius, cancellationToken).AsUniTask();
+            => Api.GetLocalizationMapsAsync(ids, reconstructionIds, positionX, positionY, positionZ, radius, cancellationToken);
 
         public static UniTask<LocalizationMapRead> GetMapData(Guid mapID)
         {
-            return Api.GetLocalizationMapAsync(mapID).AsUniTask();
+            return Api.GetLocalizationMapAsync(mapID);
         }
 
         public static async UniTask<ReconstructionPoint[]> GetReconstructionPoints(
@@ -282,7 +282,7 @@ namespace Placeframe.Core
         )
         {
             var pointPayload = await FetchPayloadAsync(
-                Api.GetReconstructionPointsAsync(reconstructionID, AxisConvention.UNITY).AsUniTask(),
+                Api.GetReconstructionPointsAsync(reconstructionID, AxisConvention.UNITY),
                 bytesPerElement: (3 * sizeof(float)) + 3,
                 cancellationToken
             );
@@ -317,7 +317,7 @@ namespace Placeframe.Core
         )
         {
             var framePayload = await FetchPayloadAsync(
-                Api.GetReconstructionFramePosesAsync(reconstructionID, AxisConvention.UNITY).AsUniTask(),
+                Api.GetReconstructionFramePosesAsync(reconstructionID, AxisConvention.UNITY),
                 bytesPerElement: (3 * sizeof(float)) + (4 * sizeof(float)),
                 cancellationToken
             );

@@ -292,8 +292,7 @@ public static class ZedCaptureController
         if (batch.Entries != null && batch.Entries.Count > 0)
         {
             await VisualPositioningSystem.Api
-                .PushZedBoxLogsAsync(new LogRelayBatch(batch.Entries), cancellationToken)
-                .AsUniTask();
+                .PushZedBoxLogsAsync(new LogRelayBatch(batch.Entries), cancellationToken);
         }
 
         // Update logDrainPendingAck only after a successful round trip (fetch + forward).

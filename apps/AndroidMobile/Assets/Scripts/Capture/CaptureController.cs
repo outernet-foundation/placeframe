@@ -84,14 +84,12 @@ namespace Placeframe.Client
 
                 await UniTask.SwitchToMainThread();
                 var captureSession = await VisualPositioningSystem.Api
-                    .CreateCaptureSessionAsync(new CaptureSessionCreate(type) { Id = id, Name = capture.name.value, RecordedAt = capture.recordedAt.value })
-                    .AsUniTask();
+                    .CreateCaptureSessionAsync(new CaptureSessionCreate(type) { Id = id, Name = capture.name.value, RecordedAt = capture.recordedAt.value });
 
                 capture.clientPhase.value = CaptureClientPhase.Uploading;
 
                 await VisualPositioningSystem.Api
-                    .UploadCaptureSessionTarAsync(captureSession.Id, captureData)
-                    .AsUniTask();
+                    .UploadCaptureSessionTarAsync(captureSession.Id, captureData);
 
                 capture.serverCaptureExists.value = true;
 
@@ -128,8 +126,7 @@ namespace Placeframe.Client
             try
             {
                 var reconstruction = await VisualPositioningSystem.Api
-                    .RetryReconstructionAsync(capture.reconstructionId.value)
-                    .AsUniTask();
+                    .RetryReconstructionAsync(capture.reconstructionId.value);
                 capture.reconstruction.value = reconstruction;
                 capture.clientPhase.value = CaptureClientPhase.Idle;
             }
@@ -150,8 +147,7 @@ namespace Placeframe.Client
                         {
                             Name = capture.name.value,
                         }
-                    )
-                    .AsUniTask();
+                    );
                 capture.localizationMapId.value = map.Id;
             }
             catch
@@ -182,8 +178,7 @@ namespace Placeframe.Client
                     {
                         Options = reconstructionOptions,
                     }
-                )
-                .AsUniTask();
+                );
 
         private void HandleCaptureStatusChanged(IReadOnlyList<IStateOperation> ops)
         {
@@ -335,7 +330,6 @@ namespace Placeframe.Client
                 remoteCaptureList.Select(c =>
                     VisualPositioningSystem.Api
                         .GetReconstructionsAsync(captureSessionId: c.Id)
-                        .AsUniTask()
                         .ContinueWith(x => remoteCaptureReconstructions.AddRange(x))
                 )
             );
@@ -346,8 +340,7 @@ namespace Placeframe.Client
                         .Where(x => x.Status == ReconstructionStatus.Succeeded)
                         .Select(x => x.Id)
                         .ToList()
-                )
-                .AsUniTask();
+                );
 
             var zedCaptures = await ZedCaptureController.EnumerateCaptures();
             var zed = zedCaptures.Select(c => new LocalCapture(c.Id, c.RecordedAt, DeviceType.Zed));
