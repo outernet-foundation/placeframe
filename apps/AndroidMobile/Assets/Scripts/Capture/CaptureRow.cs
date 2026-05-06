@@ -18,14 +18,14 @@ namespace Placeframe.Client
 {
     public static partial class UIElements
     {
-        public static string CaptureStatusLabel(CaptureUploadStatus status, ReconstructionManifest manifest) =>
+        public static string CaptureStatusLabel(CaptureUploadStatus status, ReconstructionRead reconstruction) =>
             status switch
             {
                 CaptureUploadStatus.NotUploaded => "Upload",
                 CaptureUploadStatus.Initializing => "Initializing",
                 CaptureUploadStatus.Uploading => "Uploading",
                 CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
-                CaptureUploadStatus.Reconstructing => ReconstructingPhaseLabel(manifest),
+                CaptureUploadStatus.Reconstructing => ReconstructingPhaseLabel(reconstruction),
                 CaptureUploadStatus.Uploaded => "Create Map",
                 CaptureUploadStatus.MapCreated => "Map Created",
                 CaptureUploadStatus.Failed => "Retry",
@@ -57,34 +57,34 @@ namespace Placeframe.Client
             }
         }
 
-        private static string ReconstructingPhaseLabel(ReconstructionManifest manifest)
+        private static string ReconstructingPhaseLabel(ReconstructionRead reconstruction)
         {
-            if (manifest == null)
+            if (reconstruction == null)
                 return "Queued";
 
-            return manifest.Status switch
+            return reconstruction.Status switch
             {
-                ReconstructionManifest.StatusEnum.Queued => "Queued",
-                ReconstructionManifest.StatusEnum.Pending => "Queued",
-                ReconstructionManifest.StatusEnum.Downloading => "Downloading",
-                ReconstructionManifest.StatusEnum.ExtractingFeatures => $"Extracting features{ProgressSuffix(manifest.PhaseProgress)}",
-                ReconstructionManifest.StatusEnum.MatchingFeatures => $"Matching features{ProgressSuffix(manifest.PhaseProgress)}",
-                ReconstructionManifest.StatusEnum.VerifyingGeometry => "Verifying geometry",
-                ReconstructionManifest.StatusEnum.Reconstructing => $"Reconstructing{ProgressSuffix(manifest.PhaseProgress)}{AttemptSuffix(manifest.PhaseProgress)}",
-                ReconstructionManifest.StatusEnum.TrainingOpqMatrix => "Training index",
-                ReconstructionManifest.StatusEnum.TrainingProductQuantizer => "Training index",
-                ReconstructionManifest.StatusEnum.Uploading => "Uploading model",
-                ReconstructionManifest.StatusEnum.Succeeded => "Finalizing",
-                ReconstructionManifest.StatusEnum.Failed => "Failed",
-                _ => throw new ArgumentOutOfRangeException(nameof(manifest.Status), manifest.Status, null)
+                ReconstructionStatus.Queued => "Queued",
+                ReconstructionStatus.Downloading => "Downloading",
+                ReconstructionStatus.ExtractingFeatures => $"Extracting features{ProgressSuffix(reconstruction)}",
+                ReconstructionStatus.MatchingFeatures => $"Matching features{ProgressSuffix(reconstruction)}",
+                ReconstructionStatus.VerifyingGeometry => "Verifying geometry",
+                ReconstructionStatus.Reconstructing => $"Reconstructing{ProgressSuffix(reconstruction)}{AttemptSuffix(reconstruction)}",
+                ReconstructionStatus.TrainingOpqMatrix => "Training index",
+                ReconstructionStatus.TrainingProductQuantizer => "Training index",
+                ReconstructionStatus.Uploading => "Uploading model",
+                ReconstructionStatus.Succeeded => "Finalizing",
+                ReconstructionStatus.Failed => "Failed",
+                ReconstructionStatus.Cancelled => "Cancelled",
+                _ => throw new ArgumentOutOfRangeException(nameof(reconstruction.Status), reconstruction.Status, null)
             };
         }
 
-        private static string ProgressSuffix(PhaseProgress progress) =>
-            progress == null ? "" : $" [{progress.Current}/{progress.Total}]";
+        private static string ProgressSuffix(ReconstructionRead reconstruction) =>
+            reconstruction.ProgressTotal == null ? "" : $" [{reconstruction.ProgressCurrent}/{reconstruction.ProgressTotal}]";
 
-        private static string AttemptSuffix(PhaseProgress progress) =>
-            progress == null || progress.Attempt <= 1 ? "" : $" (attempt {progress.Attempt})";
+        private static string AttemptSuffix(ReconstructionRead reconstruction) =>
+            reconstruction.ProgressAttempt == null || reconstruction.ProgressAttempt <= 1 ? "" : $" (attempt {reconstruction.ProgressAttempt})";
 
         public static IControl CaptureRow(CaptureState capture)
         {
@@ -178,7 +178,7 @@ namespace Placeframe.Client
                             {
                                 label = Observables.Combine(
                                     capture.status,
-                                    capture.manifest,
+                                    capture.reconstruction,
                                     CaptureStatusLabel
                                 ),
                                 interactable = capture.status.ObservableSelect(CaptureStatusIsActionable),

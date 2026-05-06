@@ -11,6 +11,7 @@ from core.axis_convention import AxisConvention
 from core.camera_config import PinholeCameraConfig
 from core.localization_metrics import LocalizationMetrics
 from core.transform import Float3, Float4, Transform
+from datamodels.public_tables import Reconstruction
 from litestar import Router, get, post
 from litestar.datastructures import UploadFile
 from litestar.di import Provide
@@ -22,7 +23,11 @@ from placeframe_localizer_client import ApiClient, ApiException, Configuration
 from placeframe_localizer_client.api.default_api import DefaultApi
 from placeframe_localizer_client.models.axis_convention import AxisConvention as LocalizerAxisConvention
 from placeframe_localizer_client.models.pinhole_camera_config import PinholeCameraConfig as LocalizerPinholeCameraConfig
+from placeframe_localizer_client.models.reconstruction_metrics import (
+    ReconstructionMetrics as LocalizerReconstructionMetrics,
+)
 from pydantic import BaseModel, BeforeValidator, Json
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
@@ -55,16 +60,28 @@ async def localize_image(
     reconstruction_id_to_map_id = {
         map.reconstruction_id: map for map in await fetch_localization_maps(session, data.map_ids)
     }
+    manifest_rows = (
+        await session.execute(
+            select(Reconstruction.id, Reconstruction.manifest).where(
+                Reconstruction.id.in_(reconstruction_id_to_map_id.keys())
+            )
+        )
+    ).all()
+    image = await data.image.read()
 
     async with ApiClient(Configuration(host=str(settings.localizer_container_url))) as api_client:
         try:
             localizations = await DefaultApi(api_client).localize_image(
-                list(reconstruction_id_to_map_id.keys()),
-                LocalizerPinholeCameraConfig.model_validate(data.camera_config.model_dump()),
-                LocalizerAxisConvention(data.axis_convention.value),
-                await data.image.read(),
-                data.retrieval_top_k,
-                data.ransac_threshold,
+                reconstruction_ids=list(reconstruction_id_to_map_id.keys()),
+                metrics={
+                    str(row_id): LocalizerReconstructionMetrics.model_validate(manifest["metrics"])
+                    for row_id, manifest in manifest_rows
+                },
+                camera_config=LocalizerPinholeCameraConfig.model_validate(data.camera_config.model_dump()),
+                axis_convention=LocalizerAxisConvention(data.axis_convention.value),
+                image=image,
+                retrieval_top_k=data.retrieval_top_k,
+                ransac_threshold=data.ransac_threshold,
             )
 
             return [

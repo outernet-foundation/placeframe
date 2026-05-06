@@ -17,6 +17,7 @@ from common.multipart_requests import (
 )
 from core.axis_convention import AxisConvention
 from core.camera_config import PinholeCameraConfig
+from core.reconstruction_metrics import ReconstructionMetrics
 from litestar import get, post
 from litestar.datastructures import UploadFile
 from litestar.enums import RequestEncodingType
@@ -64,6 +65,7 @@ if not environ.get("CODEGEN"):
 
 class LocalizationRequest(MultipartRequestModel):
     reconstruction_ids: Annotated[Json[list[UUID]], BeforeValidator(multipart_json_list)]
+    metrics: Annotated[Json[dict[UUID, ReconstructionMetrics]], BeforeValidator(multipart_json)]
     camera_config: Annotated[Json[PinholeCameraConfig], BeforeValidator(multipart_json)]
     axis_convention: AxisConvention
     retrieval_top_k: int | None = None
@@ -88,7 +90,7 @@ async def localize_image(
 
     for id in data.reconstruction_ids:
         if id not in _maps:
-            _maps[id] = load_map(id, s3_client, settings.reconstructions_bucket, RECONSTRUCTIONS_DIR)
+            _maps[id] = load_map(id, s3_client, settings.reconstructions_bucket, RECONSTRUCTIONS_DIR, data.metrics[id])
 
         try:
             assert calibration is not None  # CODEGEN-guarded; runtime always has it

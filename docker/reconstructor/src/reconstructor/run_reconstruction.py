@@ -21,12 +21,14 @@ from core.model_wrappers import (
     make_local_feature_matcher_for_arrays,
 )
 from core.opq import encode_descriptors, train_opq_matrix, train_pq_quantizer, write_opq_matrix, write_pq_quantizer
-from core.reconstruction_manifest import PhaseProgress, ReconstructionManifest, ReconstructionStatus
+from core.reconstruction_metrics import ReconstructionMetrics
+from core.reconstruction_options import ReconstructionOptions
 from core.model_wrappers import RetrievalDim
 from core.tensor_types import TT
 from neural_networks.models import load_aliked, load_DIR, load_lightglue
 from numpy import asarray, ascontiguousarray, float32, random, stack, vstack
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
+from placeframe_api_client import ReconstructionStatus
 from pycolmap._core import set_random_seed  # noqa: PLC2701 — no public API
 from torch import Tensor, cuda, from_numpy, set_grad_enabled  # type: ignore
 
@@ -34,6 +36,7 @@ from .colmap import run_colmap_reconstruction
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
 from .pairs import generate_image_pairs, write_pairs
+from .progress_publisher import ReconstructionPublisher
 from .rig import Rig
 from .settings import get_settings
 
@@ -74,7 +77,12 @@ def load_models():
     local_feature_matcher = make_local_feature_matcher_for_arrays(load_lightglue(DEVICE), DEVICE)
 
 
-def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
+def run_reconstruction(
+    reconstruction_id: UUID,
+    capture_id: UUID,
+    reconstruction_options: ReconstructionOptions,
+    publisher: ReconstructionPublisher,
+) -> ReconstructionMetrics:
 
     settings = get_settings()
     s3_client = create_s3_client(
@@ -83,16 +91,7 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         minio_secret_key=settings.minio_secret_key,
     )
 
-    # Load reconstruction manifest first so phase updates can publish through it as work proceeds.
-    manifest = ReconstructionManifest.model_validate_json(
-        s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{reconstruction_id}/manifest.json")[
-            "Body"
-        ].read()
-    )
-
-    publisher = _ReconstructionPublisher(s3_client, settings.reconstructions_bucket, reconstruction_id, manifest)
-
-    publisher.set_phase("downloading")
+    publisher.set_phase(ReconstructionStatus.DOWNLOADING)
     print(
         f"Downloading capture session archive for capture session ID: {capture_id} from bucket {settings.captures_bucket}"
     )
@@ -105,7 +104,11 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
     with open(CAPTURE_SESSION_DIRECTORY / "manifest.json", "rb") as file:
         capture_session_manifest = CaptureSessionManifest.model_validate_json(file.read().decode("utf-8"))
 
-    held_out = set(manifest.options.held_out_frame_timestamps) if manifest.options.held_out_frame_timestamps else None
+    held_out = (
+        set(reconstruction_options.held_out_frame_timestamps)
+        if reconstruction_options.held_out_frame_timestamps
+        else None
+    )
 
     # Load rigs (applying axis convention transformations as needed)
     rigs = {
@@ -118,12 +121,12 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         for rig in capture_session_manifest.rigs
     }
 
-    options = OptionsBuilder(manifest.options)
+    options = OptionsBuilder(reconstruction_options)
     metrics = MetricsBuilder()
 
-    if manifest.options.random_seed is not None:
-        random.seed(manifest.options.random_seed)  # noqa: NPY002 — pycolmap reads numpy's global random state; can't use default_rng()
-        set_random_seed(manifest.options.random_seed)
+    if reconstruction_options.random_seed is not None:
+        random.seed(reconstruction_options.random_seed)  # noqa: NPY002 — pycolmap reads numpy's global random state; can't use default_rng()
+        set_random_seed(reconstruction_options.random_seed)
 
     # Apply per-reconstruction keypoint cap by mutating the DKD module's threshold-mode n_limit.
     # ALIKED itself is loaded once at startup; only this cap is per-job.
@@ -132,7 +135,7 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
     # Generate image pairs
     pairs = generate_image_pairs(rigs, options.neighbors_count(), options.rotation_threshold_deg())
     file_name, file_bytes = write_pairs(pairs, WORK_DIR)
-    publisher.put_object(file_name, file_bytes)
+    _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
     # Extract features
     global_descriptors: dict[str, NDArray[float32]] = {}  # noqa: TID251 — Phase T piece 3 follow-up migration
@@ -145,7 +148,7 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         for camera in rig.cameras.values()
         for frame_id in rig.frame_poses.keys()
     ]
-    publisher.set_phase("extracting_features", total=len(image_list))
+    publisher.set_phase(ReconstructionStatus.EXTRACTING_FEATURES, total=len(image_list))
     for index, (image_name, camera_config) in enumerate(image_list):
         print(f"Extracting features: image {index + 1} of {len(image_list)}")
         publisher.on_progress(index + 1)
@@ -173,7 +176,7 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
 
     # Write global descriptors to storage
     file_name, file_bytes = write_global_descriptors(WORK_DIR, global_descriptors)
-    publisher.put_object(file_name, file_bytes)
+    _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
     # Update metrics
     metrics.metrics.average_keypoints_per_image = float(
@@ -184,17 +187,17 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
     descriptor_array = ascontiguousarray(vstack([descriptor for descriptor in descriptors.values()]), dtype=float32)
 
     # Train OPQ matrix
-    publisher.set_phase("training_opq_matrix")
+    publisher.set_phase(ReconstructionStatus.TRAINING_OPQ_MATRIX)
     opq_matrix = train_opq_matrix(
         options.compression_opq_number_of_subvectors(),
         options.compression_opq_number_of_training_iterations(),
         descriptor_array,
     )
     file_name, file_bytes = write_opq_matrix(opq_matrix, WORK_DIR)
-    publisher.put_object(file_name, file_bytes)
+    _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
     # Train PQ quantizer
-    publisher.set_phase("training_product_quantizer")
+    publisher.set_phase(ReconstructionStatus.TRAINING_PRODUCT_QUANTIZER)
     product_quantizer = train_pq_quantizer(
         options.compression_opq_number_of_subvectors(),
         options.compression_opq_number_of_bits_per_subvector(),
@@ -202,15 +205,15 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
         descriptor_array,
     )
     file_name, file_bytes = write_pq_quantizer(product_quantizer, WORK_DIR)
-    publisher.put_object(file_name, file_bytes)
+    _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
     # Encode image descriptors
     image_codes = encode_descriptors(opq_matrix, product_quantizer, descriptors)
     file_name, file_bytes = write_features(WORK_DIR, keypoints, image_codes)
-    publisher.put_object(file_name, file_bytes)
+    _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
     # Match features
-    publisher.set_phase("matching_features", total=len(pairs))
+    publisher.set_phase(ReconstructionStatus.MATCHING_FEATURES, total=len(pairs))
     matching_t0 = perf_counter()
     match_indices = local_feature_matcher(
         pairs,
@@ -245,60 +248,22 @@ def run_reconstruction(reconstruction_id: UUID, capture_id: UUID):
 
     if reconstruction is None:
         print("Reconstruction failed, no model was created")
-        manifest.status = "failed"
-        manifest.error = "No model was created"
-    else:
-        publisher.set_phase("uploading")
-        for file_path in sfm_output_path.rglob("*"):
-            if file_path.is_file():
-                publisher.put_object(f"sfm_model/{file_path.relative_to(sfm_output_path)}", file_path.read_bytes())
-        manifest.status = "succeeded"
+        raise RuntimeError("No model was created")
 
-    # Update and write reconstruction manifest
-    manifest.metrics = metrics.metrics
-    publisher.flush_manifest()
+    publisher.set_phase(ReconstructionStatus.UPLOADING)
+    for file_path in sfm_output_path.rglob("*"):
+        if file_path.is_file():
+            _put_artifact(
+                s3_client,
+                settings.reconstructions_bucket,
+                reconstruction_id,
+                f"sfm_model/{file_path.relative_to(sfm_output_path)}",
+                file_path.read_bytes(),
+            )
+
+    return metrics.metrics
 
 
-class _ReconstructionPublisher:
-    # Owns the S3 destination and the throttle clock for a single reconstruction job.
-
-    def __init__(
-        self,
-        s3_client: Any,
-        bucket: str,
-        reconstruction_id: UUID,
-        manifest: ReconstructionManifest,
-    ) -> None:
-        self._s3_client = s3_client
-        self._bucket = bucket
-        self._reconstruction_id = reconstruction_id
-        self._manifest = manifest
-        self._last_emit = 0.0
-
-    def set_phase(self, status: ReconstructionStatus, total: int | None = None) -> None:
-        self._manifest.status = status
-        self._manifest.phase_progress = PhaseProgress(current=0, total=total) if total is not None else None
-        self.flush_manifest()
-        self._last_emit = perf_counter()
-
-    # Throttle to ~1 Hz so per-image callbacks don't trigger one S3 put each.
-    def on_progress(self, current: int, attempt: int = 1) -> None:
-        if self._manifest.phase_progress is None:
-            return
-        self._manifest.phase_progress.current = current
-        self._manifest.phase_progress.attempt = attempt
-        now = perf_counter()
-        if now - self._last_emit >= 1.0:
-            self.flush_manifest()
-            self._last_emit = now
-
-    def flush_manifest(self) -> None:
-        self.put_object("manifest.json", self._manifest.model_dump_json().encode("utf-8"))
-
-    def put_object(self, key: str, body: bytes) -> None:
-        print(f"Putting object in bucket {self._bucket} with key {self._reconstruction_id}/{key}")
-        self._s3_client.put_object(
-            Bucket=self._bucket,
-            Key=f"{self._reconstruction_id}/{key}",
-            Body=body,
-        )
+def _put_artifact(s3_client: Any, bucket: str, reconstruction_id: UUID, key: str, body: bytes) -> None:
+    print(f"Putting object in bucket {bucket} with key {reconstruction_id}/{key}")
+    s3_client.put_object(Bucket=bucket, Key=f"{reconstruction_id}/{key}", Body=body)

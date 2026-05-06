@@ -14,7 +14,7 @@ from core.axis_convention import (
     change_basis_unity_from_opencv_points,
     change_basis_unity_from_opencv_poses,
 )
-from core.reconstruction_manifest import ReconstructionManifest
+from core.reconstruction_manifest import MANIFEST_VERSION, Manifest
 from core.reconstruction_metrics import ReconstructionMetrics
 from core.reconstruction_options import ReconstructionOptions
 from datamodels.public_dtos import (
@@ -23,10 +23,10 @@ from datamodels.public_dtos import (
     reconstruction_from_dto,
     reconstruction_to_dto,
 )
-from datamodels.public_tables import CaptureSession, LocalizationMap, OrchestrationStatus, Reconstruction
+from datamodels.public_tables import CaptureSession, LocalizationMap, Reconstruction, ReconstructionStatus
 from litestar import Router, delete, get, post, put
 from litestar.di import Provide
-from litestar.exceptions import ClientException, HTTPException, InternalServerException, NotFoundException
+from litestar.exceptions import ClientException, HTTPException, NotFoundException
 from litestar.params import KwargDefinition, Parameter
 from litestar.response import Stream
 from litestar.status_codes import HTTP_409_CONFLICT
@@ -71,26 +71,18 @@ async def create_reconstruction(session: AsyncSession, data: ReconstructionCreat
     capture_session = await session.get(CaptureSession, data.create.capture_session_id)
     if not capture_session:
         raise NotFoundException(f"Capture session with id {data.create.capture_session_id} not found")
+
+    manifest = Manifest(options=data.options or ReconstructionOptions(), metrics=ReconstructionMetrics())
+
     row = reconstruction_from_dto(data.create)
+    row.status = ReconstructionStatus.QUEUED
+    row.manifest = manifest.model_dump(mode="json")
+    row.manifest_version = MANIFEST_VERSION
 
     session.add(row)
 
     await session.flush()
     await session.refresh(row)
-
-    manifest = ReconstructionManifest(
-        capture_id=str(row.capture_session_id),
-        status="pending",
-        options=data.options or ReconstructionOptions(),
-        metrics=ReconstructionMetrics(),
-    )
-
-    s3_client.put_object(
-        Bucket=settings.reconstructions_bucket,
-        Key=f"{row.id}/manifest.json",
-        Body=manifest.model_dump_json().encode("utf-8"),
-        ContentType="application/json",
-    )
 
     return reconstruction_to_dto(row)
 
@@ -172,24 +164,12 @@ async def get_reconstruction(session: AsyncSession, id: UUID) -> ReconstructionR
     return reconstruction_to_dto(row)
 
 
-async def fetch_reconstruction_manifest(session: AsyncSession, id: UUID) -> ReconstructionManifest:
+async def fetch_reconstruction_status(session: AsyncSession, id: UUID) -> ReconstructionStatus:
     row = await session.get(Reconstruction, id)
 
     if not row:
         raise NotFoundException(f"Reconstruction with id {id} not found")
-    try:
-        manifest = ReconstructionManifest.model_validate_json(
-            s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{id}/manifest.json")["Body"].read()
-        )
-    except Exception as e:
-        raise InternalServerException(f"Error retrieving manifest for reconstruction with id {id}: {e}") from e
-
-    return manifest
-
-
-@get("/{id:uuid}/manifest")
-async def get_reconstruction_manifest(session: AsyncSession, id: UUID) -> ReconstructionManifest:
-    return await fetch_reconstruction_manifest(session, id)
+    return row.status
 
 
 @get("/{id:uuid}/localization_map")
@@ -209,19 +189,6 @@ async def get_reconstruction_localization_map(session: AsyncSession, id: UUID) -
     return localization_map
 
 
-async def fetch_reconstruction_status(session: AsyncSession, id: UUID) -> OrchestrationStatus:
-    row = await session.get(Reconstruction, id)
-
-    if not row:
-        raise NotFoundException(f"Reconstruction with id {id} not found")
-    return row.orchestration_status
-
-
-@get("/{id:uuid}/status")
-async def get_reconstruction_status(session: AsyncSession, id: UUID) -> OrchestrationStatus:
-    return await fetch_reconstruction_status(session, id)
-
-
 @put("/{id:uuid}/retry")
 async def retry_reconstruction(session: AsyncSession, id: UUID) -> ReconstructionRead:
     row = await session.get(Reconstruction, id)
@@ -229,27 +196,17 @@ async def retry_reconstruction(session: AsyncSession, id: UUID) -> Reconstructio
     if not row:
         raise NotFoundException(f"Reconstruction with id {id} not found")
 
-    if row.orchestration_status not in (OrchestrationStatus.FAILED, OrchestrationStatus.CANCELLED):
+    if row.status not in (ReconstructionStatus.FAILED, ReconstructionStatus.CANCELLED):
         raise HTTPException(
             status_code=HTTP_409_CONFLICT,
-            detail=f"Reconstruction with id {id} is in state {row.orchestration_status.value} and cannot be retried",
+            detail=f"Reconstruction with id {id} is in state {row.status.value} and cannot be retried",
         )
 
-    existing_manifest = await fetch_reconstruction_manifest(session, id)
-    fresh_manifest = ReconstructionManifest(
-        capture_id=existing_manifest.capture_id,
-        status="pending",
-        options=existing_manifest.options,
-        metrics=ReconstructionMetrics(),
-    )
-    s3_client.put_object(
-        Bucket=settings.reconstructions_bucket,
-        Key=f"{id}/manifest.json",
-        Body=fresh_manifest.model_dump_json().encode("utf-8"),
-        ContentType="application/json",
-    )
-
-    row.orchestration_status = OrchestrationStatus.QUEUED
+    row.status = ReconstructionStatus.QUEUED
+    row.error = None
+    row.progress_current = None
+    row.progress_total = None
+    row.progress_attempt = None
 
     await session.flush()
     await session.refresh(row)
@@ -344,9 +301,7 @@ router = Router(
         delete_reconstruction,
         get_reconstructions,
         get_reconstruction,
-        get_reconstruction_manifest,
         get_reconstruction_localization_map,
-        get_reconstruction_status,
         retry_reconstruction,
         get_reconstruction_points,
         get_reconstruction_frame_poses,

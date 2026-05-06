@@ -101,7 +101,7 @@ namespace Placeframe.Client
             await VisualPositioningSystem.Api
                 .RetryReconstructionAsync(capture.reconstructionId.value)
                 .AsUniTask();
-            capture.manifest.value = null;
+            capture.reconstruction.value = null;
             capture.status.value = CaptureUploadStatus.Reconstructing;
         }
 
@@ -356,22 +356,14 @@ namespace Placeframe.Client
                 remoteCaptureList.Select(x => x.Id).ToList()
             );
 
-            List<ReconstructionManifest> remoteCaptureReconstructionManifests = default;
-            List<LocalizationMapRead> remoteCaptureLocalizationMaps = default;
-
-            await UniTask.WhenAll(
-                GetReconstructionManifests(remoteCaptureReconstructions.Select(x => x.Id).ToList())
-                    .ContinueWith(x => remoteCaptureReconstructionManifests = x),
-                VisualPositioningSystem.Api
-                    .GetLocalizationMapsAsync(
-                        reconstructionIds: remoteCaptureReconstructions
-                            .Where(x => x.OrchestrationStatus == OrchestrationStatus.Succeeded)
-                            .Select(x => x.Id)
-                            .ToList()
-                    )
-                    .AsUniTask()
-                    .ContinueWith(x => remoteCaptureLocalizationMaps = x)
-            );
+            List<LocalizationMapRead> remoteCaptureLocalizationMaps = await VisualPositioningSystem.Api
+                .GetLocalizationMapsAsync(
+                    reconstructionIds: remoteCaptureReconstructions
+                        .Where(x => x.Status == ReconstructionStatus.Succeeded)
+                        .Select(x => x.Id)
+                        .ToList()
+                )
+                .AsUniTask();
 
             Dictionary<Guid, DateTime> zedCaptures = new Dictionary<Guid, DateTime>();
 
@@ -394,9 +386,6 @@ namespace Placeframe.Client
                 x =>
                 {
                     var reconstruction = remoteCaptureReconstructions.FirstOrDefault(y => y.CaptureSessionId == x.Id);
-                    var reconstructionManifest = remoteCaptureReconstructionManifests.FirstOrDefault(y =>
-                        y.CaptureId == x.Id.ToString()
-                    );
                     var localizationMap =
                         reconstruction == null
                             ? default
@@ -411,7 +400,6 @@ namespace Placeframe.Client
                         reconstruction,
                         localizationMap,
                         hasLocalFiles: zedCaptures.ContainsKey(x.Id) || arFoundationCaptures.Contains(x.Id),
-                        reconstructionManifest: reconstructionManifest,
                         recordedAt: x.RecordedAt
                     );
                 }
@@ -431,7 +419,6 @@ namespace Placeframe.Client
                         reconstruction: null,
                         localizationMap: null,
                         hasLocalFiles: true,
-                        reconstructionManifest: null,
                         recordedAt: zedCaptureRecordedAt
                     )
                 );
@@ -451,7 +438,6 @@ namespace Placeframe.Client
                         reconstruction: null,
                         localizationMap: null,
                         hasLocalFiles: true,
-                        reconstructionManifest: null,
                         recordedAt: CaptureManager.GetCaptureRecordedAtUtc(arFoundationCapture)
                     )
                 );
@@ -469,7 +455,7 @@ namespace Placeframe.Client
                     {
                         state.name.value = entry.name;
                         state.hasLocalFiles.value = entry.hasLocalFiles;
-                        state.manifest.value = entry.reconstructionManifest;
+                        state.reconstruction.value = entry.reconstruction;
                         state.recordedAt.value = entry.recordedAt;
                         state.type.value = entry.deviceType;
 
@@ -487,19 +473,17 @@ namespace Placeframe.Client
 
                         state.reconstructionId.value = entry.reconstruction.Id;
 
-                        switch (entry.reconstruction.OrchestrationStatus)
+                        switch (entry.reconstruction.Status)
                         {
-                            case OrchestrationStatus.Pending:
-                            case OrchestrationStatus.Queued:
-                            case OrchestrationStatus.Running:
-                                state.status.value = CaptureUploadStatus.Reconstructing;
-                                break;
-                            case OrchestrationStatus.Succeeded:
+                            case ReconstructionStatus.Succeeded:
                                 state.status.value = CaptureUploadStatus.Uploaded;
                                 break;
-                            case OrchestrationStatus.Cancelled:
-                            case OrchestrationStatus.Failed:
+                            case ReconstructionStatus.Cancelled:
+                            case ReconstructionStatus.Failed:
                                 state.status.value = CaptureUploadStatus.Failed;
+                                break;
+                            default:
+                                state.status.value = CaptureUploadStatus.Reconstructing;
                                 break;
                         }
 
@@ -525,22 +509,6 @@ namespace Placeframe.Client
                         .GetReconstructionsAsync(captureSessionId: x)
                         .AsUniTask()
                         .ContinueWith(x => result.AddRange(x))
-                )
-            );
-
-            return result;
-        }
-
-        private async UniTask<List<ReconstructionManifest>> GetReconstructionManifests(List<Guid> reconstructions)
-        {
-            var result = new List<ReconstructionManifest>();
-
-            await UniTask.WhenAll(
-                reconstructions.Select(x =>
-                    VisualPositioningSystem.Api
-                        .GetReconstructionManifestAsync(x)
-                        .AsUniTask()
-                        .ContinueWith(manifest => result.Add(manifest))
                 )
             );
 
@@ -629,19 +597,17 @@ namespace Placeframe.Client
             {
                 try
                 {
-                    var status = await VisualPositioningSystem.Api.GetReconstructionStatusAsync(reconstructionId, cancellationToken);
+                    var reconstruction = await VisualPositioningSystem.Api.GetReconstructionAsync(reconstructionId, cancellationToken);
+                    App.state.captures[captureSessionId].reconstruction.value = reconstruction;
 
-                    if (status == OrchestrationStatus.Succeeded)
+                    if (reconstruction.Status == ReconstructionStatus.Succeeded)
                         break;
 
-                    if (status == OrchestrationStatus.Failed || status == OrchestrationStatus.Cancelled)
+                    if (reconstruction.Status == ReconstructionStatus.Failed || reconstruction.Status == ReconstructionStatus.Cancelled)
                     {
                         progress?.Report(CaptureUploadStatus.Failed);
                         return;
                     }
-
-                    var manifest = await VisualPositioningSystem.Api.GetReconstructionManifestAsync(reconstructionId, cancellationToken);
-                    App.state.captures[captureSessionId].manifest.value = manifest;
                 }
                 catch (OperationCanceledException)
                 {
@@ -652,7 +618,7 @@ namespace Placeframe.Client
                     Log.Warn(LogGroup.Capture, $"Reconstruction poll failed for {reconstructionId}: {exception.Message}");
                 }
 
-                await UniTask.WaitForSeconds(3, cancellationToken: cancellationToken);
+                await UniTask.WaitForSeconds(0.5f, cancellationToken: cancellationToken);
             }
 
             progress?.Report(CaptureUploadStatus.Uploaded);

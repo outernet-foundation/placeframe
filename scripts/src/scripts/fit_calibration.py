@@ -43,11 +43,11 @@ from placeframe_api_client import (
     LocalizationEvaluationCreate,
     LocalizationEvaluationRead,
     LocalizationMapCreate,
-    OrchestrationStatus,
     PinholeCameraConfig,
     ReconstructionCreate,
     ReconstructionCreateWithOptions,
     ReconstructionOptions,
+    ReconstructionStatus,
 )
 
 from .api_auth import authenticated_api_client
@@ -190,9 +190,9 @@ async def _run(
 
         corpus: list[CorpusRow] = []
         for reconstruction_id in reconstruction_ids:
-            manifest = await api.get_reconstruction_manifest(id=reconstruction_id)
+            reconstruction = await api.get_reconstruction(id=reconstruction_id)
             try:
-                map_metrics = RawMapMetrics.model_validate(manifest.metrics, from_attributes=True)
+                map_metrics = RawMapMetrics.model_validate(reconstruction.manifest["metrics"])
             except ValidationError:
                 echo(f"  Reconstruction {reconstruction_id} missing map-quality metrics; skipping its rows")
                 continue
@@ -229,10 +229,10 @@ async def match_or_create_reconstruction(
     #     logic against a fixed parameter set).
     candidate_ids = await api.get_capture_session_reconstructions(id=capture_id)
     for candidate_id in candidate_ids:
-        manifest = await api.get_reconstruction_manifest(id=candidate_id)
-        if manifest.status != "succeeded":
+        reconstruction = await api.get_reconstruction(id=candidate_id)
+        if reconstruction.status != ReconstructionStatus.SUCCEEDED:
             continue
-        if manifest.options == requested_options:
+        if ReconstructionOptions.model_validate(reconstruction.manifest["options"]) == requested_options:
             return candidate_id
 
     created = await api.create_reconstruction(
@@ -245,24 +245,25 @@ async def match_or_create_reconstruction(
     while True:
         await sleep(RECONSTRUCTION_POLL_S)
         elapsed += RECONSTRUCTION_POLL_S
-        status = await api.get_reconstruction_status(id=created.id)
-        if status == OrchestrationStatus.SUCCEEDED:
+        current = await api.get_reconstruction(id=created.id)
+        if current.status == ReconstructionStatus.SUCCEEDED:
             break
-        if status in (OrchestrationStatus.FAILED, OrchestrationStatus.CANCELLED):
-            raise RuntimeError(f"Reconstruction {created.id} ended in {status.value}")
+        if current.status in (ReconstructionStatus.FAILED, ReconstructionStatus.CANCELLED):
+            raise RuntimeError(f"Reconstruction {created.id} ended in {current.status.value}")
         if elapsed >= RECONSTRUCTION_TIMEOUT_S:
             raise RuntimeError(f"Reconstruction {created.id} did not succeed within {RECONSTRUCTION_TIMEOUT_S}s")
     return created.id
 
 
 async def _populate_evaluations(api: DefaultApi, reconstruction_id: UUID, pipeline_version: str) -> None:
-    manifest = await api.get_reconstruction_manifest(id=reconstruction_id)
-    held_out_timestamps = manifest.options.held_out_frame_timestamps or []
+    reconstruction = await api.get_reconstruction(id=reconstruction_id)
+    options = ReconstructionOptions.model_validate(reconstruction.manifest["options"])
+    held_out_timestamps = options.held_out_frame_timestamps or []
     if not held_out_timestamps:
         echo(f"  Reconstruction {reconstruction_id} has no held-out frames; skipping localization step")
         return
 
-    capture_id = UUID(manifest.capture_id)
+    capture_id = reconstruction.capture_session_id
     cached = await api.list_localization_evaluations(
         reconstruction_id=reconstruction_id, pipeline_version=pipeline_version
     )
