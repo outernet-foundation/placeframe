@@ -21,6 +21,20 @@ using DeviceType = PlaceframeApiClient.Model.DeviceType;
 
 namespace Placeframe.Client
 {
+    public readonly struct LocalCapture
+    {
+        public readonly Guid Id;
+        public readonly DateTime RecordedAt;
+        public readonly DeviceType Type;
+
+        public LocalCapture(Guid id, DateTime recordedAt, DeviceType type)
+        {
+            Id = id;
+            RecordedAt = recordedAt;
+            Type = type;
+        }
+    }
+
     public class CaptureController : MonoBehaviour
     {
         private float captureIntervalSeconds = 0.2f;
@@ -38,14 +52,17 @@ namespace Placeframe.Client
 
         private IDisposable _subscription;
 
-        public static UniTask DeleteCapture(Guid id, DeviceType type)
+        public static UniTask DeleteCapture(Guid id, DeviceType type) => type switch
         {
-            if (type == DeviceType.ARFoundation)
-            {
-                CaptureManager.DeleteCapture(id);
-                return UniTask.CompletedTask;
-            }
-            return ZedCaptureController.DeleteCapture(id);
+            DeviceType.ARFoundation => Sync(() => CaptureManager.DeleteCapture(id)),
+            DeviceType.Zed => ZedCaptureController.DeleteCapture(id),
+            _ => throw new ArgumentException($"Unknown DeviceType {type}"),
+        };
+
+        private static UniTask Sync(Action action)
+        {
+            action();
+            return UniTask.CompletedTask;
         }
 
         public static void RequestUpload(CaptureState capture)
@@ -308,35 +325,19 @@ namespace Placeframe.Client
             File.WriteAllText(localCaptureNamePath, json.ToString());
         }
 
-        private async UniTask StopCapture(DeviceType deviceType, CancellationToken cancellationToken = default)
+        private UniTask StopCapture(DeviceType deviceType, CancellationToken cancellationToken = default) => deviceType switch
         {
-            switch (deviceType)
-            {
-                case DeviceType.ARFoundation:
-                    CaptureManager.StopCapture();
-                    break;
-                case DeviceType.Zed:
-                    await ZedCaptureController.StopCapture(cancellationToken);
-                    break;
-                default:
-                    throw new Exception($"Unhandled capture type {deviceType}");
-            }
-        }
+            DeviceType.ARFoundation => Sync(CaptureManager.StopCapture),
+            DeviceType.Zed => ZedCaptureController.StopCapture(cancellationToken),
+            _ => throw new ArgumentException($"Unknown DeviceType {deviceType}"),
+        };
 
-        private async UniTask StartCapture(DeviceType deviceType, CancellationToken cancellationToken = default)
+        private UniTask StartCapture(DeviceType deviceType, CancellationToken cancellationToken = default) => deviceType switch
         {
-            switch (deviceType)
-            {
-                case DeviceType.ARFoundation:
-                    CaptureManager.StartCapture(captureIntervalSeconds);
-                    break;
-                case DeviceType.Zed:
-                    await ZedCaptureController.StartCapture(captureIntervalSeconds, cancellationToken);
-                    break;
-                default:
-                    throw new Exception($"Unhandled capture type {deviceType}");
-            }
-        }
+            DeviceType.ARFoundation => Sync(() => CaptureManager.StartCapture(captureIntervalSeconds)),
+            DeviceType.Zed => ZedCaptureController.StartCapture(captureIntervalSeconds, cancellationToken),
+            _ => throw new ArgumentException($"Unknown DeviceType {deviceType}"),
+        };
 
         private async UniTask UpdateCaptureList()
         {
@@ -365,21 +366,7 @@ namespace Placeframe.Client
                 )
                 .AsUniTask();
 
-            Dictionary<Guid, DateTime> zedCaptures = new Dictionary<Guid, DateTime>();
-
-            try
-            {
-                using var cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-                var captures = await ZedCaptureController.GetCaptures(cancellationTokenSource.Token);
-                foreach (var capture in captures)
-                    zedCaptures[capture.Id] = capture.RecordedAt;
-            }
-            catch
-            {
-                // Handle the exception if ZedCaptureController.GetCaptures() fails
-            }
-
-            List<Guid> arFoundationCaptures = CaptureManager.GetCaptures().ToList();
+            var localCaptures = (await GetAllLocalCaptures()).ToDictionary(x => x.Id);
 
             var captureData = remoteCaptureList.ToDictionary(
                 x => x.Id,
@@ -399,46 +386,27 @@ namespace Placeframe.Client
                         deviceType: x.DeviceType,
                         reconstruction,
                         localizationMap,
-                        hasLocalFiles: zedCaptures.ContainsKey(x.Id) || arFoundationCaptures.Contains(x.Id),
+                        hasLocalFiles: localCaptures.ContainsKey(x.Id),
                         recordedAt: x.RecordedAt
                     );
                 }
             );
 
-            foreach (var (zedCaptureId, zedCaptureRecordedAt) in zedCaptures)
+            foreach (var (id, local) in localCaptures)
             {
-                if (captureData.ContainsKey(zedCaptureId))
+                if (captureData.ContainsKey(id))
                     continue;
 
                 captureData.Add(
-                    zedCaptureId,
+                    id,
                     (
-                        name: captureNames.TryGetValue(zedCaptureId, out var name) ? name : null,
+                        name: captureNames.TryGetValue(id, out var name) ? name : null,
                         capture: null,
-                        deviceType: DeviceType.Zed,
+                        deviceType: local.Type,
                         reconstruction: null,
                         localizationMap: null,
                         hasLocalFiles: true,
-                        recordedAt: zedCaptureRecordedAt
-                    )
-                );
-            }
-
-            foreach (var arFoundationCapture in arFoundationCaptures)
-            {
-                if (captureData.ContainsKey(arFoundationCapture))
-                    continue;
-
-                captureData.Add(
-                    arFoundationCapture,
-                    (
-                        name: captureNames.TryGetValue(arFoundationCapture, out var name) ? name : null,
-                        capture: null,
-                        deviceType: DeviceType.ARFoundation,
-                        reconstruction: null,
-                        localizationMap: null,
-                        hasLocalFiles: true,
-                        recordedAt: CaptureManager.GetCaptureRecordedAtUtc(arFoundationCapture)
+                        recordedAt: local.RecordedAt
                     )
                 );
             }
@@ -515,6 +483,38 @@ namespace Placeframe.Client
             return result;
         }
 
+        // The phone may not have an active USB-ethernet link to the ZED box. Bound the
+        // enumerate call so a list refresh doesn't block on a long socket timeout when
+        // the box is simply absent; reachability is owned by ZedCaptureController's
+        // health poll, not by this method.
+        private static readonly TimeSpan ZedEnumerateTimeout = TimeSpan.FromSeconds(1);
+
+        private static async UniTask<IReadOnlyList<LocalCapture>> GetAllLocalCaptures(CancellationToken cancellationToken = default)
+        {
+            var arFoundation = CaptureManager.GetCaptures()
+                .Select(id => new LocalCapture(id, CaptureManager.GetCaptureRecordedAtUtc(id), DeviceType.ARFoundation));
+
+            IEnumerable<LocalCapture> zed;
+            try
+            {
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                cts.CancelAfter(ZedEnumerateTimeout);
+                var zedCaptures = await ZedCaptureController.GetCaptures(cts.Token);
+                zed = zedCaptures.Select(c => new LocalCapture(c.Id, c.RecordedAt, DeviceType.Zed));
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                zed = Array.Empty<LocalCapture>();
+            }
+            catch (Exception exception)
+            {
+                Log.Warn(LogGroup.Capture, $"Failed to enumerate ZED captures: {exception.Message}");
+                zed = Array.Empty<LocalCapture>();
+            }
+
+            return arFoundation.Concat(zed).ToArray();
+        }
+
         private static async UniTask UploadCapture(
             CaptureState capture,
             ReconstructionOptions reconstructionOptions,
@@ -523,45 +523,29 @@ namespace Placeframe.Client
         )
         {
             var id = capture.id;
-            var name = capture.name.value;
             var type = capture.type.value;
 
             progress?.Report((CaptureUploadStatus.Initializing, null));
 
-            CaptureSessionRead captureSession = default;
-            Stream captureData = default;
-
-            if (type == DeviceType.Zed)
+            Stream captureData;
+            CaptureSessionRead captureSession;
+            try
             {
-                captureData = await ZedCaptureController.GetCapture(id, cancellationToken);
+                captureData = type switch
+                {
+                    DeviceType.Zed => await ZedCaptureController.GetCapture(id, cancellationToken),
+                    DeviceType.ARFoundation => await CaptureManager.GetCaptureTar(id),
+                    _ => throw new ArgumentException($"Unknown DeviceType {type}"),
+                };
+                await UniTask.SwitchToMainThread();
                 captureSession = await VisualPositioningSystem.Api
-                    .CreateCaptureSessionAsync(new CaptureSessionCreate(DeviceType.Zed) { Id = id, Name = name, RecordedAt = capture.recordedAt.value })
+                    .CreateCaptureSessionAsync(new CaptureSessionCreate(type) { Id = id, Name = capture.name.value, RecordedAt = capture.recordedAt.value })
                     .AsUniTask();
             }
-            else if (type == DeviceType.ARFoundation)
+            catch (Exception e)
             {
-                try
-                {
-                    captureData = await CaptureManager.GetCaptureTar(id);
-                }
-                catch (Exception e)
-                {
-                    Log.Error(LogGroup.Capture, $"Failed to get local capture data for capture {id}: {e}");
-                    throw;
-                }
-
-                try
-                {
-                    await UniTask.SwitchToMainThread();
-                    captureSession = await VisualPositioningSystem.Api
-                        .CreateCaptureSessionAsync(new CaptureSessionCreate(DeviceType.ARFoundation) { Id = id, Name = name, RecordedAt = capture.recordedAt.value })
-                        .AsUniTask();
-                }
-                catch (Exception e)
-                {
-                    Log.Error(LogGroup.Capture, $"Failed to create capture session for capture {id}: {e}");
-                    throw;
-                }
+                Log.Error(LogGroup.Capture, $"Failed to prepare capture {id} for upload: {e}");
+                throw;
             }
 
             progress?.Report((CaptureUploadStatus.Uploading, null));
