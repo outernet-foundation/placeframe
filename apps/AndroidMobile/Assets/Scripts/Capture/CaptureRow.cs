@@ -15,9 +15,15 @@ using Newtonsoft.Json;
 
 using ObserveThing;
 
+using Placeframe.Core;
+
+using PlaceframeApiClient.Client;
+
 using PlaceframeApiClient.Model;
 
 using static Nessle.UIBuilder;
+
+using DeviceType = PlaceframeApiClient.Model.DeviceType;
 
 namespace Placeframe.Client
 {
@@ -48,26 +54,124 @@ namespace Placeframe.Client
             switch (capture.status.value)
             {
                 case CaptureUploadStatus.NotUploaded:
-                    PromptOptionsThen(capture, options => CaptureController.Upload(capture, options).Forget());
+                    PromptOptionsThen(capture, options => Upload(capture, options).Forget());
                     break;
                 case CaptureUploadStatus.ReconstructionNotStarted:
-                    PromptOptionsThen(capture, options => CaptureController.Reconstruct(capture, options).Forget());
+                    PromptOptionsThen(capture, options => Reconstruct(capture, options).Forget());
                     break;
                 case CaptureUploadStatus.Uploaded:
-                    CaptureController.CreateMap(capture).Forget();
+                    CreateMap(capture).Forget();
                     break;
                 case CaptureUploadStatus.Failed:
                     if (!capture.serverCaptureExists.value)
-                        PromptOptionsThen(capture, options => CaptureController.Upload(capture, options).Forget());
+                        PromptOptionsThen(capture, options => Upload(capture, options).Forget());
                     else if (capture.reconstruction.value == null)
-                        PromptOptionsThen(capture, options => CaptureController.Reconstruct(capture, options).Forget());
+                        PromptOptionsThen(capture, options => Reconstruct(capture, options).Forget());
                     else if (capture.reconstruction.value?.Status == ReconstructionStatus.Succeeded)
-                        CaptureController.CreateMap(capture).Forget();
+                        CreateMap(capture).Forget();
                     else
-                        CaptureController.Retry(capture).Forget();
+                        Retry(capture).Forget();
                     break;
             }
         }
+
+        public static async UniTask Upload(CaptureState capture, ReconstructionOptions reconstructionOptions)
+        {
+            try
+            {
+                var id = capture.id;
+                var type = capture.type.value;
+
+                capture.clientPhase.value = CaptureClientPhase.Initializing;
+
+                var captureData = type switch
+                {
+                    DeviceType.Zed => await ZedCaptureController.GetCapture(id),
+                    DeviceType.ARFoundation => await CaptureManager.GetCaptureTar(id),
+                    _ => throw new ArgumentException($"Unknown DeviceType {type}"),
+                };
+
+                await UniTask.SwitchToMainThread();
+                capture.clientPhase.value = CaptureClientPhase.Uploading;
+
+                var captureSession = await VisualPositioningSystem.Api
+                    .CreateCaptureSessionAsync(
+                        type,
+                        new FileParameter(captureData),
+                        id: id,
+                        name: capture.name.value,
+                        recordedAt: capture.recordedAt.value);
+
+                capture.serverCaptureExists.value = true;
+
+                var reconstruction = await CreateReconstruction(captureSession.Id, reconstructionOptions);
+                capture.reconstruction.value = reconstruction;
+                capture.clientPhase.value = CaptureClientPhase.Idle;
+            }
+            catch
+            {
+                capture.clientPhase.value = CaptureClientPhase.Failed;
+                throw;
+            }
+        }
+
+        public static async UniTask Reconstruct(CaptureState capture, ReconstructionOptions reconstructionOptions)
+        {
+            try
+            {
+                var reconstruction = await CreateReconstruction(capture.id, reconstructionOptions);
+                capture.reconstruction.value = reconstruction;
+                capture.clientPhase.value = CaptureClientPhase.Idle;
+            }
+            catch
+            {
+                capture.clientPhase.value = CaptureClientPhase.Failed;
+                throw;
+            }
+        }
+
+        public static async UniTask Retry(CaptureState capture)
+        {
+            try
+            {
+                var reconstruction = await VisualPositioningSystem.Api
+                    .RetryReconstructionAsync(capture.reconstruction.value.Id);
+                capture.reconstruction.value = reconstruction;
+                capture.clientPhase.value = CaptureClientPhase.Idle;
+            }
+            catch
+            {
+                capture.clientPhase.value = CaptureClientPhase.Failed;
+                throw;
+            }
+        }
+
+        public static async UniTask CreateMap(CaptureState capture)
+        {
+            try
+            {
+                var map = await VisualPositioningSystem.Api
+                    .CreateLocalizationMapAsync(
+                        new LocalizationMapCreate(capture.reconstruction.value.Id, 0, 0, 0, 0, 0, 0, 1, 0)
+                        {
+                            Name = capture.name.value,
+                        });
+                capture.localizationMapId.value = map.Id;
+            }
+            catch
+            {
+                capture.clientPhase.value = CaptureClientPhase.Failed;
+                throw;
+            }
+        }
+
+        private static UniTask<ReconstructionRead> CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions) =>
+            VisualPositioningSystem.Api
+                .CreateReconstructionAsync(
+                    new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId))
+                    {
+                        Options = reconstructionOptions,
+                    });
 
         private static void PromptOptionsThen(CaptureState capture, Action<ReconstructionOptions> onConfirmed) =>
             ReconstructionOptionsDialog(new ReconstructionOptionsDialogProps()

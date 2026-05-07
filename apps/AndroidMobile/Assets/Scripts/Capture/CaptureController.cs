@@ -10,7 +10,6 @@ using ObserveThing;
 using static ObserveThing.Observables;
 using Placeframe.Core;
 using PlaceframeApiClient.Api;
-using PlaceframeApiClient.Client;
 using PlaceframeApiClient.Model;
 using R3;
 using UnityEngine;
@@ -99,96 +98,6 @@ namespace Placeframe.Client
             _pollSubscriptions.Dispose();
         }
 
-        public static async UniTask Upload(CaptureState capture, ReconstructionOptions reconstructionOptions)
-        {
-            try
-            {
-                var id = capture.id;
-                var type = capture.type.value;
-
-                capture.clientPhase.value = CaptureClientPhase.Initializing;
-
-                var captureData = type switch
-                {
-                    DeviceType.Zed => await ZedCaptureController.GetCapture(id),
-                    DeviceType.ARFoundation => await CaptureManager.GetCaptureTar(id),
-                    _ => throw new ArgumentException($"Unknown DeviceType {type}"),
-                };
-
-                await UniTask.SwitchToMainThread();
-                capture.clientPhase.value = CaptureClientPhase.Uploading;
-
-                var captureSession = await VisualPositioningSystem.Api
-                    .CreateCaptureSessionAsync(
-                        type,
-                        new FileParameter(captureData),
-                        id: id,
-                        name: capture.name.value,
-                        recordedAt: capture.recordedAt.value);
-
-                capture.serverCaptureExists.value = true;
-
-                var reconstruction = await CreateReconstruction(captureSession.Id, reconstructionOptions);
-                capture.reconstruction.value = reconstruction;
-                capture.clientPhase.value = CaptureClientPhase.Idle;
-            }
-            catch
-            {
-                capture.clientPhase.value = CaptureClientPhase.Failed;
-                throw;
-            }
-        }
-
-        public static async UniTask Reconstruct(CaptureState capture, ReconstructionOptions reconstructionOptions)
-        {
-            try
-            {
-                var reconstruction = await CreateReconstruction(capture.id, reconstructionOptions);
-                capture.reconstruction.value = reconstruction;
-                capture.clientPhase.value = CaptureClientPhase.Idle;
-            }
-            catch
-            {
-                capture.clientPhase.value = CaptureClientPhase.Failed;
-                throw;
-            }
-        }
-
-        public static async UniTask Retry(CaptureState capture)
-        {
-            try
-            {
-                var reconstruction = await VisualPositioningSystem.Api
-                    .RetryReconstructionAsync(capture.reconstruction.value.Id);
-                capture.reconstruction.value = reconstruction;
-                capture.clientPhase.value = CaptureClientPhase.Idle;
-            }
-            catch
-            {
-                capture.clientPhase.value = CaptureClientPhase.Failed;
-                throw;
-            }
-        }
-
-        public static async UniTask CreateMap(CaptureState capture)
-        {
-            try
-            {
-                var map = await VisualPositioningSystem.Api
-                    .CreateLocalizationMapAsync(
-                        new LocalizationMapCreate(capture.reconstruction.value.Id, 0, 0, 0, 0, 0, 0, 1, 0)
-                        {
-                            Name = capture.name.value,
-                        });
-                capture.localizationMapId.value = map.Id;
-            }
-            catch
-            {
-                capture.clientPhase.value = CaptureClientPhase.Failed;
-                throw;
-            }
-        }
-
         public static UniTask DeleteCapture(Guid id, DeviceType type)
         {
             switch (type)
@@ -202,14 +111,6 @@ namespace Placeframe.Client
                     throw new ArgumentException($"Unknown DeviceType {type}");
             }
         }
-
-        private static UniTask<ReconstructionRead> CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions) =>
-            VisualPositioningSystem.Api
-                .CreateReconstructionAsync(
-                    new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId))
-                    {
-                        Options = reconstructionOptions,
-                    });
 
         private async UniTask StartCaptureForCurrentDevice()
         {
