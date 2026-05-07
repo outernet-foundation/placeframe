@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.IO;
 using FofX.Stateful;
 using SimpleJSON;
@@ -7,12 +5,12 @@ using UnityEngine;
 
 namespace Placeframe.Client
 {
-    public class SettingsManager : MonoBehaviour
+    public static class SettingsManager
     {
-        private bool _initializing;
-        private string settingsPath => $"{Application.persistentDataPath}/settings.json";
+        private static bool _initializing;
+        private static string settingsPath => $"{Application.persistentDataPath}/settings.json";
 
-        private void Awake()
+        public static void Initialize()
         {
             Debug.Log(settingsPath);
 

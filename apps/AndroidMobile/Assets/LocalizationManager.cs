@@ -1,18 +1,17 @@
 using System;
-using System.Collections.Generic;
 using System.Net.Http;
 using FofX.Stateful;
 using ObserveThing;
 using Placeframe.Core;
-using UnityEngine;
 
 namespace Placeframe.Client
 {
-    public class LocalizationManager : MonoBehaviour
+    public static class LocalizationManager
     {
-        private IDisposable _subscription;
-        private bool _intializing;
-        public void Initialize(ICameraProvider cameraProvider)
+        private static IDisposable _subscription;
+        private static bool _intializing;
+
+        public static void Initialize(ICameraProvider cameraProvider)
         {
             VisualPositioningSystem.Initialize(
                 cameraProvider,

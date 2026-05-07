@@ -12,7 +12,6 @@ namespace Placeframe.Client
     public class AppSetup : MonoBehaviour
     {
         public SceneReferences sceneReferences;
-        public LocalizationManager localizationManager;
         public UIPrimitiveSet uiPrimitives;
         public UIElementSet uiElements;
         public LocalizationMapManager localizationMapManager;
@@ -31,7 +30,6 @@ namespace Placeframe.Client
 
             App.state.placeframeAuthAudience.value = "placeframe-api";
 
-            Instantiate(localizationManager);
             Instantiate(localizationMapManager);
 
 #if UNITY_EDITOR
@@ -42,11 +40,11 @@ namespace Placeframe.Client
 
             CaptureManager.Initialize(cameraProvider);
 
-            localizationManager.Initialize(cameraProvider);
+            LocalizationManager.Initialize(cameraProvider);
 
-            gameObject.AddComponent<AuthManager>();
-            gameObject.AddComponent<SettingsManager>();
-            gameObject.AddComponent<CaptureController>();
+            AuthManager.Initialize();
+            SettingsManager.Initialize();
+            CaptureController.Initialize();
 
             Destroy(this);
         }

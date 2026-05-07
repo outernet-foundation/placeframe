@@ -17,17 +17,17 @@ using DeviceType = PlaceframeApiClient.Model.DeviceType;
 
 namespace Placeframe.Client
 {
-    public class CaptureController : MonoBehaviour
+    public static class CaptureController
     {
-        private float captureIntervalSeconds = 0.2f;
+        private static float captureIntervalSeconds = 0.2f;
 
-        private bool capturesLoaded;
-        private string localCaptureNamePath;
-        private Dictionary<Guid, string> _localCaptureNames = new();
-        private IDisposable _subscription;
-        private CompositeDisposable _pollSubscriptions = new();
+        private static bool capturesLoaded;
+        private static string localCaptureNamePath;
+        private static Dictionary<Guid, string> _localCaptureNames = new();
+        private static IDisposable _subscription;
+        private static CompositeDisposable _pollSubscriptions = new();
 
-        void Awake()
+        public static void Initialize()
         {
             ZedCaptureController.Initialize();
 
@@ -92,12 +92,6 @@ namespace Placeframe.Client
             );
         }
 
-        void OnDestroy()
-        {
-            _subscription?.Dispose();
-            _pollSubscriptions.Dispose();
-        }
-
         public static UniTask DeleteCapture(Guid id, DeviceType type)
         {
             switch (type)
@@ -112,7 +106,7 @@ namespace Placeframe.Client
             }
         }
 
-        private async UniTask StartCaptureForCurrentDevice()
+        private static async UniTask StartCaptureForCurrentDevice()
         {
             var deviceType = App.state.captureMode.value;
             switch (deviceType)
@@ -129,7 +123,7 @@ namespace Placeframe.Client
             App.state.captureStatus.value = CaptureStatus.Capturing;
         }
 
-        private async UniTask StopCaptureForCurrentDevice()
+        private static async UniTask StopCaptureForCurrentDevice()
         {
             var deviceType = App.state.captureMode.value;
             switch (deviceType)
@@ -146,7 +140,7 @@ namespace Placeframe.Client
             App.state.captureStatus.value = CaptureStatus.Idle;
         }
 
-        private void HandleCapturesChanged(IReadOnlyList<IStateOperation> ops)
+        private static void HandleCapturesChanged(IReadOnlyList<IStateOperation> ops)
         {
             if (!capturesLoaded)
                 return;
@@ -163,7 +157,7 @@ namespace Placeframe.Client
             File.WriteAllText(localCaptureNamePath, json.ToString());
         }
 
-        private async UniTask UpdateCaptureList()
+        private static async UniTask UpdateCaptureList()
         {
             var zedCaptures = await ZedCaptureController.EnumerateCaptures();
             var locals = CaptureManager.GetCaptures().Concat(zedCaptures).ToDictionary(c => c.Id);
