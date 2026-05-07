@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using FofX.Stateful;
 using ObserveThing;
@@ -10,6 +12,7 @@ using Placeframe.Core;
 using PlaceframeApiClient.Api;
 using PlaceframeApiClient.Client;
 using PlaceframeApiClient.Model;
+using R3;
 using UnityEngine;
 using DeviceType = PlaceframeApiClient.Model.DeviceType;
 
@@ -23,6 +26,7 @@ namespace Placeframe.Client
         private string localCaptureNamePath;
         private Dictionary<Guid, string> _localCaptureNames = new();
         private IDisposable _subscription;
+        private CompositeDisposable _pollSubscriptions = new();
 
         void Awake()
         {
@@ -71,13 +75,28 @@ namespace Placeframe.Client
                     .ObservableSelect(entry => entry.Value)
                     .ObservableWhere(capture => capture.status
                         .ObservableSelect(status => status == CaptureUploadStatus.Reconstructing))
-                    .Subscribe(onAdd: capture => PollReconstructionUntilTerminal(capture).Forget())
+                    .Subscribe(onAdd: capture =>
+                        Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(0.5))
+                            .SelectAwait(async (_, cancellationToken) => await VisualPositioningSystem.Api.GetReconstructionAsync(App.state.captures[capture.id].reconstruction.value.Id, cancellationToken: cancellationToken))
+                            .OnErrorResumeAsFailure()
+                            .TakeUntil(reconstruction => reconstruction.Status is ReconstructionStatus.Succeeded or ReconstructionStatus.Failed or ReconstructionStatus.Cancelled)
+                            .Subscribe(
+                                onNext: reconstruction => App.state.captures[capture.id].reconstruction.value = reconstruction,
+                                onCompleted: result =>
+                                {
+                                    if (result.IsFailure)
+                                        App.state.captures[capture.id].clientPhase.value = CaptureClientPhase.Failed;
+                                    else
+                                        UpdateCaptureList().Forget();
+                                })
+                            .AddTo(_pollSubscriptions))
             );
         }
 
         void OnDestroy()
         {
             _subscription?.Dispose();
+            _pollSubscriptions.Dispose();
         }
 
         public static async UniTask Upload(CaptureState capture, ReconstructionOptions reconstructionOptions)
@@ -110,7 +129,6 @@ namespace Placeframe.Client
                 capture.serverCaptureExists.value = true;
 
                 var reconstruction = await CreateReconstruction(captureSession.Id, reconstructionOptions);
-                capture.reconstructionId.value = reconstruction.Id;
                 capture.reconstruction.value = reconstruction;
                 capture.clientPhase.value = CaptureClientPhase.Idle;
             }
@@ -126,7 +144,6 @@ namespace Placeframe.Client
             try
             {
                 var reconstruction = await CreateReconstruction(capture.id, reconstructionOptions);
-                capture.reconstructionId.value = reconstruction.Id;
                 capture.reconstruction.value = reconstruction;
                 capture.clientPhase.value = CaptureClientPhase.Idle;
             }
@@ -142,7 +159,7 @@ namespace Placeframe.Client
             try
             {
                 var reconstruction = await VisualPositioningSystem.Api
-                    .RetryReconstructionAsync(capture.reconstructionId.value);
+                    .RetryReconstructionAsync(capture.reconstruction.value.Id);
                 capture.reconstruction.value = reconstruction;
                 capture.clientPhase.value = CaptureClientPhase.Idle;
             }
@@ -159,7 +176,7 @@ namespace Placeframe.Client
             {
                 var map = await VisualPositioningSystem.Api
                     .CreateLocalizationMapAsync(
-                        new LocalizationMapCreate(capture.reconstructionId.value, 0, 0, 0, 0, 0, 0, 1, 0)
+                        new LocalizationMapCreate(capture.reconstruction.value.Id, 0, 0, 0, 0, 0, 0, 1, 0)
                         {
                             Name = capture.name.value,
                         });
@@ -245,37 +262,6 @@ namespace Placeframe.Client
             File.WriteAllText(localCaptureNamePath, json.ToString());
         }
 
-        private async UniTask PollReconstructionUntilTerminal(CaptureState capture)
-        {
-            while (this != null && capture.status.value == CaptureUploadStatus.Reconstructing)
-            {
-                try
-                {
-                    var reconstruction = await VisualPositioningSystem.Api
-                        .GetReconstructionAsync(App.state.captures[capture.id].reconstructionId.value);
-
-                    if (this == null || capture.status.value != CaptureUploadStatus.Reconstructing)
-                        return;
-
-                    App.state.captures[capture.id].reconstruction.value = reconstruction;
-
-                    if (reconstruction.Status == ReconstructionStatus.Succeeded
-                        || reconstruction.Status == ReconstructionStatus.Failed
-                        || reconstruction.Status == ReconstructionStatus.Cancelled)
-                    {
-                        await UpdateCaptureList();
-                        return;
-                    }
-                }
-                catch
-                {
-                    // Transient — retry on the next tick. HTTP-layer logging surfaces the underlying cause.
-                }
-
-                await UniTask.WaitForSeconds(0.5f);
-            }
-        }
-
         private async UniTask UpdateCaptureList()
         {
             var zedCaptures = await ZedCaptureController.EnumerateCaptures();
@@ -301,7 +287,6 @@ namespace Placeframe.Client
                         state.type.value = remote?.CaptureSession.DeviceType ?? local.Type;
                         state.serverCaptureExists.value = remote != null;
                         state.reconstruction.value = primary?.Reconstruction;
-                        state.reconstructionId.value = primary?.Reconstruction.Id ?? Guid.Empty;
                         state.localizationMapId.value = primary?.LocalizationMapId ?? Guid.Empty;
                     });
             });

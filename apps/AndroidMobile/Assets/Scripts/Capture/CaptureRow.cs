@@ -59,7 +59,7 @@ namespace Placeframe.Client
                 case CaptureUploadStatus.Failed:
                     if (!capture.serverCaptureExists.value)
                         PromptOptionsThen(capture, options => CaptureController.Upload(capture, options).Forget());
-                    else if (capture.reconstructionId.value == Guid.Empty)
+                    else if (capture.reconstruction.value == null)
                         PromptOptionsThen(capture, options => CaptureController.Reconstruct(capture, options).Forget());
                     else if (capture.reconstruction.value?.Status == ReconstructionStatus.Succeeded)
                         CaptureController.CreateMap(capture).Forget();
