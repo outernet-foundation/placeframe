@@ -37,6 +37,11 @@ public static class ZedCaptureController
         initialized = true;
     }
 
+    public static void Shutdown()
+    {
+        initialized = false;
+    }
+
     public static UniTask StartCapture(float captureInterval, CancellationToken cancellationToken = default) =>
         throw new PlatformNotSupportedException(unsupportedMessage);
 
@@ -70,6 +75,7 @@ public static class ZedCaptureController
     private static readonly TimeSpan requestTimeout = TimeSpan.FromSeconds(600);
 
     private static DefaultApi capturesApi;
+    private static IDisposable subscriptions;
 
     private const float healthPollIntervalSeconds = 0.5f;
     private const float healthRequestTimeoutSeconds = 2f;
@@ -103,9 +109,20 @@ public static class ZedCaptureController
         // parameter type (here it's discarded with `_`), the call is ambiguous (CS0121).
         // The fix belongs upstream in ObserveThing — either by collapsing the dual
         // interface or by adding a Subscribe overload on IStateNode that wins resolution.
-        App.state.loggedIn.Subscribe((bool _) => EvaluateHealthPollState());
-        App.state.zedStatus.Subscribe((ZedStatusKind _) => EvaluateLogDrainState());
-        App.state.loggedIn.Subscribe((bool _) => EvaluateLogDrainState());
+        subscriptions = new ComposedDisposable(
+            App.state.loggedIn.Subscribe((bool _) => EvaluateHealthPollState()),
+            App.state.zedStatus.Subscribe((ZedStatusKind _) => EvaluateLogDrainState()),
+            App.state.loggedIn.Subscribe((bool _) => EvaluateLogDrainState())
+        );
+    }
+
+    public static void Shutdown()
+    {
+        healthPollTask.Cancel();
+        logDrainTask.Cancel();
+        subscriptions?.Dispose();
+        subscriptions = null;
+        capturesApi = null;
     }
 
     public static async UniTask StartCapture(float captureInterval, CancellationToken cancellationToken = default)

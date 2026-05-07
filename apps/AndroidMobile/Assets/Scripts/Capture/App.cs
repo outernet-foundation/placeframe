@@ -58,6 +58,10 @@ namespace Placeframe.Client
 
         void OnDestroy()
         {
+            CaptureController.Shutdown();
+            LocalizationManager.Shutdown();
+            SettingsManager.Shutdown();
+            AuthManager.Shutdown();
             ui?.Dispose();
         }
     }

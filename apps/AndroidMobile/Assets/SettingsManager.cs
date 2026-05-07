@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using FofX.Stateful;
 using SimpleJSON;
@@ -8,6 +9,7 @@ namespace Placeframe.Client
     public static class SettingsManager
     {
         private static bool _initializing;
+        private static IDisposable _subscription;
         private static string settingsPath => $"{Application.persistentDataPath}/settings.json";
 
         public static void Initialize()
@@ -35,7 +37,7 @@ namespace Placeframe.Client
 
             _initializing = true;
 
-            App.state.settings.SubscribeOperationsRecursive(_ =>
+            _subscription = App.state.settings.SubscribeOperationsRecursive(_ =>
             {
                 if (_initializing)
                     return;
@@ -44,6 +46,12 @@ namespace Placeframe.Client
             });
 
             _initializing = false;
+        }
+
+        public static void Shutdown()
+        {
+            _subscription?.Dispose();
+            _subscription = null;
         }
     }
 }

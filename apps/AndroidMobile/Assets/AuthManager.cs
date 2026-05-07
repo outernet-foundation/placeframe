@@ -19,6 +19,13 @@ namespace Placeframe.Client
             _subscription = App.state.loginRequested.SubscribeOperations(HandleLoginRequestedChanged);
         }
 
+        public static void Shutdown()
+        {
+            _subscription?.Dispose();
+            _subscription = null;
+            _loginTask.Cancel();
+        }
+
         private static void HandleLoginRequestedChanged(IReadOnlyList<IStateOperation> args)
         {
             _loginTask.Cancel();

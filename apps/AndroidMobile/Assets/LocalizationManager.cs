@@ -61,5 +61,11 @@ namespace Placeframe.Client
 
             _intializing = false;
         }
+
+        public static void Shutdown()
+        {
+            _subscription?.Dispose();
+            _subscription = null;
+        }
     }
 }

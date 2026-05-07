@@ -92,6 +92,14 @@ namespace Placeframe.Client
             );
         }
 
+        public static void Shutdown()
+        {
+            _subscription?.Dispose();
+            _subscription = null;
+            _pollSubscriptions.Dispose();
+            ZedCaptureController.Shutdown();
+        }
+
         public static UniTask DeleteCapture(Guid id, DeviceType type)
         {
             switch (type)
