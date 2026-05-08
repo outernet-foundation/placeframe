@@ -84,7 +84,15 @@ namespace Placeframe.Client
                                 onCompleted: result =>
                                 {
                                     if (result.IsFailure)
+                                    {
+                                        Log.Error(
+                                            LogGroup.Capture,
+                                            result.Exception,
+                                            "Reconstruction poll failed for capture {CaptureId}",
+                                            capture.id
+                                        );
                                         App.state.captures[capture.id].clientPhase.value = CaptureClientPhase.Failed;
+                                    }
                                     else
                                         UpdateCaptureList().Forget();
                                 })

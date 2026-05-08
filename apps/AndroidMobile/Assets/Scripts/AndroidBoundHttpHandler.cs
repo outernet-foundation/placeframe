@@ -333,6 +333,21 @@ namespace Placeframe.Client
                 arguments[1].i = 0;
                 arguments[2].i = count;
                 int bytesRead = AndroidJNI.CallIntMethod(inputStream.GetRawObject(), readMethodIdentifier, arguments);
+
+                // JNI Call*Method doesn't auto-rethrow Java exceptions: an IOException
+                // thrown mid-body (e.g. okhttp's "unexpected end of stream") returns 0
+                // with a pending JNI exception state. The .NET Stream contract maps a
+                // 0 return to clean EOF, which silently truncates the body — the JSON
+                // deserializer upstream then either fails at a weird offset or, worse,
+                // succeeds on a partial document. Surface the real failure instead.
+                var pendingException = AndroidJNI.ExceptionOccurred();
+                if (pendingException != IntPtr.Zero)
+                {
+                    AndroidJNI.ExceptionDescribe();
+                    AndroidJNI.ExceptionClear();
+                    throw new IOException("Java InputStream.read threw mid-body; connection torn down before response completed");
+                }
+
                 if (bytesRead <= 0) return 0;
 
                 Buffer.BlockCopy(AndroidJNI.FromByteArray(javaBuffer.Pointer), 0, buffer, offset, bytesRead);

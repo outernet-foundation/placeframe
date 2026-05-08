@@ -73,6 +73,16 @@ namespace Outernet.Logging
                 properties.Add(new ScalarValue("stackTrace"), SerilogStackTrace(exception));
             }
 
+            // SerilogStackTrace's structured output sees only .NET frames; Java frames
+            // live in AndroidJavaException's private mJavaStackTrace field.
+            if (exception.GetType().FullName == "UnityEngine.AndroidJavaException"
+                && exception.GetType().GetField("mJavaStackTrace", BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.GetValue(exception) is string javaStackTrace
+                && !string.IsNullOrEmpty(javaStackTrace))
+            {
+                properties.Add(new ScalarValue("javaStackTrace"), new ScalarValue(javaStackTrace));
+            }
+
             if (exception is AggregateException aggregateException)
             {
                 properties.Add(new ScalarValue("innerExceptions"), new SequenceValue(aggregateException.InnerExceptions.Select(SerilogException)));
