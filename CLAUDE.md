@@ -67,7 +67,7 @@ Auto-generated packages in `packages/generated/` should not be edited directly �
 
 - **`uv run generate-datamodels`** — Introspects the **live PostgreSQL database** (via `sqlacodegen`) to produce `packages/generated/python/datamodels/` (SQLAlchemy table models + Pydantic DTOs). Must be run after any changes to `database/*.sql` schema files. **Requires Docker + postgres to be running** (`uv run up`, then `uv run migrate-database` to apply schema changes).
 - **`uv run lock-python`** — Regenerates the workspace `uv.lock` and per-service `pylock.toml` files (for services with a `Dockerfile`). Must be run before `generate-clients` (which uses `uv run --no_workspace` per-service and needs the lock files). Also re-run after `uv sync --all-packages` since that overwrites per-service locks.
-- **`uv run generate-clients --config openapi-projects.json`** — Dumps the OpenAPI spec from each Litestar app and runs `openapi-generator-cli` (via `uvx`) to produce typed API clients in `packages/generated/python/` and `packages/generated/csharp/`. Must be run after any changes to API route signatures (new query params, new response fields, etc.). Requires Java (JDK 11+) on PATH. Use `--project docker/api` to generate only the API client (the localizer requires PyTorch/pycolmap to dump its spec).
+- **`uv run generate-clients --config openapi-projects.json`** — Dumps the OpenAPI spec from each Litestar app and runs `openapi-generator-cli` (via `uvx`) to produce typed API clients in `packages/generated/python/` and `packages/generated/csharp/`. Must be run after any changes to API route signatures (new query params, new response fields, etc.). Requires Java (JDK 11+) on PATH. The localizer spec dump requires PyTorch/pycolmap in the workspace venv — sync with the appropriate extra first (see "Syncing PyTorch into the workspace venv" below). To skip the localizer and regenerate only the API/zed-capture clients, pass `--project docker/api`.
 
 **When changing both schema and API routes**, run in this order:
 1. `uv run generate-datamodels` (updates Pydantic models the API imports; needs live postgres)
@@ -138,11 +138,11 @@ When running in a containerized Claude Code environment (COI sandbox):
 7. **Full generation pipeline order** (after schema or API route changes):
    - `uv run up --quiet-pull` (starts postgres, runs migrations automatically)
    - `uv run generate-datamodels` (needs live postgres)
-   - `uv sync --all-packages` (required if any `pyproject.toml` changed; slow but necessary)
+   - `uv sync --all-packages --extra cuda` (required if any `pyproject.toml` changed; the extra brings in PyTorch/pycolmap so the localizer spec can be dumped — pick `cpu`/`cuda`/`rocm` per host)
    - `uv run lock-python` (must precede generate-clients)
-   - `uv run generate-clients --config openapi-projects.json --project docker/api` (localizer can't dump spec without GPU/PyTorch)
+   - `uv run generate-clients --config openapi-projects.json` (regenerates all clients including the localizer; pass `--project docker/api` to skip the localizer)
 8. **Don't `uv sync` inside a service directory**: Running `uv sync` in e.g. `docker/api/` clobbers the workspace venv. Always sync from the repo root with `uv sync --all-packages`, then re-run `uv run lock-python`.
-9. **Tests**: `uv run pytest` from repo root. Collection errors for `docker/localizer/tests/` and `dirtorch/test_dir.py` may occur if PyTorch is not installed in the workspace venv (it's only in the Docker images).
+9. **Syncing PyTorch into the workspace venv**: The `neural-networks` package declares `torch`/`torchvision` behind conflicting `cpu`/`cuda`/`rocm` extras (one per accelerator), so a plain `uv sync --all-packages` does not install them. To get PyTorch (and pycolmap, which neural-networks pulls transitively) into the workspace venv — needed for `docker/localizer/tests/`, `dirtorch/test_dir.py`, and `dump_openapi` for the localizer's OpenAPI spec — pass the matching extra: `uv sync --all-packages --extra cuda` (or `cpu` / `rocm`). This Claude Code environment has GPU passthrough, so use `--extra cuda`.
 10. **Unity Editor is installed and licensed**: The editor binary is at `/opt/unity/<version>/Editor/Unity`, where `<version>` matches `m_EditorVersion` in `packages/unity/Placeframe/ProjectSettings/ProjectVersion.txt`. License is pre-activated (`~/.local/share/unity3d/Unity/Unity_lic.ulf`). Source `/opt/unity/slot-env.sh` to add Unity's bundled Android SDK to PATH and set `ANDROID_SDK_ROOT`. To verify the Unity project compiles after a C# change, run headlessly:
     ```bash
     /opt/unity/$(awk '/^m_EditorVersion:/{print $2}' packages/unity/Placeframe/ProjectSettings/ProjectVersion.txt)/Editor/Unity \
