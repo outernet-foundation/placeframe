@@ -104,9 +104,9 @@
         "operationId": "create_capture_session",
         "requestBody": {
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/CaptureSessionCreate"
+                "$ref": "#/components/schemas/CaptureSessionUploadRequest"
               }
             }
           },
@@ -347,6 +347,29 @@
                     "detail": "Bad Request",
                     "extra": {}
                   }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/capture_sessions/expanded": {
+      "get": {
+        "tags": [
+          "Capture Sessions"
+        ],
+        "summary": "GetCaptureSessionsExpanded",
+        "operationId": "get_capture_sessions_expanded",
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptureSessionsExpanded"
                 }
               }
             }
@@ -686,8 +709,11 @@
             "description": "Stream Response",
             "headers": {},
             "content": {
-              "application/json": {
-                "schema": {}
+              "application/x-tar": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
               }
             }
           },
@@ -734,13 +760,15 @@
           }
         },
         "deprecated": false
-      },
-      "put": {
+      }
+    },
+    "/capture_sessions/{id}/manifest.json": {
+      "get": {
         "tags": [
           "Capture Sessions"
         ],
-        "summary": "UploadCaptureSessionTar",
-        "operationId": "upload_capture_session_tar",
+        "summary": "GetCaptureSessionManifestFile",
+        "operationId": "get_capture_session_manifest_file",
         "parameters": [
           {
             "name": "id",
@@ -753,27 +781,181 @@
             "deprecated": false
           }
         ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary"
-                  }
-                },
-                "type": "object",
-                "description": "Capture session tar archive"
+        "responses": {
+          "200": {
+            "description": "Stream Response",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
               }
             }
           },
-          "required": true
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
         },
+        "deprecated": false
+      }
+    },
+    "/capture_sessions/{id}/frames.csv": {
+      "get": {
+        "tags": [
+          "Capture Sessions"
+        ],
+        "summary": "GetCaptureSessionFramesCsv",
+        "operationId": "get_capture_session_frames_csv",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Request fulfilled, document follows",
-            "headers": {}
+            "description": "Stream Response",
+            "headers": {},
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/capture_sessions/{id}/images/{frame_timestamp}": {
+      "get": {
+        "tags": [
+          "Capture Sessions"
+        ],
+        "summary": "GetCaptureSessionImage",
+        "operationId": "get_capture_session_image",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          },
+          {
+            "name": "frame_timestamp",
+            "in": "path",
+            "schema": {
+              "type": "integer"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stream Response",
+            "headers": {},
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "description": "Bad request syntax or unsupported method",
@@ -920,14 +1102,14 @@
         "deprecated": false
       }
     },
-    "/internal/leases/{id}/complete": {
+    "/internal/leases/{id}/progress": {
       "put": {
         "tags": [
           "Internal",
           "Leases"
         ],
-        "summary": "CompleteLease",
-        "operationId": "complete_lease",
+        "summary": "UpdateProgress",
+        "operationId": "update_progress",
         "parameters": [
           {
             "name": "id",
@@ -944,7 +1126,167 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OrchestrationStatus"
+                "$ref": "#/components/schemas/ProgressUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/internal/leases/{id}/succeed": {
+      "put": {
+        "tags": [
+          "Internal",
+          "Leases"
+        ],
+        "summary": "SucceedLease",
+        "operationId": "succeed_lease",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconstructionMetrics"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/internal/leases/{id}/fail": {
+      "put": {
+        "tags": [
+          "Internal",
+          "Leases"
+        ],
+        "summary": "FailLease",
+        "operationId": "fail_lease",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
               }
             }
           },
@@ -1027,15 +1369,18 @@
             "allowReserved": false
           },
           {
-            "name": "capture_session_id",
+            "name": "capture_session_ids",
             "in": "query",
             "schema": {
-              "description": "Optional capture session Id to filter by",
+              "description": "Optional list of capture session Ids to filter by",
               "nullable": true,
-              "type": "string",
-              "format": "uuid"
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "type": "array"
             },
-            "description": "Optional capture session Id to filter by",
+            "description": "Optional list of capture session Ids to filter by",
             "required": false,
             "deprecated": false,
             "allowEmptyValue": false,
@@ -1331,82 +1676,6 @@
         "deprecated": false
       }
     },
-    "/reconstructions/{id}/manifest": {
-      "get": {
-        "tags": [
-          "Reconstructions"
-        ],
-        "summary": "GetReconstructionManifest",
-        "operationId": "get_reconstruction_manifest",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "deprecated": false
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Request fulfilled, document follows",
-            "headers": {},
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReconstructionManifest"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request syntax or unsupported method",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "status_code": {
-                      "type": "integer"
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "extra": {
-                      "additionalProperties": {},
-                      "anyOf": [
-                        {
-                          "type": "object"
-                        },
-                        {
-                          "type": "array",
-                          "items": {}
-                        }
-                      ],
-                      "nullable": true
-                    }
-                  },
-                  "type": "object",
-                  "required": [
-                    "detail",
-                    "status_code"
-                  ],
-                  "description": "Validation Exception",
-                  "example": {
-                    "status_code": 400,
-                    "detail": "Bad Request",
-                    "extra": {}
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
-    },
     "/reconstructions/{id}/localization_map": {
       "get": {
         "tags": [
@@ -1484,13 +1753,13 @@
         "deprecated": false
       }
     },
-    "/reconstructions/{id}/status": {
-      "get": {
+    "/reconstructions/{id}/retry": {
+      "put": {
         "tags": [
           "Reconstructions"
         ],
-        "summary": "GetReconstructionStatus",
-        "operationId": "get_reconstruction_status",
+        "summary": "RetryReconstruction",
+        "operationId": "retry_reconstruction",
         "parameters": [
           {
             "name": "id",
@@ -1510,7 +1779,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OrchestrationStatus"
+                  "$ref": "#/components/schemas/ReconstructionRead"
                 }
               }
             }
@@ -2356,6 +2625,183 @@
         "deprecated": false
       }
     },
+    "/reconstructions/{reconstruction_id}/localization-evaluations": {
+      "get": {
+        "tags": [
+          "Localization Evaluations"
+        ],
+        "summary": "ListLocalizationEvaluations",
+        "operationId": "list_localization_evaluations",
+        "parameters": [
+          {
+            "name": "reconstruction_id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          },
+          {
+            "name": "pipeline_version",
+            "in": "query",
+            "schema": {
+              "description": "Optional pipeline_version to filter by",
+              "nullable": true,
+              "type": "string"
+            },
+            "description": "Optional pipeline_version to filter by",
+            "required": false,
+            "deprecated": false,
+            "allowEmptyValue": false,
+            "allowReserved": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LocalizationEvaluationRead"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      },
+      "post": {
+        "tags": [
+          "Localization Evaluations"
+        ],
+        "summary": "UpsertLocalizationEvaluation",
+        "operationId": "upsert_localization_evaluation",
+        "parameters": [
+          {
+            "name": "reconstruction_id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocalizationEvaluationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Document created, URL follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalizationEvaluationRead"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
     "/localize": {
       "post": {
         "tags": [
@@ -2437,6 +2883,29 @@
                     "detail": "Bad Request",
                     "extra": {}
                   }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/localize/version": {
+      "get": {
+        "tags": [
+          "Localization"
+        ],
+        "summary": "GetLocalizerVersion",
+        "operationId": "get_localizer_version",
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {},
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -3715,6 +4184,73 @@
         },
         "deprecated": false
       }
+    },
+    "/zed-boxes/logs": {
+      "post": {
+        "tags": [
+          "zed-box-logs"
+        ],
+        "summary": "PushZedBoxLogs",
+        "operationId": "push_zed_box_logs",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogRelayBatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Document created, URL follows",
+            "headers": {}
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
     }
   },
   "components": {
@@ -3734,6 +4270,13 @@
             "type": "string",
             "format": "uuid",
             "title": "Id"
+          },
+          "recorded_at": {
+            "title": "Recorded At",
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "description": "datetime with the constraint that the value must have timezone info"
           },
           "device_type": {
             "nullable": true,
@@ -3759,18 +4302,25 @@
             "type": "string",
             "format": "uuid"
           },
+          "recorded_at": {
+            "title": "Recorded At",
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "description": "datetime with the constraint that the value must have timezone info"
+          },
           "device_type": {
             "$ref": "#/components/schemas/DeviceType"
           },
           "name": {
-            "type": "string",
-            "title": "Name"
+            "title": "Name",
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object",
         "required": [
-          "device_type",
-          "name"
+          "device_type"
         ],
         "title": "CaptureSessionCreate"
       },
@@ -3784,6 +4334,10 @@
               "$ref": "#/components/schemas/RigConfig"
             },
             "type": "array"
+          },
+          "capture_interval_seconds": {
+            "nullable": true,
+            "type": "number"
           }
         },
         "type": "object",
@@ -3812,12 +4366,19 @@
             "title": "Created At",
             "description": "datetime with the constraint that the value must have timezone info"
           },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "datetime with the constraint that the value must have timezone info"
+          },
           "device_type": {
             "$ref": "#/components/schemas/DeviceType"
           },
           "name": {
-            "type": "string",
-            "title": "Name"
+            "title": "Name",
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object",
@@ -3825,13 +4386,20 @@
           "created_at",
           "device_type",
           "id",
-          "name",
+          "recorded_at",
           "updated_at"
         ],
         "title": "CaptureSessionRead"
       },
       "CaptureSessionUpdate": {
         "properties": {
+          "recorded_at": {
+            "title": "Recorded At",
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "description": "datetime with the constraint that the value must have timezone info"
+          },
           "device_type": {
             "nullable": true,
             "$ref": "#/components/schemas/DeviceType"
@@ -3845,6 +4413,54 @@
         "type": "object",
         "required": [],
         "title": "CaptureSessionUpdate"
+      },
+      "CaptureSessionUploadRequest": {
+        "properties": {
+          "device_type": {
+            "$ref": "#/components/schemas/DeviceType"
+          },
+          "data": {
+            "type": "string",
+            "format": "binary"
+          },
+          "id": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "recorded_at": {
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "datetime with the constraint that the value must have timezone info"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "device_type"
+        ],
+        "title": "CaptureSessionUploadRequest"
+      },
+      "CaptureSessionsExpanded": {
+        "properties": {
+          "capture_sessions": {
+            "items": {
+              "$ref": "#/components/schemas/ExpandedCaptureSession"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "capture_sessions"
+        ],
+        "title": "CaptureSessionsExpanded"
       },
       "CreateGraphRequest": {
         "properties": {
@@ -3894,6 +4510,42 @@
           "Zed"
         ],
         "title": "DeviceType"
+      },
+      "ExpandedCaptureSession": {
+        "properties": {
+          "capture_session": {
+            "$ref": "#/components/schemas/CaptureSessionRead"
+          },
+          "reconstructions": {
+            "items": {
+              "$ref": "#/components/schemas/ExpandedReconstruction"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "capture_session",
+          "reconstructions"
+        ],
+        "title": "ExpandedCaptureSession"
+      },
+      "ExpandedReconstruction": {
+        "properties": {
+          "reconstruction": {
+            "$ref": "#/components/schemas/ReconstructionRead"
+          },
+          "localization_map_id": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reconstruction"
+        ],
+        "title": "ExpandedReconstruction"
       },
       "Float3": {
         "properties": {
@@ -4142,11 +4794,15 @@
           "capture_session_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "options": {
+            "$ref": "#/components/schemas/ReconstructionOptions"
           }
         },
         "type": "object",
         "required": [
           "capture_session_id",
+          "options",
           "reconstruction_id"
         ],
         "title": "LeaseResponse"
@@ -4160,6 +4816,224 @@
           "image_list"
         ],
         "title": "LinkType"
+      },
+      "LocalizationEvaluationCreate": {
+        "properties": {
+          "reconstruction_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Reconstruction Id"
+          },
+          "id": {
+            "title": "Id",
+            "nullable": true,
+            "type": "string",
+            "format": "uuid"
+          },
+          "ransac_threshold": {
+            "type": "number",
+            "title": "Ransac Threshold"
+          },
+          "frame_timestamp": {
+            "type": "integer",
+            "title": "Frame Timestamp"
+          },
+          "inlier_coverage": {
+            "type": "number",
+            "title": "Inlier Coverage"
+          },
+          "query_image_diagonal_px": {
+            "type": "number",
+            "title": "Query Image Diagonal Px"
+          },
+          "reproj_error_median": {
+            "type": "number",
+            "title": "Reproj Error Median"
+          },
+          "inlier_ratio": {
+            "type": "number",
+            "title": "Inlier Ratio"
+          },
+          "retrieval_top_k": {
+            "type": "integer",
+            "title": "Retrieval Top K"
+          },
+          "num_inliers": {
+            "type": "integer",
+            "title": "Num Inliers"
+          },
+          "num_matches": {
+            "type": "integer",
+            "title": "Num Matches"
+          },
+          "num_correspondences": {
+            "type": "integer",
+            "title": "Num Correspondences"
+          },
+          "succeeded": {
+            "type": "boolean",
+            "title": "Succeeded"
+          },
+          "pipeline_version": {
+            "type": "string",
+            "title": "Pipeline Version"
+          },
+          "err_r_deg": {
+            "title": "Err R Deg",
+            "nullable": true,
+            "type": "number"
+          },
+          "err_t_m": {
+            "title": "Err T M",
+            "nullable": true,
+            "type": "number"
+          },
+          "pnp_covariance": {
+            "title": "Pnp Covariance",
+            "nullable": true,
+            "items": {},
+            "type": "array"
+          },
+          "se3_residual": {
+            "title": "Se3 Residual",
+            "nullable": true,
+            "items": {},
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "frame_timestamp",
+          "inlier_coverage",
+          "inlier_ratio",
+          "num_correspondences",
+          "num_inliers",
+          "num_matches",
+          "pipeline_version",
+          "query_image_diagonal_px",
+          "ransac_threshold",
+          "reconstruction_id",
+          "reproj_error_median",
+          "retrieval_top_k",
+          "succeeded"
+        ],
+        "title": "LocalizationEvaluationCreate"
+      },
+      "LocalizationEvaluationRead": {
+        "properties": {
+          "reconstruction_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Reconstruction Id"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "ransac_threshold": {
+            "type": "number",
+            "title": "Ransac Threshold"
+          },
+          "frame_timestamp": {
+            "type": "integer",
+            "title": "Frame Timestamp"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "datetime with the constraint that the value must have timezone info"
+          },
+          "inlier_coverage": {
+            "type": "number",
+            "title": "Inlier Coverage"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "datetime with the constraint that the value must have timezone info"
+          },
+          "query_image_diagonal_px": {
+            "type": "number",
+            "title": "Query Image Diagonal Px"
+          },
+          "reproj_error_median": {
+            "type": "number",
+            "title": "Reproj Error Median"
+          },
+          "inlier_ratio": {
+            "type": "number",
+            "title": "Inlier Ratio"
+          },
+          "retrieval_top_k": {
+            "type": "integer",
+            "title": "Retrieval Top K"
+          },
+          "num_inliers": {
+            "type": "integer",
+            "title": "Num Inliers"
+          },
+          "num_matches": {
+            "type": "integer",
+            "title": "Num Matches"
+          },
+          "num_correspondences": {
+            "type": "integer",
+            "title": "Num Correspondences"
+          },
+          "succeeded": {
+            "type": "boolean",
+            "title": "Succeeded"
+          },
+          "pipeline_version": {
+            "type": "string",
+            "title": "Pipeline Version"
+          },
+          "err_r_deg": {
+            "title": "Err R Deg",
+            "nullable": true,
+            "type": "number"
+          },
+          "err_t_m": {
+            "title": "Err T M",
+            "nullable": true,
+            "type": "number"
+          },
+          "pnp_covariance": {
+            "title": "Pnp Covariance",
+            "nullable": true,
+            "items": {},
+            "type": "array"
+          },
+          "se3_residual": {
+            "title": "Se3 Residual",
+            "nullable": true,
+            "items": {},
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created_at",
+          "frame_timestamp",
+          "id",
+          "inlier_coverage",
+          "inlier_ratio",
+          "num_correspondences",
+          "num_inliers",
+          "num_matches",
+          "pipeline_version",
+          "query_image_diagonal_px",
+          "ransac_threshold",
+          "reconstruction_id",
+          "reproj_error_median",
+          "retrieval_top_k",
+          "succeeded",
+          "updated_at"
+        ],
+        "title": "LocalizationEvaluationRead"
       },
       "LocalizationMapBatchUpdate": {
         "properties": {
@@ -4487,15 +5361,51 @@
           },
           "inlier_coverage": {
             "type": "number"
+          },
+          "confidence_tight": {
+            "type": "number"
+          },
+          "confidence_loose": {
+            "type": "number"
+          },
+          "confidence_is_calibrated": {
+            "type": "boolean"
+          },
+          "measurement_covariance": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "pnp_covariance": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "pipeline_version": {
+            "type": "string"
           }
         },
         "type": "object",
         "required": [
+          "confidence_is_calibrated",
+          "confidence_loose",
+          "confidence_tight",
           "inlier_coverage",
           "inlier_ratio",
+          "measurement_covariance",
           "num_correspondences",
           "num_inliers",
           "num_matches",
+          "pipeline_version",
+          "pnp_covariance",
           "reprojection_error_median"
         ],
         "title": "LocalizationMetrics"
@@ -4516,9 +5426,11 @@
             "$ref": "#/components/schemas/AxisConvention"
           },
           "retrieval_top_k": {
+            "nullable": true,
             "type": "integer"
           },
           "ransac_threshold": {
+            "nullable": true,
             "type": "number"
           },
           "image": {
@@ -4531,11 +5443,25 @@
           "axis_convention",
           "camera_config",
           "image",
-          "map_ids",
-          "ransac_threshold",
-          "retrieval_top_k"
+          "map_ids"
         ],
         "title": "LocalizationRequest"
+      },
+      "LogRelayBatch": {
+        "properties": {
+          "entries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "minItems": 1
+          }
+        },
+        "type": "object",
+        "required": [
+          "entries"
+        ],
+        "title": "LogRelayBatch"
       },
       "MapLocalization": {
         "properties": {
@@ -4992,18 +5918,6 @@
         ],
         "title": "NodeRead"
       },
-      "OrchestrationStatus": {
-        "type": "string",
-        "enum": [
-          "queued",
-          "pending",
-          "running",
-          "succeeded",
-          "cancelled",
-          "failed"
-        ],
-        "title": "OrchestrationStatus"
-      },
       "PinholeCameraConfig": {
         "properties": {
           "width": {
@@ -5050,6 +5964,34 @@
         ],
         "title": "PinholeCameraConfig"
       },
+      "ProgressUpdate": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ReconstructionStatus"
+          },
+          "progress_current": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "progress_total": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "progress_attempt": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "error": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ProgressUpdate"
+      },
       "ReconstructionCreate": {
         "properties": {
           "capture_session_id": {
@@ -5062,10 +6004,6 @@
             "nullable": true,
             "type": "string",
             "format": "uuid"
-          },
-          "orchestration_status": {
-            "nullable": true,
-            "$ref": "#/components/schemas/OrchestrationStatus"
           }
         },
         "type": "object",
@@ -5091,47 +6029,6 @@
         ],
         "title": "ReconstructionCreateWithOptions"
       },
-      "ReconstructionManifest": {
-        "properties": {
-          "capture_id": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "queued",
-              "pending",
-              "downloading",
-              "extracting_features",
-              "matching_features",
-              "reconstructing",
-              "training_opq_matrix",
-              "training_product_quantizer",
-              "uploading",
-              "succeeded",
-              "failed"
-            ]
-          },
-          "error": {
-            "nullable": true,
-            "type": "string"
-          },
-          "options": {
-            "$ref": "#/components/schemas/ReconstructionOptions"
-          },
-          "metrics": {
-            "$ref": "#/components/schemas/ReconstructionMetrics"
-          }
-        },
-        "type": "object",
-        "required": [
-          "capture_id",
-          "metrics",
-          "options",
-          "status"
-        ],
-        "title": "ReconstructionManifest"
-      },
       "ReconstructionMetrics": {
         "properties": {
           "total_images": {
@@ -5155,7 +6052,7 @@
             "type": "integer"
           },
           "average_keypoints_per_image": {
-            "description": "Average number of detected keypoints per image (after SuperPoint extraction), computed across all images.",
+            "description": "Average number of detected keypoints per image (after ALIKED extraction), computed across all images.",
             "nullable": true,
             "type": "number"
           },
@@ -5256,6 +6153,41 @@
           },
           "cross_sensor_verified_match_inliers_median": {
             "description": "Median number of inliers for verified matches for cross-sensor pairs.",
+            "nullable": true,
+            "type": "number"
+          },
+          "map_image_count": {
+            "description": "Number of registered images in the reconstruction.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "map_point_count": {
+            "description": "Number of triangulated 3D points in the reconstruction.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "map_avg_track_length": {
+            "description": "Mean number of image observations per 3D point. Coarse density-of-evidence proxy.",
+            "nullable": true,
+            "type": "number"
+          },
+          "map_bounding_volume_m3": {
+            "description": "Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; complements image_count which only captures coverage density.",
+            "nullable": true,
+            "type": "number"
+          },
+          "map_viewpoint_diversity": {
+            "description": "1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps from single-viewpoint maps even when the rest of the metrics agree.",
+            "nullable": true,
+            "type": "number"
+          },
+          "truth_alignment_rms_residual_m": {
+            "description": "RMS over registered cameras of ||T\u00b7c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration.",
+            "nullable": true,
+            "type": "number"
+          },
+          "truth_alignment_max_residual_m": {
+            "description": "Maximum over registered cameras of ||T\u00b7c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over.",
             "nullable": true,
             "type": "number"
           }
@@ -5370,6 +6302,19 @@
             "description": "Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values = stronger priors.",
             "nullable": true,
             "type": "number"
+          },
+          "max_keypoints_per_image": {
+            "description": "Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode). If None, a sensible default is used.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "held_out_frame_timestamps": {
+            "description": "Frame timestamps (Unix milliseconds, matching the first column of each rig's frames.csv) to exclude from this reconstruction. Held-out frames never enter the rig's frame_poses, so their images are skipped during feature extraction, pair generation, and SfM. Used by calibration to build a map without specific frames so those frames can later be localized as held-out queries.",
+            "nullable": true,
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
           }
         },
         "type": "object",
@@ -5400,8 +6345,37 @@
             "title": "Created At",
             "description": "datetime with the constraint that the value must have timezone info"
           },
-          "orchestration_status": {
-            "$ref": "#/components/schemas/OrchestrationStatus"
+          "status": {
+            "$ref": "#/components/schemas/ReconstructionStatus"
+          },
+          "manifest_version": {
+            "type": "integer",
+            "title": "Manifest Version"
+          },
+          "manifest": {
+            "additionalProperties": {},
+            "type": "object",
+            "title": "Manifest"
+          },
+          "progress_current": {
+            "title": "Progress Current",
+            "nullable": true,
+            "type": "integer"
+          },
+          "progress_total": {
+            "title": "Progress Total",
+            "nullable": true,
+            "type": "integer"
+          },
+          "progress_attempt": {
+            "title": "Progress Attempt",
+            "nullable": true,
+            "type": "integer"
+          },
+          "error": {
+            "title": "Error",
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object",
@@ -5409,10 +6383,30 @@
           "capture_session_id",
           "created_at",
           "id",
-          "orchestration_status",
+          "manifest",
+          "manifest_version",
+          "status",
           "updated_at"
         ],
         "title": "ReconstructionRead"
+      },
+      "ReconstructionStatus": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "downloading",
+          "extracting_features",
+          "matching_features",
+          "training_opq_matrix",
+          "training_product_quantizer",
+          "verifying_geometry",
+          "reconstructing",
+          "uploading",
+          "succeeded",
+          "failed",
+          "cancelled"
+        ],
+        "title": "ReconstructionStatus"
       },
       "RigCameraConfig": {
         "properties": {

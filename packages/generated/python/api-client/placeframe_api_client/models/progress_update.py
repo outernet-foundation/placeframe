@@ -17,32 +17,24 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictStr, field_validator
+from pydantic import BaseModel, ConfigDict, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from placeframe_api_client.models.reconstruction_metrics import ReconstructionMetrics
-from placeframe_api_client.models.reconstruction_options import ReconstructionOptions
+from placeframe_api_client.models.reconstruction_status import ReconstructionStatus
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class ReconstructionManifest(BaseModel):
+class ProgressUpdate(BaseModel):
     """
-    ReconstructionManifest
+    ProgressUpdate
     """ # noqa: E501
-    capture_id: StrictStr
-    status: StrictStr
+    status: ReconstructionStatus
+    progress_current: Optional[StrictInt] = None
+    progress_total: Optional[StrictInt] = None
+    progress_attempt: Optional[StrictInt] = None
     error: Optional[StrictStr] = None
-    options: ReconstructionOptions
-    metrics: ReconstructionMetrics
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["capture_id", "status", "error", "options", "metrics"]
-
-    @field_validator('status')
-    def status_validate_enum(cls, value):
-        """Validates the enum"""
-        if value not in set(['queued', 'pending', 'downloading', 'extracting_features', 'matching_features', 'reconstructing', 'training_opq_matrix', 'training_product_quantizer', 'uploading', 'succeeded', 'failed']):
-            raise ValueError("must be one of enum values ('queued', 'pending', 'downloading', 'extracting_features', 'matching_features', 'reconstructing', 'training_opq_matrix', 'training_product_quantizer', 'uploading', 'succeeded', 'failed')")
-        return value
+    __properties: ClassVar[List[str]] = ["status", "progress_current", "progress_total", "progress_attempt", "error"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -62,7 +54,7 @@ class ReconstructionManifest(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of ReconstructionManifest from a JSON string"""
+        """Create an instance of ProgressUpdate from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -85,16 +77,25 @@ class ReconstructionManifest(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of options
-        if self.options:
-            _dict['options'] = self.options.to_dict()
-        # override the default output from pydantic by calling `to_dict()` of metrics
-        if self.metrics:
-            _dict['metrics'] = self.metrics.to_dict()
         # puts key-value pairs in additional_properties in the top level
         if self.additional_properties is not None:
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
+
+        # set to None if progress_current (nullable) is None
+        # and model_fields_set contains the field
+        if self.progress_current is None and "progress_current" in self.model_fields_set:
+            _dict['progress_current'] = None
+
+        # set to None if progress_total (nullable) is None
+        # and model_fields_set contains the field
+        if self.progress_total is None and "progress_total" in self.model_fields_set:
+            _dict['progress_total'] = None
+
+        # set to None if progress_attempt (nullable) is None
+        # and model_fields_set contains the field
+        if self.progress_attempt is None and "progress_attempt" in self.model_fields_set:
+            _dict['progress_attempt'] = None
 
         # set to None if error (nullable) is None
         # and model_fields_set contains the field
@@ -105,7 +106,7 @@ class ReconstructionManifest(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of ReconstructionManifest from a dict"""
+        """Create an instance of ProgressUpdate from a dict"""
         if obj is None:
             return None
 
@@ -113,11 +114,11 @@ class ReconstructionManifest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "capture_id": obj.get("capture_id"),
             "status": obj.get("status"),
-            "error": obj.get("error"),
-            "options": ReconstructionOptions.from_dict(obj["options"]) if obj.get("options") is not None else None,
-            "metrics": ReconstructionMetrics.from_dict(obj["metrics"]) if obj.get("metrics") is not None else None
+            "progress_current": obj.get("progress_current"),
+            "progress_total": obj.get("progress_total"),
+            "progress_attempt": obj.get("progress_attempt"),
+            "error": obj.get("error")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():
