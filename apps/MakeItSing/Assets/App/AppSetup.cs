@@ -125,7 +125,7 @@ namespace Plerion.MakeItSing
 #endif
 
             //TODO: Remove this!
-            App.state.loginStatus.value = LoginStatus.LoggedIn;
+            // App.state.loginStatus.value = LoginStatus.LoggedIn;
 
             Destroy(this);
         }
@@ -178,101 +178,51 @@ namespace Plerion.MakeItSing
         {
             JSONSerialization.AddSerializer(
                 new SerializationPair<double2>(
-                    json => new double2(json[0].AsDouble, json[1].AsDouble),
-                    value =>
-                    {
-                        var json = new JSONArray();
-                        json.Add(value.x);
-                        json.Add(value.y);
-                        return json;
-                    }
+                    JSONSerializers.ToDouble2,
+                    JSONSerializers.ToJSON
                 )
             );
 
             JSONSerialization.AddSerializer(
                 new SerializationPair<double3>(
-                    json => new double3(json[0].AsDouble, json[1].AsDouble, json[2].AsDouble),
-                    value =>
-                    {
-                        var json = new JSONArray();
-                        json.Add(value.x);
-                        json.Add(value.y);
-                        json.Add(value.z);
-                        return json;
-                    }
+                    JSONSerializers.ToDouble3,
+                    JSONSerializers.ToJSON
                 )
             );
 
             JSONSerialization.AddSerializer(
                 new SerializationPair<Vector2>(
-                    json => new Vector2(json[0].AsFloat, json[1].AsFloat),
-                    value =>
-                    {
-                        var json = new JSONArray();
-                        json.Add(value.x);
-                        json.Add(value.y);
-                        return json;
-                    }
+                    JSONSerializers.ToVector2,
+                    JSONSerializers.ToJSON
                 )
             );
 
             JSONSerialization.AddSerializer(
                 new SerializationPair<Vector3>(
-                    json => new Vector3(json[0].AsFloat, json[1].AsFloat, json[2].AsFloat),
-                    value =>
-                    {
-                        var json = new JSONArray();
-                        json.Add(value.x);
-                        json.Add(value.y);
-                        json.Add(value.z);
-                        return json;
-                    }
+                    JSONSerializers.ToVector3,
+                    JSONSerializers.ToJSON
                 )
             );
 
             JSONSerialization.AddSerializer(
                 new SerializationPair<Vector4>(
-                    json => new Vector4(json[0].AsFloat, json[1].AsFloat, json[2].AsFloat, json[3].AsFloat),
-                    value =>
-                    {
-                        var json = new JSONArray();
-                        json.Add(value.x);
-                        json.Add(value.y);
-                        json.Add(value.z);
-                        json.Add(value.w);
-                        return json;
-                    }
+                    JSONSerializers.ToVector4,
+                    JSONSerializers.ToJSON
                 )
             );
 
             JSONSerialization.AddSerializer(
                 new SerializationPair<Quaternion>(
-                    json => new Quaternion(json[0].AsFloat, json[1].AsFloat, json[2].AsFloat, json[3].AsFloat),
-                    value =>
-                    {
-                        var json = new JSONArray();
-                        json.Add(value.x);
-                        json.Add(value.y);
-                        json.Add(value.z);
-                        json.Add(value.w);
-                        return json;
-                    }
+                    JSONSerializers.ToQuaternion,
+                    JSONSerializers.ToJSON
                 )
             );
 
 
             JSONSerialization.AddSerializer(
                 new SerializationPair<Color>(
-                    json => new Color(json[0].AsFloat, json[1].AsFloat, json[2].AsFloat, json[3].AsFloat),
-                    value =>
-                    {
-                        var json = new JSONArray();
-                        json.Add(value.r);
-                        json.Add(value.g);
-                        json.Add(value.b);
-                        json.Add(value.a);
-                        return json;
-                    }
+                    JSONSerializers.ToColor,
+                    JSONSerializers.ToJSON
                 )
             );
 
