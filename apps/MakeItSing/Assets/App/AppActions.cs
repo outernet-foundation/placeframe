@@ -278,8 +278,21 @@ namespace Plerion.MakeItSing
     {
         protected override void Execute(AppState target)
         {
-            target.scene.players.Add(target.playerID.value);
-            //set player fields here
+            var avatarID = PlayerIdHelpers.SceneObjectIdHelper.AllocateID();
+
+            var playerState = target.scene.players.Add(target.playerID.value);
+            playerState.avatar.value = avatarID;
+
+            var objState = target.scene.objects.Add(avatarID);
+            objState.ownerID.value = target.playerID.value;
+            objState.viewPrefab.value = "PlayerAvatar";
+
+            var transformState = target.scene.transforms.Add(avatarID);
+
+            target.scene.avatarToPlayer.Add(avatarID).value = target.playerID.value;
+
+            new AddHighFrequencyPrimitive(transformState.localPosition, PlayerIdHelpers.HighFrequencyPathIdHelper.AllocateID(), target.playerID.value, 16).ExecuteTransaction(target);
+            new AddHighFrequencyPrimitive(transformState.localRotation, PlayerIdHelpers.HighFrequencyPathIdHelper.AllocateID(), target.playerID.value, 16).ExecuteTransaction(target);
         }
     }
 
@@ -303,6 +316,7 @@ namespace Plerion.MakeItSing
             target.scene.highFrequencyPathsToIds.Add(_target.nodePath).value = _id;
             var data = target.scene.highFrequencyPrimitives.Add(_id);
             data.owner.value = _owner;
+            data.path.value = _target.nodePath;
             data.syncRate.value = _syncRate;
         }
     }

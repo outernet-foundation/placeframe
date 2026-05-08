@@ -72,7 +72,6 @@ namespace Plerion.MakeItSing
             });
         }
 
-
         private void OnDestroy()
         {
             _ui?.Dispose();
@@ -247,8 +246,8 @@ namespace Plerion.MakeItSing
                 return Tagalong(new()
                 {
                     targetCamera = Value(Camera.main),
-                    targetRegionMin = Value(new Vector3(0.2f, 0.3f, 0.66f)),
-                    targetRegionMax = Value(new Vector3(0.8f, 0.7f, 1f)),
+                    targetRegionMin = Value(new Vector3(0.4f, 0.3f, 0.66f)),
+                    targetRegionMax = Value(new Vector3(0.6f, 0.7f, 1f)),
                     children = List(WorldspaceCanvas(props))
                 });
             }

@@ -3,6 +3,7 @@ using Cysharp.Threading.Tasks;
 using FofX;
 using ObserveThing;
 using Outernet.Logging;
+using UnityEngine;
 
 namespace Plerion.MakeItSing
 {
@@ -11,14 +12,14 @@ namespace Plerion.MakeItSing
         public static bool AppInitialized { get; private set; }
 
         private InRoomManager _inRoomManager;
-        private IDisposable _subscription;
+        private IDisposable _subscriptions;
 
         protected override void Awake()
         {
             base.Awake();
             AppInitialized = true;
 
-            _subscription = new ComposedDisposable(
+            _subscriptions = new ComposedDisposable(
                 Observables.ObservableCombineValues(
                     App.state.inRoom,
                     App.state.offlineMode,
@@ -69,7 +70,7 @@ namespace Plerion.MakeItSing
         private void OnDestroy()
         {
             AppInitialized = false;
-            _subscription.Dispose();
+            _subscriptions.Dispose();
         }
 
         protected override void InitializeState(AppState state)
@@ -77,7 +78,7 @@ namespace Plerion.MakeItSing
             state.Initialize(Settings.DefaultObservationContext, new GroupLogger() { group = LogGroup.Stateful }, "root");
         }
 
-        public class GroupLogger : ILogger
+        public class GroupLogger : FofX.ILogger
         {
             public LogGroup group;
 

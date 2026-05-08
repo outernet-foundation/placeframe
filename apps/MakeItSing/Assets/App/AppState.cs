@@ -208,7 +208,7 @@ namespace Plerion.MakeItSing
     {
         public StateValue<float> startTime { get; private set; }
         public StateDictionary<int, PlayerData> players { get; private set; }
-        public StateDictionary<int, StateValue<SceneObjectId>> playersToAvatars { get; private set; }
+        public StateDictionary<SceneObjectId, StateValue<int>> avatarToPlayer { get; private set; }
         public StateDictionary<SceneObjectId, SceneObjectState> objects { get; private set; }
         public StateDictionary<SceneObjectId, SceneTransformState> transforms { get; private set; }
         public StateDictionary<SceneObjectId, SplineState> splines { get; private set; }
@@ -276,6 +276,7 @@ namespace Plerion.MakeItSing
     public class PlayerData : StateObject, IKeyedStateNode<int>
     {
         public int playerID { get; private set; }
+        public StateValue<SceneObjectId> avatar { get; private set; }
 
         public void AssignKey(int key)
             => playerID = key;
