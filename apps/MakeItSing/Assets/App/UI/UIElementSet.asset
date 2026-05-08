@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e015ac9af87c5244296198e79a6926f2, type: 3}
+  m_Name: UIElementSet
+  m_EditorClassIdentifier: 
+  background: {fileID: 21300000, guid: 279705d78db976546957b09b60ba25fd, type: 3}
+  backgroundColor: {r: 0.21960786, g: 0.21960786, b: 0.21960786, a: 1}
+  elementColor: {r: 0.3176471, g: 0.3176471, b: 0.3176471, a: 1}
+  animatedList: {fileID: 2532716827498723853, guid: 8f949e6cd213377459714ef6b8303077, type: 3}
+  tagalong: {fileID: 8312099862501673716, guid: 6174612dadcf1f6468786c6c87733397, type: 3}
+  pressable: {fileID: 9018808862720201122, guid: c4fca8edafc9e644da086013c9283ed4, type: 3}
+  hamburgerMenu: {fileID: 21300000, guid: d76905e1ab0cfde40986b8a68b807438, type: 3}
+  circle: {fileID: 21300000, guid: ae5e3a0044f9d084085bcfbeadac276e, type: 3}

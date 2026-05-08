@@ -38,6 +38,7 @@ namespace Placeframe.Core
 
         public static DefaultApi Api { get; private set; }
         public static LocalizationMetrics MostRecentMetrics { get; private set; }
+        public static bool Localizing => _localizationSubscription != null;
         public static double4x4 EcefToUnityWorldTransform => _unityFromEcefTransform;
         public static double4x4 UnityWorldToEcefTransform => _ecefFromUnityTransform;
         public static event Action OnEcefToUnityWorldTransformUpdated;
@@ -96,6 +97,32 @@ namespace Placeframe.Core
 
             foreach (var map in _maps)
                 _localizationMapManager.AddMap(map, _visualizationsVisible);
+        }
+
+        public static async UniTask SetLocalizationMaps(double3 ecefPosition, double radius, CancellationToken cancellationToken = default)
+        {
+            var maps = await GetLocalizationMaps(
+                positionX: ecefPosition.x,
+                positionY: ecefPosition.y,
+                positionZ: ecefPosition.z,
+                radius: radius,
+                cancellationToken: cancellationToken
+            );
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            SetLocalizationMaps(maps.Select(x => x.Id).ToArray());
+        }
+
+        public static void SetLocalizationMaps(Guid[] maps)
+        {
+            var currentMaps = _maps.ToArray();
+
+            foreach (var toUnload in currentMaps.Except(maps))
+                RemoveLocalizationMap(toUnload);
+
+            foreach (var toLoad in maps.Except(currentMaps))
+                AddLocalizationMap(toLoad);
         }
 
         public static void AddLocalizationMap(Guid mapId)
@@ -272,6 +299,9 @@ namespace Placeframe.Core
             _ecefFromUnityTransform = math.inverse(_unityFromEcefTransform);
             OnEcefToUnityWorldTransformUpdated?.Invoke();
         }
+
+        public static UniTask<List<LocalizationMapRead>> GetLocalizationMaps(List<Guid> ids = default, List<Guid> reconstructionIds = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, CancellationToken cancellationToken = default)
+            => Api.GetLocalizationMapsAsync(ids, reconstructionIds, positionX, positionY, positionZ, radius, cancellationToken).AsUniTask();
 
         public static UniTask<LocalizationMapRead> GetMapData(Guid mapID)
         {
