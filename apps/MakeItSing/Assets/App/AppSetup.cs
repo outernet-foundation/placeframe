@@ -73,11 +73,6 @@ namespace Plerion.MakeItSing
 
             Instantiate(Prefabs.LocalizationMapManager);
 
-            // #if !PLERION_MAGIC_LEAP
-            //             foreach (var controller in SceneReferences.Controllers)
-            //                 controller.SetActive(false);
-            // #endif
-
             gameObject.AddComponent<App>();
 
 #if UNITY_EDITOR
@@ -93,9 +88,9 @@ namespace Plerion.MakeItSing
             {
                 gameObject.AddComponent<PhotonConnectionManager>();
                 gameObject.AddComponent<LocalizationManager>();
-                gameObject.AddComponent<SupabaseContentHelper>();
             }
 
+            gameObject.AddComponent<SupabaseContentHelper>();
             gameObject.AddComponent<SettingsManager>();
             gameObject.AddComponent<AppUI>();
             gameObject.AddComponent<NotificationManager>();
@@ -128,9 +123,6 @@ namespace Plerion.MakeItSing
 #else
             InitializeConfig();
 #endif
-
-            //TODO: Remove this!
-            // App.state.loginStatus.value = LoginStatus.LoggedIn;
 
             Destroy(this);
         }

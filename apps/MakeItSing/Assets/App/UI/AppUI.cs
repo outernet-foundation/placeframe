@@ -18,13 +18,13 @@ namespace Plerion.MakeItSing
 {
     public class AppUI : MonoBehaviour
     {
-        private IControl _notificationList;
         private IControl _ui;
+        private IControl _overlayUI;
         private IDisposable _subscription;
 
         private void Awake()
         {
-            _ui = PlatformCanvas(new()
+            _ui = SystemUICanvas(new()
             {
                 element = { active = App.state.config.disableSystemUI.ObservableSelect(x => !x) },
                 children = List(
@@ -36,19 +36,23 @@ namespace Plerion.MakeItSing
                                 App.state.config.disableSystemUI,
                                 App.state.offlineMode,
                                 App.state.loggedIn,
+                                App.state.joiningRoom,
                                 App.state.inRoom,
-                                (disabled, offlineMode, loggedIn, inRoom) =>
+                                (disabled, offlineMode, loggedIn, joiningRoom, inRoom) =>
                                 {
                                     if (disabled)
-                                        return default(Func<IControl>);
+                                        return default;
 
                                     if (!loggedIn && !offlineMode)
                                         return GenerateLoginUI;
 
-                                    if (!inRoom)
+                                    if (!inRoom && !joiningRoom)
                                         return GenerateRoomSelectUI;
 
-                                    return GenerateInRoomUI;
+                                    if (inRoom)
+                                        return GenerateInRoomUI;
+
+                                    return default(Func<IControl>);
                                 }
                             ).ObservableCreate(generator => generator?.Invoke())
                         )
@@ -56,14 +60,23 @@ namespace Plerion.MakeItSing
                 )
             });
 
-            _notificationList = GeneratePlatformNotificationList();
+            _overlayUI = OverlayUICanvas(new()
+            {
+                children = List(
+                    NotificationList(new()
+                    {
+                        notifications = App.state.notifications,
+                        layout = FillParentProps()
+                    })
+                )
+            });
         }
 
 
         private void OnDestroy()
         {
             _ui?.Dispose();
-            _notificationList?.Dispose();
+            _overlayUI?.Dispose();
             _subscription?.Dispose();
         }
 
@@ -186,7 +199,7 @@ namespace Plerion.MakeItSing
             });
         }
 
-        private IControl PlatformCanvas(CanvasProps props)
+        private IControl SystemUICanvas(CanvasProps props)
         {
             if (App.state.platform.value == Platform.MagicLeap)
             {
@@ -224,85 +237,59 @@ namespace Plerion.MakeItSing
             return control;
         }
 
-        private IControl GeneratePlatformNotificationList()
+        private IControl OverlayUICanvas(CanvasProps props)
         {
-            var notifications = App.state.notifications
-                .ObservableWhere(x => Observables.ObservableCombineValues(x.logLevel, App.state.config.notificationLogLevel, (level, minLevel) => level >= minLevel))
-                .ObservableSelect(x =>
-                {
-                    bool isError = x.logLevel.value == Outernet.Logging.LogLevel.Error || x.logLevel.value == Outernet.Logging.LogLevel.Fatal;
-                    return Notification(new()
-                    {
-                        message = x.message,
-                        messageStyle = { color = isError ? Value(Color.red) : default },
-                        backgroundStyle = { color = isError ? Value(new Color(0.33f, 0, 0)) : default }
-                    });
-                });
-
             if (App.state.platform.value == Platform.MagicLeap)
             {
+                props.layout.localPosition = props.layout.localPosition ?? Value(Vector3.zero);
+                props.layout.localRotation = props.layout.localRotation ?? Value(Quaternion.AngleAxis(180f, Vector3.up));
+
                 return Tagalong(new()
                 {
                     targetCamera = Value(Camera.main),
-                    targetRegionMin = Value(new Vector3(0.4f, 0.2f, 0.66f)),
-                    targetRegionMax = Value(new Vector3(0.6f, 0.25f, 1f)),
-                    paddingFront = Value(0.08f),
-                    paddingBack = Value(0.08f),
-                    paddingLeft = Value(0.08f),
-                    paddingRight = Value(0.08f),
-                    paddingTop = Value(0.4f),
-                    paddingBottom = Value(0.08f),
-                    children = List(
-                        WorldspaceCanvas(new()
-                        {
-                            layout =
-                            {
-                                localPosition = Value(Vector3.zero),
-                                localRotation = Value(Quaternion.AngleAxis(180f, Vector3.up)),
-                                pivot = Value(new Vector2(0.5f, 0f))
-                            },
-                            children = List(
-                                AnimatedList(new()
-                                {
-                                    children = notifications,
-                                    childControlWidth = Value(true),
-                                    childControlHeight = Value(true),
-                                    spacing = Value(5f),
-                                    childAlignment = Value(TextAnchor.UpperCenter),
-                                    layout =
-                                    {
-                                        anchorMin = Value(new Vector2(0.5f, 0)),
-                                        anchorMax = Value(new Vector2(0.5f, 0)),
-                                        anchoredPosition = Value(new Vector2(0, 28)),
-                                        sizeDelta = Value(new Vector2(600, 0)),
-                                        pivot = Value(new Vector2(0.5f, 1f)),
-                                        fitContentVertical = Value(UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize)
-                                    },
-                                })
-                            )
-                        })
-                    )
+                    targetRegionMin = Value(new Vector3(0.2f, 0.3f, 0.66f)),
+                    targetRegionMax = Value(new Vector3(0.8f, 0.7f, 1f)),
+                    children = List(WorldspaceCanvas(props))
                 });
             }
             else
             {
-                return Canvas(new()
-                {
-                    sortingOrder = Value(1),
-                    children = List(
-                        AnimatedList(new()
-                        {
-                            children = notifications,
-                            childControlWidth = Value(true),
-                            childControlHeight = Value(true),
-                            spacing = Value(5f),
-                            padding = Value(new RectOffset(0, 0, 0, 15)),
-                            childAlignment = Value(TextAnchor.LowerCenter),
-                            layout = FillParentProps(),
-                        })
-                    )
-                });
+                props.sortingOrder = props.sortingOrder ?? Value(1);
+                return Canvas(props);
             }
+        }
+
+        public struct NotificationListProps
+        {
+            public LayoutProps layout;
+            public ElementProps element;
+            public IListObservable<NotificationState> notifications;
+        }
+
+        private IControl NotificationList(NotificationListProps props)
+        {
+            return AnimatedList(new()
+            {
+                element = props.element,
+                layout = props.layout,
+                childControlWidth = Value(true),
+                childControlHeight = Value(true),
+                spacing = Value(5f),
+                padding = Value(new RectOffset(0, 0, 0, 15)),
+                childAlignment = Value(TextAnchor.LowerCenter),
+                children = props.notifications?
+                    .ObservableWhere(x => Observables.ObservableCombineValues(x.logLevel, App.state.config.notificationLogLevel, (level, minLevel) => level >= minLevel))
+                    .ObservableSelect(x =>
+                    {
+                        bool isError = x.logLevel.value == Outernet.Logging.LogLevel.Error || x.logLevel.value == Outernet.Logging.LogLevel.Fatal;
+                        return Notification(new()
+                        {
+                            message = x.message,
+                            messageStyle = { color = isError ? Value(Color.red) : default },
+                            backgroundStyle = { color = isError ? Value(new Color(0.33f, 0, 0)) : default }
+                        });
+                    })
+            });
         }
     }
 }

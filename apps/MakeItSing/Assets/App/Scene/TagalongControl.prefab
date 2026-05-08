@@ -44,10 +44,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27d3809a731c44544a51577099a2845d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  destroyOnDispose: 1
+  _destroyOnDispose: 1
   targetCamera: {fileID: 0}
-  targetRegionMin: {x: 0.1, y: 0.1, z: 1}
-  targetRegionMax: {x: 0.9, y: 0.9, z: 1.25}
+  targetRegionMin: {x: 0.1, y: 0.1, z: 0.66}
+  targetRegionMax: {x: 0.9, y: 0.9, z: 1}
   paddingFront: 0.08
   paddingBack: 0.08
   paddingLeft: 0.08

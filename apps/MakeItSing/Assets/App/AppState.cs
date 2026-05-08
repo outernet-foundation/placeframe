@@ -68,6 +68,7 @@ namespace Plerion.MakeItSing
         public StateValue<int> masterClientID { get; private set; }
         public StateValue<bool> isMasterClient { get; private set; }
 
+        public StateValue<bool> joiningRoom { get; private set; }
         public StateValue<bool> inRoom { get; private set; }
         public StateValue<bool> roomDemoSceneInitialized { get; private set; }
         public StateValue<bool> roomStateInitialized { get; private set; }
@@ -111,6 +112,14 @@ namespace Plerion.MakeItSing
                     roomID,
                     roomConnection.connected,
                     (offlineMode, roomID, connectedToRoom) => (offlineMode && roomID != Guid.Empty) || connectedToRoom
+                )
+            );
+
+            joiningRoom.Derive(
+                Observables.ObservableCombineValues(
+                    roomID,
+                    inRoom,
+                    (roomID, inRoom) => roomID != Guid.Empty && !inRoom
                 )
             );
 
