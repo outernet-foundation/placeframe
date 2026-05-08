@@ -41,6 +41,7 @@ namespace Plerion.MakeItSing
         public StateValue<string> version { get; private set; }
         public UserSettings userSettings { get; private set; }
         public AppConfigState config { get; private set; }
+        public StateValue<bool> offlineMode { get; private set; }
 
 #if UNITY_EDITOR
         public EditorOnlyState editorOnly { get; private set; }
@@ -49,8 +50,6 @@ namespace Plerion.MakeItSing
         public StateValue<LoginStatus> loginStatus { get; private set; }
         public StateValue<bool> loggedIn { get; private set; }
         public StateValue<string> loginError { get; private set; }
-
-        public StateValue<bool> systemUIOpen { get; private set; }
 
         public ConnectionState nameServerConnection { get; private set; }
         public ConnectionState roomConnection { get; private set; }
@@ -69,6 +68,7 @@ namespace Plerion.MakeItSing
         public StateValue<int> masterClientID { get; private set; }
         public StateValue<bool> isMasterClient { get; private set; }
 
+        public StateValue<bool> inRoom { get; private set; }
         public StateValue<bool> roomDemoSceneInitialized { get; private set; }
         public StateValue<bool> roomStateInitialized { get; private set; }
         public StateValue<bool> inRoomAndSynchronized { get; private set; }
@@ -84,9 +84,10 @@ namespace Plerion.MakeItSing
 
             nameServerConnection.shouldBeConnected.Derive(
                 Observables.ObservableCombineValues(
+                    offlineMode,
                     loggedIn,
                     nameServerConnection.connectionString,
-                    (loggedIn, connectionString) => loggedIn && !string.IsNullOrEmpty(connectionString)
+                    (offlineMode, loggedIn, connectionString) => !offlineMode && loggedIn && !string.IsNullOrEmpty(connectionString)
                 )
             );
 
@@ -94,20 +95,31 @@ namespace Plerion.MakeItSing
 
             roomConnection.shouldBeConnected.Derive(
                 Observables.ObservableCombineValues(
+                    offlineMode,
                     nameServerConnection.status,
                     roomConnection.connectionString,
-                    (status, connectionString) =>
+                    (offlineMode, status, connectionString) =>
+                        !offlineMode &&
                         status == ConnectionStatus.Connected &&
                         !string.IsNullOrEmpty(connectionString)
                 )
             );
 
+            inRoom.Derive(
+                Observables.ObservableCombineValues(
+                    offlineMode,
+                    roomID,
+                    roomConnection.connected,
+                    (offlineMode, roomID, connectedToRoom) => (offlineMode && roomID != Guid.Empty) || connectedToRoom
+                )
+            );
+
             inRoomAndSynchronized.Derive(
                 Observables.ObservableCombineValues(
-                    roomConnection.connected,
+                    inRoom,
                     roomStateInitialized,
                     roomDemoSceneInitialized,
-                    (connected, stateInit, sceneInit) => connected && stateInit && sceneInit
+                    (inRoom, stateInit, sceneInit) => inRoom && stateInit && sceneInit
                 )
             );
 
@@ -115,8 +127,8 @@ namespace Plerion.MakeItSing
                 Observables.ObservableCombineValues(
                     playerID,
                     masterClientID,
-                    roomConnection.connected,
-                    (player, masterClient, connectedToRoom) => player == masterClient && connectedToRoom
+                    inRoom,
+                    (player, masterClient, inRoom) => player == masterClient && inRoom
                 )
             );
         }

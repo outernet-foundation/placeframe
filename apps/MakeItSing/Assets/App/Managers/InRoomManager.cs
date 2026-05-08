@@ -29,9 +29,9 @@ namespace Plerion.MakeItSing
             _subscription = new ComposedDisposable(
 
                 StateObservables.ObservableCombineOperations(
-                    App.state.roomConnection.connected,
                     App.state.rooms,
                     App.state.roomID,
+                    App.state.inRoom,
                     App.state.isMasterClient,
                     App.state.roomStateInitialized
                 ).Subscribe(HandleShouldInitializeRoomSceneChanged),
@@ -62,7 +62,7 @@ namespace Plerion.MakeItSing
 
         private void HandleShouldInitializeRoomSceneChanged(IReadOnlyList<IStateOperation> ops)
         {
-            if (!App.state.roomConnection.connected.value)
+            if (!App.state.inRoom.value)
                 return;
 
             if (!App.state.isMasterClient.value && !App.state.roomStateInitialized.value)

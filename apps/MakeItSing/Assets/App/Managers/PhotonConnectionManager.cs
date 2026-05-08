@@ -215,7 +215,7 @@ namespace Plerion.MakeItSing
             }
         }
 
-        private IDisposable _subscription;
+        private IDisposable _subscriptions;
 
         private void Awake()
         {
@@ -236,7 +236,7 @@ namespace Plerion.MakeItSing
                 _ => _client.LeaveRoomAsync().AsUniTask()
             );
 
-            _subscription = new ComposedDisposable(
+            _subscriptions = new ComposedDisposable(
                 StateObservables.SubscribeOperations(HandleShouldInitializeUnsyncedPlayersChanged, App.state.inRoomAndSynchronized, App.state.isMasterClient),
                 StateObservables.SubscribeOperationsRecursive(HandleSceneChanged, App.state.inRoomAndSynchronized, App.state.scene),
                 App.state.scene.highFrequencyPrimitives
@@ -333,7 +333,7 @@ namespace Plerion.MakeItSing
         {
             _nameserverConnection.Dispose();
             _roomConnection.Dispose();
-            _subscription.Dispose();
+            _subscriptions.Dispose();
         }
 
         private async UniTask ConnectToRoom(string roomID)

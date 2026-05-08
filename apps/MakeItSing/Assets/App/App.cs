@@ -3,7 +3,6 @@ using Cysharp.Threading.Tasks;
 using FofX;
 using ObserveThing;
 using Outernet.Logging;
-using Placeframe.Core;
 
 namespace Plerion.MakeItSing
 {
@@ -20,22 +19,27 @@ namespace Plerion.MakeItSing
             AppInitialized = true;
 
             _subscription = new ComposedDisposable(
-                App.state.loggedIn
-                    .ObservableSkipWhile(() => !App.state.loggedIn.value)
-                    .Subscribe(
-                        onNext: loggedIn =>
+                Observables.ObservableCombineValues(
+                    App.state.inRoom,
+                    App.state.offlineMode,
+                    (inRoom, offlineMode) => inRoom && offlineMode
+                ).Subscribe(setupRoomInOfflineMode =>
+                {
+                    if (setupRoomInOfflineMode)
+                    {
+                        App.ExecuteTransaction(state =>
                         {
-                            if (loggedIn)
-                            {
-                                VisualPositioningSystem.StartLocalizing(1f);
-                            }
-                            else
-                            {
-                                VisualPositioningSystem.StopLocalizing();
-                            }
-                        }
-                    ),
-                App.state.roomConnection.connected.Subscribe(
+                            state.masterClientID.value = 1;
+                            state.playerID.value = 1;
+                        });
+                    }
+                }),
+                App.state.inRoomAndSynchronized.Subscribe(inRoomAndSynchronized =>
+                {
+                    if (inRoomAndSynchronized)
+                        App.ExecuteTransaction(new AddLocalPlayerDataAction());
+                }),
+                App.state.inRoom.Subscribe(
                     onNext: inRoom =>
                     {
                         if (inRoom)
@@ -55,9 +59,6 @@ namespace Plerion.MakeItSing
                         if (status == LoginStatus.LoginRequested)
                             Tasks.Login().Forget();
                     }
-                ),
-                App.state.inRoomAndSynchronized.Subscribe(
-                    onNext: inRoomAndSynchronized => App.state.systemUIOpen.value = !inRoomAndSynchronized
                 ),
                 App.state.config.logGroups.Subscribe(x => Log<LogGroup>.enabledLogGroups = x),
                 App.state.config.logLevel.Subscribe(x => Log<LogGroup>.logLevel = x),

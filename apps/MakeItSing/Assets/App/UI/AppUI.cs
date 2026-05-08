@@ -31,46 +31,27 @@ namespace Plerion.MakeItSing
                     Control("SystemUI", new()
                     {
                         layout = FillParentProps(),
-                        element = { active = App.state.systemUIOpen },
                         children = List(
                             Observables.ObservableCombineValues(
                                 App.state.config.disableSystemUI,
+                                App.state.offlineMode,
                                 App.state.loggedIn,
-                                App.state.roomConnection.shouldBeConnected,
-                                App.state.roomConnection.connected,
-                                (disabled, loggedIn, shouldBeConnectedToRoom, connectedToRoom) =>
+                                App.state.inRoom,
+                                (disabled, offlineMode, loggedIn, inRoom) =>
                                 {
                                     if (disabled)
                                         return default(Func<IControl>);
 
-                                    if (!loggedIn)
+                                    if (!loggedIn && !offlineMode)
                                         return GenerateLoginUI;
 
-                                    if (!shouldBeConnectedToRoom)
+                                    if (!inRoom)
                                         return GenerateRoomSelectUI;
-
-                                    if (!connectedToRoom)
-                                        return GenerateConnectingToRoomUI;
 
                                     return GenerateInRoomUI;
                                 }
                             ).ObservableCreate(generator => generator?.Invoke())
                         )
-                    }),
-                    RoundButton(new()
-                    {
-                        element = { active = App.state.platform.ObservableSelect(x => x != Platform.MagicLeap) },
-                        layout =
-                        {
-                            sizeDelta = Value(new Vector2(35, 35)),
-                            anchorMin = Value(new Vector2(1, 1)),
-                            anchorMax = Value(new Vector2(1, 1)),
-                            localPosition = Value(new Vector3(-10, -10, 0)),
-                            pivot = Value(new Vector2(1, 1))
-                        },
-                        content = List(Image(new() { sprite = Value(elements.hamburgerMenu) })),
-                        padding = Value(new RectOffset(9, 9, 9, 9)),
-                        onClick = () => App.state.systemUIOpen.value = !App.state.systemUIOpen.value
                     })
                 )
             });
@@ -148,17 +129,13 @@ namespace Plerion.MakeItSing
             });
         }
 
-        private IControl GenerateConnectingToRoomUI()
-        {
-            return ConnectingToRoomUI();
-        }
-
         private IControl GenerateInRoomUI()
         {
             return InRoomUI(new()
             {
                 layout = FillParentProps(),
-                onLeaveRoomSelected = () => App.ExecuteTransaction(new LeaveRoomAction())
+                onLeaveRoomSelected = () => App.ExecuteTransaction(new LeaveRoomAction()),
+                showMenuButton = App.state.platform.ObservableSelect(x => x != Platform.MagicLeap)
             });
 
             // _screen = AppStateLog(new() { layout = FillParentProps() });
@@ -184,6 +161,20 @@ namespace Plerion.MakeItSing
 
         private async UniTask CreateAndJoinRoom(string roomName, string roomDemoScene, string version)
         {
+            if (App.state.offlineMode.value)
+            {
+                App.ExecuteTransaction(x =>
+                {
+                    var roomData = x.rooms.Add(Guid.NewGuid());
+                    roomData.name.value = roomName;
+                    roomData.demoScene.value = roomDemoScene;
+                    roomData.version.value = version;
+                    x.roomID.value = roomData.id;
+                });
+
+                return;
+            }
+
             var room = await SupabaseAPI.CreateRoom(roomName, roomDemoScene, version);
             App.ExecuteTransaction(x =>
             {

@@ -32,7 +32,7 @@ namespace Plerion.MakeItSing
 
             _subscription = new ComposedDisposable(
                 App.state.userSettings.SubscribeOperationsRecursive(HandleSettingsChanged),
-                App.state.roomConnection.connected.Subscribe(HandleRoomChanged)
+                App.state.inRoom.Subscribe(HandleInRoomChanged)
             );
         }
 
@@ -41,7 +41,7 @@ namespace Plerion.MakeItSing
             _subscription.Dispose();
         }
 
-        private void HandleRoomChanged(bool inRoom)
+        private void HandleInRoomChanged(bool inRoom)
         {
             if (!inRoom)
                 return;

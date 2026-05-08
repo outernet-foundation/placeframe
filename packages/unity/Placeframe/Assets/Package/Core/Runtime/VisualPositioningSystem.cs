@@ -38,6 +38,7 @@ namespace Placeframe.Core
 
         public static DefaultApi Api { get; private set; }
         public static LocalizationMetrics MostRecentMetrics { get; private set; }
+        public static bool Localizing => _localizationSubscription != null;
         public static double4x4 EcefToUnityWorldTransform => _unityFromEcefTransform;
         public static double4x4 UnityWorldToEcefTransform => _ecefFromUnityTransform;
         public static event Action OnEcefToUnityWorldTransformUpdated;

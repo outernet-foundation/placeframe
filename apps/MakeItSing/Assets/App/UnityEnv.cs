@@ -11,6 +11,7 @@ namespace Plerion.MakeItSing
     public class UnityEnv : ScriptableObject
     {
         private static UnityEnv _instance;
+        public bool runInOfflineMode;
         public string supabaseProjectId;
         public string supabaseApiKey;
 

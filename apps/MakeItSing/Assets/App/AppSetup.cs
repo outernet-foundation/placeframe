@@ -87,12 +87,17 @@ namespace Plerion.MakeItSing
 #endif
 
             App.state.version.value = Application.version;
+            App.state.offlineMode.value = env.runInOfflineMode;
 
-            gameObject.AddComponent<PhotonConnectionManager>();
+            if (!App.state.offlineMode.value)
+            {
+                gameObject.AddComponent<PhotonConnectionManager>();
+                gameObject.AddComponent<LocalizationManager>();
+                gameObject.AddComponent<SupabaseContentHelper>();
+            }
+
             gameObject.AddComponent<SettingsManager>();
             gameObject.AddComponent<AppUI>();
-            gameObject.AddComponent<LocalizationManager>();
-            gameObject.AddComponent<SupabaseContentHelper>();
             gameObject.AddComponent<NotificationManager>();
 
 #if UNITY_EDITOR
@@ -116,7 +121,7 @@ namespace Plerion.MakeItSing
                     state.config.disableSystemUI.value = env.disableSystemUI;
                 });
             }
-            else
+            else if (!env.runInOfflineMode)
             {
                 InitializeConfig();
             }

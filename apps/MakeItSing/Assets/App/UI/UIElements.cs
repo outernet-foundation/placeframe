@@ -145,11 +145,6 @@ namespace Plerion.MakeItSing
             });
         }
 
-        public static IControl ConnectingToRoomUI()
-        {
-            return null;
-        }
-
         public static IControl TransformControl(TransformControlProps props)
         {
             var gameObject = new GameObject("TransformControl");

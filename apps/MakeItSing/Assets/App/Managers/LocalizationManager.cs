@@ -15,17 +15,36 @@ namespace Plerion.MakeItSing
     {
         private double MAP_LOAD_RADIUS = 100;
         private TaskHandle _updateMapsTask = TaskHandle.Complete;
-        private IDisposable _subscription;
+        private IDisposable _subscriptions;
 
         private void Awake()
         {
-            _subscription = StateObservables.SubscribeOperationsRecursive(HandleRoughGrainedLocationChanged, App.state.roughGrainedLocation, App.state.loggedIn);
+            _subscriptions = new ComposedDisposable(
+                StateObservables.SubscribeOperationsRecursive(HandleRoughGrainedLocationChanged, App.state.roughGrainedLocation, App.state.loggedIn),
+                App.state.loggedIn
+                    .ObservableSkipWhile(() => !App.state.loggedIn.value)
+                    .Subscribe(
+                        onNext: loggedIn =>
+                        {
+                            if (loggedIn)
+                            {
+                                if (!VisualPositioningSystem.Localizing)
+                                    VisualPositioningSystem.StartLocalizing(1f);
+                            }
+                            else
+                            {
+                                if (VisualPositioningSystem.Localizing)
+                                    VisualPositioningSystem.StopLocalizing();
+                            }
+                        }
+                    )
+            );
         }
 
         private void OnDestroy()
         {
             _updateMapsTask.Cancel();
-            _subscription.Dispose();
+            _subscriptions.Dispose();
         }
 
         private void HandleRoughGrainedLocationChanged(IReadOnlyList<IStateOperation> args)
