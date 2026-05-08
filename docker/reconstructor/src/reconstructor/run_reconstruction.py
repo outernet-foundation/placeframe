@@ -30,7 +30,7 @@ from numpy import asarray, ascontiguousarray, float32, random, stack, vstack
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from placeframe_api_client import ReconstructionStatus
 from pycolmap._core import set_random_seed  # noqa: PLC2701 — no public API
-from torch import Tensor, cuda, from_numpy, set_grad_enabled  # type: ignore
+from torch import Tensor, cuda, from_numpy, inference_mode  # type: ignore
 
 from .colmap import run_colmap_reconstruction
 from .metrics_builder import MetricsBuilder
@@ -67,9 +67,6 @@ _aliked_model: Any = None
 def load_models():
     print(f"Using device: {DEVICE}")
 
-    # Turn off gradient calculations globally (we only do inference here)
-    set_grad_enabled(False)
-
     global _aliked_model, global_descriptor_extractor, local_feature_extractor, local_feature_matcher
     _aliked_model = load_aliked(device=DEVICE)
     global_descriptor_extractor = make_global_descriptor_extractor(load_DIR(DEVICE))
@@ -77,6 +74,7 @@ def load_models():
     local_feature_matcher = make_local_feature_matcher_for_arrays(load_lightglue(DEVICE), DEVICE)
 
 
+@inference_mode()
 def run_reconstruction(
     reconstruction_id: UUID,
     capture_id: UUID,

@@ -32,6 +32,16 @@ WHITENV = None
 WHITENM = 1.0
 
 
+def _freeze[M: Module](module: M) -> M:
+    # Mark every parameter as not requiring grad. With this, forward passes produce tensors with
+    # requires_grad=False regardless of the ambient grad-mode flag — which matters because
+    # torch.set_grad_enabled / no_grad / inference_mode are all thread-local, and these models are
+    # invoked from asyncio executor threads where the main-thread flag does not apply.
+    for p in module.parameters():
+        p.requires_grad_(False)
+    return module
+
+
 class _DIRNet(Protocol):
     preprocess: Mapping[str, Any]
     pca: Mapping[str, Any]
@@ -87,7 +97,7 @@ def load_DIR(device: str = "cpu"):
     dir: DIR = DIR().to(device).eval()
     torch.load = _orig_load
 
-    return dir
+    return _freeze(dir)
 
 
 def load_aliked(
@@ -104,7 +114,7 @@ def load_aliked(
     if max_num_keypoints is not None:
         conf["max_num_keypoints"] = max_num_keypoints
 
-    return ALIKED(**conf).eval().to(device)
+    return _freeze(ALIKED(**conf).eval().to(device))
 
 
 def load_lightglue(device: str = "cpu"):
@@ -138,4 +148,4 @@ def load_lightglue(device: str = "cpu"):
     #
     # If the localizer's query distribution shifts toward harder regimes (sparse features, motion
     # blur, large viewpoint deltas), V3 may become net-positive — re-sweep before adopting.
-    return LightGlue(features="aliked", width_confidence=-1, depth_confidence=0.95, mp=True).eval().to(device)
+    return _freeze(LightGlue(features="aliked", width_confidence=-1, depth_confidence=0.95, mp=True).eval().to(device))

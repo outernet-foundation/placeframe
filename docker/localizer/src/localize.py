@@ -26,7 +26,7 @@ from pycolmap import AbsolutePoseEstimationOptions, RANSACOptions
 from pycolmap import Camera as ColmapCamera
 from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose, set_random_seed  # type: ignore  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
-from torch import Tensor, cuda, manual_seed, topk  # type: ignore
+from torch import Tensor, cuda, inference_mode, manual_seed, topk  # type: ignore
 
 from .build_metrics import build_localization_metrics
 from core.calibration import CalibrationArtifact
@@ -60,12 +60,8 @@ def load_models():
         return
 
     from neural_networks.models import load_aliked, load_DIR, load_lightglue
-    from torch import set_grad_enabled
 
     print(f"Using device: {DEVICE}")
-
-    # Turn off gradient calculations globally (we only do inference here)
-    set_grad_enabled(False)
 
     global global_descriptor_extractor, local_feature_extractor, local_feature_matcher
     global_descriptor_extractor = make_global_descriptor_extractor(load_DIR(DEVICE))
@@ -73,6 +69,7 @@ def load_models():
     local_feature_matcher = make_local_feature_matcher_for_tensors(load_lightglue(DEVICE), DEVICE)
 
 
+@inference_mode()
 def localize_image_against_reconstruction(
     map: Map,
     camera: PinholeCameraConfig,
