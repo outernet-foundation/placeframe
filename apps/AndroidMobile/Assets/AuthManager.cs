@@ -53,15 +53,6 @@ namespace Placeframe.Client
             Logger<LogGroup>.EnableLoki(
                 domain,
                 tokenProvider: () => Auth.GetOrRefreshToken(),
-                labels: new[]
-                {
-                    ("app", "capture-tool"),
-#if UNITY_EDITOR
-                    ("platform", "editor"),
-#else
-                    ("platform", "android-mobile"),
-#endif
-                },
                 handler: InternetBoundHandler.Create()
             );
 

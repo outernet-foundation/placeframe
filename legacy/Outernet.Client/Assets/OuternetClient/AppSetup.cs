@@ -27,13 +27,27 @@ namespace Outernet.Client
         static void Initialize()
         {
             UnityEngine.Debug.Log($"[BuildInfo] {Application.version}");
-            Logger<LogGroup>.Initialize(suppressErrors: new[]
-            {
-                "Error: MLCamera.InternalGetFramePose failed to get camera frame pose. Reason: MLResult_PoseNotFound",
-                "Error: MLCVCameraGetFramePose in the Magic Leap API failed. Reason: MLResult_PoseNotFound",
-                "Error: XrBeginPlaneDetection in the Magic Leap API failed. Reason: SpaceNotLocatableEXT",
-                "OPENGL NATIVE PLUG-IN ERROR: GL_INVALID_ENUM",
-            });
+            Logger<LogGroup>.Initialize(
+                labels: new[]
+                {
+                    ("app", "outernet-client"),
+#if UNITY_EDITOR
+                    ("platform", "editor"),
+#elif MAGIC_LEAP
+                    ("platform", "magic-leap"),
+#elif OUTERNET_ANDROID_MOBILE
+                    ("platform", "android-mobile"),
+#else
+                    ("platform", "unknown"),
+#endif
+                },
+                suppressErrors: new[]
+                {
+                    "Error: MLCamera.InternalGetFramePose failed to get camera frame pose. Reason: MLResult_PoseNotFound",
+                    "Error: MLCVCameraGetFramePose in the Magic Leap API failed. Reason: MLResult_PoseNotFound",
+                    "Error: XrBeginPlaneDetection in the Magic Leap API failed. Reason: SpaceNotLocatableEXT",
+                    "OPENGL NATIVE PLUG-IN ERROR: GL_INVALID_ENUM",
+                });
 
             Log.enabledLogGroups = ~LogGroup.None;
             Log.logLevel = LogLevel.Info;

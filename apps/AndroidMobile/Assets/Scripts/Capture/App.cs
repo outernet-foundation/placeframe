@@ -29,7 +29,15 @@ namespace Placeframe.Client
 
         protected override void Awake()
         {
-            Logger<LogGroup>.Initialize();
+            Logger<LogGroup>.Initialize(labels: new[]
+            {
+                ("app", "capture-tool"),
+#if UNITY_EDITOR
+                ("platform", "editor"),
+#else
+                ("platform", "android-mobile"),
+#endif
+            });
             sceneReferences.Initialize();
 
             Application.targetFrameRate = 120;

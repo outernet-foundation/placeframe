@@ -20,16 +20,20 @@ namespace Outernet.Logging
 
         private static IDisposable subscriptions;
         private static IReadOnlyList<string> benignErrorSubstrings = Array.Empty<string>();
+        private static LokiSink _lokiSink;
 
-        public static void Initialize(IEnumerable<string> suppressErrors = null)
+        public static void Initialize(IEnumerable<(string key, string value)> labels, IEnumerable<string> suppressErrors = null)
         {
             benignErrorSubstrings = suppressErrors != null ? new List<string>(suppressErrors) : Array.Empty<string>();
             _deviceName = SystemInfo.deviceName;
+
+            _lokiSink = new LokiSink(labels);
 
             logger = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
                 .Enrich.With<Enricher<TLogGroup>>()
                 .WriteTo.Unity<TLogGroup>()
+                .WriteTo.Sink(_lokiSink)
                 .CreateLogger();
 
             defaultUnityLogHandler = Debug.unityLogger.logHandler;
@@ -71,20 +75,15 @@ namespace Outernet.Logging
             ObservableSystem.RegisterUnhandledExceptionHandler(exception => Log<TLogGroup>.Error(exception, "R3 subscription unhandled exception"));
         }
 
-        public static void EnableLoki(string domain, Func<UniTask<string>> tokenProvider, IEnumerable<(string key, string value)> labels, HttpMessageHandler handler = null)
+        public static void EnableLoki(string domain, Func<UniTask<string>> tokenProvider, HttpMessageHandler handler = null)
         {
-            var previous = logger;
-            logger = new LoggerConfiguration()
-                .MinimumLevel.Verbose()
-                .Enrich.With<Enricher<TLogGroup>>()
-                .WriteTo.Unity<TLogGroup>()
-                .WriteTo.Loki(domain, tokenProvider, labels, handler)
-                .CreateLogger();
-            previous.Dispose();
+            _lokiSink.Enable(domain, tokenProvider, handler);
         }
 
         public static void Terminate()
         {
+            _lokiSink?.Dispose();
+            _lokiSink = null;
             subscriptions.Dispose();
             logger.Dispose();
         }
