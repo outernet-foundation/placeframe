@@ -4,7 +4,7 @@ using System;
 using Cysharp.Threading.Tasks;
 using Placeframe.Core;
 using SimpleJSON;
-using System.IO;
+using System.Linq;
 
 namespace Plerion.MakeItSing
 {
@@ -37,7 +37,7 @@ namespace Plerion.MakeItSing
             _username = EditorGUILayout.TextField("Username", _username);
             _password = EditorGUILayout.TextField("Password", _password);
             _reconstructionID = EditorGUILayout.TextField("Reconstruction ID", _reconstructionID);
-            _destination = EditorGUILayout.TextField("Save To", _destination);
+            _destination = EditorGUILayout.TextField("Output", _destination);
 
             if (GUILayout.Button("Download & Save"))
                 DownloadAndSave(_domain, _username, _password, Guid.Parse(_reconstructionID), _destination).Forget();
@@ -58,30 +58,20 @@ namespace Plerion.MakeItSing
                 await VisualPositioningSystem.Login(domain, username, password);
             }
 
-            var result = await UniTask.WhenAll(
-                VisualPositioningSystem.GetReconstructionPoints(reconstructionID),
-                VisualPositioningSystem.GetReconstructionFramePoses(reconstructionID)
-            );
+            var result = await VisualPositioningSystem.GetReconstructionPoints(reconstructionID);
 
-            JSONArray points = new JSONArray();
-            foreach (var point in result.Item1)
-            {
-                var pointJSON = new JSONObject();
-                pointJSON["position"] = JSONSerializers.ToJSON(point.position);
-                pointJSON["color"] = JSONSerializers.ToJSON((Color)point.color);
+            Mesh mesh = new Mesh();
 
-                points.Add(pointJSON);
-            }
+            mesh.SetVertices(result.Select(x => x.position).ToArray());
+            mesh.SetColors(result.Select(x => (Color)x.color).ToArray());
 
-            JSONArray frames = new JSONArray();
-            foreach (var point in result.Item2)
-                frames.Add(JSONSerializers.ToJSON(point));
+            var indices = result.Select((_, index) => index).ToArray();
 
-            var json = new JSONObject();
-            json["points"] = points;
-            json["frames"] = frames;
+            mesh.SetIndices(indices, MeshTopology.Points, 0);
+            mesh.UploadMeshData(false);
 
-            File.WriteAllText(outputPath, json.ToString());
+            AssetDatabase.CreateAsset(mesh, $"Assets/{outputPath}");
+            AssetDatabase.Refresh();
         }
     }
 }
