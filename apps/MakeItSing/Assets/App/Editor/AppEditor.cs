@@ -11,7 +11,27 @@ namespace Plerion.MakeItSing
     [CustomEditor(typeof(App))]
     public class AppInspector : Editor
     {
-        private static HashSet<string> _showStatuses = new HashSet<string>();
+        private static HashSet<string> _openFoldouts = new HashSet<string>();
+        private Dictionary<Type, Func<string, object, object>> _additionalDrawers = new Dictionary<Type, Func<string, object, object>>()
+        {
+            {
+                typeof(SceneObjectId),
+                (label, id) =>
+                {
+                    EditorGUILayout.LabelField(label, ((SceneObjectId)id).ToString());
+                    return id;
+                }
+            },
+            {
+                typeof(HighFrequencyPrimitiveId),
+                (label, id) =>
+                {
+                    EditorGUILayout.LabelField(label, ((HighFrequencyPrimitiveId)id).ToString());
+                    return id;
+                }
+            }
+        };
+
         private IDisposable _subscription;
 
         public override void OnInspectorGUI()
@@ -25,7 +45,7 @@ namespace Plerion.MakeItSing
             if (App.state == null)
                 return;
 
-            NodeEditors.DrawObservableNodeInspector(App.state, _showStatuses);
+            NodeEditors.DrawObservableNodeInspector(App.state, _openFoldouts, _additionalDrawers);
         }
 
         public void OnEnable()

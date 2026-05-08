@@ -54,13 +54,15 @@ namespace Plerion.MakeItSing
                         }
                     }
                 ),
-                App.state.loginStatus.Subscribe(
-                    onNext: status =>
-                    {
-                        if (status == LoginStatus.LoginRequested)
-                            Tasks.Login().Forget();
-                    }
-                ),
+                Observables.ObservableCombineValues(
+                    App.state.loginStatus,
+                    App.state.offlineMode,
+                    (status, offlineMode) => status == LoginStatus.LoginRequested && !offlineMode
+                ).Subscribe(shouldLogIn =>
+                {
+                    if (shouldLogIn)
+                        Tasks.Login().Forget();
+                }),
                 App.state.config.logGroups.Subscribe(x => Log<LogGroup>.enabledLogGroups = x),
                 App.state.config.logLevel.Subscribe(x => Log<LogGroup>.logLevel = x),
                 App.state.config.stackTraceLevel.Subscribe(x => Log<LogGroup>.stackTraceLevel = x)

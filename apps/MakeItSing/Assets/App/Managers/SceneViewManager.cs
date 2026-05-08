@@ -84,6 +84,6 @@ namespace Plerion.MakeItSing
         }
 
         private GameObject CreateView(string viewPrefab)
-            => Instantiate(Resources.Load<GameObject>(viewPrefab));
+            => Instantiate(Resources.Load<GameObject>(viewPrefab), transform);
     }
 }
