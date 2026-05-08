@@ -93,6 +93,15 @@ namespace Outernet.Logging
 
             var frames = (stackTrace.GetFrames() ?? Array.Empty<StackFrame>()).AsEnumerable();
 
+            var lastHiddenFrame = frames
+                .Select((value, index) => new { value, index })
+                .LastOrDefault(frame =>
+                frame.value.GetMethod() != null &&
+                frame.value.GetMethod().GetCustomAttributes(typeof(InnerFramesHiddenFromStackTraceAttribute), false).Length > 0);
+
+            if (lastHiddenFrame != null)
+                frames = frames.Skip(lastHiddenFrame.index + 1);
+
             return new SequenceValue(frames.Select(frame =>
             {
                 var method = frame.GetMethod();

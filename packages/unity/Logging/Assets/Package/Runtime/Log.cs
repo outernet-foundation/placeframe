@@ -18,9 +18,14 @@ namespace Outernet.Logging
             enabledLogGroups = (TLogGroup)(object)~0;
         }
 
+        public static bool LogEnabled(LogLevel level, TLogGroup group)
+        {
+            return level >= logLevel && enabledLogGroups.HasFlag(group);
+        }
+
         private static void LogBase(LogLevel level, TLogGroup group, Exception exception, string messageTemplate, params object[] propertyValues)
         {
-            if (level < logLevel || !enabledLogGroups.HasFlag(group)) return;
+            if (!LogEnabled(level, group)) return;
 
             LogHandler(level, group, exception, messageTemplate, propertyValues);
         }
@@ -47,7 +52,7 @@ namespace Outernet.Logging
 
         public static void DoLog(LogLevel level, TLogGroup group, Exception exception)
         {
-            if (level < logLevel || !enabledLogGroups.HasFlag(group)) return;
+            if (!LogEnabled(level, group)) return;
 
             LogBase(level, group, exception, null, null);
         }
@@ -158,6 +163,12 @@ namespace Outernet.Logging
         public static void Warn(string messageTemplate, Exception exception, params object[] propertyValues)
         {
             LogBase(LogLevel.Warn, default, exception, messageTemplate, propertyValues);
+        }
+
+        [InnerFramesHiddenFromStackTrace]
+        public static void Error(TLogGroup group, Exception exception, params object[] propertyValues)
+        {
+            LogBase(LogLevel.Error, group, exception, null, propertyValues);
         }
 
         [InnerFramesHiddenFromStackTrace]

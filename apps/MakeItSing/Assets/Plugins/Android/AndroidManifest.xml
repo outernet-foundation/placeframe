@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.unity3d.player" xmlns:tools="http://schemas.android.com/tools">
+  <!-- Required permissions for Wi-Fi scanning and location access -->
+  <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+  <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+  <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
+  <!-- Other permissions -->
+  <uses-permission android:name="android.permission.CAMERA" />
+  <uses-permission android:name="com.magicleap.permission.SPATIAL_MAPPING" />
+  <uses-permission android:name="com.magicleap.permission.SPATIAL_ANCHOR" />
+  <uses-permission android:name="com.magicleap.permission.HAND_TRACKING" />
+  <application>
+    <activity android:name="com.unity3d.player.UnityPlayerActivity" android:theme="@style/UnityThemeSelector">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+      <meta-data android:name="unityplayer.UnityActivity" android:value="true" />
+    </activity>
+  </application>
+  <uses-permission android:name="com.magicleap.permission.EYE_TRACKING" />
+  <uses-permission android:name="com.magicleap.permission.PUPIL_SIZE" />
+  <uses-permission android:name="com.magicleap.permission.EYE_CAMERA" />
+</manifest>
