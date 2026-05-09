@@ -154,6 +154,8 @@ services:
     environment:
       PUBLIC_URL: "https://${PUBLIC_DOMAIN:?err}"
       KEYCLOAK_ACCESS_TOKEN_LIFESPAN: "${KEYCLOAK_ACCESS_TOKEN_LIFESPAN:?err}"
+      KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT: "${KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT:?err}"
+      KEYCLOAK_SSO_SESSION_MAX_LIFESPAN: "${KEYCLOAK_SSO_SESSION_MAX_LIFESPAN:?err}"
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_HOSTNAME: "https://${PUBLIC_DOMAIN:?err}/auth"
@@ -240,7 +242,7 @@ services:
       AUTH_ISSUER_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev"
       AUTH_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth"
       AUTH_TOKEN_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
-      AUTH_CERTS_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/certs"
+      AUTH_CERTS_URL: "http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs"
       POSTGRES_HOST: "${POSTGRES_HOST:?err}"
       DATABASE_NAME: "${DATABASE_NAME:?err}"
       DATABASE_API_USER: "${DATABASE_NAME:?err}_api_user"
