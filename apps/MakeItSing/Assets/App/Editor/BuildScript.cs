@@ -140,7 +140,7 @@ namespace Plerion
 
             Placeframe.BuildUtility.BuildPlayer(new BuildPlayerOptions
             {
-                scenes = new string[] { "Assets/OuternetClient/Main.unity" },
+                scenes = new string[] { "Assets/App/Scenes/Main.unity" },
                 locationPathName = outputPath,
                 target = (BuildTarget)Enum.Parse(typeof(BuildTarget), "Android"),
                 targetGroup = (BuildTargetGroup)Enum.Parse(typeof(BuildTargetGroup), "Android"),
