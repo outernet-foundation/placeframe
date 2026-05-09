@@ -38,9 +38,11 @@ namespace Plerion.MakeItSing
 
             var env = UnityEnv.GetOrCreateInstance();
 
+#if UNITY_EDITOR
             Log<LogGroup>.enabledLogGroups = env.logGroups;
             Log<LogGroup>.logLevel = env.logLevel;
             Log<LogGroup>.stackTraceLevel = env.stackTraceLevel;
+#endif
 
             Log<LogGroup>.Info($"Build {Application.version}");
 
@@ -82,7 +84,9 @@ namespace Plerion.MakeItSing
 #endif
 
             App.state.version.value = Application.version;
+#if UNITY_EDITOR
             App.state.offlineMode.value = env.runInOfflineMode;
+#endif
 
             if (!App.state.offlineMode.value)
             {
