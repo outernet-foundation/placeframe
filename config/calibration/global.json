@@ -1,90 +1,46 @@
 {
-  "_note": "Known-bad single-capture starter. Produced by `uv run fit-calibration --captures 2d1451aa-e03f-432d-b083-d1c18cad5367 --held-out-count 30` against capture phase3-chunk9-starter (188ab02e tar). 31 samples, all succeeded → `tight` is degenerate (all weights zero, intercept -30 sends sigmoid to ~0 for any input) because there are no negative samples to fit on. `loose` carries real signal on log_inliers and log_num_matches; isotonic output saturates at 0.5. sigma_meas alpha/beta are real-fit and load-bearing. loose_min=0.25 sits in the gap between the loose=0 failure cluster and the loose=0.5 success cluster; tight_min=0.0 disables the tight gate (any non-zero value would reject every localization given the degenerate tight model). Use only for chunk 10 bring-up; replace via multi-capture corpus run (Phase 3 deferred follow-up).",
-  "schema_version": 1,
-  "pipeline_version": "2b25c97cf668292945c8bb3db545b933722620a3",
-  "fit_at": "2026-05-03T19:18:33.412655+00:00",
-  "fit_by": "scripts/fit_calibration.py",
-  "sample_count": 31,
+  "_note": "Placeholder calibration. All weights/breakpoints zeroed; values are deliberately not load-bearing. Replace via `uv run fit-calibration` against a real capture corpus before relying on tight/loose tolerance gates. pipeline_version pinned to the localizer image's baked GIT_COMMIT_SHA so load_global_calibration's pipeline-version check passes; refit and update if the localizer image is rebuilt at a different commit.",
+  "schema_version": 2,
+  "pipeline_version": "eee743d422f34b643eefeb9579dc1af21d5d9189",
+  "fit_at": "2026-05-08T00:00:00+00:00",
+  "fit_by": "manual placeholder",
+  "sample_count": 0,
   "tight": {
-    "logistic_weights": [
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0,
-      0.0
-    ],
-    "logistic_intercept": -30.0,
-    "logistic_feature_names": [
-      "log_inliers",
-      "inlier_ratio",
-      "reproj_err_norm",
-      "inlier_coverage",
-      "log_num_matches",
-      "log_map_image_count",
-      "log_map_point_count",
-      "map_avg_track_length",
-      "log_map_bounding_volume_m3",
-      "map_viewpoint_diversity",
-      "is_indoor"
-    ],
-    "isotonic_x_breakpoints": [
-      0.0,
-      1.0
-    ],
-    "isotonic_y_breakpoints": [
-      0.0,
-      1.0
-    ]
+    "logistic_weights": {
+      "log_inliers": 0.0,
+      "inlier_ratio": 0.0,
+      "reproj_err_norm": 0.0,
+      "inlier_coverage": 0.0,
+      "log_num_matches": 0.0,
+      "log_map_image_count": 0.0,
+      "log_map_point_count": 0.0,
+      "map_avg_track_length": 0.0,
+      "log_map_bounding_volume_m3": 0.0,
+      "map_viewpoint_diversity": 0.0
+    },
+    "logistic_intercept": 0.0,
+    "isotonic_x_breakpoints": [],
+    "isotonic_y_breakpoints": []
   },
   "loose": {
-    "logistic_weights": [
-      1.844770492263194,
-      0.120831054409635,
-      -0.0006720109354869056,
-      0.21689499990337363,
-      1.117814558507226,
-      -0.0005950958828874779,
-      -0.0012009281203117885,
-      -0.0007553207216149006,
-      -0.0004241728288260346,
-      -0.00007198415690548183,
-      0.0
-    ],
-    "logistic_intercept": -28.1467741275829,
-    "logistic_feature_names": [
-      "log_inliers",
-      "inlier_ratio",
-      "reproj_err_norm",
-      "inlier_coverage",
-      "log_num_matches",
-      "log_map_image_count",
-      "log_map_point_count",
-      "map_avg_track_length",
-      "log_map_bounding_volume_m3",
-      "map_viewpoint_diversity",
-      "is_indoor"
-    ],
-    "isotonic_x_breakpoints": [
-      0.0017583237542906946,
-      0.6908876400801534,
-      0.7130219763798957,
-      0.7982889988234781
-    ],
-    "isotonic_y_breakpoints": [
-      0.0,
-      0.0,
-      0.5,
-      0.5
-    ]
+    "logistic_weights": {
+      "log_inliers": 0.0,
+      "inlier_ratio": 0.0,
+      "reproj_err_norm": 0.0,
+      "inlier_coverage": 0.0,
+      "log_num_matches": 0.0,
+      "log_map_image_count": 0.0,
+      "log_map_point_count": 0.0,
+      "map_avg_track_length": 0.0,
+      "log_map_bounding_volume_m3": 0.0,
+      "map_viewpoint_diversity": 0.0
+    },
+    "logistic_intercept": 0.0,
+    "isotonic_x_breakpoints": [],
+    "isotonic_y_breakpoints": []
   },
-  "sigma_meas_alpha": 32.02003412838375,
-  "sigma_meas_beta": 2.56231605669621,
-  "loose_min": 0.25,
+  "sigma_meas_alpha": 0.0,
+  "sigma_meas_beta": 0.0,
+  "loose_min": 0.0,
   "tight_min": 0.0
 }
