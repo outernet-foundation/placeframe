@@ -125,3 +125,20 @@ class ReconstructionOptions(BaseModel):
             "Smaller values = stronger priors."
         ),
     )
+    max_keypoints_per_image: Optional[int] = Field(
+        default=None,
+        description=(
+            "Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode). "
+            "If None, a sensible default is used."
+        ),
+    )
+    held_out_frame_timestamps: Optional[list[int]] = Field(
+        default=None,
+        description=(
+            "Frame timestamps (Unix milliseconds, matching the first column of each rig's frames.csv) "
+            "to exclude from this reconstruction. Held-out frames never enter the rig's frame_poses, so "
+            "their images are skipped during feature extraction, pair generation, and SfM. Used by "
+            "calibration to build a map without specific frames so those frames can later be localized "
+            "as held-out queries."
+        ),
+    )

@@ -7,41 +7,56 @@ import tempfile
 from pathlib import Path
 from subprocess import CalledProcessError
 
-from common.bash import bash, bash_check
+from common.bash import bash, bash_check, bash_pipe
 
 
 def _posix(path: Path) -> str:
     return path.as_posix() if platform.system() == "Windows" else str(path)
 
 
-def restore(registry: str, name: str, tag: str, target_directory: Path, *, required: bool = False) -> bool:
-    reference = f"{registry}/{name}:{tag}"
+def restore(
+    registry: str,
+    name: str,
+    tag: str,
+    target_directory: Path,
+    *,
+    required: bool = False,
+    fallback_tags: list[str] | None = None,
+) -> bool:
     staging = Path(tempfile.gettempdir()) / "cache"
-    staging.mkdir(parents=True, exist_ok=True)
 
-    hit = bash_check(f"oras pull {reference} -o {staging}")
+    for candidate_tag in [tag, *(fallback_tags or [])]:
+        if candidate_tag != tag:
+            print(f"Falling back to {name}:{candidate_tag}")
 
-    if hit:
+        reference = f"{registry}/{name}:{candidate_tag}"
+        staging.mkdir(parents=True, exist_ok=True)
+
+        if not bash_check(f"oras pull {reference} -o {staging}"):
+            shutil.rmtree(staging, ignore_errors=True)
+            continue
+
         archive = staging / f"{name}.tar.zst"
         try:
             if platform.system() == "Windows":
-                bash(f"zstd -d {_posix(archive)} --stdout | tar -xf - -C {_posix(target_directory)}")
+                bash_pipe(f"zstd -d {_posix(archive)} --stdout", f"tar -xf - -C {_posix(target_directory)}")
             else:
                 bash(f"tar -xf {archive} -C {target_directory}")
         except CalledProcessError:
-            print(f"WARNING: Cache extraction failed for {name}, treating as cache miss")
-            hit = False
-        shutil.rmtree(staging)
+            print(f"WARNING: Cache extraction failed for {name}:{candidate_tag}, trying next")
+            shutil.rmtree(staging, ignore_errors=True)
+            continue
 
-    if hit:
-        print(f"Cache hit: {name}")
-    elif required:
-        print(f"FATAL: Required cache missing: {reference}")
+        shutil.rmtree(staging, ignore_errors=True)
+        print(f"Cache hit: {name}:{candidate_tag}")
+        return True
+
+    if required:
+        print(f"FATAL: Required cache missing: {registry}/{name}:{tag}")
         sys.exit(1)
-    else:
-        print(f"Cache miss: {name}")
 
-    return hit
+    print(f"Cache miss: {name}")
+    return False
 
 
 def save(registry: str, name: str, tag: str, source_directory: Path, paths: list[str]) -> None:
@@ -60,7 +75,7 @@ def save(registry: str, name: str, tag: str, source_directory: Path, paths: list
 
     joined = " ".join(resolved)
     if platform.system() == "Windows":
-        bash(f"tar -cf - {joined} | zstd -o {_posix(archive_path)}", cwd=source_directory)
+        bash_pipe(f"tar -cf - {joined}", f"zstd -o {_posix(archive_path)}", cwd=source_directory)
     else:
         bash(f"tar --zstd -cf {archive_path} {joined}", cwd=source_directory)
 

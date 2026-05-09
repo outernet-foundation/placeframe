@@ -17,8 +17,8 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict
-from typing import Any, ClassVar, Dict, List
+from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt
+from typing import Any, ClassVar, Dict, List, Optional, Union
 from placeframe_api_client.models.axis_convention import AxisConvention
 from placeframe_api_client.models.rig_config import RigConfig
 from typing import Optional, Set
@@ -31,8 +31,9 @@ class CaptureSessionManifest(BaseModel):
     """ # noqa: E501
     axis_convention: AxisConvention
     rigs: List[RigConfig]
+    capture_interval_seconds: Optional[Union[StrictFloat, StrictInt]] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["axis_convention", "rigs"]
+    __properties: ClassVar[List[str]] = ["axis_convention", "rigs", "capture_interval_seconds"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -87,6 +88,11 @@ class CaptureSessionManifest(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
+        # set to None if capture_interval_seconds (nullable) is None
+        # and model_fields_set contains the field
+        if self.capture_interval_seconds is None and "capture_interval_seconds" in self.model_fields_set:
+            _dict['capture_interval_seconds'] = None
+
         return _dict
 
     @classmethod
@@ -100,7 +106,8 @@ class CaptureSessionManifest(BaseModel):
 
         _obj = cls.model_validate({
             "axis_convention": obj.get("axis_convention"),
-            "rigs": [RigConfig.from_dict(_item) for _item in obj["rigs"]] if obj.get("rigs") is not None else None
+            "rigs": [RigConfig.from_dict(_item) for _item in obj["rigs"]] if obj.get("rigs") is not None else None,
+            "capture_interval_seconds": obj.get("capture_interval_seconds")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

@@ -1,11 +1,20 @@
+import asyncio
 from asyncio import CancelledError, run, sleep
 from pathlib import Path
 from signal import SIGTERM, signal
 from typing import Any, NoReturn, cast
 
 from common.token_manager import TokenManager
-from placeframe_api_client import ApiClient, ApiException, Configuration, DefaultApi, OrchestrationStatus
+from core.reconstruction_options import ReconstructionOptions as CoreReconstructionOptions
+from placeframe_api_client import (
+    ApiClient,
+    ApiException,
+    Configuration,
+    DefaultApi,
+)
+from placeframe_api_client import ReconstructionMetrics as ClientReconstructionMetrics
 
+from .progress_publisher import ReconstructionPublisher
 from .run_reconstruction import load_models, run_reconstruction
 from .settings import get_settings
 
@@ -22,6 +31,8 @@ async def worker_loop() -> None:
 
     async with ApiClient(configuration) as api_client:
         api = DefaultApi(api_client)
+        loop = asyncio.get_running_loop()
+
         while True:
             try:
                 token = await auth.get_token()
@@ -40,21 +51,35 @@ async def worker_loop() -> None:
                         await sleep(POLL_INTERVAL_SECONDS)
                         continue
 
-                lease_id = lease.reconstruction_id
                 reconstruction_id = lease.reconstruction_id
                 capture_id = lease.capture_session_id
-                print(f"[{lease_id}] Acquired lease")
+                options = CoreReconstructionOptions.model_validate(lease.options.model_dump())
+                print(f"[{reconstruction_id}] Acquired lease")
+
+                publisher = ReconstructionPublisher(api, loop, reconstruction_id)
 
                 try:
-                    run_reconstruction(reconstruction_id, capture_id)
-                    print(f"[{lease_id}] Reconstruction succeeded")
+                    # run_reconstruction is sync and CPU/GPU-bound; push it to a thread so the
+                    # event loop stays live for progress writes the publisher dispatches back.
+                    metrics = await loop.run_in_executor(
+                        None,
+                        run_reconstruction,
+                        reconstruction_id,
+                        capture_id,
+                        options,
+                        publisher,
+                    )
+                    print(f"[{reconstruction_id}] Reconstruction succeeded")
 
-                    await api.complete_lease(lease_id, OrchestrationStatus.SUCCEEDED)
+                    await api.succeed_lease(
+                        reconstruction_id,
+                        ClientReconstructionMetrics.model_validate(metrics.model_dump()),
+                    )
 
                 except Exception as e:
-                    print(f"[{lease_id}] Reconstruction failed: {e}")
+                    print(f"[{reconstruction_id}] Reconstruction failed: {e}")
 
-                    await api.complete_lease(lease_id, OrchestrationStatus.FAILED)
+                    await api.fail_lease(reconstruction_id, str(e))
 
             except CancelledError:
                 print("Worker loop cancelled. Shutting down...")
@@ -69,7 +94,7 @@ def handle_sigterm(signum: int, frame: Any) -> NoReturn:
 
 
 def main() -> None:
-    load_models(settings.max_keypoints_per_image)
+    load_models()
 
     # Register the signal handler for graceful Docker shutdowns
     signal(SIGTERM, handle_sigterm)

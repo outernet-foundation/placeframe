@@ -254,19 +254,19 @@ namespace Outernet.Client.AuthoringTools
             {
                 await UniTask.WhenAll(
                     toPersist.insertedMaps.Count != 0 ? CreateLocalizationMapsAsync(toPersist.insertedMaps) : UniTask.CompletedTask,
-                    toPersist.updatedMaps.Count != 0 ? App.API.UpdateLocalizationMapsAsync(toPersist.updatedMaps).AsUniTask() : UniTask.CompletedTask,
-                    toPersist.deletedMaps.Count != 0 ? App.API.DeleteLocalizationMapsAsync(toPersist.deletedMaps).AsUniTask() : UniTask.CompletedTask,
-                    toPersist.deletedGroups.Count != 0 ? App.API.DeleteGroupsAsync(toPersist.deletedGroups, cascade: true).AsUniTask() : UniTask.CompletedTask,
-                    toPersist.deletedLayers.Count != 0 ? App.API.DeleteLayersAsync(toPersist.deletedLayers).AsUniTask() : UniTask.CompletedTask,
-                    toPersist.deletedNodes.Count != 0 ? App.API.DeleteNodesAsync(toPersist.deletedNodes).AsUniTask() : UniTask.CompletedTask,
+                    toPersist.updatedMaps.Count != 0 ? App.API.UpdateLocalizationMapsAsync(toPersist.updatedMaps) : UniTask.CompletedTask,
+                    toPersist.deletedMaps.Count != 0 ? App.API.DeleteLocalizationMapsAsync(toPersist.deletedMaps) : UniTask.CompletedTask,
+                    toPersist.deletedGroups.Count != 0 ? App.API.DeleteGroupsAsync(toPersist.deletedGroups, cascade: true) : UniTask.CompletedTask,
+                    toPersist.deletedLayers.Count != 0 ? App.API.DeleteLayersAsync(toPersist.deletedLayers) : UniTask.CompletedTask,
+                    toPersist.deletedNodes.Count != 0 ? App.API.DeleteNodesAsync(toPersist.deletedNodes) : UniTask.CompletedTask,
                     (toPersist.insertedLayers.Count != 0 ? CreateLayersAsync(toPersist.insertedLayers) : UniTask.CompletedTask)
                         .ContinueWith(() => toPersist.insertedGroups.Count != 0 || toPersist.insertedNodes.Count != 0 ?
-                            App.API.CreateGraphAsync(new CreateGraphRequest() { Groups = toPersist.insertedGroups, Nodes = toPersist.insertedNodes }).AsUniTask() : UniTask.CompletedTask
+                            App.API.CreateGraphAsync(new CreateGraphRequest() { Groups = toPersist.insertedGroups, Nodes = toPersist.insertedNodes }) : UniTask.CompletedTask
                         )
                         .ContinueWith(() => UniTask.WhenAll(
-                            toPersist.updatedLayers.Count != 0 ? App.API.UpdateLayersAsync(toPersist.updatedLayers).AsUniTask() : UniTask.CompletedTask,
-                            toPersist.updatedGroups.Count != 0 ? App.API.UpdateGroupsAsync(toPersist.updatedGroups).AsUniTask() : UniTask.CompletedTask,
-                            toPersist.updatedNodes.Count != 0 ? App.API.UpdateNodesAsync(toPersist.updatedNodes).AsUniTask() : UniTask.CompletedTask
+                            toPersist.updatedLayers.Count != 0 ? App.API.UpdateLayersAsync(toPersist.updatedLayers) : UniTask.CompletedTask,
+                            toPersist.updatedGroups.Count != 0 ? App.API.UpdateGroupsAsync(toPersist.updatedGroups) : UniTask.CompletedTask,
+                            toPersist.updatedNodes.Count != 0 ? App.API.UpdateNodesAsync(toPersist.updatedNodes) : UniTask.CompletedTask
                         ))
                 );
             }
@@ -278,19 +278,19 @@ namespace Outernet.Client.AuthoringTools
         }
 
         private UniTask CreateNodesAsync(List<NodeCreate> nodes)
-            => UniTask.WhenAll(nodes.Select(x => App.API.CreateNodeAsync(x).AsUniTask()));
+            => UniTask.WhenAll(nodes.Select(x => App.API.CreateNodeAsync(x)));
 
         private async UniTask CreateGroupsAsync(List<GroupCreate> groups)
         {
             foreach (var group in groups)
-                await App.API.CreateGroupAsync(group).AsUniTask();
+                await App.API.CreateGroupAsync(group);
         }
 
         private UniTask CreateLocalizationMapsAsync(List<LocalizationMapCreate> localizationMaps)
-            => UniTask.WhenAll(localizationMaps.Select(x => App.API.CreateLocalizationMapAsync(x).AsUniTask()));
+            => UniTask.WhenAll(localizationMaps.Select(x => App.API.CreateLocalizationMapAsync(x)));
 
         private UniTask CreateLayersAsync(List<LayerCreate> layers)
-            => UniTask.WhenAll(layers.Select(x => App.API.CreateLayerAsync(x).AsUniTask()));
+            => UniTask.WhenAll(layers.Select(x => App.API.CreateLayerAsync(x)));
 
         private void UpdateHasUnsavedChangesIfNecessary()
         {

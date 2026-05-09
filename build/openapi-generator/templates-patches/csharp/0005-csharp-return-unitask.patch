@@ -1,0 +1,62 @@
+diff --git a/build/openapi-generator/templates-generated/csharp/libraries/httpclient/api.mustache b/build/openapi-generator/templates-generated/csharp/libraries/httpclient/api.mustache
+index a3070908..785bf28f 100644
+--- a/build/openapi-generator/templates-generated/csharp/libraries/httpclient/api.mustache
++++ b/build/openapi-generator/templates-generated/csharp/libraries/httpclient/api.mustache
+@@ -7,6 +7,7 @@ using System.Linq;
+ using System.Net;
+ using System.Net.Http;
+ using System.Net.Mime;
++using Cysharp.Threading.Tasks;
+ using {{packageName}}.Client;
+ {{#hasImport}}using {{packageName}}.{{modelPackage}};
+ {{/hasImport}}
+@@ -78,7 +79,7 @@ namespace {{packageName}}.{{apiPackage}}
+         {{#isDeprecated}}
+         [Obsolete]
+         {{/isDeprecated}}
+-        {{#returnType}}System.Threading.Tasks.Task<{{{.}}}>{{/returnType}}{{^returnType}}System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async({{#allParams}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = default{{/optionalMethodArgument}}{{/required}}{{^-last}}, {{/-last}}{{/allParams}}{{#allParams.0}}, {{/allParams.0}}System.Threading.CancellationToken cancellationToken = default);
++        {{#returnType}}Cysharp.Threading.Tasks.UniTask<{{{.}}}>{{/returnType}}{{^returnType}}Cysharp.Threading.Tasks.UniTask{{/returnType}} {{operationId}}Async({{#allParams}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = default{{/optionalMethodArgument}}{{/required}}{{^-last}}, {{/-last}}{{/allParams}}{{#allParams.0}}, {{/allParams.0}}System.Threading.CancellationToken cancellationToken = default);
+ 
+         /// <summary>
+         /// {{summary}}
+@@ -95,7 +96,7 @@ namespace {{packageName}}.{{apiPackage}}
+         {{#isDeprecated}}
+         [Obsolete]
+         {{/isDeprecated}}
+-        System.Threading.Tasks.Task<ApiResponse<{{{returnType}}}{{^returnType}}Object{{/returnType}}>> {{operationId}}WithHttpInfoAsync({{#allParams}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = default{{/optionalMethodArgument}}{{/required}}{{^-last}}, {{/-last}}{{/allParams}}{{#allParams.0}}, {{/allParams.0}}System.Threading.CancellationToken cancellationToken = default);
++        Cysharp.Threading.Tasks.UniTask<ApiResponse<{{{returnType}}}{{^returnType}}Object{{/returnType}}>> {{operationId}}WithHttpInfoAsync({{#allParams}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = default{{/optionalMethodArgument}}{{/required}}{{^-last}}, {{/-last}}{{/allParams}}{{#allParams.0}}, {{/allParams.0}}System.Threading.CancellationToken cancellationToken = default);
+         {{/operation}}
+         #endregion Asynchronous Operations
+     }
+@@ -592,10 +593,10 @@ namespace {{packageName}}.{{apiPackage}}
+         {{#isDeprecated}}
+         [Obsolete]
+         {{/isDeprecated}}
+-        {{#returnType}}public async System.Threading.Tasks.Task<{{{.}}}>{{/returnType}}{{^returnType}}public async System.Threading.Tasks.Task{{/returnType}} {{operationId}}Async({{#allParams}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = default{{/optionalMethodArgument}}{{/required}}{{^-last}}, {{/-last}}{{/allParams}}{{#allParams.0}}, {{/allParams.0}}System.Threading.CancellationToken cancellationToken = default)
++        {{#returnType}}public async Cysharp.Threading.Tasks.UniTask<{{{.}}}>{{/returnType}}{{^returnType}}public async Cysharp.Threading.Tasks.UniTask{{/returnType}} {{operationId}}Async({{#allParams}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = default{{/optionalMethodArgument}}{{/required}}{{^-last}}, {{/-last}}{{/allParams}}{{#allParams.0}}, {{/allParams.0}}System.Threading.CancellationToken cancellationToken = default)
+         {
+-            {{#returnType}}{{packageName}}.Client.ApiResponse<{{{returnType}}}> localVarResponse = await {{operationId}}WithHttpInfoAsync({{#allParams}}{{paramName}}{{^-last}}, {{/-last}}{{/allParams}}{{#allParams.0}}, {{/allParams.0}}cancellationToken).ConfigureAwait(false);
+-            return localVarResponse.Data;{{/returnType}}{{^returnType}}await {{operationId}}WithHttpInfoAsync({{#allParams}}{{paramName}}{{^-last}}, {{/-last}}{{/allParams}}{{#allParams.0}}, {{/allParams.0}}cancellationToken).ConfigureAwait(false);{{/returnType}}
++            {{#returnType}}{{packageName}}.Client.ApiResponse<{{{returnType}}}> localVarResponse = await {{operationId}}WithHttpInfoAsync({{#allParams}}{{paramName}}{{^-last}}, {{/-last}}{{/allParams}}{{#allParams.0}}, {{/allParams.0}}cancellationToken);
++            return localVarResponse.Data;{{/returnType}}{{^returnType}}await {{operationId}}WithHttpInfoAsync({{#allParams}}{{paramName}}{{^-last}}, {{/-last}}{{/allParams}}{{#allParams.0}}, {{/allParams.0}}cancellationToken);{{/returnType}}
+         }
+ 
+         /// <summary>
+@@ -610,7 +611,7 @@ namespace {{packageName}}.{{apiPackage}}
+         {{#isDeprecated}}
+         [Obsolete]
+         {{/isDeprecated}}
+-        public async System.Threading.Tasks.Task<{{packageName}}.Client.ApiResponse<{{{returnType}}}{{^returnType}}Object{{/returnType}}>> {{operationId}}WithHttpInfoAsync({{#allParams}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = default{{/optionalMethodArgument}}{{/required}}{{^-last}}, {{/-last}}{{/allParams}}{{#allParams.0}}, {{/allParams.0}}System.Threading.CancellationToken cancellationToken = default)
++        public async Cysharp.Threading.Tasks.UniTask<{{packageName}}.Client.ApiResponse<{{{returnType}}}{{^returnType}}Object{{/returnType}}>> {{operationId}}WithHttpInfoAsync({{#allParams}}{{{dataType}}} {{paramName}}{{^required}}{{#optionalMethodArgument}} = default{{/optionalMethodArgument}}{{/required}}{{^-last}}, {{/-last}}{{/allParams}}{{#allParams.0}}, {{/allParams.0}}System.Threading.CancellationToken cancellationToken = default)
+         {
+             {{#allParams}}
+             {{#required}}
+@@ -828,7 +829,7 @@ namespace {{packageName}}.{{apiPackage}}
+ 
+             // make the HTTP request
+ 
+-            var localVarResponse = await this.AsynchronousClient.{{#lambda.titlecase}}{{#lambda.lowercase}}{{httpMethod}}{{/lambda.lowercase}}{{/lambda.titlecase}}Async<{{{returnType}}}{{^returnType}}Object{{/returnType}}>("{{{path}}}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
++            var localVarResponse = await this.AsynchronousClient.{{#lambda.titlecase}}{{#lambda.lowercase}}{{httpMethod}}{{/lambda.lowercase}}{{/lambda.titlecase}}Async<{{{returnType}}}{{^returnType}}Object{{/returnType}}>("{{{path}}}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+ 
+             if (this.ExceptionFactory != null)
+             {

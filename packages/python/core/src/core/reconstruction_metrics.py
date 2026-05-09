@@ -25,7 +25,7 @@ class ReconstructionMetrics(BaseModel):
     average_keypoints_per_image: Optional[float] = Field(
         default=None,
         description=(
-            "Average number of detected keypoints per image (after SuperPoint extraction), computed across all images."
+            "Average number of detected keypoints per image (after ALIKED extraction), computed across all images."
         ),
     )
     reprojection_pixel_error_50th_percentile: Optional[float] = Field(
@@ -103,4 +103,45 @@ class ReconstructionMetrics(BaseModel):
     )
     cross_sensor_verified_match_inliers_median: Optional[float] = Field(
         default=None, description="Median number of inliers for verified matches for cross-sensor pairs."
+    )
+    map_image_count: Optional[int] = Field(
+        default=None, description="Number of registered images in the reconstruction."
+    )
+    map_point_count: Optional[int] = Field(
+        default=None, description="Number of triangulated 3D points in the reconstruction."
+    )
+    map_avg_track_length: Optional[float] = Field(
+        default=None, description="Mean number of image observations per 3D point. Coarse density-of-evidence proxy."
+    )
+    map_bounding_volume_m3: Optional[float] = Field(
+        default=None,
+        description=(
+            "Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; "
+            "complements image_count which only captures coverage density."
+        ),
+    )
+    map_viewpoint_diversity: Optional[float] = Field(
+        default=None,
+        description=(
+            "1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the "
+            "same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps "
+            "from single-viewpoint maps even when the rest of the metrics agree."
+        ),
+    )
+    truth_alignment_rms_residual_m: Optional[float] = Field(
+        default=None,
+        description=(
+            "RMS over registered cameras of ||T·c_map - c_truth|| in meters, where T is the rigid Umeyama "
+            "alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: "
+            "small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large "
+            "values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies "
+            "the capture from calibration."
+        ),
+    )
+    truth_alignment_max_residual_m: Optional[float] = Field(
+        default=None,
+        description=(
+            "Maximum over registered cameras of ||T·c_map - c_truth|| in meters. Companion to the RMS "
+            "field; surfaces single-frame outliers that the RMS would smooth over."
+        ),
     )

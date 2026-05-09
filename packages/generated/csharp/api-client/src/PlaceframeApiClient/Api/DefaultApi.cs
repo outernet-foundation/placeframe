@@ -15,6 +15,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Mime;
+using Cysharp.Threading.Tasks;
 using PlaceframeApiClient.Client;
 using PlaceframeApiClient.Model;
 
@@ -28,32 +29,16 @@ namespace PlaceframeApiClient.Api
     {
         #region Synchronous Operations
         /// <summary>
-        /// CompleteLease
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <returns></returns>
-        void CompleteLease(Guid id, string body);
-
-        /// <summary>
-        /// CompleteLease
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> CompleteLeaseWithHttpInfo(Guid id, string body);
-        /// <summary>
         /// CreateCaptureSession
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureSessionCreate"></param>
+        /// <param name="deviceType"></param>
+        /// <param name="data"></param>
+        /// <param name="id"> (optional)</param>
+        /// <param name="name"> (optional)</param>
+        /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <returns>CaptureSessionRead</returns>
-        CaptureSessionRead CreateCaptureSession(CaptureSessionCreate captureSessionCreate);
+        CaptureSessionRead CreateCaptureSession(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default);
 
         /// <summary>
         /// CreateCaptureSession
@@ -62,9 +47,13 @@ namespace PlaceframeApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureSessionCreate"></param>
+        /// <param name="deviceType"></param>
+        /// <param name="data"></param>
+        /// <param name="id"> (optional)</param>
+        /// <param name="name"> (optional)</param>
+        /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <returns>ApiResponse of CaptureSessionRead</returns>
-        ApiResponse<CaptureSessionRead> CreateCaptureSessionWithHttpInfo(CaptureSessionCreate captureSessionCreate);
+        ApiResponse<CaptureSessionRead> CreateCaptureSessionWithHttpInfo(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default);
         /// <summary>
         /// CreateCaptureSessions
         /// </summary>
@@ -362,8 +351,8 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <returns>Object</returns>
-        Object DownloadCaptureSessionTar(Guid id);
+        /// <returns>FileParameter</returns>
+        FileParameter DownloadCaptureSessionTar(Guid id);
 
         /// <summary>
         /// DownloadCaptureSessionTar
@@ -373,8 +362,28 @@ namespace PlaceframeApiClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <returns>ApiResponse of Object</returns>
-        ApiResponse<Object> DownloadCaptureSessionTarWithHttpInfo(Guid id);
+        /// <returns>ApiResponse of FileParameter</returns>
+        ApiResponse<FileParameter> DownloadCaptureSessionTarWithHttpInfo(Guid id);
+        /// <summary>
+        /// FailLease
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <returns></returns>
+        void FailLease(Guid id, string body);
+
+        /// <summary>
+        /// FailLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        ApiResponse<Object> FailLeaseWithHttpInfo(Guid id, string body);
         /// <summary>
         /// GetCaptureSession
         /// </summary>
@@ -393,6 +402,62 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <returns>ApiResponse of CaptureSessionRead</returns>
         ApiResponse<CaptureSessionRead> GetCaptureSessionWithHttpInfo(Guid id);
+        /// <summary>
+        /// GetCaptureSessionFramesCsv
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>FileParameter</returns>
+        FileParameter GetCaptureSessionFramesCsv(Guid id);
+
+        /// <summary>
+        /// GetCaptureSessionFramesCsv
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        ApiResponse<FileParameter> GetCaptureSessionFramesCsvWithHttpInfo(Guid id);
+        /// <summary>
+        /// GetCaptureSessionImage
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <returns>FileParameter</returns>
+        FileParameter GetCaptureSessionImage(Guid id, int frameTimestamp);
+
+        /// <summary>
+        /// GetCaptureSessionImage
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        ApiResponse<FileParameter> GetCaptureSessionImageWithHttpInfo(Guid id, int frameTimestamp);
+        /// <summary>
+        /// GetCaptureSessionManifestFile
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>FileParameter</returns>
+        FileParameter GetCaptureSessionManifestFile(Guid id);
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        ApiResponse<FileParameter> GetCaptureSessionManifestFileWithHttpInfo(Guid id);
         /// <summary>
         /// GetCaptureSessionReconstructions
         /// </summary>
@@ -447,6 +512,22 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
         /// <returns>ApiResponse of List&lt;CaptureSessionRead&gt;</returns>
         ApiResponse<List<CaptureSessionRead>> GetCaptureSessionsWithHttpInfo(List<Guid>? ids = default);
+        /// <summary>
+        /// GetCaptureSessionsExpanded
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>CaptureSessionsExpanded</returns>
+        CaptureSessionsExpanded GetCaptureSessionsExpanded();
+
+        /// <summary>
+        /// GetCaptureSessionsExpanded
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>ApiResponse of CaptureSessionsExpanded</returns>
+        ApiResponse<CaptureSessionsExpanded> GetCaptureSessionsExpandedWithHttpInfo();
         /// <summary>
         /// GetGroups
         /// </summary>
@@ -530,6 +611,22 @@ namespace PlaceframeApiClient.Api
         /// <returns>ApiResponse of List&lt;LocalizationMapRead&gt;</returns>
         ApiResponse<List<LocalizationMapRead>> GetLocalizationMapsWithHttpInfo(List<Guid>? ids = default, List<Guid>? reconstructionIds = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default);
         /// <summary>
+        /// GetLocalizerVersion
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>string</returns>
+        string GetLocalizerVersion();
+
+        /// <summary>
+        /// GetLocalizerVersion
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>ApiResponse of string</returns>
+        ApiResponse<string> GetLocalizerVersionWithHttpInfo();
+        /// <summary>
         /// GetNodes
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -612,24 +709,6 @@ namespace PlaceframeApiClient.Api
         /// <returns>ApiResponse of Guid</returns>
         ApiResponse<Guid> GetReconstructionLocalizationMapWithHttpInfo(Guid id);
         /// <summary>
-        /// GetReconstructionManifest
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>ReconstructionManifest</returns>
-        ReconstructionManifest GetReconstructionManifest(Guid id);
-
-        /// <summary>
-        /// GetReconstructionManifest
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>ApiResponse of ReconstructionManifest</returns>
-        ApiResponse<ReconstructionManifest> GetReconstructionManifestWithHttpInfo(Guid id);
-        /// <summary>
         /// GetReconstructionPoints
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -650,32 +729,14 @@ namespace PlaceframeApiClient.Api
         /// <returns>ApiResponse of FileParameter</returns>
         ApiResponse<FileParameter> GetReconstructionPointsWithHttpInfo(Guid id, AxisConvention axisConvention);
         /// <summary>
-        /// GetReconstructionStatus
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>OrchestrationStatus</returns>
-        OrchestrationStatus GetReconstructionStatus(Guid id);
-
-        /// <summary>
-        /// GetReconstructionStatus
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>ApiResponse of OrchestrationStatus</returns>
-        ApiResponse<OrchestrationStatus> GetReconstructionStatusWithHttpInfo(Guid id);
-        /// <summary>
         /// GetReconstructions
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
-        /// <param name="captureSessionId">Optional capture session Id to filter by (optional)</param>
+        /// <param name="captureSessionIds">Optional list of capture session Ids to filter by (optional)</param>
         /// <param name="captureSessionName">Optional capture session name to filter by (optional)</param>
         /// <returns>List&lt;ReconstructionRead&gt;</returns>
-        List<ReconstructionRead> GetReconstructions(List<Guid>? ids = default, Guid? captureSessionId = default, string? captureSessionName = default);
+        List<ReconstructionRead> GetReconstructions(List<Guid>? ids = default, List<Guid>? captureSessionIds = default, string? captureSessionName = default);
 
         /// <summary>
         /// GetReconstructions
@@ -685,10 +746,30 @@ namespace PlaceframeApiClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
-        /// <param name="captureSessionId">Optional capture session Id to filter by (optional)</param>
+        /// <param name="captureSessionIds">Optional list of capture session Ids to filter by (optional)</param>
         /// <param name="captureSessionName">Optional capture session name to filter by (optional)</param>
         /// <returns>ApiResponse of List&lt;ReconstructionRead&gt;</returns>
-        ApiResponse<List<ReconstructionRead>> GetReconstructionsWithHttpInfo(List<Guid>? ids = default, Guid? captureSessionId = default, string? captureSessionName = default);
+        ApiResponse<List<ReconstructionRead>> GetReconstructionsWithHttpInfo(List<Guid>? ids = default, List<Guid>? captureSessionIds = default, string? captureSessionName = default);
+        /// <summary>
+        /// ListLocalizationEvaluations
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <returns>List&lt;LocalizationEvaluationRead&gt;</returns>
+        List<LocalizationEvaluationRead> ListLocalizationEvaluations(Guid reconstructionId, string? pipelineVersion = default);
+
+        /// <summary>
+        /// ListLocalizationEvaluations
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <returns>ApiResponse of List&lt;LocalizationEvaluationRead&gt;</returns>
+        ApiResponse<List<LocalizationEvaluationRead>> ListLocalizationEvaluationsWithHttpInfo(Guid reconstructionId, string? pipelineVersion = default);
         /// <summary>
         /// LocalizeImage
         /// </summary>
@@ -696,11 +777,11 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <returns>List&lt;MapLocalization&gt;</returns>
-        List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image);
+        List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default);
 
         /// <summary>
         /// LocalizeImage
@@ -712,11 +793,29 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <returns>ApiResponse of List&lt;MapLocalization&gt;</returns>
-        ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image);
+        ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default);
+        /// <summary>
+        /// PushZedBoxLogs
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="logRelayBatch"></param>
+        /// <returns></returns>
+        void PushZedBoxLogs(LogRelayBatch logRelayBatch);
+
+        /// <summary>
+        /// PushZedBoxLogs
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="logRelayBatch"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        ApiResponse<Object> PushZedBoxLogsWithHttpInfo(LogRelayBatch logRelayBatch);
         /// <summary>
         /// RequestLease
         /// </summary>
@@ -733,6 +832,44 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <returns>ApiResponse of LeaseResponse</returns>
         ApiResponse<LeaseResponse> RequestLeaseWithHttpInfo();
+        /// <summary>
+        /// RetryReconstruction
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ReconstructionRead</returns>
+        ReconstructionRead RetryReconstruction(Guid id);
+
+        /// <summary>
+        /// RetryReconstruction
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of ReconstructionRead</returns>
+        ApiResponse<ReconstructionRead> RetryReconstructionWithHttpInfo(Guid id);
+        /// <summary>
+        /// SucceedLease
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <returns></returns>
+        void SucceedLease(Guid id, ReconstructionMetrics reconstructionMetrics);
+
+        /// <summary>
+        /// SucceedLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        ApiResponse<Object> SucceedLeaseWithHttpInfo(Guid id, ReconstructionMetrics reconstructionMetrics);
         /// <summary>
         /// UpdateCaptureSession
         /// </summary>
@@ -874,25 +1011,45 @@ namespace PlaceframeApiClient.Api
         /// <returns>ApiResponse of List&lt;NodeRead&gt;</returns>
         ApiResponse<List<NodeRead>> UpdateNodesWithHttpInfo(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default);
         /// <summary>
-        /// UploadCaptureSessionTar
+        /// UpdateProgress
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="progressUpdate"></param>
         /// <returns></returns>
-        void UploadCaptureSessionTar(Guid id, FileParameter? file = default);
+        void UpdateProgress(Guid id, ProgressUpdate progressUpdate);
 
         /// <summary>
-        /// UploadCaptureSessionTar
+        /// UpdateProgress
         /// </summary>
         /// <remarks>
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="progressUpdate"></param>
         /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> UploadCaptureSessionTarWithHttpInfo(Guid id, FileParameter? file = default);
+        ApiResponse<Object> UpdateProgressWithHttpInfo(Guid id, ProgressUpdate progressUpdate);
+        /// <summary>
+        /// UpsertLocalizationEvaluation
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <returns>LocalizationEvaluationRead</returns>
+        LocalizationEvaluationRead UpsertLocalizationEvaluation(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate);
+
+        /// <summary>
+        /// UpsertLocalizationEvaluation
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <returns>ApiResponse of LocalizationEvaluationRead</returns>
+        ApiResponse<LocalizationEvaluationRead> UpsertLocalizationEvaluationWithHttpInfo(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate);
         #endregion Synchronous Operations
     }
 
@@ -903,41 +1060,20 @@ namespace PlaceframeApiClient.Api
     {
         #region Asynchronous Operations
         /// <summary>
-        /// CompleteLease
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task CompleteLeaseAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// CompleteLease
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> CompleteLeaseWithHttpInfoAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default);
-        /// <summary>
         /// CreateCaptureSession
         /// </summary>
         /// <remarks>
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureSessionCreate"></param>
+        /// <param name="deviceType"></param>
+        /// <param name="data"></param>
+        /// <param name="id"> (optional)</param>
+        /// <param name="name"> (optional)</param>
+        /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of CaptureSessionRead</returns>
-        System.Threading.Tasks.Task<CaptureSessionRead> CreateCaptureSessionAsync(CaptureSessionCreate captureSessionCreate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<CaptureSessionRead> CreateCaptureSessionAsync(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// CreateCaptureSession
@@ -946,10 +1082,14 @@ namespace PlaceframeApiClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureSessionCreate"></param>
+        /// <param name="deviceType"></param>
+        /// <param name="data"></param>
+        /// <param name="id"> (optional)</param>
+        /// <param name="name"> (optional)</param>
+        /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (CaptureSessionRead)</returns>
-        System.Threading.Tasks.Task<ApiResponse<CaptureSessionRead>> CreateCaptureSessionWithHttpInfoAsync(CaptureSessionCreate captureSessionCreate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<CaptureSessionRead>> CreateCaptureSessionWithHttpInfoAsync(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateCaptureSessions
         /// </summary>
@@ -961,7 +1101,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="overwrite"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;CaptureSessionRead&gt;</returns>
-        System.Threading.Tasks.Task<List<CaptureSessionRead>> CreateCaptureSessionsAsync(List<CaptureSessionCreate> captureSessionCreate, bool? overwrite = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<CaptureSessionRead>> CreateCaptureSessionsAsync(List<CaptureSessionCreate> captureSessionCreate, bool? overwrite = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// CreateCaptureSessions
@@ -974,7 +1114,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="overwrite"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;CaptureSessionRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<CaptureSessionRead>>> CreateCaptureSessionsWithHttpInfoAsync(List<CaptureSessionCreate> captureSessionCreate, bool? overwrite = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<CaptureSessionRead>>> CreateCaptureSessionsWithHttpInfoAsync(List<CaptureSessionCreate> captureSessionCreate, bool? overwrite = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateGraph
         /// </summary>
@@ -985,7 +1125,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="createGraphRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of CreateGraphResponse</returns>
-        System.Threading.Tasks.Task<CreateGraphResponse> CreateGraphAsync(CreateGraphRequest createGraphRequest, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<CreateGraphResponse> CreateGraphAsync(CreateGraphRequest createGraphRequest, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// CreateGraph
@@ -997,7 +1137,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="createGraphRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (CreateGraphResponse)</returns>
-        System.Threading.Tasks.Task<ApiResponse<CreateGraphResponse>> CreateGraphWithHttpInfoAsync(CreateGraphRequest createGraphRequest, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<CreateGraphResponse>> CreateGraphWithHttpInfoAsync(CreateGraphRequest createGraphRequest, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateGroup
         /// </summary>
@@ -1008,7 +1148,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="groupCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of GroupRead</returns>
-        System.Threading.Tasks.Task<GroupRead> CreateGroupAsync(GroupCreate groupCreate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<GroupRead> CreateGroupAsync(GroupCreate groupCreate, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// CreateGroup
@@ -1020,7 +1160,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="groupCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (GroupRead)</returns>
-        System.Threading.Tasks.Task<ApiResponse<GroupRead>> CreateGroupWithHttpInfoAsync(GroupCreate groupCreate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<GroupRead>> CreateGroupWithHttpInfoAsync(GroupCreate groupCreate, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateGroupsBatch
         /// </summary>
@@ -1031,7 +1171,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="groupCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;GroupRead&gt;</returns>
-        System.Threading.Tasks.Task<List<GroupRead>> CreateGroupsBatchAsync(List<GroupCreate> groupCreate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<GroupRead>> CreateGroupsBatchAsync(List<GroupCreate> groupCreate, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// CreateGroupsBatch
@@ -1043,7 +1183,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="groupCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;GroupRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<GroupRead>>> CreateGroupsBatchWithHttpInfoAsync(List<GroupCreate> groupCreate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<GroupRead>>> CreateGroupsBatchWithHttpInfoAsync(List<GroupCreate> groupCreate, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateLayer
         /// </summary>
@@ -1054,7 +1194,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="layerCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of LayerRead</returns>
-        System.Threading.Tasks.Task<LayerRead> CreateLayerAsync(LayerCreate layerCreate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<LayerRead> CreateLayerAsync(LayerCreate layerCreate, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// CreateLayer
@@ -1066,7 +1206,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="layerCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (LayerRead)</returns>
-        System.Threading.Tasks.Task<ApiResponse<LayerRead>> CreateLayerWithHttpInfoAsync(LayerCreate layerCreate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<LayerRead>> CreateLayerWithHttpInfoAsync(LayerCreate layerCreate, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateLocalizationMap
         /// </summary>
@@ -1077,7 +1217,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="localizationMapCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of LocalizationMapRead</returns>
-        System.Threading.Tasks.Task<LocalizationMapRead> CreateLocalizationMapAsync(LocalizationMapCreate localizationMapCreate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<LocalizationMapRead> CreateLocalizationMapAsync(LocalizationMapCreate localizationMapCreate, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// CreateLocalizationMap
@@ -1089,7 +1229,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="localizationMapCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (LocalizationMapRead)</returns>
-        System.Threading.Tasks.Task<ApiResponse<LocalizationMapRead>> CreateLocalizationMapWithHttpInfoAsync(LocalizationMapCreate localizationMapCreate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<LocalizationMapRead>> CreateLocalizationMapWithHttpInfoAsync(LocalizationMapCreate localizationMapCreate, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateNode
         /// </summary>
@@ -1100,7 +1240,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="nodeCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of NodeRead</returns>
-        System.Threading.Tasks.Task<NodeRead> CreateNodeAsync(NodeCreate nodeCreate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<NodeRead> CreateNodeAsync(NodeCreate nodeCreate, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// CreateNode
@@ -1112,7 +1252,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="nodeCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (NodeRead)</returns>
-        System.Threading.Tasks.Task<ApiResponse<NodeRead>> CreateNodeWithHttpInfoAsync(NodeCreate nodeCreate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<NodeRead>> CreateNodeWithHttpInfoAsync(NodeCreate nodeCreate, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateNodesBatch
         /// </summary>
@@ -1123,7 +1263,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="nodeCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;NodeRead&gt;</returns>
-        System.Threading.Tasks.Task<List<NodeRead>> CreateNodesBatchAsync(List<NodeCreate> nodeCreate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<NodeRead>> CreateNodesBatchAsync(List<NodeCreate> nodeCreate, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// CreateNodesBatch
@@ -1135,7 +1275,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="nodeCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;NodeRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<NodeRead>>> CreateNodesBatchWithHttpInfoAsync(List<NodeCreate> nodeCreate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<NodeRead>>> CreateNodesBatchWithHttpInfoAsync(List<NodeCreate> nodeCreate, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateReconstruction
         /// </summary>
@@ -1146,7 +1286,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="reconstructionCreateWithOptions"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ReconstructionRead</returns>
-        System.Threading.Tasks.Task<ReconstructionRead> CreateReconstructionAsync(ReconstructionCreateWithOptions reconstructionCreateWithOptions, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ReconstructionRead> CreateReconstructionAsync(ReconstructionCreateWithOptions reconstructionCreateWithOptions, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// CreateReconstruction
@@ -1158,7 +1298,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="reconstructionCreateWithOptions"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (ReconstructionRead)</returns>
-        System.Threading.Tasks.Task<ApiResponse<ReconstructionRead>> CreateReconstructionWithHttpInfoAsync(ReconstructionCreateWithOptions reconstructionCreateWithOptions, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<ReconstructionRead>> CreateReconstructionWithHttpInfoAsync(ReconstructionCreateWithOptions reconstructionCreateWithOptions, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// DeleteCaptureSession
         /// </summary>
@@ -1169,7 +1309,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task DeleteCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask DeleteCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// DeleteCaptureSession
@@ -1181,7 +1321,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> DeleteCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> DeleteCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// DeleteGroups
         /// </summary>
@@ -1193,7 +1333,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="cascade">If true, recursively delete children. (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task DeleteGroupsAsync(List<Guid> ids, bool? cascade = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask DeleteGroupsAsync(List<Guid> ids, bool? cascade = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// DeleteGroups
@@ -1206,7 +1346,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="cascade">If true, recursively delete children. (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> DeleteGroupsWithHttpInfoAsync(List<Guid> ids, bool? cascade = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> DeleteGroupsWithHttpInfoAsync(List<Guid> ids, bool? cascade = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// DeleteLayers
         /// </summary>
@@ -1217,7 +1357,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task DeleteLayersAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask DeleteLayersAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// DeleteLayers
@@ -1229,7 +1369,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> DeleteLayersWithHttpInfoAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> DeleteLayersWithHttpInfoAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// DeleteLocalizationMap
         /// </summary>
@@ -1240,7 +1380,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task DeleteLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask DeleteLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// DeleteLocalizationMap
@@ -1252,7 +1392,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> DeleteLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> DeleteLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// DeleteLocalizationMaps
         /// </summary>
@@ -1263,7 +1403,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task DeleteLocalizationMapsAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask DeleteLocalizationMapsAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// DeleteLocalizationMaps
@@ -1275,7 +1415,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> DeleteLocalizationMapsWithHttpInfoAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> DeleteLocalizationMapsWithHttpInfoAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// DeleteNodes
         /// </summary>
@@ -1286,7 +1426,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task DeleteNodesAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask DeleteNodesAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// DeleteNodes
@@ -1298,7 +1438,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> DeleteNodesWithHttpInfoAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> DeleteNodesWithHttpInfoAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// DeleteReconstruction
         /// </summary>
@@ -1309,7 +1449,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task DeleteReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask DeleteReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// DeleteReconstruction
@@ -1321,7 +1461,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> DeleteReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> DeleteReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// DownloadCaptureSessionTar
         /// </summary>
@@ -1331,8 +1471,8 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of Object</returns>
-        System.Threading.Tasks.Task<Object> DownloadCaptureSessionTarAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <returns>Task of FileParameter</returns>
+        Cysharp.Threading.Tasks.UniTask<FileParameter> DownloadCaptureSessionTarAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// DownloadCaptureSessionTar
@@ -1343,8 +1483,33 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (Object)</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<FileParameter>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// FailLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        Cysharp.Threading.Tasks.UniTask FailLeaseAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// FailLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> FailLeaseWithHttpInfoAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetCaptureSession
         /// </summary>
@@ -1355,7 +1520,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of CaptureSessionRead</returns>
-        System.Threading.Tasks.Task<CaptureSessionRead> GetCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<CaptureSessionRead> GetCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetCaptureSession
@@ -1367,7 +1532,78 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (CaptureSessionRead)</returns>
-        System.Threading.Tasks.Task<ApiResponse<CaptureSessionRead>> GetCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<CaptureSessionRead>> GetCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// GetCaptureSessionFramesCsv
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        Cysharp.Threading.Tasks.UniTask<FileParameter> GetCaptureSessionFramesCsvAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// GetCaptureSessionFramesCsv
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<FileParameter>> GetCaptureSessionFramesCsvWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// GetCaptureSessionImage
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        Cysharp.Threading.Tasks.UniTask<FileParameter> GetCaptureSessionImageAsync(Guid id, int frameTimestamp, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// GetCaptureSessionImage
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<FileParameter>> GetCaptureSessionImageWithHttpInfoAsync(Guid id, int frameTimestamp, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// GetCaptureSessionManifestFile
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        Cysharp.Threading.Tasks.UniTask<FileParameter> GetCaptureSessionManifestFileAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<FileParameter>> GetCaptureSessionManifestFileWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetCaptureSessionReconstructions
         /// </summary>
@@ -1378,7 +1614,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;Guid&gt;</returns>
-        System.Threading.Tasks.Task<List<Guid>> GetCaptureSessionReconstructionsAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<Guid>> GetCaptureSessionReconstructionsAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetCaptureSessionReconstructions
@@ -1390,7 +1626,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;Guid&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<Guid>>> GetCaptureSessionReconstructionsWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<Guid>>> GetCaptureSessionReconstructionsWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetCaptureSessionRigConfig
         /// </summary>
@@ -1401,7 +1637,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of CaptureSessionManifest</returns>
-        System.Threading.Tasks.Task<CaptureSessionManifest> GetCaptureSessionRigConfigAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<CaptureSessionManifest> GetCaptureSessionRigConfigAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetCaptureSessionRigConfig
@@ -1413,7 +1649,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (CaptureSessionManifest)</returns>
-        System.Threading.Tasks.Task<ApiResponse<CaptureSessionManifest>> GetCaptureSessionRigConfigWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<CaptureSessionManifest>> GetCaptureSessionRigConfigWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetCaptureSessions
         /// </summary>
@@ -1424,7 +1660,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;CaptureSessionRead&gt;</returns>
-        System.Threading.Tasks.Task<List<CaptureSessionRead>> GetCaptureSessionsAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<CaptureSessionRead>> GetCaptureSessionsAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetCaptureSessions
@@ -1436,7 +1672,28 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;CaptureSessionRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<CaptureSessionRead>>> GetCaptureSessionsWithHttpInfoAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<CaptureSessionRead>>> GetCaptureSessionsWithHttpInfoAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// GetCaptureSessionsExpanded
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of CaptureSessionsExpanded</returns>
+        Cysharp.Threading.Tasks.UniTask<CaptureSessionsExpanded> GetCaptureSessionsExpandedAsync(System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// GetCaptureSessionsExpanded
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (CaptureSessionsExpanded)</returns>
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<CaptureSessionsExpanded>> GetCaptureSessionsExpandedWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetGroups
         /// </summary>
@@ -1447,7 +1704,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;GroupRead&gt;</returns>
-        System.Threading.Tasks.Task<List<GroupRead>> GetGroupsAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<GroupRead>> GetGroupsAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetGroups
@@ -1459,7 +1716,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;GroupRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<GroupRead>>> GetGroupsWithHttpInfoAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<GroupRead>>> GetGroupsWithHttpInfoAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetLayers
         /// </summary>
@@ -1470,7 +1727,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;LayerRead&gt;</returns>
-        System.Threading.Tasks.Task<List<LayerRead>> GetLayersAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<LayerRead>> GetLayersAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetLayers
@@ -1482,7 +1739,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;LayerRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<LayerRead>>> GetLayersWithHttpInfoAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<LayerRead>>> GetLayersWithHttpInfoAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetLocalizationMap
         /// </summary>
@@ -1493,7 +1750,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of LocalizationMapRead</returns>
-        System.Threading.Tasks.Task<LocalizationMapRead> GetLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<LocalizationMapRead> GetLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetLocalizationMap
@@ -1505,7 +1762,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (LocalizationMapRead)</returns>
-        System.Threading.Tasks.Task<ApiResponse<LocalizationMapRead>> GetLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<LocalizationMapRead>> GetLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetLocalizationMaps
         /// </summary>
@@ -1521,7 +1778,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="radius"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;LocalizationMapRead&gt;</returns>
-        System.Threading.Tasks.Task<List<LocalizationMapRead>> GetLocalizationMapsAsync(List<Guid>? ids = default, List<Guid>? reconstructionIds = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<LocalizationMapRead>> GetLocalizationMapsAsync(List<Guid>? ids = default, List<Guid>? reconstructionIds = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetLocalizationMaps
@@ -1538,7 +1795,28 @@ namespace PlaceframeApiClient.Api
         /// <param name="radius"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;LocalizationMapRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<LocalizationMapRead>>> GetLocalizationMapsWithHttpInfoAsync(List<Guid>? ids = default, List<Guid>? reconstructionIds = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<LocalizationMapRead>>> GetLocalizationMapsWithHttpInfoAsync(List<Guid>? ids = default, List<Guid>? reconstructionIds = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// GetLocalizerVersion
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of string</returns>
+        Cysharp.Threading.Tasks.UniTask<string> GetLocalizerVersionAsync(System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// GetLocalizerVersion
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (string)</returns>
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<string>> GetLocalizerVersionWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetNodes
         /// </summary>
@@ -1553,7 +1831,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="radius"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;NodeRead&gt;</returns>
-        System.Threading.Tasks.Task<List<NodeRead>> GetNodesAsync(List<Guid>? ids = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<NodeRead>> GetNodesAsync(List<Guid>? ids = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetNodes
@@ -1569,7 +1847,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="radius"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;NodeRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<NodeRead>>> GetNodesWithHttpInfoAsync(List<Guid>? ids = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<NodeRead>>> GetNodesWithHttpInfoAsync(List<Guid>? ids = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetReconstruction
         /// </summary>
@@ -1580,7 +1858,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ReconstructionRead</returns>
-        System.Threading.Tasks.Task<ReconstructionRead> GetReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ReconstructionRead> GetReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetReconstruction
@@ -1592,7 +1870,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (ReconstructionRead)</returns>
-        System.Threading.Tasks.Task<ApiResponse<ReconstructionRead>> GetReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<ReconstructionRead>> GetReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetReconstructionFramePoses
         /// </summary>
@@ -1604,7 +1882,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="axisConvention">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FileParameter</returns>
-        System.Threading.Tasks.Task<FileParameter> GetReconstructionFramePosesAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<FileParameter> GetReconstructionFramePosesAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetReconstructionFramePoses
@@ -1617,7 +1895,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="axisConvention">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
-        System.Threading.Tasks.Task<ApiResponse<FileParameter>> GetReconstructionFramePosesWithHttpInfoAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<FileParameter>> GetReconstructionFramePosesWithHttpInfoAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetReconstructionLocalizationMap
         /// </summary>
@@ -1628,7 +1906,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Guid</returns>
-        System.Threading.Tasks.Task<Guid> GetReconstructionLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<Guid> GetReconstructionLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetReconstructionLocalizationMap
@@ -1640,30 +1918,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Guid)</returns>
-        System.Threading.Tasks.Task<ApiResponse<Guid>> GetReconstructionLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
-        /// <summary>
-        /// GetReconstructionManifest
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ReconstructionManifest</returns>
-        System.Threading.Tasks.Task<ReconstructionManifest> GetReconstructionManifestAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// GetReconstructionManifest
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (ReconstructionManifest)</returns>
-        System.Threading.Tasks.Task<ApiResponse<ReconstructionManifest>> GetReconstructionManifestWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Guid>> GetReconstructionLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetReconstructionPoints
         /// </summary>
@@ -1675,7 +1930,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="axisConvention">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FileParameter</returns>
-        System.Threading.Tasks.Task<FileParameter> GetReconstructionPointsAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<FileParameter> GetReconstructionPointsAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetReconstructionPoints
@@ -1688,30 +1943,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="axisConvention">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
-        System.Threading.Tasks.Task<ApiResponse<FileParameter>> GetReconstructionPointsWithHttpInfoAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default);
-        /// <summary>
-        /// GetReconstructionStatus
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of OrchestrationStatus</returns>
-        System.Threading.Tasks.Task<OrchestrationStatus> GetReconstructionStatusAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// GetReconstructionStatus
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (OrchestrationStatus)</returns>
-        System.Threading.Tasks.Task<ApiResponse<OrchestrationStatus>> GetReconstructionStatusWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<FileParameter>> GetReconstructionPointsWithHttpInfoAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetReconstructions
         /// </summary>
@@ -1720,11 +1952,11 @@ namespace PlaceframeApiClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
-        /// <param name="captureSessionId">Optional capture session Id to filter by (optional)</param>
+        /// <param name="captureSessionIds">Optional list of capture session Ids to filter by (optional)</param>
         /// <param name="captureSessionName">Optional capture session name to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;ReconstructionRead&gt;</returns>
-        System.Threading.Tasks.Task<List<ReconstructionRead>> GetReconstructionsAsync(List<Guid>? ids = default, Guid? captureSessionId = default, string? captureSessionName = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<ReconstructionRead>> GetReconstructionsAsync(List<Guid>? ids = default, List<Guid>? captureSessionIds = default, string? captureSessionName = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// GetReconstructions
@@ -1734,11 +1966,36 @@ namespace PlaceframeApiClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
-        /// <param name="captureSessionId">Optional capture session Id to filter by (optional)</param>
+        /// <param name="captureSessionIds">Optional list of capture session Ids to filter by (optional)</param>
         /// <param name="captureSessionName">Optional capture session name to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;ReconstructionRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<ReconstructionRead>>> GetReconstructionsWithHttpInfoAsync(List<Guid>? ids = default, Guid? captureSessionId = default, string? captureSessionName = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<ReconstructionRead>>> GetReconstructionsWithHttpInfoAsync(List<Guid>? ids = default, List<Guid>? captureSessionIds = default, string? captureSessionName = default, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// ListLocalizationEvaluations
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of List&lt;LocalizationEvaluationRead&gt;</returns>
+        Cysharp.Threading.Tasks.UniTask<List<LocalizationEvaluationRead>> ListLocalizationEvaluationsAsync(Guid reconstructionId, string? pipelineVersion = default, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// ListLocalizationEvaluations
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (List&lt;LocalizationEvaluationRead&gt;)</returns>
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<LocalizationEvaluationRead>>> ListLocalizationEvaluationsWithHttpInfoAsync(Guid reconstructionId, string? pipelineVersion = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// LocalizeImage
         /// </summary>
@@ -1749,12 +2006,12 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;MapLocalization&gt;</returns>
-        System.Threading.Tasks.Task<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// LocalizeImage
@@ -1766,12 +2023,35 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;MapLocalization&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// PushZedBoxLogs
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="logRelayBatch"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        Cysharp.Threading.Tasks.UniTask PushZedBoxLogsAsync(LogRelayBatch logRelayBatch, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// PushZedBoxLogs
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="logRelayBatch"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> PushZedBoxLogsWithHttpInfoAsync(LogRelayBatch logRelayBatch, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// RequestLease
         /// </summary>
@@ -1781,7 +2061,7 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of LeaseResponse</returns>
-        System.Threading.Tasks.Task<LeaseResponse> RequestLeaseAsync(System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<LeaseResponse> RequestLeaseAsync(System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// RequestLease
@@ -1792,7 +2072,55 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (LeaseResponse)</returns>
-        System.Threading.Tasks.Task<ApiResponse<LeaseResponse>> RequestLeaseWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<LeaseResponse>> RequestLeaseWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// RetryReconstruction
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ReconstructionRead</returns>
+        Cysharp.Threading.Tasks.UniTask<ReconstructionRead> RetryReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// RetryReconstruction
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (ReconstructionRead)</returns>
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<ReconstructionRead>> RetryReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// SucceedLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        Cysharp.Threading.Tasks.UniTask SucceedLeaseAsync(Guid id, ReconstructionMetrics reconstructionMetrics, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// SucceedLease
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> SucceedLeaseWithHttpInfoAsync(Guid id, ReconstructionMetrics reconstructionMetrics, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UpdateCaptureSession
         /// </summary>
@@ -1804,7 +2132,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="captureSessionUpdate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of CaptureSessionRead</returns>
-        System.Threading.Tasks.Task<CaptureSessionRead> UpdateCaptureSessionAsync(Guid id, CaptureSessionUpdate captureSessionUpdate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<CaptureSessionRead> UpdateCaptureSessionAsync(Guid id, CaptureSessionUpdate captureSessionUpdate, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// UpdateCaptureSession
@@ -1817,7 +2145,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="captureSessionUpdate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (CaptureSessionRead)</returns>
-        System.Threading.Tasks.Task<ApiResponse<CaptureSessionRead>> UpdateCaptureSessionWithHttpInfoAsync(Guid id, CaptureSessionUpdate captureSessionUpdate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<CaptureSessionRead>> UpdateCaptureSessionWithHttpInfoAsync(Guid id, CaptureSessionUpdate captureSessionUpdate, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UpdateCaptureSessions
         /// </summary>
@@ -1829,7 +2157,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;CaptureSessionRead&gt;</returns>
-        System.Threading.Tasks.Task<List<CaptureSessionRead>> UpdateCaptureSessionsAsync(List<CaptureSessionBatchUpdate> captureSessionBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<CaptureSessionRead>> UpdateCaptureSessionsAsync(List<CaptureSessionBatchUpdate> captureSessionBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// UpdateCaptureSessions
@@ -1842,7 +2170,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;CaptureSessionRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<CaptureSessionRead>>> UpdateCaptureSessionsWithHttpInfoAsync(List<CaptureSessionBatchUpdate> captureSessionBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<CaptureSessionRead>>> UpdateCaptureSessionsWithHttpInfoAsync(List<CaptureSessionBatchUpdate> captureSessionBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UpdateGroups
         /// </summary>
@@ -1854,7 +2182,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;GroupRead&gt;</returns>
-        System.Threading.Tasks.Task<List<GroupRead>> UpdateGroupsAsync(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<GroupRead>> UpdateGroupsAsync(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// UpdateGroups
@@ -1867,7 +2195,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;GroupRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<GroupRead>>> UpdateGroupsWithHttpInfoAsync(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<GroupRead>>> UpdateGroupsWithHttpInfoAsync(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UpdateLayers
         /// </summary>
@@ -1879,7 +2207,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;LayerRead&gt;</returns>
-        System.Threading.Tasks.Task<List<LayerRead>> UpdateLayersAsync(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<LayerRead>> UpdateLayersAsync(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// UpdateLayers
@@ -1892,7 +2220,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;LayerRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<LayerRead>>> UpdateLayersWithHttpInfoAsync(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<LayerRead>>> UpdateLayersWithHttpInfoAsync(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UpdateLocalizationMap
         /// </summary>
@@ -1904,7 +2232,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="localizationMapUpdate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of LocalizationMapRead</returns>
-        System.Threading.Tasks.Task<LocalizationMapRead> UpdateLocalizationMapAsync(Guid id, LocalizationMapUpdate localizationMapUpdate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<LocalizationMapRead> UpdateLocalizationMapAsync(Guid id, LocalizationMapUpdate localizationMapUpdate, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// UpdateLocalizationMap
@@ -1917,7 +2245,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="localizationMapUpdate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (LocalizationMapRead)</returns>
-        System.Threading.Tasks.Task<ApiResponse<LocalizationMapRead>> UpdateLocalizationMapWithHttpInfoAsync(Guid id, LocalizationMapUpdate localizationMapUpdate, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<LocalizationMapRead>> UpdateLocalizationMapWithHttpInfoAsync(Guid id, LocalizationMapUpdate localizationMapUpdate, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UpdateLocalizationMaps
         /// </summary>
@@ -1929,7 +2257,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;LocalizationMapRead&gt;</returns>
-        System.Threading.Tasks.Task<List<LocalizationMapRead>> UpdateLocalizationMapsAsync(List<LocalizationMapBatchUpdate> localizationMapBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<LocalizationMapRead>> UpdateLocalizationMapsAsync(List<LocalizationMapBatchUpdate> localizationMapBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// UpdateLocalizationMaps
@@ -1942,7 +2270,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;LocalizationMapRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<LocalizationMapRead>>> UpdateLocalizationMapsWithHttpInfoAsync(List<LocalizationMapBatchUpdate> localizationMapBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<LocalizationMapRead>>> UpdateLocalizationMapsWithHttpInfoAsync(List<LocalizationMapBatchUpdate> localizationMapBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// UpdateNodes
         /// </summary>
@@ -1954,7 +2282,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;NodeRead&gt;</returns>
-        System.Threading.Tasks.Task<List<NodeRead>> UpdateNodesAsync(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<List<NodeRead>> UpdateNodesAsync(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// UpdateNodes
@@ -1967,32 +2295,57 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;NodeRead&gt;)</returns>
-        System.Threading.Tasks.Task<ApiResponse<List<NodeRead>>> UpdateNodesWithHttpInfoAsync(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<List<NodeRead>>> UpdateNodesWithHttpInfoAsync(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
-        /// UploadCaptureSessionTar
+        /// UpdateProgress
         /// </summary>
         /// <remarks>
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="progressUpdate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        System.Threading.Tasks.Task UploadCaptureSessionTarAsync(Guid id, FileParameter? file = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask UpdateProgressAsync(Guid id, ProgressUpdate progressUpdate, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// UploadCaptureSessionTar
+        /// UpdateProgress
         /// </summary>
         /// <remarks>
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="progressUpdate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        System.Threading.Tasks.Task<ApiResponse<Object>> UploadCaptureSessionTarWithHttpInfoAsync(Guid id, FileParameter? file = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> UpdateProgressWithHttpInfoAsync(Guid id, ProgressUpdate progressUpdate, System.Threading.CancellationToken cancellationToken = default);
+        /// <summary>
+        /// UpsertLocalizationEvaluation
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of LocalizationEvaluationRead</returns>
+        Cysharp.Threading.Tasks.UniTask<LocalizationEvaluationRead> UpsertLocalizationEvaluationAsync(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate, System.Threading.CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// UpsertLocalizationEvaluation
+        /// </summary>
+        /// <remarks>
+        /// 
+        /// </remarks>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (LocalizationEvaluationRead)</returns>
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<LocalizationEvaluationRead>> UpsertLocalizationEvaluationWithHttpInfoAsync(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate, System.Threading.CancellationToken cancellationToken = default);
         #endregion Asynchronous Operations
     }
 
@@ -2207,135 +2560,18 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
-        /// CompleteLease 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <returns></returns>
-        public void CompleteLease(Guid id, string body)
-        {
-            CompleteLeaseWithHttpInfo(id, body);
-        }
-
-        /// <summary>
-        /// CompleteLease 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <returns>ApiResponse of Object(void)</returns>
-        public PlaceframeApiClient.Client.ApiResponse<Object> CompleteLeaseWithHttpInfo(Guid id, string body)
-        {
-            // verify the required parameter 'body' is set
-            if (body == null)
-                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'body' when calling DefaultApi->CompleteLease");
-
-            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-                "application/json"
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-            localVarRequestOptions.Data = body;
-
-
-            // make the HTTP request
-            var localVarResponse = this.Client.Put<Object>("/internal/leases/{id}/complete", localVarRequestOptions, this.Configuration);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("CompleteLease", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// CompleteLease 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task CompleteLeaseAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default)
-        {
-            await CompleteLeaseWithHttpInfoAsync(id, body, cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// CompleteLease 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="body"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<Object>> CompleteLeaseWithHttpInfoAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default)
-        {
-            // verify the required parameter 'body' is set
-            if (body == null)
-                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'body' when calling DefaultApi->CompleteLease");
-
-
-            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-                "application/json"
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-
-            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-            localVarRequestOptions.Data = body;
-
-
-            // make the HTTP request
-
-            var localVarResponse = await this.AsynchronousClient.PutAsync<Object>("/internal/leases/{id}/complete", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("CompleteLease", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
         /// CreateCaptureSession 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureSessionCreate"></param>
+        /// <param name="deviceType"></param>
+        /// <param name="data"></param>
+        /// <param name="id"> (optional)</param>
+        /// <param name="name"> (optional)</param>
+        /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <returns>CaptureSessionRead</returns>
-        public CaptureSessionRead CreateCaptureSession(CaptureSessionCreate captureSessionCreate)
+        public CaptureSessionRead CreateCaptureSession(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> localVarResponse = CreateCaptureSessionWithHttpInfo(captureSessionCreate);
+            PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> localVarResponse = CreateCaptureSessionWithHttpInfo(deviceType, data, id, name, recordedAt);
             return localVarResponse.Data;
         }
 
@@ -2343,18 +2579,22 @@ namespace PlaceframeApiClient.Api
         /// CreateCaptureSession 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureSessionCreate"></param>
+        /// <param name="deviceType"></param>
+        /// <param name="data"></param>
+        /// <param name="id"> (optional)</param>
+        /// <param name="name"> (optional)</param>
+        /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <returns>ApiResponse of CaptureSessionRead</returns>
-        public PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> CreateCaptureSessionWithHttpInfo(CaptureSessionCreate captureSessionCreate)
+        public PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> CreateCaptureSessionWithHttpInfo(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default)
         {
-            // verify the required parameter 'captureSessionCreate' is set
-            if (captureSessionCreate == null)
-                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'captureSessionCreate' when calling DefaultApi->CreateCaptureSession");
+            // verify the required parameter 'data' is set
+            if (data == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'data' when calling DefaultApi->CreateCaptureSession");
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
-                "application/json"
+                "multipart/form-data"
             };
 
             // to determine the Accept header
@@ -2368,7 +2608,24 @@ namespace PlaceframeApiClient.Api
             var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.Data = captureSessionCreate;
+            // Primitive types (int, string, bool) go as standard form fields
+            localVarRequestOptions.FormParameters.Add("device_type", PlaceframeApiClient.Client.ClientUtils.ParameterToString(deviceType));
+            localVarRequestOptions.FileParameters.Add("data", data);
+            if (id != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id));
+            }
+            if (name != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("name", PlaceframeApiClient.Client.ClientUtils.ParameterToString(name));
+            }
+            if (recordedAt != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("recorded_at", PlaceframeApiClient.Client.ClientUtils.ParameterToString(recordedAt));
+            }
 
 
             // make the HTTP request
@@ -2387,12 +2644,16 @@ namespace PlaceframeApiClient.Api
         /// CreateCaptureSession 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureSessionCreate"></param>
+        /// <param name="deviceType"></param>
+        /// <param name="data"></param>
+        /// <param name="id"> (optional)</param>
+        /// <param name="name"> (optional)</param>
+        /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of CaptureSessionRead</returns>
-        public async System.Threading.Tasks.Task<CaptureSessionRead> CreateCaptureSessionAsync(CaptureSessionCreate captureSessionCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<CaptureSessionRead> CreateCaptureSessionAsync(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> localVarResponse = await CreateCaptureSessionWithHttpInfoAsync(captureSessionCreate, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> localVarResponse = await CreateCaptureSessionWithHttpInfoAsync(deviceType, data, id, name, recordedAt, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -2400,20 +2661,24 @@ namespace PlaceframeApiClient.Api
         /// CreateCaptureSession 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureSessionCreate"></param>
+        /// <param name="deviceType"></param>
+        /// <param name="data"></param>
+        /// <param name="id"> (optional)</param>
+        /// <param name="name"> (optional)</param>
+        /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (CaptureSessionRead)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead>> CreateCaptureSessionWithHttpInfoAsync(CaptureSessionCreate captureSessionCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead>> CreateCaptureSessionWithHttpInfoAsync(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            // verify the required parameter 'captureSessionCreate' is set
-            if (captureSessionCreate == null)
-                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'captureSessionCreate' when calling DefaultApi->CreateCaptureSession");
+            // verify the required parameter 'data' is set
+            if (data == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'data' when calling DefaultApi->CreateCaptureSession");
 
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
-                "application/json"
+                "multipart/form-data"
             };
 
             // to determine the Accept header
@@ -2428,12 +2693,29 @@ namespace PlaceframeApiClient.Api
             var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            localVarRequestOptions.Data = captureSessionCreate;
+            // Primitive types (int, string, bool) go as standard form fields
+            localVarRequestOptions.FormParameters.Add("device_type", PlaceframeApiClient.Client.ClientUtils.ParameterToString(deviceType));
+            localVarRequestOptions.FileParameters.Add("data", data);
+            if (id != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id));
+            }
+            if (name != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("name", PlaceframeApiClient.Client.ClientUtils.ParameterToString(name));
+            }
+            if (recordedAt != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("recorded_at", PlaceframeApiClient.Client.ClientUtils.ParameterToString(recordedAt));
+            }
 
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<CaptureSessionRead>("/capture_sessions", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PostAsync<CaptureSessionRead>("/capture_sessions", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -2514,9 +2796,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="overwrite"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;CaptureSessionRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<CaptureSessionRead>> CreateCaptureSessionsAsync(List<CaptureSessionCreate> captureSessionCreate, bool? overwrite = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<CaptureSessionRead>> CreateCaptureSessionsAsync(List<CaptureSessionCreate> captureSessionCreate, bool? overwrite = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<CaptureSessionRead>> localVarResponse = await CreateCaptureSessionsWithHttpInfoAsync(captureSessionCreate, overwrite, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<CaptureSessionRead>> localVarResponse = await CreateCaptureSessionsWithHttpInfoAsync(captureSessionCreate, overwrite, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -2528,7 +2810,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="overwrite"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;CaptureSessionRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<CaptureSessionRead>>> CreateCaptureSessionsWithHttpInfoAsync(List<CaptureSessionCreate> captureSessionCreate, bool? overwrite = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<CaptureSessionRead>>> CreateCaptureSessionsWithHttpInfoAsync(List<CaptureSessionCreate> captureSessionCreate, bool? overwrite = default, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'captureSessionCreate' is set
             if (captureSessionCreate == null)
@@ -2562,7 +2844,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<List<CaptureSessionRead>>("/capture_sessions/bulk", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PostAsync<List<CaptureSessionRead>>("/capture_sessions/bulk", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -2636,9 +2918,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="createGraphRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of CreateGraphResponse</returns>
-        public async System.Threading.Tasks.Task<CreateGraphResponse> CreateGraphAsync(CreateGraphRequest createGraphRequest, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<CreateGraphResponse> CreateGraphAsync(CreateGraphRequest createGraphRequest, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<CreateGraphResponse> localVarResponse = await CreateGraphWithHttpInfoAsync(createGraphRequest, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<CreateGraphResponse> localVarResponse = await CreateGraphWithHttpInfoAsync(createGraphRequest, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -2649,7 +2931,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="createGraphRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (CreateGraphResponse)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<CreateGraphResponse>> CreateGraphWithHttpInfoAsync(CreateGraphRequest createGraphRequest, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<CreateGraphResponse>> CreateGraphWithHttpInfoAsync(CreateGraphRequest createGraphRequest, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'createGraphRequest' is set
             if (createGraphRequest == null)
@@ -2679,7 +2961,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<CreateGraphResponse>("/graph", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PostAsync<CreateGraphResponse>("/graph", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -2753,9 +3035,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="groupCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of GroupRead</returns>
-        public async System.Threading.Tasks.Task<GroupRead> CreateGroupAsync(GroupCreate groupCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<GroupRead> CreateGroupAsync(GroupCreate groupCreate, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<GroupRead> localVarResponse = await CreateGroupWithHttpInfoAsync(groupCreate, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<GroupRead> localVarResponse = await CreateGroupWithHttpInfoAsync(groupCreate, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -2766,7 +3048,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="groupCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (GroupRead)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<GroupRead>> CreateGroupWithHttpInfoAsync(GroupCreate groupCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<GroupRead>> CreateGroupWithHttpInfoAsync(GroupCreate groupCreate, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'groupCreate' is set
             if (groupCreate == null)
@@ -2796,7 +3078,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<GroupRead>("/groups", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PostAsync<GroupRead>("/groups", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -2870,9 +3152,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="groupCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;GroupRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<GroupRead>> CreateGroupsBatchAsync(List<GroupCreate> groupCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<GroupRead>> CreateGroupsBatchAsync(List<GroupCreate> groupCreate, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<GroupRead>> localVarResponse = await CreateGroupsBatchWithHttpInfoAsync(groupCreate, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<GroupRead>> localVarResponse = await CreateGroupsBatchWithHttpInfoAsync(groupCreate, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -2883,7 +3165,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="groupCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;GroupRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<GroupRead>>> CreateGroupsBatchWithHttpInfoAsync(List<GroupCreate> groupCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<GroupRead>>> CreateGroupsBatchWithHttpInfoAsync(List<GroupCreate> groupCreate, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'groupCreate' is set
             if (groupCreate == null)
@@ -2913,7 +3195,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<List<GroupRead>>("/groups/batch", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PostAsync<List<GroupRead>>("/groups/batch", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -2987,9 +3269,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="layerCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of LayerRead</returns>
-        public async System.Threading.Tasks.Task<LayerRead> CreateLayerAsync(LayerCreate layerCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<LayerRead> CreateLayerAsync(LayerCreate layerCreate, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<LayerRead> localVarResponse = await CreateLayerWithHttpInfoAsync(layerCreate, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<LayerRead> localVarResponse = await CreateLayerWithHttpInfoAsync(layerCreate, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -3000,7 +3282,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="layerCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (LayerRead)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<LayerRead>> CreateLayerWithHttpInfoAsync(LayerCreate layerCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<LayerRead>> CreateLayerWithHttpInfoAsync(LayerCreate layerCreate, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'layerCreate' is set
             if (layerCreate == null)
@@ -3030,7 +3312,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<LayerRead>("/layers", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PostAsync<LayerRead>("/layers", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -3104,9 +3386,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="localizationMapCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of LocalizationMapRead</returns>
-        public async System.Threading.Tasks.Task<LocalizationMapRead> CreateLocalizationMapAsync(LocalizationMapCreate localizationMapCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<LocalizationMapRead> CreateLocalizationMapAsync(LocalizationMapCreate localizationMapCreate, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<LocalizationMapRead> localVarResponse = await CreateLocalizationMapWithHttpInfoAsync(localizationMapCreate, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<LocalizationMapRead> localVarResponse = await CreateLocalizationMapWithHttpInfoAsync(localizationMapCreate, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -3117,7 +3399,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="localizationMapCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (LocalizationMapRead)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<LocalizationMapRead>> CreateLocalizationMapWithHttpInfoAsync(LocalizationMapCreate localizationMapCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<LocalizationMapRead>> CreateLocalizationMapWithHttpInfoAsync(LocalizationMapCreate localizationMapCreate, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'localizationMapCreate' is set
             if (localizationMapCreate == null)
@@ -3147,7 +3429,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<LocalizationMapRead>("/localization-maps", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PostAsync<LocalizationMapRead>("/localization-maps", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -3221,9 +3503,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="nodeCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of NodeRead</returns>
-        public async System.Threading.Tasks.Task<NodeRead> CreateNodeAsync(NodeCreate nodeCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<NodeRead> CreateNodeAsync(NodeCreate nodeCreate, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<NodeRead> localVarResponse = await CreateNodeWithHttpInfoAsync(nodeCreate, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<NodeRead> localVarResponse = await CreateNodeWithHttpInfoAsync(nodeCreate, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -3234,7 +3516,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="nodeCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (NodeRead)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<NodeRead>> CreateNodeWithHttpInfoAsync(NodeCreate nodeCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<NodeRead>> CreateNodeWithHttpInfoAsync(NodeCreate nodeCreate, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'nodeCreate' is set
             if (nodeCreate == null)
@@ -3264,7 +3546,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<NodeRead>("/nodes", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PostAsync<NodeRead>("/nodes", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -3338,9 +3620,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="nodeCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;NodeRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<NodeRead>> CreateNodesBatchAsync(List<NodeCreate> nodeCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<NodeRead>> CreateNodesBatchAsync(List<NodeCreate> nodeCreate, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<NodeRead>> localVarResponse = await CreateNodesBatchWithHttpInfoAsync(nodeCreate, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<NodeRead>> localVarResponse = await CreateNodesBatchWithHttpInfoAsync(nodeCreate, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -3351,7 +3633,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="nodeCreate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;NodeRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<NodeRead>>> CreateNodesBatchWithHttpInfoAsync(List<NodeCreate> nodeCreate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<NodeRead>>> CreateNodesBatchWithHttpInfoAsync(List<NodeCreate> nodeCreate, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'nodeCreate' is set
             if (nodeCreate == null)
@@ -3381,7 +3663,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<List<NodeRead>>("/nodes/batch", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PostAsync<List<NodeRead>>("/nodes/batch", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -3455,9 +3737,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="reconstructionCreateWithOptions"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ReconstructionRead</returns>
-        public async System.Threading.Tasks.Task<ReconstructionRead> CreateReconstructionAsync(ReconstructionCreateWithOptions reconstructionCreateWithOptions, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<ReconstructionRead> CreateReconstructionAsync(ReconstructionCreateWithOptions reconstructionCreateWithOptions, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<ReconstructionRead> localVarResponse = await CreateReconstructionWithHttpInfoAsync(reconstructionCreateWithOptions, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<ReconstructionRead> localVarResponse = await CreateReconstructionWithHttpInfoAsync(reconstructionCreateWithOptions, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -3468,7 +3750,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="reconstructionCreateWithOptions"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (ReconstructionRead)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<ReconstructionRead>> CreateReconstructionWithHttpInfoAsync(ReconstructionCreateWithOptions reconstructionCreateWithOptions, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<ReconstructionRead>> CreateReconstructionWithHttpInfoAsync(ReconstructionCreateWithOptions reconstructionCreateWithOptions, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'reconstructionCreateWithOptions' is set
             if (reconstructionCreateWithOptions == null)
@@ -3498,7 +3780,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<ReconstructionRead>("/reconstructions", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PostAsync<ReconstructionRead>("/reconstructions", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -3566,9 +3848,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task DeleteCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask DeleteCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            await DeleteCaptureSessionWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            await DeleteCaptureSessionWithHttpInfoAsync(id, cancellationToken);
         }
 
         /// <summary>
@@ -3578,7 +3860,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<Object>> DeleteCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> DeleteCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -3603,7 +3885,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/capture_sessions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/capture_sessions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -3682,9 +3964,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="cascade">If true, recursively delete children. (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task DeleteGroupsAsync(List<Guid> ids, bool? cascade = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask DeleteGroupsAsync(List<Guid> ids, bool? cascade = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            await DeleteGroupsWithHttpInfoAsync(ids, cascade, cancellationToken).ConfigureAwait(false);
+            await DeleteGroupsWithHttpInfoAsync(ids, cascade, cancellationToken);
         }
 
         /// <summary>
@@ -3695,7 +3977,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="cascade">If true, recursively delete children. (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<Object>> DeleteGroupsWithHttpInfoAsync(List<Guid> ids, bool? cascade = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> DeleteGroupsWithHttpInfoAsync(List<Guid> ids, bool? cascade = default, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'ids' is set
             if (ids == null)
@@ -3728,7 +4010,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/groups", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/groups", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -3800,9 +4082,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task DeleteLayersAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask DeleteLayersAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default)
         {
-            await DeleteLayersWithHttpInfoAsync(ids, cancellationToken).ConfigureAwait(false);
+            await DeleteLayersWithHttpInfoAsync(ids, cancellationToken);
         }
 
         /// <summary>
@@ -3812,7 +4094,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<Object>> DeleteLayersWithHttpInfoAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> DeleteLayersWithHttpInfoAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'ids' is set
             if (ids == null)
@@ -3841,7 +4123,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/layers", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/layers", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -3909,9 +4191,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task DeleteLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask DeleteLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            await DeleteLocalizationMapWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            await DeleteLocalizationMapWithHttpInfoAsync(id, cancellationToken);
         }
 
         /// <summary>
@@ -3921,7 +4203,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<Object>> DeleteLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> DeleteLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -3946,7 +4228,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/localization-maps/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/localization-maps/{id}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -4018,9 +4300,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task DeleteLocalizationMapsAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask DeleteLocalizationMapsAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default)
         {
-            await DeleteLocalizationMapsWithHttpInfoAsync(ids, cancellationToken).ConfigureAwait(false);
+            await DeleteLocalizationMapsWithHttpInfoAsync(ids, cancellationToken);
         }
 
         /// <summary>
@@ -4030,7 +4312,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<Object>> DeleteLocalizationMapsWithHttpInfoAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> DeleteLocalizationMapsWithHttpInfoAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'ids' is set
             if (ids == null)
@@ -4059,7 +4341,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/localization-maps", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/localization-maps", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -4131,9 +4413,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task DeleteNodesAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask DeleteNodesAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default)
         {
-            await DeleteNodesWithHttpInfoAsync(ids, cancellationToken).ConfigureAwait(false);
+            await DeleteNodesWithHttpInfoAsync(ids, cancellationToken);
         }
 
         /// <summary>
@@ -4143,7 +4425,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<Object>> DeleteNodesWithHttpInfoAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> DeleteNodesWithHttpInfoAsync(List<Guid> ids, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'ids' is set
             if (ids == null)
@@ -4172,7 +4454,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/nodes", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/nodes", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -4240,9 +4522,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task DeleteReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask DeleteReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            await DeleteReconstructionWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            await DeleteReconstructionWithHttpInfoAsync(id, cancellationToken);
         }
 
         /// <summary>
@@ -4252,7 +4534,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<Object>> DeleteReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> DeleteReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -4277,7 +4559,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/reconstructions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.DeleteAsync<Object>("/reconstructions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -4293,10 +4575,10 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <returns>Object</returns>
-        public Object DownloadCaptureSessionTar(Guid id)
+        /// <returns>FileParameter</returns>
+        public FileParameter DownloadCaptureSessionTar(Guid id)
         {
-            PlaceframeApiClient.Client.ApiResponse<Object> localVarResponse = DownloadCaptureSessionTarWithHttpInfo(id);
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = DownloadCaptureSessionTarWithHttpInfo(id);
             return localVarResponse.Data;
         }
 
@@ -4305,8 +4587,8 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <returns>ApiResponse of Object</returns>
-        public PlaceframeApiClient.Client.ApiResponse<Object> DownloadCaptureSessionTarWithHttpInfo(Guid id)
+        /// <returns>ApiResponse of FileParameter</returns>
+        public PlaceframeApiClient.Client.ApiResponse<FileParameter> DownloadCaptureSessionTarWithHttpInfo(Guid id)
         {
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
 
@@ -4315,6 +4597,7 @@ namespace PlaceframeApiClient.Api
 
             // to determine the Accept header
             string[] _accepts = new string[] {
+                "application/x-tar",
                 "application/json"
             };
 
@@ -4328,7 +4611,7 @@ namespace PlaceframeApiClient.Api
 
 
             // make the HTTP request
-            var localVarResponse = this.Client.Get<Object>("/capture_sessions/{id}/tar", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Get<FileParameter>("/capture_sessions/{id}/tar", localVarRequestOptions, this.Configuration);
 
             if (this.ExceptionFactory != null)
             {
@@ -4345,10 +4628,10 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of Object</returns>
-        public async System.Threading.Tasks.Task<Object> DownloadCaptureSessionTarAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        /// <returns>Task of FileParameter</returns>
+        public async Cysharp.Threading.Tasks.UniTask<FileParameter> DownloadCaptureSessionTarAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<Object> localVarResponse = await DownloadCaptureSessionTarWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = await DownloadCaptureSessionTarWithHttpInfoAsync(id, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -4358,8 +4641,8 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (Object)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<Object>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<FileParameter>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -4369,6 +4652,7 @@ namespace PlaceframeApiClient.Api
 
             // to determine the Accept header
             string[] _accepts = new string[] {
+                "application/x-tar",
                 "application/json"
             };
 
@@ -4384,11 +4668,132 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<Object>("/capture_sessions/{id}/tar", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/capture_sessions/{id}/tar", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("DownloadCaptureSessionTar", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// FailLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <returns></returns>
+        public void FailLease(Guid id, string body)
+        {
+            FailLeaseWithHttpInfo(id, body);
+        }
+
+        /// <summary>
+        /// FailLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        public PlaceframeApiClient.Client.ApiResponse<Object> FailLeaseWithHttpInfo(Guid id, string body)
+        {
+            // verify the required parameter 'body' is set
+            if (body == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'body' when calling DefaultApi->FailLease");
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.Data = body;
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Put<Object>("/internal/leases/{id}/fail", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("FailLease", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// FailLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        public async Cysharp.Threading.Tasks.UniTask FailLeaseAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default)
+        {
+            await FailLeaseWithHttpInfoAsync(id, body, cancellationToken);
+        }
+
+        /// <summary>
+        /// FailLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="body"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> FailLeaseWithHttpInfoAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default)
+        {
+            // verify the required parameter 'body' is set
+            if (body == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'body' when calling DefaultApi->FailLease");
+
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.Data = body;
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PutAsync<Object>("/internal/leases/{id}/fail", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("FailLease", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -4453,9 +4858,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of CaptureSessionRead</returns>
-        public async System.Threading.Tasks.Task<CaptureSessionRead> GetCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<CaptureSessionRead> GetCaptureSessionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> localVarResponse = await GetCaptureSessionWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> localVarResponse = await GetCaptureSessionWithHttpInfoAsync(id, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -4466,7 +4871,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (CaptureSessionRead)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead>> GetCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead>> GetCaptureSessionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -4491,11 +4896,342 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<CaptureSessionRead>("/capture_sessions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<CaptureSessionRead>("/capture_sessions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("GetCaptureSession", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionFramesCsv 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>FileParameter</returns>
+        public FileParameter GetCaptureSessionFramesCsv(Guid id)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = GetCaptureSessionFramesCsvWithHttpInfo(id);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionFramesCsv 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        public PlaceframeApiClient.Client.ApiResponse<FileParameter> GetCaptureSessionFramesCsvWithHttpInfo(Guid id)
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "text/csv",
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<FileParameter>("/capture_sessions/{id}/frames.csv", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionFramesCsv", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionFramesCsv 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        public async Cysharp.Threading.Tasks.UniTask<FileParameter> GetCaptureSessionFramesCsvAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = await GetCaptureSessionFramesCsvWithHttpInfoAsync(id, cancellationToken);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionFramesCsv 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<FileParameter>> GetCaptureSessionFramesCsvWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "text/csv",
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/capture_sessions/{id}/frames.csv", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionFramesCsv", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionImage 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <returns>FileParameter</returns>
+        public FileParameter GetCaptureSessionImage(Guid id, int frameTimestamp)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = GetCaptureSessionImageWithHttpInfo(id, frameTimestamp);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionImage 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        public PlaceframeApiClient.Client.ApiResponse<FileParameter> GetCaptureSessionImageWithHttpInfo(Guid id, int frameTimestamp)
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "image/jpeg",
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.PathParameters.Add("frame_timestamp", PlaceframeApiClient.Client.ClientUtils.ParameterToString(frameTimestamp)); // path parameter
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<FileParameter>("/capture_sessions/{id}/images/{frame_timestamp}", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionImage", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionImage 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        public async Cysharp.Threading.Tasks.UniTask<FileParameter> GetCaptureSessionImageAsync(Guid id, int frameTimestamp, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = await GetCaptureSessionImageWithHttpInfoAsync(id, frameTimestamp, cancellationToken);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionImage 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="frameTimestamp"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<FileParameter>> GetCaptureSessionImageWithHttpInfoAsync(Guid id, int frameTimestamp, System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "image/jpeg",
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.PathParameters.Add("frame_timestamp", PlaceframeApiClient.Client.ClientUtils.ParameterToString(frameTimestamp)); // path parameter
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/capture_sessions/{id}/images/{frame_timestamp}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionImage", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>FileParameter</returns>
+        public FileParameter GetCaptureSessionManifestFile(Guid id)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = GetCaptureSessionManifestFileWithHttpInfo(id);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of FileParameter</returns>
+        public PlaceframeApiClient.Client.ApiResponse<FileParameter> GetCaptureSessionManifestFileWithHttpInfo(Guid id)
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<FileParameter>("/capture_sessions/{id}/manifest.json", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionManifestFile", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of FileParameter</returns>
+        public async Cysharp.Threading.Tasks.UniTask<FileParameter> GetCaptureSessionManifestFileAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = await GetCaptureSessionManifestFileWithHttpInfoAsync(id, cancellationToken);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionManifestFile 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (FileParameter)</returns>
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<FileParameter>> GetCaptureSessionManifestFileWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/capture_sessions/{id}/manifest.json", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionManifestFile", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -4560,9 +5296,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;Guid&gt;</returns>
-        public async System.Threading.Tasks.Task<List<Guid>> GetCaptureSessionReconstructionsAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<Guid>> GetCaptureSessionReconstructionsAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<Guid>> localVarResponse = await GetCaptureSessionReconstructionsWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<Guid>> localVarResponse = await GetCaptureSessionReconstructionsWithHttpInfoAsync(id, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -4573,7 +5309,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;Guid&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<Guid>>> GetCaptureSessionReconstructionsWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<Guid>>> GetCaptureSessionReconstructionsWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -4598,7 +5334,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<List<Guid>>("/capture_sessions/{id}/reconstructions", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<List<Guid>>("/capture_sessions/{id}/reconstructions", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -4667,9 +5403,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of CaptureSessionManifest</returns>
-        public async System.Threading.Tasks.Task<CaptureSessionManifest> GetCaptureSessionRigConfigAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<CaptureSessionManifest> GetCaptureSessionRigConfigAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<CaptureSessionManifest> localVarResponse = await GetCaptureSessionRigConfigWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<CaptureSessionManifest> localVarResponse = await GetCaptureSessionRigConfigWithHttpInfoAsync(id, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -4680,7 +5416,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (CaptureSessionManifest)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<CaptureSessionManifest>> GetCaptureSessionRigConfigWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<CaptureSessionManifest>> GetCaptureSessionRigConfigWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -4705,7 +5441,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<CaptureSessionManifest>("/capture_sessions/{id}/rig_config", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<CaptureSessionManifest>("/capture_sessions/{id}/rig_config", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -4777,9 +5513,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;CaptureSessionRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<CaptureSessionRead>> GetCaptureSessionsAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<CaptureSessionRead>> GetCaptureSessionsAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<CaptureSessionRead>> localVarResponse = await GetCaptureSessionsWithHttpInfoAsync(ids, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<CaptureSessionRead>> localVarResponse = await GetCaptureSessionsWithHttpInfoAsync(ids, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -4790,7 +5526,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;CaptureSessionRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<CaptureSessionRead>>> GetCaptureSessionsWithHttpInfoAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<CaptureSessionRead>>> GetCaptureSessionsWithHttpInfoAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -4818,11 +5554,112 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<List<CaptureSessionRead>>("/capture_sessions", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<List<CaptureSessionRead>>("/capture_sessions", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("GetCaptureSessions", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionsExpanded 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>CaptureSessionsExpanded</returns>
+        public CaptureSessionsExpanded GetCaptureSessionsExpanded()
+        {
+            PlaceframeApiClient.Client.ApiResponse<CaptureSessionsExpanded> localVarResponse = GetCaptureSessionsExpandedWithHttpInfo();
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionsExpanded 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>ApiResponse of CaptureSessionsExpanded</returns>
+        public PlaceframeApiClient.Client.ApiResponse<CaptureSessionsExpanded> GetCaptureSessionsExpandedWithHttpInfo()
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<CaptureSessionsExpanded>("/capture_sessions/expanded", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionsExpanded", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionsExpanded 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of CaptureSessionsExpanded</returns>
+        public async Cysharp.Threading.Tasks.UniTask<CaptureSessionsExpanded> GetCaptureSessionsExpandedAsync(System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<CaptureSessionsExpanded> localVarResponse = await GetCaptureSessionsExpandedWithHttpInfoAsync(cancellationToken);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetCaptureSessionsExpanded 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (CaptureSessionsExpanded)</returns>
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<CaptureSessionsExpanded>> GetCaptureSessionsExpandedWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.GetAsync<CaptureSessionsExpanded>("/capture_sessions/expanded", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetCaptureSessionsExpanded", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -4890,9 +5727,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;GroupRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<GroupRead>> GetGroupsAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<GroupRead>> GetGroupsAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<GroupRead>> localVarResponse = await GetGroupsWithHttpInfoAsync(ids, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<GroupRead>> localVarResponse = await GetGroupsWithHttpInfoAsync(ids, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -4903,7 +5740,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;GroupRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<GroupRead>>> GetGroupsWithHttpInfoAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<GroupRead>>> GetGroupsWithHttpInfoAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -4931,7 +5768,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<List<GroupRead>>("/groups", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<List<GroupRead>>("/groups", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -5003,9 +5840,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;LayerRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<LayerRead>> GetLayersAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<LayerRead>> GetLayersAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<LayerRead>> localVarResponse = await GetLayersWithHttpInfoAsync(ids, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<LayerRead>> localVarResponse = await GetLayersWithHttpInfoAsync(ids, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -5016,7 +5853,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;LayerRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<LayerRead>>> GetLayersWithHttpInfoAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<LayerRead>>> GetLayersWithHttpInfoAsync(List<Guid>? ids = default, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -5044,7 +5881,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<List<LayerRead>>("/layers", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<List<LayerRead>>("/layers", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -5113,9 +5950,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of LocalizationMapRead</returns>
-        public async System.Threading.Tasks.Task<LocalizationMapRead> GetLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<LocalizationMapRead> GetLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<LocalizationMapRead> localVarResponse = await GetLocalizationMapWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<LocalizationMapRead> localVarResponse = await GetLocalizationMapWithHttpInfoAsync(id, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -5126,7 +5963,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (LocalizationMapRead)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<LocalizationMapRead>> GetLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<LocalizationMapRead>> GetLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -5151,7 +5988,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<LocalizationMapRead>("/localization-maps/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<LocalizationMapRead>("/localization-maps/{id}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -5258,9 +6095,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="radius"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;LocalizationMapRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<LocalizationMapRead>> GetLocalizationMapsAsync(List<Guid>? ids = default, List<Guid>? reconstructionIds = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<LocalizationMapRead>> GetLocalizationMapsAsync(List<Guid>? ids = default, List<Guid>? reconstructionIds = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<LocalizationMapRead>> localVarResponse = await GetLocalizationMapsWithHttpInfoAsync(ids, reconstructionIds, positionX, positionY, positionZ, radius, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<LocalizationMapRead>> localVarResponse = await GetLocalizationMapsWithHttpInfoAsync(ids, reconstructionIds, positionX, positionY, positionZ, radius, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -5276,7 +6113,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="radius"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;LocalizationMapRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<LocalizationMapRead>>> GetLocalizationMapsWithHttpInfoAsync(List<Guid>? ids = default, List<Guid>? reconstructionIds = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<LocalizationMapRead>>> GetLocalizationMapsWithHttpInfoAsync(List<Guid>? ids = default, List<Guid>? reconstructionIds = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -5324,11 +6161,112 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<List<LocalizationMapRead>>("/localization-maps", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<List<LocalizationMapRead>>("/localization-maps", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("GetLocalizationMaps", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetLocalizerVersion 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>string</returns>
+        public string GetLocalizerVersion()
+        {
+            PlaceframeApiClient.Client.ApiResponse<string> localVarResponse = GetLocalizerVersionWithHttpInfo();
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetLocalizerVersion 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <returns>ApiResponse of string</returns>
+        public PlaceframeApiClient.Client.ApiResponse<string> GetLocalizerVersionWithHttpInfo()
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "text/plain"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<string>("/localize/version", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetLocalizerVersion", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// GetLocalizerVersion 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of string</returns>
+        public async Cysharp.Threading.Tasks.UniTask<string> GetLocalizerVersionAsync(System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<string> localVarResponse = await GetLocalizerVersionWithHttpInfoAsync(cancellationToken);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// GetLocalizerVersion 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (string)</returns>
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<string>> GetLocalizerVersionWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "text/plain"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.GetAsync<string>("/localize/version", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("GetLocalizerVersion", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -5424,9 +6362,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="radius"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;NodeRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<NodeRead>> GetNodesAsync(List<Guid>? ids = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<NodeRead>> GetNodesAsync(List<Guid>? ids = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<NodeRead>> localVarResponse = await GetNodesWithHttpInfoAsync(ids, positionX, positionY, positionZ, radius, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<NodeRead>> localVarResponse = await GetNodesWithHttpInfoAsync(ids, positionX, positionY, positionZ, radius, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -5441,7 +6379,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="radius"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;NodeRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<NodeRead>>> GetNodesWithHttpInfoAsync(List<Guid>? ids = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<NodeRead>>> GetNodesWithHttpInfoAsync(List<Guid>? ids = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -5485,7 +6423,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<List<NodeRead>>("/nodes", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<List<NodeRead>>("/nodes", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -5554,9 +6492,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ReconstructionRead</returns>
-        public async System.Threading.Tasks.Task<ReconstructionRead> GetReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<ReconstructionRead> GetReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<ReconstructionRead> localVarResponse = await GetReconstructionWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<ReconstructionRead> localVarResponse = await GetReconstructionWithHttpInfoAsync(id, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -5567,7 +6505,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (ReconstructionRead)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<ReconstructionRead>> GetReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<ReconstructionRead>> GetReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -5592,7 +6530,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<ReconstructionRead>("/reconstructions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<ReconstructionRead>("/reconstructions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -5666,9 +6604,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="axisConvention">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FileParameter</returns>
-        public async System.Threading.Tasks.Task<FileParameter> GetReconstructionFramePosesAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<FileParameter> GetReconstructionFramePosesAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = await GetReconstructionFramePosesWithHttpInfoAsync(id, axisConvention, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = await GetReconstructionFramePosesWithHttpInfoAsync(id, axisConvention, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -5680,7 +6618,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="axisConvention">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<FileParameter>> GetReconstructionFramePosesWithHttpInfoAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<FileParameter>> GetReconstructionFramePosesWithHttpInfoAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -5707,7 +6645,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/reconstructions/{id}/frame_poses", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/reconstructions/{id}/frame_poses", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -5776,9 +6714,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Guid</returns>
-        public async System.Threading.Tasks.Task<Guid> GetReconstructionLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<Guid> GetReconstructionLocalizationMapAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<Guid> localVarResponse = await GetReconstructionLocalizationMapWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<Guid> localVarResponse = await GetReconstructionLocalizationMapWithHttpInfoAsync(id, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -5789,7 +6727,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="id"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Guid)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<Guid>> GetReconstructionLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Guid>> GetReconstructionLocalizationMapWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -5814,118 +6752,11 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<Guid>("/reconstructions/{id}/localization_map", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<Guid>("/reconstructions/{id}/localization_map", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("GetReconstructionLocalizationMap", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// GetReconstructionManifest 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>ReconstructionManifest</returns>
-        public ReconstructionManifest GetReconstructionManifest(Guid id)
-        {
-            PlaceframeApiClient.Client.ApiResponse<ReconstructionManifest> localVarResponse = GetReconstructionManifestWithHttpInfo(id);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// GetReconstructionManifest 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>ApiResponse of ReconstructionManifest</returns>
-        public PlaceframeApiClient.Client.ApiResponse<ReconstructionManifest> GetReconstructionManifestWithHttpInfo(Guid id)
-        {
-            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-
-
-            // make the HTTP request
-            var localVarResponse = this.Client.Get<ReconstructionManifest>("/reconstructions/{id}/manifest", localVarRequestOptions, this.Configuration);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("GetReconstructionManifest", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// GetReconstructionManifest 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ReconstructionManifest</returns>
-        public async System.Threading.Tasks.Task<ReconstructionManifest> GetReconstructionManifestAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
-        {
-            PlaceframeApiClient.Client.ApiResponse<ReconstructionManifest> localVarResponse = await GetReconstructionManifestWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// GetReconstructionManifest 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (ReconstructionManifest)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<ReconstructionManifest>> GetReconstructionManifestWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
-        {
-
-            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-
-            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-
-
-            // make the HTTP request
-
-            var localVarResponse = await this.AsynchronousClient.GetAsync<ReconstructionManifest>("/reconstructions/{id}/manifest", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("GetReconstructionManifest", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -5995,9 +6826,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="axisConvention">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FileParameter</returns>
-        public async System.Threading.Tasks.Task<FileParameter> GetReconstructionPointsAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<FileParameter> GetReconstructionPointsAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = await GetReconstructionPointsWithHttpInfoAsync(id, axisConvention, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<FileParameter> localVarResponse = await GetReconstructionPointsWithHttpInfoAsync(id, axisConvention, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -6009,7 +6840,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="axisConvention">List of Ids to delete</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<FileParameter>> GetReconstructionPointsWithHttpInfoAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<FileParameter>> GetReconstructionPointsWithHttpInfoAsync(Guid id, AxisConvention axisConvention, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -6036,7 +6867,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/reconstructions/{id}/points", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<FileParameter>("/reconstructions/{id}/points", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -6048,123 +6879,16 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
-        /// GetReconstructionStatus 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>OrchestrationStatus</returns>
-        public OrchestrationStatus GetReconstructionStatus(Guid id)
-        {
-            PlaceframeApiClient.Client.ApiResponse<OrchestrationStatus> localVarResponse = GetReconstructionStatusWithHttpInfo(id);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// GetReconstructionStatus 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <returns>ApiResponse of OrchestrationStatus</returns>
-        public PlaceframeApiClient.Client.ApiResponse<OrchestrationStatus> GetReconstructionStatusWithHttpInfo(Guid id)
-        {
-            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-
-
-            // make the HTTP request
-            var localVarResponse = this.Client.Get<OrchestrationStatus>("/reconstructions/{id}/status", localVarRequestOptions, this.Configuration);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("GetReconstructionStatus", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// GetReconstructionStatus 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of OrchestrationStatus</returns>
-        public async System.Threading.Tasks.Task<OrchestrationStatus> GetReconstructionStatusAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
-        {
-            PlaceframeApiClient.Client.ApiResponse<OrchestrationStatus> localVarResponse = await GetReconstructionStatusWithHttpInfoAsync(id, cancellationToken).ConfigureAwait(false);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// GetReconstructionStatus 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="id"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (OrchestrationStatus)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<OrchestrationStatus>> GetReconstructionStatusWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
-        {
-
-            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-
-            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-
-
-            // make the HTTP request
-
-            var localVarResponse = await this.AsynchronousClient.GetAsync<OrchestrationStatus>("/reconstructions/{id}/status", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("GetReconstructionStatus", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
         /// GetReconstructions 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
-        /// <param name="captureSessionId">Optional capture session Id to filter by (optional)</param>
+        /// <param name="captureSessionIds">Optional list of capture session Ids to filter by (optional)</param>
         /// <param name="captureSessionName">Optional capture session name to filter by (optional)</param>
         /// <returns>List&lt;ReconstructionRead&gt;</returns>
-        public List<ReconstructionRead> GetReconstructions(List<Guid>? ids = default, Guid? captureSessionId = default, string? captureSessionName = default)
+        public List<ReconstructionRead> GetReconstructions(List<Guid>? ids = default, List<Guid>? captureSessionIds = default, string? captureSessionName = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<ReconstructionRead>> localVarResponse = GetReconstructionsWithHttpInfo(ids, captureSessionId, captureSessionName);
+            PlaceframeApiClient.Client.ApiResponse<List<ReconstructionRead>> localVarResponse = GetReconstructionsWithHttpInfo(ids, captureSessionIds, captureSessionName);
             return localVarResponse.Data;
         }
 
@@ -6173,10 +6897,10 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
-        /// <param name="captureSessionId">Optional capture session Id to filter by (optional)</param>
+        /// <param name="captureSessionIds">Optional list of capture session Ids to filter by (optional)</param>
         /// <param name="captureSessionName">Optional capture session name to filter by (optional)</param>
         /// <returns>ApiResponse of List&lt;ReconstructionRead&gt;</returns>
-        public PlaceframeApiClient.Client.ApiResponse<List<ReconstructionRead>> GetReconstructionsWithHttpInfo(List<Guid>? ids = default, Guid? captureSessionId = default, string? captureSessionName = default)
+        public PlaceframeApiClient.Client.ApiResponse<List<ReconstructionRead>> GetReconstructionsWithHttpInfo(List<Guid>? ids = default, List<Guid>? captureSessionIds = default, string? captureSessionName = default)
         {
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
 
@@ -6198,9 +6922,9 @@ namespace PlaceframeApiClient.Api
             {
                 localVarRequestOptions.QueryParameters.Add(PlaceframeApiClient.Client.ClientUtils.ParameterToMultiMap("multi", "ids", ids));
             }
-            if (captureSessionId != null)
+            if (captureSessionIds != null)
             {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeApiClient.Client.ClientUtils.ParameterToMultiMap("", "capture_session_id", captureSessionId));
+                localVarRequestOptions.QueryParameters.Add(PlaceframeApiClient.Client.ClientUtils.ParameterToMultiMap("multi", "capture_session_ids", captureSessionIds));
             }
             if (captureSessionName != null)
             {
@@ -6225,13 +6949,13 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
-        /// <param name="captureSessionId">Optional capture session Id to filter by (optional)</param>
+        /// <param name="captureSessionIds">Optional list of capture session Ids to filter by (optional)</param>
         /// <param name="captureSessionName">Optional capture session name to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;ReconstructionRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<ReconstructionRead>> GetReconstructionsAsync(List<Guid>? ids = default, Guid? captureSessionId = default, string? captureSessionName = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<ReconstructionRead>> GetReconstructionsAsync(List<Guid>? ids = default, List<Guid>? captureSessionIds = default, string? captureSessionName = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<ReconstructionRead>> localVarResponse = await GetReconstructionsWithHttpInfoAsync(ids, captureSessionId, captureSessionName, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<ReconstructionRead>> localVarResponse = await GetReconstructionsWithHttpInfoAsync(ids, captureSessionIds, captureSessionName, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -6240,11 +6964,11 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="ids">Optional list of Ids to filter by (optional)</param>
-        /// <param name="captureSessionId">Optional capture session Id to filter by (optional)</param>
+        /// <param name="captureSessionIds">Optional list of capture session Ids to filter by (optional)</param>
         /// <param name="captureSessionName">Optional capture session name to filter by (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;ReconstructionRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<ReconstructionRead>>> GetReconstructionsWithHttpInfoAsync(List<Guid>? ids = default, Guid? captureSessionId = default, string? captureSessionName = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<ReconstructionRead>>> GetReconstructionsWithHttpInfoAsync(List<Guid>? ids = default, List<Guid>? captureSessionIds = default, string? captureSessionName = default, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -6268,9 +6992,9 @@ namespace PlaceframeApiClient.Api
             {
                 localVarRequestOptions.QueryParameters.Add(PlaceframeApiClient.Client.ClientUtils.ParameterToMultiMap("multi", "ids", ids));
             }
-            if (captureSessionId != null)
+            if (captureSessionIds != null)
             {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeApiClient.Client.ClientUtils.ParameterToMultiMap("", "capture_session_id", captureSessionId));
+                localVarRequestOptions.QueryParameters.Add(PlaceframeApiClient.Client.ClientUtils.ParameterToMultiMap("multi", "capture_session_ids", captureSessionIds));
             }
             if (captureSessionName != null)
             {
@@ -6280,11 +7004,130 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.GetAsync<List<ReconstructionRead>>("/reconstructions", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.GetAsync<List<ReconstructionRead>>("/reconstructions", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("GetReconstructions", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// ListLocalizationEvaluations 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <returns>List&lt;LocalizationEvaluationRead&gt;</returns>
+        public List<LocalizationEvaluationRead> ListLocalizationEvaluations(Guid reconstructionId, string? pipelineVersion = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<List<LocalizationEvaluationRead>> localVarResponse = ListLocalizationEvaluationsWithHttpInfo(reconstructionId, pipelineVersion);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// ListLocalizationEvaluations 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <returns>ApiResponse of List&lt;LocalizationEvaluationRead&gt;</returns>
+        public PlaceframeApiClient.Client.ApiResponse<List<LocalizationEvaluationRead>> ListLocalizationEvaluationsWithHttpInfo(Guid reconstructionId, string? pipelineVersion = default)
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("reconstruction_id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(reconstructionId)); // path parameter
+            if (pipelineVersion != null)
+            {
+                localVarRequestOptions.QueryParameters.Add(PlaceframeApiClient.Client.ClientUtils.ParameterToMultiMap("", "pipeline_version", pipelineVersion));
+            }
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Get<List<LocalizationEvaluationRead>>("/reconstructions/{reconstruction_id}/localization-evaluations", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("ListLocalizationEvaluations", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// ListLocalizationEvaluations 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of List&lt;LocalizationEvaluationRead&gt;</returns>
+        public async Cysharp.Threading.Tasks.UniTask<List<LocalizationEvaluationRead>> ListLocalizationEvaluationsAsync(Guid reconstructionId, string? pipelineVersion = default, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<List<LocalizationEvaluationRead>> localVarResponse = await ListLocalizationEvaluationsWithHttpInfoAsync(reconstructionId, pipelineVersion, cancellationToken);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// ListLocalizationEvaluations 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="pipelineVersion">Optional pipeline_version to filter by (optional)</param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (List&lt;LocalizationEvaluationRead&gt;)</returns>
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<LocalizationEvaluationRead>>> ListLocalizationEvaluationsWithHttpInfoAsync(Guid reconstructionId, string? pipelineVersion = default, System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("reconstruction_id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(reconstructionId)); // path parameter
+            if (pipelineVersion != null)
+            {
+                localVarRequestOptions.QueryParameters.Add(PlaceframeApiClient.Client.ClientUtils.ParameterToMultiMap("", "pipeline_version", pipelineVersion));
+            }
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.GetAsync<List<LocalizationEvaluationRead>>("/reconstructions/{reconstruction_id}/localization-evaluations", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("ListLocalizationEvaluations", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -6298,13 +7141,13 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <returns>List&lt;MapLocalization&gt;</returns>
-        public List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image)
+        public List<MapLocalization> LocalizeImage(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = LocalizeImageWithHttpInfo(mapIds, cameraConfig, axisConvention, retrievalTopK, ransacThreshold, image);
+            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = LocalizeImageWithHttpInfo(mapIds, cameraConfig, axisConvention, image, retrievalTopK, ransacThreshold);
             return localVarResponse.Data;
         }
 
@@ -6315,11 +7158,11 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <returns>ApiResponse of List&lt;MapLocalization&gt;</returns>
-        public PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image)
+        public PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default)
         {
             // verify the required parameter 'mapIds' is set
             if (mapIds == null)
@@ -6370,10 +7213,16 @@ namespace PlaceframeApiClient.Api
             }
             // Primitive types (int, string, bool) go as standard form fields
             localVarRequestOptions.FormParameters.Add("axis_convention", PlaceframeApiClient.Client.ClientUtils.ParameterToString(axisConvention));
-            // Primitive types (int, string, bool) go as standard form fields
-            localVarRequestOptions.FormParameters.Add("retrieval_top_k", PlaceframeApiClient.Client.ClientUtils.ParameterToString(retrievalTopK));
-            // Primitive types (int, string, bool) go as standard form fields
-            localVarRequestOptions.FormParameters.Add("ransac_threshold", PlaceframeApiClient.Client.ClientUtils.ParameterToString(ransacThreshold));
+            if (retrievalTopK != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("retrieval_top_k", PlaceframeApiClient.Client.ClientUtils.ParameterToString(retrievalTopK));
+            }
+            if (ransacThreshold != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("ransac_threshold", PlaceframeApiClient.Client.ClientUtils.ParameterToString(ransacThreshold));
+            }
             localVarRequestOptions.FileParameters.Add("image", image);
 
 
@@ -6396,14 +7245,14 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;MapLocalization&gt;</returns>
-        public async System.Threading.Tasks.Task<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<MapLocalization>> LocalizeImageAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = await LocalizeImageWithHttpInfoAsync(mapIds, cameraConfig, axisConvention, retrievalTopK, ransacThreshold, image, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>> localVarResponse = await LocalizeImageWithHttpInfoAsync(mapIds, cameraConfig, axisConvention, image, retrievalTopK, ransacThreshold, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -6414,12 +7263,12 @@ namespace PlaceframeApiClient.Api
         /// <param name="mapIds"></param>
         /// <param name="cameraConfig"></param>
         /// <param name="axisConvention"></param>
-        /// <param name="retrievalTopK"></param>
-        /// <param name="ransacThreshold"></param>
         /// <param name="image"></param>
+        /// <param name="retrievalTopK"> (optional)</param>
+        /// <param name="ransacThreshold"> (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;MapLocalization&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, int retrievalTopK, double ransacThreshold, FileParameter image, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'mapIds' is set
             if (mapIds == null)
@@ -6472,20 +7321,141 @@ namespace PlaceframeApiClient.Api
             }
             // Primitive types (int, string, bool) go as standard form fields
             localVarRequestOptions.FormParameters.Add("axis_convention", PlaceframeApiClient.Client.ClientUtils.ParameterToString(axisConvention));
-            // Primitive types (int, string, bool) go as standard form fields
-            localVarRequestOptions.FormParameters.Add("retrieval_top_k", PlaceframeApiClient.Client.ClientUtils.ParameterToString(retrievalTopK));
-            // Primitive types (int, string, bool) go as standard form fields
-            localVarRequestOptions.FormParameters.Add("ransac_threshold", PlaceframeApiClient.Client.ClientUtils.ParameterToString(ransacThreshold));
+            if (retrievalTopK != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("retrieval_top_k", PlaceframeApiClient.Client.ClientUtils.ParameterToString(retrievalTopK));
+            }
+            if (ransacThreshold != null)
+            {
+                // Primitive types (int, string, bool) go as standard form fields
+                localVarRequestOptions.FormParameters.Add("ransac_threshold", PlaceframeApiClient.Client.ClientUtils.ParameterToString(ransacThreshold));
+            }
             localVarRequestOptions.FileParameters.Add("image", image);
 
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<List<MapLocalization>>("/localize", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PostAsync<List<MapLocalization>>("/localize", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("LocalizeImage", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// PushZedBoxLogs 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="logRelayBatch"></param>
+        /// <returns></returns>
+        public void PushZedBoxLogs(LogRelayBatch logRelayBatch)
+        {
+            PushZedBoxLogsWithHttpInfo(logRelayBatch);
+        }
+
+        /// <summary>
+        /// PushZedBoxLogs 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="logRelayBatch"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        public PlaceframeApiClient.Client.ApiResponse<Object> PushZedBoxLogsWithHttpInfo(LogRelayBatch logRelayBatch)
+        {
+            // verify the required parameter 'logRelayBatch' is set
+            if (logRelayBatch == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'logRelayBatch' when calling DefaultApi->PushZedBoxLogs");
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.Data = logRelayBatch;
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Post<Object>("/zed-boxes/logs", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("PushZedBoxLogs", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// PushZedBoxLogs 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="logRelayBatch"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        public async Cysharp.Threading.Tasks.UniTask PushZedBoxLogsAsync(LogRelayBatch logRelayBatch, System.Threading.CancellationToken cancellationToken = default)
+        {
+            await PushZedBoxLogsWithHttpInfoAsync(logRelayBatch, cancellationToken);
+        }
+
+        /// <summary>
+        /// PushZedBoxLogs 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="logRelayBatch"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> PushZedBoxLogsWithHttpInfoAsync(LogRelayBatch logRelayBatch, System.Threading.CancellationToken cancellationToken = default)
+        {
+            // verify the required parameter 'logRelayBatch' is set
+            if (logRelayBatch == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'logRelayBatch' when calling DefaultApi->PushZedBoxLogs");
+
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.Data = logRelayBatch;
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PostAsync<Object>("/zed-boxes/logs", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("PushZedBoxLogs", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -6546,9 +7516,9 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of LeaseResponse</returns>
-        public async System.Threading.Tasks.Task<LeaseResponse> RequestLeaseAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<LeaseResponse> RequestLeaseAsync(System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<LeaseResponse> localVarResponse = await RequestLeaseWithHttpInfoAsync(cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<LeaseResponse> localVarResponse = await RequestLeaseWithHttpInfoAsync(cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -6558,7 +7528,7 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (LeaseResponse)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<LeaseResponse>> RequestLeaseWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<LeaseResponse>> RequestLeaseWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -6582,11 +7552,239 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PostAsync<LeaseResponse>("/internal/leases/request", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PostAsync<LeaseResponse>("/internal/leases/request", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("RequestLease", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// RetryReconstruction 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ReconstructionRead</returns>
+        public ReconstructionRead RetryReconstruction(Guid id)
+        {
+            PlaceframeApiClient.Client.ApiResponse<ReconstructionRead> localVarResponse = RetryReconstructionWithHttpInfo(id);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// RetryReconstruction 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <returns>ApiResponse of ReconstructionRead</returns>
+        public PlaceframeApiClient.Client.ApiResponse<ReconstructionRead> RetryReconstructionWithHttpInfo(Guid id)
+        {
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Put<ReconstructionRead>("/reconstructions/{id}/retry", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("RetryReconstruction", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// RetryReconstruction 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ReconstructionRead</returns>
+        public async Cysharp.Threading.Tasks.UniTask<ReconstructionRead> RetryReconstructionAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<ReconstructionRead> localVarResponse = await RetryReconstructionWithHttpInfoAsync(id, cancellationToken);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// RetryReconstruction 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (ReconstructionRead)</returns>
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<ReconstructionRead>> RetryReconstructionWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
+        {
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PutAsync<ReconstructionRead>("/reconstructions/{id}/retry", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("RetryReconstruction", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// SucceedLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <returns></returns>
+        public void SucceedLease(Guid id, ReconstructionMetrics reconstructionMetrics)
+        {
+            SucceedLeaseWithHttpInfo(id, reconstructionMetrics);
+        }
+
+        /// <summary>
+        /// SucceedLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <returns>ApiResponse of Object(void)</returns>
+        public PlaceframeApiClient.Client.ApiResponse<Object> SucceedLeaseWithHttpInfo(Guid id, ReconstructionMetrics reconstructionMetrics)
+        {
+            // verify the required parameter 'reconstructionMetrics' is set
+            if (reconstructionMetrics == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'reconstructionMetrics' when calling DefaultApi->SucceedLease");
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.Data = reconstructionMetrics;
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Put<Object>("/internal/leases/{id}/succeed", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("SucceedLease", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// SucceedLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of void</returns>
+        public async Cysharp.Threading.Tasks.UniTask SucceedLeaseAsync(Guid id, ReconstructionMetrics reconstructionMetrics, System.Threading.CancellationToken cancellationToken = default)
+        {
+            await SucceedLeaseWithHttpInfoAsync(id, reconstructionMetrics, cancellationToken);
+        }
+
+        /// <summary>
+        /// SucceedLease 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="id"></param>
+        /// <param name="reconstructionMetrics"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse</returns>
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> SucceedLeaseWithHttpInfoAsync(Guid id, ReconstructionMetrics reconstructionMetrics, System.Threading.CancellationToken cancellationToken = default)
+        {
+            // verify the required parameter 'reconstructionMetrics' is set
+            if (reconstructionMetrics == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'reconstructionMetrics' when calling DefaultApi->SucceedLease");
+
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
+            localVarRequestOptions.Data = reconstructionMetrics;
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PutAsync<Object>("/internal/leases/{id}/succeed", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("SucceedLease", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -6660,9 +7858,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="captureSessionUpdate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of CaptureSessionRead</returns>
-        public async System.Threading.Tasks.Task<CaptureSessionRead> UpdateCaptureSessionAsync(Guid id, CaptureSessionUpdate captureSessionUpdate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<CaptureSessionRead> UpdateCaptureSessionAsync(Guid id, CaptureSessionUpdate captureSessionUpdate, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> localVarResponse = await UpdateCaptureSessionWithHttpInfoAsync(id, captureSessionUpdate, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> localVarResponse = await UpdateCaptureSessionWithHttpInfoAsync(id, captureSessionUpdate, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -6674,7 +7872,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="captureSessionUpdate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (CaptureSessionRead)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead>> UpdateCaptureSessionWithHttpInfoAsync(Guid id, CaptureSessionUpdate captureSessionUpdate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead>> UpdateCaptureSessionWithHttpInfoAsync(Guid id, CaptureSessionUpdate captureSessionUpdate, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'captureSessionUpdate' is set
             if (captureSessionUpdate == null)
@@ -6705,7 +7903,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PatchAsync<CaptureSessionRead>("/capture_sessions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PatchAsync<CaptureSessionRead>("/capture_sessions/{id}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -6786,9 +7984,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;CaptureSessionRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<CaptureSessionRead>> UpdateCaptureSessionsAsync(List<CaptureSessionBatchUpdate> captureSessionBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<CaptureSessionRead>> UpdateCaptureSessionsAsync(List<CaptureSessionBatchUpdate> captureSessionBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<CaptureSessionRead>> localVarResponse = await UpdateCaptureSessionsWithHttpInfoAsync(captureSessionBatchUpdate, allowMissing, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<CaptureSessionRead>> localVarResponse = await UpdateCaptureSessionsWithHttpInfoAsync(captureSessionBatchUpdate, allowMissing, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -6800,7 +7998,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;CaptureSessionRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<CaptureSessionRead>>> UpdateCaptureSessionsWithHttpInfoAsync(List<CaptureSessionBatchUpdate> captureSessionBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<CaptureSessionRead>>> UpdateCaptureSessionsWithHttpInfoAsync(List<CaptureSessionBatchUpdate> captureSessionBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'captureSessionBatchUpdate' is set
             if (captureSessionBatchUpdate == null)
@@ -6834,7 +8032,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PatchAsync<List<CaptureSessionRead>>("/capture_sessions", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PatchAsync<List<CaptureSessionRead>>("/capture_sessions", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -6915,9 +8113,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;GroupRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<GroupRead>> UpdateGroupsAsync(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<GroupRead>> UpdateGroupsAsync(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<GroupRead>> localVarResponse = await UpdateGroupsWithHttpInfoAsync(groupBatchUpdate, allowMissing, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<GroupRead>> localVarResponse = await UpdateGroupsWithHttpInfoAsync(groupBatchUpdate, allowMissing, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -6929,7 +8127,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;GroupRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<GroupRead>>> UpdateGroupsWithHttpInfoAsync(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<GroupRead>>> UpdateGroupsWithHttpInfoAsync(List<GroupBatchUpdate> groupBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'groupBatchUpdate' is set
             if (groupBatchUpdate == null)
@@ -6963,7 +8161,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PatchAsync<List<GroupRead>>("/groups", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PatchAsync<List<GroupRead>>("/groups", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -7044,9 +8242,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;LayerRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<LayerRead>> UpdateLayersAsync(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<LayerRead>> UpdateLayersAsync(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<LayerRead>> localVarResponse = await UpdateLayersWithHttpInfoAsync(layerBatchUpdate, allowMissing, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<LayerRead>> localVarResponse = await UpdateLayersWithHttpInfoAsync(layerBatchUpdate, allowMissing, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -7058,7 +8256,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;LayerRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<LayerRead>>> UpdateLayersWithHttpInfoAsync(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<LayerRead>>> UpdateLayersWithHttpInfoAsync(List<LayerBatchUpdate> layerBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'layerBatchUpdate' is set
             if (layerBatchUpdate == null)
@@ -7092,7 +8290,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PatchAsync<List<LayerRead>>("/layers", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PatchAsync<List<LayerRead>>("/layers", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -7170,9 +8368,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="localizationMapUpdate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of LocalizationMapRead</returns>
-        public async System.Threading.Tasks.Task<LocalizationMapRead> UpdateLocalizationMapAsync(Guid id, LocalizationMapUpdate localizationMapUpdate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<LocalizationMapRead> UpdateLocalizationMapAsync(Guid id, LocalizationMapUpdate localizationMapUpdate, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<LocalizationMapRead> localVarResponse = await UpdateLocalizationMapWithHttpInfoAsync(id, localizationMapUpdate, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<LocalizationMapRead> localVarResponse = await UpdateLocalizationMapWithHttpInfoAsync(id, localizationMapUpdate, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -7184,7 +8382,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="localizationMapUpdate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (LocalizationMapRead)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<LocalizationMapRead>> UpdateLocalizationMapWithHttpInfoAsync(Guid id, LocalizationMapUpdate localizationMapUpdate, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<LocalizationMapRead>> UpdateLocalizationMapWithHttpInfoAsync(Guid id, LocalizationMapUpdate localizationMapUpdate, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'localizationMapUpdate' is set
             if (localizationMapUpdate == null)
@@ -7215,7 +8413,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PatchAsync<LocalizationMapRead>("/localization-maps/{id}", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PatchAsync<LocalizationMapRead>("/localization-maps/{id}", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -7296,9 +8494,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;LocalizationMapRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<LocalizationMapRead>> UpdateLocalizationMapsAsync(List<LocalizationMapBatchUpdate> localizationMapBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<LocalizationMapRead>> UpdateLocalizationMapsAsync(List<LocalizationMapBatchUpdate> localizationMapBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<LocalizationMapRead>> localVarResponse = await UpdateLocalizationMapsWithHttpInfoAsync(localizationMapBatchUpdate, allowMissing, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<LocalizationMapRead>> localVarResponse = await UpdateLocalizationMapsWithHttpInfoAsync(localizationMapBatchUpdate, allowMissing, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -7310,7 +8508,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;LocalizationMapRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<LocalizationMapRead>>> UpdateLocalizationMapsWithHttpInfoAsync(List<LocalizationMapBatchUpdate> localizationMapBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<LocalizationMapRead>>> UpdateLocalizationMapsWithHttpInfoAsync(List<LocalizationMapBatchUpdate> localizationMapBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'localizationMapBatchUpdate' is set
             if (localizationMapBatchUpdate == null)
@@ -7344,7 +8542,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PatchAsync<List<LocalizationMapRead>>("/localization-maps", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PatchAsync<List<LocalizationMapRead>>("/localization-maps", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -7425,9 +8623,9 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of List&lt;NodeRead&gt;</returns>
-        public async System.Threading.Tasks.Task<List<NodeRead>> UpdateNodesAsync(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<List<NodeRead>> UpdateNodesAsync(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<List<NodeRead>> localVarResponse = await UpdateNodesWithHttpInfoAsync(nodeBatchUpdate, allowMissing, cancellationToken).ConfigureAwait(false);
+            PlaceframeApiClient.Client.ApiResponse<List<NodeRead>> localVarResponse = await UpdateNodesWithHttpInfoAsync(nodeBatchUpdate, allowMissing, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -7439,7 +8637,7 @@ namespace PlaceframeApiClient.Api
         /// <param name="allowMissing"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;NodeRead&gt;)</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<List<NodeRead>>> UpdateNodesWithHttpInfoAsync(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<List<NodeRead>>> UpdateNodesWithHttpInfoAsync(List<NodeBatchUpdate> nodeBatchUpdate, bool? allowMissing = default, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'nodeBatchUpdate' is set
             if (nodeBatchUpdate == null)
@@ -7473,7 +8671,7 @@ namespace PlaceframeApiClient.Api
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PatchAsync<List<NodeRead>>("/nodes", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PatchAsync<List<NodeRead>>("/nodes", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
@@ -7485,30 +8683,34 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
-        /// UploadCaptureSessionTar 
+        /// UpdateProgress 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="progressUpdate"></param>
         /// <returns></returns>
-        public void UploadCaptureSessionTar(Guid id, FileParameter? file = default)
+        public void UpdateProgress(Guid id, ProgressUpdate progressUpdate)
         {
-            UploadCaptureSessionTarWithHttpInfo(id, file);
+            UpdateProgressWithHttpInfo(id, progressUpdate);
         }
 
         /// <summary>
-        /// UploadCaptureSessionTar 
+        /// UpdateProgress 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="progressUpdate"></param>
         /// <returns>ApiResponse of Object(void)</returns>
-        public PlaceframeApiClient.Client.ApiResponse<Object> UploadCaptureSessionTarWithHttpInfo(Guid id, FileParameter? file = default)
+        public PlaceframeApiClient.Client.ApiResponse<Object> UpdateProgressWithHttpInfo(Guid id, ProgressUpdate progressUpdate)
         {
+            // verify the required parameter 'progressUpdate' is set
+            if (progressUpdate == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'progressUpdate' when calling DefaultApi->UpdateProgress");
+
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
-                "multipart/form-data"
+                "application/json"
             };
 
             // to determine the Accept header
@@ -7523,18 +8725,15 @@ namespace PlaceframeApiClient.Api
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
             localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-            if (file != null)
-            {
-                localVarRequestOptions.FileParameters.Add("file", file);
-            }
+            localVarRequestOptions.Data = progressUpdate;
 
 
             // make the HTTP request
-            var localVarResponse = this.Client.Put<Object>("/capture_sessions/{id}/tar", localVarRequestOptions, this.Configuration);
+            var localVarResponse = this.Client.Put<Object>("/internal/leases/{id}/progress", localVarRequestOptions, this.Configuration);
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("UploadCaptureSessionTar", localVarResponse);
+                Exception _exception = this.ExceptionFactory("UpdateProgress", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
@@ -7542,33 +8741,37 @@ namespace PlaceframeApiClient.Api
         }
 
         /// <summary>
-        /// UploadCaptureSessionTar 
+        /// UpdateProgress 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="progressUpdate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async System.Threading.Tasks.Task UploadCaptureSessionTarAsync(Guid id, FileParameter? file = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask UpdateProgressAsync(Guid id, ProgressUpdate progressUpdate, System.Threading.CancellationToken cancellationToken = default)
         {
-            await UploadCaptureSessionTarWithHttpInfoAsync(id, file, cancellationToken).ConfigureAwait(false);
+            await UpdateProgressWithHttpInfoAsync(id, progressUpdate, cancellationToken);
         }
 
         /// <summary>
-        /// UploadCaptureSessionTar 
+        /// UpdateProgress 
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="file"> (optional)</param>
+        /// <param name="progressUpdate"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async System.Threading.Tasks.Task<PlaceframeApiClient.Client.ApiResponse<Object>> UploadCaptureSessionTarWithHttpInfoAsync(Guid id, FileParameter? file = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> UpdateProgressWithHttpInfoAsync(Guid id, ProgressUpdate progressUpdate, System.Threading.CancellationToken cancellationToken = default)
         {
+            // verify the required parameter 'progressUpdate' is set
+            if (progressUpdate == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'progressUpdate' when calling DefaultApi->UpdateProgress");
+
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
-                "multipart/form-data"
+                "application/json"
             };
 
             // to determine the Accept header
@@ -7584,19 +8787,139 @@ namespace PlaceframeApiClient.Api
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
             localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-            if (file != null)
-            {
-                localVarRequestOptions.FileParameters.Add("file", file);
-            }
+            localVarRequestOptions.Data = progressUpdate;
 
 
             // make the HTTP request
 
-            var localVarResponse = await this.AsynchronousClient.PutAsync<Object>("/capture_sessions/{id}/tar", localVarRequestOptions, this.Configuration, cancellationToken).ConfigureAwait(false);
+            var localVarResponse = await this.AsynchronousClient.PutAsync<Object>("/internal/leases/{id}/progress", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
 
             if (this.ExceptionFactory != null)
             {
-                Exception _exception = this.ExceptionFactory("UploadCaptureSessionTar", localVarResponse);
+                Exception _exception = this.ExceptionFactory("UpdateProgress", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// UpsertLocalizationEvaluation 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <returns>LocalizationEvaluationRead</returns>
+        public LocalizationEvaluationRead UpsertLocalizationEvaluation(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate)
+        {
+            PlaceframeApiClient.Client.ApiResponse<LocalizationEvaluationRead> localVarResponse = UpsertLocalizationEvaluationWithHttpInfo(reconstructionId, localizationEvaluationCreate);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// UpsertLocalizationEvaluation 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <returns>ApiResponse of LocalizationEvaluationRead</returns>
+        public PlaceframeApiClient.Client.ApiResponse<LocalizationEvaluationRead> UpsertLocalizationEvaluationWithHttpInfo(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate)
+        {
+            // verify the required parameter 'localizationEvaluationCreate' is set
+            if (localizationEvaluationCreate == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'localizationEvaluationCreate' when calling DefaultApi->UpsertLocalizationEvaluation");
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("reconstruction_id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(reconstructionId)); // path parameter
+            localVarRequestOptions.Data = localizationEvaluationCreate;
+
+
+            // make the HTTP request
+            var localVarResponse = this.Client.Post<LocalizationEvaluationRead>("/reconstructions/{reconstruction_id}/localization-evaluations", localVarRequestOptions, this.Configuration);
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("UpsertLocalizationEvaluation", localVarResponse);
+                if (_exception != null) throw _exception;
+            }
+
+            return localVarResponse;
+        }
+
+        /// <summary>
+        /// UpsertLocalizationEvaluation 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of LocalizationEvaluationRead</returns>
+        public async Cysharp.Threading.Tasks.UniTask<LocalizationEvaluationRead> UpsertLocalizationEvaluationAsync(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate, System.Threading.CancellationToken cancellationToken = default)
+        {
+            PlaceframeApiClient.Client.ApiResponse<LocalizationEvaluationRead> localVarResponse = await UpsertLocalizationEvaluationWithHttpInfoAsync(reconstructionId, localizationEvaluationCreate, cancellationToken);
+            return localVarResponse.Data;
+        }
+
+        /// <summary>
+        /// UpsertLocalizationEvaluation 
+        /// </summary>
+        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
+        /// <param name="reconstructionId"></param>
+        /// <param name="localizationEvaluationCreate"></param>
+        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
+        /// <returns>Task of ApiResponse (LocalizationEvaluationRead)</returns>
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<LocalizationEvaluationRead>> UpsertLocalizationEvaluationWithHttpInfoAsync(Guid reconstructionId, LocalizationEvaluationCreate localizationEvaluationCreate, System.Threading.CancellationToken cancellationToken = default)
+        {
+            // verify the required parameter 'localizationEvaluationCreate' is set
+            if (localizationEvaluationCreate == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'localizationEvaluationCreate' when calling DefaultApi->UpsertLocalizationEvaluation");
+
+
+            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
+
+            string[] _contentTypes = new string[] {
+                "application/json"
+            };
+
+            // to determine the Accept header
+            string[] _accepts = new string[] {
+                "application/json"
+            };
+
+
+            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
+            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
+
+            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
+            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
+
+            localVarRequestOptions.PathParameters.Add("reconstruction_id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(reconstructionId)); // path parameter
+            localVarRequestOptions.Data = localizationEvaluationCreate;
+
+
+            // make the HTTP request
+
+            var localVarResponse = await this.AsynchronousClient.PostAsync<LocalizationEvaluationRead>("/reconstructions/{reconstruction_id}/localization-evaluations", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
+
+            if (this.ExceptionFactory != null)
+            {
+                Exception _exception = this.ExceptionFactory("UpsertLocalizationEvaluation", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 

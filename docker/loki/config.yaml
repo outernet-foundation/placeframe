@@ -20,6 +20,12 @@ ingester:
   lifecycler:
     ring:
       replication_factor: 1
+  # Loki gates out-of-order writes by `max_chunk_age / 2` (the in-memory chunk's
+  # acceptance window). Default 2h → 1h cutoff, which silently drops phone-relay
+  # backfill older than 1h. Bump so the cutoff matches reject_old_samples_max_age
+  # in limits_config. Side effect: open chunks stay in ingester memory for up to
+  # this long if not size-flushed first; fine at our volume.
+  max_chunk_age: 720h
 schema_config:
   configs:
     - from: "2024-01-01"
@@ -31,3 +37,12 @@ schema_config:
         period: 24h
 limits_config:
   retention_period: 720h
+  # Box logs reach Loki via the phone, which is intermittently connected; a box
+  # may accumulate days of logs between phone visits, and on each visit the
+  # drainer pushes them at their original wall-clock timestamps. Two limits
+  # gate backfill — both must be wide enough or pushes get rejected with 400:
+  #   - reject_old_samples_max_age: stream-level wall-clock cutoff
+  #   - unordered_writes_max_age: per-stream out-of-order write cutoff
+  # Defaults are 168h and 1h respectively; 720h on both leaves plenty of margin.
+  reject_old_samples: true
+  reject_old_samples_max_age: 720h

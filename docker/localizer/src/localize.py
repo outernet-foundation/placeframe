@@ -1,93 +1,159 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from os import environ
+from time import perf_counter
 from typing import Any, cast
 
 from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
-from core.camera_config import PinholeCameraConfig, transform_image, transform_intrinsics
-from core.lightglue import lightglue_match_tensors
-from core.localization_metrics import LocalizationMetrics
+from core.camera_config import PinholeCameraConfig
+from core.image_preprocess import canonicalize_image, canonicalize_intrinsics, tile_image
+from core.lightglue import Descriptors, Keypoints, MatchIndices
+from core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT, LocalizationMetrics
+from core.model_wrappers import (
+    LocalFeatureOutput,
+    make_global_descriptor_extractor,
+    make_local_feature_extractor,
+    make_local_feature_matcher_for_tensors,
+)
 from core.opq import decode_descriptors
+from core.image_preprocess import NumQueryTiles
+from core.model_wrappers import RetrievalDim
+from core.tensor_types import TT
 from core.transform import Float3, Float4, Transform
 from numpy import asarray, float32, vstack
 from pycolmap import AbsolutePoseEstimationOptions, RANSACOptions
 from pycolmap import Camera as ColmapCamera
-from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose  # type: ignore  # noqa: PLC2701 — no public API
+from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose, set_random_seed  # type: ignore  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
-from torch import cuda, from_numpy, mv, topk  # type: ignore
+from torch import Tensor, cuda, inference_mode, manual_seed, topk  # type: ignore
 
 from .build_metrics import build_localization_metrics
+from core.calibration import CalibrationArtifact
 from .map import Map
+from .torch_ops import amax, from_numpy, matmul, permute, stack, to, transpose
 
 DEVICE = "cuda" if cuda.is_available() else "cpu"
 
 
-dir: Any = None
-superpoint: Any = None
-lightglue: Any = None
+# Seeded each call so localization_evaluations cache rows keyed on pipeline_version are
+# reproducible — fit_calibration treats (reconstruction_id, frame_timestamp, retrieval_top_k,
+# ransac_threshold, pipeline_version) as a deterministic cache key. cudnn-deterministic and
+# CUBLAS_WORKSPACE_CONFIG are deliberately not enabled: the 10–30% latency cost outweighs
+# the residual non-determinism, which is below the discrete inlier-set threshold the fit cares about.
+LOCALIZER_RANDOM_SEED = 0
+
+global_descriptor_extractor: Callable[[Tensor], TT[RetrievalDim]]
+local_feature_extractor: Callable[[Tensor], LocalFeatureOutput]
+local_feature_matcher: Callable[
+    [list[tuple[str, str]], Keypoints, Descriptors, dict[str, tuple[int, int]], int],
+    MatchIndices,
+]
 
 
 class LocalizationError(ValueError):
     pass
 
 
-def load_models(max_keypoints_per_image: int):
+def load_models():
     if environ.get("CODEGEN"):
         return
 
-    from neural_networks.models import load_DIR, load_lightglue, load_superpoint
-    from torch import set_grad_enabled
+    from neural_networks.models import load_aliked, load_DIR, load_lightglue
 
     print(f"Using device: {DEVICE}")
 
-    # Turn off gradient calculations globally (we only do inference here)
-    set_grad_enabled(False)
-
-    global dir, superpoint, lightglue
-    dir = load_DIR(DEVICE)
-    superpoint = load_superpoint(max_num_keypoints=max_keypoints_per_image, device=DEVICE)
-    lightglue = load_lightglue(DEVICE)
+    global global_descriptor_extractor, local_feature_extractor, local_feature_matcher
+    global_descriptor_extractor = make_global_descriptor_extractor(load_DIR(DEVICE))
+    local_feature_extractor = make_local_feature_extractor(load_aliked(device=DEVICE))
+    local_feature_matcher = make_local_feature_matcher_for_tensors(load_lightglue(DEVICE), DEVICE)
 
 
+@inference_mode()
 def localize_image_against_reconstruction(
     map: Map,
     camera: PinholeCameraConfig,
     axis_convention: AxisConvention,
     image_buffer: bytes,
-    retrieval_top_k: int,
-    ransac_threshold: float,
+    retrieval_top_k: int | None,
+    ransac_threshold: float | None,
+    pipeline_version: str,
+    calibration: CalibrationArtifact,
 ) -> tuple[Transform, LocalizationMetrics]:
+
+    set_random_seed(LOCALIZER_RANDOM_SEED)
+    manual_seed(LOCALIZER_RANDOM_SEED)
+
+    # Per-stage timing instrumentation. CUDA kernels are async, so each GPU-bound stage ends
+    # with cuda.synchronize() to attribute its true wall time rather than just kernel-launch.
+    timings: dict[str, float] = {}
+
+    def _gpu_sync() -> None:
+        if DEVICE == "cuda":
+            cuda.synchronize()
+
+    t0 = perf_counter()
+
     # Extract features from query image
-    image = transform_image(image_buffer, camera.orientation)
+    image = canonicalize_image(image_buffer, camera.orientation)
+    timings["canonicalize"] = perf_counter() - t0
+
+    t = perf_counter()
     rgb_tensor = from_numpy(asarray(image, dtype=float32)).permute(2, 0, 1).div(255.0)
-    gray_tensor = from_numpy(asarray(image.convert("L"), dtype=float32)).unsqueeze(0).div(255.0)
-    superpoint_output = superpoint({"image": gray_tensor.unsqueeze(0).to(device=DEVICE)})
-    query_global_descriptor = dir({"image": rgb_tensor.unsqueeze(0).to(device=DEVICE)})["global_descriptor"][0]
+    query_keypoints_tensor, query_descriptors_tensor = local_feature_extractor(
+        rgb_tensor.unsqueeze(0).to(device=DEVICE)
+    )
+    _gpu_sync()
+    timings["aliked"] = perf_counter() - t
 
-    # Retrieve similar database images
-    similarity_scores = mv(from_numpy(map.global_descriptors_matrix).to(DEVICE), query_global_descriptor)
-    topk_rows: list[int] = topk(similarity_scores, retrieval_top_k).indices.cpu().tolist()  # type: ignore
-    matched_image_ids = [map.ordered_image_ids[i] for i in topk_rows]
+    t = perf_counter()
+    descriptor_per_query_tile: list[TT[RetrievalDim]] = []
+    for tile in tile_image(image):
+        tile_tensor = from_numpy(asarray(tile, dtype=float32)).permute(2, 0, 1).div(255.0)
+        descriptor_per_query_tile.append(global_descriptor_extractor(tile_tensor.unsqueeze(0).to(device=DEVICE)))
+    query_tile_descriptors: TT[NumQueryTiles, RetrievalDim] = stack(descriptor_per_query_tile, dim=0)
+    _gpu_sync()
+    timings["dir_tiles"] = perf_counter() - t
 
+    t = perf_counter()
+    # Per-database-image similarity is the max over all (query_tile, database_tile) pairs for that image.
+    database_descriptors = to(from_numpy(map.tile_descriptors), DEVICE)
+    similarity_pairs = permute(matmul(query_tile_descriptors, transpose(database_descriptors, 1, 2)), (1, 0, 2))
+    per_image_similarity = amax(similarity_pairs, dim=(0, 2))
+    top_k = retrieval_top_k if retrieval_top_k is not None else RETRIEVAL_TOP_K_DEFAULT
+    top_k_image_indices: list[int] = topk(per_image_similarity, top_k).indices.cpu().tolist()  # type: ignore
+    matched_image_ids = [map.ordered_image_ids[i] for i in top_k_image_indices]
+    timings["retrieval"] = perf_counter() - t
+
+    t = perf_counter()
     # Decode descriptors of matched database images
     descriptors = decode_descriptors(
         map.opq_matrix, map.product_quantizer, {image_id: map.pq_codes[image_id] for image_id in matched_image_ids}
     )
 
     # Prepare database image data for matching
-    keypoints = {str(image_id): from_numpy(map.keypoints[image_id]).to(DEVICE) for image_id in matched_image_ids}
-    descriptors = {str(image_id): from_numpy(descriptors[image_id]).to(DEVICE) for image_id in matched_image_ids}
+    keypoints = Keypoints({
+        str(image_id): from_numpy(map.keypoints[image_id]).to(DEVICE) for image_id in matched_image_ids
+    })
+    descriptors = Descriptors({
+        str(image_id): from_numpy(descriptors[image_id]).to(DEVICE) for image_id in matched_image_ids
+    })
     sizes = {str(image_id): map.image_sizes[str(image_id)] for image_id in matched_image_ids}
 
     # Prepare query image data for matching
-    keypoints["query"] = superpoint_output["keypoints"][0].to(DEVICE)
-    descriptors["query"] = superpoint_output["descriptors"][0].to(DEVICE)
+    keypoints["query"] = query_keypoints_tensor.to(DEVICE)
+    descriptors["query"] = query_descriptors_tensor.to(DEVICE)
     sizes["query"] = (image.height, image.width)
+    _gpu_sync()
+    timings["matching_setup"] = perf_counter() - t
 
+    t = perf_counter()
     # Match features between query and database images
     pairs = [(str(image_id), "query") for image_id in matched_image_ids]
 
-    match_indices = lightglue_match_tensors(lightglue, pairs, keypoints, descriptors, sizes, len(pairs), DEVICE)
+    match_indices = local_feature_matcher(pairs, keypoints, descriptors, sizes, len(pairs))
+    _gpu_sync()
+    timings["matching"] = perf_counter() - t
 
     # Count raw LightGlue matches before 3D filtering
     num_matches = sum(match_indices[key][0].shape[0] for key in match_indices)
@@ -110,22 +176,26 @@ def localize_image_against_reconstruction(
         raise LocalizationError("No matching keypoints found")
 
     # Create COLMAP camera model
-    width, height, *params = transform_intrinsics(camera)
+    width, height, *params = canonicalize_intrinsics(camera)
     pycolmap_camera = ColmapCamera(width=width, height=height, model="PINHOLE", params=params)
 
     # Set estimation options
     ransac_options = RANSACOptions()
-    ransac_options.max_error = ransac_threshold
+    ransac_options.max_error = ransac_threshold if ransac_threshold is not None else RANSAC_THRESHOLD_DEFAULT
     estimation_options = AbsolutePoseEstimationOptions()
     estimation_options.ransac = ransac_options
 
     # Estimate pose
+    t = perf_counter()
     points2D = keypoints["query"][query_keypoint_indices].cpu().numpy()  # noqa: N806 — pycolmap CV notation
     points3D = vstack([map.points3D[i].xyz for i in point3d_indices])  # noqa: N806 — pycolmap CV notation
     pnp_result = cast(
         dict[str, Any] | None,
-        estimate_and_refine_absolute_pose(points2D, points3D, pycolmap_camera, estimation_options),
+        estimate_and_refine_absolute_pose(
+            points2D, points3D, pycolmap_camera, estimation_options, return_covariance=True
+        ),
     )
+    timings["pnp"] = perf_counter() - t
 
     # Check if pose estimation was successful
     if pnp_result is None:
@@ -146,7 +216,28 @@ def localize_image_against_reconstruction(
     )
 
     # Build metrics
-    metrics = build_localization_metrics(pnp_result, points2D, points3D, pycolmap_camera, num_matches, width, height)
+    metrics = build_localization_metrics(
+        pnp_result,
+        points2D,
+        points3D,
+        pycolmap_camera,
+        num_matches,
+        width,
+        height,
+        pipeline_version,
+        calibration,
+        map,
+    )
+
+    if metrics.confidence_loose < calibration.loose_min or metrics.confidence_tight < calibration.tight_min:
+        raise LocalizationError(
+            f"Confidence below gate: "
+            f"loose={metrics.confidence_loose:.3f} (min {calibration.loose_min}), "
+            f"tight={metrics.confidence_tight:.3f} (min {calibration.tight_min})"
+        )
+
+    timings["total"] = perf_counter() - t0
+    print("localize timings(ms): " + " ".join(f"{k}={v * 1000:.0f}" for k, v in timings.items()))
 
     # Success
     print(transform.model_dump_json(indent=2))

@@ -30,6 +30,7 @@ namespace Placeframe.Client
         {
             props.labelStyle.horizontalAlignment = props.labelStyle.horizontalAlignment ?? Props.Value(HorizontalAlignmentOptions.Center);
             props.labelStyle.verticalAlignment = props.labelStyle.verticalAlignment ?? Props.Value(VerticalAlignmentOptions.Capline);
+            props.background.style.raycastPadding = props.background.style.raycastPadding ?? Props.Value(new Vector4(12, 12, 12, 12));
 
             return Button(new ButtonProps()
             {
@@ -207,7 +208,12 @@ namespace Placeframe.Client
         }
 
         public static IControl RoundButton(ButtonProps props = default)
-            => Control(elements.roundButton, props);
+        {
+            props.layout.sizeDelta = props.layout.sizeDelta ?? Props.Value(new Vector2(100, 100));
+            props.background.style.raycastPadding = props.background.style.raycastPadding ?? Props.Value(new Vector4(12, 12, 12, 12));
+
+            return Control(elements.roundButton, props);
+        }
 
         public static IControl Foldout(FoldoutProps props = default)
             => Control(elements.foldout, props);

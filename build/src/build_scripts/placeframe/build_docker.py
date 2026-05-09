@@ -14,6 +14,8 @@ from pydantic_settings import BaseSettings
 
 from .context_sha import compute_service_shas
 
+CROSS_COMPILE_TARGETS = {"zed-capture"}
+
 
 class Settings(BaseSettings):
     wsl_distro_name: str | None = None
@@ -23,7 +25,7 @@ settings = Settings.model_validate({})
 
 LOCK_FILE = Path(".env.lock")
 COMPOSE_FILE = Path("compose.yml")
-BAKE_FILE = Path("compose.bake.yml")
+DEFAULT_BAKE_FILE = Path("compose.bake.yml")
 METADATA_PATH = Path("metadata.json")
 
 Mode = Literal["local", "ci"]
@@ -116,14 +118,41 @@ def build(
     gpu: Gpu = typer.Option("auto", "--gpu", help="auto|cuda|rocm|none"),
     no_cache: bool = typer.Option(False, "--no-cache", help="Force rebuild by disabling cache usage."),
     targets_opt: list[str] | None = typer.Option(
-        None, "--targets", "-t", help="Build only these services (from compose.bake.yml)."
+        None, "--targets", "-t", help="Build only these services (from the selected bake file)."
+    ),
+    bake_file: Path = typer.Option(
+        DEFAULT_BAKE_FILE, "--bake-file", help="Bake file to load (e.g. compose.bake.yml or compose.zed.bake.yml)."
     ),
 ) -> None:
-    service_shas = compute_service_shas(Path.cwd(), BAKE_FILE)
+    run_build(
+        upgrade=upgrade,
+        lock_only=lock_only,
+        mode=mode,
+        gpu=gpu,
+        no_cache=no_cache,
+        targets_opt=targets_opt,
+        bake_file=bake_file,
+    )
+
+
+def run_build(
+    *,
+    upgrade: bool = False,
+    lock_only: bool = False,
+    mode: Mode = "local",
+    gpu: Gpu = "auto",
+    no_cache: bool = False,
+    targets_opt: list[str] | None = None,
+    bake_file: Path = DEFAULT_BAKE_FILE,
+) -> None:
+    service_shas = compute_service_shas(Path.cwd(), bake_file)
     os.environ.update(service_shas)
 
+    # Baked into the localizer image at build time.
+    os.environ["GIT_COMMIT_SHA"] = bash_output("git rev-parse HEAD").strip()
+
     # Read bake, compose, and lock files
-    bake_data: dict[str, Any] = yaml.safe_load(BAKE_FILE.read_text(encoding="utf-8"))
+    bake_data: dict[str, Any] = yaml.safe_load(bake_file.read_text(encoding="utf-8"))
     compose_data: dict[str, Any] = _load_compose(COMPOSE_FILE)
     lock_data = _load_lock_file(LOCK_FILE) if LOCK_FILE.exists() else {}
 
@@ -144,11 +173,13 @@ def build(
     for image, ref in {image: ref for image, ref in base_images.items() if upgrade or image not in lock_data}.items():
         lock_data[image] = f"@{_get_remote_digest(ref)}"
 
-    # Resolve third-party image external dependencies
+    # Resolve third-party image external dependencies. x-image-ref marks services whose image
+    # is sourced externally (vs. built from a bake file), so it's the right discriminator
+    # regardless of how many bake files exist.
     third_party_images: dict[str, str] = {
         name.upper().replace("-", "_") + "_IMAGE": config["x-image-ref"]
         for name, config in cast(dict[str, Any], compose_data["services"]).items()
-        if name not in bake_data["services"]
+        if "x-image-ref" in config
     }
 
     def _needs_resolve(image: str, ref: str) -> bool:
@@ -183,10 +214,17 @@ def build(
 
     # Filter to specific targets if requested
     if targets_opt:
-        unknown = set(targets_opt) - set(targets)
+        unknown = set(targets_opt) - set(bake_data["services"])
         if unknown:
-            raise typer.BadParameter(f"Unknown targets: {unknown}. Available: {sorted(targets)}")
-        targets = [t for t in targets if t in targets_opt]
+            raise typer.BadParameter(f"Unknown targets: {unknown}. Available: {sorted(bake_data['services'])}")
+        targets = [t for t in bake_data["services"] if t in set(targets_opt)]
+    else:
+        targets = [
+            service
+            for service in bake_data["services"]
+            if (not any(service.endswith(f"-{g}") for g in GPU_TYPES) or service.endswith(f"-{gpu}"))
+            and service not in CROSS_COMPILE_TARGETS
+        ]
 
     # Configure registry caches in CI mode
     if mode == "ci":
@@ -213,7 +251,7 @@ def build(
     # Bake images
     command = [
         "docker buildx bake",
-        f"-f {BAKE_FILE}",
+        f"-f {bake_file}",
         f"--metadata-file {METADATA_PATH}",
         "--progress auto",
         "--provenance=false",

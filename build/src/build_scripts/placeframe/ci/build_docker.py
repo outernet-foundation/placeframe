@@ -10,7 +10,7 @@ from pydantic_settings import BaseSettings
 
 from ...shared.ci_step import ci_step
 from ...shared.setup import configure_git, free_disk_space
-from ..build_docker import build
+from ..build_docker import run_build
 
 Variant = Literal["common", "cuda", "rocm"]
 
@@ -55,4 +55,4 @@ def ci_main(variant: Variant = typer.Option(help="Build variant: common, cuda, o
     )
 
     with ci_step(f"Build images ({variant})"):
-        build(upgrade=False, lock_only=False, mode="ci", gpu=gpu, no_cache=False, targets_opt=targets)
+        run_build(mode="ci", gpu=gpu, targets_opt=targets)

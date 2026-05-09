@@ -221,8 +221,8 @@ namespace Placeframe.MapRegistrationTool
             {
                 await UniTask.WhenAll(
                     toPersist.insertedMaps.Count != 0 ? CreateLocalizationMapsAsync(toPersist.insertedMaps) : UniTask.CompletedTask,
-                    toPersist.updatedMaps.Count != 0 ? App.API.UpdateLocalizationMapsAsync(toPersist.updatedMaps).AsUniTask() : UniTask.CompletedTask,
-                    toPersist.deletedMaps.Count != 0 ? App.API.DeleteLocalizationMapsAsync(toPersist.deletedMaps).AsUniTask() : UniTask.CompletedTask
+                    toPersist.updatedMaps.Count != 0 ? App.API.UpdateLocalizationMapsAsync(toPersist.updatedMaps) : UniTask.CompletedTask,
+                    toPersist.deletedMaps.Count != 0 ? App.API.DeleteLocalizationMapsAsync(toPersist.deletedMaps) : UniTask.CompletedTask
                 );
             }
 
@@ -233,7 +233,7 @@ namespace Placeframe.MapRegistrationTool
         }
 
         private UniTask CreateLocalizationMapsAsync(List<LocalizationMapCreate> localizationMaps)
-            => UniTask.WhenAll(localizationMaps.Select(x => App.API.CreateLocalizationMapAsync(x).AsUniTask()));
+            => UniTask.WhenAll(localizationMaps.Select(x => App.API.CreateLocalizationMapAsync(x)));
 
         private void UpdateHasUnsavedChangesIfNecessary()
         {

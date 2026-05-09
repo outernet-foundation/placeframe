@@ -3,8 +3,8 @@
   "enabled": true,
   "accessTokenLifespan": "${KEYCLOAK_ACCESS_TOKEN_LIFESPAN}",
   "accessTokenLifespanForImplicitFlow": "${KEYCLOAK_ACCESS_TOKEN_LIFESPAN}",
-  "ssoSessionIdleTimeout": "${KEYCLOAK_ACCESS_TOKEN_LIFESPAN}",
-  "ssoSessionMaxLifespan": "${KEYCLOAK_ACCESS_TOKEN_LIFESPAN}",
+  "ssoSessionIdleTimeout": "${KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT}",
+  "ssoSessionMaxLifespan": "${KEYCLOAK_SSO_SESSION_MAX_LIFESPAN}",
   "clients": [
     {
       "clientId": "placeframe-api",

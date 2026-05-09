@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using FofX.Stateful;
 using SimpleJSON;
@@ -7,12 +6,13 @@ using UnityEngine;
 
 namespace Placeframe.Client
 {
-    public class SettingsManager : MonoBehaviour
+    public static class SettingsManager
     {
-        private bool _initializing;
-        private string settingsPath => $"{Application.persistentDataPath}/settings.json";
+        private static bool _initializing;
+        private static IDisposable _subscription;
+        private static string settingsPath => $"{Application.persistentDataPath}/settings.json";
 
-        private void Awake()
+        public static void Initialize()
         {
             Debug.Log(settingsPath);
 
@@ -37,7 +37,7 @@ namespace Placeframe.Client
 
             _initializing = true;
 
-            App.state.settings.SubscribeOperationsRecursive(_ =>
+            _subscription = App.state.settings.SubscribeOperationsRecursive(_ =>
             {
                 if (_initializing)
                     return;
@@ -46,6 +46,12 @@ namespace Placeframe.Client
             });
 
             _initializing = false;
+        }
+
+        public static void Shutdown()
+        {
+            _subscription?.Dispose();
+            _subscription = null;
         }
     }
 }

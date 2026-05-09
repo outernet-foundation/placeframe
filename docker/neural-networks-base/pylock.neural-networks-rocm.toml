@@ -324,8 +324,8 @@ name = "pytorch-triton-rocm"
 version = "3.5.1"
 index = "https://download.pytorch.org/whl/rocm6.4"
 wheels = [
-    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313-linux_x86_64.whl", hashes = {} },
-    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313t-linux_x86_64.whl", hashes = {} },
+    { url = "https://download-r2.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313-linux_x86_64.whl", upload-time = 2025-11-11T19:18:19Z, hashes = {} },
+    { url = "https://download-r2.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313t-linux_x86_64.whl", upload-time = 2025-11-11T19:18:19Z, hashes = {} },
 ]
 
 [[packages]]
@@ -409,8 +409,8 @@ name = "torch"
 version = "2.9.1+rocm6.4"
 index = "https://download.pytorch.org/whl/rocm6.4"
 wheels = [
-    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.9.1%2Brocm6.4-cp313-cp313-manylinux_2_28_x86_64.whl", hashes = { sha256 = "19ac1ef5db3f96e01172d0f62bc0438c6d3a8667358c3a00204fbbb44da74229" } },
-    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.9.1%2Brocm6.4-cp313-cp313t-manylinux_2_28_x86_64.whl", hashes = { sha256 = "435361fcc18291a725970beb21f5327b28ba809130a129587551249f22998522" } },
+    { url = "https://download-r2.pytorch.org/whl/rocm6.4/torch-2.9.1%2Brocm6.4-cp313-cp313-manylinux_2_28_x86_64.whl", upload-time = 2026-01-26T16:13:03Z, hashes = { sha256 = "19ac1ef5db3f96e01172d0f62bc0438c6d3a8667358c3a00204fbbb44da74229" } },
+    { url = "https://download-r2.pytorch.org/whl/rocm6.4/torch-2.9.1%2Brocm6.4-cp313-cp313t-manylinux_2_28_x86_64.whl", upload-time = 2026-01-26T16:18:18Z, hashes = { sha256 = "435361fcc18291a725970beb21f5327b28ba809130a129587551249f22998522" } },
 ]
 
 [[packages]]
@@ -418,8 +418,8 @@ name = "torchvision"
 version = "0.24.1+rocm6.4"
 index = "https://download.pytorch.org/whl/rocm6.4"
 wheels = [
-    { url = "https://download-r2.pytorch.org/whl/rocm6.4/torchvision-0.24.1%2Brocm6.4-cp313-cp313-manylinux_2_28_x86_64.whl", hashes = { sha256 = "fd183cfb90fd9ed7a952bbe63f51d5da0609d0bc9c6bbfb183a536d808e48cae" } },
-    { url = "https://download-r2.pytorch.org/whl/rocm6.4/torchvision-0.24.1%2Brocm6.4-cp313-cp313t-manylinux_2_28_x86_64.whl", hashes = { sha256 = "478c1553c65b73e058154b2f64a87a954937d12e2025d6b04a36d3d5be362edc" } },
+    { url = "https://download-r2.pytorch.org/whl/rocm6.4/torchvision-0.24.1%2Brocm6.4-cp313-cp313-manylinux_2_28_x86_64.whl", upload-time = 2025-11-15T18:13:05Z, hashes = { sha256 = "fd183cfb90fd9ed7a952bbe63f51d5da0609d0bc9c6bbfb183a536d808e48cae" } },
+    { url = "https://download-r2.pytorch.org/whl/rocm6.4/torchvision-0.24.1%2Brocm6.4-cp313-cp313t-manylinux_2_28_x86_64.whl", upload-time = 2025-11-15T18:13:05Z, hashes = { sha256 = "478c1553c65b73e058154b2f64a87a954937d12e2025d6b04a36d3d5be362edc" } },
 ]
 
 [[packages]]

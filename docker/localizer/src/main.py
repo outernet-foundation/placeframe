@@ -17,7 +17,8 @@ from common.multipart_requests import (
 )
 from core.axis_convention import AxisConvention
 from core.camera_config import PinholeCameraConfig
-from litestar import post
+from core.reconstruction_metrics import ReconstructionMetrics
+from litestar import get, post
 from litestar.datastructures import UploadFile
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import HTTPException
@@ -27,11 +28,13 @@ from litestar.params import Body
 from litestar.status_codes import HTTP_422_UNPROCESSABLE_ENTITY
 from pydantic import BeforeValidator, Json
 
+from core.calibration import CalibrationArtifact
 from .map import Map, load_map
 from .schemas import LoadState, Localization
 from .settings import get_settings
 
 RECONSTRUCTIONS_DIR = Path("/tmp/reconstructions")
+CALIBRATION_GLOBAL_PATH = Path("/etc/placeframe/calibration/global.json")
 
 
 _executor = ThreadPoolExecutor(max_workers=2)
@@ -47,19 +50,26 @@ s3_client = create_s3_client(
     minio_secret_key=settings.minio_secret_key,
 )
 
+pipeline_version: str = ""
+calibration: CalibrationArtifact | None = None
 
 if not environ.get("CODEGEN"):
+    from core.calibration import load_global_calibration
     from .localize import load_models
 
-    load_models(settings.max_keypoints_per_image)
+    load_models()
+    pipeline_version = environ["GIT_COMMIT_SHA"]
+    calibration = load_global_calibration(CALIBRATION_GLOBAL_PATH, pipeline_version)
+    print(f"Loaded global calibration (pipeline_version={pipeline_version[:12]}…)")
 
 
 class LocalizationRequest(MultipartRequestModel):
     reconstruction_ids: Annotated[Json[list[UUID]], BeforeValidator(multipart_json_list)]
+    metrics: Annotated[Json[dict[UUID, ReconstructionMetrics]], BeforeValidator(multipart_json)]
     camera_config: Annotated[Json[PinholeCameraConfig], BeforeValidator(multipart_json)]
     axis_convention: AxisConvention
-    retrieval_top_k: int
-    ransac_threshold: float
+    retrieval_top_k: int | None = None
+    ransac_threshold: float | None = None
     image: UploadFile
 
 
@@ -80,11 +90,19 @@ async def localize_image(
 
     for id in data.reconstruction_ids:
         if id not in _maps:
-            _maps[id] = load_map(id, s3_client, settings.reconstructions_bucket, RECONSTRUCTIONS_DIR)
+            _maps[id] = load_map(id, s3_client, settings.reconstructions_bucket, RECONSTRUCTIONS_DIR, data.metrics[id])
 
         try:
+            assert calibration is not None  # CODEGEN-guarded; runtime always has it
             result = localize_image_against_reconstruction(
-                _maps[id], data.camera_config, data.axis_convention, image, data.retrieval_top_k, data.ransac_threshold
+                _maps[id],
+                data.camera_config,
+                data.axis_convention,
+                image,
+                data.retrieval_top_k,
+                data.ransac_threshold,
+                pipeline_version,
+                calibration,
             )
 
             localizations.append(Localization(id=id, transform=result[0], metrics=result[1]))
@@ -97,7 +115,12 @@ async def localize_image(
     return localizations
 
 
+@get("/version")
+async def get_localizer_version() -> str:
+    return pipeline_version
+
+
 openapi_config = OpenAPIConfig("Localizer", "0.1.0", servers=[Server(url="http://localhost:8000")])
 
 
-app = create_litestar_app([localize_image], openapi_config)
+app = create_litestar_app([localize_image, get_localizer_version], openapi_config)

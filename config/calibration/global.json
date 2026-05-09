@@ -1,0 +1,46 @@
+{
+  "_note": "Placeholder calibration. All weights/breakpoints zeroed; values are deliberately not load-bearing. Replace via `uv run fit-calibration` against a real capture corpus before relying on tight/loose tolerance gates. pipeline_version pinned to the localizer image's baked GIT_COMMIT_SHA so load_global_calibration's pipeline-version check passes; refit and update if the localizer image is rebuilt at a different commit.",
+  "schema_version": 2,
+  "pipeline_version": "eee743d422f34b643eefeb9579dc1af21d5d9189",
+  "fit_at": "2026-05-08T00:00:00+00:00",
+  "fit_by": "manual placeholder",
+  "sample_count": 0,
+  "tight": {
+    "logistic_weights": {
+      "log_inliers": 0.0,
+      "inlier_ratio": 0.0,
+      "reproj_err_norm": 0.0,
+      "inlier_coverage": 0.0,
+      "log_num_matches": 0.0,
+      "log_map_image_count": 0.0,
+      "log_map_point_count": 0.0,
+      "map_avg_track_length": 0.0,
+      "log_map_bounding_volume_m3": 0.0,
+      "map_viewpoint_diversity": 0.0
+    },
+    "logistic_intercept": 0.0,
+    "isotonic_x_breakpoints": [],
+    "isotonic_y_breakpoints": []
+  },
+  "loose": {
+    "logistic_weights": {
+      "log_inliers": 0.0,
+      "inlier_ratio": 0.0,
+      "reproj_err_norm": 0.0,
+      "inlier_coverage": 0.0,
+      "log_num_matches": 0.0,
+      "log_map_image_count": 0.0,
+      "log_map_point_count": 0.0,
+      "map_avg_track_length": 0.0,
+      "log_map_bounding_volume_m3": 0.0,
+      "map_viewpoint_diversity": 0.0
+    },
+    "logistic_intercept": 0.0,
+    "isotonic_x_breakpoints": [],
+    "isotonic_y_breakpoints": []
+  },
+  "sigma_meas_alpha": 0.0,
+  "sigma_meas_beta": 0.0,
+  "loose_min": 0.0,
+  "tight_min": 0.0
+}

@@ -38,7 +38,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="registeredImages">Number of images successfully registered into the final model..</param>
         /// <param name="registrationRate">Registration rate in percent: 100 × (registered_images / total_images). Computed after selecting the best reconstruction (max registered images)..</param>
         /// <param name="num3dPoints">Count of 3D points in the selected &#39;best&#39; reconstruction..</param>
-        /// <param name="averageKeypointsPerImage">Average number of detected keypoints per image (after SuperPoint extraction), computed across all images..</param>
+        /// <param name="averageKeypointsPerImage">Average number of detected keypoints per image (after ALIKED extraction), computed across all images..</param>
         /// <param name="reprojectionPixelError50thPercentile">Median (50th percentile) reprojection error in pixels across all valid 2D observations in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint..</param>
         /// <param name="reprojectionPixelError90thPercentile">90th percentile reprojection error in pixels across all valid 2D observations, computed the same way as the median..</param>
         /// <param name="trackLength50thPercentile">Median (50th percentile) track length across 3D points in the selected model. Track length &#x3D; number of distinct images observing the point..</param>
@@ -59,6 +59,13 @@ namespace PlaceframeApiClient.Model
         /// <param name="crossSensorVerifiedMatchRate">Percentage of verified matches for cross-sensor pairs..</param>
         /// <param name="crossSensorVerifiedMatchInliersMean">Mean number of inliers for verified matches for cross-sensor pairs..</param>
         /// <param name="crossSensorVerifiedMatchInliersMedian">Median number of inliers for verified matches for cross-sensor pairs..</param>
+        /// <param name="mapImageCount">Number of registered images in the reconstruction..</param>
+        /// <param name="mapPointCount">Number of triangulated 3D points in the reconstruction..</param>
+        /// <param name="mapAvgTrackLength">Mean number of image observations per 3D point. Coarse density-of-evidence proxy..</param>
+        /// <param name="mapBoundingVolumeM3">Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; complements image_count which only captures coverage density..</param>
+        /// <param name="mapViewpointDiversity">1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps from single-viewpoint maps even when the rest of the metrics agree..</param>
+        /// <param name="truthAlignmentRmsResidualM">RMS over registered cameras of ||T·c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration..</param>
+        /// <param name="truthAlignmentMaxResidualM">Maximum over registered cameras of ||T·c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over..</param>
         public ReconstructionMetrics()
         {
         }
@@ -164,9 +171,9 @@ namespace PlaceframeApiClient.Model
             return _flagNum3dPoints;
         }
         /// <summary>
-        /// Average number of detected keypoints per image (after SuperPoint extraction), computed across all images.
+        /// Average number of detected keypoints per image (after ALIKED extraction), computed across all images.
         /// </summary>
-        /// <value>Average number of detected keypoints per image (after SuperPoint extraction), computed across all images.</value>
+        /// <value>Average number of detected keypoints per image (after ALIKED extraction), computed across all images.</value>
         [DataMember(Name = "average_keypoints_per_image", EmitDefaultValue = true)]
         public double? AverageKeypointsPerImage
         {
@@ -689,6 +696,181 @@ namespace PlaceframeApiClient.Model
             return _flagCrossSensorVerifiedMatchInliersMedian;
         }
         /// <summary>
+        /// Number of registered images in the reconstruction.
+        /// </summary>
+        /// <value>Number of registered images in the reconstruction.</value>
+        [DataMember(Name = "map_image_count", EmitDefaultValue = true)]
+        public int? MapImageCount
+        {
+            get{ return _MapImageCount;}
+            set
+            {
+                _MapImageCount = value;
+                _flagMapImageCount = true;
+            }
+        }
+        private int? _MapImageCount;
+        private bool _flagMapImageCount;
+
+        /// <summary>
+        /// Returns false as MapImageCount should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeMapImageCount()
+        {
+            return _flagMapImageCount;
+        }
+        /// <summary>
+        /// Number of triangulated 3D points in the reconstruction.
+        /// </summary>
+        /// <value>Number of triangulated 3D points in the reconstruction.</value>
+        [DataMember(Name = "map_point_count", EmitDefaultValue = true)]
+        public int? MapPointCount
+        {
+            get{ return _MapPointCount;}
+            set
+            {
+                _MapPointCount = value;
+                _flagMapPointCount = true;
+            }
+        }
+        private int? _MapPointCount;
+        private bool _flagMapPointCount;
+
+        /// <summary>
+        /// Returns false as MapPointCount should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeMapPointCount()
+        {
+            return _flagMapPointCount;
+        }
+        /// <summary>
+        /// Mean number of image observations per 3D point. Coarse density-of-evidence proxy.
+        /// </summary>
+        /// <value>Mean number of image observations per 3D point. Coarse density-of-evidence proxy.</value>
+        [DataMember(Name = "map_avg_track_length", EmitDefaultValue = true)]
+        public double? MapAvgTrackLength
+        {
+            get{ return _MapAvgTrackLength;}
+            set
+            {
+                _MapAvgTrackLength = value;
+                _flagMapAvgTrackLength = true;
+            }
+        }
+        private double? _MapAvgTrackLength;
+        private bool _flagMapAvgTrackLength;
+
+        /// <summary>
+        /// Returns false as MapAvgTrackLength should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeMapAvgTrackLength()
+        {
+            return _flagMapAvgTrackLength;
+        }
+        /// <summary>
+        /// Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; complements image_count which only captures coverage density.
+        /// </summary>
+        /// <value>Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; complements image_count which only captures coverage density.</value>
+        [DataMember(Name = "map_bounding_volume_m3", EmitDefaultValue = true)]
+        public double? MapBoundingVolumeM3
+        {
+            get{ return _MapBoundingVolumeM3;}
+            set
+            {
+                _MapBoundingVolumeM3 = value;
+                _flagMapBoundingVolumeM3 = true;
+            }
+        }
+        private double? _MapBoundingVolumeM3;
+        private bool _flagMapBoundingVolumeM3;
+
+        /// <summary>
+        /// Returns false as MapBoundingVolumeM3 should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeMapBoundingVolumeM3()
+        {
+            return _flagMapBoundingVolumeM3;
+        }
+        /// <summary>
+        /// 1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps from single-viewpoint maps even when the rest of the metrics agree.
+        /// </summary>
+        /// <value>1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps from single-viewpoint maps even when the rest of the metrics agree.</value>
+        [DataMember(Name = "map_viewpoint_diversity", EmitDefaultValue = true)]
+        public double? MapViewpointDiversity
+        {
+            get{ return _MapViewpointDiversity;}
+            set
+            {
+                _MapViewpointDiversity = value;
+                _flagMapViewpointDiversity = true;
+            }
+        }
+        private double? _MapViewpointDiversity;
+        private bool _flagMapViewpointDiversity;
+
+        /// <summary>
+        /// Returns false as MapViewpointDiversity should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeMapViewpointDiversity()
+        {
+            return _flagMapViewpointDiversity;
+        }
+        /// <summary>
+        /// RMS over registered cameras of ||T·c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration.
+        /// </summary>
+        /// <value>RMS over registered cameras of ||T·c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration.</value>
+        [DataMember(Name = "truth_alignment_rms_residual_m", EmitDefaultValue = true)]
+        public double? TruthAlignmentRmsResidualM
+        {
+            get{ return _TruthAlignmentRmsResidualM;}
+            set
+            {
+                _TruthAlignmentRmsResidualM = value;
+                _flagTruthAlignmentRmsResidualM = true;
+            }
+        }
+        private double? _TruthAlignmentRmsResidualM;
+        private bool _flagTruthAlignmentRmsResidualM;
+
+        /// <summary>
+        /// Returns false as TruthAlignmentRmsResidualM should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeTruthAlignmentRmsResidualM()
+        {
+            return _flagTruthAlignmentRmsResidualM;
+        }
+        /// <summary>
+        /// Maximum over registered cameras of ||T·c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over.
+        /// </summary>
+        /// <value>Maximum over registered cameras of ||T·c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over.</value>
+        [DataMember(Name = "truth_alignment_max_residual_m", EmitDefaultValue = true)]
+        public double? TruthAlignmentMaxResidualM
+        {
+            get{ return _TruthAlignmentMaxResidualM;}
+            set
+            {
+                _TruthAlignmentMaxResidualM = value;
+                _flagTruthAlignmentMaxResidualM = true;
+            }
+        }
+        private double? _TruthAlignmentMaxResidualM;
+        private bool _flagTruthAlignmentMaxResidualM;
+
+        /// <summary>
+        /// Returns false as TruthAlignmentMaxResidualM should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeTruthAlignmentMaxResidualM()
+        {
+            return _flagTruthAlignmentMaxResidualM;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -721,6 +903,13 @@ namespace PlaceframeApiClient.Model
             sb.Append("  CrossSensorVerifiedMatchRate: ").Append(CrossSensorVerifiedMatchRate).Append("\n");
             sb.Append("  CrossSensorVerifiedMatchInliersMean: ").Append(CrossSensorVerifiedMatchInliersMean).Append("\n");
             sb.Append("  CrossSensorVerifiedMatchInliersMedian: ").Append(CrossSensorVerifiedMatchInliersMedian).Append("\n");
+            sb.Append("  MapImageCount: ").Append(MapImageCount).Append("\n");
+            sb.Append("  MapPointCount: ").Append(MapPointCount).Append("\n");
+            sb.Append("  MapAvgTrackLength: ").Append(MapAvgTrackLength).Append("\n");
+            sb.Append("  MapBoundingVolumeM3: ").Append(MapBoundingVolumeM3).Append("\n");
+            sb.Append("  MapViewpointDiversity: ").Append(MapViewpointDiversity).Append("\n");
+            sb.Append("  TruthAlignmentRmsResidualM: ").Append(TruthAlignmentRmsResidualM).Append("\n");
+            sb.Append("  TruthAlignmentMaxResidualM: ").Append(TruthAlignmentMaxResidualM).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

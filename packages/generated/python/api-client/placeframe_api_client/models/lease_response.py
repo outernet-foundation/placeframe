@@ -20,6 +20,7 @@ import json
 from pydantic import BaseModel, ConfigDict
 from typing import Any, ClassVar, Dict, List
 from uuid import UUID
+from placeframe_api_client.models.reconstruction_options import ReconstructionOptions
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -30,8 +31,9 @@ class LeaseResponse(BaseModel):
     """ # noqa: E501
     reconstruction_id: UUID
     capture_session_id: UUID
+    options: ReconstructionOptions
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["reconstruction_id", "capture_session_id"]
+    __properties: ClassVar[List[str]] = ["reconstruction_id", "capture_session_id", "options"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -74,6 +76,9 @@ class LeaseResponse(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of options
+        if self.options:
+            _dict['options'] = self.options.to_dict()
         # puts key-value pairs in additional_properties in the top level
         if self.additional_properties is not None:
             for _key, _value in self.additional_properties.items():
@@ -92,7 +97,8 @@ class LeaseResponse(BaseModel):
 
         _obj = cls.model_validate({
             "reconstruction_id": obj.get("reconstruction_id"),
-            "capture_session_id": obj.get("capture_session_id")
+            "capture_session_id": obj.get("capture_session_id"),
+            "options": ReconstructionOptions.from_dict(obj["options"]) if obj.get("options") is not None else None
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

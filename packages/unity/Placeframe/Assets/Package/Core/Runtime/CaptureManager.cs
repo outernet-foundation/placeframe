@@ -10,6 +10,7 @@ using ICSharpCode.SharpZipLib.Tar;
 using PlaceframeApiClient.Model;
 using R3;
 using UnityEngine;
+using DeviceType = PlaceframeApiClient.Model.DeviceType;
 
 namespace Placeframe.Core
 {
@@ -51,7 +52,7 @@ namespace Placeframe.Core
                 cameraConfigObservable
                     // Write the capture manifest once using the camera configuration
                     .Take(1)
-                    .Subscribe(config => WriteManifest(sessionDirectory, config)),
+                    .Subscribe(config => WriteManifest(sessionDirectory, config, intervalSeconds)),
                 cameraConfigObservable
                     // Observe CameraFrames (with camera pose anchoring, to prevent pose discontinuities due to tracking loss)
                     .SelectMany(_ => _cameraProvider.Frames(intervalSeconds, useCameraPoseAnchoring: true))
@@ -85,15 +86,20 @@ namespace Placeframe.Core
             _poseWriter = null;
         }
 
-        public static IEnumerable<Guid> GetCaptures()
+        public static IEnumerable<LocalCapture> GetCaptures()
         {
             if (!Directory.Exists(_recordingsRoot))
-                return Array.Empty<Guid>();
+                return Array.Empty<LocalCapture>();
 
             return new DirectoryInfo(_recordingsRoot)
                 .GetDirectories()
-                .Select(d => d.Name)
-                .Select(name => Guid.Parse(name));
+                .Select(d => Guid.Parse(d.Name))
+                .Select(id => new LocalCapture(id, GetCaptureRecordedAtUtc(id), DeviceType.ARFoundation));
+        }
+
+        private static DateTime GetCaptureRecordedAtUtc(Guid captureId)
+        {
+            return Directory.GetCreationTimeUtc(SessionDir(captureId.ToString()));
         }
 
         public static async UniTask<Stream> GetCaptureTar(Guid captureId)
@@ -144,7 +150,7 @@ namespace Placeframe.Core
 
         private static string ZipPath(string name) => Path.Combine(_recordingsRoot, $"{name}.zip");
 
-        private static void WriteManifest(string sessionDirectory, PinholeCameraConfig config) =>
+        private static void WriteManifest(string sessionDirectory, PinholeCameraConfig config, float intervalSeconds) =>
             File.WriteAllText(
                 Path.Combine(sessionDirectory, "manifest.json"),
                 new CaptureSessionManifest(
@@ -165,7 +171,7 @@ namespace Placeframe.Core
                             }
                         ),
                     }
-                ).ToJson()
+                ) { CaptureIntervalSeconds = intervalSeconds }.ToJson()
             );
 
         private static async UniTask WriteFrame(string sessionDirectory, CameraFrame frame, CancellationToken _)

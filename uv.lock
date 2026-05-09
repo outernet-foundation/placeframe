@@ -47,15 +47,6 @@ members = [
 ]
 
 [[package]]
-name = "annotated-doc"
-version = "0.0.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/57/ba/046ceea27344560984e26a590f90bc7f4a75b06701f653222458922b558c/annotated_doc-0.0.4.tar.gz", hash = "sha256:fbcda96e87e9c92ad167c2e53839e57503ecfda18804ea28102353485033faa4", size = 7288, upload-time = "2025-11-10T22:07:42.062Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1e/d3/26bf1008eb3d2daa8ef4cacc7f3bfdc11818d111f7e2d0201bc6e3b49d45/annotated_doc-0.0.4-py3-none-any.whl", hash = "sha256:571ac1dc6991c450b25a9c2d84a3705e2ae7a53467b5d111c24fa8baabbed320", size = 5303, upload-time = "2025-11-10T22:07:40.673Z" },
-]
-
-[[package]]
 name = "annotated-types"
 version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -318,12 +309,10 @@ source = { editable = "packages/python/common" }
 dependencies = [
     { name = "boto3" },
     { name = "botocore" },
-    { name = "fastapi" },
     { name = "httpx" },
     { name = "litestar" },
     { name = "pydantic" },
     { name = "pyjwt" },
-    { name = "starlette" },
 ]
 
 [package.dev-dependencies]
@@ -335,12 +324,10 @@ dev = [
 requires-dist = [
     { name = "boto3", specifier = ">=1.39.5" },
     { name = "botocore", specifier = ">=1.42.24" },
-    { name = "fastapi", specifier = ">=0.116.1" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "litestar", specifier = ">=2.19.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pyjwt", specifier = ">=2.10.1" },
-    { name = "starlette", specifier = ">=0.50.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -483,28 +470,6 @@ wheels = [
 ]
 
 [[package]]
-name = "cython"
-version = "3.2.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/91/85/7574c9cd44b69a27210444b6650f6477f56c75fee1b70d7672d3e4166167/cython-3.2.4.tar.gz", hash = "sha256:84226ecd313b233da27dc2eb3601b4f222b8209c3a7216d8733b031da1dc64e6", size = 3280291, upload-time = "2026-01-04T14:14:14.473Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/18/b5/1cfca43b7d20a0fdb1eac67313d6bb6b18d18897f82dd0f17436bdd2ba7f/cython-3.2.4-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:28e8075087a59756f2d059273184b8b639fe0f16cf17470bd91c39921bc154e0", size = 2960506, upload-time = "2026-01-04T14:15:16.733Z" },
-    { url = "https://files.pythonhosted.org/packages/71/bb/8f28c39c342621047fea349a82fac712a5e2b37546d2f737bbde48d5143d/cython-3.2.4-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:03893c88299a2c868bb741ba6513357acd104e7c42265809fd58dce1456a36fc", size = 3213148, upload-time = "2026-01-04T14:15:18.804Z" },
-    { url = "https://files.pythonhosted.org/packages/7a/d2/16fa02f129ed2b627e88d9d9ebd5ade3eeb66392ae5ba85b259d2d52b047/cython-3.2.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:f81eda419b5ada7b197bbc3c5f4494090e3884521ffd75a3876c93fbf66c9ca8", size = 3375764, upload-time = "2026-01-04T14:15:20.817Z" },
-    { url = "https://files.pythonhosted.org/packages/91/3f/deb8f023a5c10c0649eb81332a58c180fad27c7533bb4aae138b5bc34d92/cython-3.2.4-cp313-cp313-win_amd64.whl", hash = "sha256:83266c356c13c68ffe658b4905279c993d8a5337bb0160fa90c8a3e297ea9a2e", size = 2754238, upload-time = "2026-01-04T14:15:23.001Z" },
-    { url = "https://files.pythonhosted.org/packages/0a/8b/fd393f0923c82be4ec0db712fffb2ff0a7a131707b842c99bf24b549274d/cython-3.2.4-cp39-abi3-macosx_10_9_x86_64.whl", hash = "sha256:36bf3f5eb56d5281aafabecbaa6ed288bc11db87547bba4e1e52943ae6961ccf", size = 2875622, upload-time = "2026-01-04T14:15:39.749Z" },
-    { url = "https://files.pythonhosted.org/packages/73/48/48530d9b9d64ec11dbe0dd3178a5fe1e0b27977c1054ecffb82be81e9b6a/cython-3.2.4-cp39-abi3-manylinux1_i686.manylinux_2_28_i686.manylinux_2_5_i686.whl", hash = "sha256:6d5267f22b6451eb1e2e1b88f6f78a2c9c8733a6ddefd4520d3968d26b824581", size = 3210669, upload-time = "2026-01-04T14:15:41.911Z" },
-    { url = "https://files.pythonhosted.org/packages/5e/91/4865fbfef1f6bb4f21d79c46104a53d1a3fa4348286237e15eafb26e0828/cython-3.2.4-cp39-abi3-manylinux2014_armv7l.manylinux_2_17_armv7l.manylinux_2_31_armv7l.whl", hash = "sha256:3b6e58f73a69230218d5381817850ce6d0da5bb7e87eb7d528c7027cbba40b06", size = 2856835, upload-time = "2026-01-04T14:15:43.815Z" },
-    { url = "https://files.pythonhosted.org/packages/fa/39/60317957dbef179572398253f29d28f75f94ab82d6d39ea3237fb6c89268/cython-3.2.4-cp39-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:e71efb20048358a6b8ec604a0532961c50c067b5e63e345e2e359fff72feaee8", size = 2994408, upload-time = "2026-01-04T14:15:45.422Z" },
-    { url = "https://files.pythonhosted.org/packages/8d/30/7c24d9292650db4abebce98abc9b49c820d40fa7c87921c0a84c32f4efe7/cython-3.2.4-cp39-abi3-musllinux_1_2_armv7l.whl", hash = "sha256:28b1e363b024c4b8dcf52ff68125e635cb9cb4b0ba997d628f25e32543a71103", size = 2891478, upload-time = "2026-01-04T14:15:47.394Z" },
-    { url = "https://files.pythonhosted.org/packages/86/70/03dc3c962cde9da37a93cca8360e576f904d5f9beecfc9d70b1f820d2e5f/cython-3.2.4-cp39-abi3-musllinux_1_2_i686.whl", hash = "sha256:31a90b4a2c47bb6d56baeb926948348ec968e932c1ae2c53239164e3e8880ccf", size = 3225663, upload-time = "2026-01-04T14:15:49.446Z" },
-    { url = "https://files.pythonhosted.org/packages/b1/97/10b50c38313c37b1300325e2e53f48ea9a2c078a85c0c9572057135e31d5/cython-3.2.4-cp39-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:e65e4773021f8dc8532010b4fbebe782c77f9a0817e93886e518c93bd6a44e9d", size = 3115628, upload-time = "2026-01-04T14:15:51.323Z" },
-    { url = "https://files.pythonhosted.org/packages/8f/b1/d6a353c9b147848122a0db370863601fdf56de2d983b5c4a6a11e6ee3cd7/cython-3.2.4-cp39-abi3-win32.whl", hash = "sha256:2b1f12c0e4798293d2754e73cd6f35fa5bbdf072bdc14bc6fc442c059ef2d290", size = 2437463, upload-time = "2026-01-04T14:15:53.787Z" },
-    { url = "https://files.pythonhosted.org/packages/2d/d8/319a1263b9c33b71343adfd407e5daffd453daef47ebc7b642820a8b68ed/cython-3.2.4-cp39-abi3-win_arm64.whl", hash = "sha256:3b8e62049afef9da931d55de82d8f46c9a147313b69d5ff6af6e9121d545ce7a", size = 2442754, upload-time = "2026-01-04T14:15:55.382Z" },
-    { url = "https://files.pythonhosted.org/packages/ff/fa/d3c15189f7c52aaefbaea76fb012119b04b9013f4bf446cb4eb4c26c4e6b/cython-3.2.4-py3-none-any.whl", hash = "sha256:732fc93bc33ae4b14f6afaca663b916c2fdd5dcbfad7114e17fb2434eeaea45c", size = 1257078, upload-time = "2026-01-04T14:14:12.373Z" },
-]
-
-[[package]]
 name = "database-manager"
 version = "0.1.0"
 source = { editable = "docker/database-manager" }
@@ -625,15 +590,6 @@ wheels = [
 ]
 
 [[package]]
-name = "durationpy"
-version = "0.10"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/9d/a4/e44218c2b394e31a6dd0d6b095c4e1f32d0be54c2a4b250032d717647bab/durationpy-0.10.tar.gz", hash = "sha256:1fa6893409a6e739c9c72334fc65cca1f355dbdd93405d30f726deb5bde42fba", size = 3335, upload-time = "2025-05-17T13:52:37.26Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b0/0d/9feae160378a3553fa9a339b0e9c1a048e147a4127210e286ef18b730f03/durationpy-0.10-py3-none-any.whl", hash = "sha256:3b41e1b601234296b4fb368338fdcd3e13e0b4fb5b67345948f4f2bf9868b286", size = 3922, upload-time = "2025-05-17T13:52:36.463Z" },
-]
-
-[[package]]
 name = "faiss-cpu"
 version = "1.13.2"
 source = { registry = "https://pypi.org/simple" }
@@ -662,21 +618,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/5e/77/1c3ff07b6739b9a1d23ca01ec0a90a309a33b78e345a3eb52f9ce9240e36/faker-40.1.2.tar.gz", hash = "sha256:b76a68163aa5f171d260fc24827a8349bc1db672f6a665359e8d0095e8135d30", size = 1949802, upload-time = "2026-01-13T20:51:49.917Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/46/ec/91a434c8a53d40c3598966621dea9c50512bec6ce8e76fa1751015e74cef/faker-40.1.2-py3-none-any.whl", hash = "sha256:93503165c165d330260e4379fd6dc07c94da90c611ed3191a0174d2ab9966a42", size = 1985633, upload-time = "2026-01-13T20:51:47.982Z" },
-]
-
-[[package]]
-name = "fastapi"
-version = "0.128.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "annotated-doc" },
-    { name = "pydantic" },
-    { name = "starlette" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/52/08/8c8508db6c7b9aae8f7175046af41baad690771c9bcde676419965e338c7/fastapi-0.128.0.tar.gz", hash = "sha256:1cc179e1cef10a6be60ffe429f79b829dce99d8de32d7acb7e6c8dfdf7f2645a", size = 365682, upload-time = "2025-12-27T15:21:13.714Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5c/05/5cbb59154b093548acd0f4c7c474a118eda06da25aa75c616b72d8fcd92a/fastapi-0.128.0-py3-none-any.whl", hash = "sha256:aebd93f9716ee3b4f4fcfe13ffb7cf308d99c9f3ab5622d8877441072561582d", size = 103094, upload-time = "2025-12-27T15:21:12.154Z" },
 ]
 
 [[package]]
@@ -1012,6 +953,32 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/3f/b9/7e296aa1adada25cce8e5f89a996b0e38d852d93b1b656a2058226c542a2/litestar_htmx-0.5.0.tar.gz", hash = "sha256:e02d1a3a92172c874835fa3e6749d65ae9fc626d0df46719490a16293e2146fb", size = 119755, upload-time = "2025-06-11T21:19:45.573Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f2/24/8d99982f0aa9c1cd82073c6232b54a0dbe6797c7d63c0583a6c68ee3ddf2/litestar_htmx-0.5.0-py3-none-any.whl", hash = "sha256:92833aa47e0d0e868d2a7dbfab75261f124f4b83d4f9ad12b57b9a68f86c50e6", size = 9970, upload-time = "2025-06-11T21:19:44.465Z" },
+]
+
+[[package]]
+name = "lxml"
+version = "6.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/28/30/9abc9e34c657c33834eaf6cd02124c61bdf5944d802aa48e69be8da3585d/lxml-6.1.0.tar.gz", hash = "sha256:bfd57d8008c4965709a919c3e9a98f76c2c7cb319086b3d26858250620023b13", size = 4197006, upload-time = "2026-04-18T04:32:51.613Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/08/03/69347590f1cf4a6d5a4944bb6099e6d37f334784f16062234e1f892fdb1d/lxml-6.1.0-cp313-cp313-macosx_10_13_universal2.whl", hash = "sha256:a0092f2b107b69601adf562a57c956fbb596e05e3e6651cabd3054113b007e45", size = 8559689, upload-time = "2026-04-18T04:31:57.785Z" },
+    { url = "https://files.pythonhosted.org/packages/3f/58/25e00bb40b185c974cfe156c110474d9a8a8390d5f7c92a4e328189bb60e/lxml-6.1.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:fc7140d7a7386e6b545d41b7358f4d02b656d4053f5fa6859f92f4b9c2572c4d", size = 4617892, upload-time = "2026-04-18T04:32:01.78Z" },
+    { url = "https://files.pythonhosted.org/packages/f5/54/92ad98a94ac318dc4f97aaac22ff8d1b94212b2ae8af5b6e9b354bf825f7/lxml-6.1.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:419c58fc92cc3a2c3fa5f78c63dbf5da70c1fa9c1b25f25727ecee89a96c7de2", size = 4923489, upload-time = "2026-04-18T04:33:31.401Z" },
+    { url = "https://files.pythonhosted.org/packages/15/3b/a20aecfab42bdf4f9b390590d345857ad3ffd7c51988d1c89c53a0c73faf/lxml-6.1.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:37fabd1452852636cf38ecdcc9dd5ca4bba7a35d6c53fa09725deeb894a87491", size = 5082162, upload-time = "2026-04-18T04:33:34.262Z" },
+    { url = "https://files.pythonhosted.org/packages/45/26/2cdb3d281ac1bd175603e290cbe4bad6eff127c0f8de90bafd6f8548f0fd/lxml-6.1.0-cp313-cp313-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:a2853c8b2170cc6cd54a6b4d50d2c1a8a7aeca201f23804b4898525c7a152cfc", size = 4993247, upload-time = "2026-04-18T04:33:36.674Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/05/d735aef963740022a08185c84821f689fc903acb3d50326e6b1e9886cc22/lxml-6.1.0-cp313-cp313-manylinux_2_26_ppc64le.manylinux_2_28_ppc64le.whl", hash = "sha256:8e369cbd690e788c8d15e56222d91a09c6a417f49cbc543040cba0fe2e25a79e", size = 5613042, upload-time = "2026-04-18T04:33:39.205Z" },
+    { url = "https://files.pythonhosted.org/packages/ee/b8/ead7c10efff731738c72e59ed6eb5791854879fbed7ae98781a12006263a/lxml-6.1.0-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:e69aa6805905807186eb00e66c6d97a935c928275182eb02ee40ba00da9623b2", size = 5228304, upload-time = "2026-04-18T04:33:41.647Z" },
+    { url = "https://files.pythonhosted.org/packages/6b/10/e9842d2ec322ea65f0a7270aa0315a53abed06058b88ef1b027f620e7a5f/lxml-6.1.0-cp313-cp313-manylinux_2_28_i686.whl", hash = "sha256:4bd1bdb8a9e0e2dd229de19b5f8aebac80e916921b4b2c6ef8a52bc131d0c1f9", size = 5341578, upload-time = "2026-04-18T04:33:44.596Z" },
+    { url = "https://files.pythonhosted.org/packages/89/54/40d9403d7c2775fa7301d3ddd3464689bfe9ba71acc17dfff777071b4fdc/lxml-6.1.0-cp313-cp313-manylinux_2_31_armv7l.whl", hash = "sha256:cbd7b79cdcb4986ad78a2662625882747f09db5e4cd7b2ae178a88c9c51b3dfe", size = 4700209, upload-time = "2026-04-18T04:33:47.552Z" },
+    { url = "https://files.pythonhosted.org/packages/85/b2/bbdcc2cf45dfc7dfffef4fd97e5c47b15919b6a365247d95d6f684ef5e82/lxml-6.1.0-cp313-cp313-manylinux_2_38_riscv64.manylinux_2_39_riscv64.whl", hash = "sha256:43e4d297f11080ec9d64a4b1ad7ac02b4484c9f0e2179d9c4ef78e886e747b88", size = 5232365, upload-time = "2026-04-18T04:33:50.249Z" },
+    { url = "https://files.pythonhosted.org/packages/48/5a/b06875665e53aaba7127611a7bed3b7b9658e20b22bc2dd217a0b7ab0091/lxml-6.1.0-cp313-cp313-musllinux_1_2_aarch64.whl", hash = "sha256:cc16682cc987a3da00aa56a3aa3075b08edb10d9b1e476938cfdbee8f3b67181", size = 5043654, upload-time = "2026-04-18T04:33:52.71Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/9c/e71a069d09641c1a7abeb30e693f828c7c90a41cbe3d650b2d734d876f85/lxml-6.1.0-cp313-cp313-musllinux_1_2_armv7l.whl", hash = "sha256:d6d8efe71429635f0559579092bb5e60560d7b9115ee38c4adbea35632e7fa24", size = 4769326, upload-time = "2026-04-18T04:33:55.244Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/06/7a9cd84b3d4ed79adf35f874750abb697dec0b4a81a836037b36e47c091a/lxml-6.1.0-cp313-cp313-musllinux_1_2_ppc64le.whl", hash = "sha256:7e39ab3a28af7784e206d8606ec0e4bcad0190f63a492bca95e94e5a4aef7f6e", size = 5635879, upload-time = "2026-04-18T04:33:58.509Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/f0/9d57916befc1e54c451712c7ee48e9e74e80ae4d03bdce49914e0aee42cd/lxml-6.1.0-cp313-cp313-musllinux_1_2_riscv64.whl", hash = "sha256:9eb667bf50856c4a58145f8ca2d5e5be160191e79eb9e30855a476191b3c3495", size = 5224048, upload-time = "2026-04-18T04:34:00.943Z" },
+    { url = "https://files.pythonhosted.org/packages/99/75/90c4eefda0c08c92221fe0753db2d6699a4c628f76ff4465ec20dea84cc1/lxml-6.1.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:7f4a77d6f7edf9230cee3e1f7f6764722a41604ee5681844f18db9a81ea0ec33", size = 5250241, upload-time = "2026-04-18T04:34:03.365Z" },
+    { url = "https://files.pythonhosted.org/packages/5e/73/16596f7e4e38fa33084b9ccbccc22a15f82a290a055126f2c1541236d2ff/lxml-6.1.0-cp313-cp313-win32.whl", hash = "sha256:28902146ffbe5222df411c5d19e5352490122e14447e98cd118907ee3fd6ee62", size = 3596938, upload-time = "2026-04-18T04:31:56.206Z" },
+    { url = "https://files.pythonhosted.org/packages/8e/63/981401c5680c1eb30893f00a19641ac80db5d1e7086c62cb4b13ed813038/lxml-6.1.0-cp313-cp313-win_amd64.whl", hash = "sha256:4a1503c56e4e2b38dc76f2f2da7bae69670c0f1933e27cfa34b2fa5876410b16", size = 3995728, upload-time = "2026-04-18T04:31:58.763Z" },
+    { url = "https://files.pythonhosted.org/packages/e7/e8/c358a38ac3e541d16a1b527e4e9cb78c0419b0506a070ace11777e5e8404/lxml-6.1.0-cp313-cp313-win_arm64.whl", hash = "sha256:e0af85773850417d994d019741239b901b22c6680206f46a34766926e466141d", size = 3658372, upload-time = "2026-04-18T04:32:03.629Z" },
 ]
 
 [[package]]
@@ -2082,6 +2049,15 @@ wheels = [
 ]
 
 [[package]]
+name = "python-json-logger"
+version = "4.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f7/ff/3cc9165fd44106973cd7ac9facb674a65ed853494592541d339bdc9a30eb/python_json_logger-4.1.0.tar.gz", hash = "sha256:b396b9e3ed782b09ff9d6e4f1683d46c83ad0d35d2e407c09a9ebbf038f88195", size = 17573, upload-time = "2026-03-29T04:39:56.805Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/be/0631a861af4d1c875f096c07d34e9a63639560a717130e7a87cbc82b7e3f/python_json_logger-4.1.0-py3-none-any.whl", hash = "sha256:132994765cf75bf44554be9aa49b06ef2345d23661a96720262716438141b6b2", size = 15021, upload-time = "2026-03-29T04:39:55.266Z" },
+]
+
+[[package]]
 name = "pytokens"
 version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2100,8 +2076,23 @@ name = "pytorch-triton-rocm"
 version = "3.5.1"
 source = { registry = "https://download.pytorch.org/whl/rocm6.4" }
 wheels = [
-    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313-linux_x86_64.whl" },
-    { url = "https://download.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313t-linux_x86_64.whl" },
+    { url = "https://download-r2.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313-linux_x86_64.whl", upload-time = "2025-11-11T19:18:19Z" },
+    { url = "https://download-r2.pytorch.org/whl/pytorch_triton_rocm-3.5.1-cp313-cp313t-linux_x86_64.whl", upload-time = "2025-11-11T19:18:19Z" },
+]
+
+[[package]]
+name = "pytransform3d"
+version = "3.15.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "lxml" },
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f8/c2/62a4b2378bbf2239f78eba17ecec5d5173bb1df6cad8b4c89ccd6c2ced0c/pytransform3d-3.15.0.tar.gz", hash = "sha256:496538dbd4d3b189f79744dc983554a8c194ee57bfc8c1a2db9bf2e8f68b1053", size = 8254749, upload-time = "2026-04-10T11:40:56.668Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ee/90/dec318aa22c0d9699b2fe856866e165194d743c462f24dc6780577994a93/pytransform3d-3.15.0-py3-none-any.whl", hash = "sha256:a72b01556dee3e3023c328a2f424c2966a6bdbee62e7543e64ff3700054d65e5", size = 165463, upload-time = "2026-04-10T11:40:54.045Z" },
 ]
 
 [[package]]
@@ -2131,99 +2122,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/97/c9/39d5b874e8b28845e4ec2202b5da735d0199dbe5b8fb85f91398814a9a46/pyyaml-6.0.3-cp313-cp313-win_amd64.whl", hash = "sha256:79005a0d97d5ddabfeeea4cf676af11e647e41d81c9a7722a193022accdb6b7c", size = 154090, upload-time = "2025-09-25T21:32:33.659Z" },
     { url = "https://files.pythonhosted.org/packages/73/e8/2bdf3ca2090f68bb3d75b44da7bbc71843b19c9f2b9cb9b0f4ab7a5a4329/pyyaml-6.0.3-cp313-cp313-win_arm64.whl", hash = "sha256:5498cd1645aa724a7c71c8f378eb29ebe23da2fc0d7a08071d89469bf1d2defb", size = 140246, upload-time = "2025-09-25T21:32:34.663Z" },
 ]
-
-[[package]]
-name = "pyzed"
-version = "1.3.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux' and extra != 'extra-15-neural-networks-cpu' and extra != 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (platform_machine != 'AMD64' and sys_platform == 'win32' and extra != 'extra-15-neural-networks-cpu' and extra != 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-15-neural-networks-cpu' and extra != 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')",
-    "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux' and extra != 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda' and extra != 'extra-15-neural-networks-rocm') or (platform_machine != 'AMD64' and sys_platform == 'win32' and extra != 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda' and extra != 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda' and extra != 'extra-15-neural-networks-rocm')",
-    "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra != 'extra-15-neural-networks-cuda' and extra != 'extra-15-neural-networks-rocm') or (platform_machine != 'AMD64' and sys_platform == 'win32' and extra == 'extra-15-neural-networks-cpu' and extra != 'extra-15-neural-networks-cuda' and extra != 'extra-15-neural-networks-rocm') or (sys_platform != 'darwin' and sys_platform != 'linux' and sys_platform != 'win32' and extra == 'extra-15-neural-networks-cpu' and extra != 'extra-15-neural-networks-cuda' and extra != 'extra-15-neural-networks-rocm')",
-    "sys_platform == 'darwin' and extra == 'extra-15-neural-networks-cpu' and extra != 'extra-15-neural-networks-cuda' and extra != 'extra-15-neural-networks-rocm'",
-    "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux' and extra != 'extra-15-neural-networks-cpu' and extra != 'extra-15-neural-networks-cuda' and extra != 'extra-15-neural-networks-rocm') or (platform_machine != 'AMD64' and sys_platform == 'win32' and extra != 'extra-15-neural-networks-cpu' and extra != 'extra-15-neural-networks-cuda' and extra != 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and sys_platform != 'win32' and extra != 'extra-15-neural-networks-cpu' and extra != 'extra-15-neural-networks-cuda' and extra != 'extra-15-neural-networks-rocm')",
-]
-dependencies = [
-    { name = "durationpy", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux') or (platform_machine != 'AMD64' and sys_platform == 'win32') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'win32' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (sys_platform == 'win32' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (sys_platform == 'win32' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
-    { name = "python-dateutil", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux') or (platform_machine != 'AMD64' and sys_platform == 'win32') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'win32' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (sys_platform == 'win32' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (sys_platform == 'win32' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
-    { name = "requests", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux') or (platform_machine != 'AMD64' and sys_platform == 'win32') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'win32' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (sys_platform == 'win32' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (sys_platform == 'win32' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/86/94/86e58f5d73c514112f6f137099db6d75150c273cd4502b7db574a15d8d7f/pyzed-1.3.0.tar.gz", hash = "sha256:63d680ecd6bc993f8c72abba0369b28478a3c1d35cf671992f862bcee140d604", size = 2959, upload-time = "2022-11-27T19:26:02.183Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/38/3d/d74e1a695c7b164f8ab711c51eb59220d121240d45016468ddd15235a9bd/pyzed-1.3.0-py3-none-any.whl", hash = "sha256:dde6ccb484810c4dfda9b7813ace4e19d3df9967195ca66e42e5d6512d08aae6", size = 3106, upload-time = "2022-11-27T19:25:37.613Z" },
-]
-
-[[package]]
-name = "pyzed"
-version = "5.1"
-source = { path = "zed/third-party/pyzed/pyzed-5.1-cp313-cp313-linux_aarch64.whl" }
-resolution-markers = [
-    "platform_machine == 'aarch64' and sys_platform == 'linux'",
-]
-dependencies = [
-    { name = "cython", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine != 'aarch64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine != 'aarch64' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
-    { name = "numpy", marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine != 'aarch64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine != 'aarch64' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
-]
-wheels = [
-    { filename = "pyzed-5.1-cp313-cp313-linux_aarch64.whl", hash = "sha256:168b5d245cc4014195f298e935189606810c780bdbf9734f36523fd3eeac928b" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "cython", specifier = ">=3.0.0" },
-    { name = "numpy", specifier = ">=2.0,<3.0" },
-    { name = "opencv-python", marker = "extra == 'sample'" },
-    { name = "pyopengl", marker = "extra == 'sample'" },
-]
-provides-extras = ["sample"]
-
-[[package]]
-name = "pyzed"
-version = "5.1"
-source = { path = "zed/third-party/pyzed/pyzed-5.1-cp313-cp313-linux_x86_64.whl" }
-resolution-markers = [
-    "platform_machine == 'x86_64' and sys_platform == 'linux'",
-]
-dependencies = [
-    { name = "cython", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine != 'x86_64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine != 'x86_64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine != 'x86_64' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
-    { name = "numpy", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine != 'x86_64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine != 'x86_64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine != 'x86_64' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
-]
-wheels = [
-    { filename = "pyzed-5.1-cp313-cp313-linux_x86_64.whl", hash = "sha256:efe4a3e680c9ef76f9bfc2107b61dc20e1674c9900dccb0556ddd56c5bdfb6b8" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "cython", specifier = ">=3.0.0" },
-    { name = "numpy", specifier = ">=2.0,<3.0" },
-    { name = "opencv-python", marker = "extra == 'sample'" },
-    { name = "pyopengl", marker = "extra == 'sample'" },
-]
-provides-extras = ["sample"]
-
-[[package]]
-name = "pyzed"
-version = "5.1"
-source = { path = "zed/third-party/pyzed/pyzed-5.1-cp313-cp313-win_amd64.whl" }
-resolution-markers = [
-    "platform_machine == 'AMD64' and sys_platform == 'win32'",
-]
-dependencies = [
-    { name = "cython", marker = "(platform_machine == 'AMD64' and sys_platform == 'win32') or (platform_machine != 'AMD64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine != 'AMD64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine != 'AMD64' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'win32' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (sys_platform != 'win32' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'win32' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
-    { name = "numpy", marker = "(platform_machine == 'AMD64' and sys_platform == 'win32') or (platform_machine != 'AMD64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine != 'AMD64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine != 'AMD64' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'win32' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (sys_platform != 'win32' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'win32' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
-]
-wheels = [
-    { filename = "pyzed-5.1-cp313-cp313-win_amd64.whl", hash = "sha256:1e9acbc721681143289b59a0686d793de6b872f13d19b604da7f86581b0b7c17" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "cython", specifier = ">=3.0.0" },
-    { name = "numpy", specifier = ">=2.0,<3.0" },
-    { name = "opencv-python", marker = "extra == 'sample'" },
-    { name = "pyopengl", marker = "extra == 'sample'" },
-]
-provides-extras = ["sample"]
 
 [[package]]
 name = "requests"
@@ -2393,6 +2291,14 @@ source = { editable = "scripts" }
 dependencies = [
     { name = "build-scripts" },
     { name = "common" },
+    { name = "core" },
+    { name = "httpx" },
+    { name = "numpy" },
+    { name = "placeframe-api-client" },
+    { name = "pydantic" },
+    { name = "pytransform3d" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
     { name = "typer" },
 ]
 
@@ -2400,6 +2306,14 @@ dependencies = [
 requires-dist = [
     { name = "build-scripts", editable = "build" },
     { name = "common", editable = "packages/python/common" },
+    { name = "core", editable = "packages/python/core" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "numpy", specifier = ">=2.1" },
+    { name = "placeframe-api-client", editable = "packages/generated/python/api-client" },
+    { name = "pydantic", specifier = ">=2" },
+    { name = "pytransform3d", specifier = ">=3.5" },
+    { name = "scikit-learn", specifier = ">=1.5" },
+    { name = "scipy", specifier = ">=1.14" },
     { name = "typer", specifier = ">=0.15" },
 ]
 
@@ -2482,18 +2396,6 @@ asyncio = [
 ]
 
 [[package]]
-name = "starlette"
-version = "0.50.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "anyio" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ba/b8/73a0e6a6e079a9d9cfa64113d771e421640b6f679a52eeb9b32f72d871a1/starlette-0.50.0.tar.gz", hash = "sha256:a2a17b22203254bcbc2e1f926d2d55f3f9497f769416b3190768befe598fa3ca", size = 2646985, upload-time = "2025-11-01T15:25:27.516Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d9/52/1064f510b141bd54025f9b55105e26d1fa970b9be67ad766380a3c9b74b0/starlette-0.50.0-py3-none-any.whl", hash = "sha256:9e5391843ec9b6e472eed1365a78c8098cfceb7a74bfd4d6b1c0c0095efb3bca", size = 74033, upload-time = "2025-11-01T15:25:25.461Z" },
-]
-
-[[package]]
 name = "sympy"
 version = "1.14.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2535,8 +2437,8 @@ dependencies = [
     { name = "typing-extensions", marker = "(extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (extra != 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (extra != 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm')" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.9.1%2Brocm6.4-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:19ac1ef5db3f96e01172d0f62bc0438c6d3a8667358c3a00204fbbb44da74229" },
-    { url = "https://download.pytorch.org/whl/rocm6.4/torch-2.9.1%2Brocm6.4-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:435361fcc18291a725970beb21f5327b28ba809130a129587551249f22998522" },
+    { url = "https://download-r2.pytorch.org/whl/rocm6.4/torch-2.9.1%2Brocm6.4-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:19ac1ef5db3f96e01172d0f62bc0438c6d3a8667358c3a00204fbbb44da74229", upload-time = "2026-01-26T16:13:03Z" },
+    { url = "https://download-r2.pytorch.org/whl/rocm6.4/torch-2.9.1%2Brocm6.4-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:435361fcc18291a725970beb21f5327b28ba809130a129587551249f22998522", upload-time = "2026-01-26T16:18:18Z" },
 ]
 
 [[package]]
@@ -2556,10 +2458,10 @@ dependencies = [
     { name = "typing-extensions", marker = "(sys_platform == 'darwin' and extra == 'extra-15-neural-networks-cpu') or (extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.10.0-1-cp313-none-macosx_11_0_arm64.whl", hash = "sha256:b39cafff7229699f9d6e172cac74d85fd71b568268e439e08d9c540e54732a3e" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.10.0-2-cp313-none-macosx_11_0_arm64.whl", hash = "sha256:470de4176007c2700735e003a830828a88d27129032a3add07291da07e2a94e8" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.10.0-cp313-cp313t-macosx_14_0_arm64.whl", hash = "sha256:339e05502b6c839db40e88720cb700f5a3b50cda332284873e851772d41b2c1e" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.10.0-cp313-none-macosx_11_0_arm64.whl", hash = "sha256:840351da59cedb7bcbc51981880050813c19ef6b898a7fecf73a3afc71aff3fe" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.10.0-1-cp313-none-macosx_11_0_arm64.whl", hash = "sha256:b39cafff7229699f9d6e172cac74d85fd71b568268e439e08d9c540e54732a3e", upload-time = "2026-02-06T16:27:17Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.10.0-2-cp313-none-macosx_11_0_arm64.whl", hash = "sha256:470de4176007c2700735e003a830828a88d27129032a3add07291da07e2a94e8", upload-time = "2026-02-10T19:55:43Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.10.0-cp313-cp313t-macosx_14_0_arm64.whl", hash = "sha256:339e05502b6c839db40e88720cb700f5a3b50cda332284873e851772d41b2c1e", upload-time = "2026-01-23T15:09:57Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.10.0-cp313-none-macosx_11_0_arm64.whl", hash = "sha256:840351da59cedb7bcbc51981880050813c19ef6b898a7fecf73a3afc71aff3fe", upload-time = "2026-01-23T15:09:59Z" },
 ]
 
 [[package]]
@@ -2582,17 +2484,17 @@ dependencies = [
     { name = "typing-extensions", marker = "(sys_platform != 'darwin' and extra == 'extra-15-neural-networks-cpu') or (extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313-linux_aarch64.whl", hash = "sha256:fd215f3d0f681905c5b56b0630a3d666900a37fcc3ca5b937f95275c66f9fd9c" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313-linux_s390x.whl", hash = "sha256:170a0623108055be5199370335cf9b41ba6875b3cb6f086db4aee583331a4899" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:e51994492cdb76edce29da88de3672a3022f9ef0ffd90345436948d4992be2c7" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:8d316e5bf121f1eab1147e49ad0511a9d92e4c45cc357d1ab0bee440da71a095" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313-win_amd64.whl", hash = "sha256:b719da5af01b59126ac13eefd6ba3dd12d002dc0e8e79b8b365e55267a8189d3" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313-win_arm64.whl", hash = "sha256:b67d91326e4ed9eccbd6b7d84ed7ffa43f93103aa3f0b24145f3001f3b11b714" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313t-linux_aarch64.whl", hash = "sha256:5af75e5f49de21b0bdf7672bc27139bd285f9e8dbcabe2d617a2eb656514ac36" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313t-linux_s390x.whl", hash = "sha256:ba51ef01a510baf8fff576174f702c47e1aa54389a9f1fba323bb1a5003ff0bf" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:0fedcb1a77e8f2aaf7bfd21591bf6d1e0b207473268c9be16b17cb7783253969" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:106dd1930cb30a4a337366ba3f9b25318ebf940f51fd46f789281dd9e736bdc4" },
-    { url = "https://download.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313t-win_amd64.whl", hash = "sha256:eb1bde1ce198f05c8770017de27e001d404499cf552aaaa014569eff56ca25c0" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313-linux_aarch64.whl", hash = "sha256:fd215f3d0f681905c5b56b0630a3d666900a37fcc3ca5b937f95275c66f9fd9c", upload-time = "2026-01-23T15:10:34Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313-linux_s390x.whl", hash = "sha256:170a0623108055be5199370335cf9b41ba6875b3cb6f086db4aee583331a4899", upload-time = "2026-01-23T15:10:35Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:e51994492cdb76edce29da88de3672a3022f9ef0ffd90345436948d4992be2c7", upload-time = "2026-01-23T15:10:37Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:8d316e5bf121f1eab1147e49ad0511a9d92e4c45cc357d1ab0bee440da71a095", upload-time = "2026-01-23T15:10:38Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313-win_amd64.whl", hash = "sha256:b719da5af01b59126ac13eefd6ba3dd12d002dc0e8e79b8b365e55267a8189d3", upload-time = "2026-01-23T15:10:41Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313-win_arm64.whl", hash = "sha256:b67d91326e4ed9eccbd6b7d84ed7ffa43f93103aa3f0b24145f3001f3b11b714", upload-time = "2026-01-23T15:10:42Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313t-linux_aarch64.whl", hash = "sha256:5af75e5f49de21b0bdf7672bc27139bd285f9e8dbcabe2d617a2eb656514ac36", upload-time = "2026-01-23T15:10:44Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313t-linux_s390x.whl", hash = "sha256:ba51ef01a510baf8fff576174f702c47e1aa54389a9f1fba323bb1a5003ff0bf", upload-time = "2026-01-23T15:10:48Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:0fedcb1a77e8f2aaf7bfd21591bf6d1e0b207473268c9be16b17cb7783253969", upload-time = "2026-01-23T15:10:48Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:106dd1930cb30a4a337366ba3f9b25318ebf940f51fd46f789281dd9e736bdc4", upload-time = "2026-01-23T15:10:50Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.10.0%2Bcpu-cp313-cp313t-win_amd64.whl", hash = "sha256:eb1bde1ce198f05c8770017de27e001d404499cf552aaaa014569eff56ca25c0", upload-time = "2026-01-23T15:10:50Z" },
 ]
 
 [[package]]
@@ -2632,12 +2534,12 @@ dependencies = [
     { name = "typing-extensions", marker = "extra == 'extra-15-neural-networks-cuda' or (extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm')" },
 ]
 wheels = [
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:bdbcc703382f948e951c063448c9406bf38ce66c41dd698d9e2733fcf96c037a" },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:7b4bd23ed63de97456fcc81c26fea9f02ee02ce1112111c4dac0d8cfe574b23e" },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313-win_amd64.whl", hash = "sha256:4d1b0b49c54223c7c04050b49eac141d77b6edbc34aea1dfc74a6fdb661baa8c" },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:f1f8b840c64b645a4bc61a393db48effb9c92b2dc26c8373873911f0750d1ea7" },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:23f58258012bcf1c349cb22af387e33aadca7f83ea617b080e774eb41e4fe8ff" },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313t-win_amd64.whl", hash = "sha256:01b216e097b17a5277cfb47c383cdcacf06abeadcb0daca0c76b59e72854c3b6" },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:bdbcc703382f948e951c063448c9406bf38ce66c41dd698d9e2733fcf96c037a", upload-time = "2026-01-21T15:22:29Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:7b4bd23ed63de97456fcc81c26fea9f02ee02ce1112111c4dac0d8cfe574b23e", upload-time = "2026-01-21T15:22:51Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313-win_amd64.whl", hash = "sha256:4d1b0b49c54223c7c04050b49eac141d77b6edbc34aea1dfc74a6fdb661baa8c", upload-time = "2026-01-21T15:22:54Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:f1f8b840c64b645a4bc61a393db48effb9c92b2dc26c8373873911f0750d1ea7", upload-time = "2026-01-21T15:23:28Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:23f58258012bcf1c349cb22af387e33aadca7f83ea617b080e774eb41e4fe8ff", upload-time = "2026-01-21T15:23:31Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313t-win_amd64.whl", hash = "sha256:01b216e097b17a5277cfb47c383cdcacf06abeadcb0daca0c76b59e72854c3b6", upload-time = "2026-01-21T15:23:53Z" },
 ]
 
 [[package]]
@@ -2656,8 +2558,8 @@ dependencies = [
     { name = "torch", version = "2.9.1+rocm6.4", source = { registry = "https://download.pytorch.org/whl/rocm6.4" }, marker = "(extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (extra != 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (extra != 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm')" },
 ]
 wheels = [
-    { url = "https://download-r2.pytorch.org/whl/rocm6.4/torchvision-0.24.1%2Brocm6.4-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:fd183cfb90fd9ed7a952bbe63f51d5da0609d0bc9c6bbfb183a536d808e48cae" },
-    { url = "https://download-r2.pytorch.org/whl/rocm6.4/torchvision-0.24.1%2Brocm6.4-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:478c1553c65b73e058154b2f64a87a954937d12e2025d6b04a36d3d5be362edc" },
+    { url = "https://download-r2.pytorch.org/whl/rocm6.4/torchvision-0.24.1%2Brocm6.4-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:fd183cfb90fd9ed7a952bbe63f51d5da0609d0bc9c6bbfb183a536d808e48cae", upload-time = "2025-11-15T18:13:05Z" },
+    { url = "https://download-r2.pytorch.org/whl/rocm6.4/torchvision-0.24.1%2Brocm6.4-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:478c1553c65b73e058154b2f64a87a954937d12e2025d6b04a36d3d5be362edc", upload-time = "2025-11-15T18:13:05Z" },
 ]
 
 [[package]]
@@ -2673,8 +2575,8 @@ dependencies = [
     { name = "torch", version = "2.10.0", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform == 'darwin' and extra == 'extra-15-neural-networks-cpu') or (extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
 ]
 wheels = [
-    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0-cp313-cp313-macosx_12_0_arm64.whl", hash = "sha256:6c444119c6af8fa48b79c59f1529fc15a45a2bbf823cf85f851e7203d84f727f" },
-    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:80895a40faa5783ce19ed5a692a54062c7888a385490e866324355f8d59b2eb3" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0-cp313-cp313-macosx_12_0_arm64.whl", hash = "sha256:6c444119c6af8fa48b79c59f1529fc15a45a2bbf823cf85f851e7203d84f727f", upload-time = "2026-01-20T18:32:31Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:80895a40faa5783ce19ed5a692a54062c7888a385490e866324355f8d59b2eb3", upload-time = "2026-01-20T18:32:31Z" },
 ]
 
 [[package]]
@@ -2693,12 +2595,12 @@ dependencies = [
     { name = "torch", version = "2.10.0+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'extra-15-neural-networks-cpu') or (extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
 ]
 wheels = [
-    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0%2Bcpu-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:fe54cbd5942cd0b26a90f1748f0d4421caf67be35c281c6c3b8573733a03d630" },
-    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:90eec299e1f82cfaf080ccb789df3838cb9a54b57e2ebe33852cd392c692de5c" },
-    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0%2Bcpu-cp313-cp313-win_amd64.whl", hash = "sha256:783c8fc580bbfc159bff52f4f72cdd538e42b32956e70dffa42b940db114e151" },
-    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0%2Bcpu-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:e985e12a9a232618e5a43476de5689e4b14989f5da6b93909c57afa57ec27012" },
-    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0%2Bcpu-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:813f0106eb3e268f3783da67b882458e544c6fb72f946e6ca64b5ed4e62c6a77" },
-    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0%2Bcpu-cp313-cp313t-win_amd64.whl", hash = "sha256:9212210f417888e6261c040495180f053084812cf873dedba9fc51ff4b24b2d3" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0%2Bcpu-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:fe54cbd5942cd0b26a90f1748f0d4421caf67be35c281c6c3b8573733a03d630", upload-time = "2026-01-20T18:32:30Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0%2Bcpu-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:90eec299e1f82cfaf080ccb789df3838cb9a54b57e2ebe33852cd392c692de5c", upload-time = "2026-01-20T18:32:30Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0%2Bcpu-cp313-cp313-win_amd64.whl", hash = "sha256:783c8fc580bbfc159bff52f4f72cdd538e42b32956e70dffa42b940db114e151", upload-time = "2026-01-20T18:32:30Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0%2Bcpu-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:e985e12a9a232618e5a43476de5689e4b14989f5da6b93909c57afa57ec27012", upload-time = "2026-01-20T18:32:30Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0%2Bcpu-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:813f0106eb3e268f3783da67b882458e544c6fb72f946e6ca64b5ed4e62c6a77", upload-time = "2026-01-20T18:32:30Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchvision-0.25.0%2Bcpu-cp313-cp313t-win_amd64.whl", hash = "sha256:9212210f417888e6261c040495180f053084812cf873dedba9fc51ff4b24b2d3", upload-time = "2026-01-20T18:32:30Z" },
 ]
 
 [[package]]
@@ -2717,12 +2619,12 @@ dependencies = [
     { name = "torch", version = "2.10.0+cu128", source = { registry = "https://download.pytorch.org/whl/cu128" }, marker = "extra == 'extra-15-neural-networks-cuda' or (extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm')" },
 ]
 wheels = [
-    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:12c253520a26483fe3c614f63ff16eca6d9b0b4ebe510699b7d15d88e6c0cd35" },
-    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:a9c0de893dce9c2913c9c7ae88a916910f92d02b99da149678806d18e8079f29" },
-    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313-win_amd64.whl", hash = "sha256:e2e0317e3861bba1b5aeba7c1cb4bcd50937cf0bffdbea478619d1f5f73e9050" },
-    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:58b2971b55c761f1d2491bd80fcc4618ea97d363d387a9dd3aff23220cbee264" },
-    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:1b6878b043513ea3dea1b90bfb5193455d9b248b8c4d5e66ea9f5d1643a43f13" },
-    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313t-win_amd64.whl", hash = "sha256:96cd2ba7b289117873b2a8f4c80605d38118d920b1045f3ce21a9f0ca68a701e" },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:12c253520a26483fe3c614f63ff16eca6d9b0b4ebe510699b7d15d88e6c0cd35", upload-time = "2026-01-21T22:32:26Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:a9c0de893dce9c2913c9c7ae88a916910f92d02b99da149678806d18e8079f29", upload-time = "2026-01-21T22:32:27Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313-win_amd64.whl", hash = "sha256:e2e0317e3861bba1b5aeba7c1cb4bcd50937cf0bffdbea478619d1f5f73e9050", upload-time = "2026-01-21T22:32:27Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:58b2971b55c761f1d2491bd80fcc4618ea97d363d387a9dd3aff23220cbee264", upload-time = "2026-01-21T22:32:28Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:1b6878b043513ea3dea1b90bfb5193455d9b248b8c4d5e66ea9f5d1643a43f13", upload-time = "2026-01-21T22:32:29Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313t-win_amd64.whl", hash = "sha256:96cd2ba7b289117873b2a8f4c80605d38118d920b1045f3ce21a9f0ca68a701e", upload-time = "2026-01-21T22:32:30Z" },
 ]
 
 [[package]]
@@ -2946,20 +2848,16 @@ wheels = [
 [[package]]
 name = "zed"
 version = "0.1.0"
-source = { virtual = "zed" }
+source = { virtual = "docker/zed-capture" }
 dependencies = [
     { name = "common" },
     { name = "core" },
-    { name = "fastapi" },
     { name = "litestar" },
     { name = "numpy" },
     { name = "pillow" },
-    { name = "pyzed", version = "1.3.0", source = { registry = "https://pypi.org/simple" }, marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux') or (platform_machine != 'AMD64' and sys_platform == 'win32') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and sys_platform != 'win32') or (sys_platform == 'win32' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (sys_platform == 'win32' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (sys_platform == 'win32' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
-    { name = "pyzed", version = "5.1", source = { path = "zed/third-party/pyzed/pyzed-5.1-cp313-cp313-linux_aarch64.whl" }, marker = "(platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine != 'aarch64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine != 'aarch64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine != 'aarch64' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
-    { name = "pyzed", version = "5.1", source = { path = "zed/third-party/pyzed/pyzed-5.1-cp313-cp313-linux_x86_64.whl" }, marker = "(platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine != 'x86_64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine != 'x86_64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine != 'x86_64' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'linux' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
-    { name = "pyzed", version = "5.1", source = { path = "zed/third-party/pyzed/pyzed-5.1-cp313-cp313-win_amd64.whl" }, marker = "(platform_machine == 'AMD64' and sys_platform == 'win32') or (platform_machine != 'AMD64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (platform_machine != 'AMD64' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (platform_machine != 'AMD64' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'win32' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-cuda') or (sys_platform != 'win32' and extra == 'extra-15-neural-networks-cpu' and extra == 'extra-15-neural-networks-rocm') or (sys_platform != 'win32' and extra == 'extra-15-neural-networks-cuda' and extra == 'extra-15-neural-networks-rocm')" },
+    { name = "pydantic" },
+    { name = "python-json-logger" },
     { name = "scipy" },
-    { name = "typer" },
     { name = "uvicorn" },
 ]
 
@@ -2972,16 +2870,12 @@ dev = [
 requires-dist = [
     { name = "common", editable = "packages/python/common" },
     { name = "core", editable = "packages/python/core" },
-    { name = "fastapi", specifier = ">=0.116.1" },
     { name = "litestar", specifier = ">=2.19.0" },
     { name = "numpy", specifier = ">=2.4.0" },
     { name = "pillow", specifier = ">=12.1.0" },
-    { name = "pyzed", marker = "(platform_machine != 'aarch64' and platform_machine != 'x86_64' and sys_platform == 'linux') or (platform_machine != 'AMD64' and sys_platform == 'win32') or (sys_platform != 'linux' and sys_platform != 'win32')" },
-    { name = "pyzed", marker = "platform_machine == 'aarch64' and sys_platform == 'linux'", path = "zed/third-party/pyzed/pyzed-5.1-cp313-cp313-linux_aarch64.whl" },
-    { name = "pyzed", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'", path = "zed/third-party/pyzed/pyzed-5.1-cp313-cp313-linux_x86_64.whl" },
-    { name = "pyzed", marker = "platform_machine == 'AMD64' and sys_platform == 'win32'", path = "zed/third-party/pyzed/pyzed-5.1-cp313-cp313-win_amd64.whl" },
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "python-json-logger", specifier = ">=3.2.0" },
     { name = "scipy", specifier = ">=1.16.1" },
-    { name = "typer", specifier = ">=0.20.0" },
     { name = "uvicorn", specifier = ">=0.35.0" },
 ]
 

@@ -60,12 +60,38 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="CaptureSessionUpdate" /> class.
         /// </summary>
+        /// <param name="recordedAt">datetime with the constraint that the value must have timezone info.</param>
         /// <param name="deviceType">deviceType.</param>
         /// <param name="name">name.</param>
         public CaptureSessionUpdate()
         {
         }
 
+        /// <summary>
+        /// datetime with the constraint that the value must have timezone info
+        /// </summary>
+        /// <value>datetime with the constraint that the value must have timezone info</value>
+        [DataMember(Name = "recorded_at", EmitDefaultValue = true)]
+        public DateTime? RecordedAt
+        {
+            get{ return _RecordedAt;}
+            set
+            {
+                _RecordedAt = value;
+                _flagRecordedAt = true;
+            }
+        }
+        private DateTime? _RecordedAt;
+        private bool _flagRecordedAt;
+
+        /// <summary>
+        /// Returns false as RecordedAt should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeRecordedAt()
+        {
+            return _flagRecordedAt;
+        }
         /// <summary>
         /// Gets or Sets Name
         /// </summary>
@@ -98,6 +124,7 @@ namespace PlaceframeApiClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class CaptureSessionUpdate {\n");
+            sb.Append("  RecordedAt: ").Append(RecordedAt).Append("\n");
             sb.Append("  DeviceType: ").Append(DeviceType).Append("\n");
             sb.Append("  Name: ").Append(Name).Append("\n");
             sb.Append("}\n");

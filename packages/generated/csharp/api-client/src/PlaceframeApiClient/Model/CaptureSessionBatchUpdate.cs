@@ -66,6 +66,7 @@ namespace PlaceframeApiClient.Model
         /// Initializes a new instance of the <see cref="CaptureSessionBatchUpdate" /> class.
         /// </summary>
         /// <param name="id">id (required).</param>
+        /// <param name="recordedAt">datetime with the constraint that the value must have timezone info.</param>
         /// <param name="deviceType">deviceType.</param>
         /// <param name="name">name.</param>
         public CaptureSessionBatchUpdate(Guid id)
@@ -96,6 +97,31 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeId()
         {
             return _flagId;
+        }
+        /// <summary>
+        /// datetime with the constraint that the value must have timezone info
+        /// </summary>
+        /// <value>datetime with the constraint that the value must have timezone info</value>
+        [DataMember(Name = "recorded_at", EmitDefaultValue = true)]
+        public DateTime? RecordedAt
+        {
+            get{ return _RecordedAt;}
+            set
+            {
+                _RecordedAt = value;
+                _flagRecordedAt = true;
+            }
+        }
+        private DateTime? _RecordedAt;
+        private bool _flagRecordedAt;
+
+        /// <summary>
+        /// Returns false as RecordedAt should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeRecordedAt()
+        {
+            return _flagRecordedAt;
         }
         /// <summary>
         /// Gets or Sets Name
@@ -130,6 +156,7 @@ namespace PlaceframeApiClient.Model
             StringBuilder sb = new StringBuilder();
             sb.Append("class CaptureSessionBatchUpdate {\n");
             sb.Append("  Id: ").Append(Id).Append("\n");
+            sb.Append("  RecordedAt: ").Append(RecordedAt).Append("\n");
             sb.Append("  DeviceType: ").Append(DeviceType).Append("\n");
             sb.Append("  Name: ").Append(Name).Append("\n");
             sb.Append("}\n");

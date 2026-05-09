@@ -30,6 +30,29 @@ namespace Placeframe.Core
         {
             return FromTranslationRotationScale(translation, rotation, new double3(1.0, 1.0, 1.0));
         }
+
+        public static (double3 translation, quaternion rotation, double3 scale) Decompose(double4x4 matrix)
+        {
+            var translation = matrix.c3.xyz;
+            var c0 = matrix.c0.xyz;
+            var c1 = matrix.c1.xyz;
+            var c2 = matrix.c2.xyz;
+            var scale = new double3(math.length(c0), math.length(c1), math.length(c2));
+            var rotationMatrix = new double3x3(c0 / scale.x, c1 / scale.y, c2 / scale.z);
+            return (translation, rotationMatrix.ToQuaternion(), scale);
+        }
+
+        // Component-wise lerping a 4x4 destroys orthonormality of the rotation block; decompose,
+        // slerp the rotation, lerp the translation/scale, and recompose.
+        public static double4x4 Interpolate(double4x4 a, double4x4 b, float t)
+        {
+            var (translationA, rotationA, scaleA) = Decompose(a);
+            var (translationB, rotationB, scaleB) = Decompose(b);
+            var translation = math.lerp(translationA, translationB, t);
+            var rotation = math.slerp(rotationA, rotationB, t);
+            var scale = math.lerp(scaleA, scaleB, t);
+            return FromTranslationRotationScale(translation, rotation.ToDouble3x3(), scale);
+        }
     }
 
     public static class ExtensionMethods
