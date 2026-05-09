@@ -52,7 +52,7 @@
     "com.unity.xr.management": "4.5.3",
     "com.unity.xr.openxr": "1.16.1",
     "org.nuget.placeframeapiclient": "file:../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
-    "org.outernet.logging": "file:C:/Users/epjec/Documents/Plerion/packages/unity/Logging/Assets/Package",
+    "org.outernet.logging": "file:../../../packages/unity/Logging/Assets/Package",
     "org.outernet.placeframe": "file:../../../packages/unity/Placeframe/Assets/Package/Core",
     "org.outernet.placeframe.arfoundation": "file:../../../packages/unity/Placeframe/Assets/Package/ARFoundation",
     "org.outernet.placeframe.magicleap": "file:../../../packages/unity/Placeframe/Assets/Package/MagicLeap",
