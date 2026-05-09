@@ -764,6 +764,7 @@ namespace Placeframe.Client
                                                             label = Observables.ObservableCombineValues(
                                                                 capture.status,
                                                                 capture.reconstruction,
+                                                                capture.type,
                                                                 CaptureStatusLabel
                                                             ),
                                                             interactable = capture.status.ObservableSelect(CaptureStatusIsActionable),

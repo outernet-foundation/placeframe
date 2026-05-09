@@ -29,11 +29,11 @@ namespace Placeframe.Client
 {
     public static partial class UIElements
     {
-        public static string CaptureStatusLabel(CaptureUploadStatus status, ReconstructionRead reconstruction) =>
+        public static string CaptureStatusLabel(CaptureUploadStatus status, ReconstructionRead reconstruction, DeviceType type) =>
             status switch
             {
                 CaptureUploadStatus.NotUploaded => "Upload",
-                CaptureUploadStatus.Initializing => "Initializing",
+                CaptureUploadStatus.Initializing => type == DeviceType.Zed ? "Copying from Zed" : "Uploading",
                 CaptureUploadStatus.Uploading => "Uploading",
                 CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
                 CaptureUploadStatus.Reconstructing => ReconstructingPhaseLabel(reconstruction),
@@ -320,6 +320,7 @@ namespace Placeframe.Client
                                 label = Observables.ObservableCombineValues(
                                     capture.status,
                                     capture.reconstruction,
+                                    capture.type,
                                     CaptureStatusLabel
                                 ),
                                 interactable = capture.status.ObservableSelect(CaptureStatusIsActionable),
