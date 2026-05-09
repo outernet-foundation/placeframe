@@ -125,6 +125,16 @@ Unity projects use [NuGetForUnity](https://github.com/GlitchEnzo/NuGetForUnity) 
 2. Run `uv run up` to start all services.
 3. Visit your ngrok domain to access the OpenAPI UI.
 
+## Operational debugging
+
+Quick gotchas for investigating "what did the system actually do?". Full query templates, bucket layouts, and the lease-lifecycle walkthrough live in `docs/debugging.md`.
+
+- **Postgres**: connect as `placeframe_owner`, not `postgres` — `docker exec placeframe-postgres-1 psql -U placeframe_owner -d placeframe`. The `postgres` user has no app tables visible.
+- **MinIO**: alias is `docker exec placeframe-minio-1 mc alias set local http://localhost:9000 admin password` (creds from `.env`). Buckets are `dev-captures` (one `.tar` per capture) and `dev-reconstructions` (one directory per reconstruction).
+- **Loki**: query via `docker exec placeframe-loki-1 wget -qO- 'http://localhost:3100/loki/api/v1/query_range?query=...'` — `service_name` is the primary label. List values with `/loki/api/v1/label/service_name/values`.
+- **state-sync is silent in `docker logs`** — the `dotnet` worker only emits the Kestrel startup banner. To observe orchestrator activity, query the `api` Loki stream for `/internal/leases/` traffic instead.
+- **Reconstructor outputs vs. DB status can disagree**: `dev-reconstructions/<id>/sfm_model/` written means SfM finished, even if the DB still shows an in-progress status. The final `/succeed` PUT can fail (see auth.py for the JWKS retry path) and orphan a reconstruction at `uploading`.
+
 ## Claude Code Environment Notes
 
 When running in a containerized Claude Code environment (COI sandbox):
