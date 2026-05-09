@@ -35,7 +35,13 @@
       }
     },
     "MakeItSing": {
-      "path": "apps/MakeItSing"
+      "path": "apps/MakeItSing",
+      "package": "com.plerion.makeitsing",
+      "builds": ["android-mobile", "magicleap"],
+      "execute_methods": {
+        "android-mobile": "Plerion.Build.BuildForAndroidMobile",
+        "magicleap": "Plerion.Build.BuildForMagicLeap"
+      }
     },
     "Placeframe": {
       "path": "packages/unity/Placeframe"
