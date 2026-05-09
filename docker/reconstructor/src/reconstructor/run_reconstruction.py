@@ -148,7 +148,6 @@ def run_reconstruction(
     ]
     publisher.set_phase(ReconstructionStatus.EXTRACTING_FEATURES, total=len(image_list))
     for index, (image_name, camera_config) in enumerate(image_list):
-        print(f"Extracting features: image {index + 1} of {len(image_list)}")
         publisher.on_progress(index + 1)
 
         image_path = CAPTURE_SESSION_DIRECTORY / image_name
@@ -238,8 +237,7 @@ def run_reconstruction(
         keypoints,
         pairs,
         match_indices,
-        on_progress=publisher.on_progress,
-        on_phase=publisher.set_phase,
+        publisher,
     )
 
     # Verify reconstruction was successful and write to storage

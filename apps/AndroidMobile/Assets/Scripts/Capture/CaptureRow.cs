@@ -209,7 +209,7 @@ namespace Placeframe.Client
                 ReconstructionStatus.Downloading => "Downloading",
                 ReconstructionStatus.ExtractingFeatures => $"Extracting features{ProgressSuffix(reconstruction)}",
                 ReconstructionStatus.MatchingFeatures => $"Matching features{ProgressSuffix(reconstruction)}",
-                ReconstructionStatus.VerifyingGeometry => "Verifying geometry",
+                ReconstructionStatus.VerifyingGeometry => $"Verifying geometry{ProgressSuffix(reconstruction)}",
                 ReconstructionStatus.Reconstructing => $"Reconstructing{ProgressSuffix(reconstruction)}{AttemptSuffix(reconstruction)}",
                 ReconstructionStatus.TrainingOpqMatrix => "Training index",
                 ReconstructionStatus.TrainingProductQuantizer => "Training index",

@@ -28,14 +28,16 @@ class ReconstructionPublisher:
         self._progress_attempt = 1 if total is not None else None
         self._flush()
         self._last_emit = perf_counter()
+        print(f"[{status.value}]" + (f" 0/{total}" if total is not None else ""))
 
     def on_progress(self, current: int, attempt: int = 1) -> None:
-        if self._progress_total is None:
+        if self._progress_total is None or self._status is None:
             return
         self._progress_current = current
         self._progress_attempt = attempt
+        print(f"[{self._status.value}] {current}/{self._progress_total}")
         now = perf_counter()
-        # Throttle to ~2 Hz so per-image callbacks don't trigger one API call each.
+        # Throttle API flushes to ~2 Hz; the per-tick stdout above is unthrottled.
         if now - self._last_emit >= 0.5:
             self._flush()
             self._last_emit = now
