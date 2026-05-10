@@ -1,5 +1,5 @@
 {
-  "_note": "Placeholder calibration. All weights/breakpoints zeroed; values are deliberately not load-bearing. Replace via `uv run fit-calibration` against a real capture corpus before relying on tight/loose tolerance gates. pipeline_version pinned to the localizer image's baked GIT_COMMIT_SHA so load_global_calibration's pipeline-version check passes; refit and update if the localizer image is rebuilt at a different commit.",
+  "_note": "Placeholder calibration. Logistic weights and isotonic breakpoints zeroed (confidences resolve to 0.5); loose_min/tight_min zeroed so the server-side confidence gate is a no-op. sigma_meas_alpha=1.0 passes the PnP covariance through unscaled and sigma_meas_beta=1e-4 adds a small noise floor so the client Kalman filter doesn't collapse to zero covariance and lock onto its first measurement. Replace via `uv run fit-calibration` against a real capture corpus before relying on tight/loose tolerance gates. pipeline_version pinned to the localizer image's baked GIT_COMMIT_SHA so load_global_calibration's pipeline-version check passes; refit and update if the localizer image is rebuilt at a different commit.",
   "schema_version": 2,
   "pipeline_version": "eee743d422f34b643eefeb9579dc1af21d5d9189",
   "fit_at": "2026-05-08T00:00:00+00:00",
@@ -39,8 +39,8 @@
     "isotonic_x_breakpoints": [],
     "isotonic_y_breakpoints": []
   },
-  "sigma_meas_alpha": 0.0,
-  "sigma_meas_beta": 0.0,
+  "sigma_meas_alpha": 1.0,
+  "sigma_meas_beta": 1.0e-4,
   "loose_min": 0.0,
   "tight_min": 0.0
 }

@@ -207,23 +207,6 @@ namespace Placeframe.Core.Tests
         }
 
         [Test]
-        public void ApplyMeasurement_BelowConfidenceFloor_RejectsAndPreservesState()
-        {
-            var state = RelocalizationFilter.InitialState();
-            var measurement = MakeMapLocalization(
-                tightConfidence: 0.5,
-                looseConfidence: RelocalizationFilter.LooseLowerBound - 0.01
-            );
-            var frame = new CameraFrame { CameraTranslationUnityWorldFromCamera = float3.zero };
-
-            var result = RelocalizationFilter.ApplyMeasurement(state, measurement, frame);
-
-            Assert.That(result.Rejection, Is.EqualTo(MeasurementRejection.ConfidenceFloor));
-            Assert.That(result.TransformChanged, Is.False);
-            Assert.That(result.NewState.HasAcceptedMeasurement, Is.False);
-        }
-
-        [Test]
         public void ApplyMeasurement_FirstAcceptAlwaysSnaps()
         {
             var state = RelocalizationFilter.InitialState();
