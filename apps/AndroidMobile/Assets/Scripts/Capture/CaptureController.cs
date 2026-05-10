@@ -19,7 +19,7 @@ namespace Placeframe.Client
 {
     public static class CaptureController
     {
-        private static float captureIntervalSeconds = 0.2f;
+        private static float captureIntervalSeconds = 0.5f;
 
         private static bool capturesLoaded;
         private static string localCaptureNamePath;
