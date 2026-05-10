@@ -14,17 +14,10 @@
       "scopes": [
         "org.nuget"
       ]
-    },
-    {
-      "name": "Cesium",
-      "url": "https://unity.pkg.cesium.com",
-      "scopes": [
-        "com.cesium.unity"
-      ]
     }
   ],
   "dependencies": {
-    "com.cesium.unity": "1.23.0",
+    "org.outernet.cesium-unity": "1.15.3-18",
     "com.cysharp.r3": "https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity#1.2.9",
     "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
     "com.fofx.nessle": "https://github.com/outernet-foundation/Nessle.git?path=Assets/Package/Core",
@@ -52,7 +45,7 @@
     "com.unity.xr.management": "4.5.3",
     "com.unity.xr.openxr": "1.16.1",
     "org.nuget.placeframeapiclient": "file:../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
-    "org.outernet.logging": "file:C:/Users/epjec/Documents/Plerion/packages/unity/Logging/Assets/Package",
+    "org.outernet.logging": "file:../../../packages/unity/Logging/Assets/Package",
     "org.outernet.placeframe": "file:../../../packages/unity/Placeframe/Assets/Package/Core",
     "org.outernet.placeframe.arfoundation": "file:../../../packages/unity/Placeframe/Assets/Package/ARFoundation",
     "org.outernet.placeframe.magicleap": "file:../../../packages/unity/Placeframe/Assets/Package/MagicLeap",

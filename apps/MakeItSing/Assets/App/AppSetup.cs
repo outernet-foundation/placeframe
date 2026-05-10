@@ -34,13 +34,31 @@ namespace Plerion.MakeItSing
         {
             UnityEngine.Debug.Log($"[BuildInfo] {Application.version}");
 
-            Logger<LogGroup>.Initialize();
+            Logger<LogGroup>.Initialize(new[]
+            {
+                ("app", "make-it-sing"),
+#if UNITY_EDITOR
+                ("platform", "editor"),
+#elif PLERION_MAGIC_LEAP
+                ("platform", "MagicLeap"),
+#elif PLERION_ANDROID_MOBILE
+                ("platform", "AndroidMobile"),
+#elif UNITY_STANDALONE_WIN
+                ("platform", "Windows"),
+#elif UNITY_STANDALONE_OSX
+                ("platform", "OSX"),
+#elif UNITY_STANDALONE_LINUX
+                ("platform", "Linux"),
+#endif
+            });
 
             var env = UnityEnv.GetOrCreateInstance();
 
+#if UNITY_EDITOR
             Log<LogGroup>.enabledLogGroups = env.logGroups;
             Log<LogGroup>.logLevel = env.logLevel;
             Log<LogGroup>.stackTraceLevel = env.stackTraceLevel;
+#endif
 
             Log<LogGroup>.Info($"Build {Application.version}");
 
@@ -82,7 +100,9 @@ namespace Plerion.MakeItSing
 #endif
 
             App.state.version.value = Application.version;
+#if UNITY_EDITOR
             App.state.offlineMode.value = env.runInOfflineMode;
+#endif
 
             if (!App.state.offlineMode.value)
             {

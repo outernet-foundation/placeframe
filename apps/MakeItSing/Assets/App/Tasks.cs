@@ -21,16 +21,7 @@ namespace Plerion.MakeItSing
 
                 Outernet.Logging.Logger<LogGroup>.EnableLoki(
                     App.state.userSettings.domain.value,
-                    tokenProvider: () => Auth.GetOrRefreshToken(),
-                    labels: new[]
-                    {
-                        ("app", "make-it-sing"),
-#if UNITY_EDITOR
-                        ("platform", "editor"),
-#else
-                        ("platform", App.state.platform.value.ToString()),
-#endif
-                    }
+                    tokenProvider: () => Auth.GetOrRefreshToken()
                 );
             }
             catch (Exception exc)

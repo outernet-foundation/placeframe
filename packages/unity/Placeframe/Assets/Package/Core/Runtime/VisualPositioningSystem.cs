@@ -246,11 +246,6 @@ namespace Placeframe.Core
 
             switch (result.Rejection)
             {
-                case MeasurementRejection.ConfidenceFloor:
-                    LogDebug(
-                        $"Localization rejected: confidence.loose {localizationResult.Metrics.ConfidenceLoose:0.00} < {RelocalizationFilter.LooseLowerBound:0.00}"
-                    );
-                    break;
                 case MeasurementRejection.InnovationGate:
                     LogDebug(
                         $"Localization rejected: innovation gate (m² = {result.InnovationMahalanobisSquared:0.00})"

@@ -27,7 +27,6 @@ namespace Placeframe.Core
     public enum MeasurementRejection
     {
         None,
-        ConfidenceFloor,
         InnovationGate,
     }
 
@@ -41,9 +40,6 @@ namespace Placeframe.Core
 
     public static class RelocalizationFilter
     {
-        // Drop measurements whose loose-tolerance probability falls below this floor.
-        public const double LooseLowerBound = 0.1;
-
         // Chi-square 99% critical value for 6 degrees of freedom — outlier gate threshold.
         public const double Chi2_99_6dof = 16.81;
 
@@ -104,10 +100,6 @@ namespace Placeframe.Core
         )
         {
             var metrics = localizationResult.Metrics;
-
-            if (metrics.ConfidenceLoose < LooseLowerBound)
-                return new StepResult { NewState = state, Rejection = MeasurementRejection.ConfidenceFloor };
-
             var measurementMean = ComputeAlignmentFromResult(localizationResult, frame);
             var sigmaMeas = BuildCovarianceMatrix(metrics.MeasurementCovariance);
             var currentVioPosition = (double3)(float3)frame.CameraTranslationUnityWorldFromCamera;
