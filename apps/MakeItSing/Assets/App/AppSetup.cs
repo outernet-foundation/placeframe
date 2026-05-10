@@ -110,7 +110,14 @@ namespace Plerion.MakeItSing
                 gameObject.AddComponent<LocalizationManager>();
             }
 
-            gameObject.AddComponent<SupabaseContentHelper>();
+            if (SupabaseAPI.IsConfigured)
+            {
+                gameObject.AddComponent<SupabaseContentHelper>();
+            }
+            else
+            {
+                Debug.LogWarning("[MakeItSing] UnityEnv.supabaseProjectId / supabaseApiKey are empty (likely missing Assets/_LocalWorkspace/Resources/UnityEnv.asset). Supabase calls disabled; remote config, room polling, and demo-scene download will be skipped. Photon and LocalizationManager are unaffected.");
+            }
             gameObject.AddComponent<SettingsManager>();
             gameObject.AddComponent<AppUI>();
             gameObject.AddComponent<NotificationManager>();
@@ -136,12 +143,13 @@ namespace Plerion.MakeItSing
                     state.config.disableSystemUI.value = env.disableSystemUI;
                 });
             }
-            else if (!env.runInOfflineMode)
+            else if (!env.runInOfflineMode && SupabaseAPI.IsConfigured)
             {
                 InitializeConfig();
             }
 #else
-            InitializeConfig();
+            if (SupabaseAPI.IsConfigured)
+                InitializeConfig();
 #endif
 
             Destroy(this);

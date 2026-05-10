@@ -158,6 +158,12 @@ namespace Plerion.MakeItSing
             }
             else
             {
+                if (!SupabaseAPI.IsConfigured)
+                {
+                    Debug.LogWarning($"[InRoomManager] Cannot load demo scene '{roomSceneID}': Supabase is not configured. Skipping room load.");
+                    return;
+                }
+
                 var assetBundle = await SupabaseAPI.GetDemoSceneAssetBundle(App.state.version.value, PlatformConfig.GetConfig(App.state.platform.value).supabaseBucket, roomSceneID);
                 var path = assetBundle.GetAllScenePaths()[0];
                 await SceneManager.LoadSceneAsync(path, LoadSceneMode.Additive);
