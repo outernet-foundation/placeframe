@@ -68,16 +68,33 @@ A "demo scene" is one Unity AssetBundle. `InRoomManager.LoadScene` (`Assets/App/
 
 The editor-side publishing tool is `Window > Asset Bundle Manager` (`Assets/App/Editor/AssetBundleManagerWindow.cs`). It builds bundles for selected platforms via `BuildPipeline.BuildAssetBundles`, then `POST`s them to the Supabase storage path with the anon API key.
 
+`AppSetup.cs` gates Supabase calls on `SupabaseAPI.IsConfigured` — if the gitignored `UnityEnv.asset` is missing, Supabase calls log a warning and skip rather than failing. Photon and the localization stack are unaffected.
+
 ### Placeframe integration
 
-`packages/unity/Placeframe/Assets/Package/Core/Runtime/VisualPositioningSystem.cs` is the integration surface. MakeItSing uses it as:
+`packages/unity/Placeframe/Assets/Package/Core/Runtime/VisualPositioningSystem.cs` (VPS) is the integration surface. The current wiring:
 
-- Initialize (`Assets/App/AppSetup.cs:81`): `VisualPositioningSystem.Initialize(cameraProvider, "placeframe-api", logCallbacks)`. `cameraProvider` is platform-selected — `MagicLeapCameraProvider` on ML2, ARFoundation's on Android Mobile, `NoOpCameraProvider` in the editor.
-- Login (`Assets/App/Tasks.cs:16`): `VisualPositioningSystem.Login(domain, username, password)` — Keycloak OAuth.
-- Localization (`Assets/App/Managers/LocalizationManager.cs`): on login, calls `VisualPositioningSystem.StartLocalizing(1f)` (1 Hz). Subscribes to `App.state.roughGrainedLocation` to drive `VisualPositioningSystem.SetLocalizationMaps(ecefPosition, MAP_LOAD_RADIUS=100m)`.
-- Origin alignment (`Assets/App/Scene/SceneOrigin.cs`): a `SceneOrigin` component is auto-added to the loaded demo scene's root by `InRoomManager.LoadScene:174`. It subscribes to `App.state.sceneOriginEcefPosition/Rotation` (the master client's anchor decision) and `VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated` (Placeframe localization fixes). On either, it calls `VisualPositioningSystem.EcefToUnityWorld` and lerps the SceneOrigin transform toward the resulting pose with a 5-unit interpolation rate.
+- `VPS.Initialize` (`AppSetup.cs:81`): platform-selected `ICameraProvider` — `MagicLeapCameraProvider` on ML2, ARFoundation's `CameraProvider` on Android Mobile, `NoOpCameraProvider` in the editor. Hardcoded audience `placeframe-api` and Keycloak realm `placeframe-dev`.
+- `VPS.Login` (`Tasks.cs:16`): OAuth2 password-grant against Placeframe's Keycloak.
+- `VPS.StartLocalizing(1f)` (`LocalizationManager.cs:32`): runs the camera-frame → localizer-API loop at 1 Hz once `App.state.loggedIn` flips true.
+- `LocalizationMapManager` (`Assets/App/Prefabs.cs:11`, instantiated by `AppSetup.cs:92`): wires itself into VPS via `SetLocalizationMapManager`, owns per-map `LocalizationMap` GameObjects, renders reconstruction points as `ParticleSystem` particles and frame trails via `Graphics.DrawMesh` cylinders (`packages/unity/Placeframe/.../LocalizationMap.cs:131`).
+- `SceneOrigin` (`Assets/App/Scene/SceneOrigin.cs`, auto-attached to the loaded demo scene's root by `InRoomManager.LoadScene:174`): reads `App.state.sceneOriginEcefPosition/Rotation`, calls `VPS.EcefToUnityWorld(...)`, lerps its transform toward the result on every alignment update.
 
-The net effect is that the demo scene root is positioned in Unity world-space such that "scene origin" lands at the chosen ECEF spot once Placeframe has localized. Two clients in the same Photon room with successful localization fixes will see each other's avatars at the same world-space position, anchored to the real-world environment.
+The handshake intended for shared-scene colocalization is a hardcoded-map-ID model rather than the GPS-driven map-discovery the general Placeframe API supports. Each demo targets one known physical place and one known map; the map's local frame is the demo author's coordinate frame; two clients converge by virtue of localizing against the same map. The pieces that exist:
+
+- `VPS.SetLocalizationMaps(Guid[])` (`VisualPositioningSystem.cs:128`) takes map IDs directly, bypassing the lat/lon → nearby-maps query.
+- `LocalizationMap.cs:106` already downloads a specific map's reconstruction by ID and renders it.
+- `Assets/App/Editor/ReconstructionDownloadHelperWindow.cs` (menu `Window > Reconstruction Download Helper`): editor utility that takes a reconstruction ID, fetches its points via `VPS.GetReconstructionPoints`, and writes them as a static `Mesh.asset` (`MeshTopology.Points`) into the project. Suggests an editor-time bake of point clouds into demo scenes rather than (or in addition to) live runtime visualization.
+
+The pieces that do not exist:
+
+- A source-of-truth for the per-demo map ID. No field on `RoomData`, `GetRoomResponse`, `UnityEnv`, `DemoSceneSetup`, or any scene script carries one. (See `## In flight`.)
+- A connector that reads that map ID and calls `VPS.SetLocalizationMaps(new[] { mapId })`.
+- Anchoring of the demo scene root to the map's pose in Unity world.
+
+The existing `LocalizationManager` (`Assets/App/Managers/LocalizationManager.cs`) is an unfinished gesture at the more sophisticated GPS-based flow: it subscribes to `App.state.roughGrainedLocation` (never written), translates lat/lon to ECEF via `WGS84.CartographicToEcef` and `SceneReferences.GroundTileset.SampleHeightMostDetailed`, then immediately zeroes the result (`LocalizationManager.cs:81`) before calling `VPS.SetLocalizationMaps(ecefPosition, MAP_LOAD_RADIUS=100m)`. The ECEF-state values it relies on (`App.state.roughGrainedLocation`, `sceneOriginEcefPosition`, `sceneOriginEcefRotation`) are declared, read by their respective managers, and never written.
+
+The `placeframe-api` audience and `placeframe-dev` realm name are hardcoded in `VisualPositioningSystem.cs:90` and `AppSetup.cs:83`.
 
 ### Platform handling
 
@@ -112,25 +129,30 @@ The non-obvious shape of this app is the path-as-schema replication model. Sever
 
 **Anon Supabase key with no RLS.** Inferred: zero-friction artist publishing. The cost is that the anon key is effectively read+write for any holder, and is baked into player builds. This is a known trust boundary, not an oversight.
 
-## Known gaps
+**Hardcoded map ID per demo over GPS-driven map discovery.** The general Placeframe API supports lat/lon → nearby-maps lookup, but each MakeItSing demo targets a known physical location and a known map. Skipping the discovery step removes the GPS permission flow, the WGS84 → ECEF math, the master-broadcasts-anchor coordination between clients, and the question of what happens during the pre-localization window. The cost: the demo's spatial extent is bounded by the chosen map's coverage, and switching demo locations requires a build. Both acceptable for the demo-harness use case. The existing ECEF-driven scaffolding (`AppState.roughGrainedLocation`, `sceneOriginEcefPosition/Rotation`, the `LocalizationManager.UpdateMaps` chain) is leftover from this direction having been started before the simplification.
 
-The replicated-scene infrastructure is complete; the colocalization handshake is not.
+## Known issues
 
-- `AppState.roughGrainedLocation` (`Assets/App/AppState.cs:57`) is never written. `LocalizationManager.UpdateMaps` keys off it, so map loading never starts.
-- `AppState.sceneOriginEcefPosition` / `sceneOriginEcefRotation` (`Assets/App/AppState.cs:58-59`) are never written. `SceneOrigin` reads them. Demo-scene origin sits at ECEF (0,0,0) until something seeds them. Likely design intent: master client localizes first, broadcasts its fix into `sceneOriginEcef*`, others align.
-- `Assets/App/Managers/LocalizationManager.cs:81` zeroes the computed ECEF position (`ecefPosition = new double3(0, 0, 0);`) immediately before passing it to Placeframe. Probably a debug stub.
-- `Assets/App/Managers/SupabaseAPI.cs:148` merge bug in `GetPrioritizedConfig`: `result.photon_project_id = config.photon_project_id ?? config.photon_project_id;` — both sides reference `config`, breaking prioritized merge for Photon AppId. Other fields use `result.X = result.X ?? config.X`.
-- `Assets/App/AppSetup.cs:325` (`GetPlatform`): missing fallthrough — a build with `UNITY_ANDROID` but neither `PLERION_*` define won't compile.
-- `Assets/App/Managers/SupabaseAPI.cs:111` (`GetRooms`): null check on a list that's empty-not-null. URL always contains `?and=()`. Cosmetic.
-- `Assets/App/Managers/CesiumCreditSystemUI.cs`: entire body commented out; the type exists only to satisfy a reference, likely a workaround for swapping to the `org.outernet.cesium-unity` fork.
-- `Assets/App/Editor/AppEditor.cs:15-33`: `_additionalDrawers` dictionary is dead code after the upstream API removed its argument.
-- `Assets/App/AppActions.cs:77`: cleanup of objects owned by a leaving player is unimplemented. Mid-session disconnects leave their owned objects claimed.
-- AssetBundle filename `test scene` contains a literal space; the space propagates into HTTP paths and on-disk paths.
-- `Assets/App/Editor/AssetBundleManagerWindow.cs:26` excludes `ardebugmenu` from the bundle list; there is no such bundle anywhere in the tree.
+- `SupabaseAPI.cs:148` merge bug in `GetPrioritizedConfig`: `result.photon_project_id = config.photon_project_id ?? config.photon_project_id` — both sides reference `config`, breaking prioritized merge for Photon AppId. Other fields use `result.X = result.X ?? config.X`.
+- `AppSetup.cs:325` (`GetPlatform`) has no default return — a build with `UNITY_ANDROID` defined but neither `PLERION_*` define won't compile. Documents "plain Android is not a supported target."
+- `SupabaseAPI.cs:111` (`GetRooms`) null check on a list that's empty-not-null; URL always contains `?and=()`. Cosmetic.
+- `AppActions.cs:77` cleanup of objects owned by a leaving player is unimplemented; mid-session disconnects orphan their owned objects.
+- `Assets/App/Editor/AppEditor.cs:15-33` `_additionalDrawers` is dead code after the upstream API removed its argument.
+- `Assets/App/Editor/AssetBundleManagerWindow.cs:26` excludes `ardebugmenu` from the bundle list; no such bundle exists in the tree.
 - `Build > Asset Bundles` has no OSX action even though `PlatformConfig` lists it.
-- `Assets/App/UnityEnv.cs:80` creates the editor-only `UnityEnv.asset` under `Assets/_LocalWorkspace/Resources/`. In a player build, `Resources.Load<UnityEnv>` returns null without a shipped asset — production builds' Supabase credentials path is unverified.
-- Supabase anon key is baked into player builds; bucket is effectively public-write to anyone with the key.
+- AssetBundle filename `test scene` contains a literal space; the space propagates into HTTP paths and on-disk paths.
+- `Assets/App/Managers/CesiumCreditSystemUI.cs` body is entirely commented out; the type exists only to satisfy a reference, workaround for the `org.outernet.cesium-unity` fork swap.
+- `Assets/App/UnityEnv.cs:80` creates the editor-only `UnityEnv.asset` under `Assets/_LocalWorkspace/Resources/`; production builds rely on the asset being shipped or on the `SupabaseAPI.IsConfigured` gate. Production credentials path is unverified.
+- Supabase anon key is baked into player builds; the storage bucket is effectively public-write to anyone with the key.
 - Hardcoded realm name `placeframe-dev` in `packages/unity/Placeframe/.../VisualPositioningSystem.cs:90`; hardcoded Loki app id `placeframe-api` in `AppSetup.cs:83` and `Assets/App/Editor/ReconstructionDownloadHelperWindow.cs:52`.
+
+## In flight
+
+The colocalization handshake. Three small pieces, none committed:
+
+1. **Map ID source.** No field on `RoomData`, `GetRoomResponse`, `UnityEnv`, `DemoSceneSetup`, or any scene script carries a map ID today. Reasonable hosts: a new `MonoBehaviour` on the demo scene root carrying `Guid mapId` (bundled with the demo); a `localization_map_id` field on Supabase `rooms` rows (per-room override); or a global on `UnityEnv.asset` (one map for all demos in a build).
+2. **Connector.** On `loggedIn=true`, read (1) and call `VPS.SetLocalizationMaps(new[] { mapId })`. Replaces the `LocalizationManager.UpdateMaps` chain that currently keys off the never-written `App.state.roughGrainedLocation` and zeroes the ECEF result before calling VPS.
+3. **Scene-root anchoring.** Either write the map's ECEF pose (fetched via `VPS.GetMapData(mapId)`) into `App.state.sceneOriginEcefPosition/Rotation` so the existing `SceneOrigin` math lands at the map's Unity world position; or rewrite `SceneOrigin` to track `LocalizationMap.transform` directly and delete the ECEF-driven state values. The first approach is the smaller patch and reuses the master-replicates-to-joiners machinery for free.
 
 ## See also
 
