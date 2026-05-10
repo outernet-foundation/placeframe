@@ -5,6 +5,8 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.XR.Interaction.Toolkit.Samples.SpatialKeyboard;
 
+using TMPro;
+
 using FofX.Stateful;
 
 using Nessle;
