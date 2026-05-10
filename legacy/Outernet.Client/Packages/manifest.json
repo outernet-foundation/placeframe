@@ -17,7 +17,7 @@
     }
   ],
   "dependencies": {
-    "org.outernet.cesium-unity": "1.15.3-18",
+    "org.outernet.cesium-unity": "1.15.3-19",
     "com.fofx.nessle": "https://github.com/outernet-foundation/Nessle.git?path=Assets/Package/Core",
     "com.fofx.observething": "https://github.com/outernet-foundation/ObserveThing.git?path=Assets/Package/Core",
     "com.fofx.observething.statefulextensions": "https://github.com/outernet-foundation/ObserveThing.git?path=Assets/Package/StatefulExtensions",

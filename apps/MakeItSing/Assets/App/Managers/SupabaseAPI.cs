@@ -85,6 +85,8 @@ namespace Plerion.MakeItSing
         public static string ProjectId;
         public static string ApiKey;
 
+        public static bool IsConfigured => !string.IsNullOrEmpty(ProjectId) && !string.IsNullOrEmpty(ApiKey);
+
         public static string BaseUrl => $"https://{ProjectId}.supabase.co";
 
         public static UniTask<CreateRoomResponse> CreateRoom(string roomName, string roomDemoScene, string version)
@@ -195,6 +197,9 @@ namespace Plerion.MakeItSing
 
         private static async UniTask<UnityWebRequest> GET(string subdomain, DownloadHandler downloadHandler, Dictionary<string, string> additionalHeaders = default)
         {
+            if (!IsConfigured)
+                throw new InvalidOperationException("SupabaseAPI is not configured (UnityEnv.supabaseProjectId / supabaseApiKey are empty). Gate the call site on SupabaseAPI.IsConfigured.");
+
             var url = BaseUrl;
 
             if (!string.IsNullOrEmpty(subdomain))
@@ -224,6 +229,9 @@ namespace Plerion.MakeItSing
 
         private static async UniTask<UnityWebRequest> POST(string subdomain, byte[] body, string contentType, Dictionary<string, string> additionalHeaders = default)
         {
+            if (!IsConfigured)
+                throw new InvalidOperationException("SupabaseAPI is not configured (UnityEnv.supabaseProjectId / supabaseApiKey are empty). Gate the call site on SupabaseAPI.IsConfigured.");
+
             // Use UnityWebRequest.Put for a simple byte-stream upload
             UnityWebRequest request = new UnityWebRequest($"{BaseUrl}/{subdomain}", "POST");
             request.uploadHandler = new UploadHandlerRaw(body);

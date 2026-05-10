@@ -377,7 +377,7 @@
       "dependencies": {}
     },
     "org.outernet.cesium-unity": {
-      "version": "1.15.3-18",
+      "version": "1.15.3-19",
       "depth": 0,
       "source": "registry",
       "dependencies": {

@@ -5,7 +5,7 @@ on:
     inputs:
       build-number:
         description: "Build number — bump to force full rebuild and new package version"
-        default: "18"
+        default: "19"
 
 env:
   CESIUM_VERSION: "1.15.3"

@@ -187,6 +187,12 @@ namespace Plerion.MakeItSing
                 return;
             }
 
+            if (!SupabaseAPI.IsConfigured)
+            {
+                Debug.LogWarning("[AppUI] Cannot create room: Supabase is not configured. Use offline mode or provide UnityEnv.asset.");
+                return;
+            }
+
             var room = await SupabaseAPI.CreateRoom(roomName, roomDemoScene, version);
             App.ExecuteTransaction(x =>
             {
