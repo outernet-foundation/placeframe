@@ -1,127 +1,115 @@
-# core — shared domain types and utilities
+# packages/python/core/SPEC.md
 
-`packages/python/core` holds Python types and pure utilities shared across the localizer, reconstructor, scripts, and other backend Python services. It deliberately doesn't depend on `neural_networks` (Docker-build constraint: `core` is small and ships in every service image; `neural_networks` is large and only ships where it's needed).
+## What this is
 
-This SPEC describes the durable design surfaces. Operating instructions live in the top-level `CLAUDE.md`.
+`core` is the workspace Python package that holds the vocabulary shared between Placeframe's backend services. It contains the Pydantic schemas that travel over HTTP and through Postgres JSONB columns, the coordinate-frame primitives that bridge OpenCV-space (reconstructor / COLMAP) and Unity-space (phone clients / localizer responses), the image and intrinsics canonicalization used by both the map-builder and the query path, the HDF5 / FAISS-OPQ on-disk artifact formats, and the global confidence-calibration model. The distribution name is `core` and every import is `from core.<module>`. `docker/api/`, `docker/localizer/`, `docker/reconstructor/`, `docker/zed-capture/`, and `scripts/` declare it as a workspace dep. See `docker/SPEC.md` for the service mesh that consumes these types.
 
-## Calibration
+## Shape
 
-### Artifact format
+The package is flat: 16 leaf modules under `src/core/`, no `__init__.py` re-exports, every consumer imports from a leaf. There are no tests inside `core/`; behaviour is exercised end-to-end from the consumer test suites (`docker/localizer/tests/test_build_metrics.py`, `docker/reconstructor/tests/test_rig.py`, `scripts/tests/test_fit_calibration.py`).
 
-Single JSON document. ~3 KB global, ~1 KB per-map.
+### Modules by role
 
-```json
-{
-  "schema_version": 1,
-  "pipeline_version": "abc123def456...",
-  "fit_at": "2026-04-29T14:00:00Z",
-  "fit_by": "scripts/fit_calibration.py",
-  "sample_count": 8743,
-  "tight": {
-    "logistic_weights": [0.234, -1.83, 0.45, ...],
-    "logistic_intercept": -2.14,
-    "logistic_feature_names": ["log_inliers", "inlier_ratio", "reproj_err_norm", ...],
-    "isotonic_x_breakpoints": [0.01, 0.05, 0.10, ..., 0.99],
-    "isotonic_y_breakpoints": [0.02, 0.06, 0.12, ..., 0.97]
-  },
-  "loose": { "logistic_weights": [...], ... },
-  "sigma_meas_alpha": 32.0,
-  "sigma_meas_beta": 2.56,
-  "loose_min": 0.25,
-  "tight_min": 0.0
-}
-```
+**Wire-format schemas (Pydantic; serialize to HTTP / JSONB / the generated C# client).**
 
-Per-map artifact has the same shape but only `tight.isotonic_*` and `loose.isotonic_*` blocks (the global logistic is the upstream).
+- `transform.py` — `Float3`, `Float4(x,y,z,w)`, `Transform(translation, rotation)`. Smallest building block; carried in URLs, capture manifests, and localization responses. Quaternion order is xyzw everywhere.
+- `camera_config.py` — `ImageOrientation` (the 8 EXIF orientation tags as a Literal) and `PinholeCameraConfig(width, height, orientation, fx, fy, cx, cy)`. Foundational.
+- `capture_session_manifest.py` — `RigCameraConfig`, `RigConfig`, `CaptureSessionManifest(axis_convention, rigs, capture_interval_seconds | None)`. The structured payload a phone client uploads alongside the image tar. `ref_sensor: bool` on `RigCameraConfig` identifies the rig origin.
+- `reconstruction_options.py` — 24 optional Pydantic fields describing the reconstructor's COLMAP pipeline: pair-generation knobs, RANSAC thresholds, BA toggles, triangulation gates, OPQ params, pose-prior sigma, and `held_out_frame_timestamps` (used by calibration to exclude specific frames so they can be re-localized as held-out queries).
+- `reconstruction_metrics.py` — 32 optional fields covering classic SfM metrics, match-verification counts (stereo / same-sensor / cross-sensor splits), map-quality features for the calibration model (`map_image_count`, `map_point_count`, `map_avg_track_length`, `map_bounding_volume_m3`, `map_viewpoint_diversity`), and Umeyama-alignment residuals against ground-truth poses.
+- `reconstruction_manifest.py` — `MANIFEST_VERSION = 1` and `Manifest(options, metrics)`. Stored as JSONB in `reconstructions.manifest`. The version constant is stamped onto `row.manifest_version` at write time.
+- `localization_metrics.py` — `LocalizationMetrics`, the per-query response payload (inlier ratio, reprojection error, inlier counts, calibrated confidences, 6x6 measurement and PnP covariances, pipeline version). Also exposes `RETRIEVAL_TOP_K_DEFAULT = 12` and `RANSAC_THRESHOLD_DEFAULT = 8.0`. Caller and fallback must read these from one source because the `(reconstruction_id, frame_timestamp, retrieval_top_k, ransac_threshold, pipeline_version)` cache key in `localization_evaluations` relies on agreement.
 
-### `Features` typed seam
+**Coordinate-frame math.**
 
-`core.calibration.Features` is a Pydantic model with all 11 named float fields (`log_inliers`, `inlier_ratio`, `reproj_err_norm`, `inlier_coverage`, `log_num_matches`, `log_map_image_count`, `log_map_point_count`, `map_avg_track_length`, `log_map_bounding_volume_m3`, `map_viewpoint_diversity`, `is_indoor`). `FEATURE_NAMES` derives from `Features.model_fields` so the field set has one source of truth.
+- `axis_convention.py` — `AxisConvention` enum (`OPENCV`, `UNITY`) plus four pure-numpy primitives built on a single basis-change matrix `diag(1, -1, 1)`: `change_basis_opencv_from_unity_pose`, `change_basis_unity_from_opencv_pose`, `change_basis_unity_from_opencv_points`, `change_basis_unity_from_opencv_poses` (vectorized, takes xyzw quaternions). OpenCV is `+X right, +Y down, +Z forward`; Unity is `+X right, +Y up, +Z forward`. The enum is a tag, not a dispatch — callers branch on it themselves.
 
-`apply_global_calibration(calibration: CalibrationArtifact, features: Features) -> Confidence` takes the typed model rather than `dict[str, float]`. Load-time `_validate_feature_names` rejects artifacts whose `logistic_feature_names` don't match. Both fit-side row construction (`fit_calibration.py`) and inference-side feature construction (`build_metrics.py`) build `Features` instances, so the fit-time and inference-time feature sets are guaranteed to match by type.
+**Image / intrinsics canonicalization.**
 
-### Gate thresholds
+- `image_preprocess.py` — the producer/consumer agreement. `canonicalize_image(buffer, orientation)` EXIF-orients then LANCZOS-resizes the shorter side to `LOCAL_FEATURE_RESIZE_SHORTER_SIDE = 1024`. `canonicalize_intrinsics(camera)` applies the matching orientation swap and rescale to `fx/fy/cx/cy` (an 8-branch match where diagonal flips swap width/height *and* fx/fy *and* cx/cy axes). `tile_image(image)` slides a 1024px window with `RETRIEVAL_TILE_OVERLAP_FRACTION = 0.5` overlap. The reconstructor runs all three at map-build time; the localizer runs them at query time. `NumImages`, `MaxTiles`, `NumQueryTiles` `NewType` brands live here.
 
-`loose_min` and `tight_min` are fields on `CalibrationArtifact`, not localizer module constants. The localizer reads them at startup and gates per-localization (`if metrics.confidence.loose < calibration.loose_min: raise LocalizationError(...)`). Future calibration changes are artifact-only, with no localizer code edit. The localizer is decoupled from threshold-tuning.
+**On-disk artifact format.**
 
-### Storage and lifecycle
+- `h5.py` — `GLOBAL_DESCRIPTORS_FILE = "global_descriptors.h5"`, `FEATURES_FILE = "features.h5"`, gzip-compressed chunked writers and image-name-keyed readers. The reconstructor writes; the localizer reads. Dataset names `global_descriptor`, `keypoints`, `pq_codes` are constants here.
+- `opq.py` — FAISS OPQ matrix and product-quantizer training, encoding, decoding, and IO. File names `opq_matrix.tf` and `pq_quantizer.pq` pinned here. `decode_descriptors` L2-normalizes its reconstructed descriptors (with a `+1e-12` float32 denominator to avoid divide-by-zero).
 
-| Artifact | Path | Updated by | Cadence |
-|---|---|---|---|
-| Global calibration | `config/calibration/global.json` (git repo) | Engineer (PR after fit) | Manual, on demand. Refit on every pipeline-affecting change to the localizer; otherwise refit when corpus grows meaningfully. |
-| Per-map calibrations (when fitter exists) | `s3://placeframe-maps/{map_id}/calibration.json` (MinIO) | Fit pipeline (automated upload) | Manual, on demand. Per-map, once sample count clears the threshold and is materially out of date. |
-| Phone-side calibration data (raw logs, when dogfooding logger exists) | `s3://placeframe-calibration-data/sessions/{session_id}.json` (MinIO) | AndroidMobile app | Per session at session end. |
+**Confidence-calibration model.**
 
-Updating global: run fit → `git diff` → review → PR → merge → deploy. No Docker rebuild; mounted as compose `configs:` volume.
+- `calibration.py` — `SCHEMA_VERSION = 2`. `RawLocalizationMetrics` and `RawMapMetrics` are the per-query and per-map raw inputs. `Features.compute(localization, map_metrics)` produces a 10-feature vector: `log1p` of inlier / match / image / point counts, `reproj_error_median / image_diagonal`, plus four ratios and diversities. `ToleranceModel` carries `logistic_weights` (Features-shaped), `logistic_intercept`, and an isotonic table (`isotonic_x_breakpoints`, `isotonic_y_breakpoints`). `CalibrationArtifact` bundles a `tight` and `loose` `ToleranceModel`, `sigma_meas_alpha` / `sigma_meas_beta` for the measurement-covariance scaling `Sigma_meas = alpha * Sigma_pnp + beta * I_6`, `loose_min` / `tight_min` floors, and version metadata. `load_global_calibration(path, expected_pipeline_version)` raises `CalibrationLoadError` with a remediation message if the file is missing, the schema version mismatches, or the pipeline version mismatches. `apply_global_calibration(calibration, features)` returns `(tight, loose, True)` — the third element is always literal `True`.
 
-## Image preprocessing
+**Inference glue and typing shims (torch-aware).**
 
-Two parallel preprocessing paths sit side-by-side in `core/image_preprocess.py` and `core/camera_config.py`:
+- `lightglue.py` — wraps `lightglue.LightGlue`. `Keypoints` / `Descriptors` `NewType`s over `dict[str, Tensor]` (and `*Arrays` variants for numpy input) brand the matcher's positional arguments so pyright catches keypoints/descriptors swaps. `lightglue_match` batches pairs, pads variable-length keypoint sequences, masks out `-1` non-matches.
+- `model_wrappers.py` — four thin closures around a "model" callable: extract global descriptor, extract local features, run the matcher on tensors, run the matcher on numpy arrays. `RetrievalDim`, `NumKeypoints`, `LocalDescDim` `NewType` brands.
+- `tensor_types.py` — `TT[*Shape]`: a generic subclass of `torch.Tensor` at type-check time, collapsed to plain `torch.Tensor` at runtime via `__class_getitem__`. The runtime collapse is required because `TT[Shape...]` must evaluate inside `cast()` calls and module-level tuple aliases.
+- `numpy_ops.py` — shape-typed re-exports of `numpy.zeros` (overloaded for 1D / 2D / 3D), `nonzero`, `compress`, propagating dimension brands through PEP 695 generics.
 
-- **Local features**: `canonicalize_image(buffer, orientation)` rotates to natural orientation and resizes the shorter side to `LOCAL_FEATURE_RESIZE_SHORTER_SIDE` (1024 px). Aspect ratio preserved; no padding. `canonicalize_intrinsics(camera)` applies the same per-axis resize ratio to `(width, height, fx, fy, cx, cy)` so PnP stays correct.
-- **Retrieval**: `tile_image(image)` takes the shorter-side-resized image and produces M overlapping `LOCAL_FEATURE_RESIZE_SHORTER_SIDE × LOCAL_FEATURE_RESIZE_SHORTER_SIDE` square crops along the long axis. `RETRIEVAL_TILE_OVERLAP_FRACTION = 0.5` (~50% overlap); M is derived from long-axis length.
+**Stub.**
 
-### Why scale standardization for local features
+- `main.py` — six-line `print("Hello from core!")`. `uv init` scaffolding; not registered as a script.
 
-ALIKED's receptive field is a fixed pixel patch (~30×30). At native phone resolution that patch covers a tiny physical area (a few cm of a wall) and lands on sub-pixel texture; at lower resolution the same patch covers a much larger physical region and lands on coarse structure. Cross-resolution descriptors describe different scales of reality and don't match. Standardizing physical-meters-per-pixel via shorter-side resize fixes this. ALIKED is fully convolutional and consumes variable HxW directly. LightGlue absorbs portrait↔landscape via keypoint coordinates — the per-keypoint matching paradigm naturally tolerates cross-aspect query/database pairs because matching only needs *overlapping content somewhere*: keypoints in the overlap match, keypoints in the non-overlap have no counterpart and get rejected by RANSAC. No retrieval-style framing fix is needed at this layer.
+### Consumer map
 
-### Why square-tile aggregation for retrieval
+Ranked by import volume:
 
-DIR (and any CNN-backbone global retrieval — EigenPlaces, NetVLAD, SALAD, DINOv2-GeM) produces *one descriptor per image*, summarizing all framed content. Cross-aspect query/database pairs summarize *different* framed content even when the underlying scene is identical: a portrait query of a building and a landscape database image of the same building include/exclude different left/right/top/bottom strips. The global descriptors describe different overall framings and don't match well — and reshaping the input (resize, distort, letterbox) can't recover content that wasn't framed in the first place.
+    localizer  (30 sites)  -- localize, build_metrics, map, main, schemas, torch_ops, tests
+    reconstructor (22)     -- run_reconstruction, rig, main, metrics_builder, options_builder, tests
+    api (13)               -- routers/{localization, reconstructions, leases, capture_sessions}
+    zed-capture (4)        -- zed/zed.py (manifest writer)
+    scripts                -- fit_calibration, tune_reconstruction
 
-The fix isn't preprocessing — it's giving each image *multiple framings* so at least one tile pair frames similar content.
+The most-imported leaves are `axis_convention` and `calibration` (8 sites each), `reconstruction_metrics` (7), then `transform`, `capture_session_manifest`, and `camera_config` (6 each).
 
-- **Database side** (reconstructor): store M descriptors per database image. OPQ index size and storage scale by M.
-- **Query side** (localizer): tile the query the same way; produce M descriptors per query.
-- **Similarity**: max over `M_query × M_db` pairs (default; mean is the alternative — left as a tuning surface for the parameter sweep). Per-database-image similarity is the max over all `(query_tile, db_tile)` pairs for that image.
-- Top-K retrieval picks database images with at least one tile-pair scoring highly, regardless of how the query and database images were originally framed.
+### Map / query contract
 
-Cost: M× retrieval index storage (OPQ matrix and PQ codes), M× DIR forward passes per image (one-time at indexing, recurring per-query), `M_query × M_db` similarity work per (query, db-image) pair. Bounded — typical M = 3 to 5.
+The reason this package is the hub of the stack: every artifact the reconstructor produces is read back by the localizer, byte-for-byte. The constants that pin the contract live in core:
 
-A previous design tried to address cross-aspect framing with an in-DIR letterbox + mean padding. That was the wrong fix: reshaping the input can't recover content that wasn't framed in the first place. The letterbox was reverted in favor of square-tile aggregation. `DIR.forward` is now a thin wrapper around the dirtorch model; tile preparation is the caller's responsibility.
+    reconstructor                       localizer
+    -------------                       ---------
+    h5.write_global_descriptors    -->  h5.read_global_descriptors
+    h5.write_features              -->  h5.read_features
+    opq.{train,encode,write}       -->  opq.{read,decode}
+    image_preprocess.canonicalize  -->  image_preprocess.canonicalize    (same constants, both sides)
+    image_preprocess.tile_image    -->  image_preprocess.tile_image
+    model_wrappers.RetrievalDim    -->  model_wrappers.RetrievalDim      (phantom shape brand)
 
-### Open tunables (image preprocessing)
+Flipping `LOCAL_FEATURE_RESIZE_SHORTER_SIDE`, `RETRIEVAL_TILE_OVERLAP_FRACTION`, an HDF5 dataset name, or an OPQ file name in core without rebuilding every existing map silently degrades retrieval quality without raising.
 
-| Parameter | Default | Where used |
-|---|---|---|
-| `LOCAL_FEATURE_RESIZE_SHORTER_SIDE` | 1024 px | `canonicalize_image`, also defines tile size |
-| `RETRIEVAL_TILE_OVERLAP_FRACTION` | 0.5 | `tile_image` |
-| `RETRIEVAL_TILES_PER_IMAGE` (M) | derived from long axis + overlap; min 1, typical 3–5 | `tile_image` |
-| Tile similarity aggregation | `max` (alternative: `mean`) | retrieval similarity computation |
+## Rationale
 
-## Static tensor shape typing
+**One flat package, no `__init__.py` re-exports.** Every consumer reaches into a leaf module, which makes the dependency graph immediately legible from import lines alone: `from core.opq import decode_descriptors` says exactly what the consumer touches. The cost is verbose import blocks at the call site (the localizer's `localize.py` imports from `core.model_wrappers` on two separate lines); the benefit is no parallel public-surface drift between `__init__.py` and the leaves.
 
-The codebase uses static tensor-shape typing (PEP 646 + NumPy 2.1 generics) at function and assignment boundaries throughout the localizer, reconstructor, and shared `core` / `neural_networks` packages. Catches dim-mismatch bugs at type-check time without runtime overhead, library dependency, or CI cost.
+**Pydantic on the schema side, pure numpy/torch on the math side.** Schemas need OpenAPI-generability and JSON round-tripping (they end up in C# via `generate-clients` and in Postgres JSONB via the API). Math functions need numpy-array-in / numpy-array-out so they compose with both the reconstructor's training loop and the localizer's per-query path with no Pydantic overhead. The two halves of the package never wrap each other.
 
-### Shim and brand placement
+**`AxisConvention` is a tag, not a dispatch.** The enum lives on `CaptureSessionManifest` and labels the producer's coordinate system, but core does not branch on it internally — callers do (the reconstructor's `rig.py` calls `change_basis_opencv_from_unity_pose` when the manifest is `UNITY`). Keeping the dispatch out of core means consumers can localize their own coordinate logic without paying for an indirection on every pose.
 
-- **`core/tensor_types.py`** holds only the `TT[*Shape]` torch shim. ~17 lines; no other contents.
-- **Dim brands live next to the concept that defines them**:
-  - `NumImages`, `MaxTiles`, `NumQueryTiles` in `core/image_preprocess.py`
-  - `RetrievalDim`, `NumKeypoints`, `LocalDescDim` in `core/model_wrappers.py`
-  - `NumMatches` in `core/lightglue.py`
-- **`core/lightglue.py`** is fully off `NDArray` and exports `Keypoints` / `Descriptors` / `KeypointsArrays` / `DescriptorsArrays` `NewType` brands so positional swaps at the matcher are caught statically.
+**Quaternion order is xyzw everywhere.** Matches `scipy.spatial.transform.Rotation.from_quat`'s default and the Unity / glTF convention. No `Float4`-with-wxyz ambiguity.
 
-### Wrappers in `core`, not `neural_networks`
+**`tensor_types.TT[*Shape]` runtime-collapses to `torch.Tensor`.** PEP 695 generic-class syntax is type-checker only, but `TT[Shape...]` appears inside `cast()` calls and module-level tuple aliases that *do* evaluate at runtime. `__class_getitem__` returning plain `torch.Tensor` is what lets both `cast(TT[NumKeypoints, LocalDescDim], ...)` and `LocalFeatureOutput = tuple[TT[NumKeypoints, Literal[2]], TT[NumKeypoints, LocalDescDim]]` work. The same pattern is in `numpy_ops` for ndarray shape brands.
 
-`core/model_wrappers.py` houses four `make_*` factories — `make_global_descriptor_extractor` (DIR), `make_local_feature_extractor` (ALIKED), `make_local_feature_matcher_for_tensors`, `make_local_feature_matcher_for_arrays` (LightGlue, tensor-input and numpy-input variants). Both `localize.py` and `run_reconstruction.py`'s `load_models()` consume them.
+**`NewType` brands on phantom dimension types (`RetrievalDim`, `NumImages`, `MaxTiles`, `NumQueryTiles`, `NumKeypoints`, `LocalDescDim`).** They cost nothing at runtime and let pyright catch axis-order mistakes when the reconstructor's `(NumImages, MaxTiles, RetrievalDim)` tile array is sliced or transposed against the localizer's expectation. The same brand-typing trick is applied to the matcher's positional arguments (`Keypoints` vs. `Descriptors`).
 
-Wrappers live in `core` (not `neural_networks.models`) because `neural_networks` deliberately doesn't depend on `core` (Docker-build constraint). The `make_*` helpers take `Any` for the raw model; the typed callable they return recovers full brand info at the seam.
+**Manifest fields default to `Optional[X] = None`.** Reconstruction is incremental: the reconstructor fills `ReconstructionMetrics` field by field during a multi-minute run, and the API accepts partial `ReconstructionOptions` blobs from clients that don't want to specify every COLMAP knob. The cost is that downstream readers must None-check; the alternative — fresh-write defaults — would either fabricate misleading numbers or split the model into write-time and read-time variants.
 
-### Numpy and torch operation wrappers
+**The torch / lightglue dependency lives in core but is not declared in `pyproject.toml`.** A `DEP003` deptry exemption documents the asymmetry. The canonical PyTorch dep lives in `neural-networks` behind conflicting `cpu` / `cuda` / `rocm` extras, so declaring bare `torch` here would conflict. Consumers that touch the torch-aware modules (`lightglue`, `model_wrappers`, `tensor_types`) must also depend on `neural-networks` with the matching extra; the API does not depend on `neural-networks` and never imports those modules.
 
-- `core/numpy_ops.py` — numpy sibling (`zeros` per rank; rank-1 `nonzero` and `compress`).
-- `docker/localizer/src/torch_ops.py` — thin per-rank torch wrappers typed via `@overload` so output shape flows from runtime args. See `docker/localizer/SPEC.md` "Tensor operations" for the rationale on per-rank `@overload` sets.
+**Calibration is the only place with a real algorithm and the only place with a real version check.** `load_global_calibration` raises loudly on schema or pipeline mismatch. Every other versioned thing in core (notably `MANIFEST_VERSION`) trusts the caller. The asymmetry is deliberate where the calibration artifact is concerned — a wrong-version calibration silently miscalibrates every confidence in production — but is a known gap for the manifest path.
 
-### What's intentionally not done
+## Known gaps
 
-- **No runtime shape checking** (jaxtyping / phantom-tensors). Out of scope. Static checking at boundaries plus the natural runtime errors torch / numpy throw on mismatched shapes are sufficient.
-- **No per-element shape arithmetic** (e.g. `reshape` propagating literal sizes through computed dims). Not expressible in Python's type system today.
-- **No tensor-library dependency**. Bare NumPy 2.1 generics + the small `tensor_types.py` shim cover the use case without depending on a small or unmaintained project.
-- **`ndarray[tuple[int, int], ...]`** (rank-known, sizes-unknown) remains a legitimate escape hatch for dicts-of-arrays where each entry has a different `N`. `TID251` on `NDArray` plus `reportExplicitAny` cover ~95% of the value with no false positives.
+- `Manifest.model_validate` does not check `MANIFEST_VERSION` against the row's `manifest_version` column. `docker/api/src/routers/leases.py:77, 107` and `reconstructions.py` parse blindly. Bumping the version is a silent contract change for older rows. `load_global_calibration` does the equivalent check and raises; the manifest path does not.
+- `apply_global_calibration` returns a hard-coded `True` as its third tuple element (`calibration.py:142`). `LocalizationMetrics.confidence_is_calibrated` is therefore never `False` by any current code path. The optionality dates to commit `06bff440 Drop client confidence gate and seed sigma_meas placeholders` and is dead-weight kept to preserve the response shape.
+- `main.py` is `uv init` scaffolding (`print("Hello from core!")`); not registered as a script. `README.md` is empty.
+- Inline `print()` calls at `lightglue.py:60` and `opq.py:43`, plus `verbose=True` on the FAISS trainers at `opq.py:23, 33`. Core library code writes directly to stdout, bypassing Loki structured logging.
+- `# noqa: TID251 -- Phase T piece 3 follow-up migration` comments at `axis_convention.py:4`, `h5.py:6`, and `opq.py:14`. The "Phase T piece 3" wording violates the root `CLAUDE.md` "no temporal language in comments" rule.
+- Variable name typo: `basic_change_unity_from_opencv` at `axis_convention.py:15` should be `basis_change_unity_from_opencv`. Used twice in the file.
+- `fit_at: str` and `fit_by: str` on `CalibrationArtifact` are unvalidated strings.
+- `Manifest` is written at reconstruction creation with `metrics=ReconstructionMetrics()` -- 32 explicit `null` fields in JSONB until the leases route replaces the whole metrics blob on completion.
+- No local tests for `core` itself. Calibration math (`Features.compute`, `_apply_tolerance`) and `canonicalize_intrinsics`'s 8-branch orientation match would benefit from unit tests rather than end-to-end coverage from consumers.
+- No `__init__.py` re-exports, so `docker/localizer/src/localize.py` imports from `core.model_wrappers` on two separate import lines (13 and 21). Cosmetic, but a symptom of no canonical public surface.
 
-### Pyright support
+## See also
 
-We're a pyright-only shop in basedpyright strict mode. Pyright's PEP 646 support has rough edges on advanced unifications (variadic middle dims with literal endpoints) but works for the patterns this codebase needs. `from torch import from_numpy` has one residual `reportUnknownVariableType` because torch's stub declares `from_numpy(ndarray) -> Tensor` with no parameter annotation; the wrapper consumes it and returns a fully-typed `TT[A, B, C]` so the unknown does not propagate to consumers.
-
-The workspace venv syncs with `--extra cpu` (`uv sync --all-packages --extra cpu`) so torch resolves locally — without it, other `reportUnknown*` errors drown out real signal.
+- `docker/SPEC.md` -- the service mesh that consumes these types. Core is the vocabulary on the arrows between services; that SPEC describes the arrows.
+- `scripts/src/scripts/fit_calibration.py` -- the producer of `config/calibration/global.json`. Reads `core.calibration`, `core.capture_session_manifest`, and `core.localization_metrics`'s defaults.
+- `packages/generated/` -- the OpenAPI client packages (Python and C#) generated from API routes that respond with `core` schemas. A schema change here requires running `generate-clients`.

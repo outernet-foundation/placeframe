@@ -19,7 +19,7 @@ Future-work tracker. Done initiatives have been folded into colocated `SPEC.md` 
 | 4 | Dogfooding logger | Not started |
 | 5 | Phone-side correction | Not started |
 | 6 | Per-map overlay (opportunistic) | Not started |
-| 7 | Grafana / Loki integration | Not started — implementation plan in `docs/grafana-integration.md` |
+| 7 | Grafana / Loki integration | Phase 1 (deploy Loki + Alloy + Grafana) landed. Phase 2 (repoint Outernet.Client at self-hosted Loki, gateway `/loki/` route with Keycloak auth) not started. |
 | T-widening | Static tensor typing repo-wide migration | Localizer-scope prototype landed; widening deferred. Orthogonal — no specific phasing dependency. |
 
 ## Critical path
@@ -162,7 +162,14 @@ End of Phase 6: per-map calibration rolls in map-by-map as data accumulates.
 
 ## Phase 7 — Grafana / Loki integration
 
-Implementation plan in `docs/grafana-integration.md`. Phase entry is a placeholder for status tracking; the doc itself is the implementation spec.
+Phase 1 deployed: `loki`, `alloy`, `grafana` containers in `compose.yml`, with Loki writing to the `loki` bucket in MinIO and Alloy auto-discovering Docker containers via `/var/run/docker.sock`. Configs at `docker/loki/config.yaml`, `docker/alloy/config.alloy`, `docker/grafana/provisioning/`. Container stdout/stderr is queryable in Grafana via Loki today.
+
+Phase 2 — repoint Outernet.Client at self-hosted Loki — not started:
+
+- Add a `/loki/` route to the gateway that proxies to `http://loki:3100`, enforcing Keycloak OAuth on the route (same mechanism as `/api/`).
+- In `legacy/Outernet.Client/Assets/OuternetClient/Logging/LokiLoggerConfiguration.cs`: replace the hardcoded `https://logs-prod-006.grafana.net` endpoint with `https://<PUBLIC_DOMAIN>/loki`; swap `BearerTokenAuthenticatedHttpClient` from hardcoded Grafana Cloud credentials to the Keycloak OAuth token the app already holds; remove embedded Grafana Cloud user ID `961726`.
+
+The Loki push API format (`POST /loki/api/v1/push`) is identical whether Cloud or self-hosted, so no formatter or label changes are needed.
 
 ## Phase T — Static tensor typing widening
 
