@@ -82,7 +82,14 @@ PLATFORM_CONFIGS: dict[Platform, PlatformConfig] = {
     ),
     Platform.android: PlatformConfig(
         vcpkg_triplet="arm64-android-unity",
-        cmake_extra_args="-DCMAKE_TOOLCHAIN_FILE=extern/android-toolchain.cmake -DCMAKE_ANDROID_ARCH_ABI=arm64-v8a",
+        # -Wl,-z,max-page-size=16384 forces 16KB ELF segment alignment so the .so
+        # loads natively on Android devices with 16KB memory pages. Without it,
+        # Android shows a PageSizeMismatchDialog at app launch.
+        cmake_extra_args=(
+            "-DCMAKE_TOOLCHAIN_FILE=extern/android-toolchain.cmake"
+            " -DCMAKE_ANDROID_ARCH_ABI=arm64-v8a"
+            " -DCMAKE_SHARED_LINKER_FLAGS_INIT=-Wl,-z,max-page-size=16384"
+        ),
         editor_build=False,
         strip=False,
         editor_output_name="",

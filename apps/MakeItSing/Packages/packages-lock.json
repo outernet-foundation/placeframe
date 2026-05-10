@@ -1,17 +1,5 @@
 {
   "dependencies": {
-    "org.outernet.cesium-unity": {
-      "version": "1.15.3-18",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.mathematics": "1.2.0",
-        "com.unity.test-framework": "1.1.31",
-        "com.unity.shadergraph": "12.1.6",
-        "com.unity.inputsystem": "1.4.2"
-      },
-      "url": "https://registry.npmjs.org"
-    },
     "com.cysharp.r3": {
       "version": "https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity#1.2.9",
       "depth": 0,
@@ -467,6 +455,18 @@
       "depth": 0,
       "source": "local",
       "dependencies": {}
+    },
+    "org.outernet.cesium-unity": {
+      "version": "1.15.3-19",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.mathematics": "1.2.0",
+        "com.unity.test-framework": "1.1.31",
+        "com.unity.shadergraph": "12.1.6",
+        "com.unity.inputsystem": "1.4.2"
+      },
+      "url": "https://registry.npmjs.org"
     },
     "org.outernet.logging": {
       "version": "file:C:/Users/epjec/Documents/Plerion/packages/unity/Logging/Assets/Package",
