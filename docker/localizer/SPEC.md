@@ -1,176 +1,220 @@
-# Localizer Service
+# docker/localizer/
 
 ## What this is
 
-The localizer service answers `POST /localize`: given a query image and a target reconstruction, it returns the camera's 6-DOF pose in the reconstruction's coordinate frame, plus calibrated confidence and a measurement covariance.
+A Litestar ASGI service that answers `POST /localization`: given a query image plus one or more target reconstruction IDs, it returns each camera's 6-DOF pose in that reconstruction's coordinate frame, with a calibrated confidence pair and a 6x6 measurement covariance for the downstream Bayesian filter. Also exposes `GET /version` returning the build-time git SHA as the pipeline version. The phone client never reaches this service directly — it's behind `docker/api/`, which proxies via the generated `placeframe_localizer_client`. Stack-level context (where the localizer sits in the capture -> reconstruct -> localize flow, log query patterns, MinIO bucket layout) lives in `docker/SPEC.md`; this file covers the subsystem.
 
-Operating instructions for running the service live in the top-level `CLAUDE.md`. This document covers the design rationale: API contract, calibration runtime, determinism guarantees, tensor operations, and bring-up findings that shaped the current state.
+## Shape
 
-## Pipeline
-
-```
-query image ──► canonicalize_image (rotate to natural orientation)
-                ├──► tile_image (square tiles for retrieval)
-                │      └──► global_descriptor_extractor (DIR per tile)
-                │             └──► top-K via similarity over (q_tile, db_tile) pairs
-                ├──► local_feature_extractor (ALIKED keypoints + descriptors)
-                └──► local_feature_matcher (LightGlue, query × top-K database images)
-                       └──► 2D-3D correspondences via map.points2D
-                              └──► RANSAC + PnP with covariance return
-                                     └──► absolute pose + 6×6 inverse-Hessian covariance
-                                            └──► build_metrics (apply calibration)
-                                                   └──► gate on confidence.loose
-                                                          └──► return Transform + LocalizationMetrics
-```
-
-The retrieval, feature extraction, matching, and PnP stages are timed per-call (`localize timings(ms): canonicalize=… aliked=… …`) for observability. CUDA kernels are async; each GPU-bound stage ends with `cuda.synchronize()` so timings reflect true wall time rather than just kernel-launch.
-
-## API contract
-
-### Response: `LocalizationMetrics`
-
-In addition to raw metrics (`NumInliers`, `InlierRatio`, `ReprojectionErrorMedian`, `InlierCoverage`, `NumMatches`, `NumCorrespondences`):
-
-- **`Confidence`** (`Confidence` sub-object):
-  - `tight: float in [0, 1]` — `P(translation_err < 5cm AND rotation_err < 1°)`
-  - `loose: float in [0, 1]` — `P(translation_err < 30cm AND rotation_err < 5°)`
-  - `is_calibrated: bool` — false only if calibration unavailable; should never be false in production.
-- **`PnpCovariance`** (`float[6][6]`, 6×6) — raw PnP covariance from the inverse Hessian at the optimum (`pycolmap.estimate_and_refine_absolute_pose(..., return_covariance=True)`). Surfaced *separately* from `MeasurementCovariance` so `fit_calibration` can solve for α/β; the frontend does not consume this directly.
-- **`MeasurementCovariance`** (`float[6][6]`) — runtime-applied `Σ_meas = α · PnP_cov + β · I` using α/β read from the loaded calibration artifact. This is the field the frontend filter consumes.
-- **`PipelineVersion`** (string) — the localizer image's git SHA at build time. Allows clients to verify they're consuming results from the calibrated pipeline they expect.
-
-The two-fields rationale (raw + runtime-applied covariance): the server keeps applying the calibration formula so the frontend filter stays calibration-agnostic; `pnp_covariance` exists purely for the fit consumer. The alternative — single raw field with frontend-side α/β application — would push calibration math into the Unity client without justification.
-
-### `GET /version`
-
-Returns `{ git_sha: str }`. The SHA is baked into the image at build time via the `GIT_COMMIT_SHA` Docker build arg (set in `compose.bake.yml` to `${GIT_COMMIT_SHA:?err}`, populated by `build/src/build_scripts/placeframe/build_docker.py` from `git rev-parse HEAD`). The localizer reads it as `pipeline_version: str = environ["GIT_COMMIT_SHA"]` at startup.
-
-`pipeline_version` is a code property of the localizer image, not an operator opinion. Auto-deriving it tamper-proofs the `localization_evaluations` cache-key contract against operator typos — silent cache pooling across incompatible pipelines is otherwise an easy operator footgun. `fit-calibration` retains a `--pipeline-version` CLI override for development workflows where the operator iterates uncommitted changes and wants their cache rows clearly labeled (e.g. `dev-tylerh-2026-05-03`).
-
-## Calibration runtime
-
-### Loader
-
-At service startup:
-
-1. Load global calibration from `/etc/placeframe/calibration/global.json` (Docker compose `configs:` volume; source of truth at `config/calibration/global.json` in the git repo).
-2. Verify pipeline version. If `global.pipeline_version != localizer.pipeline_version`: **hard-fail** with a loud log explaining the mismatch and the fix (refit + commit + redeploy).
-3. **Per-map calibrations are not loaded** in the current end state. The eventual design has the first localization request for a map trigger a lazy MinIO fetch + in-memory cache keyed by map ID; absent → log + fall back to global-only; pipeline-version-mismatched → log loudly + fall back to global-only. The loader bundles together with the per-map fitter (see `plan.md`).
-
-### Confidence computation per query
+### Module map
 
 ```
-features = transform(metrics, reconstruction_metrics, is_indoor)
-  # log(num_inliers + 1), reproj_err / image_diagonal_pixels,
-  # inlier_ratio (already 0-1), inlier_coverage (already 0-1),
-  # log(map_image_count + 1), log(map_point_count + 1), map_avg_track_length,
-  # log(map_bounding_volume_m3 + 1), map_viewpoint_diversity, is_indoor
-
-p_global_tight = sigmoid(features @ global.tight.weights + global.tight.intercept)
-p_global_loose = sigmoid(features @ global.loose.weights + global.loose.intercept)
-
-p_calibrated_tight = global.tight.isotonic.apply(p_global_tight)
-p_calibrated_loose = global.loose.isotonic.apply(p_global_loose)
-
-return Confidence(tight=p_calibrated_tight, loose=p_calibrated_loose, is_calibrated=True)
+docker/localizer/
+  Dockerfile               FROM neural-networks-base; bakes GIT_COMMIT_SHA late
+  entrypoint.sh            uvicorn src.main:app --host 0.0.0.0 --port 8000
+  pyproject.toml           pycolmap, faiss-cpu, scipy, litestar; torch undeclared
+                           (DEP003 ignore — pulled in via neural-networks extras)
+  src/
+    main.py                Litestar app + the /localization handler + S3 client
+                           + calibration load + the per-process Map cache
+    localize.py            load_models() (DIR/ALIKED/LightGlue) + the pipeline
+    map.py                 Map dataclass + load_map (MinIO download + hydrate)
+    build_metrics.py       PnP + features + calibration -> LocalizationMetrics
+    schemas.py             Pydantic response models
+    settings.py            MinIO + RECONSTRUCTIONS_BUCKET env config
+    torch_ops.py           per-rank @overload typed torch primitives
+    dump_openapi.py        CODEGEN=1 + print app.openapi_schema.to_schema()
+  tests/test_build_metrics.py   the only test file
+  openapi.json             committed; consumed by generate-clients
 ```
 
-`Features` is the typed seam (`core.calibration.Features` Pydantic model with all 11 named float fields). `FEATURE_NAMES` derives from `Features.model_fields` so the field set has one source of truth; load-time `_validate_feature_names` rejects artifacts whose `logistic_feature_names` don't match. `apply_global_calibration(features: Features)` takes the typed model rather than a `dict[str, float]`. Build-side row construction in `fit_calibration.py` and inference-side feature construction here both build `Features` instances, so the fit-time and inference-time feature sets are guaranteed to match by type.
+External support modules under `packages/python/core/src/core/`: `calibration` (Features / CalibrationArtifact / apply_global_calibration), `h5` (read_features / read_global_descriptors), `opq` (read_opq_matrix / read_pq_quantizer / decode_descriptors), `image_preprocess` (canonicalize_image / canonicalize_intrinsics / tile_image with shorter-side 1024px + 0.5 overlap), `model_wrappers` (factories around neural_networks.models.load_DIR / load_aliked / load_lightglue), `localization_metrics` (`RETRIEVAL_TOP_K_DEFAULT=12`, `RANSAC_THRESHOLD_DEFAULT=8.0`).
 
-A few dozen FLOPs plus two isotonic lookups (binary search over ~100 breakpoints). Negligible cost.
+### Boot lifecycle
 
-### Σ_meas computation per query
+All heavy state loads at module import. `uvicorn src.main:app` imports `src.main`, which:
+
+1. Reads settings, creates a long-lived boto3 S3 client (`src/main.py:46`).
+2. Guards on `CODEGEN`. When unset (the production path):
+   - `load_models()` (`src/localize.py:58`) imports `neural_networks.models` and materializes `global_descriptor_extractor` (DIR), `local_feature_extractor` (ALIKED), `local_feature_matcher` (LightGlue) on `DEVICE = "cuda" if cuda.is_available() else "cpu"`. Models stay GPU-resident for the container's lifetime.
+   - `pipeline_version = environ["GIT_COMMIT_SHA"]` is captured for the cache-key contract.
+   - `load_global_calibration("/etc/placeframe/calibration/global.json", pipeline_version)` reads the artifact and hard-fails if missing, if `schema_version != 2`, or if its pinned `pipeline_version` doesn't match the image's `GIT_COMMIT_SHA`.
+3. Defines the `LocalizationRequest` model and the `localize_image` + `get_localizer_version` handlers, then constructs the Litestar app.
+
+There is no shutdown hook — model memory, S3 client, downloaded artifacts on disk, and the in-memory `Map` cache all live until the container is killed.
+
+The `CODEGEN` branch is the only opt-out: `src/dump_openapi.py` sets `os.environ["CODEGEN"] = "1"` before importing `src.main`, so codegen can produce the OpenAPI spec without torch / pycolmap / a calibration file present. `settings.get_settings()` is also CODEGEN-aware (`Settings.model_construct()` skips env-var validation).
+
+### Request flow
+
+`POST /localization` (`src/main.py:76`):
 
 ```
-Σ_meas = α · PnP_cov + β · I_6
+multipart body
+  - reconstruction_ids: list[UUID]
+  - metrics: dict[UUID, ReconstructionMetrics]   (per-recon map metrics)
+  - camera_config: PinholeCameraConfig
+  - axis_convention: AxisConvention              (OPENCV | UNITY)
+  - retrieval_top_k: int | None                  (default 12)
+  - ransac_threshold: float | None               (default 8.0)
+  - image: UploadFile
+
+for id in reconstruction_ids:
+    if id not in _maps:
+        _maps[id] = load_map(id, s3_client, bucket, /tmp/reconstructions, metrics[id])
+    try:
+        result = localize_image_against_reconstruction(_maps[id], ...)
+        results.append(Localization(id, transform, metrics))
+    except LocalizationError as e:
+        errors.append(f"Reconstruction {id}: {e}")
+
+if not results:
+    raise HTTPException(422, "; ".join(errors))
+return results
 ```
 
-α, β come from the fitted calibration artifact at startup. Confidence does **not** scale `Σ_meas`. Confidence is the binary upstream gate; admitted measurements use `Σ_meas` regardless of confidence value.
+Per-reconstruction errors are tolerated; only an empty result set produces a 422. The success response omits failed entries silently — a caller seeing `len(result) < len(reconstruction_ids)` cannot recover the per-id reason.
 
-### Confidence gate
+`GET /version` (`src/main.py:118`) returns the module-level `pipeline_version` as `text/plain`.
+
+### Map loading
+
+`src/map.py:42` `load_map` is synchronous and called inline from the async handler:
+
+1. Paginate `s3.list_objects_v2(Bucket=bucket, Prefix=f"{id}/")` and download every key matching `{id}/sfm_model/...` or one of `global_descriptors.h5`, `features.h5`, `opq_matrix.tf`, `pq_quantizer.pq` into `/tmp/reconstructions/{id}/`.
+2. `pycolmap.Reconstruction(.../sfm_model)` reads the COLMAP binaries (`points3D.bin`, `images.bin`, `cameras.bin`).
+3. For each sorted image_id, hydrate `image_sizes[(h, w)]`, `keypoints[float32]` from `features.h5`, `pq_codes[uint8]` from the same file, and append the variable-tile-count `[tiles, RetrievalDim]` global descriptors from `global_descriptors.h5` into a list.
+4. Zero-pad the per-image tile descriptor list into one rank-3 ndarray of shape `[NumImages, MaxTiles, RetrievalDim]` (the unused slots are zero so the later `amax` over query-tile x db-tile pairs naturally drops them).
+5. Load the faiss `OPQMatrix` and `ProductQuantizer` from `opq_matrix.tf` / `pq_quantizer.pq`.
+6. Re-validate the API-forwarded `ReconstructionMetrics` as `RawMapMetrics` — drops every field except the five the calibration features consume (`map_image_count`, `map_point_count`, `map_avg_track_length`, `map_bounding_volume_m3`, `map_viewpoint_diversity`).
+
+Returns a frozen `Map` dataclass. Cached in `_maps: dict[UUID, Map]` (`src/main.py:44`) for the container's lifetime.
+
+### Pipeline
 
 ```
-if metrics.confidence.loose < calibration.loose_min or metrics.confidence.tight < calibration.tight_min:
-    raise LocalizationError(...)
+canonicalize_image            EXIF rotate -> lanczos resize so short side = 1024 -> RGB
+        |
+        +--> ALIKED              local keypoints + descriptors
+        |
+        +--> tile_image          square 1024-tiles, 0.5 overlap
+                |
+                +--> DIR         global descriptor per tile -> stack
+                       |
+                       +--> sim  query_tiles x db_tile_descriptors (matmul + permute)
+                              |
+                              +--> amax over (query_tile, db_tile) per image
+                                     |
+                                     +--> topk -> matched_image_ids
+                                            |
+                                            +--> decode_descriptors (OPQ.reverse_transform
+                                                  o PQ.decode o L2-normalize)
+                                                    |
+                                                    +--> LightGlue match
+                                                           query x each db image
+                                                           |
+                                                           +--> 2D-3D correspondences
+                                                                  via images[id].points2D
+                                                                  (drop pts without point3D_id)
+                                                                  |
+                                                                  +--> RANSAC + PnP
+                                                                        return_covariance=True
+                                                                          |
+                                                                          +--> change_basis
+                                                                                if axis=UNITY
+                                                                                |
+                                                                                +--> Features
+                                                                                +--> apply_calibration
+                                                                                +--> sigma_meas =
+                                                                                       a*PnP_cov + b*I_6
+                                                                                +--> gate on
+                                                                                       calibration.{loose,tight}_min
+                                                                                +--> return Transform +
+                                                                                       LocalizationMetrics
 ```
 
-`loose_min` and `tight_min` are **fields on `CalibrationArtifact`**, not module constants. Corpus calibration replaces them via `global.json` only — no localizer code edit required. This is the whole reason the seam exists: the localizer is decoupled from threshold-tuning forever.
+Each GPU-bound stage ends with `cuda.synchronize()` so the per-stage timings logged at completion (`localize timings(ms): canonicalize=... aliked=... dir_tiles=... retrieval=... matching=... pnp=... total=...`) reflect wall time rather than just kernel-launch. Median per-request total is ~700ms on the bring-up test map.
 
-The starter calibration (single-capture) ships `loose_min = 0.25` (between the empirical loose=0 failure cluster and loose=0.5 success cluster) and `tight_min = 0.0` (no-op; the starter's tight model is degenerate at ~0 because every held-out frame's per-frame error exceeded the tight error budget — no positive class for tight to fit on). The corpus run derives both from the success-cluster distribution.
+Database descriptors round-trip through OPQ + PQ (lossy uint8 codes -> decoded float32 -> reverse-transformed -> L2-normalized). Query descriptors are fresh-and-full-precision. LightGlue matches across the asymmetric pair.
 
-### Failure modes
+Determinism: `set_random_seed(0)` and `manual_seed(0)` are called per request. `cudnn.deterministic` and `CUBLAS_WORKSPACE_CONFIG` are intentionally left off — their 10-30% latency cost outweighs the residual non-determinism, which sits below the discrete inlier-set threshold any cache-key consumer cares about. The seed contract exists so `localization_evaluations` cache rows keyed on `(reconstruction_id, frame_timestamp, retrieval_top_k, ransac_threshold, pipeline_version)` are reproducible against a given image.
 
-| Condition | Behavior | Rationale |
-|---|---|---|
-| Global calibration file missing at startup | Hard-fail startup | Indicates a broken deploy. |
-| Global calibration pipeline-version mismatch | Hard-fail startup | Stale calibration vs new pipeline; refit required before serving. |
-| Per-map calibration missing (when loader exists) | Soft-fail: log + fall back to global-only | Expected for new/sparse-data maps; system still functional. |
-| Per-map calibration pipeline-version mismatch (when loader exists) | Soft-fail: log + fall back to global-only | Stale per-map; rebuild on next refit cycle. |
-| Localizer fails to produce a pose at all (e.g. not enough matches) | Existing error response | Pre-existing behavior. |
+### Calibration
 
-## Pipeline version contract
+A single global calibration JSON is bind-mounted via compose `configs:`:
 
-The localizer's git SHA at image-build time is `pipeline_version`. Pipeline-tuning constants (`RANSAC_THRESHOLD`, `RETRIEVAL_TOP_K`, etc.) live as module-level Python constants — baked into the image — so changing them requires a code change and bumps `pipeline_version` automatically, invalidating calibration. Env vars would silently bypass that invariant. Tuning these at deploy time is therefore not possible; that's the intended cost.
+- Source of truth: `config/calibration/global.json` (git).
+- Container path: `/etc/placeframe/calibration/global.json` (mode 0444; mounted in `compose.cuda.yml` and `compose.rocm.yml`).
+- Validator: `core.calibration.load_global_calibration` enforces `schema_version == 2` and `pipeline_version == localizer's GIT_COMMIT_SHA`. Either mismatch hard-fails the container.
 
-Every change to the localizer's relevant config invalidates calibration. Engineering discipline required to avoid trivial changes that break it. Once the system is in production with evidence of which inputs actually shift the metric distribution, this can become a selective hash; for now the false-positive refit cost is bounded.
+The artifact carries: per-tolerance (`tight` / `loose`) `logistic_weights: Features`, `logistic_intercept`, plus optional isotonic remapping `(x_breakpoints, y_breakpoints)`. Confidence per query is `sigmoid(intercept + weights @ features.values())`, then optionally `numpy.interp(raw, x_breakpoints, y_breakpoints)`. `Features.compute` packs ten scalars (`log1p(num_inliers)`, `inlier_ratio`, `reproj_error_median / query_image_diagonal_px`, `inlier_coverage`, `log1p(num_matches)`, four log/passthrough map features, `map_viewpoint_diversity`).
 
-## Determinism (cache-key contract)
+The artifact also carries `sigma_meas_alpha`, `sigma_meas_beta`, `loose_min`, `tight_min`. `measurement_covariance = alpha * pnp_covariance + beta * I_6`. The server-side gate at `src/localize.py:232` raises `LocalizationError` if `confidence_loose < loose_min or confidence_tight < tight_min`. With the current placeholder artifact (`loose_min = tight_min = 0.0`) this gate is a no-op.
 
-`localization_evaluations` cache rows keyed on `(reconstruction_id, frame_timestamp, retrieval_top_k, ransac_threshold, pipeline_version)` are reproducible because `localize_image_against_reconstruction` seeds per-call:
+The current `global.json` is the placeholder committed in `7c61dabf`: zeroed weights/intercepts, `alpha = 1.0`, `beta = 1e-4`, both mins 0.0, sample_count 0. Confidences resolve to 0.5 for every query and the gate never fires. Replace via `uv run fit-calibration` against a real capture corpus.
 
-```python
-LOCALIZER_RANDOM_SEED = 0
-pycolmap._core.set_random_seed(LOCALIZER_RANDOM_SEED)
-torch.manual_seed(LOCALIZER_RANDOM_SEED)
+### Deployment
+
+`compose.cuda.yml` (mirrored by `compose.rocm.yml`):
+
+```
+localizer-cuda:
+  image: ghcr.io/.../localizer-cuda:${LOCALIZER_SHA:?err}
+  expose: ["8000"]
+  networks: { default: { aliases: ["localizer"] } }   # api hits http://localizer:8000
+  gpus: all
+  configs:
+    - source: localizer-calibration-global
+      target: /etc/placeframe/calibration/global.json
+      mode: 0444
+  environment:
+    MINIO_ENDPOINT_URL, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, RECONSTRUCTIONS_BUCKET
 ```
 
-`cudnn.deterministic` and `CUBLAS_WORKSPACE_CONFIG` are deliberately **not** enabled. Their 10–30% latency cost outweighs the residual non-determinism, which is below the discrete inlier-set threshold the fit cares about (last-digit drift in conv outputs, undetectable downstream of RANSAC).
+No healthcheck. No `restart` policy. No `depends_on`. The API service treats the localizer as a best-effort backend and returns 502 if the `localize_image` round-trip raises a non-422 `ApiException`.
 
-Any change to seed scope or this calculus bumps `pipeline_version`, which tags a new cache key — old non-deterministic rows from before the seed contract aren't pooled with new ones.
+The Dockerfile bakes `GIT_COMMIT_SHA` in the *last* `ENV` layer, so only that layer invalidates per commit. `PYTORCH_ALLOC_CONF=expandable_segments:True` is set in the image — PyTorch's default caching allocator fragments under varying per-request peaks (query images of different sizes, varying top-K, varying keypoint counts) and eventually OOMs despite ample free memory. Expandable segments use CUDA virtual memory to grow segments on demand.
 
-## Tensor operations
+## Rationale
 
-Tensor-shape typing across the localizer uses `core.tensor_types.TT[*Shape]` plus per-rank wrapper modules:
+**Models, calibration, and S3 client load at module import — no async startup hook.** Litestar's lifespan hooks would let the loader run async, but the loads are CPU/GPU-blocking and run exactly once, so async buys nothing. Module import is the simplest correct shape.
 
-- `docker/localizer/src/torch_ops.py` — thin per-rank torch wrappers (`from_numpy`, `to`, `stack`, `permute`, `transpose`, `matmul`, `amax`) typed via `@overload` so output shape flows from runtime args.
-- `core.numpy_ops` — numpy sibling.
+**Per-map artifacts are downloaded inline on first request, not pre-warmed.** A pre-warm would need a Postgres dependency (to know which reconstruction IDs exist) and a startup ordering constraint with the API. Inline-on-first-use trades a one-time slow request per never-before-seen ID for zero coupling. The cost: the `Map` cache is unbounded and `/tmp/reconstructions/` accumulates indefinitely. Acceptable on the current scale (small number of maps per deployment); becomes a real leak in production.
 
-Wrappers grow opportunistically — a wrapper exists for an operation when erasing dim names at that boundary loses type information that we want to preserve. Per-rank `@overload` sets are required because PEP 646's `TypeVarTuple` doesn't admit per-element bounds; e.g. one `from_numpy` overload per supported rank, six `permute` overloads for 3D's permutations.
+**Database descriptors are OPQ + PQ compressed, query descriptors are not.** OPQ + PQ shrinks per-image descriptor storage by ~30x with a precision floor that LightGlue tolerates well in the asymmetric q->db direction. Compressing the query side too would save no storage (it's transient) and pay the encode + decode cost on the hot path.
 
-This module is the localizer's primary surface for the typed-tensor pattern. Domain-level shape semantics (dim brands like `NumImages`, `RetrievalDim`, `NumKeypoints`) live next to the concept that defines them in `core/` — see `packages/python/core/SPEC.md` "Static tensor shape typing."
+**Padded `[NumImages, MaxTiles, RetrievalDim]` tile-descriptor tensor with `amax` retrieval.** Two design pressures: (a) database images have variable tile counts (a 4:3 image yields one tile, a panoramic capture might yield seven); (b) the retrieval similarity needs to be a single GPU op, not a per-image loop. Zero-padding plus `amax` over the query-tile and db-tile axes naturally drops the padded zeros (||q||*||0|| = 0 < any real cosine) and lets the similarity matrix be a single batched matmul. The max over both tile axes is the right reduction because retrieval cares about "any tile of the query looks like any tile of the database image."
 
-## Bring-up findings
+**Custom `core.tensor_types.TT[*Shape]` plus `torch_ops.py` per-rank @overload wrappers.** Static typing the rank and dim brands (`NumImages`, `RetrievalDim`, `MaxTiles`, `NumQueryTiles`, `NumKeypoints`) catches "wrong axis to reduce" bugs at type-check time. Per-rank @overload sets are required because PEP 646's `TypeVarTuple` doesn't admit per-element bounds. The wrapper module grows opportunistically — a wrapper exists for an operation when erasing dim names at that boundary loses type information worth preserving.
 
-Surprises observed in the first end-to-end production runs that informed permanent design decisions.
+**`sigma_meas = alpha * pnp_covariance + beta * I_6` rather than confidence-scaled covariance.** PnP's analytic inverse-Hessian covariance reports ~1e-6 variance (sub-mm) — wildly tighter than the actual SE(3) error spread, because it doesn't model mis-registered map points or wrong-but-confident inliers. An earlier `sigma_meas = pnp_cov / tight^2` formula was rejected by the Bayesian filter's innovation gate on nearly every measurement. The `alpha`, `beta` fit absorbs the empirical spread; confidence becomes a separate binary gate, not a covariance scaler.
 
-### Σ_meas decoupling from confidence
+**Pipeline version is the localizer image's git SHA, baked at build time.** This is the cache-key contract for `localization_evaluations` rows produced by `scripts/fit_calibration.py`. Pipeline-tuning constants (`RANSAC_THRESHOLD_DEFAULT`, `RETRIEVAL_TOP_K_DEFAULT`, the seed value, the OPQ/PQ subvector counts) live as module-level Python constants — baked into the image — so changing them forces a code change and a new SHA, automatically invalidating any calibration that was fit against the previous code. Env-var tunables would silently bypass this. The cost is that *every* localizer rebuild requires a paired calibration refit + `global.json` commit before the container boots cleanly.
 
-Original formula was `Σ_meas = PnP_cov / tight²` with constant `tight = 0.5` giving only 4× inflation. PnP's analytic Hessian covariance is wildly tight (~1e-6 variance, σ ≈ 0.3mm), so post-scaling Σ_meas was still absurdly tight. The Bayesian filter's innovation gate then rejected nearly every measurement as implausibly far.
+**The localizer talks reconstructions; the API talks maps.** The `map_id -> reconstruction_id` indirection lives in the API, which also composes the final world-space pose by combining the localizer's `cam_from_reconstruction` transform with the map row's anchor `Transform`. The localizer never sees the world-space anchor; it operates purely in reconstruction-local coordinates. Decoupling means a reconstruction can back multiple maps (different anchors of the same scan) without re-uploading artifacts.
 
-Replacing the formula with `α · PnP_cov + β · I` where α, β are empirically fit against held-out SE(3) residuals is the durable fix. The α, β scalars carry the empirical "actual pose-error spread relative to PnP_cov" signal that PnP_cov alone misses (mis-registered map points, wrong-but-confident inliers, etc.).
+**`async def localize_image` with synchronous body.** The async signature is required by Litestar's route handler protocol; the body is synchronous because every heavy step is. With one uvicorn worker, requests serialize on the event loop. Concurrent throughput would require either offloading to `_executor` (declared but unused) or running multiple workers — but the GPU is the bottleneck either way and they'd serialize on it. The current shape acknowledges this.
 
-Confidence becomes a separate concern: a binary upstream gate, not a covariance scaler. Admitted measurements all use the fitted Σ_meas regardless of confidence value. Confidence flows into the frontend filter through the wide-vs-tight Σ that the calibration produces, not as a scalar.
+## Known gaps
 
-### LightGlue per-request time
+- `src/main.py:81` — `if environ.get("CODEGEN"): raise` is a bare `raise` with no active exception. Reaches `RuntimeError: No active exception to re-raise` if CODEGEN=1 leaks into a running container. Should be `raise NotImplementedError(...)` or removed in favor of the existing `assert calibration is not None`.
+- `src/main.py:40-43` — `_executor`, `_load_lock`, `_load_state`, `_load_error` are declared but never read. Vestigial from an earlier async-load design.
+- `src/schemas.py` — `LoadState` enum and `LoadStateResponse` are imported in `main.py` but never used. The only reference is the dead `_load_state` annotation. Companion to the dead executor scaffolding.
+- `pyproject.toml` — `[tool.hatch.build.targets.wheel] packages = ["src/localize"]` and `[project.scripts] localize = "localize.main:main"` reference a non-existent `localize/` subdirectory. The wheel installs no Python modules; the runtime works only because `entrypoint.sh` cd's into `/app/docker/localizer` and uvicorn resolves `src.main:app` from the working directory.
+- `_maps: dict[UUID, Map]` (`src/main.py:44`) has no eviction. Memory grows linearly with the number of distinct reconstruction IDs the process has localized against.
+- `/tmp/reconstructions/` grows unboundedly on disk. Every artifact downloaded from MinIO stays there for the container's lifetime.
+- `load_map` re-downloads every file every call — no `if local_path.exists(): continue` check. The on-disk cache is unused.
+- `load_map` is not reentrant. Two concurrent requests for the same un-cached id race on `s3.download_file` and both insert into `_maps`. `_load_lock` exists but isn't used.
+- `build_metrics._compute_inlier_coverage` (`src/build_metrics.py:26`) catches bare `Exception` from `ConvexHull`. Tighter `except QhullError` would avoid masking unrelated numerical bugs.
+- The success response (`list[Localization]`) silently omits failed reconstruction IDs. A caller can detect that fewer entries came back than were requested but cannot recover the per-id error reason; that information is only surfaced in the 422 detail when *every* id fails.
+- No healthcheck in `compose.cuda.yml` / `compose.rocm.yml`. A startup wedge (calibration mismatch, GPU OOM at model load, missing `GIT_COMMIT_SHA`) is observed only by the API getting connection refused, which it returns as a 502.
+- `Dockerfile` ENV `GIT_COMMIT_SHA=${GIT_COMMIT_SHA}` writes the empty string when the build arg is unset. The resulting empty `pipeline_version` mismatches any real calibration's `pipeline_version` and the container fails startup with `CalibrationLoadError` — loud, but the underlying "build forgot to pass --build-arg" is the original mistake. Worth a Dockerfile-time `RUN test -n "$GIT_COMMIT_SHA"` guard.
+- `Features` has no `is_indoor` field. The prior SPEC mentioned one; it never landed and no calibration row ever consumed it.
+- Per-map calibrations have no loader. The prior SPEC sketched a lazy MinIO-fetch + in-memory cache keyed by map ID; no code path implements it. Only the global calibration is loaded.
 
-Per-stage instrumentation originally showed LightGlue matching at ~250 ms (44% of total per-request time, dominant stage). After tuning to `LightGlue(features="aliked", width_confidence=-1, depth_confidence=0.95, mp=True)` the median dropped to ~140 ms (29-query sweep), no longer dominant — roughly comparable to `dir_tiles + matching_setup` combined.
+## See also
 
-The durable record (V1/V2/V3 measurements, batching footgun, when V3 might become correct again) lives as a comment on `load_lightglue` in `packages/python/neural-networks/src/neural_networks/models.py`. Code is the source of truth; no SPEC duplication.
-
-Per-request total runs ~700 ms median against the test map used during bring-up (down from ~840 ms pre-tuning on the same map). Adding OneFormer-Swin-T for masking will add ~100–200 ms — total stays under the 1Hz client cycle budget but with less headroom than the pre-tuning numbers suggested.
-
-### Operating-point reality check
-
-The system lands at ~1cm visual misalignment in indoor testing. This is at or slightly below what published literature reports as the noise floor for hloc-style pipelines (LaMAR, KAPTURE, hloc indoor benchmarks all report 2–10cm depending on scene difficulty). Further accuracy gains require things outside the scope of calibration tuning: per-device intrinsics calibration, map georeferencing against ground truth, or fundamentally different feature extractors. Filter tuning alone won't help meaningfully.
-
-### Frontend metrics-event design gap
-
-Once the Bayesian filter is steady-state, `OnEcefToUnityWorldTransformUpdated` fires only on snap (rare) or during slew animations (brief, only when σ_posterior shifts enough). UI consumers wanting per-measurement metrics — including any "live metrics" diagnostic display — couldn't bind to it usefully. `OnMetricsReceived` + `LastReceivedMetrics` exist for this case (every API response, regardless of filter accept/reject). See `packages/unity/Placeframe/SPEC.md`.
-
-## Open tunables
-
-| Parameter | Default | Where used |
-|---|---|---|
-| `RANSAC_THRESHOLD` | 8.0 | RANSAC inlier threshold |
-| `RETRIEVAL_TOP_K` | 12 | top-K database images selected from retrieval |
-| `LOCALIZER_RANDOM_SEED` | 0 | per-call torch + pycolmap seed |
+- `docker/SPEC.md` — stack-level data flow, log query patterns, MinIO bucket layout, reconstructor lease lifecycle. The localizer is one consumer of `dev-reconstructions/`; this file does not restate the bucket schema.
+- `packages/python/core/` — `calibration.py` (Features / CalibrationArtifact / apply_global_calibration), `h5.py`, `opq.py`, `image_preprocess.py`, `model_wrappers.py`, `localization_metrics.py` carry the shared domain types and the canonical hyperparameter defaults the localizer reads.
+- `scripts/src/scripts/fit_calibration.py` — produces `config/calibration/global.json` from a labeled corpus. The localizer is strictly a consumer; refits land as commits to that file plus a paired image rebuild at the same SHA.
+- `docker/api/src/routers/localization.py` — the only caller. Performs the `map_id -> reconstruction_id` indirection and composes the world-space pose from the map row's anchor `Transform`.

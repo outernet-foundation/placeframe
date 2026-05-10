@@ -6,6 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Placeframe** is a self-hosted XR spatial localization system ("relocalization as a service"). It determines an XR device's position and rotation relative to a canonical reference frame for a physical space — an open-source alternative to Apple Shared World Anchors, Google ARCore Cloud Anchors, etc.
 
+The repo also hosts two Unity apps that consume Placeframe: `apps/AndroidMobile/` (the Capture Tool — pending rename) and `apps/MakeItSing/` (a multiplayer XR client). Each app directory has its own `CLAUDE.md` and `SPEC.md` for app-specific guidance.
+
+## Documentation
+
+The repo uses a two-tier docs model: `CLAUDE.md` for always-loaded rules (prescriptive, terse, under ~80 lines per file) and `SPEC.md` for on-demand narrative co-located with the code it describes. The authoring rules for `SPEC.md` are locked in `/SPEC-STYLE-GUIDE.md` — **read it before authoring or editing any `SPEC.md`**.
+
+- **Prose and code commit separately.** Markdown (`*.md`) and source code never share a commit, even when changed in the same session. This keeps prose diffs reviewable on their own terms.
+- **Spec-first on disagreement.** When a `SPEC.md` and the code it describes disagree, update the spec first and surface the diff, *then* change the code. This converts every disagreement from silent rot into an explicit human decision.
+- **No `docs/` directory.** Cross-cutting content lives in a parent-directory `SPEC.md` or a top-level special file (`README.md`, `SPEC-STYLE-GUIDE.md`, etc.).
+
 ## Commands
 
 All top-level commands are run via `uv run <command>` from the repo root. These are defined in `scripts/src/scripts/` and registered in `scripts/pyproject.toml`.
@@ -32,26 +42,11 @@ uv run basedpyright          # Type check (strict mode)
 
 **Full preflight**: `uv run --no-sync preflight` from the repo root. This is the exact command CI invokes — it bundles sync, lint, format check, type check, deptry, pytest, lock-file check, datamodel codegen, and client codegen staleness, all gated as a single pass/fail. Run it before claiming a change is CI-clean; running individual checks (just `ruff check`, just `pytest`, just the codegen check) won't catch failures in the others. Note: preflight tears down and re-brings-up `compose.postgres.yml`, so it interrupts a running stack.
 
-## Architecture
+## Server stack
 
-The system runs as a set of Docker microservices defined in `compose.yml`, with GPU overrides in `compose.cuda.yml` and `compose.rocm.yml`.
+The server stack (API, localizer, reconstructor, Keycloak, MinIO, Postgres, Loki/Alloy/Grafana) is a set of Docker microservices under `docker/`. The reconstructor pulls work via API lease endpoints — there is no separate orchestrator service. See `docker/SPEC.md` for service inventory, data flow, authentication model, and operational debugging (Postgres / MinIO / Loki access patterns, reconstructor lease lifecycle).
 
-### Core Services
-
-| Service | Path | Technology | Role |
-|---|---|---|---|
-| `api` | `docker/api/` | Litestar (ASGI) | Main REST API: manages users, places, captures, maps |
-| `localizer` | `docker/localizer/` | Litestar (ASGI) | Runs image-to-map localization (LightGlue feature matching + RANSAC) |
-| `reconstructor` | `docker/reconstructor/` | Python + pycolmap | Builds 3D maps from capture sessions |
-| `state-sync` | `docker/orchestrator/` | Python worker | Polls the database and orchestrates async jobs between services |
-| `database-manager` | `docker/database-manager/` | Python | Runs SQL migrations at startup |
-| `auth-initializer` | `docker/auth-initializer/` | Python | Configures Keycloak realm on startup |
-| `gateway` | `docker/gateway/` | ngrok | Public HTTPS tunnel |
-| `keycloak` | `docker/keycloak/` | Keycloak 26 | OpenID Connect / OAuth2 identity provider |
-
-**Backing services**: PostgreSQL 16, MinIO (S3-compatible object storage), CloudBeaver (database UI).
-
-### Python Workspace
+## Python Workspace
 
 The repo is a `uv` monorepo. Shared Python code lives in `packages/python/`:
 
@@ -78,17 +73,6 @@ All three scripts live in `scripts/src/scripts/`.
 
 **Codegen commit hygiene**: Regenerated artifacts under `packages/generated/` always live in their own dedicated commit, separate from any source change. The codegen commit's message must be exactly `Run generate-clients`, `Run generate-datamodels`, or `Run generate-clients and generate-datamodels` — no body, no rationale, no reference to the source change or repo state. The reason: codegen output is not reviewed; reviewers must be able to spot and skip these commits at a glance, which only works if they're (a) always separate and (b) always have the same canonical message. A single codegen commit may cover multiple preceding source commits — there is no requirement of a 1:1 source↔codegen pairing. The only constraint is that the codegen commit's contents must reflect the cumulative source state at its position (i.e. running `generate-clients` / `generate-datamodels` against that tree must produce a no-op diff).
 
-### Data Flow
-
-1. **Capture**: Unity mobile app (ARFoundation, C#) records images + sensor data and POSTs to the API.
-2. **Reconstruction**: The `state-sync` worker triggers the `reconstructor`, which uses pycolmap to build a sparse 3D map (point cloud + camera poses). The result is stored in MinIO.
-3. **Localization**: A Unity client sends a query image to the `localizer`, which matches it against a stored map using LightGlue feature matching, then estimates 6-DOF pose via RANSAC/PnP.
-4. **Georeferencing**: The Map Registration Tool (Unity standalone) can visually align point clouds against Cesium tilesets (OSM / Google Photorealistic Tiles).
-
-### Authentication
-
-All API endpoints require an OAuth2 Bearer token from Keycloak. The default dev credentials are `user` / `password` (configured in `docker/keycloak/realm-export/placeframe.json`). The `state-sync` worker uses client credentials to authenticate service-to-service calls.
-
 ## Code Conventions
 
 - **Python 3.13+**, line length 120, Ruff for linting/formatting, BasedPyright in strict mode.
@@ -108,6 +92,8 @@ All API endpoints require an OAuth2 Bearer token from Keycloak. The default dev 
 - **Use `common.bash` for shell calls, not `subprocess`.** All shell-out from Python code goes through `bash()` / `bash_output()` / `bash_check()` / `bash_pipe()` / `bash_handoff()` in `common.bash`. Don't reach for `subprocess.run` / `subprocess.check_output` / `subprocess.Popen` — those bypass the project's logging, error-handling, and shell-operator guards.
 - **`bash()` / `bash_output()` reject shell operators.** The `_check_no_pipe` guard in `common.bash` strips quoted strings and rejects any `|` — this catches both pipes (`|`) and logical OR (`||`). Don't use shell fallback patterns like `cmd || echo default`. Instead, use `bash_check()` to test success, then `bash_output()` for the value. `bash_pipe()` is only for actual pipelines (`cmd1 | cmd2`).
 
+**Open audit**: several rules above are convention-only when they could be mechanically enforced (e.g. no-docstrings → Ruff `D100`–`D107`; no-inline-imports → Ruff `PLC0415`; subprocess ban → import-linter or a custom AST check; `:latest` ban → a grep step in `preflight`). Others aren't trivially lintable (callers-before-callees needs call-graph analysis). The split between "convention" and "lint" is unaudited; this is a placeholder so the question gets revisited intentionally, not a scheduled task.
+
 ## NuGet Packages in Unity Projects
 
 Unity projects use [NuGetForUnity](https://github.com/GlitchEnzo/NuGetForUnity) with `packages.config` files. The NuGetForUnity CLI (`dotnet nugetforunity restore`) only downloads packages already listed — it does **not** resolve transitive dependencies. Dependency resolution only happens through the NuGetForUnity editor UI inside Unity.
@@ -124,16 +110,6 @@ Unity projects use [NuGetForUnity](https://github.com/GlitchEnzo/NuGetForUnity) 
 1. Copy `.env.sample` to `.env` and fill in `PUBLIC_DOMAIN` (ngrok static domain) and `NGROK_AUTHTOKEN`.
 2. Run `uv run up` to start all services.
 3. Visit your ngrok domain to access the OpenAPI UI.
-
-## Operational debugging
-
-Quick gotchas for investigating "what did the system actually do?". Full query templates, bucket layouts, and the lease-lifecycle walkthrough live in `docs/debugging.md`.
-
-- **Postgres**: connect as `placeframe_owner`, not `postgres` — `docker exec placeframe-postgres-1 psql -U placeframe_owner -d placeframe`. The `postgres` user has no app tables visible.
-- **MinIO**: alias is `docker exec placeframe-minio-1 mc alias set local http://localhost:9000 admin password` (creds from `.env`). Buckets are `dev-captures` (one `.tar` per capture) and `dev-reconstructions` (one directory per reconstruction).
-- **Loki**: query via `docker exec placeframe-loki-1 wget -qO- 'http://localhost:3100/loki/api/v1/query_range?query=...'` — `service_name` is the primary label. List values with `/loki/api/v1/label/service_name/values`.
-- **state-sync is silent in `docker logs`** — the `dotnet` worker only emits the Kestrel startup banner. To observe orchestrator activity, query the `api` Loki stream for `/internal/leases/` traffic instead.
-- **Reconstructor outputs vs. DB status can disagree**: `dev-reconstructions/<id>/sfm_model/` written means SfM finished, even if the DB still shows an in-progress status. The final `/succeed` PUT can fail (see auth.py for the JWKS retry path) and orphan a reconstruction at `uploading`.
 
 ## Claude Code Environment Notes
 
