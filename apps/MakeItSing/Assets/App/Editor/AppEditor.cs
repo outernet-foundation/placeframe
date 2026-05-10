@@ -45,7 +45,7 @@ namespace Plerion.MakeItSing
             if (App.state == null)
                 return;
 
-            NodeEditors.DrawObservableNodeInspector(App.state, _openFoldouts, _additionalDrawers);
+            NodeEditors.DrawObservableNodeInspector(App.state, _openFoldouts);
         }
 
         public void OnEnable()
