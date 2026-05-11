@@ -122,7 +122,6 @@ namespace Plerion.MakeItSing
             gameObject.AddComponent<AppUI>();
             gameObject.AddComponent<NotificationManager>();
 
-#if UNITY_EDITOR
             if (env.overrideConfig)
             {
                 App.ExecuteTransaction(state =>
@@ -147,10 +146,6 @@ namespace Plerion.MakeItSing
             {
                 InitializeConfig();
             }
-#else
-            if (SupabaseAPI.IsConfigured)
-                InitializeConfig();
-#endif
 
             Destroy(this);
         }
