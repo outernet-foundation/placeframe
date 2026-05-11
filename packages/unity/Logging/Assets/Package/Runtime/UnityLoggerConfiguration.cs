@@ -63,9 +63,9 @@ namespace Outernet.Logging
                     message = prelude;
                 }
 
-                if (logEvent.Exception != null)
+                if (logEvent.Properties.TryGetValue("exception", out var exceptionProperty))
                 {
-                    message += FormatException(logEvent.Exception);
+                    message += FormatException(exceptionProperty as DictionaryValue);
                 }
 
                 if (logEvent.Properties.TryGetValue("stackTrace", out var stackTrace))
@@ -89,24 +89,37 @@ namespace Outernet.Logging
                 }
             }
 
-            static string FormatException(Exception exception)
+            static string FormatException(DictionaryValue exceptionProperty)
             {
-                var result = $"\n{exception.GetType().FullName}: {exception.Message}";
+                var elements = exceptionProperty.Elements;
 
-                if (exception.StackTrace != null)
+                var type = (elements[new ScalarValue("type")] as ScalarValue).Value;
+                var exceptionMessage = (elements[new ScalarValue("message")] as ScalarValue).Value;
+
+                var result = $"\n{type}: {exceptionMessage}";
+
+                if (elements.TryGetValue(new ScalarValue("stackTrace"), out var stackTrace))
                 {
-                    result += $"\n{exception.StackTrace}";
+                    result += $"\n{string.Join("\n", Json.FromSerilogProperty("stackTrace", stackTrace, true) as JArray)}";
                 }
 
-                if (exception is AggregateException aggregate)
+                if (elements.TryGetValue(new ScalarValue("javaStackTrace"), out var javaStackTrace))
                 {
-                    foreach (var inner in aggregate.InnerExceptions)
-                        result += FormatException(inner);
+                    result += $"\n{(javaStackTrace as ScalarValue).Value}";
                 }
-                else if (exception.InnerException != null)
+
+                if (elements.TryGetValue(new ScalarValue("innerExceptions"), out var innerExceptions))
+                {
+                    foreach (var inner in (innerExceptions as SequenceValue).Elements)
+                    {
+                        result += "\n--- Inner Exception ---";
+                        result += FormatException(inner as DictionaryValue);
+                    }
+                }
+                else if (elements.TryGetValue(new ScalarValue("innerException"), out var innerException))
                 {
                     result += "\n--- Inner Exception ---";
-                    result += FormatException(exception.InnerException);
+                    result += FormatException(innerException as DictionaryValue);
                 }
 
                 return result;
