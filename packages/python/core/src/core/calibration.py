@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import sys
 from pathlib import Path
 
 from numpy import interp, log1p
@@ -8,6 +9,13 @@ from pydantic import BaseModel
 
 
 SCHEMA_VERSION = 2
+
+# Sentinel `pipeline_version` value that bypasses the pipeline-version check in
+# `load_global_calibration`. Use only with placeholder calibrations whose values
+# don't depend on the inference pipeline (zeroed weights, fixed sigma_meas
+# constants). A real calibration fit against a real corpus must pin to the
+# localizer image's CONTEXT_SHA so any pipeline change forces a paired refit.
+PLACEHOLDER_PIPELINE_VERSION = "placeholder"
 
 
 class CalibrationLoadError(RuntimeError):
@@ -107,6 +115,17 @@ def load_global_calibration(path: Path, expected_pipeline_version: str) -> Calib
             f"Unsupported calibration schema_version {calibration.schema_version} "
             f"in {path}. Localizer expects schema_version {SCHEMA_VERSION}."
         )
+
+    if calibration.pipeline_version == PLACEHOLDER_PIPELINE_VERSION:
+        print(
+            f"WARNING: loading placeholder calibration from {path}. "
+            f"Pipeline-version check bypassed (expected {expected_pipeline_version}). "
+            "Tight/loose confidence gates are no-ops; outputs are not trustworthy. "
+            "Refit via scripts/fit_calibration.py before relying on calibrated confidences.",
+            file=sys.stderr,
+            flush=True,
+        )
+        return calibration
 
     if calibration.pipeline_version != expected_pipeline_version:
         raise CalibrationLoadError(

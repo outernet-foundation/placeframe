@@ -10,7 +10,7 @@ A Litestar ASGI service that answers `POST /localization`: given a query image p
 
 ```
 docker/localizer/
-  Dockerfile               FROM neural-networks-base; bakes GIT_COMMIT_SHA late
+  Dockerfile               FROM neural-networks-base; bakes LOCALIZER_SHA (build-context hash) late
   entrypoint.sh            uvicorn src.main:app --host 0.0.0.0 --port 8000
   pyproject.toml           pycolmap, faiss-cpu, scipy, litestar; torch undeclared
                            (DEP003 ignore — pulled in via neural-networks extras)
@@ -37,8 +37,8 @@ All heavy state loads at module import. `uvicorn src.main:app` imports `src.main
 1. Reads settings, creates a long-lived boto3 S3 client (`src/main.py:46`).
 2. Guards on `CODEGEN`. When unset (the production path):
    - `load_models()` (`src/localize.py:58`) imports `neural_networks.models` and materializes `global_descriptor_extractor` (DIR), `local_feature_extractor` (ALIKED), `local_feature_matcher` (LightGlue) on `DEVICE = "cuda" if cuda.is_available() else "cpu"`. Models stay GPU-resident for the container's lifetime.
-   - `pipeline_version = environ["GIT_COMMIT_SHA"]` is captured for the cache-key contract.
-   - `load_global_calibration("/etc/placeframe/calibration/global.json", pipeline_version)` reads the artifact and hard-fails if missing, if `schema_version != 2`, or if its pinned `pipeline_version` doesn't match the image's `GIT_COMMIT_SHA`.
+   - `pipeline_version = environ["LOCALIZER_SHA"]` is captured for the cache-key contract. `LOCALIZER_SHA` is the content-addressed hash of the localizer image's build context (computed by `build_scripts.placeframe.context_sha.compute_service_shas`); it changes whenever the inference pipeline changes and nothing else, so unrelated repo commits do not invalidate calibration.
+   - `load_global_calibration("/etc/placeframe/calibration/global.json", pipeline_version)` reads the artifact and hard-fails if missing, if `schema_version != 2`, or if its pinned `pipeline_version` doesn't match the image's `LOCALIZER_SHA`. The literal sentinel `"placeholder"` (from `core.calibration.PLACEHOLDER_PIPELINE_VERSION`) bypasses the version check with a stderr warning — intended only for placeholder calibrations whose values don't depend on the pipeline (zeroed weights, fixed sigmas).
 3. Defines the `LocalizationRequest` model and the `localize_image` + `get_localizer_version` handlers, then constructs the Litestar app.
 
 There is no shutdown hook — model memory, S3 client, downloaded artifacts on disk, and the in-memory `Map` cache all live until the container is killed.
@@ -145,13 +145,13 @@ A single global calibration JSON is bind-mounted via compose `configs:`:
 
 - Source of truth: `config/calibration/global.json` (git).
 - Container path: `/etc/placeframe/calibration/global.json` (mode 0444; mounted in `compose.cuda.yml` and `compose.rocm.yml`).
-- Validator: `core.calibration.load_global_calibration` enforces `schema_version == 2` and `pipeline_version == localizer's GIT_COMMIT_SHA`. Either mismatch hard-fails the container.
+- Validator: `core.calibration.load_global_calibration` enforces `schema_version == 2` and `pipeline_version == localizer's LOCALIZER_SHA`. Either mismatch hard-fails the container. The literal sentinel `"placeholder"` (`core.calibration.PLACEHOLDER_PIPELINE_VERSION`) bypasses the version check with a loud stderr warning — for placeholder calibrations whose values are pipeline-independent.
 
 The artifact carries: per-tolerance (`tight` / `loose`) `logistic_weights: Features`, `logistic_intercept`, plus optional isotonic remapping `(x_breakpoints, y_breakpoints)`. Confidence per query is `sigmoid(intercept + weights @ features.values())`, then optionally `numpy.interp(raw, x_breakpoints, y_breakpoints)`. `Features.compute` packs ten scalars (`log1p(num_inliers)`, `inlier_ratio`, `reproj_error_median / query_image_diagonal_px`, `inlier_coverage`, `log1p(num_matches)`, four log/passthrough map features, `map_viewpoint_diversity`).
 
 The artifact also carries `sigma_meas_alpha`, `sigma_meas_beta`, `loose_min`, `tight_min`. `measurement_covariance = alpha * pnp_covariance + beta * I_6`. The server-side gate at `src/localize.py:232` raises `LocalizationError` if `confidence_loose < loose_min or confidence_tight < tight_min`. With the current placeholder artifact (`loose_min = tight_min = 0.0`) this gate is a no-op.
 
-The current `global.json` is the placeholder committed in `7c61dabf`: zeroed weights/intercepts, `alpha = 1.0`, `beta = 1e-4`, both mins 0.0, sample_count 0. Confidences resolve to 0.5 for every query and the gate never fires. Replace via `uv run fit-calibration` against a real capture corpus.
+The current `global.json` is a placeholder: zeroed weights/intercepts, `alpha = 1.0`, `beta = 1e-4`, both mins 0.0, sample_count 0, `pipeline_version = "placeholder"`. Confidences resolve to 0.5 for every query and the gate never fires. The `"placeholder"` sentinel disarms the pipeline-version check so the placeholder file survives pipeline changes without a refit. Replace via `uv run fit-calibration` against a real capture corpus.
 
 ### Deployment
 
@@ -173,7 +173,7 @@ localizer-cuda:
 
 No healthcheck. No `restart` policy. No `depends_on`. The API service treats the localizer as a best-effort backend and returns 502 if the `localize_image` round-trip raises a non-422 `ApiException`.
 
-The Dockerfile bakes `GIT_COMMIT_SHA` in the *last* `ENV` layer, so only that layer invalidates per commit. `PYTORCH_ALLOC_CONF=expandable_segments:True` is set in the image — PyTorch's default caching allocator fragments under varying per-request peaks (query images of different sizes, varying top-K, varying keypoint counts) and eventually OOMs despite ample free memory. Expandable segments use CUDA virtual memory to grow segments on demand.
+The Dockerfile bakes `LOCALIZER_SHA` in the *last* `ENV` layer, so only that layer invalidates when the build-context hash changes. `PYTORCH_ALLOC_CONF=expandable_segments:True` is set in the image — PyTorch's default caching allocator fragments under varying per-request peaks (query images of different sizes, varying top-K, varying keypoint counts) and eventually OOMs despite ample free memory. Expandable segments use CUDA virtual memory to grow segments on demand.
 
 ## Rationale
 
@@ -189,7 +189,7 @@ The Dockerfile bakes `GIT_COMMIT_SHA` in the *last* `ENV` layer, so only that la
 
 **`sigma_meas = alpha * pnp_covariance + beta * I_6` rather than confidence-scaled covariance.** PnP's analytic inverse-Hessian covariance reports ~1e-6 variance (sub-mm) — wildly tighter than the actual SE(3) error spread, because it doesn't model mis-registered map points or wrong-but-confident inliers. An earlier `sigma_meas = pnp_cov / tight^2` formula was rejected by the Bayesian filter's innovation gate on nearly every measurement. The `alpha`, `beta` fit absorbs the empirical spread; confidence becomes a separate binary gate, not a covariance scaler.
 
-**Pipeline version is the localizer image's git SHA, baked at build time.** This is the cache-key contract for `localization_evaluations` rows produced by `scripts/fit_calibration.py`. Pipeline-tuning constants (`RANSAC_THRESHOLD_DEFAULT`, `RETRIEVAL_TOP_K_DEFAULT`, the seed value, the OPQ/PQ subvector counts) live as module-level Python constants — baked into the image — so changing them forces a code change and a new SHA, automatically invalidating any calibration that was fit against the previous code. Env-var tunables would silently bypass this. The cost is that *every* localizer rebuild requires a paired calibration refit + `global.json` commit before the container boots cleanly.
+**Pipeline version is the localizer image's `LOCALIZER_SHA` (build-context hash), baked at build time.** This is the cache-key contract for `localization_evaluations` rows produced by `scripts/fit_calibration.py`. Pipeline-tuning constants (`RANSAC_THRESHOLD_DEFAULT`, `RETRIEVAL_TOP_K_DEFAULT`, the seed value, the OPQ/PQ subvector counts) live as module-level Python constants — baked into the image — so changing them forces a code change inside the localizer's build context, a new `LOCALIZER_SHA`, and automatic invalidation of any calibration that was fit against the previous pipeline. Env-var tunables would silently bypass this. The hash is intentionally scoped to the localizer's build context rather than the repo's git HEAD: unrelated commits (Unity apps, prose, other services) do not invalidate calibration. The cost is that *every* localizer-affecting change requires a paired calibration refit + `global.json` commit before the container boots cleanly — except when the calibration uses the `"placeholder"` sentinel, which disarms the check explicitly for pipeline-independent values (zeroed weights, fixed sigmas).
 
 **The localizer talks reconstructions; the API talks maps.** The `map_id -> reconstruction_id` indirection lives in the API, which also composes the final world-space pose by combining the localizer's `cam_from_reconstruction` transform with the map row's anchor `Transform`. The localizer never sees the world-space anchor; it operates purely in reconstruction-local coordinates. Decoupling means a reconstruction can back multiple maps (different anchors of the same scan) without re-uploading artifacts.
 
@@ -207,8 +207,8 @@ The Dockerfile bakes `GIT_COMMIT_SHA` in the *last* `ENV` layer, so only that la
 - `load_map` is not reentrant. Two concurrent requests for the same un-cached id race on `s3.download_file` and both insert into `_maps`. `_load_lock` exists but isn't used.
 - `build_metrics._compute_inlier_coverage` (`src/build_metrics.py:26`) catches bare `Exception` from `ConvexHull`. Tighter `except QhullError` would avoid masking unrelated numerical bugs.
 - The success response (`list[Localization]`) silently omits failed reconstruction IDs. A caller can detect that fewer entries came back than were requested but cannot recover the per-id error reason; that information is only surfaced in the 422 detail when *every* id fails.
-- No healthcheck in `compose.cuda.yml` / `compose.rocm.yml`. A startup wedge (calibration mismatch, GPU OOM at model load, missing `GIT_COMMIT_SHA`) is observed only by the API getting connection refused, which it returns as a 502.
-- `Dockerfile` ENV `GIT_COMMIT_SHA=${GIT_COMMIT_SHA}` writes the empty string when the build arg is unset. The resulting empty `pipeline_version` mismatches any real calibration's `pipeline_version` and the container fails startup with `CalibrationLoadError` — loud, but the underlying "build forgot to pass --build-arg" is the original mistake. Worth a Dockerfile-time `RUN test -n "$GIT_COMMIT_SHA"` guard.
+- No healthcheck in `compose.cuda.yml` / `compose.rocm.yml`. A startup wedge (calibration mismatch, GPU OOM at model load, missing `LOCALIZER_SHA`) is observed only by the API getting connection refused, which it returns as a 502.
+- `Dockerfile` ENV `LOCALIZER_SHA=${LOCALIZER_SHA}` writes the empty string when the build arg is unset. The resulting empty `pipeline_version` mismatches any real calibration's `pipeline_version` and the container fails startup with `CalibrationLoadError` — loud, but the underlying "build forgot to pass --build-arg" is the original mistake. Worth a Dockerfile-time `RUN test -n "$LOCALIZER_SHA"` guard.
 - `Features` has no `is_indoor` field. The prior SPEC mentioned one; it never landed and no calibration row ever consumed it.
 - Per-map calibrations have no loader. The prior SPEC sketched a lazy MinIO-fetch + in-memory cache keyed by map ID; no code path implements it. Only the global calibration is loaded.
 
@@ -216,5 +216,6 @@ The Dockerfile bakes `GIT_COMMIT_SHA` in the *last* `ENV` layer, so only that la
 
 - `docker/SPEC.md` — stack-level data flow, log query patterns, MinIO bucket layout, reconstructor lease lifecycle. The localizer is one consumer of `dev-reconstructions/`; this file does not restate the bucket schema.
 - `packages/python/core/` — `calibration.py` (Features / CalibrationArtifact / apply_global_calibration), `h5.py`, `opq.py`, `image_preprocess.py`, `model_wrappers.py`, `localization_metrics.py` carry the shared domain types and the canonical hyperparameter defaults the localizer reads.
-- `scripts/src/scripts/fit_calibration.py` — produces `config/calibration/global.json` from a labeled corpus. The localizer is strictly a consumer; refits land as commits to that file plus a paired image rebuild at the same SHA.
+- `scripts/src/scripts/fit_calibration.py` — produces `config/calibration/global.json` from a labeled corpus. The localizer is strictly a consumer; refits land as commits to that file plus a paired image rebuild at the same `LOCALIZER_SHA`.
+- `build/src/build_scripts/placeframe/context_sha.py` — defines `compute_service_shas`, which derives `LOCALIZER_SHA` (and one such SHA per service) from the localizer image's build context per the `.dockerignore` allowlist convention described in the repo `CLAUDE.md`.
 - `docker/api/src/routers/localization.py` — the only caller. Performs the `map_id -> reconstruction_id` indirection and composes the world-space pose from the map row's anchor `Transform`.

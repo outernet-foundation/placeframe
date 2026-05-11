@@ -58,7 +58,7 @@ if not environ.get("CODEGEN"):
     from .localize import load_models
 
     load_models()
-    pipeline_version = environ["GIT_COMMIT_SHA"]
+    pipeline_version = environ["LOCALIZER_SHA"]
     calibration = load_global_calibration(CALIBRATION_GLOBAL_PATH, pipeline_version)
     print(f"Loaded global calibration (pipeline_version={pipeline_version[:12]}…)")
 

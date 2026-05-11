@@ -1,7 +1,7 @@
 {
-  "_note": "Placeholder calibration. Logistic weights and isotonic breakpoints zeroed (confidences resolve to 0.5); loose_min/tight_min zeroed so the server-side confidence gate is a no-op. sigma_meas_alpha=1.0 passes the PnP covariance through unscaled and sigma_meas_beta=1e-4 adds a small noise floor so the client Kalman filter doesn't collapse to zero covariance and lock onto its first measurement. Replace via `uv run fit-calibration` against a real capture corpus before relying on tight/loose tolerance gates. pipeline_version pinned to the localizer image's baked GIT_COMMIT_SHA so load_global_calibration's pipeline-version check passes; refit and update if the localizer image is rebuilt at a different commit.",
+  "_note": "Placeholder calibration. Logistic weights and isotonic breakpoints zeroed (confidences resolve to 0.5); loose_min/tight_min zeroed so the server-side confidence gate is a no-op. sigma_meas_alpha=1.0 passes the PnP covariance through unscaled and sigma_meas_beta=1e-4 adds a small noise floor so the client Kalman filter doesn't collapse to zero covariance and lock onto its first measurement. Replace via `uv run fit-calibration` against a real capture corpus before relying on tight/loose tolerance gates. pipeline_version is the sentinel `placeholder` value (see core.calibration.PLACEHOLDER_PIPELINE_VERSION); load_global_calibration bypasses the pipeline-version check and emits a stderr warning when it sees this. A real calibration must pin to the localizer image's CONTEXT_SHA (LOCALIZER_SHA build arg).",
   "schema_version": 2,
-  "pipeline_version": "eee743d422f34b643eefeb9579dc1af21d5d9189",
+  "pipeline_version": "placeholder",
   "fit_at": "2026-05-08T00:00:00+00:00",
   "fit_by": "manual placeholder",
   "sample_count": 0,
