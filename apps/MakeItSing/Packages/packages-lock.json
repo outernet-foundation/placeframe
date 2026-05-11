@@ -30,14 +30,14 @@
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "5f288057205bca332bf76bdf19a96248cdbadcf8"
+      "hash": "db5c2929584d9b8d6f18f6d10d50ed971e284965"
     },
     "com.fofx.stateful": {
       "version": "https://github.com/epjecha/StatefulUnity.git?path=Assets/Package",
       "depth": 0,
       "source": "git",
       "dependencies": {},
-      "hash": "47b1ee3b7b13bc761b5be5933fc76af050e74077"
+      "hash": "18058ab1ef1f35409695c10d057f3924745834e4"
     },
     "com.github-glitchenzo.nugetforunity": {
       "version": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
@@ -469,7 +469,7 @@
       "url": "https://registry.npmjs.org"
     },
     "org.outernet.logging": {
-      "version": "file:C:/Users/epjec/Documents/Plerion/packages/unity/Logging/Assets/Package",
+      "version": "file:../../../packages/unity/Logging/Assets/Package",
       "depth": 0,
       "source": "local",
       "dependencies": {}
