@@ -42,7 +42,7 @@ namespace Placeframe.Client
                             VisualPositioningSystem.StartLocalizing(1.0f);
                         }
                     }),
-                    App.state.mapForLocalization.ObservableWithPrevious().Subscribe((previous, current) =>
+                    App.state.mapForLocalization.ObservableWithPrevious().Subscribe((current, previous) =>
                     {
                         if (_intializing)
                             return;
