@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Linq;
 using System.Reflection;
 
@@ -340,6 +341,11 @@ namespace Placeframe.Client
                 children = Props.List(typeof(T)
                     .GetMembers(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public)
                     .Where(x => x is FieldInfo || x is PropertyInfo)
+                    .Where(x =>
+                    {
+                        var t = x is FieldInfo f ? f.FieldType : ((PropertyInfo)x).PropertyType;
+                        return t == typeof(string) || !typeof(IEnumerable).IsAssignableFrom(t);
+                    })
                     .Select(memberInfo =>
                     {
                         string name = default;
@@ -445,7 +451,7 @@ namespace Placeframe.Client
                                             x.localizationMapId,
                                             (targetCapture, capture) => targetCapture == capture
                                         ))
-                                        .ObservableSelect(x => x?.name ?? Props.Value("Maps"));
+                                        .ObservableSelect(x => x?.name.ObservableSelect(n => n ?? $"Unnamed [{x.id}]") ?? Props.Value("Maps"));
                                 }),
                                 labelStyle = new TextStyleProps()
                                 {
