@@ -29,7 +29,11 @@ settings = Settings.model_validate({})
 class Platform(str, Enum):
     linux = "linux"
     windows = "windows"
-    android = "android"
+    android_arm64 = "android-arm64"
+    android_x86_64 = "android-x86_64"
+
+
+ANDROID_PLATFORMS = (Platform.android_arm64, Platform.android_x86_64)
 
 
 @dataclass
@@ -50,6 +54,17 @@ set(VCPKG_TARGET_ARCHITECTURE x64)
 set(VCPKG_CRT_LINKAGE static)
 set(VCPKG_LIBRARY_LINKAGE static)
 set(VCPKG_CMAKE_SYSTEM_NAME Linux)
+"""
+
+# Upstream cesium-unity ships arm64-android-unity but not an x86_64 variant
+# (no consumer Android device shipped on x86_64 until Magic Leap 2). We write
+# our own into the overlay path so vcpkg picks it up via VCPKG_OVERLAY_TRIPLETS.
+VCPKG_TRIPLET_ANDROID_X64 = """\
+include("${CMAKE_CURRENT_LIST_DIR}/shared/common.cmake")
+set(VCPKG_TARGET_ARCHITECTURE x64)
+set(VCPKG_CRT_LINKAGE static)
+set(VCPKG_LIBRARY_LINKAGE static)
+set(VCPKG_CMAKE_SYSTEM_NAME Android)
 """
 
 # Values below are copied from cesium-unity's own build logic. Cesium doesn't expose these
@@ -80,11 +95,12 @@ PLATFORM_CONFIGS: dict[Platform, PlatformConfig] = {
         standalone_plugin_directory="Standalone",
         standalone_generated_directory="Standalone",
     ),
-    Platform.android: PlatformConfig(
+    Platform.android_arm64: PlatformConfig(
         vcpkg_triplet="arm64-android-unity",
         # -Wl,-z,max-page-size=16384 forces 16KB ELF segment alignment so the .so
         # loads natively on Android devices with 16KB memory pages. Without it,
-        # Android shows a PageSizeMismatchDialog at app launch.
+        # Android shows a PageSizeMismatchDialog at app launch. arm64-specific:
+        # x86_64-android still uses 4KB pages.
         cmake_extra_args=(
             "-DCMAKE_TOOLCHAIN_FILE=extern/android-toolchain.cmake"
             " -DCMAKE_ANDROID_ARCH_ABI=arm64-v8a"
@@ -95,6 +111,16 @@ PLATFORM_CONFIGS: dict[Platform, PlatformConfig] = {
         editor_output_name="",
         runtime_output_name="libCesiumForUnityNative-Runtime.so",
         standalone_plugin_directory="Android/arm64",
+        standalone_generated_directory="Android",
+    ),
+    Platform.android_x86_64: PlatformConfig(
+        vcpkg_triplet="x64-android-unity",
+        cmake_extra_args="-DCMAKE_TOOLCHAIN_FILE=extern/android-toolchain.cmake -DCMAKE_ANDROID_ARCH_ABI=x86_64",
+        editor_build=False,
+        strip=False,
+        editor_output_name="",
+        runtime_output_name="libCesiumForUnityNative-Runtime.so",
+        standalone_plugin_directory="Android/x86_64",
         standalone_generated_directory="Android",
     ),
 }
@@ -138,9 +164,9 @@ def main(platform: Platform = typer.Option(help="Target platform: linux, windows
         free_disk_space()
         install_oras()
         os.environ["GIT_LFS_SKIP_SMUDGE"] = "1"
-        if platform in (Platform.linux, Platform.android):
+        if platform == Platform.linux or platform in ANDROID_PLATFORMS:
             bash("apt-get install -y -qq cmake ninja-build nasm g++ zip unzip curl pkg-config")
-        if platform == Platform.android:
+        if platform in ANDROID_PLATFORMS:
             os.environ["ANDROID_NDK_ROOT"] = "/opt/unity/Editor/Data/PlaybackEngines/AndroidPlayer/NDK"
         _, package_path = get_cesium_build_paths()
 
@@ -165,6 +191,10 @@ def main(platform: Platform = typer.Option(help="Target platform: linux, windows
                 triplet_directory = native_directory / "vcpkg" / "triplets"
                 triplet_directory.mkdir(parents=True, exist_ok=True)
                 (triplet_directory / "x64-linux-unity.cmake").write_text(VCPKG_TRIPLET_LINUX)
+            elif platform == Platform.android_x86_64:
+                triplet_directory = native_directory / "vcpkg" / "triplets"
+                triplet_directory.mkdir(parents=True, exist_ok=True)
+                (triplet_directory / "x64-android-unity.cmake").write_text(VCPKG_TRIPLET_ANDROID_X64)
 
         if config.editor_build:
             with ci_step("Build editor native"):
