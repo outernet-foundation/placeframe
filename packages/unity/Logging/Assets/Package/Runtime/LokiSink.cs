@@ -15,12 +15,15 @@ using Serilog.Events;
 namespace Outernet.Logging
 {
     // In-memory Loki sink. Emit serializes the event to a JSON line and
-    // appends it to a queue; the drainer (started by Enable once auth lands)
-    // takes a bounded head slice (MaxBatchEvents / MaxBatchBytes), POSTs to
-    // Loki, and dequeues the slice on success. Pre-Enable events accumulate
-    // for first-drain flush. Per-attempt HTTP timeout. Exponential backoff
-    // on transient faults. Drain failures route through Serilog's SelfLog
-    // to avoid recursive re-enqueue.
+    // appends to the queue tail, except when the new event's fingerprint
+    // (level, template, exception type, stack-trace head) matches the tail —
+    // then the tail entry is collapsed in place with repeated/firstAt/lastAt
+    // fields, so duplicate spam (e.g. a 60 Hz exception loop) caps at one
+    // entry per run. The drainer takes a bounded head slice (MaxBatchEvents
+    // / MaxBatchBytes), POSTs to Loki, dequeues on success. Pre-Enable
+    // events accumulate for first-drain flush. Per-attempt HTTP timeout.
+    // 429 honors Retry-After; other faults use exponential backoff. Drain
+    // failures route through SelfLog to avoid recursive re-enqueue.
     internal sealed class LokiSink : ILogEventSink, IDisposable
     {
         private static readonly long UnixEpochTicks = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
@@ -36,7 +39,7 @@ namespace Outernet.Logging
 
         private readonly Dictionary<string, string> _labels;
         private readonly object _queueLock = new();
-        private readonly LinkedList<(string ts, string line)> _pending = new();
+        private readonly LinkedList<PendingEntry> _pending = new();
         private volatile bool _disposed;
 
         private HttpClient _httpClient;
@@ -74,14 +77,29 @@ namespace Outernet.Logging
                 return;
             try
             {
+                var ts = ((logEvent.Timestamp.UtcDateTime.Ticks - UnixEpochTicks) * 100).ToString(CultureInfo.InvariantCulture);
+                var fingerprint = ComputeFingerprint(logEvent);
+
                 lock (_queueLock)
                 {
-                    _pending.AddLast(
-                        (
-                            ((logEvent.Timestamp.UtcDateTime.Ticks - UnixEpochTicks) * 100).ToString(CultureInfo.InvariantCulture),
-                            SerializeLine(logEvent)
-                        )
-                    );
+                    var tail = _pending.Last?.Value;
+                    if (tail != null && tail.Fingerprint == fingerprint)
+                    {
+                        tail.RepeatCount += 1;
+                        tail.LastTs = ts;
+                        tail.Line = SerializeLine(logEvent, tail.RepeatCount, tail.FirstTs, tail.LastTs);
+                    }
+                    else
+                    {
+                        _pending.AddLast(new PendingEntry
+                        {
+                            FirstTs = ts,
+                            LastTs = ts,
+                            Fingerprint = fingerprint,
+                            RepeatCount = 1,
+                            Line = SerializeLine(logEvent, 1, ts, ts),
+                        });
+                    }
                 }
             }
             catch (Exception exception)
@@ -90,32 +108,53 @@ namespace Outernet.Logging
             }
         }
 
+        // Stack-trace head distinguishes call sites that share a template.
+        private static string ComputeFingerprint(LogEvent logEvent)
+        {
+            var exceptionType = logEvent.Exception?.GetType().FullName ?? "";
+            var stackHead = "";
+            if (logEvent.Exception?.StackTrace is string stack)
+            {
+                var newline = stack.IndexOf('\n');
+                stackHead = newline >= 0 ? stack.Substring(0, newline) : stack;
+            }
+            return $"{(int)logEvent.Level}|{logEvent.MessageTemplate.Text}|{exceptionType}|{stackHead}";
+        }
+
         // Inject Grafana-style level (Fatal→"critical" because Grafana has
         // no native "fatal"). Filter caller-supplied "level" so the canonical
         // level wins ToDictionary. Compact JSON because LogQL line filters
         // operate per line.
-        private static string SerializeLine(LogEvent logEvent)
+        private static string SerializeLine(LogEvent logEvent, int repeatCount, string firstTs, string lastTs)
         {
-            return JsonConvert.SerializeObject(
-                logEvent
-                    .Properties.Where(property => property.Key != "level")
-                    .Append(
-                        new KeyValuePair<string, LogEventPropertyValue>(
-                            "level",
-                            new ScalarValue(
-                                logEvent.Level switch
-                                {
-                                    LogEventLevel.Verbose => "trace",
-                                    LogEventLevel.Debug => "debug",
-                                    LogEventLevel.Information => "info",
-                                    LogEventLevel.Warning => "warning",
-                                    LogEventLevel.Error => "error",
-                                    LogEventLevel.Fatal => "critical",
-                                    _ => "unknown",
-                                }
-                            )
-                        )
+            var properties = logEvent.Properties
+                .Where(property => property.Key != "level")
+                .Append(new KeyValuePair<string, LogEventPropertyValue>(
+                    "level",
+                    new ScalarValue(
+                        logEvent.Level switch
+                        {
+                            LogEventLevel.Verbose => "trace",
+                            LogEventLevel.Debug => "debug",
+                            LogEventLevel.Information => "info",
+                            LogEventLevel.Warning => "warning",
+                            LogEventLevel.Error => "error",
+                            LogEventLevel.Fatal => "critical",
+                            _ => "unknown",
+                        }
                     )
+                ));
+
+            if (repeatCount > 1)
+            {
+                properties = properties
+                    .Append(new KeyValuePair<string, LogEventPropertyValue>("repeated", new ScalarValue(repeatCount)))
+                    .Append(new KeyValuePair<string, LogEventPropertyValue>("firstAt", new ScalarValue(firstTs)))
+                    .Append(new KeyValuePair<string, LogEventPropertyValue>("lastAt", new ScalarValue(lastTs)));
+            }
+
+            return JsonConvert.SerializeObject(
+                properties
                     .OrderBy(property =>
                         property.Key switch
                         {
@@ -123,9 +162,12 @@ namespace Outernet.Logging
                             "logGroup" => 2,
                             "messageTemplate" => 3,
                             "message" => 4,
-                            "stackTrace" => 6,
-                            "exception" => 7,
-                            _ => 5,
+                            "repeated" => 5,
+                            "firstAt" => 6,
+                            "lastAt" => 7,
+                            "stackTrace" => 9,
+                            "exception" => 10,
+                            _ => 8,
                         }
                     )
                     .ToDictionary(property => property.Key, property => Json.FromSerilogProperty(property.Key, property.Value, false)),
@@ -144,7 +186,7 @@ namespace Outernet.Logging
                     if (schedule.SleepDuration > TimeSpan.Zero)
                         await UniTask.Delay(schedule.SleepDuration);
 
-                    (string ts, string line)[] batch;
+                    PendingEntry[] batch;
                     lock (_queueLock)
                     {
                         if (_pending.Count == 0)
@@ -164,7 +206,7 @@ namespace Outernet.Logging
                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                     request.Content = new StringContent(
                         JsonConvert.SerializeObject(
-                            new { streams = new[] { new { stream = _labels, values = batch.Select(entry => new[] { entry.ts, entry.line }) } } }
+                            new { streams = new[] { new { stream = _labels, values = batch.Select(entry => new[] { entry.LastTs, entry.Line }) } } }
                         ),
                         Encoding.UTF8,
                         "application/json"
@@ -225,19 +267,28 @@ namespace Outernet.Logging
 
         // Caller holds _queueLock. Always returns at least one entry so a
         // single oversized event can't wedge the drain.
-        private (string ts, string line)[] TakeHeadSlice()
+        private PendingEntry[] TakeHeadSlice()
         {
-            var slice = new List<(string ts, string line)>(Math.Min(_pending.Count, MaxBatchEvents));
+            var slice = new List<PendingEntry>(Math.Min(_pending.Count, MaxBatchEvents));
             var totalBytes = 0;
             foreach (var entry in _pending)
             {
-                var entryBytes = Encoding.UTF8.GetByteCount(entry.line);
+                var entryBytes = Encoding.UTF8.GetByteCount(entry.Line);
                 if (slice.Count > 0 && (slice.Count >= MaxBatchEvents || totalBytes + entryBytes > MaxBatchBytes))
                     break;
                 slice.Add(entry);
                 totalBytes += entryBytes;
             }
             return slice.ToArray();
+        }
+
+        private sealed class PendingEntry
+        {
+            public string FirstTs;
+            public string LastTs;
+            public string Fingerprint;
+            public int RepeatCount;
+            public string Line;
         }
     }
 }
