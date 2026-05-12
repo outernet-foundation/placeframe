@@ -13,15 +13,13 @@ using Serilog.Events;
 
 namespace Outernet.Logging
 {
-    // In-memory Loki sink. Emit serializes the event to an indented JSON
-    // line and appends it to a queue; the drainer (started by Enable once
-    // auth lands) snapshots the queue, POSTs to Loki, and dequeues the
-    // snapshot prefix on success. The queue accumulates events emitted
-    // before Enable so pre-auth logs are flushed on the first successful
-    // drain. A per-attempt HTTP timeout prevents a hung send from wedging
-    // the loop, and exponential backoff paces retries on transient
-    // transport faults. Drain failures route through Serilog's SelfLog so
-    // a failing drain doesn't recursively re-enqueue its own diagnostics.
+    // In-memory Loki sink. Emit serializes the event to a JSON line and
+    // appends it to a queue; the drainer (started by Enable once auth lands)
+    // takes a bounded head slice (MaxBatchEvents / MaxBatchBytes), POSTs to
+    // Loki, and dequeues the slice on success. Pre-Enable events accumulate
+    // for first-drain flush. Per-attempt HTTP timeout. Exponential backoff
+    // on transient faults. Drain failures route through Serilog's SelfLog
+    // to avoid recursive re-enqueue.
     internal sealed class LokiSink : ILogEventSink, IDisposable
     {
         private static readonly long UnixEpochTicks = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
@@ -30,6 +28,10 @@ namespace Outernet.Logging
         private static readonly TimeSpan InitialBackoff = TimeSpan.FromSeconds(1);
         private static readonly TimeSpan MaxBackoff = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan PerAttemptTimeout = TimeSpan.FromSeconds(15);
+
+        // Sized to stay well under Loki's default per-tenant 6 MB ingestion burst.
+        private const int MaxBatchEvents = 500;
+        private const int MaxBatchBytes = 512 * 1024;
 
         private readonly Dictionary<string, string> _labels;
         private readonly object _queueLock = new();
@@ -146,7 +148,7 @@ namespace Outernet.Logging
                             schedule.OnIdle();
                             continue;
                         }
-                        batch = _pending.ToArray();
+                        batch = TakeHeadSlice();
                     }
 
                     // Per-attempt timeout so a hung token fetch or HTTP send can't
@@ -190,6 +192,23 @@ namespace Outernet.Logging
                     schedule.OnFailure();
                 }
             }
+        }
+
+        // Caller holds _queueLock. Always returns at least one entry so a
+        // single oversized event can't wedge the drain.
+        private (string ts, string line)[] TakeHeadSlice()
+        {
+            var slice = new List<(string ts, string line)>(Math.Min(_pending.Count, MaxBatchEvents));
+            var totalBytes = 0;
+            foreach (var entry in _pending)
+            {
+                var entryBytes = Encoding.UTF8.GetByteCount(entry.line);
+                if (slice.Count > 0 && (slice.Count >= MaxBatchEvents || totalBytes + entryBytes > MaxBatchBytes))
+                    break;
+                slice.Add(entry);
+                totalBytes += entryBytes;
+            }
+            return slice.ToArray();
         }
     }
 }
