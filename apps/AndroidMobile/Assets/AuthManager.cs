@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using FofX;
 using FofX.Stateful;
@@ -44,10 +45,10 @@ namespace Placeframe.Client
             {
                 await VisualPositioningSystem.Login(domain, username, password);
             }
-            catch (Exception exc)
+            catch (Exception exc) when (exc is not TaskCanceledException)
             {
                 App.ExecuteTransaction(new SetAuthStatusAction(AuthStatus.Error, exc.Message));
-                throw exc;
+                return;
             }
 
             Logger<LogGroup>.EnableLoki(
