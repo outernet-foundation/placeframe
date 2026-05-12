@@ -215,6 +215,7 @@ namespace Plerion.MakeItSing
 
                 position.y = 0;
                 position = position.normalized;
+                position += camera.position;
                 position.y = camera.position.y - .33f;
 
                 props.layout.localPosition = props.layout.localPosition ?? Value(position);
