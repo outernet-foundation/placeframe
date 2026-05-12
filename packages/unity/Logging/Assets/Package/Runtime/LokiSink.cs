@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -170,7 +171,10 @@ namespace Outernet.Logging
                     if (!response.IsSuccessStatusCode)
                     {
                         Serilog.Debugging.SelfLog.WriteLine($"LokiSink POST returned {(int)response.StatusCode} {response.ReasonPhrase}");
-                        schedule.OnFailure();
+                        if (response.StatusCode == HttpStatusCode.TooManyRequests && TryGetRetryAfter(response.Headers.RetryAfter, out var retryAfter))
+                            schedule.OnRetryAfter(retryAfter);
+                        else
+                            schedule.OnFailure();
                         continue;
                     }
 
@@ -192,6 +196,28 @@ namespace Outernet.Logging
                     schedule.OnFailure();
                 }
             }
+        }
+
+        private static bool TryGetRetryAfter(RetryConditionHeaderValue header, out TimeSpan delay)
+        {
+            if (header == null)
+            {
+                delay = default;
+                return false;
+            }
+            if (header.Delta.HasValue)
+            {
+                delay = header.Delta.Value;
+                return true;
+            }
+            if (header.Date.HasValue)
+            {
+                var diff = header.Date.Value - DateTimeOffset.UtcNow;
+                delay = diff > TimeSpan.Zero ? diff : TimeSpan.Zero;
+                return true;
+            }
+            delay = default;
+            return false;
         }
 
         // Caller holds _queueLock. Always returns at least one entry so a
