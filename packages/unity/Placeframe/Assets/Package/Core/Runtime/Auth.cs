@@ -117,7 +117,7 @@ namespace Placeframe.Core
             }
             catch (Exception ex)
             {
-                Error($"[Auth] Login failed with exception: {ex}");
+                Info($"[Auth] Login failed: {ex.Message}");
                 throw new Exception("Login failed", ex);
             }
 
@@ -126,7 +126,10 @@ namespace Placeframe.Core
             if (!response.IsSuccessStatusCode)
             {
                 var message = $"Login failed: {(int)response.StatusCode} {response.ReasonPhrase} {body}";
-                Error($"[Auth] {message}");
+                if ((int)response.StatusCode >= 500)
+                    Error($"[Auth] {message}");
+                else
+                    Info($"[Auth] {message}");
                 throw new Exception(message);
             }
 

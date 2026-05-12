@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.XR.Management;
@@ -140,7 +141,7 @@ namespace Plerion
 
             Placeframe.BuildUtility.BuildPlayer(new BuildPlayerOptions
             {
-                scenes = new string[] { "Assets/App/Scenes/Main.unity" },
+                scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray(),
                 locationPathName = outputPath,
                 target = (BuildTarget)Enum.Parse(typeof(BuildTarget), "Android"),
                 targetGroup = (BuildTargetGroup)Enum.Parse(typeof(BuildTargetGroup), "Android"),

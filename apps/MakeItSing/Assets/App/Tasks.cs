@@ -34,7 +34,7 @@ namespace Plerion.MakeItSing
                     state.loginError.value = exc.Message;
                 });
 
-                throw;
+                return;
             }
 
             App.state.loginStatus.value = LoginStatus.LoggedIn;

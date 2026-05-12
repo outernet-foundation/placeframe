@@ -14,7 +14,6 @@ namespace Plerion.MakeItSing
         public string supabaseProjectId;
         public string supabaseApiKey;
 
-#if UNITY_EDITOR
         public bool runInOfflineMode;
 
         [Header("Editor Overrides")]
@@ -57,7 +56,6 @@ namespace Plerion.MakeItSing
 
         [ToggleGroup(nameof(overrideConfig), disable: true)]
         public bool disableSystemUI;
-#endif
 
         public static UnityEnv GetOrCreateInstance()
         {
