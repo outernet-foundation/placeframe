@@ -19,8 +19,9 @@ Verify C# changes compile without opening the Unity GUI:
 
 The following look like bugs but are intentional, load-bearing absences, or blocked on coordination with the codebase author (Elliot Pjecha). See `SPEC.md` § Known gaps for full context. Do not patch without explicit instruction:
 
-- `AppState.roughGrainedLocation`, `sceneOriginEcefPosition`, and `sceneOriginEcefRotation` are never written. The colocalization handshake is intentionally unimplemented pending design clarification.
-- `Assets/App/Managers/LocalizationManager.cs:81` zeroes the ECEF position before calling Placeframe. Probably a debug stub; removing the zero without restoring upstream localization-map flow makes behavior worse.
+- `AppState.sceneOriginEcefPosition` and `sceneOriginEcefRotation` are never written. The pose-update half of localization (writing the VPS device→map alignment into state so `SceneOrigin.UpdateOriginPose` can run) is intentionally unimplemented pending design clarification. `roughGrainedLocation` is also never written, but the map-fetch flow does not depend on it — `LocalizationManager.cs:23-24`'s recursive subscription fires on `loggedIn` becoming true regardless.
+- `Assets/App/Managers/LocalizationManager.cs:81` zeroes the ECEF position before calling Placeframe. This is load-bearing for the current single-map-at-ECEF-(0,0,0) deployment, not a debug stub; the dead lat/lon→ECEF code above line 81 is the part that would be deleted in a cleanup.
+- `Main.unity` is missing an `ARSession` GameObject; ARCore never starts, AR passthrough doesn't render, and `VPS.StartLocalizing`'s camera loop gets no frames. Fix is a scene edit (add an `ARSession` to `Main.unity` or a referenced prefab), not a code change. Don't patch around this in code.
 - `Assets/App/Managers/CesiumCreditSystemUI.cs` body is entirely commented out. Workaround for the cesium-unity fork swap; the type must exist to satisfy a reference.
 - `AppSetup.GetPlatform` (`Assets/App/AppSetup.cs:325`) has no default return. Compiles only with `PLERION_MAGIC_LEAP` or `PLERION_ANDROID_MOBILE` defined. The missing branch documents "plain Android is not a supported target."
 
