@@ -131,9 +131,14 @@ namespace Plerion.MakeItSing
                     state.config.stackTraceLevel.value = env.stackTraceLevel;
                     state.config.notificationLogLevel.value = env.notificationLogLevel;
                     state.nameServerConnection.connectionString.value = env.photonProjectId;
-                    state.userSettings.domain.value = env.domain;
-                    state.userSettings.username.value = env.username;
-                    state.userSettings.password.value = env.password;
+                    if (!string.IsNullOrEmpty(env.domain))
+                        state.userSettings.domain.value = env.domain;
+
+                    if (!string.IsNullOrEmpty(env.username))
+                        state.userSettings.username.value = env.username;
+
+                    if (!string.IsNullOrEmpty(env.password))
+                        state.userSettings.password.value = env.password;
                     state.roomID.value = string.IsNullOrEmpty(env.room) ? Guid.Empty : new Guid(env.room);
 
                     if (env.loginAutomatically)
