@@ -74,52 +74,12 @@ namespace Outernet.Logging
                 return;
             try
             {
-                // Inject Grafana-style level (Fatal→"critical" because Grafana has
-                // no native "fatal"). Filter any caller-supplied "level" property
-                // first so the canonical level wins and ToDictionary doesn't throw
-                // on a duplicate key. Compact JSON because LogQL line filters
-                // (`|=`, `|~`) operate per line and won't match across embedded
-                // newlines.
                 lock (_queueLock)
                 {
                     _pending.AddLast(
                         (
                             ((logEvent.Timestamp.UtcDateTime.Ticks - UnixEpochTicks) * 100).ToString(CultureInfo.InvariantCulture),
-                            JsonConvert.SerializeObject(
-                                logEvent
-                                    .Properties.Where(property => property.Key != "level")
-                                    .Append(
-                                        new KeyValuePair<string, LogEventPropertyValue>(
-                                            "level",
-                                            new ScalarValue(
-                                                logEvent.Level switch
-                                                {
-                                                    LogEventLevel.Verbose => "trace",
-                                                    LogEventLevel.Debug => "debug",
-                                                    LogEventLevel.Information => "info",
-                                                    LogEventLevel.Warning => "warning",
-                                                    LogEventLevel.Error => "error",
-                                                    LogEventLevel.Fatal => "critical",
-                                                    _ => "unknown",
-                                                }
-                                            )
-                                        )
-                                    )
-                                    .OrderBy(property =>
-                                        property.Key switch
-                                        {
-                                            "level" => 1,
-                                            "logGroup" => 2,
-                                            "messageTemplate" => 3,
-                                            "message" => 4,
-                                            "stackTrace" => 6,
-                                            "exception" => 7,
-                                            _ => 5,
-                                        }
-                                    )
-                                    .ToDictionary(property => property.Key, property => Json.FromSerilogProperty(property.Key, property.Value, false)),
-                                Formatting.None
-                            )
+                            SerializeLine(logEvent)
                         )
                     );
                 }
@@ -128,6 +88,49 @@ namespace Outernet.Logging
             {
                 Serilog.Debugging.SelfLog.WriteLine($"LokiSink emit failed: {exception}");
             }
+        }
+
+        // Inject Grafana-style level (Fatal→"critical" because Grafana has
+        // no native "fatal"). Filter caller-supplied "level" so the canonical
+        // level wins ToDictionary. Compact JSON because LogQL line filters
+        // operate per line.
+        private static string SerializeLine(LogEvent logEvent)
+        {
+            return JsonConvert.SerializeObject(
+                logEvent
+                    .Properties.Where(property => property.Key != "level")
+                    .Append(
+                        new KeyValuePair<string, LogEventPropertyValue>(
+                            "level",
+                            new ScalarValue(
+                                logEvent.Level switch
+                                {
+                                    LogEventLevel.Verbose => "trace",
+                                    LogEventLevel.Debug => "debug",
+                                    LogEventLevel.Information => "info",
+                                    LogEventLevel.Warning => "warning",
+                                    LogEventLevel.Error => "error",
+                                    LogEventLevel.Fatal => "critical",
+                                    _ => "unknown",
+                                }
+                            )
+                        )
+                    )
+                    .OrderBy(property =>
+                        property.Key switch
+                        {
+                            "level" => 1,
+                            "logGroup" => 2,
+                            "messageTemplate" => 3,
+                            "message" => 4,
+                            "stackTrace" => 6,
+                            "exception" => 7,
+                            _ => 5,
+                        }
+                    )
+                    .ToDictionary(property => property.Key, property => Json.FromSerilogProperty(property.Key, property.Value, false)),
+                Formatting.None
+            );
         }
 
         private async UniTask DrainLoop()
