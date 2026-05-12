@@ -1,6 +1,8 @@
 using System;
+using System.Linq;
 using Cysharp.Threading.Tasks;
 using FofX;
+using FofX.Stateful;
 using ObserveThing;
 using Outernet.Logging;
 using UnityEngine;
@@ -35,11 +37,15 @@ namespace Plerion.MakeItSing
                         });
                     }
                 }),
-                App.state.inRoomAndSynchronized.Subscribe(inRoomAndSynchronized =>
-                {
-                    if (inRoomAndSynchronized)
-                        App.ExecuteTransaction(new AddLocalPlayerDataAction());
-                }),
+                StateObservables.SubscribeOperations( // Do this here because PhotonConnectionManager doesn't exist if we're in offline mode
+                    onOperation: ops =>
+                    {
+                        if (App.state.inRoomAndSynchronized.value && !App.state.scene.players.ContainsKey(App.state.playerID.value))
+                            App.ExecuteTransaction(new AddLocalPlayerDataAction());
+                    },
+                    App.state.inRoomAndSynchronized,
+                    App.state.scene.players
+                ),
                 App.state.inRoom.Subscribe(
                     onNext: inRoom =>
                     {

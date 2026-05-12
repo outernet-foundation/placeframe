@@ -375,18 +375,14 @@ namespace Plerion.MakeItSing
             foreach (var op in ops)
             {
                 if (op.source == App.state.inRoomAndSynchronized)
-                {
                     _inRoomAndSynchronized = (bool)op.param;
-
-                    if (_inRoomAndSynchronized && !App.state.scene.players.ContainsKey(App.state.playerID.value))
-                        App.ExecuteTransaction(new AddLocalPlayerDataAction());
-                }
 
                 if (!_inRoomAndSynchronized ||
                     op.opType == OpType.Dispose ||
                     op.opType == OpType.None ||
                     op.source == App.state.inRoomAndSynchronized ||
-                    App.state.scene.highFrequencyPathsToIds.ContainsKey(op.source.nodePath))
+                    App.state.scene.highFrequencyPathsToIds.ContainsKey(op.source.nodePath) ||
+                    op.source.derived)
                 {
                     continue;
                 }
