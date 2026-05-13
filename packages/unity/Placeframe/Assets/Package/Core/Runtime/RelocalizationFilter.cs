@@ -36,6 +36,9 @@ namespace Placeframe.Core
         public bool TransformChanged;
         public MeasurementRejection Rejection;
         public double InnovationMahalanobisSquared;
+        public Vector<double> InnovationResidual;
+        public Matrix<double> SigmaPredicted;
+        public bool HadAcceptedMeasurementBeforeStep;
     }
 
     public static class RelocalizationFilter
@@ -113,6 +116,9 @@ namespace Placeframe.Core
                     NewState = state,
                     Rejection = MeasurementRejection.InnovationGate,
                     InnovationMahalanobisSquared = innovation.MahalanobisSquared,
+                    InnovationResidual = innovation.Residual,
+                    SigmaPredicted = sigmaPredicted,
+                    HadAcceptedMeasurementBeforeStep = state.HasAcceptedMeasurement,
                 };
 
             var posterior = KalmanUpdate(
