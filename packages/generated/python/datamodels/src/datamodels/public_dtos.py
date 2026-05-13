@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, Field
@@ -12,12 +13,13 @@ from .public_tables import (
     LabelType,
     Layer,
     LinkType,
+    LocalizationEvaluation,
     LocalizationMap,
     LocalizationMapCameraPosition,
     LocalizationSession,
     Node,
-    OrchestrationStatus,
     Reconstruction,
+    ReconstructionStatus,
     SpatialRefSy,
     Tenant,
 )
@@ -82,6 +84,112 @@ class LayerRead(BaseModel):
     created_at: AwareDatetime = Field(..., title="Created At")
     updated_at: AwareDatetime = Field(..., title="Updated At")
     name: str = Field(..., title="Name")
+
+
+class LocalizationEvaluationCreate(BaseModel):
+    reconstruction_id: UUID = Field(..., title="Reconstruction Id")
+    id: UUID | None = Field(None, title="Id")
+    ransac_threshold: float = Field(..., title="Ransac Threshold")
+    frame_timestamp: int = Field(..., title="Frame Timestamp")
+    inlier_coverage: float = Field(..., title="Inlier Coverage")
+    query_image_diagonal_px: float = Field(..., title="Query Image Diagonal Px")
+    reproj_error_median: float = Field(..., title="Reproj Error Median")
+    inlier_ratio: float = Field(..., title="Inlier Ratio")
+    retrieval_top_k: int = Field(..., title="Retrieval Top K")
+    num_inliers: int = Field(..., title="Num Inliers")
+    num_matches: int = Field(..., title="Num Matches")
+    num_correspondences: int = Field(..., title="Num Correspondences")
+    succeeded: bool = Field(..., title="Succeeded")
+    pipeline_version: str = Field(..., title="Pipeline Version")
+    err_r_deg: float | None = Field(None, title="Err R Deg")
+    err_t_m: float | None = Field(None, title="Err T M")
+    pnp_covariance: list[Any] | None = Field(None, title="Pnp Covariance")
+    se3_residual: list[Any] | None = Field(None, title="Se3 Residual")
+
+
+class LocalizationEvaluationBatchCreate(BaseModel):
+    reconstruction_id: UUID = Field(..., title="Reconstruction Id")
+    id: UUID = Field(..., title="Id")
+    ransac_threshold: float = Field(..., title="Ransac Threshold")
+    frame_timestamp: int = Field(..., title="Frame Timestamp")
+    inlier_coverage: float = Field(..., title="Inlier Coverage")
+    query_image_diagonal_px: float = Field(..., title="Query Image Diagonal Px")
+    reproj_error_median: float = Field(..., title="Reproj Error Median")
+    inlier_ratio: float = Field(..., title="Inlier Ratio")
+    retrieval_top_k: int = Field(..., title="Retrieval Top K")
+    num_inliers: int = Field(..., title="Num Inliers")
+    num_matches: int = Field(..., title="Num Matches")
+    num_correspondences: int = Field(..., title="Num Correspondences")
+    succeeded: bool = Field(..., title="Succeeded")
+    pipeline_version: str = Field(..., title="Pipeline Version")
+    err_r_deg: float | None = Field(None, title="Err R Deg")
+    err_t_m: float | None = Field(None, title="Err T M")
+    pnp_covariance: list[Any] | None = Field(None, title="Pnp Covariance")
+    se3_residual: list[Any] | None = Field(None, title="Se3 Residual")
+
+
+class LocalizationEvaluationUpdate(BaseModel):
+    reconstruction_id: UUID | None = Field(None, title="Reconstruction Id")
+    ransac_threshold: float | None = Field(None, title="Ransac Threshold")
+    frame_timestamp: int | None = Field(None, title="Frame Timestamp")
+    inlier_coverage: float | None = Field(None, title="Inlier Coverage")
+    query_image_diagonal_px: float | None = Field(None, title="Query Image Diagonal Px")
+    reproj_error_median: float | None = Field(None, title="Reproj Error Median")
+    inlier_ratio: float | None = Field(None, title="Inlier Ratio")
+    retrieval_top_k: int | None = Field(None, title="Retrieval Top K")
+    num_inliers: int | None = Field(None, title="Num Inliers")
+    num_matches: int | None = Field(None, title="Num Matches")
+    num_correspondences: int | None = Field(None, title="Num Correspondences")
+    succeeded: bool | None = Field(None, title="Succeeded")
+    pipeline_version: str | None = Field(None, title="Pipeline Version")
+    err_r_deg: float | None = Field(None, title="Err R Deg")
+    err_t_m: float | None = Field(None, title="Err T M")
+    pnp_covariance: list[Any] | None = Field(None, title="Pnp Covariance")
+    se3_residual: list[Any] | None = Field(None, title="Se3 Residual")
+
+
+class LocalizationEvaluationBatchUpdate(BaseModel):
+    reconstruction_id: UUID | None = Field(None, title="Reconstruction Id")
+    id: UUID = Field(..., title="Id")
+    ransac_threshold: float | None = Field(None, title="Ransac Threshold")
+    frame_timestamp: int | None = Field(None, title="Frame Timestamp")
+    inlier_coverage: float | None = Field(None, title="Inlier Coverage")
+    query_image_diagonal_px: float | None = Field(None, title="Query Image Diagonal Px")
+    reproj_error_median: float | None = Field(None, title="Reproj Error Median")
+    inlier_ratio: float | None = Field(None, title="Inlier Ratio")
+    retrieval_top_k: int | None = Field(None, title="Retrieval Top K")
+    num_inliers: int | None = Field(None, title="Num Inliers")
+    num_matches: int | None = Field(None, title="Num Matches")
+    num_correspondences: int | None = Field(None, title="Num Correspondences")
+    succeeded: bool | None = Field(None, title="Succeeded")
+    pipeline_version: str | None = Field(None, title="Pipeline Version")
+    err_r_deg: float | None = Field(None, title="Err R Deg")
+    err_t_m: float | None = Field(None, title="Err T M")
+    pnp_covariance: list[Any] | None = Field(None, title="Pnp Covariance")
+    se3_residual: list[Any] | None = Field(None, title="Se3 Residual")
+
+
+class LocalizationEvaluationRead(BaseModel):
+    reconstruction_id: UUID = Field(..., title="Reconstruction Id")
+    id: UUID = Field(..., title="Id")
+    ransac_threshold: float = Field(..., title="Ransac Threshold")
+    frame_timestamp: int = Field(..., title="Frame Timestamp")
+    updated_at: AwareDatetime = Field(..., title="Updated At")
+    inlier_coverage: float = Field(..., title="Inlier Coverage")
+    created_at: AwareDatetime = Field(..., title="Created At")
+    query_image_diagonal_px: float = Field(..., title="Query Image Diagonal Px")
+    reproj_error_median: float = Field(..., title="Reproj Error Median")
+    inlier_ratio: float = Field(..., title="Inlier Ratio")
+    retrieval_top_k: int = Field(..., title="Retrieval Top K")
+    num_inliers: int = Field(..., title="Num Inliers")
+    num_matches: int = Field(..., title="Num Matches")
+    num_correspondences: int = Field(..., title="Num Correspondences")
+    succeeded: bool = Field(..., title="Succeeded")
+    pipeline_version: str = Field(..., title="Pipeline Version")
+    err_r_deg: float | None = Field(None, title="Err R Deg")
+    err_t_m: float | None = Field(None, title="Err T M")
+    pnp_covariance: list[Any] | None = Field(None, title="Pnp Covariance")
+    se3_residual: list[Any] | None = Field(None, title="Se3 Residual")
 
 
 class LocalizationMapCreate(BaseModel):
@@ -227,6 +335,25 @@ class LocalizationSessionRead(BaseModel):
     container_url: str = Field(..., title="Container Url")
 
 
+class ReconstructionCreate(BaseModel):
+    capture_session_id: UUID = Field(..., title="Capture Session Id")
+    id: UUID | None = Field(None, title="Id")
+
+
+class ReconstructionBatchCreate(BaseModel):
+    capture_session_id: UUID = Field(..., title="Capture Session Id")
+    id: UUID = Field(..., title="Id")
+
+
+class ReconstructionUpdate(BaseModel):
+    capture_session_id: UUID | None = Field(None, title="Capture Session Id")
+
+
+class ReconstructionBatchUpdate(BaseModel):
+    capture_session_id: UUID | None = Field(None, title="Capture Session Id")
+    id: UUID = Field(..., title="Id")
+
+
 class SpatialRefSyCreate(BaseModel):
     srid: int = Field(..., title="Srid")
     auth_name: str | None = Field(None, title="Auth Name")
@@ -289,23 +416,27 @@ class TenantRead(BaseModel):
 
 class CaptureSessionCreate(BaseModel):
     id: UUID | None = Field(None, title="Id")
+    recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
     device_type: DeviceType
-    name: str = Field(..., title="Name")
+    name: str | None = Field(None, title="Name")
 
 
 class CaptureSessionBatchCreate(BaseModel):
     id: UUID = Field(..., title="Id")
+    recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
     device_type: DeviceType
-    name: str = Field(..., title="Name")
+    name: str | None = Field(None, title="Name")
 
 
 class CaptureSessionUpdate(BaseModel):
+    recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
     device_type: DeviceType | None = None
     name: str | None = Field(None, title="Name")
 
 
 class CaptureSessionBatchUpdate(BaseModel):
     id: UUID = Field(..., title="Id")
+    recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
     device_type: DeviceType | None = None
     name: str | None = Field(None, title="Name")
 
@@ -314,8 +445,9 @@ class CaptureSessionRead(BaseModel):
     id: UUID = Field(..., title="Id")
     created_at: AwareDatetime = Field(..., title="Created At")
     updated_at: AwareDatetime = Field(..., title="Updated At")
+    recorded_at: AwareDatetime = Field(..., title="Recorded At")
     device_type: DeviceType
-    name: str = Field(..., title="Name")
+    name: str | None = Field(None, title="Name")
 
 
 class NodeCreate(BaseModel):
@@ -429,35 +561,18 @@ class NodeRead(BaseModel):
     name: str | None = Field(None, title="Name")
 
 
-class ReconstructionCreate(BaseModel):
-    capture_session_id: UUID = Field(..., title="Capture Session Id")
-    id: UUID | None = Field(None, title="Id")
-    orchestration_status: OrchestrationStatus | None = None
-
-
-class ReconstructionBatchCreate(BaseModel):
-    capture_session_id: UUID = Field(..., title="Capture Session Id")
-    id: UUID = Field(..., title="Id")
-    orchestration_status: OrchestrationStatus | None = None
-
-
-class ReconstructionUpdate(BaseModel):
-    capture_session_id: UUID | None = Field(None, title="Capture Session Id")
-    orchestration_status: OrchestrationStatus | None = None
-
-
-class ReconstructionBatchUpdate(BaseModel):
-    capture_session_id: UUID | None = Field(None, title="Capture Session Id")
-    id: UUID = Field(..., title="Id")
-    orchestration_status: OrchestrationStatus | None = None
-
-
 class ReconstructionRead(BaseModel):
     capture_session_id: UUID = Field(..., title="Capture Session Id")
     id: UUID = Field(..., title="Id")
     created_at: AwareDatetime = Field(..., title="Created At")
     updated_at: AwareDatetime = Field(..., title="Updated At")
-    orchestration_status: OrchestrationStatus
+    status: ReconstructionStatus
+    manifest_version: int = Field(..., title="Manifest Version")
+    manifest: dict[str, Any] = Field(..., title="Manifest")
+    progress_current: int | None = Field(None, title="Progress Current")
+    progress_total: int | None = Field(None, title="Progress Total")
+    progress_attempt: int | None = Field(None, title="Progress Attempt")
+    error: str | None = Field(None, title="Error")
 
 
 def capture_session_from_dto(create: CaptureSessionCreate) -> CaptureSession:
@@ -559,6 +674,46 @@ def layer_apply_dto(instance: Layer, update: LayerUpdate) -> Layer:
 
 
 def layer_apply_batch_update_dto(instance: Layer, update: LayerBatchUpdate) -> Layer:
+    for field, value in update.model_dump(exclude_unset=True, mode="json").items():
+        setattr(instance, field, value)
+    return instance
+
+
+def localization_evaluation_from_dto(create: LocalizationEvaluationCreate) -> LocalizationEvaluation:
+    data = create.model_dump(exclude_unset=True, mode="json")
+    return LocalizationEvaluation(**data)
+
+
+def localization_evaluation_from_batch_create_dto(create: LocalizationEvaluationBatchCreate) -> LocalizationEvaluation:
+    data = create.model_dump(exclude_unset=True, mode="json")
+    return LocalizationEvaluation(**data)
+
+
+def localization_evaluation_from_dto_overwrite(
+    instance: LocalizationEvaluation, create: LocalizationEvaluationCreate
+) -> LocalizationEvaluation:
+    for field, value in create.model_dump(exclude_unset=True, mode="json").items():
+        setattr(instance, field, value)
+    return instance
+
+
+def localization_evaluation_to_dto(instance: LocalizationEvaluation) -> LocalizationEvaluationRead:
+    column_keys = tuple(attr.key for attr in sa_inspect(LocalizationEvaluation).mapper.column_attrs)
+    data = {k: getattr(instance, k) for k in column_keys}
+    return LocalizationEvaluationRead.model_validate(data)
+
+
+def localization_evaluation_apply_dto(
+    instance: LocalizationEvaluation, update: LocalizationEvaluationUpdate
+) -> LocalizationEvaluation:
+    for field, value in update.model_dump(exclude_unset=True, mode="json").items():
+        setattr(instance, field, value)
+    return instance
+
+
+def localization_evaluation_apply_batch_update_dto(
+    instance: LocalizationEvaluation, update: LocalizationEvaluationBatchUpdate
+) -> LocalizationEvaluation:
     for field, value in update.model_dump(exclude_unset=True, mode="json").items():
         setattr(instance, field, value)
     return instance

@@ -6,6 +6,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Placeframe** is a self-hosted XR spatial localization system ("relocalization as a service"). It determines an XR device's position and rotation relative to a canonical reference frame for a physical space — an open-source alternative to Apple Shared World Anchors, Google ARCore Cloud Anchors, etc.
 
+The repo also hosts two Unity apps that consume Placeframe: `apps/AndroidMobile/` (the Capture Tool — pending rename) and `apps/MakeItSing/` (a multiplayer XR client). Each app directory has its own `CLAUDE.md` and `SPEC.md` for app-specific guidance.
+
+## Documentation
+
+The repo uses a two-tier docs model: `CLAUDE.md` for always-loaded rules (prescriptive, terse, under ~80 lines per file) and `SPEC.md` for on-demand narrative co-located with the code it describes. The authoring rules for `SPEC.md` are locked in `/SPEC-STYLE-GUIDE.md` — **read it before authoring or editing any `SPEC.md`**.
+
+- **Prose and code commit separately.** Markdown (`*.md`) and source code never share a commit, even when changed in the same session. This keeps prose diffs reviewable on their own terms.
+- **Spec-first on disagreement.** When a `SPEC.md` and the code it describes disagree, update the spec first and surface the diff, *then* change the code. This converts every disagreement from silent rot into an explicit human decision.
+- **No `docs/` directory.** Cross-cutting content lives in a parent-directory `SPEC.md` or a top-level special file (`README.md`, `SPEC-STYLE-GUIDE.md`, etc.).
+
 ## Commands
 
 All top-level commands are run via `uv run <command>` from the repo root. These are defined in `scripts/src/scripts/` and registered in `scripts/pyproject.toml`.
@@ -18,7 +28,7 @@ All top-level commands are run via `uv run <command>` from the repo root. These 
 | `uv run migrate-database` | Run PostgreSQL schema migrations |
 | `uv run generate-clients` | Regenerate OpenAPI client packages |
 | `uv run generate-datamodels` | Regenerate Pydantic data models |
-| `uv run generate-lock-files` | Regenerate per-service `uv.lock` files |
+| `uv run lock-python` | Regenerate workspace `uv.lock` and per-service `pylock.toml` files |
 | `uv run deptry-check` | Check for dependency issues across all packages |
 
 **Linting and type checking** (run from repo root):
@@ -30,26 +40,13 @@ uv run basedpyright          # Type check (strict mode)
 
 **Tests**: `uv run pytest` from repo root. Tests live alongside each service (e.g. `docker/localizer/tests/`).
 
-## Architecture
+**Full preflight**: `uv run --no-sync preflight` from the repo root. This is the exact command CI invokes — it bundles sync, lint, format check, type check, deptry, pytest, lock-file check, datamodel codegen, and client codegen staleness, all gated as a single pass/fail. Run it before claiming a change is CI-clean; running individual checks (just `ruff check`, just `pytest`, just the codegen check) won't catch failures in the others. Note: preflight tears down and re-brings-up `compose.postgres.yml`, so it interrupts a running stack.
 
-The system runs as a set of Docker microservices defined in `compose.yml`, with GPU overrides in `compose.cuda.yml` and `compose.rocm.yml`.
+## Server stack
 
-### Core Services
+The server stack (API, localizer, reconstructor, Keycloak, MinIO, Postgres, Loki/Alloy/Grafana) is a set of Docker microservices under `docker/`. The reconstructor pulls work via API lease endpoints — there is no separate orchestrator service. See `docker/SPEC.md` for service inventory, data flow, authentication model, and operational debugging (Postgres / MinIO / Loki access patterns, reconstructor lease lifecycle).
 
-| Service | Path | Technology | Role |
-|---|---|---|---|
-| `api` | `docker/api/` | Litestar (ASGI) | Main REST API: manages users, places, captures, maps |
-| `localizer` | `docker/localizer/` | Litestar (ASGI) | Runs image-to-map localization (LightGlue feature matching + RANSAC) |
-| `reconstructor` | `docker/reconstructor/` | Python + pycolmap | Builds 3D maps from capture sessions |
-| `state-sync` | `docker/orchestrator/` | Python worker | Polls the database and orchestrates async jobs between services |
-| `database-manager` | `docker/database-manager/` | Python | Runs SQL migrations at startup |
-| `auth-initializer` | `docker/auth-initializer/` | Python | Configures Keycloak realm on startup |
-| `gateway` | `docker/gateway/` | ngrok | Public HTTPS tunnel |
-| `keycloak` | `docker/keycloak/` | Keycloak 26 | OpenID Connect / OAuth2 identity provider |
-
-**Backing services**: PostgreSQL 16, MinIO (S3-compatible object storage), CloudBeaver (database UI).
-
-### Python Workspace
+## Python Workspace
 
 The repo is a `uv` monorepo. Shared Python code lives in `packages/python/`:
 
@@ -64,26 +61,17 @@ Auto-generated packages in `packages/generated/` should not be edited directly �
 **Generation pipeline**: Code in `packages/generated/` is produced by two scripts that must be run after certain changes:
 
 - **`uv run generate-datamodels`** — Introspects the **live PostgreSQL database** (via `sqlacodegen`) to produce `packages/generated/python/datamodels/` (SQLAlchemy table models + Pydantic DTOs). Must be run after any changes to `database/*.sql` schema files. **Requires Docker + postgres to be running** (`uv run up`, then `uv run migrate-database` to apply schema changes).
-- **`uv run generate-lock-files`** — Regenerates per-service `uv.lock` files. Must be run before `generate-clients` (which uses `uv run --no_workspace` per-service and needs the lock files). Also re-run after `uv sync --all-packages` since that overwrites per-service locks.
-- **`uv run generate-clients --config openapi-projects.json`** — Dumps the OpenAPI spec from each Litestar app and runs `openapi-generator-cli` (via `uvx`) to produce typed API clients in `packages/generated/python/` and `packages/generated/csharp/`. Must be run after any changes to API route signatures (new query params, new response fields, etc.). Requires Java (JDK 11+) on PATH. Use `--project docker/api` to generate only the API client (the localizer requires PyTorch/pycolmap to dump its spec).
+- **`uv run lock-python`** — Regenerates the workspace `uv.lock` and per-service `pylock.toml` files (for services with a `Dockerfile`). Must be run before `generate-clients` (which uses `uv run --no_workspace` per-service and needs the lock files). Also re-run after `uv sync --all-packages` since that overwrites per-service locks.
+- **`uv run generate-clients --config openapi-projects.json`** — Dumps the OpenAPI spec from each Litestar app and runs `openapi-generator-cli` (via `uvx`) to produce typed API clients in `packages/generated/python/` and `packages/generated/csharp/`. Must be run after any changes to API route signatures (new query params, new response fields, etc.). Requires Java (JDK 11+) on PATH. The localizer spec dump requires PyTorch/pycolmap in the workspace venv — sync with the appropriate extra first (see "Syncing PyTorch into the workspace venv" below). To skip the localizer and regenerate only the API/zed-capture clients, pass `--project docker/api`.
 
 **When changing both schema and API routes**, run in this order:
 1. `uv run generate-datamodels` (updates Pydantic models the API imports; needs live postgres)
-2. `uv sync --all-packages` then `uv run generate-lock-files` (sync first if any `pyproject.toml` changed; lock files must precede generate-clients)
+2. `uv sync --all-packages` then `uv run lock-python` (sync first if any `pyproject.toml` changed; lock files must precede generate-clients)
 3. `uv run generate-clients --config openapi-projects.json` (dumps updated OpenAPI spec, generates clients)
 
 All three scripts live in `scripts/src/scripts/`.
 
-### Data Flow
-
-1. **Capture**: Unity mobile app (ARFoundation, C#) records images + sensor data and POSTs to the API.
-2. **Reconstruction**: The `state-sync` worker triggers the `reconstructor`, which uses pycolmap to build a sparse 3D map (point cloud + camera poses). The result is stored in MinIO.
-3. **Localization**: A Unity client sends a query image to the `localizer`, which matches it against a stored map using LightGlue feature matching, then estimates 6-DOF pose via RANSAC/PnP.
-4. **Georeferencing**: The Map Registration Tool (Unity standalone) can visually align point clouds against Cesium tilesets (OSM / Google Photorealistic Tiles).
-
-### Authentication
-
-All API endpoints require an OAuth2 Bearer token from Keycloak. The default dev credentials are `user` / `password` (configured in `docker/keycloak/realm-export/placeframe.json`). The `state-sync` worker uses client credentials to authenticate service-to-service calls.
+**Codegen commit hygiene**: Regenerated artifacts under `packages/generated/` always live in their own dedicated commit, separate from any source change. The codegen commit's message must be exactly `Run generate-clients`, `Run generate-datamodels`, or `Run generate-clients and generate-datamodels` — no body, no rationale, no reference to the source change or repo state. The reason: codegen output is not reviewed; reviewers must be able to spot and skip these commits at a glance, which only works if they're (a) always separate and (b) always have the same canonical message. A single codegen commit may cover multiple preceding source commits — there is no requirement of a 1:1 source↔codegen pairing. The only constraint is that the codegen commit's contents must reflect the cumulative source state at its position (i.e. running `generate-clients` / `generate-datamodels` against that tree must produce a no-op diff).
 
 ## Code Conventions
 
@@ -94,7 +82,23 @@ All API endpoints require an OAuth2 Bearer token from Keycloak. The default dev 
 - The `deptry-check` command enforces that all imports match declared dependencies. Per-rule exceptions for platform-specific packages (CUDA/ROCm) are documented in each `pyproject.toml`.
 - **No shell scripts.** All scripting is Python. CI workflow steps should be one command (two at most). If there's a condition, a loop, or any real logic, it belongs in a Python script invoked via `uv run`, not inline shell in a workflow YAML.
 - **No docstrings.** Do not add docstrings to any function, class, or module — including new files. Comments are allowed only where the logic isn't self-evident.
+- **No temporal language in comments.** Don't write "Phase N", "currently", "for now", "until X lands", or other tense markers anchored to a moment. A comment should describe what the code does now; temporary scaffolding gets tracked in a per-initiative plan file, not inline. Comments that survive into a different temporal context become misleading.
+- **Comments must be self-contained.** A comment shouldn't require a reader to chase a specific design doc, ticket, or chat history to make sense. "See TDD" / "as discussed in spec" pointers are reference-bait — they imply context but don't deliver it, and orphan when the referenced doc is archived. Inline the full rationale or omit the comment. Cold-reader test: if every external doc were deleted, would this comment still make complete sense?
 - **No inline imports.** All imports at module level. No `from x import y` inside functions or methods.
+- **Callers before callees.** When one function in a file calls another defined in the same file, the caller's definition appears earlier (closer to the top). Module entry points / public API live near the top; leaf helpers live at the bottom. Among sibling callees called by the same parent, order them by their first call site within that parent's body. A reader scanning the file top-to-bottom encounters the high-level structure first and progressively descends into details.
+- **Prefer declarative over imperative.** R3/LINQ operator chains over while loops with multi-predicate exit conditions; joins over dict-mutate-in-foreach; pre-computed view records over inline ternaries in copy lambdas. Reach for imperative only when the declarative version genuinely loses a behavioral guarantee — verify by auditing the code, not by assuming. The default answer to "is the declarative rewrite worth it?" is yes.
+- **No lint suppression changes without asking.** Never add, remove, or modify `noqa`, `type: ignore`, file-level lint directives, or any equivalent suppression without explicit user approval.
+- **Pin everything.** Never use `:latest` image tags, unpinned package versions, or any mutable version reference. All images use content-addressed SHA tags (e.g. `zed-capture:${ZED_CAPTURE_SHA}`). All base images in `compose.bake.yml` use digest-pinned references. If a SHA tag doesn't exist in the registry yet, surface a clear error — don't fall back to `:latest`.
+- **Use `common.bash` for shell calls, not `subprocess`.** All shell-out from Python code goes through `bash()` / `bash_output()` / `bash_check()` / `bash_pipe()` / `bash_handoff()` in `common.bash`. Don't reach for `subprocess.run` / `subprocess.check_output` / `subprocess.Popen` — those bypass the project's logging, error-handling, and shell-operator guards.
+- **`bash()` / `bash_output()` reject shell operators.** The `_check_no_pipe` guard in `common.bash` strips quoted strings and rejects any `|` — this catches both pipes (`|`) and logical OR (`||`). Don't use shell fallback patterns like `cmd || echo default`. Instead, use `bash_check()` to test success, then `bash_output()` for the value. `bash_pipe()` is only for actual pipelines (`cmd1 | cmd2`).
+
+**Open audit**: several rules above are convention-only when they could be mechanically enforced (e.g. no-docstrings → Ruff `D100`–`D107`; no-inline-imports → Ruff `PLC0415`; subprocess ban → import-linter or a custom AST check; `:latest` ban → a grep step in `preflight`). Others aren't trivially lintable (callers-before-callees needs call-graph analysis). The split between "convention" and "lint" is unaudited; this is a placeholder so the question gets revisited intentionally, not a scheduled task.
+
+## NuGet Packages in Unity Projects
+
+Unity projects use [NuGetForUnity](https://github.com/GlitchEnzo/NuGetForUnity) with `packages.config` files. The NuGetForUnity CLI (`dotnet nugetforunity restore`) only downloads packages already listed — it does **not** resolve transitive dependencies. Dependency resolution only happens through the NuGetForUnity editor UI inside Unity.
+
+**When adding a NuGet package to `packages.config`**, you must also add its transitive dependencies manually. Check the package's **.NET Standard 2.0** dependency list on nuget.org (e.g. `https://www.nuget.org/packages/Serilog/4.0.1`). Skip low-level BCL packages that Unity's runtime already provides (e.g. `System.Buffers`, `System.Memory`, `System.Numerics.Vectors`, `System.Threading.Tasks.Extensions`). Add higher-level transitive deps like `System.Text.Json`, `System.Diagnostics.DiagnosticSource`, etc. When in doubt, check `legacy/Outernet.Client/Assets/packages.config` as a working reference — if the legacy project works without listing a dep, AndroidMobile doesn't need it either. Missing transitive deps won't cause compile errors locally in the editor (NuGetForUnity resolves them there), but they **will** fail in CI where only `restore` runs.
 
 ## Docker Build Context
 
@@ -120,8 +124,16 @@ When running in a containerized Claude Code environment (COI sandbox):
 7. **Full generation pipeline order** (after schema or API route changes):
    - `uv run up --quiet-pull` (starts postgres, runs migrations automatically)
    - `uv run generate-datamodels` (needs live postgres)
-   - `uv sync --all-packages` (required if any `pyproject.toml` changed; slow but necessary)
-   - `uv run generate-lock-files` (must precede generate-clients)
-   - `uv run generate-clients --config openapi-projects.json --project docker/api` (localizer can't dump spec without GPU/PyTorch)
-8. **Don't `uv sync` inside a service directory**: Running `uv sync` in e.g. `docker/api/` clobbers the workspace venv. Always sync from the repo root with `uv sync --all-packages`, then re-run `uv run generate-lock-files`.
-9. **Tests**: `uv run pytest` from repo root. Collection errors for `docker/localizer/tests/` and `dirtorch/test_dir.py` may occur if PyTorch is not installed in the workspace venv (it's only in the Docker images).
+   - `uv sync --all-packages --extra cuda` (required if any `pyproject.toml` changed; the extra brings in PyTorch/pycolmap so the localizer spec can be dumped — pick `cpu`/`cuda`/`rocm` per host)
+   - `uv run lock-python` (must precede generate-clients)
+   - `uv run generate-clients --config openapi-projects.json` (regenerates all clients including the localizer; pass `--project docker/api` to skip the localizer)
+8. **Don't `uv sync` inside a service directory**: Running `uv sync` in e.g. `docker/api/` clobbers the workspace venv. Always sync from the repo root with `uv sync --all-packages`, then re-run `uv run lock-python`.
+9. **Syncing PyTorch into the workspace venv**: The `neural-networks` package declares `torch`/`torchvision` behind conflicting `cpu`/`cuda`/`rocm` extras (one per accelerator), so a plain `uv sync --all-packages` does not install them. To get PyTorch (and pycolmap, which neural-networks pulls transitively) into the workspace venv — needed for `docker/localizer/tests/`, `dirtorch/test_dir.py`, and `dump_openapi` for the localizer's OpenAPI spec — pass the matching extra: `uv sync --all-packages --extra cuda` (or `cpu` / `rocm`). This Claude Code environment has GPU passthrough, so use `--extra cuda`.
+10. **Unity Editor is installed and licensed**: The editor binary is at `/opt/unity/<version>/Editor/Unity`, where `<version>` matches `m_EditorVersion` in `packages/unity/Placeframe/ProjectSettings/ProjectVersion.txt`. License is pre-activated (`~/.local/share/unity3d/Unity/Unity_lic.ulf`). Source `/opt/unity/slot-env.sh` to add Unity's bundled Android SDK to PATH and set `ANDROID_SDK_ROOT`. To verify the Unity project compiles after a C# change, run headlessly:
+    ```bash
+    /opt/unity/$(awk '/^m_EditorVersion:/{print $2}' packages/unity/Placeframe/ProjectSettings/ProjectVersion.txt)/Editor/Unity \
+      -batchmode -nographics -quit \
+      -projectPath packages/unity/Placeframe \
+      -logFile - 2>&1 | grep -E "error CS|Compilation"
+    ```
+    Compile errors appear as `error CS####`. Use this whenever you change `.cs` files in `packages/unity/` — `dotnet build` of standalone .NET projects does not catch Unity-side asmdef issues.

@@ -583,12 +583,12 @@ name = "torch"
 version = "2.10.0+cu128"
 index = "https://download.pytorch.org/whl/cu128"
 wheels = [
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313-manylinux_2_28_aarch64.whl", hashes = { sha256 = "bdbcc703382f948e951c063448c9406bf38ce66c41dd698d9e2733fcf96c037a" } },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313-manylinux_2_28_x86_64.whl", hashes = { sha256 = "7b4bd23ed63de97456fcc81c26fea9f02ee02ce1112111c4dac0d8cfe574b23e" } },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313-win_amd64.whl", hashes = { sha256 = "4d1b0b49c54223c7c04050b49eac141d77b6edbc34aea1dfc74a6fdb661baa8c" } },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313t-manylinux_2_28_aarch64.whl", hashes = { sha256 = "f1f8b840c64b645a4bc61a393db48effb9c92b2dc26c8373873911f0750d1ea7" } },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313t-manylinux_2_28_x86_64.whl", hashes = { sha256 = "23f58258012bcf1c349cb22af387e33aadca7f83ea617b080e774eb41e4fe8ff" } },
-    { url = "https://download.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313t-win_amd64.whl", hashes = { sha256 = "01b216e097b17a5277cfb47c383cdcacf06abeadcb0daca0c76b59e72854c3b6" } },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313-manylinux_2_28_aarch64.whl", upload-time = 2026-01-21T15:22:29Z, hashes = { sha256 = "bdbcc703382f948e951c063448c9406bf38ce66c41dd698d9e2733fcf96c037a" } },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313-manylinux_2_28_x86_64.whl", upload-time = 2026-01-21T15:22:51Z, hashes = { sha256 = "7b4bd23ed63de97456fcc81c26fea9f02ee02ce1112111c4dac0d8cfe574b23e" } },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313-win_amd64.whl", upload-time = 2026-01-21T15:22:54Z, hashes = { sha256 = "4d1b0b49c54223c7c04050b49eac141d77b6edbc34aea1dfc74a6fdb661baa8c" } },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313t-manylinux_2_28_aarch64.whl", upload-time = 2026-01-21T15:23:28Z, hashes = { sha256 = "f1f8b840c64b645a4bc61a393db48effb9c92b2dc26c8373873911f0750d1ea7" } },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313t-manylinux_2_28_x86_64.whl", upload-time = 2026-01-21T15:23:31Z, hashes = { sha256 = "23f58258012bcf1c349cb22af387e33aadca7f83ea617b080e774eb41e4fe8ff" } },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torch-2.10.0%2Bcu128-cp313-cp313t-win_amd64.whl", upload-time = 2026-01-21T15:23:53Z, hashes = { sha256 = "01b216e097b17a5277cfb47c383cdcacf06abeadcb0daca0c76b59e72854c3b6" } },
 ]
 
 [[packages]]
@@ -596,12 +596,12 @@ name = "torchvision"
 version = "0.25.0+cu128"
 index = "https://download.pytorch.org/whl/cu128"
 wheels = [
-    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313-manylinux_2_28_aarch64.whl", hashes = { sha256 = "12c253520a26483fe3c614f63ff16eca6d9b0b4ebe510699b7d15d88e6c0cd35" } },
-    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313-manylinux_2_28_x86_64.whl", hashes = { sha256 = "a9c0de893dce9c2913c9c7ae88a916910f92d02b99da149678806d18e8079f29" } },
-    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313-win_amd64.whl", hashes = { sha256 = "e2e0317e3861bba1b5aeba7c1cb4bcd50937cf0bffdbea478619d1f5f73e9050" } },
-    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313t-manylinux_2_28_aarch64.whl", hashes = { sha256 = "58b2971b55c761f1d2491bd80fcc4618ea97d363d387a9dd3aff23220cbee264" } },
-    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313t-manylinux_2_28_x86_64.whl", hashes = { sha256 = "1b6878b043513ea3dea1b90bfb5193455d9b248b8c4d5e66ea9f5d1643a43f13" } },
-    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313t-win_amd64.whl", hashes = { sha256 = "96cd2ba7b289117873b2a8f4c80605d38118d920b1045f3ce21a9f0ca68a701e" } },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313-manylinux_2_28_aarch64.whl", upload-time = 2026-01-21T22:32:26Z, hashes = { sha256 = "12c253520a26483fe3c614f63ff16eca6d9b0b4ebe510699b7d15d88e6c0cd35" } },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313-manylinux_2_28_x86_64.whl", upload-time = 2026-01-21T22:32:27Z, hashes = { sha256 = "a9c0de893dce9c2913c9c7ae88a916910f92d02b99da149678806d18e8079f29" } },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313-win_amd64.whl", upload-time = 2026-01-21T22:32:27Z, hashes = { sha256 = "e2e0317e3861bba1b5aeba7c1cb4bcd50937cf0bffdbea478619d1f5f73e9050" } },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313t-manylinux_2_28_aarch64.whl", upload-time = 2026-01-21T22:32:28Z, hashes = { sha256 = "58b2971b55c761f1d2491bd80fcc4618ea97d363d387a9dd3aff23220cbee264" } },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313t-manylinux_2_28_x86_64.whl", upload-time = 2026-01-21T22:32:29Z, hashes = { sha256 = "1b6878b043513ea3dea1b90bfb5193455d9b248b8c4d5e66ea9f5d1643a43f13" } },
+    { url = "https://download-r2.pytorch.org/whl/cu128/torchvision-0.25.0%2Bcu128-cp313-cp313t-win_amd64.whl", upload-time = 2026-01-21T22:32:30Z, hashes = { sha256 = "96cd2ba7b289117873b2a8f4c80605d38118d920b1045f3ce21a9f0ca68a701e" } },
 ]
 
 [[packages]]

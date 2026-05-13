@@ -39,6 +39,7 @@ NATIVE_FILES = [
     "Plugins/Standalone/CesiumForUnityNative-Runtime.dll",
     # Android
     "Plugins/Android/arm64/libCesiumForUnityNative-Runtime.so",
+    "Plugins/Android/x86_64/libCesiumForUnityNative-Runtime.so",
 ]
 
 PLATFORM_CODEGEN = [
@@ -51,7 +52,7 @@ PLATFORM_CODEGEN = [
 
 CODEGEN_LABELS = ["editor-linux", "editor-windows", "standalone-linux", "standalone-windows", "standalone-android"]
 
-NATIVE_PLATFORMS = ["linux", "windows", "android"]
+NATIVE_PLATFORMS = ["linux", "windows", "android-arm64", "android-x86_64"]
 
 # Mirrors CopyPackageContents in Cesium's own CI:
 # https://github.com/CesiumGS/cesium-unity/blob/v1.15.3/Build~/Package.cs#L374-L436

@@ -1,0 +1,17 @@
+{
+  "name": "org.outernet.logging",
+  "version": "0.0.0-local",
+  "displayName": "Outernet Logging",
+  "description": "Structured logging with Serilog and Grafana Loki for Unity",
+  "unity": "6000.0",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/outernet-foundation/placeframe.git",
+    "directory": "packages/unity/Logging/Assets/Package"
+  },
+  "author": {
+    "name": "Elliot Pjecha",
+    "email": "epjecha@gmail.com"
+  }
+}

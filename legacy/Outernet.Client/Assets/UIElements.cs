@@ -110,6 +110,7 @@ namespace Outernet.Client
                                         value = props.domain,
                                         onValueChanged = x =>
                                         {
+                                            Debug.Log("EP: setting domain from view "+x);
                                             domain = x;
                                             props.onDomainChanged?.Invoke(x);
                                         }

@@ -1,18 +1,38 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from shutil import rmtree
-from typing import Any, ValuesView, cast
+from typing import Any, Iterator, ValuesView, cast
 
-from numpy import concatenate, empty, eye, float32, float64, intp, savez_compressed, stack, uint8, uint32
-from numpy.typing import NDArray
-from pycolmap import Database, PosePrior, PosePriorCoordinateSystem
+from placeframe_api_client import ReconstructionStatus
+
+from numpy import (
+    asarray,
+    concatenate,
+    diag,
+    empty,
+    eye,
+    float32,
+    float64,
+    intp,
+    savez_compressed,
+    sign,
+    stack,
+    uint8,
+    uint32,
+)
+from numpy.linalg import det, norm, svd
+from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
+from pycolmap import Camera as ColmapCamera
+from pycolmap import Database, Frame, Point3D, PosePrior, PosePriorCoordinateSystem, Reconstruction, Rigid3d, Sim3d
 from pycolmap import Image as pycolmapImage
-from pycolmap._core import Frame, Point3D, Rigid3d, Sim3d, apply_rig_config, incremental_mapping, match_spatial  # noqa: PLC2701 — no public API
+from pycolmap._core import apply_rig_config, estimate_two_view_geometry, incremental_mapping  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
 
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
+from .progress_publisher import ReconstructionPublisher
 from .rig import Rig, Transform
 
 COLMAP_DB_FILE = "database.db"
@@ -29,6 +49,7 @@ def run_colmap_reconstruction(
     keypoints: dict[str, Any],
     pairs: list[tuple[str, str]],
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
+    publisher: ReconstructionPublisher,
 ):
     colmap_db_path = root_path / COLMAP_DB_FILE
     if colmap_db_path.exists():
@@ -46,6 +67,7 @@ def run_colmap_reconstruction(
     database = Database.open(str(colmap_db_path))
     # Write cameras, images, keypoints, and pose priors to database
     colmap_image_ids: dict[str, int] = {}
+    image_cameras: dict[str, ColmapCamera] = {}
     for rig_id, rig in rigs.items():
         for camera_id, camera in rig.cameras.items():
             colmap_camera_id = database.write_camera(camera[1])
@@ -56,6 +78,7 @@ def run_colmap_reconstruction(
                 colmap_image_ids[image_name] = database.write_image(
                     pycolmapImage(name=image_name, camera_id=colmap_camera_id)
                 )
+                image_cameras[image_name] = camera[1]
                 database.write_keypoints(colmap_image_ids[image_name], keypoints[image_name])
 
                 # Only write pose prior for images from reference sensors (all others are implied by rig)
@@ -81,27 +104,45 @@ def run_colmap_reconstruction(
             stack((image_a_indices, image_b_indices), axis=1).astype(uint32, copy=False),
         )
 
+    # Per-pair so each completion ticks progress; sqlite writes stay on the main thread.
+    publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, len(pairs))
+    verification_options = options.two_view_geometry_options()
+    with ThreadPoolExecutor() as pool:
+        future_to_pair = {
+            pool.submit(
+                estimate_two_view_geometry,
+                image_cameras[a],
+                keypoints[a],
+                image_cameras[b],
+                keypoints[b],
+                stack(match_indices[(a, b)], axis=1).astype(uint32, copy=False),
+                verification_options,
+            ): (a, b)
+            for a, b in pairs
+        }
+        for completed, future in enumerate(as_completed(future_to_pair), start=1):
+            a, b = future_to_pair[future]
+            database.write_two_view_geometry(colmap_image_ids[a], colmap_image_ids[b], future.result())
+            publisher.on_progress(completed)
+
     # Close database
     database.close()
-
-    # Perform rig-aware geometric verification of matches
-    print("Verifying geometry for matches")
-    match_spatial(
-        database_path=str(colmap_db_path),
-        matching_options=options.feature_matching_options(),
-        verification_options=options.two_view_geometry_options(),
-    )
 
     # Compute and store verified matches metrics
     metrics.build_verified_matches_metrics(colmap_db_path, pairs)
 
-    # Run incremental mapping
-    print("Running incremental mapping")
+    progress = _IncrementalMappingProgress(publisher)
+
+    # Phase total is the candidate image count — an upper bound, since COLMAP may drop images that
+    # fail to register or get filtered after bundle adjustment.
+    publisher.set_phase(ReconstructionStatus.RECONSTRUCTING, len(colmap_image_ids))
     reconstructions = incremental_mapping(
         database_path=str(colmap_db_path),
         image_path=str(images_path),
         output_path=str(colmap_sfm_directory),
         options=options.incremental_pipeline_options(),
+        initial_image_pair_callback=progress.on_initial_image_pair,
+        next_image_callback=progress.on_next_image,
     )
 
     # Check that at least one reconstruction was created
@@ -114,24 +155,13 @@ def run_colmap_reconstruction(
         max(range(len(reconstructions)), key=lambda i: reconstructions[i].num_reg_images())
     ]
 
-    # Use the first frame that is registered in the best reconstruction to determine the similarity transform
-    anchor_frame_prior_pose: Transform | None = None
-    anchor_rig_from_world_transform: Rigid3d | None = None
-    for rig_id, camera_id, frame_id in (
-        (rig_id, camera_id, frame_id)
-        for rig_id in rigs.keys()
-        for frame_id in rigs[rig_id].frame_poses.keys()
-        for camera_id in rigs[rig_id].cameras.keys()
-    ):
-        image_id = colmap_image_ids[f"{rig_id}/{camera_id}/{frame_id}.jpg"]
-        if image_id in best_reconstruction.images:
-            reconstruction_frame = cast(Frame, best_reconstruction.images[image_id].frame)
-            anchor_frame_prior_pose = rigs[rig_id].frame_poses[frame_id]
-            anchor_rig_from_world_transform = cast(Rigid3d, reconstruction_frame.rig_from_world)  # type: ignore
-            break
+    metrics.build_reconstruction_metrics(best_reconstruction)
 
-    if anchor_frame_prior_pose is None or anchor_rig_from_world_transform is None:
+    # Use the first frame that is registered in the best reconstruction to determine the similarity transform
+    anchor = next(_registered_frames(rigs, colmap_image_ids, best_reconstruction), None)
+    if anchor is None:
         raise RuntimeError("Could not find anchor frame in best reconstruction")
+    anchor_frame_prior_pose, anchor_rig_from_world_transform = anchor
 
     # Transform the reconstruction to align with the rig coordinate system
     best_reconstruction.transform(
@@ -146,6 +176,27 @@ def run_colmap_reconstruction(
             )
         )
     )
+
+    # Rigid Umeyama best-fit of map centers to truth — fit not applied; only the residual is
+    # kept as the VIO-quality signal that filters unreliable captures from the calibration corpus.
+    truth_centers_list: list[NDArray[float64]] = []
+    map_centers_list: list[NDArray[float64]] = []
+    for transform, rig_from_world in _registered_frames(rigs, colmap_image_ids, best_reconstruction):
+        truth_centers_list.append(transform.translation.astype(float64))
+        map_centers_list.append(-rig_from_world.rotation.matrix().T @ rig_from_world.translation)
+
+    if len(truth_centers_list) < 3:
+        raise RuntimeError(f"Need ≥3 registered frames for alignment diagnostic (got {len(truth_centers_list)})")
+
+    truth_centers = asarray(truth_centers_list, dtype=float64)
+    map_centers = asarray(map_centers_list, dtype=float64)
+    truth_mean, map_mean = truth_centers.mean(axis=0), map_centers.mean(axis=0)
+    u, _, vt = svd((map_centers - map_mean).T @ (truth_centers - truth_mean))
+    fit_rotation = vt.T @ diag([1.0, 1.0, sign(det(vt.T @ u.T))]) @ u.T
+    fit_translation = truth_mean - fit_rotation @ map_mean
+    residuals = norm((fit_rotation @ map_centers.T).T + fit_translation - truth_centers, axis=1)
+    metrics.metrics.truth_alignment_rms_residual_m = float((residuals**2).mean() ** 0.5)
+    metrics.metrics.truth_alignment_max_residual_m = float(residuals.max())
 
     # Write the best reconstruction to disk in COLMAP format
     best_reconstruction.write_text(str(output_path))
@@ -182,3 +233,41 @@ def run_colmap_reconstruction(
     savez_compressed(str(frame_poses_npz_file_path), positions=frame_positions, orientations=frame_orientations)
 
     return best_reconstruction
+
+
+def _registered_frames(
+    rigs: dict[str, Rig],
+    colmap_image_ids: dict[str, int],
+    reconstruction: Reconstruction,
+) -> Iterator[tuple[Transform, Rigid3d]]:
+    # Multi-camera rigs (e.g. ZED stereo) share one Frame per rig+frame, so any registered
+    # image of any camera in that frame yields the Frame's rig_from_world.
+    for rig_id, rig in rigs.items():
+        for frame_id, transform in rig.frame_poses.items():
+            for camera_id in rig.cameras.keys():
+                image_id = colmap_image_ids[f"{rig_id}/{camera_id}/{frame_id}.jpg"]
+                if image_id in reconstruction.images:
+                    rig_from_world = cast(Rigid3d, cast(Frame, reconstruction.images[image_id].frame).rig_from_world)  # type: ignore
+                    yield transform, rig_from_world
+                    break
+
+
+class _IncrementalMappingProgress:
+    # Tracks per-image registration count across COLMAP's multi-model retries.
+    # Each new model attempt begins with the seed pair (count = 2); attempt index
+    # bumps when initial_image_pair fires after a previous attempt has registered.
+
+    def __init__(self, publisher: ReconstructionPublisher) -> None:
+        self._publisher = publisher
+        self._registered = 0
+        self._attempt = 1
+
+    def on_initial_image_pair(self) -> None:
+        if self._registered > 0:
+            self._attempt += 1
+        self._registered = 2
+        self._publisher.on_progress(self._registered, self._attempt)
+
+    def on_next_image(self) -> None:
+        self._registered += 1
+        self._publisher.on_progress(self._registered, self._attempt)

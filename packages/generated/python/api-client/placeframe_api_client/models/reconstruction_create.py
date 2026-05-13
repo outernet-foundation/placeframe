@@ -20,7 +20,6 @@ import json
 from pydantic import BaseModel, ConfigDict
 from typing import Any, ClassVar, Dict, List, Optional
 from uuid import UUID
-from placeframe_api_client.models.orchestration_status import OrchestrationStatus
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -31,9 +30,8 @@ class ReconstructionCreate(BaseModel):
     """ # noqa: E501
     capture_session_id: UUID
     id: Optional[UUID] = None
-    orchestration_status: Optional[OrchestrationStatus] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["capture_session_id", "id", "orchestration_status"]
+    __properties: ClassVar[List[str]] = ["capture_session_id", "id"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -99,8 +97,7 @@ class ReconstructionCreate(BaseModel):
 
         _obj = cls.model_validate({
             "capture_session_id": obj.get("capture_session_id"),
-            "id": obj.get("id"),
-            "orchestration_status": obj.get("orchestration_status")
+            "id": obj.get("id")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

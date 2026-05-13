@@ -1,9 +1,9 @@
 from core.axis_convention import AxisConvention, change_basis_opencv_from_unity_pose
-from core.camera_config import transform_intrinsics
 from core.capture_session_manifest import RigCameraConfig, RigConfig
+from core.image_preprocess import canonicalize_intrinsics
 from core.transform import Float3, Float4
 from numpy import array, float64
-from numpy.typing import NDArray
+from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from pycolmap import Camera as ColmapCamera
 from pycolmap import RigConfig as ColmapRigConfig
 from pycolmap import RigConfigCamera as ColmapRigConfigCamera
@@ -18,7 +18,13 @@ class Transform:
 
 
 class Rig:
-    def __init__(self, rig_config: RigConfig, axis_convention: AxisConvention, frames_csv: str):
+    def __init__(
+        self,
+        rig_config: RigConfig,
+        axis_convention: AxisConvention,
+        frames_csv: str,
+        held_out_frame_timestamps: set[int] | None = None,
+    ):
         ref_sensors = [camera for camera in rig_config.cameras if camera.ref_sensor]
         if len(ref_sensors) != 1:
             raise ValueError(f"Rig {rig_config.id} must have exactly one reference sensor")
@@ -35,7 +41,7 @@ class Rig:
         self.cameras: dict[str, tuple[RigCameraConfig, ColmapCamera]] = {}
         rig_camera_configs: list[ColmapRigConfigCamera] = []
         for camera in rig_config.cameras:
-            width, height, *params = transform_intrinsics(camera.camera_config)
+            width, height, *params = canonicalize_intrinsics(camera.camera_config)
             self.cameras[camera.id] = (camera, ColmapCamera(width=width, height=height, model="PINHOLE", params=params))
 
             rig_camera_configs.append(
@@ -63,6 +69,8 @@ class Rig:
         self.frame_poses: dict[str, Transform] = {}
         for frame in frames_csv.splitlines()[1:]:  # Skip header
             frame_id, tx, ty, tz, qx, qy, qz, qw = frame.strip().split(",")
+            if held_out_frame_timestamps is not None and int(frame_id) in held_out_frame_timestamps:
+                continue
             rotation_world_from_rig = Rotation.from_quat([float(qx), float(qy), float(qz), float(qw)]).as_matrix()
             translation_world_from_rig = array([float(tx), float(ty), float(tz)], dtype=float)
 

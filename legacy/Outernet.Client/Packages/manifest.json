@@ -17,7 +17,7 @@
     }
   ],
   "dependencies": {
-    "org.outernet.cesium-unity": "1.15.3-18",
+    "org.outernet.cesium-unity": "1.15.3-19",
     "com.fofx.nessle": "https://github.com/outernet-foundation/Nessle.git?path=Assets/Package/Core",
     "com.fofx.observething": "https://github.com/outernet-foundation/ObserveThing.git?path=Assets/Package/Core",
     "com.fofx.observething.statefulextensions": "https://github.com/outernet-foundation/ObserveThing.git?path=Assets/Package/StatefulExtensions",
@@ -29,6 +29,7 @@
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
     "com.magicleap.unitysdk": "2.5.0",
     "com.ogment.outernet.shared": "file:../../Outernet.Shared",
+    "org.outernet.logging": "file:../../../packages/unity/Logging/Assets/Package",
     "org.outernet.placeframe": "file:../../../packages/unity/Placeframe/Assets/Package/Core",
     "org.outernet.placeframe.arfoundation": "file:../../../packages/unity/Placeframe/Assets/Package/ARFoundation",
     "org.outernet.placeframe.magicleap": "file:../../../packages/unity/Placeframe/Assets/Package/MagicLeap",

@@ -17,10 +17,11 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt
+from pydantic import BaseModel, ConfigDict, StrictBool, StrictFloat, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Union
 from typing import Optional, Set
 from typing_extensions import Self
+from pydantic_core import to_jsonable_python
 
 class LocalizationMetrics(BaseModel):
     """
@@ -32,11 +33,18 @@ class LocalizationMetrics(BaseModel):
     num_correspondences: StrictInt
     num_matches: StrictInt
     inlier_coverage: Union[StrictFloat, StrictInt]
+    confidence_tight: Union[StrictFloat, StrictInt]
+    confidence_loose: Union[StrictFloat, StrictInt]
+    confidence_is_calibrated: StrictBool
+    measurement_covariance: List[List[Union[StrictFloat, StrictInt]]]
+    pnp_covariance: List[List[Union[StrictFloat, StrictInt]]]
+    pipeline_version: StrictStr
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["inlier_ratio", "reprojection_error_median", "num_inliers", "num_correspondences", "num_matches", "inlier_coverage"]
+    __properties: ClassVar[List[str]] = ["inlier_ratio", "reprojection_error_median", "num_inliers", "num_correspondences", "num_matches", "inlier_coverage", "confidence_tight", "confidence_loose", "confidence_is_calibrated", "measurement_covariance", "pnp_covariance", "pipeline_version"]
 
     model_config = ConfigDict(
-        populate_by_name=True,
+        validate_by_name=True,
+        validate_by_alias=True,
         validate_assignment=True,
         protected_namespaces=(),
     )
@@ -48,8 +56,7 @@ class LocalizationMetrics(BaseModel):
 
     def to_json(self) -> str:
         """Returns the JSON representation of the model using alias"""
-        # TODO: pydantic v2: use .model_dump_json(by_alias=True, exclude_unset=True) instead
-        return json.dumps(self.to_dict())
+        return json.dumps(to_jsonable_python(self.to_dict()))
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
@@ -98,7 +105,13 @@ class LocalizationMetrics(BaseModel):
             "num_inliers": obj.get("num_inliers"),
             "num_correspondences": obj.get("num_correspondences"),
             "num_matches": obj.get("num_matches"),
-            "inlier_coverage": obj.get("inlier_coverage")
+            "inlier_coverage": obj.get("inlier_coverage"),
+            "confidence_tight": obj.get("confidence_tight"),
+            "confidence_loose": obj.get("confidence_loose"),
+            "confidence_is_calibrated": obj.get("confidence_is_calibrated"),
+            "measurement_covariance": obj.get("measurement_covariance"),
+            "pnp_covariance": obj.get("pnp_covariance"),
+            "pipeline_version": obj.get("pipeline_version")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

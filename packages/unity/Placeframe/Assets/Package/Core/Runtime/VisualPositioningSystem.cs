@@ -21,26 +21,30 @@ namespace Placeframe.Core
 {
     public static class VisualPositioningSystem
     {
-        private const int MinInliers = 175;
-        private const float MinAdjustmentTranslationDelta = .3f;
-        private const float MinAdjustmentRotationDelta = 5f;
-
         private static Action<string> _logCallback;
         private static Action<string> _warnCallback;
         private static Action<string> _errorCallback;
+        private static Func<HttpMessageHandler> _httpHandlerFactory;
         private static IDisposable _localizationSubscription;
+        private static IDisposable _slewSubscription;
         private static HashSet<Guid> _maps = new HashSet<Guid>();
         private static LocalizationMapManager _localizationMapManager;
         private static bool _visualizationsVisible = true;
         private static ICameraProvider _cameraProvider;
-        private static double4x4 _unityFromEcefTransform = double4x4.identity;
-        private static double4x4 _ecefFromUnityTransform = math.inverse(_unityFromEcefTransform);
+
+        private static FilterState _state = RelocalizationFilter.InitialState();
 
         public static DefaultApi Api { get; private set; }
-        public static LocalizationMetrics MostRecentMetrics { get; private set; }
-        public static double4x4 EcefToUnityWorldTransform => _unityFromEcefTransform;
-        public static double4x4 UnityWorldToEcefTransform => _ecefFromUnityTransform;
+        public static LocalizationMetrics MostRecentMetrics => _state.MostRecentMetrics;
+        public static LocalizationMetrics LastReceivedMetrics { get; private set; }
+        public static bool Localizing => _localizationSubscription != null;
+        public static int LoadedMapCount => _maps.Count;
+        public static double4x4 EcefToUnityWorldTransform => _state.AlignmentCurrent;
+        public static double4x4 UnityWorldToEcefTransform => _state.AlignmentCurrentInverse;
         public static event Action OnEcefToUnityWorldTransformUpdated;
+        public static event Action OnMetricsReceived;
+        public static AlignmentUncertainty CurrentUncertainty =>
+            RelocalizationFilter.SummariseCovariance(_state.AlignmentCovariance);
 
         public static void SetMapVisualizationsVisible(bool visible)
         {
@@ -59,7 +63,8 @@ namespace Placeframe.Core
             string authAudience,
             Action<string> logCallback,
             Action<string> warnCallback,
-            Action<string> errorCallback
+            Action<string> errorCallback,
+            Func<HttpMessageHandler> httpHandlerFactory = null
         )
         {
             if (_cameraProvider != null)
@@ -68,10 +73,16 @@ namespace Placeframe.Core
             _logCallback = logCallback;
             _warnCallback = warnCallback;
             _errorCallback = errorCallback;
+            _httpHandlerFactory = httpHandlerFactory;
 
-            Auth.Initialize(authAudience, logCallback, warnCallback, errorCallback);
+            Auth.Initialize(authAudience, logCallback, warnCallback, errorCallback, httpHandlerFactory);
 
             _cameraProvider = cameraProvider;
+            _slewSubscription = Observable
+                .EveryUpdate(UnityFrameProvider.Update)
+                .Subscribe(_ =>
+                    ApplyStepResult(RelocalizationFilter.TickSlew(_state, Time.deltaTime))
+                );
         }
 
         public static async UniTask Login(string domain, string username, string password)
@@ -82,7 +93,9 @@ namespace Placeframe.Core
             await Auth.Login(authTokenUrl, username, password);
 
             Api = new DefaultApi(
-                new HttpClient(new AuthHttpHandler() { InnerHandler = new HttpClientHandler() })
+                new HttpClient(
+                    new AuthHttpHandler() { InnerHandler = _httpHandlerFactory?.Invoke() ?? new HttpClientHandler() }
+                )
                 {
                     BaseAddress = new Uri(apiUrl),
                 },
@@ -96,6 +109,32 @@ namespace Placeframe.Core
 
             foreach (var map in _maps)
                 _localizationMapManager.AddMap(map, _visualizationsVisible);
+        }
+
+        public static async UniTask SetLocalizationMaps(double3 ecefPosition, double radius, CancellationToken cancellationToken = default)
+        {
+            var maps = await GetLocalizationMaps(
+                positionX: ecefPosition.x,
+                positionY: ecefPosition.y,
+                positionZ: ecefPosition.z,
+                radius: radius,
+                cancellationToken: cancellationToken
+            );
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            SetLocalizationMaps(maps.Select(x => x.Id).ToArray());
+        }
+
+        public static void SetLocalizationMaps(Guid[] maps)
+        {
+            var currentMaps = _maps.ToArray();
+
+            foreach (var toUnload in currentMaps.Except(maps))
+                RemoveLocalizationMap(toUnload);
+
+            foreach (var toLoad in maps.Except(currentMaps))
+                AddLocalizationMap(toLoad);
         }
 
         public static void AddLocalizationMap(Guid mapId)
@@ -118,6 +157,8 @@ namespace Placeframe.Core
         {
             if (_localizationSubscription != null)
                 throw new InvalidOperationException("VisualPositioningSystem is already localizing");
+            if (_maps.Count == 0)
+                throw new InvalidOperationException("VisualPositioningSystem has no maps loaded; call SetLocalizationMaps or AddLocalizationMap first");
 
             _localizationSubscription = _cameraProvider
                 // Get camera configuration asynchronously
@@ -129,7 +170,9 @@ namespace Placeframe.Core
                 // Localize this client using each new CameraFrame
                 .SubscribeAwait(
                     async (data, cancellationToken) => await Localize(data.cameraConfig, data.frame, cancellationToken),
-                    // Localize throws for expected rejections (low inliers, small adjustment, no results)
+                    // Localize throws for empty server responses and for the in-flight race where the last map is
+                    // removed mid-frame; per-measurement filter rejections (confidence floor, innovation gate) are
+                    // silent log-and-skip inside ApplyMeasurement.
                     onErrorResume: exception => LogDebug(exception.Message),
                     onCompleted: _ => { },
                     // Skip frames if they pile up
@@ -152,7 +195,7 @@ namespace Placeframe.Core
         )
         {
             var (position, rotation) = LocationUtilities.UnityFromEcef(
-                _unityFromEcefTransform,
+                _state.AlignmentCurrent,
                 ecefPosition,
                 ecefRotation
             );
@@ -164,7 +207,7 @@ namespace Placeframe.Core
 
         public static (double3 position, quaternion rotation) UnityWorldToEcef(Vector3 position, Quaternion rotation) =>
             LocationUtilities.EcefFromUnity(
-                _ecefFromUnityTransform,
+                _state.AlignmentCurrentInverse,
                 new double3(position.x, position.y, position.z),
                 rotation
             );
@@ -188,94 +231,56 @@ namespace Placeframe.Core
                 _maps.ToList(),
                 cameraConfig,
                 AxisConvention.UNITY,
-                12,
-                12.0,
                 new FileParameter(memoryStream),
-                cancellationToken
+                cancellationToken: cancellationToken
             );
 
             if (localizationResults.Count == 0)
                 throw new InvalidOperationException("Localization failed");
 
-            // TODO: Handle multiple results
+            // TODO: Handle multiple results.
             var localizationResult = localizationResults.FirstOrDefault();
-
-            if (localizationResult.Metrics.NumInliers < MinInliers)
-                throw new Exception($"Localization rejected based on metrics.\nNum Inliers: {localizationResult.Metrics.NumInliers}");
-
-            // Get the transform from the map to the camera (The inverse of the camera's pose in the map)
-            var translationCameraFromMap = localizationResult.CameraFromMapTransform.Translation.ToDouble3();
-            var rotationCameraFromMap = localizationResult
-                .CameraFromMapTransform.Rotation.ToMathematicsQuaternion()
-                .ToDouble3x3();
-
-            // Get the transform from the map to the ECEF reference frame (the map's ECEF pose)
-            var translationEcefFromMap = localizationResult.MapTransform.Translation.ToDouble3();
-            var rotationEcefFromMap = localizationResult.MapTransform.Rotation.ToMathematicsQuaternion().ToDouble3x3();
-
-            // Change the basis of the map's pose to Unity's conventions
-            (translationEcefFromMap, rotationEcefFromMap) = LocationUtilities.ChangeBasisUnityFromEcef(
-                translationEcefFromMap,
-                rotationEcefFromMap
-            );
-
-            // Get the transform from the camera to Unity world (the camera's pose in the Unity world)
-            var translationUnityWorldFromCamera = (float3)frame.CameraTranslationUnityWorldFromCamera;
-            // TODO: Adjust unity rotation to account for phone orientation (portrait vs landscape)
-            var rotationUnityWorldFromCamera = math.mul(
-                ((quaternion)frame.CameraRotationUnityWorldFromCamera).ToDouble3x3(),
-                quaternion.AxisAngle(new float3(0f, 0f, 1f), math.radians(0f)).ToDouble3x3()
-            );
-
-            // Compute the transform from the map to Unity world
-            var rotationUnityFromMap = math.mul(rotationUnityWorldFromCamera, rotationCameraFromMap);
-
-            // Align matrix up with unity world up
-            var right = math.rotate(rotationUnityFromMap.ToQuaternion(), new float3(1, 0, 0));
-            var forward = math.cross(right, new float3(0, 1, 0));
-            rotationUnityFromMap = quaternion.LookRotation(forward, new float3(0, 1, 0)).ToDouble3x3();
-
-            var translationUnityFromMap =
-                math.mul(rotationUnityWorldFromCamera, translationCameraFromMap) + translationUnityWorldFromCamera;
-
-            var transformUnityFromMap = Double4x4.FromTranslationRotation(
-                translationUnityFromMap,
-                rotationUnityFromMap
-            );
 
             await UniTask.SwitchToMainThread();
 
-            var newUnityFromEcefTransform = math.mul(
-                transformUnityFromMap,
-                math.inverse(Double4x4.FromTranslationRotation(translationEcefFromMap, rotationEcefFromMap))
-            );
+            LastReceivedMetrics = localizationResult.Metrics;
+            OnMetricsReceived?.Invoke();
 
-            var adjustmentTranslationDelta = math.length(newUnityFromEcefTransform.Position() - _unityFromEcefTransform.Position());
-            var adjustmentRotationDelta = math.angle(newUnityFromEcefTransform.RotationQuaternion(), _unityFromEcefTransform.RotationQuaternion()) * Mathf.Rad2Deg;
+            var result = RelocalizationFilter.ApplyMeasurement(_state, localizationResult, frame);
 
-            if (adjustmentTranslationDelta < MinAdjustmentTranslationDelta && adjustmentRotationDelta < MinAdjustmentRotationDelta)
-                throw new Exception($"Localization rejected because the adjustment would be too minor. Adjustment distance: {adjustmentTranslationDelta}, Adjustment rotation: {adjustmentRotationDelta}");
+            switch (result.Rejection)
+            {
+                case MeasurementRejection.InnovationGate:
+                    var r = result.InnovationResidual;
+                    var s = result.SigmaPredicted;
+                    LogDebug(
+                        $"Localization rejected: innovation gate"
+                            + $" m²={result.InnovationMahalanobisSquared:0.00}"
+                            + $" hadAccepted={result.HadAcceptedMeasurementBeforeStep}"
+                            + $" residual=[ω={r[0]:0.0000},{r[1]:0.0000},{r[2]:0.0000}"
+                            + $" ν={r[3]:0.0000},{r[4]:0.0000},{r[5]:0.0000}]"
+                            + $" sigmaPredictedDiag=[{s[0,0]:E2},{s[1,1]:E2},{s[2,2]:E2},"
+                            + $"{s[3,3]:E2},{s[4,4]:E2},{s[5,5]:E2}]"
+                    );
+                    break;
+            }
 
-            _unityFromEcefTransform = newUnityFromEcefTransform;
-            _ecefFromUnityTransform = math.inverse(_unityFromEcefTransform);
-
-            MostRecentMetrics = localizationResult.Metrics;
-
-            OnEcefToUnityWorldTransformUpdated?.Invoke();
+            ApplyStepResult(result);
 
             return Unit.Default;
         }
 
         public static void SetEcefToUnityTransform(double4x4 ecefToUnityTransform)
         {
-            _unityFromEcefTransform = ecefToUnityTransform;
-            _ecefFromUnityTransform = math.inverse(_unityFromEcefTransform);
-            OnEcefToUnityWorldTransformUpdated?.Invoke();
+            ApplyStepResult(RelocalizationFilter.Reset(_state, ecefToUnityTransform));
         }
+
+        public static UniTask<List<LocalizationMapRead>> GetLocalizationMaps(List<Guid> ids = default, List<Guid> reconstructionIds = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, CancellationToken cancellationToken = default)
+            => Api.GetLocalizationMapsAsync(ids, reconstructionIds, positionX, positionY, positionZ, radius, cancellationToken);
 
         public static UniTask<LocalizationMapRead> GetMapData(Guid mapID)
         {
-            return Api.GetLocalizationMapAsync(mapID).AsUniTask();
+            return Api.GetLocalizationMapAsync(mapID);
         }
 
         public static async UniTask<ReconstructionPoint[]> GetReconstructionPoints(
@@ -284,7 +289,7 @@ namespace Placeframe.Core
         )
         {
             var pointPayload = await FetchPayloadAsync(
-                Api.GetReconstructionPointsAsync(reconstructionID, AxisConvention.UNITY).AsUniTask(),
+                Api.GetReconstructionPointsAsync(reconstructionID, AxisConvention.UNITY),
                 bytesPerElement: (3 * sizeof(float)) + 3,
                 cancellationToken
             );
@@ -319,7 +324,7 @@ namespace Placeframe.Core
         )
         {
             var framePayload = await FetchPayloadAsync(
-                Api.GetReconstructionFramePosesAsync(reconstructionID, AxisConvention.UNITY).AsUniTask(),
+                Api.GetReconstructionFramePosesAsync(reconstructionID, AxisConvention.UNITY),
                 bytesPerElement: (3 * sizeof(float)) + (4 * sizeof(float)),
                 cancellationToken
             );
@@ -347,6 +352,13 @@ namespace Placeframe.Core
         {
             public Vector3 position;
             public Color32 color;
+        }
+
+        private static void ApplyStepResult(StepResult result)
+        {
+            _state = result.NewState;
+            if (result.TransformChanged)
+                OnEcefToUnityWorldTransformUpdated?.Invoke();
         }
 
         private static async UniTask<byte[]> FetchPayloadAsync(

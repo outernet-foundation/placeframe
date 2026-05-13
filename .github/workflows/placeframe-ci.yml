@@ -36,6 +36,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      cache-tag: ${{ steps.tag.outputs.value }}
     container:
       image: unityci/editor:6000.0.66f1-linux-il2cpp-3
       volumes:
@@ -48,10 +50,15 @@ jobs:
 
       - uses: ./.github/actions/setup-uv
 
+      - name: Compute license cache tag
+        id: tag
+        run: echo "value=$(uv run --no-sync unity-license-tag)" >> "$GITHUB_OUTPUT"
+
       - name: Activate Unity license
         run: uv run --no-sync activate-unity-license --oras-push
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          LICENSE_CACHE_TAG: ${{ steps.tag.outputs.value }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
@@ -129,9 +136,18 @@ jobs:
           restore-keys: |
             unity-upm-
 
+      - name: Inject UnityEnv (MakeItSing only)
+        if: matrix.project-name == 'MakeItSing'
+        env:
+          SUPABASE_PROJECT_ID: ${{ secrets.MAKEITSING_SUPABASE_PROJECT_ID }}
+          SUPABASE_API_KEY: ${{ secrets.MAKEITSING_SUPABASE_API_KEY }}
+          PHOTON_PROJECT_ID: ${{ secrets.MAKEITSING_PHOTON_PROJECT_ID }}
+        run: uv run --no-sync inject-unity-env
+
       - name: Build
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          LICENSE_CACHE_TAG: ${{ needs.activate-license.outputs.cache-tag }}
         run: |
           uv run --no-sync build-unity \
             --project ${{ matrix.project-name }} \
@@ -158,8 +174,45 @@ jobs:
           path: ${{ matrix.project }}/Build/**/BuildReport.json
           if-no-files-found: ignore
 
+  build-zed:
+    needs: [preflight]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    name: build-zed
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - uses: ./.github/actions/setup-uv
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Create builder and login
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          docker buildx create --use --driver docker-container
+          echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build
+        run: uv run --no-sync build --mode ci --gpu none --bake-file compose.zed.bake.yml --targets zed-capture
+
+      - name: Upload .env.lock
+        uses: actions/upload-artifact@v6
+        with:
+          name: env-lock-zed
+          path: .env.lock
+          include-hidden-files: true
+
   ensure-release-pr:
-    needs: [build-docker, build-unity]
+    needs: [build-docker, build-unity, build-zed]
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     steps:

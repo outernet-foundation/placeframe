@@ -119,6 +119,7 @@ services:
       args:
         <<: *base-args
         TORCH_DEVICE: "cuda"
+        LOCALIZER_SHA: "${LOCALIZER_SHA:?err}"
       tags:
         - "ghcr.io/outernet-foundation/placeframe/localizer-cuda:latest"
         - "ghcr.io/outernet-foundation/placeframe/localizer-cuda:${LOCALIZER_SHA}"
@@ -145,6 +146,7 @@ services:
       args:
         <<: *base-args
         TORCH_DEVICE: "rocm"
+        LOCALIZER_SHA: "${LOCALIZER_SHA:?err}"
       tags:
         - "ghcr.io/outernet-foundation/placeframe/localizer-rocm:latest"
         - "ghcr.io/outernet-foundation/placeframe/localizer-rocm:${LOCALIZER_SHA}"

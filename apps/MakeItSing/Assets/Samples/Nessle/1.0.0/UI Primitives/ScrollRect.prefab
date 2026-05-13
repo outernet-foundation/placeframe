@@ -1,40 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &951988992781954534
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 8149134073885774948}
-  m_Layer: 5
-  m_Name: GameObject
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &8149134073885774948
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 951988992781954534}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 7491194781012719655}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0.000022888184, y: 0.000038146973}
-  m_SizeDelta: {x: 100, y: 100}
-  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &2778359330952952164
 GameObject:
   m_ObjectHideFlags: 0
@@ -65,8 +30,7 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 8149134073885774948}
+  m_Children: []
   m_Father: {fileID: 6165070352235012954}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -217,7 +181,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1aa08ab6e0800fa44ae55d278d1423e3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Content: {fileID: 8149134073885774948}
+  m_Content: {fileID: 0}
   m_Horizontal: 1
   m_Vertical: 1
   m_MovementType: 1
@@ -230,8 +194,8 @@ MonoBehaviour:
   m_VerticalScrollbar: {fileID: 4530655513983058150}
   m_HorizontalScrollbarVisibility: 2
   m_VerticalScrollbarVisibility: 2
-  m_HorizontalScrollbarSpacing: 0
-  m_VerticalScrollbarSpacing: 0
+  m_HorizontalScrollbarSpacing: -3
+  m_VerticalScrollbarSpacing: -3
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -247,7 +211,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0409765957bb70042b76d54f7177eb91, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _childParentOverride: {fileID: 0}
 --- !u!1001 &6052556239030565699
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -354,7 +317,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5396963508755658476, guid: 78dba41fb12304744acf3faf133fc4d2, type: 3}
       propertyPath: m_Size
-      value: 1
+      value: 0.9999368
       objectReference: {fileID: 0}
     - target: {fileID: 3572847878607360629, guid: 3a0aceadf1b686e42b0da829c72021c5, type: 3}
       propertyPath: m_AnchorMax.x
@@ -515,7 +478,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5396963508755658476, guid: 78dba41fb12304744acf3faf133fc4d2, type: 3}
       propertyPath: m_Size
-      value: 1
+      value: 0.9999368
       objectReference: {fileID: 0}
     - target: {fileID: 5396963508755658476, guid: 78dba41fb12304744acf3faf133fc4d2, type: 3}
       propertyPath: m_Direction

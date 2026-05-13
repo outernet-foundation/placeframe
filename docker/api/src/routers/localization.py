@@ -1,12 +1,18 @@
 from typing import Annotated, cast
 from uuid import UUID
 
-from common.multipart_requests import MultipartRequestModel, MultipartRequestOperation
+from common.multipart_requests import (
+    MultipartRequestModel,
+    MultipartRequestOperation,
+    multipart_json,
+    multipart_json_list,
+)
 from core.axis_convention import AxisConvention
 from core.camera_config import PinholeCameraConfig
 from core.localization_metrics import LocalizationMetrics
 from core.transform import Float3, Float4, Transform
-from litestar import Router, post
+from datamodels.public_tables import Reconstruction
+from litestar import Router, get, post
 from litestar.datastructures import UploadFile
 from litestar.di import Provide
 from litestar.enums import RequestEncodingType
@@ -17,7 +23,11 @@ from placeframe_localizer_client import ApiClient, ApiException, Configuration
 from placeframe_localizer_client.api.default_api import DefaultApi
 from placeframe_localizer_client.models.axis_convention import AxisConvention as LocalizerAxisConvention
 from placeframe_localizer_client.models.pinhole_camera_config import PinholeCameraConfig as LocalizerPinholeCameraConfig
-from pydantic import BaseModel
+from placeframe_localizer_client.models.reconstruction_metrics import (
+    ReconstructionMetrics as LocalizerReconstructionMetrics,
+)
+from pydantic import BaseModel, BeforeValidator, Json
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
@@ -28,11 +38,11 @@ settings = get_settings()
 
 
 class LocalizationRequest(MultipartRequestModel):
-    map_ids: list[UUID]
-    camera_config: PinholeCameraConfig
+    map_ids: Annotated[Json[list[UUID]], BeforeValidator(multipart_json_list)]
+    camera_config: Annotated[Json[PinholeCameraConfig], BeforeValidator(multipart_json)]
     axis_convention: AxisConvention
-    retrieval_top_k: int
-    ransac_threshold: float
+    retrieval_top_k: int | None = None
+    ransac_threshold: float | None = None
     image: UploadFile
 
 
@@ -50,16 +60,28 @@ async def localize_image(
     reconstruction_id_to_map_id = {
         map.reconstruction_id: map for map in await fetch_localization_maps(session, data.map_ids)
     }
+    manifest_rows = (
+        await session.execute(
+            select(Reconstruction.id, Reconstruction.manifest).where(
+                Reconstruction.id.in_(reconstruction_id_to_map_id.keys())
+            )
+        )
+    ).all()
+    image = await data.image.read()
 
     async with ApiClient(Configuration(host=str(settings.localizer_container_url))) as api_client:
         try:
             localizations = await DefaultApi(api_client).localize_image(
-                list(reconstruction_id_to_map_id.keys()),
-                LocalizerPinholeCameraConfig.model_validate(data.camera_config.model_dump()),
-                LocalizerAxisConvention(data.axis_convention.value),
-                data.retrieval_top_k,
-                data.ransac_threshold,
-                await data.image.read(),
+                reconstruction_ids=list(reconstruction_id_to_map_id.keys()),
+                metrics={
+                    str(row_id): LocalizerReconstructionMetrics.model_validate(manifest["metrics"])
+                    for row_id, manifest in manifest_rows
+                },
+                camera_config=LocalizerPinholeCameraConfig.model_validate(data.camera_config.model_dump()),
+                axis_convention=LocalizerAxisConvention(data.axis_convention.value),
+                image=image,
+                retrieval_top_k=data.retrieval_top_k,
+                ransac_threshold=data.ransac_threshold,
             )
 
             return [
@@ -91,6 +113,15 @@ async def localize_image(
             raise HTTPException(status_code=HTTP_502_BAD_GATEWAY, detail="Localization session backend error") from e
 
 
+@get("/version")
+async def get_localizer_version() -> str:
+    async with ApiClient(Configuration(host=str(settings.localizer_container_url))) as api_client:
+        return await DefaultApi(api_client).get_localizer_version()
+
+
 router = Router(
-    "/localize", tags=["Localization"], dependencies={"session": Provide(get_session)}, route_handlers=[localize_image]
+    "/localize",
+    tags=["Localization"],
+    dependencies={"session": Provide(get_session)},
+    route_handlers=[localize_image, get_localizer_version],
 )

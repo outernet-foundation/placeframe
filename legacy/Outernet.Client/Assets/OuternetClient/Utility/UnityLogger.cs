@@ -1,4 +1,5 @@
 using System;
+using Outernet.Logging;
 
 namespace Outernet.Client
 {
@@ -45,7 +46,7 @@ namespace Outernet.Client
             => Log.Error(logGroup, message);
 
         public void Error(Exception exception)
-            => Log.Error(logGroup, exception, null);
+            => Log.Error(logGroup, exception);
 
         public void Error(string message, Exception exception)
             => Log.Error(logGroup, exception, message);

@@ -1,3 +1,4 @@
+using Outernet.Logging;
 using UnityEngine;
 
 #if UNITY_EDITOR

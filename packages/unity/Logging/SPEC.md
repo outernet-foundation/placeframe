@@ -1,0 +1,140 @@
+# packages/unity/Logging/SPEC.md
+
+## What this is
+
+`Outernet.Logging` is a Unity package that wires Serilog into a Unity app and ships log events to the Placeframe server's Loki over HTTPS via the public gateway, authenticated with a Keycloak Bearer token supplied by the consumer. It also intercepts `UnityEngine.Debug` so anything that goes through Unity's log handler (including native plugins, async unobserved exceptions, and R3 subscription faults) flows through the same Serilog pipeline. Consumers are Unity apps in `apps/`: `AndroidMobile` (Capture Tool, `app=capture-tool`) and `MakeItSing` (`app=make-it-sing`). The package is referenced as a file-pathed UPM dep (`org.outernet.logging` at `file:../../../packages/unity/Logging/Assets/Package`).
+
+## Shape
+
+The package is one asmdef (`Outernet.Logging`) with nine runtime source files; no editor code, no tests.
+
+```
+packages/unity/Logging/Assets/Package/
+|-- package.json
+`-- Runtime/
+    |-- Outernet.Logging.asmdef                  refs UniTask, R3.Unity
+    |-- Logger.cs                                lifecycle + Unity-log interception + Serilog factory
+    |-- Log.cs                                   static call surface + Microsoft.Extensions.Logging adapter
+    |-- LokiSink.cs                              in-memory queue + thread-pool drain to Loki
+    |-- UnityLoggerConfiguration.cs              ILogEventSink piping to UnityEngine.Debug (colored console)
+    |-- Enricher.cs                              message/messageTemplate/stackTrace/exception capture
+    |-- JTokenFromSerilogProperty.cs             Newtonsoft conversion for the Loki line payload
+    |-- ExponentialBackoff.cs                    1s -> 60s schedule for the drain loop
+    |-- LogLevel.cs                              Trace/Debug/Info/Warn/Error/Fatal/None
+    |-- LogGroupColorAttribute.cs                marker placed on consumer enum members
+    `-- InnerFramesHiddenFromStackTraceAttribute.cs   marker for stack-trace trimming
+```
+
+### Public surface
+
+- `Logger<TLogGroup>.Initialize(labels, suppressErrors = null)` -- set up Serilog, install Unity-log interception. `labels` (e.g. `[("app","capture-tool"),("platform","android-mobile")]`) bake into the Loki stream selector for every push. `suppressErrors` is a list of substrings: a message containing any of them is downgraded from `Error`/`Exception` to `Log` before forwarding (used for known-benign native spam like ARCore `GL_INVALID_ENUM`).
+- `Logger<TLogGroup>.EnableLoki(domain, tokenProvider, handler = null)` -- turn on the Loki drain. Until this is called, emitted events queue in memory. `tokenProvider` is a `Func<UniTask<string>>` returning a Bearer token (Placeframe consumers pass `() => Auth.GetOrRefreshToken()`). `handler` is an optional `HttpMessageHandler` (the Capture Tool injects an `InternetBoundHandler` to bind sockets to wifi rather than the ZED USB-ethernet interface).
+- `Logger<TLogGroup>.Terminate()` -- dispose the sink and unhook R3/Task subscriptions. Not used by any current consumer.
+- `Log<TLogGroup>.{Trace,Debug,Info,Warn,Error,Fatal}(...)` -- ~40 overloads covering combinations of `(TLogGroup, Exception, string template, object[] values)`.
+- `Log<TLogGroup>.{logLevel, stackTraceLevel, enabledLogGroups}` -- mutable static gates. Defaults: `Info`, `Warn`, all-bits-set. Consumers reconfigure at boot (and `MakeItSing` re-binds them to remote Supabase config at runtime -- `apps/MakeItSing/Assets/App/App.cs:66-68`).
+- `Log<TLogGroup>.LoggerFactory : ILoggerFactory` -- adapter so libraries that take `Microsoft.Extensions.Logging.ILogger` (FofX in `MakeItSing`) flow through the same pipeline.
+- `LogGroupColorAttribute(hexColor)` -- placed on each consumer enum member; the Unity console sink reads it via reflection to color `[group]` preludes.
+- `InnerFramesHiddenFromStackTraceAttribute` -- placed on `Log<>.*` overloads and the internal Unity-log shim; the Enricher trims everything up to and including the last attribute-marked frame so the captured stack starts at the actual caller.
+
+### Pipeline at runtime
+
+`Logger<TLogGroup>.Initialize` builds one Serilog logger per app (per closed generic type):
+
+    LoggerConfiguration()
+        .MinimumLevel.Verbose()
+        .Enrich.With<Enricher<TLogGroup>>()
+        .WriteTo.Unity<TLogGroup>()       <-- UnityDebugSink: colored Unity-console output
+        .WriteTo.Sink(_lokiSink)          <-- LokiSink: queue -> drain loop -> Loki HTTP push
+        .CreateLogger();
+
+Then the reverse direction is hooked so *anything* logging reaches Serilog:
+
+- `Debug.unityLogger.logHandler` is replaced with a `SerilogLogHandler` (captures `Debug.Log/Warning/Error` and native plugin emissions that go through `ILogHandler`).
+- `Application.logMessageReceived` is subscribed via R3 (catches emissions that skip `logHandler`, e.g. native crash text).
+- `UniTaskScheduler.UnobservedTaskException`, `TaskScheduler.UnobservedTaskException`, and `R3.ObservableSystem.RegisterUnhandledExceptionHandler` all route into `Log<TLogGroup>.Error`.
+- `Application.SetStackTraceLogType(..., None)` is called for every Unity log type -- Unity's built-in stack-trace capture is disabled because the Serilog Enricher captures a richer one.
+
+The Unity sink and the reverse hook would naively form a loop (Serilog -> UnityDebugSink -> `Debug.logHandler` -> `SerilogLogHandler` -> Serilog). `[ThreadStatic] internal static bool emittingToUnity` is set by the UnityDebugSink immediately before calling the saved-off `defaultUnityLogHandler`, and the reverse hook early-returns when it's true (`Runtime/Logger.cs:81-88, 141`).
+
+### LokiSink
+
+The Loki sink is the only non-mechanical piece. `Emit` is callable from the moment `Initialize` returns; it serializes the event to a one-line JSON document and appends it to a `LinkedList<(ts, line)>` guarded by `_queueLock`. Events that arrive before `EnableLoki` accumulate so a successful first drain ships everything captured during boot and pre-login.
+
+When `EnableLoki(domain, tokenProvider, handler)` fires, the sink:
+
+1. Constructs an `HttpClient` over the caller-supplied handler (or `new HttpClientHandler()`).
+2. Sets `_pushUrl = https://{domain}/loki/api/v1/push`.
+3. Starts one `UniTask.RunOnThreadPool(DrainLoop)`.
+
+The drain loop, each iteration:
+
+1. Sleeps `SleepDuration` from the `ExponentialBackoff` schedule (initially `Zero`, so the first iteration runs immediately).
+2. Snapshots `_pending` under the lock. If empty, `OnIdle` -> 2s sleep -> continue.
+3. Awaits `_tokenProvider()` under a 15s `CancellationTokenSource` so a hung token fetch can't wedge the loop.
+4. POSTs `{streams: [{stream: <labels>, values: [[ts, line], ...]}]}` under the same cancellation token.
+5. On 2xx: pops `batch.Length` entries from the head -- events that arrived during the in-flight POST stay at the tail and ship next drain. `OnSuccess` resets backoff.
+6. On non-2xx: SelfLog + `OnFailure` (sleeps current backoff, doubles up to 60s).
+7. On exception: if `_disposed`, exit silently -- that's the shutdown path. Else SelfLog + `OnFailure`.
+
+Sink-internal failures route through `Serilog.Debugging.SelfLog.WriteLine` (which the Logger wires to write through the saved-off `defaultUnityLogHandler`), so a failing drain does not recursively re-enqueue its own diagnostics.
+
+Timestamp encoding: `(logEvent.Timestamp.UtcDateTime.Ticks - UnixEpochTicks) * 100` -- .NET ticks are 100ns, Loki wants a nanosecond integer string. JSON formatting is `Formatting.None` because LogQL `|=` / `|~` line filters operate per line and won't match across embedded newlines.
+
+Property serialization in `Emit`: it filters any caller-supplied `"level"` so the canonical Grafana-flavored level (`trace/debug/info/warning/error/critical`) wins, then orders keys with a hand-picked weighting (`level`, `logGroup`, `messageTemplate`, `message`, then everything else, then `stackTrace`, `exception` last). The order is pure UX for the Grafana viewer -- these become the visible "columns" in a log row. Fatal becomes `critical` because Grafana has no native `fatal`.
+
+### Enricher
+
+`Enricher<TLogGroup>.Enrich` adds, on every event:
+
+- `exception` (`DictionaryValue`) -- structured exception with `type`, `message`, `stackTrace`, `innerException` / `innerExceptions`. Special-case `UnityEngine.AndroidJavaException`: reflects the private `mJavaStackTrace` field and adds it as `javaStackTrace` (`Runtime/Enricher.cs:78-84`). JNI exceptions surface their Java frames alongside .NET ones -- `new StackTrace(true)` only sees the .NET side.
+- `messageTemplate` -- the unrendered Serilog template.
+- `message` -- the rendered string.
+- `deviceName` -- `SystemInfo.deviceName` captured at `Initialize` time.
+- `stackTrace` (`SequenceValue`) -- structured frames, only if event level >= `Log<>.stackTraceLevel`. Frames marked `[InnerFramesHiddenFromStackTrace]` are skipped -- the captured stack starts at the actual caller. File paths under `Application.dataPath` are made project-relative. `BuildMethodName` reverse-engineers anonymous-lambda (`<EnclosingMethod>b__N_M`) and async-state-machine (`<Method>d__N`) names into readable `Type.Method+[Anonymous_M]` / `Type.Method+[AsyncStateMachine].MoveNext` strings.
+- `properties` (`SequenceValue`) -- only for template tokens with a format specifier (e.g. `{Timestamp:O}`): captures the rendered formatted strings as a pre-rendered list.
+
+### Consumer integration
+
+Both consumers boot at `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]` with static labels (`apps/AndroidMobile/Assets/Scripts/Capture/App.cs:32`, `apps/MakeItSing/Assets/App/AppSetup.cs:37`), then call `EnableLoki` after their Keycloak login completes (`apps/AndroidMobile/Assets/AuthManager.cs:53`, `apps/MakeItSing/Assets/App/Tasks.cs:22`). Loki labels are static -- every event from one app collapses into one Loki stream. High-cardinality fields (device name, log group, exception) live inside the JSON line, not in the label set.
+
+The gateway (`docker/SPEC.md` "Authentication") fronts `/loki/` and forwards to Loki using the client's existing Keycloak token -- there is no separate Loki ingress and no Loki-specific credential. The Loki `service_name` label is auto-derived from the `app` label, so a query like `{service_name="capture-tool"}` works.
+
+## Rationale
+
+The non-obvious pieces of this package fall out of three constraints: (a) Unity is a single-process world where third-party plugins, native code, and async exceptions all need to land in the same log pipeline, (b) Loki labels are a hard cardinality budget, (c) the consumer can't authenticate Loki pushes until *after* it has done its own login dance.
+
+**One Serilog logger per closed generic type, gated externally.** `Log<TLogGroup>.LogEnabled` does the level + flag-group gate *before* the event reaches Serilog; the Serilog config itself is `MinimumLevel.Verbose`. The package owns gating because the bitflag-group check needs the consumer's enum type, which Serilog doesn't know about. A side effect: every captured event always pays the enricher cost (stack-trace capture on `Warn+`, exception structure capture always). Cheap relative to a Loki POST; visible relative to a `Debug.Log`.
+
+**Reverse-hook everything.** Unity's `Debug.unityLogger.logHandler`, `Application.logMessageReceived`, `UniTaskScheduler.UnobservedTaskException`, `TaskScheduler.UnobservedTaskException`, and `R3.ObservableSystem.RegisterUnhandledExceptionHandler` are all hooked at init. Five hook points because there are five distinct paths by which a third-party crash, async fault, or subscription bug can emit a log message that isn't a direct `Log<>.X` call. Without all five hooks, a class of crashes never reaches Loki. The `[ThreadStatic] emittingToUnity` guard exists *only* to break the cycle the Unity sink creates when the reverse hook is installed.
+
+**In-memory queue + thread-pool drain instead of the upstream `Serilog.Sinks.Grafana.Loki` NuGet.** The replacement (commit `36db199d`) buys three things: (1) events emitted before `EnableLoki` queue rather than drop, so boot-time errors aren't lost when login fails; (2) a per-attempt 15s timeout that wraps both the token fetch and the HTTP send, so a hung token provider can't wedge the drain; (3) one less HTTP/handler abstraction crossing Unity's IL2CPP boundary. The cost is a bespoke implementation with no tests.
+
+**`tokenProvider` is called every drain cycle, not just on 401.** The package takes on faith that the consumer's auth helper caches and only refreshes when the cached token is near-expiry. Placeframe's `Auth.GetOrRefreshToken` does. A consumer with a naive provider that round-trips to Keycloak per call would cap the Loki drain rate at one POST per token roundtrip.
+
+**`HttpMessageHandler` parameter on `EnableLoki`.** Exists for `apps/AndroidMobile` to inject `InternetBoundHandler`, which socket-binds outbound TCP to the wifi interface rather than the ZED USB-ethernet gadget. The handler is otherwise an unused extension point; the package doesn't ship one.
+
+**JSON over Protobuf.** Loki accepts both. JSON keeps the implementation grep-able and avoids dragging a Protobuf dep across the IL2CPP boundary. The drain loop POSTs one stream per batch with `Content-Type: application/json` to `/loki/api/v1/push`.
+
+**Sort order in the JSON line.** `level`, `logGroup`, `messageTemplate`, `message`, then everything else, then `stackTrace`, `exception` last. Pure UX for the Grafana viewer -- these become the visible columns of a log row. Fatal becomes `critical` because Grafana has no native `fatal`.
+
+**`new StackTrace(true)` + `InnerFramesHiddenFromStackTrace` trimming over Unity's `StackTraceLogType.ScriptOnly`.** Unity's built-in capture is per-LogType and produces unstructured text; the Enricher's structured frame list survives JSON serialization, supports `[InnerFramesHiddenFromStackTrace]` to trim the logging shim itself out of every captured stack, and reads `mJavaStackTrace` out of `AndroidJavaException` so JNI exceptions surface their Java side. `Application.SetStackTraceLogType(..., None)` is set for every Unity LogType to suppress the duplicate built-in capture.
+
+## Known gaps
+
+The package works in production but has thin edges worth knowing about.
+
+- **No queue cap, no disk persistence.** `_pending` grows for the lifetime of the process if `EnableLoki` is never called (e.g. the user never logs in). High-volume pre-login emission is an unbounded memory leak. (`Runtime/LokiSink.cs:36`.)
+- **`Initialize` is implicitly single-shot.** A second call leaks the previous `LokiSink` and its drain task, and re-replaces `Debug.unityLogger.logHandler` -- saving the *current* one (the previous `SerilogLogHandler`) as `defaultUnityLogHandler`, which wires a self-loop. No guard. Production calls it once via `[RuntimeInitializeOnLoadMethod]`. (`Runtime/Logger.cs:25-76`.)
+- **`Terminate` does not unhook `Debug.unityLogger.logHandler`.** After Terminate, the saved `defaultUnityLogHandler` is never restored -- the `SerilogLogHandler` remains installed but its target Serilog logger is disposed. Unity logs hit a disposed logger. No consumer calls Terminate. (`Runtime/Logger.cs:83-89`.)
+- **`Application.logMessageReceived` maps `LogType.Log` and `LogType.Warning` both to `Log<>.Warn`** (`Runtime/Logger.cs:153-156`). The `SerilogLogHandler.LogFormat` path correctly maps `LogType.Log -> Info` (`Runtime/Logger.cs:179-181`). The two paths are inconsistent. The `logMessageReceived` path catches messages that bypass `logHandler` -- typically Unity-internal or native -- so collapsing them all to `Warn` may be deliberate noise reduction, but it isn't commented.
+- **`Log<TLogGroup>.enabledLogGroups = (TLogGroup)(object)~0`** in the static ctor (`Runtime/Log.cs:18`) clips for an `enum : byte`. No consumer uses anything but `int`-backed enums today.
+- **`Microsoft.Extensions.Logging.Abstractions` is used by `Log.cs`'s `LoggerFactory` adapter** (`Runtime/Log.cs:240-291`) but the `Outernet.Logging.asmdef` does not list it as a precompiled reference and `package.json` does not document the NuGet dep. It works because Unity's asmdef auto-references DLLs dropped under `Assets/Packages/...` by NuGetForUnity. A new consumer adopting this package gets compile errors until it manually adds `Serilog`, `Newtonsoft.Json`, and `Microsoft.Extensions.Logging.Abstractions` to its own `packages.config`.
+- **`apps/MapRegistrationTool` ships a forked copy of the legacy logging code** at `Assets/Logging/Log.cs` instead of taking the file-pathed UPM dep. Drifts on every change to the shared package.
+- **No tests.** No JSON-layout round-trip, no drain-loop test, no timeout test, no pre-Enable queue-accumulation test.
+- **`package.json` version is `"0.0.0-local"`.** File-pathed UPM dep, never published. Fine, but worth knowing if a consumer tries to pin a real version.
+
+## See also
+
+- `docker/SPEC.md` -- the gateway's `/loki/` passthrough and the `service_name` label conventions for Loki queries; this package is the client side of that contract.
+- `apps/AndroidMobile/CLAUDE.md` -- describes the `InternetBoundHandler` reason for the `HttpMessageHandler` parameter on `EnableLoki` (USB-ethernet ZED vs wifi).
+- `apps/MakeItSing/SPEC.md` -- uses the package with remote-configurable log levels driven from Supabase `config` rows.

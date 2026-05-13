@@ -67,6 +67,7 @@ namespace PlaceframeApiClient.Model
         /// </summary>
         /// <param name="axisConvention">axisConvention (required).</param>
         /// <param name="rigs">rigs (required).</param>
+        /// <param name="captureIntervalSeconds">captureIntervalSeconds.</param>
         public CaptureSessionManifest(AxisConvention axisConvention, List<RigConfig> rigs)
         {
             this.AxisConvention = axisConvention;
@@ -103,6 +104,30 @@ namespace PlaceframeApiClient.Model
             return _flagRigs;
         }
         /// <summary>
+        /// Gets or Sets CaptureIntervalSeconds
+        /// </summary>
+        [DataMember(Name = "capture_interval_seconds", EmitDefaultValue = true)]
+        public double? CaptureIntervalSeconds
+        {
+            get{ return _CaptureIntervalSeconds;}
+            set
+            {
+                _CaptureIntervalSeconds = value;
+                _flagCaptureIntervalSeconds = true;
+            }
+        }
+        private double? _CaptureIntervalSeconds;
+        private bool _flagCaptureIntervalSeconds;
+
+        /// <summary>
+        /// Returns false as CaptureIntervalSeconds should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeCaptureIntervalSeconds()
+        {
+            return _flagCaptureIntervalSeconds;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -112,6 +137,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("class CaptureSessionManifest {\n");
             sb.Append("  AxisConvention: ").Append(AxisConvention).Append("\n");
             sb.Append("  Rigs: ").Append(Rigs).Append("\n");
+            sb.Append("  CaptureIntervalSeconds: ").Append(CaptureIntervalSeconds).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

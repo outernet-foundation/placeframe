@@ -1,9 +1,10 @@
 import datetime
 import enum
 import uuid
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy import (
+    ARRAY,
     BigInteger,
     Boolean,
     CheckConstraint,
@@ -15,6 +16,7 @@ from sqlalchemy import (
     Index,
     Integer,
     PrimaryKeyConstraint,
+    SmallInteger,
     String,
     Table,
     Text,
@@ -22,6 +24,7 @@ from sqlalchemy import (
     Uuid,
     text,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -47,13 +50,19 @@ class LabelType(enum.Enum):
     IMAGE = "image"
 
 
-class OrchestrationStatus(enum.Enum):
+class ReconstructionStatus(enum.Enum):
     QUEUED = "queued"
-    PENDING = "pending"
-    RUNNING = "running"
+    DOWNLOADING = "downloading"
+    EXTRACTING_FEATURES = "extracting_features"
+    MATCHING_FEATURES = "matching_features"
+    TRAINING_OPQ_MATRIX = "training_opq_matrix"
+    TRAINING_PRODUCT_QUANTIZER = "training_product_quantizer"
+    VERIFYING_GEOMETRY = "verifying_geometry"
+    RECONSTRUCTING = "reconstructing"
+    UPLOADING = "uploading"
     SUCCEEDED = "succeeded"
-    CANCELLED = "cancelled"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 class Base(DeclarativeBase):
@@ -75,6 +84,9 @@ class Tenant(Base):
     )
     nodes: Mapped[list["Node"]] = relationship("Node", back_populates="tenant")
     reconstructions: Mapped[list["Reconstruction"]] = relationship("Reconstruction", back_populates="tenant")
+    localization_evaluations: Mapped[list["LocalizationEvaluation"]] = relationship(
+        "LocalizationEvaluation", back_populates="tenant"
+    )
     localization_maps: Mapped[list["LocalizationMap"]] = relationship("LocalizationMap", back_populates="tenant")
     localization_map_camera_positions: Mapped[list["LocalizationMapCameraPosition"]] = relationship(
         "LocalizationMapCameraPosition", back_populates="tenant"
@@ -138,10 +150,11 @@ class CaptureSession(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    recorded_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     device_type: Mapped[DeviceType] = mapped_column(
         Enum(DeviceType, name="device_type", values_callable=enum_values), nullable=False
     )
-    name: Mapped[str] = mapped_column(Text, nullable=False)
+    name: Mapped[Optional[str]] = mapped_column(Text)
 
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="capture_sessions")
     reconstructions: Mapped[list["Reconstruction"]] = relationship("Reconstruction", back_populates="capture_session")
@@ -270,17 +283,85 @@ class Reconstruction(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
-    orchestration_status: Mapped[OrchestrationStatus] = mapped_column(
-        Enum(OrchestrationStatus, name="orchestration_status", values_callable=enum_values),
+    status: Mapped[ReconstructionStatus] = mapped_column(
+        Enum(ReconstructionStatus, name="reconstruction_status", values_callable=enum_values),
         nullable=False,
-        server_default=text("'queued'::orchestration_status"),
+        server_default=text("'queued'::reconstruction_status"),
     )
+    manifest_version: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    manifest: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    progress_current: Mapped[Optional[int]] = mapped_column(Integer)
+    progress_total: Mapped[Optional[int]] = mapped_column(Integer)
+    progress_attempt: Mapped[Optional[int]] = mapped_column(Integer)
+    error: Mapped[Optional[str]] = mapped_column(Text)
 
     capture_session: Mapped["CaptureSession"] = relationship("CaptureSession", back_populates="reconstructions")
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="reconstructions")
+    localization_evaluations: Mapped[list["LocalizationEvaluation"]] = relationship(
+        "LocalizationEvaluation", back_populates="reconstruction"
+    )
     localization_map: Mapped["LocalizationMap"] = relationship(
         "LocalizationMap", uselist=False, back_populates="reconstruction"
     )
+
+
+class LocalizationEvaluation(Base):
+    __tablename__ = "localization_evaluations"
+    __table_args__ = (
+        CheckConstraint(
+            "pnp_covariance IS NULL OR array_length(pnp_covariance, 1) = 6 AND array_length(pnp_covariance, 2) = 6",
+            name="pnp_covariance_shape",
+        ),
+        CheckConstraint("se3_residual IS NULL OR array_length(se3_residual, 1) = 6", name="se3_residual_length"),
+        CheckConstraint(
+            "succeeded = (err_t_m IS NOT NULL) AND succeeded = (err_r_deg IS NOT NULL) AND succeeded = (se3_residual IS NOT NULL) AND succeeded = (pnp_covariance IS NOT NULL)",
+            name="labels_present_iff_succeeded",
+        ),
+        ForeignKeyConstraint(
+            ["reconstruction_id"],
+            ["public.reconstructions.id"],
+            ondelete="RESTRICT",
+            name="localization_evaluations_reconstruction_id_fkey",
+        ),
+        ForeignKeyConstraint(
+            ["tenant_id"], ["auth.tenants.id"], ondelete="RESTRICT", name="localization_evaluations_tenant_id_fkey"
+        ),
+        PrimaryKeyConstraint("id", name="localization_evaluations_pkey"),
+        UniqueConstraint(
+            "reconstruction_id",
+            "frame_timestamp",
+            "retrieval_top_k",
+            "ransac_threshold",
+            "pipeline_version",
+            name="localization_evaluations_cache_key",
+        ),
+        {"schema": "public"},
+    )
+
+    reconstruction_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, server_default=text("current_tenant()"))
+    ransac_threshold: Mapped[float] = mapped_column(Double(53), nullable=False)
+    frame_timestamp: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    inlier_coverage: Mapped[float] = mapped_column(Double(53), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    query_image_diagonal_px: Mapped[float] = mapped_column(Double(53), nullable=False)
+    reproj_error_median: Mapped[float] = mapped_column(Double(53), nullable=False)
+    inlier_ratio: Mapped[float] = mapped_column(Double(53), nullable=False)
+    retrieval_top_k: Mapped[int] = mapped_column(Integer, nullable=False)
+    num_inliers: Mapped[int] = mapped_column(Integer, nullable=False)
+    num_matches: Mapped[int] = mapped_column(Integer, nullable=False)
+    num_correspondences: Mapped[int] = mapped_column(Integer, nullable=False)
+    succeeded: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    pipeline_version: Mapped[str] = mapped_column(Text, nullable=False)
+    err_r_deg: Mapped[Optional[float]] = mapped_column(Double(53))
+    err_t_m: Mapped[Optional[float]] = mapped_column(Double(53))
+    pnp_covariance: Mapped[Optional[list[float]]] = mapped_column(ARRAY[float](Double(53)))
+    se3_residual: Mapped[Optional[list[float]]] = mapped_column(ARRAY[float](Double(53)))
+
+    reconstruction: Mapped["Reconstruction"] = relationship("Reconstruction", back_populates="localization_evaluations")
+    tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="localization_evaluations")
 
 
 class LocalizationMap(Base):

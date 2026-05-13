@@ -6,7 +6,7 @@ using Placeframe.Core;
 
 namespace Outernet.Client
 {
-    [RequireComponent(typeof(Anchor))]
+    [RequireComponent(typeof(GeoPose))]
     public class SyncedAnchor : MonoBehaviour
     {
         public enum SyncState
@@ -17,13 +17,13 @@ namespace Outernet.Client
         }
 
         private GeoPoseRecord anchorRecord;
-        private Anchor anchor;
+        private GeoPose anchor;
 
         public SyncState State { get; set; }
 
         private void Awake()
         {
-            anchor = GetComponent<Anchor>();
+            anchor = GetComponent<GeoPose>();
         }
 
         public void Initialize(GeoPoseRecord anchorRecord, double3? initialPosition = null, Quaternion? initialRotation = null)

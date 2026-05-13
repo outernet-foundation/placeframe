@@ -6,18 +6,21 @@ using UnityEngine;
 
 namespace Placeframe.Client
 {
-    public class SettingsManager : MonoBehaviour
+    public static class SettingsManager
     {
-        private string settingsPath => $"{Application.persistentDataPath}/settings.json";
+        private static bool _initializing;
+        private static IDisposable _subscription;
+        private static string settingsPath => $"{Application.persistentDataPath}/settings.json";
 
-        private void Awake()
+        public static void Initialize()
         {
             Debug.Log(settingsPath);
 
             if (!File.Exists(settingsPath))
             {
-                App.state.settings.ExecuteAction(x =>
+                App.ExecuteTransaction(appState =>
                 {
+                    var x = appState.settings;
                     x.domain.value = null;
                     x.username.value = "user";
                     x.password.value = "password";
@@ -25,21 +28,30 @@ namespace Placeframe.Client
             }
             else
             {
-                App.state.settings.ExecuteAction(
-                    JSONNode.Parse(File.ReadAllText(settingsPath)),
-                    (json, settings) => settings.FromJSON(json)
-                );
+                App.ExecuteTransaction(appState =>
+                {
+                    var json = JSONNode.Parse(File.ReadAllText(settingsPath));
+                    appState.settings.FromJSON(json);
+                });
             }
 
-            App.RegisterObserver(HandleSettingsChanged, App.state.settings);
+            _initializing = true;
+
+            _subscription = App.state.settings.SubscribeOperationsRecursive(_ =>
+            {
+                if (_initializing)
+                    return;
+
+                File.WriteAllText(settingsPath, App.state.settings.ToJSON(_ => true).ToString());
+            });
+
+            _initializing = false;
         }
 
-        private void HandleSettingsChanged(NodeChangeEventArgs args)
+        public static void Shutdown()
         {
-            if (args.initialize)
-                return;
-
-            File.WriteAllText(settingsPath, App.state.settings.ToJSON(_ => true).ToString());
+            _subscription?.Dispose();
+            _subscription = null;
         }
     }
 }

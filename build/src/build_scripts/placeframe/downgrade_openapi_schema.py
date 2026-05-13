@@ -152,6 +152,15 @@ def _convert_dict_node(node: JsonDict) -> None:
         node["maximum"] = exclusive_max
         node["exclusiveMaximum"] = True
 
+    # `contentEncoding: "binary"` (3.1) is equivalent to `{type: string, format: binary}` (3.0.3).
+    # The containing response's media type already carries the `contentMediaType`, so that field is
+    # just dropped.
+    if node.get("contentEncoding") == "binary":
+        if "format" not in node:
+            node["format"] = "binary"
+        if "type" not in node:
+            node["type"] = "string"
+
     # Remove 3.1.0-only properties that aren't supported in 3.0.3
     unsupported_keys = ["contentMediaType", "contentEncoding", "$comment"]
     for key in unsupported_keys:

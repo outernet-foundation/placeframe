@@ -30,6 +30,7 @@ namespace Placeframe.Client
         {
             props.labelStyle.horizontalAlignment = props.labelStyle.horizontalAlignment ?? Props.Value(HorizontalAlignmentOptions.Center);
             props.labelStyle.verticalAlignment = props.labelStyle.verticalAlignment ?? Props.Value(VerticalAlignmentOptions.Capline);
+            props.background.style.raycastPadding = props.background.style.raycastPadding ?? Props.Value(new Vector4(12, 12, 12, 12));
 
             return Button(new ButtonProps()
             {
@@ -70,7 +71,7 @@ namespace Placeframe.Client
 
         public static IControl Dialog(DialogProps props)
         {
-            var children = new ListObservable<IControl>(
+            var children = new ObservableList<IControl>(
                 Image(new()
                 {
                     layout = Utility.FillParentProps(),
@@ -207,7 +208,12 @@ namespace Placeframe.Client
         }
 
         public static IControl RoundButton(ButtonProps props = default)
-            => Control(elements.roundButton, props);
+        {
+            props.layout.sizeDelta = props.layout.sizeDelta ?? Props.Value(new Vector2(100, 100));
+            props.background.style.raycastPadding = props.background.style.raycastPadding ?? Props.Value(new Vector4(12, 12, 12, 12));
+
+            return Control(elements.roundButton, props);
+        }
 
         public static IControl Foldout(FoldoutProps props = default)
             => Control(elements.foldout, props);
@@ -267,7 +273,7 @@ namespace Placeframe.Client
         public static IControl Columns(ColumnsProps props)
         {
             props.spacing = props.spacing ?? Props.Value(0f);
-            ListObservable<IControl> columns = new ListObservable<IControl>();
+            ObservableList<IControl> columns = new ObservableList<IControl>();
             float spacingValue = 0;
 
             var control = Control("Columns", new()
@@ -279,9 +285,9 @@ namespace Placeframe.Client
 
             Action layoutColumns = () =>
             {
-                float step = 1f / columns.count;
+                float step = 1f / columns.Count;
 
-                for (int i = 0; i < columns.count; i++)
+                for (int i = 0; i < columns.Count; i++)
                 {
                     var child = columns[i];
                     child.rectTransform.anchorMin = new Vector2(step * i, 0);

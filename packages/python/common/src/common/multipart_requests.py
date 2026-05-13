@@ -1,92 +1,75 @@
-# Vibe code: Gemini 3
-#
-# These classes add Litestar support for multipart/form-data requests containg both JSON and binary data
-
 import json
-from typing import Any, Dict, List, cast
+from typing import ClassVar
 
-from litestar.openapi.spec import Operation
-from pydantic import BaseModel, model_validator
+from litestar.enums import RequestEncodingType
+from litestar.openapi.spec import Encoding, OpenAPIMediaType, Operation, Reference, RequestBody, Schema
+from pydantic import BaseModel, ConfigDict
+from pydantic.types import Json as JsonMetadata
+
+
+def multipart_json(value: str | list[str]) -> str:
+    if isinstance(value, list):
+        if len(value) != 1:
+            raise ValueError("expected exactly one multipart value")
+        return value[0]
+
+    return value
+
+
+def multipart_json_list(value: str | list[str]) -> str:
+    if isinstance(value, list):
+        if len(value) == 1:
+            value = value[0]
+        else:
+            return json.dumps(value)
+
+    if "," in value and not value.lstrip().startswith("["):
+        return json.dumps([part.strip() for part in value.split(",")])
+
+    if not value.lstrip().startswith("["):
+        return json.dumps([value])
+
+    return value
 
 
 class MultipartRequestModel(BaseModel):
-    # Allow Pydantic to accept 'UploadFile' (a Litestar type) without trying to generate a schema for it
-    model_config = {"arbitrary_types_allowed": True}
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    multipart_json_fields: ClassVar[dict[str, set[str]]] = {}
 
-    @staticmethod
-    def _robust_json_load(v: Any) -> Any:
-        # Litestar extracts multipart fields as a list of strings
-        if isinstance(v, list):
-            v_list = cast(List[Any], v)
-            if len(v_list) == 1:
-                first = v_list[0]
-                if isinstance(first, str):
-                    try:
-                        return json.loads(first)
-                    except (ValueError, TypeError):
-                        pass
-            return v_list
-
-        # Handle standard JSON strings (objects/arrays)
-        if isinstance(v, str):
-            try:
-                if v.strip().startswith(("{", "[")):
-                    return json.loads(v)
-            except (ValueError, TypeError):
-                pass
-
-        return v
-
-    @model_validator(mode="before")
     @classmethod
-    def parse_multipart_json(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            data_dict = dict(cast(Dict[str, Any], data))
-
-            for key, value in data_dict.items():
-                data_dict[key] = cls._robust_json_load(value)
-            return data_dict
-
-        return data
+    def __pydantic_init_subclass__(cls, **kwargs: object) -> None:  # noqa: PLW3201
+        super().__pydantic_init_subclass__(**kwargs)
+        cls.multipart_json_fields[cls.__name__] = {
+            field_name
+            for field_name, field_info in cls.model_fields.items()
+            if any(type(item) is JsonMetadata for item in field_info.metadata)
+        }
 
 
 class MultipartRequestOperation(Operation):
-    def to_schema(self) -> dict[str, Any]:
-        schema_dict: dict[str, Any] = super().to_schema()
+    def to_schema(self) -> dict[str, object]:
+        request_body = self.request_body
+        if not isinstance(request_body, RequestBody):
+            return super().to_schema()
 
-        if "requestBody" not in schema_dict:
-            return schema_dict
+        media_type = request_body.content.get(RequestEncodingType.MULTI_PART)
+        if not isinstance(media_type, OpenAPIMediaType):
+            return super().to_schema()
 
-        request_body = cast(Dict[str, Any], schema_dict["requestBody"])
-        content = cast(Dict[str, Any], request_body.get("content", {}))
+        schema = media_type.schema
+        model_name: str | None = None
 
-        if "multipart/form-data" not in content:
-            return schema_dict
+        if isinstance(schema, Reference):
+            model_name = schema.ref.rsplit("/", maxsplit=1)[-1]
+        elif isinstance(schema, Schema) and isinstance(schema.title, str):
+            model_name = schema.title
 
-        media_type_obj = cast(Dict[str, Any], content["multipart/form-data"])
-        schema = cast(Dict[str, Any], media_type_obj.get("schema", {}))
-        properties = cast(Dict[str, Any], schema.get("properties", {}))
+        json_fields = MultipartRequestModel.multipart_json_fields.get(model_name or "", set())
+        if json_fields:
+            encoding = media_type.encoding or {}
+            encoding.update({
+                field_name: Encoding(content_type="application/json") for field_name in sorted(json_fields)
+            })
+            media_type.encoding = encoding
 
-        encoding_map: dict[str, Any] = {}
-
-        for prop_name, prop_val in properties.items():
-            prop_schema = cast(Dict[str, Any], prop_val)
-
-            # Heuristic: $ref implies complex object (Pydantic Model)
-            is_ref: bool = "$ref" in prop_schema
-
-            # Heuristic: Array of $refs
-            items_schema = cast(Dict[str, Any], prop_schema.get("items", {}))
-            is_array_ref: bool = prop_schema.get("type") == "array" and "$ref" in items_schema
-
-            if is_ref or is_array_ref:
-                encoding_map[prop_name] = {"contentType": "application/json"}
-
-        if encoding_map:
-            if "encoding" not in media_type_obj:
-                media_type_obj["encoding"] = {}
-
-            encoding_dict = cast(Dict[str, Any], media_type_obj["encoding"])
-            encoding_dict.update(encoding_map)
-
-        return schema_dict
+        return super().to_schema()

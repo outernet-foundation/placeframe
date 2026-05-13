@@ -1,7 +1,7 @@
 import json
 from os import environ, walk
 from pathlib import Path
-from shutil import copytree
+from shutil import copyfile, copytree
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from common.bash import bash, bash_output
@@ -15,6 +15,10 @@ OPENAPI_GENERATOR_PATH = REPO_ROOT / "build" / "openapi-generator"
 CONFIGS_PATH = OPENAPI_GENERATOR_PATH / "configs"
 TEMPLATES_PATH = OPENAPI_GENERATOR_PATH / "templates-generated"
 TEMPLATE_PATCHES_PATH = OPENAPI_GENERATOR_PATH / "templates-patches"
+OVERLAYS_PATH = OPENAPI_GENERATOR_PATH / "overlays"
+OPENAPI_GENERATOR_CLI_VERSION = json.loads((REPO_ROOT / "openapitools.json").read_text(encoding="utf-8"))[
+    "generator-cli"
+]["version"]
 
 # Suppress verbose OpenAPI Generator logging
 environ["JAVA_OPTS"] = "-Dlog.level=warn"
@@ -76,7 +80,7 @@ def _generate_templates():
     (TEMPLATES_PATH).mkdir(parents=True, exist_ok=True)
 
     bash(
-        f"uvx --from 'openapi-generator-cli[jdk4py]' openapi-generator-cli author template -g csharp --library httpclient -o {str(TEMPLATES_PATH / 'csharp')}",
+        f"uvx --from 'openapi-generator-cli[jdk4py]=={OPENAPI_GENERATOR_CLI_VERSION}' openapi-generator-cli author template -g csharp --library httpclient -o {str(TEMPLATES_PATH / 'csharp')}",
         cwd=REPO_ROOT,
     )
 
@@ -123,7 +127,7 @@ def _generate_client(openapi_spec: str, project: str, client: str):
         temporary_config_file.flush()
 
         command = (
-            f"uvx --from 'openapi-generator-cli[jdk4py]' openapi-generator-cli generate "
+            f"uvx --from 'openapi-generator-cli[jdk4py]=={OPENAPI_GENERATOR_CLI_VERSION}' openapi-generator-cli generate "
             f"-g {client} "
             f"-i {Path(temporary_spec_file.name).resolve().as_posix()} "
             f"-o {temporary_directory.resolve().as_posix()} "  # CHANGED: Output to temp_dir
@@ -156,7 +160,7 @@ def _generate_client(openapi_spec: str, project: str, client: str):
                 json.dumps(
                     {
                         "name": client_package_name_camel,
-                        "references": ["Newtonsoft.Json", "Polly", "JsonSubTypes"],
+                        "references": ["Newtonsoft.Json", "Polly", "JsonSubTypes", "UniTask"],
                         "includePlatforms": [],
                         "excludePlatforms": [],
                         "allowUnsafeCode": False,
@@ -172,6 +176,13 @@ def _generate_client(openapi_spec: str, project: str, client: str):
             )
             # Tell the C# compiler to enable nullable annotations
             (temporary_directory / "src" / client_package_name_camel / "csc.rsp").write_text("-nullable:annotations")
+
+            # Drop a Directory.Build.props next to the generated csproj so MSBuild
+            # picks up additional <PackageReference>s the upstream csharp generator
+            # doesn't emit (UniTask). Lands inside src/<package>/ so it's covered
+            # by the per-client Dockerfile COPY of packages/generated/csharp/<client>/.
+            for overlay_file in (OVERLAYS_PATH / "csharp").iterdir():
+                copyfile(overlay_file, temporary_directory / "src" / client_package_name_camel / overlay_file.name)
 
         print(f"Syncing to {client_path}...")
 

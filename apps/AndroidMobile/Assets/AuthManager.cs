@@ -1,29 +1,33 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using FofX;
 using FofX.Stateful;
+using Outernet.Logging;
 using Placeframe.Core;
-using UnityEngine;
 
 namespace Placeframe.Client
 {
-    public class AuthManager : MonoBehaviour
+    public static class AuthManager
     {
-        private TaskHandle _loginTask = TaskHandle.Complete;
+        private static TaskHandle _loginTask = TaskHandle.Complete;
+        private static IDisposable _subscription;
 
-        private void Awake()
+        public static void Initialize()
         {
-            App.RegisterObserver(HandleLoginRequestedChanged, App.state.loginRequested);
+            _subscription = App.state.loginRequested.SubscribeOperations(HandleLoginRequestedChanged);
         }
 
-        private void OnDestroy()
+        public static void Shutdown()
         {
-            App.DeregisterObserver(HandleLoginRequestedChanged);
+            _subscription?.Dispose();
+            _subscription = null;
             _loginTask.Cancel();
         }
 
-        private void HandleLoginRequestedChanged(NodeChangeEventArgs args)
+        private static void HandleLoginRequestedChanged(IReadOnlyList<IStateOperation> args)
         {
             _loginTask.Cancel();
 
@@ -33,22 +37,28 @@ namespace Placeframe.Client
             _loginTask = TaskHandle.Execute(token => LogIn(App.state.settings.domain.value, App.state.settings.username.value, App.state.settings.password.value, token));
         }
 
-        private async UniTask LogIn(string domain, string username, string password, CancellationToken cancellationToken = default)
+        private static async UniTask LogIn(string domain, string username, string password, CancellationToken cancellationToken = default)
         {
-            App.ExecuteActionOrDelay(new SetAuthStatusAction(AuthStatus.LoggingIn));
+            App.ExecuteTransaction(new SetAuthStatusAction(AuthStatus.LoggingIn));
 
             try
             {
                 await VisualPositioningSystem.Login(domain, username, password);
             }
-            catch (Exception exc)
+            catch (Exception exc) when (exc is not TaskCanceledException)
             {
-                App.ExecuteActionOrDelay(new SetAuthStatusAction(AuthStatus.Error, exc.Message));
-                throw exc;
+                App.ExecuteTransaction(new SetAuthStatusAction(AuthStatus.Error, exc.Message));
+                return;
             }
 
+            Logger<LogGroup>.EnableLoki(
+                domain,
+                tokenProvider: () => Auth.GetOrRefreshToken(),
+                handler: InternetBoundHandler.Create()
+            );
+
             await UniTask.SwitchToMainThread(cancellationToken: cancellationToken);
-            App.state.authStatus.ExecuteSetOrDelay(AuthStatus.LoggedIn);
+            App.state.authStatus.value = AuthStatus.LoggedIn;
         }
     }
 }

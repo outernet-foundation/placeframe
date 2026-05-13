@@ -43,7 +43,7 @@ namespace Placeframe.Client
             props.backgroundStyle.imageType = props.backgroundStyle.imageType ?? Props.Value(UnityEngine.UI.Image.Type.Sliced);
             props.backgroundStyle.fillCenter = props.backgroundStyle.fillCenter ?? Props.Value(true);
 
-            ValueObservable<int> selectedTabIndex = new ValueObservable<int>(-1);
+            ObservableValue<int> selectedTabIndex = new ObservableValue<int>(-1);
 
             var control = Control(new GameObject("Tabbed Menu"), new()
             {
@@ -63,7 +63,7 @@ namespace Placeframe.Client
                         {
                             var tabIndex = props.tabs.ObservableIndexOf(tabLabel);
                             var currentTabIndex = -1;
-                            var currentBackgroundStyle = Observables.Combine(
+                            var currentBackgroundStyle = Observables.ObservableCombineValues(
                                 tabIndex,
                                 selectedTabIndex,
                                 (index, selectedIndex) => index == selectedIndex ? props.selectedBackgroundStyle : props.deselectedBackgroundStyle
@@ -78,11 +78,11 @@ namespace Placeframe.Client
                                 onClick = () => selectedTabIndex.value = currentTabIndex,
                                 background =
                                 {
-                                    sprite = Observables.Combine(
+                                    sprite = Observables.ObservableCombineValues(
                                         tabIndex,
                                         selectedTabIndex,
                                         (index, selectedIndex) => index == selectedIndex ? props.selectedBackground : props.deselectedBackground
-                                    ).ObservableShallowCopy(),
+                                    ),
                                     style =
                                     {
                                         color = currentBackgroundStyle.ObservableSelect(x => x.color),

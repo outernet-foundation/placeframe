@@ -18,10 +18,10 @@ import re  # noqa: F401
 import json
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field
-from typing import Any, ClassVar, Dict, List
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
+from typing import Any, ClassVar, Dict, List, Optional
 from uuid import UUID
-from placeframe_api_client.models.orchestration_status import OrchestrationStatus
+from placeframe_api_client.models.reconstruction_status import ReconstructionStatus
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -34,9 +34,15 @@ class ReconstructionRead(BaseModel):
     id: UUID
     created_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     updated_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
-    orchestration_status: OrchestrationStatus
+    status: ReconstructionStatus
+    manifest_version: StrictInt
+    manifest: Dict[str, Any]
+    progress_current: Optional[StrictInt] = None
+    progress_total: Optional[StrictInt] = None
+    progress_attempt: Optional[StrictInt] = None
+    error: Optional[StrictStr] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["capture_session_id", "id", "created_at", "updated_at", "orchestration_status"]
+    __properties: ClassVar[List[str]] = ["capture_session_id", "id", "created_at", "updated_at", "status", "manifest_version", "manifest", "progress_current", "progress_total", "progress_attempt", "error"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -84,6 +90,26 @@ class ReconstructionRead(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
+        # set to None if progress_current (nullable) is None
+        # and model_fields_set contains the field
+        if self.progress_current is None and "progress_current" in self.model_fields_set:
+            _dict['progress_current'] = None
+
+        # set to None if progress_total (nullable) is None
+        # and model_fields_set contains the field
+        if self.progress_total is None and "progress_total" in self.model_fields_set:
+            _dict['progress_total'] = None
+
+        # set to None if progress_attempt (nullable) is None
+        # and model_fields_set contains the field
+        if self.progress_attempt is None and "progress_attempt" in self.model_fields_set:
+            _dict['progress_attempt'] = None
+
+        # set to None if error (nullable) is None
+        # and model_fields_set contains the field
+        if self.error is None and "error" in self.model_fields_set:
+            _dict['error'] = None
+
         return _dict
 
     @classmethod
@@ -100,7 +126,13 @@ class ReconstructionRead(BaseModel):
             "id": obj.get("id"),
             "created_at": obj.get("created_at"),
             "updated_at": obj.get("updated_at"),
-            "orchestration_status": obj.get("orchestration_status")
+            "status": obj.get("status"),
+            "manifest_version": obj.get("manifest_version"),
+            "manifest": obj.get("manifest"),
+            "progress_current": obj.get("progress_current"),
+            "progress_total": obj.get("progress_total"),
+            "progress_attempt": obj.get("progress_attempt"),
+            "error": obj.get("error")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

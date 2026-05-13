@@ -10,13 +10,13 @@ dev = ["build-scripts", "scripts", "basedpyright>=1.28.0", "deptry>=0.24.0", "ru
 
 [tool.uv.workspace]
 members = [
-
     "docker/database-manager",
     "docker/api",
     "docker/auth-initializer",
     "docker/localizer",
     "docker/orchestrator",
     "docker/reconstructor",
+    "docker/zed-capture",
     "packages/python/core",
     "packages/python/common",
     "packages/python/neural-networks",
@@ -26,7 +26,6 @@ members = [
     "packages/generated/python/localizer-client",
     "build",
     "scripts",
-    "zed",
 ]
 
 
@@ -52,8 +51,8 @@ typeCheckingMode = "strict"
 include = [
     "build/**/src/**/*.py",
     "build/**/src/**/*.pyi",
-    "zed/**/src/**/*.py",
-    "zed/**/src/**/*.pyi",
+    "docker/zed-capture/**/src/**/*.py",
+    "docker/zed-capture/**/src/**/*.pyi",
     "docker/**/src/**/*.py",
     "docker/**/src/**/*.pyi",
     "packages/**/src/**/*.py",
@@ -63,4 +62,4 @@ include = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["build/tests", "packages/python/common/tests"]
+testpaths = ["build/tests", "packages/python/common/tests", "scripts/tests"]

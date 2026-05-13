@@ -133,7 +133,10 @@ def main() -> None:
     tag = _next_release_tag(settings.github_repository)
 
     with ci_step("Compute service SHAs"):
-        service_shas = compute_service_shas(Path.cwd(), Path("compose.bake.yml"))
+        service_shas = {
+            **compute_service_shas(Path.cwd(), Path("compose.bake.yml")),
+            **compute_service_shas(Path.cwd(), Path("compose.zed.bake.yml")),
+        }
         for var, sha in sorted(service_shas.items()):
             print(f"  {var}={sha}")
 

@@ -339,7 +339,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1b0da9eb23e0b5f48b704904d93fd580, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _childParentOverride: {fileID: 0}
 --- !u!1 &3306512604699812690
 GameObject:
   m_ObjectHideFlags: 0
@@ -713,7 +712,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2604535097164909711, guid: 68b9373450801054fbe27715b00213b2, type: 3}
       propertyPath: m_AnchorMax.x
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2604535097164909711, guid: 68b9373450801054fbe27715b00213b2, type: 3}
       propertyPath: m_AnchorMax.y
@@ -729,7 +728,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2604535097164909711, guid: 68b9373450801054fbe27715b00213b2, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 69.7478
+      value: -21.209
       objectReference: {fileID: 0}
     - target: {fileID: 2604535097164909711, guid: 68b9373450801054fbe27715b00213b2, type: 3}
       propertyPath: m_SizeDelta.y
@@ -765,7 +764,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2604535097164909711, guid: 68b9373450801054fbe27715b00213b2, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 54.874
+      value: 9.3955
       objectReference: {fileID: 0}
     - target: {fileID: 2604535097164909711, guid: 68b9373450801054fbe27715b00213b2, type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -782,6 +781,10 @@ PrefabInstance:
     - target: {fileID: 2604535097164909711, guid: 68b9373450801054fbe27715b00213b2, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5901010636218190572, guid: 68b9373450801054fbe27715b00213b2, type: 3}
+      propertyPath: m_overflowMode
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8529214488925283911, guid: 68b9373450801054fbe27715b00213b2, type: 3}
       propertyPath: m_Name

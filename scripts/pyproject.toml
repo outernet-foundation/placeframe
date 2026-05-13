@@ -3,9 +3,17 @@ name = "scripts"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-  "build-scripts",
-  "common",
-  "typer>=0.15",
+    "build-scripts",
+    "common",
+    "core",
+    "placeframe-api-client",
+    "pydantic>=2",
+    "httpx>=0.28.1",
+    "typer>=0.15",
+    "numpy>=2.1",
+    "scipy>=1.14",
+    "scikit-learn>=1.5",
+    "pytransform3d>=3.5",
 ]
 
 [build-system]
@@ -19,3 +27,6 @@ packages = ["src/scripts"]
 forward-unity-android-debug-port = "scripts.forward_unity_android_debug_port:main"
 list-debug-targets = "scripts.list_debug_targets:main"
 install = "scripts.install:app"
+install-zed = "scripts.install_zed:app"
+tune-reconstruction = "scripts.tune_reconstruction:app"
+fit-calibration = "scripts.fit_calibration:app"

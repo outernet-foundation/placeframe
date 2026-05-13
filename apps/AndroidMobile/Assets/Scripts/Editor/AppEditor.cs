@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEditor;
 
 using FofX.Stateful;
+using System;
 
 namespace Placeframe.Client
 {
@@ -11,6 +12,7 @@ namespace Placeframe.Client
     public class AppInspector : Editor
     {
         private static HashSet<string> _showStatuses = new HashSet<string>();
+        private static IDisposable _subscription;
 
         public override void OnInspectorGUI()
         {
@@ -30,20 +32,15 @@ namespace Placeframe.Client
         {
             if (Application.isPlaying)
             {
-                App.DeregisterObserver(HandleAppStoreChanged);
-                App.RegisterObserver(HandleAppStoreChanged, App.state);
+                _subscription?.Dispose();
+                _subscription = App.state.SubscribeOperationsRecursive(_ => Repaint());
             }
         }
 
         public void OnDisable()
         {
             if (Application.isPlaying)
-                App.DeregisterObserver(HandleAppStoreChanged);
-        }
-
-        private void HandleAppStoreChanged(NodeChangeEventArgs args)
-        {
-            Repaint();
+                _subscription?.Dispose();
         }
     }
 }

@@ -1,0 +1,30 @@
+[project]
+name = "zed"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13, <3.14"
+# pyzed (Stereolabs ZED SDK Python bindings) is NOT listed here. The "pyzed" package
+# on PyPI is an unrelated project. The real pyzed can only be obtained by running
+# get_python_api.py from a ZED SDK installation, which generates a platform-specific
+# wheel matching the installed SDK version. It is installed at Docker build time inside
+# the Stereolabs base image — see zed/Dockerfile.
+dependencies = [
+    "common",
+    "core",
+    "scipy>=1.16.1",
+    "uvicorn>=0.35.0",
+    "litestar>=2.19.0",
+    "numpy>=2.4.0",
+    "pillow>=12.1.0",
+    "pydantic>=2.0.0",
+    "python-json-logger>=3.2.0",
+]
+
+[dependency-groups]
+dev = ["scipy-stubs"]
+
+[tool.deptry.per_rule_ignores]
+DEP001 = ["pyzed"]
+# uvicorn: ASGI server entrypoint, only invoked from entrypoint.sh.
+DEP002 = ["uvicorn"]

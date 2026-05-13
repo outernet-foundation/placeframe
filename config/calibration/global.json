@@ -1,0 +1,46 @@
+{
+  "_note": "Hand-tuned placeholder calibration. No fit-calibration corpus exists yet; these values are a guess set to close the degenerate failure mode where 5-inlier PnP \"results\" reach the client with placeholder confidence 0.5. The loose tolerance model is a 1-feature logistic on log1p(num_inliers) with weight 1.2 and intercept -5.5, gating at loose_min=0.25 (≈ 38 inliers). The tight model copies the loose one; tight_min=0.0 keeps the tight gate a no-op until tolerance-specific features can be fit. sigma_meas_alpha=1.0 preserves PnP's covariance shape; sigma_meas_beta=1.0e-3 floors translation σ at ~3 cm and rotation σ at ~1.8°, so the client's innovation gate corresponds to ~14 cm translation or ~7.4° rotation single-axis residual. Replace via `uv run fit-calibration` against a real ground-truthed capture corpus before relying on either tolerance gate. pipeline_version stays the `placeholder` sentinel — these values are not pipeline-dependent (no map-feature weights), so the LOCALIZER_SHA check disarms correctly. See BUG-makeitsing-localizations-rejected.md for the rationale.",
+  "schema_version": 2,
+  "pipeline_version": "placeholder",
+  "fit_at": "2026-05-12T00:00:00+00:00",
+  "fit_by": "manual hand-tuned stopgap",
+  "sample_count": 0,
+  "tight": {
+    "logistic_weights": {
+      "log_inliers": 1.2,
+      "inlier_ratio": 0.0,
+      "reproj_err_norm": 0.0,
+      "inlier_coverage": 0.0,
+      "log_num_matches": 0.0,
+      "log_map_image_count": 0.0,
+      "log_map_point_count": 0.0,
+      "map_avg_track_length": 0.0,
+      "log_map_bounding_volume_m3": 0.0,
+      "map_viewpoint_diversity": 0.0
+    },
+    "logistic_intercept": -5.5,
+    "isotonic_x_breakpoints": [],
+    "isotonic_y_breakpoints": []
+  },
+  "loose": {
+    "logistic_weights": {
+      "log_inliers": 1.2,
+      "inlier_ratio": 0.0,
+      "reproj_err_norm": 0.0,
+      "inlier_coverage": 0.0,
+      "log_num_matches": 0.0,
+      "log_map_image_count": 0.0,
+      "log_map_point_count": 0.0,
+      "map_avg_track_length": 0.0,
+      "log_map_bounding_volume_m3": 0.0,
+      "map_viewpoint_diversity": 0.0
+    },
+    "logistic_intercept": -5.5,
+    "isotonic_x_breakpoints": [],
+    "isotonic_y_breakpoints": []
+  },
+  "sigma_meas_alpha": 1.0,
+  "sigma_meas_beta": 1.0e-3,
+  "loose_min": 0.25,
+  "tight_min": 0.0
+}

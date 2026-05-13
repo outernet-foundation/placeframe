@@ -6,7 +6,6 @@ using static Nessle.UIBuilder;
 using ObserveThing;
 using UnityEngine.UI;
 using FofX.Stateful;
-using ObserveThing.StatefulExtensions;
 
 namespace Placeframe.Client
 {
@@ -40,9 +39,9 @@ namespace Placeframe.Client
                                 labelWidth = Props.Value(225f),
                                 control = InputField(new InputFieldProps()
                                 {
-                                    layout = new() { flexibleWidth = Props.Value(true) },
-                                    value = App.state.settings.domain.ToObservable(),
-                                    onValueChanged = x => App.state.settings.domain.ExecuteSetOrDelay(x)
+                                    layout = new() { flexibleWidth = Props.Value(1f) },
+                                    value = App.state.settings.domain,
+                                    onValueChanged = x => App.state.settings.domain.value = x
                                 })
                             }),
                             LabeledControl(new LabeledControlProps()
@@ -51,9 +50,9 @@ namespace Placeframe.Client
                                 labelWidth = Props.Value(225f),
                                 control = InputField(new InputFieldProps()
                                 {
-                                    layout = new() { flexibleWidth = Props.Value(true) },
-                                    value = App.state.settings.username.ToObservable(),
-                                    onValueChanged = x => App.state.settings.username.ExecuteSetOrDelay(x)
+                                    layout = new() { flexibleWidth = Props.Value(1f) },
+                                    value = App.state.settings.username,
+                                    onValueChanged = x => App.state.settings.username.value = x
                                 })
                             }),
                             LabeledControl(new LabeledControlProps()
@@ -62,10 +61,10 @@ namespace Placeframe.Client
                                 labelWidth = Props.Value(225f),
                                 control = InputField(new InputFieldProps()
                                 {
-                                    layout = new() { flexibleWidth = Props.Value(true) },
-                                    value = App.state.settings.password.ToObservable(),
+                                    layout = new() { flexibleWidth = Props.Value(1f) },
+                                    value = App.state.settings.password,
                                     contentType = Props.Value(TMP_InputField.ContentType.Password),
-                                    onValueChanged = x => App.state.settings.password.ExecuteSetOrDelay(x)
+                                    onValueChanged = x => App.state.settings.password.value = x
                                 })
                             }),
                             HorizontalLayout(new LayoutGroupProps()
@@ -77,14 +76,14 @@ namespace Placeframe.Client
                                     LabeledButton(new LabeledButtonProps()
                                     {
                                         label = Props.Value("Log In"),
-                                        onClick = () => App.state.loginRequested.ExecuteSetOrDelay(true)
+                                        onClick = () => App.state.loginRequested.value = true
                                     })
                                 )
                             }),
                             Text(new TextProps()
                             {
-                                value = App.state.authError.ToObservable(),
-                                element = new() { active = App.state.authError.ToObservable().ObservableSelect(x => !string.IsNullOrEmpty(x)) },
+                                value = App.state.authError,
+                                element = new() { active = App.state.authError.ObservableSelect(x => !string.IsNullOrEmpty(x)) },
                                 style = new TextStyleProps()
                                 {
                                     color = Props.Value(Color.red),

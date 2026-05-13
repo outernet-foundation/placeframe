@@ -1,77 +1,71 @@
 using System;
-using System.Collections.Generic;
+using System.Net.Http;
 using FofX.Stateful;
+using ObserveThing;
 using Placeframe.Core;
-using UnityEngine;
 
 namespace Placeframe.Client
 {
-    public class LocalizationManager : MonoBehaviour
+    public static class LocalizationManager
     {
-        public void Initialize(ICameraProvider cameraProvider)
+        private static IDisposable _subscription;
+        private static bool _intializing;
+
+        public static void Initialize(ICameraProvider cameraProvider)
         {
             VisualPositioningSystem.Initialize(
                 cameraProvider,
                 App.state.placeframeAuthAudience.value,
                 message => Log.Info(LogGroup.Localizer, message),
                 message => Log.Warn(LogGroup.Localizer, message),
-                message => Log.Error(LogGroup.Localizer, message)
+                message => Log.Error(LogGroup.Localizer, message),
+                httpHandlerFactory: () => new LoggingHttpHandler { InnerHandler = InternetBoundHandler.Create() ?? new HttpClientHandler() }
             );
 
-            App.RegisterObserver(HandleAppModeChanged, App.state.mode, App.state.localizing);
-            App.RegisterObserver(HandleMapForLocalizationChanged, App.state.mapForLocalization);
+            _intializing = true;
+
+            _subscription = new ComposedDisposable(
+                Observables.ObservableCombineValues(
+                    App.state.mode,
+                    App.state.localizing,
+                    (mode, localizing) => mode == AppMode.Validation && localizing).Subscribe(localizing =>
+                    {
+                        if (_intializing)
+                            return;
+
+                        if (!localizing)
+                        {
+                            VisualPositioningSystem.StopLocalizing();
+                        }
+                        else
+                        {
+                            VisualPositioningSystem.StartLocalizing(1.0f);
+                        }
+                    }),
+                    App.state.mapForLocalization.ObservableWithPrevious().Subscribe((current, previous) =>
+                    {
+                        if (_intializing)
+                            return;
+
+                        if (previous != Guid.Empty)
+                        {
+                            VisualPositioningSystem.RemoveLocalizationMap(previous);
+                        }
+
+                        if (current != Guid.Empty)
+                        {
+                            VisualPositioningSystem.AddLocalizationMap(current);
+                        }
+                    })
+            );
+
+            _intializing = false;
         }
 
-        private void HandleAppModeChanged(NodeChangeEventArgs args)
+        public static void Shutdown()
         {
-            if (args.initialize)
-                return;
-
-            var previousLocalizing =
-                GetPreviousValue(App.state.mode, args.changes) == AppMode.Validation
-                && GetPreviousValue(App.state.localizing, args.changes);
-
-            var localizing = App.state.mode.value == AppMode.Validation && App.state.localizing.value;
-
-            if (previousLocalizing && !localizing)
-            {
-                VisualPositioningSystem.StopLocalizing();
-            }
-
-            if (localizing && !previousLocalizing)
-            {
-                VisualPositioningSystem.StartLocalizing(1.0f);
-            }
-        }
-
-        private void HandleMapForLocalizationChanged(NodeChangeEventArgs args)
-        {
-            if (args.initialize)
-                return;
-
-            var previousMapForLocalization = GetPreviousValue(App.state.mapForLocalization, args.changes);
-            var mapForLocalization = App.state.mapForLocalization.value;
-
-            if (previousMapForLocalization != Guid.Empty)
-            {
-                VisualPositioningSystem.RemoveLocalizationMap(previousMapForLocalization);
-            }
-
-            if (mapForLocalization != Guid.Empty)
-            {
-                VisualPositioningSystem.AddLocalizationMap(mapForLocalization);
-            }
-        }
-
-        private T GetPreviousValue<T>(ObservablePrimitive<T> primitive, List<NodeChangeData> changes)
-        {
-            foreach (var change in changes)
-            {
-                if (change.source == primitive)
-                    return (T)change.previousValue;
-            }
-
-            return primitive.value;
+            _subscription?.Dispose();
+            _subscription = null;
         }
     }
 }

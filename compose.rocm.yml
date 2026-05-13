@@ -4,6 +4,7 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    restart: on-failure
     expose:
       - "5678" # debug port
     volumes:
@@ -24,7 +25,6 @@ services:
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
       CAPTURES_BUCKET: dev-captures
-      MAX_KEYPOINTS_PER_IMAGE: "${MAX_KEYPOINTS_PER_IMAGE:?err}"
 
   localizer-rocm:
     image: "ghcr.io/outernet-foundation/placeframe/localizer-rocm:${LOCALIZER_SHA:?err}"
@@ -39,9 +39,12 @@ services:
     group_add:
       - 44
       - 110
+    configs:
+      - source: localizer-calibration-global
+        target: /etc/placeframe/calibration/global.json
+        mode: 0444
     environment:
       MINIO_ENDPOINT_URL: "http://minio:9000"
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
-      MAX_KEYPOINTS_PER_IMAGE: "${MAX_KEYPOINTS_PER_IMAGE:?err}"

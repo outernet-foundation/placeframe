@@ -191,9 +191,9 @@ namespace Outernet.Client.AuthoringTools
             List<GroupRead> nodeGroups = null;
 
             await UniTask.WhenAll(
-                App.API.GetLocalizationMapsAsync().AsUniTask().ContinueWith(x => maps = x),
-                App.API.GetLocalizationMapsAsync(positionX: ecefPosition.x, positionY: ecefPosition.y, positionZ: ecefPosition.z, radius: radius).AsUniTask(),
-                App.API.GetNodesAsync(positionX: ecefPosition.x, positionY: ecefPosition.y, positionZ: ecefPosition.z, radius: radius).AsUniTask()
+                App.API.GetLocalizationMapsAsync().ContinueWith(x => maps = x),
+                App.API.GetLocalizationMapsAsync(positionX: ecefPosition.x, positionY: ecefPosition.y, positionZ: ecefPosition.z, radius: radius),
+                App.API.GetNodesAsync(positionX: ecefPosition.x, positionY: ecefPosition.y, positionZ: ecefPosition.z, radius: radius)
                     .ContinueWith(x =>
                     {
                         nodes = x;

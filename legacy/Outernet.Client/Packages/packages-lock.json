@@ -1,5 +1,17 @@
 {
   "dependencies": {
+    "com.cesium.unity": {
+      "version": "1.15.4",
+      "depth": 0,
+      "source": "registry",
+      "dependencies": {
+        "com.unity.mathematics": "1.2.0",
+        "com.unity.test-framework": "1.1.31",
+        "com.unity.shadergraph": "12.1.6",
+        "com.unity.inputsystem": "1.4.2"
+      },
+      "url": "https://unity.pkg.cesium.com"
+    },
     "com.cysharp.magiconion.client.unity": {
       "version": "https://github.com/Cysharp/MagicOnion.git?path=src/MagicOnion.Client.Unity/Assets/Scripts/MagicOnion.Client.Unity#7.0.2",
       "depth": 0,
@@ -88,6 +100,12 @@
     },
     "com.ogment.outernet.shared": {
       "version": "file:../../Outernet.Shared",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
+    },
+    "com.placeframe.api-client": {
+      "version": "file:../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
       "depth": 0,
       "source": "local",
       "dependencies": {}
@@ -496,23 +514,90 @@
       },
       "url": "https://packages.unity.com"
     },
+    "org.nuget.jsonsubtypes": {
+      "version": "2.0.1",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.newtonsoft.json": "13.0.1"
+      },
+      "url": "https://unitynuget-registry.openupm.com"
+    },
+    "org.nuget.microsoft.bcl.asyncinterfaces": {
+      "version": "6.0.0",
+      "depth": 4,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.system.threading.tasks.extensions": "4.5.4"
+      },
+      "url": "https://unitynuget-registry.openupm.com"
+    },
+    "org.nuget.newtonsoft.json": {
+      "version": "13.0.3",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://unitynuget-registry.openupm.com"
+    },
     "org.nuget.placeframeapiclient": {
-      "version": "file:../../../packages/generated/csharp/api-client/src/PlaceframeApiClient",
+      "version": "0.1.5",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.jsonsubtypes": "2.0.1",
+        "org.nuget.newtonsoft.json": "13.0.3",
+        "org.nuget.polly": "8.1.0"
+      },
+      "url": "https://unitynuget-registry.openupm.com"
+    },
+    "org.nuget.polly": {
+      "version": "8.1.0",
+      "depth": 2,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.polly.core": "8.1.0"
+      },
+      "url": "https://unitynuget-registry.openupm.com"
+    },
+    "org.nuget.polly.core": {
+      "version": "8.1.0",
+      "depth": 3,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.microsoft.bcl.asyncinterfaces": "6.0.0",
+        "org.nuget.system.componentmodel.annotations": "4.5.0",
+        "org.nuget.system.threading.tasks.extensions": "4.5.4"
+      },
+      "url": "https://unitynuget-registry.openupm.com"
+    },
+    "org.nuget.system.componentmodel.annotations": {
+      "version": "4.5.0",
+      "depth": 4,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://unitynuget-registry.openupm.com"
+    },
+    "org.nuget.system.runtime.compilerservices.unsafe": {
+      "version": "4.5.3",
+      "depth": 5,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://unitynuget-registry.openupm.com"
+    },
+    "org.nuget.system.threading.tasks.extensions": {
+      "version": "4.5.4",
+      "depth": 4,
+      "source": "registry",
+      "dependencies": {
+        "org.nuget.system.runtime.compilerservices.unsafe": "4.5.3"
+      },
+      "url": "https://unitynuget-registry.openupm.com"
+    },
+    "org.outernet.logging": {
+      "version": "file:../../../packages/unity/Logging/Assets/Package",
       "depth": 0,
       "source": "local",
       "dependencies": {}
-    },
-    "org.outernet.cesium-unity": {
-      "version": "1.15.3-18",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.mathematics": "1.2.0",
-        "com.unity.test-framework": "1.1.31",
-        "com.unity.shadergraph": "12.1.6",
-        "com.unity.inputsystem": "1.4.2"
-      },
-      "url": "https://registry.npmjs.org"
     },
     "org.outernet.placeframe": {
       "version": "file:../../../packages/unity/Placeframe/Assets/Package/Core",
