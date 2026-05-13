@@ -29,7 +29,7 @@ namespace Placeframe.Client
 {
     public static partial class UIElements
     {
-        public static string CaptureStatusLabel(CaptureUploadStatus status, ReconstructionRead reconstruction, DeviceType type, float? clientProgress) =>
+        public static string CaptureStatusLabel(CaptureUploadStatus status, ReconstructionReadWithQueue reconstruction, DeviceType type, float? clientProgress) =>
             status switch
             {
                 CaptureUploadStatus.NotUploaded => "Upload",
@@ -188,7 +188,7 @@ namespace Placeframe.Client
             }
         }
 
-        private static UniTask<ReconstructionRead> CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions) =>
+        private static UniTask<ReconstructionReadWithQueue> CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions) =>
             VisualPositioningSystem.Api
                 .CreateReconstructionAsync(
                     new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId))
@@ -221,14 +221,14 @@ namespace Placeframe.Client
                 },
             });
 
-        private static string ReconstructingPhaseLabel(ReconstructionRead reconstruction)
+        private static string ReconstructingPhaseLabel(ReconstructionReadWithQueue reconstruction)
         {
             if (reconstruction == null)
                 return "Queued";
 
             return reconstruction.Status switch
             {
-                ReconstructionStatus.Queued => "Queued",
+                ReconstructionStatus.Queued => $"Queued{QueuedSuffix(reconstruction)}",
                 ReconstructionStatus.ExtractingFeatures => $"Extracting features{ProgressSuffix(reconstruction)}",
                 ReconstructionStatus.MatchingFeatures => $"Matching features{ProgressSuffix(reconstruction)}",
                 ReconstructionStatus.VerifyingGeometry => $"Verifying geometry{ProgressSuffix(reconstruction)}",
@@ -242,10 +242,15 @@ namespace Placeframe.Client
             };
         }
 
-        private static string ProgressSuffix(ReconstructionRead reconstruction) =>
+        private static string ProgressSuffix(ReconstructionReadWithQueue reconstruction) =>
             reconstruction.ProgressTotal == null ? "" : $" [{reconstruction.ProgressCurrent}/{reconstruction.ProgressTotal}]";
 
-        private static string AttemptSuffix(ReconstructionRead reconstruction) =>
+        private static string QueuedSuffix(ReconstructionReadWithQueue reconstruction) =>
+            reconstruction.QueuePosition == null || reconstruction.QueueDepth == null
+                ? ""
+                : $" [{reconstruction.QueuePosition}/{reconstruction.QueueDepth}]";
+
+        private static string AttemptSuffix(ReconstructionReadWithQueue reconstruction) =>
             reconstruction.ProgressAttempt == null || reconstruction.ProgressAttempt <= 1 ? "" : $" (attempt {reconstruction.ProgressAttempt})";
 
         public static IControl CaptureRow(CaptureState capture)

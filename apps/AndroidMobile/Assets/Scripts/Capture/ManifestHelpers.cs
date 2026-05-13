@@ -9,13 +9,13 @@ namespace Placeframe.Client
         // Pydantic class core.reconstruction_manifest.Manifest ({options, metrics}). The
         // OpenAPI generator surfaces it as Dictionary<string, Object> here, so we round-trip
         // through JSON to recover the typed sub-payloads for the inspector views.
-        public static ReconstructionOptions ExtractOptions(ReconstructionRead reconstruction) =>
+        public static ReconstructionOptions ExtractOptions(ReconstructionReadWithQueue reconstruction) =>
             ExtractTyped<ReconstructionOptions>(reconstruction, "options") ?? new ReconstructionOptions();
 
-        public static ReconstructionMetrics ExtractMetrics(ReconstructionRead reconstruction) =>
+        public static ReconstructionMetrics ExtractMetrics(ReconstructionReadWithQueue reconstruction) =>
             ExtractTyped<ReconstructionMetrics>(reconstruction, "metrics") ?? new ReconstructionMetrics();
 
-        private static T ExtractTyped<T>(ReconstructionRead reconstruction, string key)
+        private static T ExtractTyped<T>(ReconstructionReadWithQueue reconstruction, string key)
             where T : class
         {
             if (reconstruction == null || reconstruction.Manifest == null)
