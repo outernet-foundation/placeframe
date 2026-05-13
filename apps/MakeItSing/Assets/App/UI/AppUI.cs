@@ -12,6 +12,7 @@ using static Plerion.MakeItSing.UIElements;
 using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 using System;
+using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit.UI;
 
 namespace Plerion.MakeItSing
@@ -21,9 +22,13 @@ namespace Plerion.MakeItSing
         private IControl _ui;
         private IControl _overlayUI;
         private IDisposable _subscription;
+        private readonly List<XRInputSubsystem> _xrInputSubsystems = new();
 
         private void Awake()
         {
+            if (App.state.platform.value == Platform.MagicLeap)
+                LogPlacementTelemetry().Forget();
+
             _ui = SystemUICanvas(new()
             {
                 element = { active = App.state.config.disableSystemUI.ObservableSelect(x => !x) },
@@ -77,6 +82,41 @@ namespace Plerion.MakeItSing
             _ui?.Dispose();
             _overlayUI?.Dispose();
             _subscription?.Dispose();
+            foreach (var subsystem in _xrInputSubsystems)
+                subsystem.trackingOriginUpdated -= OnTrackingOriginUpdated;
+            _xrInputSubsystems.Clear();
+        }
+
+        private async UniTaskVoid LogPlacementTelemetry()
+        {
+            SubsystemManager.GetSubsystems(_xrInputSubsystems);
+            foreach (var subsystem in _xrInputSubsystems)
+            {
+                subsystem.trackingOriginUpdated += OnTrackingOriginUpdated;
+                Debug.Log($"[AppUI] xrInputSubsystem subscribed running={subsystem.running} mode={subsystem.GetTrackingOriginMode()} supported={subsystem.GetSupportedTrackingOriginModes()}");
+            }
+
+            float[] samplesSeconds = { 0f, 0.1f, 0.5f, 1f, 2f, 3f, 5f };
+            float previous = 0f;
+            foreach (var t in samplesSeconds)
+            {
+                if (this == null)
+                    return;
+                if (t > previous)
+                    await UniTask.Delay(TimeSpan.FromSeconds(t - previous));
+                previous = t;
+                var camera = Camera.main;
+                var cameraPos = camera != null ? camera.transform.position.ToString("F3") : "null";
+                var cameraRot = camera != null ? camera.transform.rotation.eulerAngles.ToString("F1") : "null";
+                Debug.Log($"[AppUI] xrPose t=+{t:F2}s camera={(camera != null ? camera.name : "null")} pos={cameraPos} rotEuler={cameraRot}");
+            }
+        }
+
+        private void OnTrackingOriginUpdated(XRInputSubsystem subsystem)
+        {
+            var camera = Camera.main;
+            var cameraPos = camera != null ? camera.transform.position.ToString("F3") : "null";
+            Debug.Log($"[AppUI] trackingOriginUpdated mode={subsystem.GetTrackingOriginMode()} cameraPos={cameraPos}");
         }
 
         private IControl GenerateLoginUI()
@@ -220,6 +260,8 @@ namespace Plerion.MakeItSing
 
                 props.layout.localPosition = props.layout.localPosition ?? Value(position);
                 props.layout.localRotation = props.layout.localRotation ?? Value(Quaternion.LookRotation(position - camera.position, Vector3.up));
+
+                Debug.Log($"[AppUI] SystemUICanvas placed: camera={Camera.main.name} cameraPos={camera.position.ToString("F3")} cameraFwd={camera.forward.ToString("F3")} canvasPos={position.ToString("F3")}");
 
                 return WorldspaceCanvas(props);
             }
