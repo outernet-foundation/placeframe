@@ -26,16 +26,8 @@ namespace Plerion.MakeItSing
                     .Subscribe(
                         onNext: loggedIn =>
                         {
-                            if (loggedIn)
-                            {
-                                if (!VisualPositioningSystem.Localizing)
-                                    VisualPositioningSystem.StartLocalizing(1f);
-                            }
-                            else
-                            {
-                                if (VisualPositioningSystem.Localizing)
-                                    VisualPositioningSystem.StopLocalizing();
-                            }
+                            if (!loggedIn && VisualPositioningSystem.Localizing)
+                                VisualPositioningSystem.StopLocalizing();
                         }
                     )
             );
@@ -81,6 +73,9 @@ namespace Plerion.MakeItSing
             ecefPosition = new double3(0, 0, 0);
 
             await VisualPositioningSystem.SetLocalizationMaps(ecefPosition, MAP_LOAD_RADIUS, cancellationToken);
+
+            if (App.state.loggedIn.value && VisualPositioningSystem.LoadedMapCount > 0 && !VisualPositioningSystem.Localizing)
+                VisualPositioningSystem.StartLocalizing(1f);
         }
     }
 }
