@@ -149,9 +149,11 @@ app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 def main(platform: Platform = typer.Option(help="Target platform: linux, windows, or android")) -> None:
     config = PLATFORM_CONFIGS[platform]
 
-    codegen_caches = [f"standalone-{platform.value}"]
+    # Codegen output is ABI-agnostic, so both Android ABIs share one codegen cache
+    codegen_platform_label = "android" if platform in ANDROID_PLATFORMS else platform.value
+    codegen_caches = [f"standalone-{codegen_platform_label}"]
     if config.editor_build:
-        codegen_caches.insert(0, f"editor-{platform.value}")
+        codegen_caches.insert(0, f"editor-{codegen_platform_label}")
 
     native_cache_paths: list[str] = []
     if config.editor_build:
