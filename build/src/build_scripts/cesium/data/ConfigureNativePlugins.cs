@@ -49,6 +49,10 @@ public static class ConfigureNativePlugins
                 path = "Packages/com.cesium.unity/Plugins/Android/arm64/libCesiumForUnityNative-Runtime.so",
                 isEditor = false, platform = BuildTarget.Android, cpu = "ARM64", editorOS = null
             },
+            new PluginConfig {
+                path = "Packages/com.cesium.unity/Plugins/Android/x86_64/libCesiumForUnityNative-Runtime.so",
+                isEditor = false, platform = BuildTarget.Android, cpu = "X86_64", editorOS = null
+            },
         };
 
         foreach (var plugin in plugins)

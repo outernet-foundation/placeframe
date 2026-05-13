@@ -38,6 +38,7 @@ namespace Placeframe.Core
         public static LocalizationMetrics MostRecentMetrics => _state.MostRecentMetrics;
         public static LocalizationMetrics LastReceivedMetrics { get; private set; }
         public static bool Localizing => _localizationSubscription != null;
+        public static int LoadedMapCount => _maps.Count;
         public static double4x4 EcefToUnityWorldTransform => _state.AlignmentCurrent;
         public static double4x4 UnityWorldToEcefTransform => _state.AlignmentCurrentInverse;
         public static event Action OnEcefToUnityWorldTransformUpdated;
@@ -156,6 +157,8 @@ namespace Placeframe.Core
         {
             if (_localizationSubscription != null)
                 throw new InvalidOperationException("VisualPositioningSystem is already localizing");
+            if (_maps.Count == 0)
+                throw new InvalidOperationException("VisualPositioningSystem has no maps loaded; call SetLocalizationMaps or AddLocalizationMap first");
 
             _localizationSubscription = _cameraProvider
                 // Get camera configuration asynchronously
@@ -167,8 +170,9 @@ namespace Placeframe.Core
                 // Localize this client using each new CameraFrame
                 .SubscribeAwait(
                     async (data, cancellationToken) => await Localize(data.cameraConfig, data.frame, cancellationToken),
-                    // Localize throws for setup failures (no maps loaded) or empty server responses; per-measurement
-                    // filter rejections (confidence floor, innovation gate) are silent log-and-skip inside ApplyMeasurement.
+                    // Localize throws for empty server responses and for the in-flight race where the last map is
+                    // removed mid-frame; per-measurement filter rejections (confidence floor, innovation gate) are
+                    // silent log-and-skip inside ApplyMeasurement.
                     onErrorResume: exception => LogDebug(exception.Message),
                     onCompleted: _ => { },
                     // Skip frames if they pile up
@@ -247,8 +251,16 @@ namespace Placeframe.Core
             switch (result.Rejection)
             {
                 case MeasurementRejection.InnovationGate:
+                    var r = result.InnovationResidual;
+                    var s = result.SigmaPredicted;
                     LogDebug(
-                        $"Localization rejected: innovation gate (m² = {result.InnovationMahalanobisSquared:0.00})"
+                        $"Localization rejected: innovation gate"
+                            + $" m²={result.InnovationMahalanobisSquared:0.00}"
+                            + $" hadAccepted={result.HadAcceptedMeasurementBeforeStep}"
+                            + $" residual=[ω={r[0]:0.0000},{r[1]:0.0000},{r[2]:0.0000}"
+                            + $" ν={r[3]:0.0000},{r[4]:0.0000},{r[5]:0.0000}]"
+                            + $" sigmaPredictedDiag=[{s[0,0]:E2},{s[1,1]:E2},{s[2,2]:E2},"
+                            + $"{s[3,3]:E2},{s[4,4]:E2},{s[5,5]:E2}]"
                     );
                     break;
             }

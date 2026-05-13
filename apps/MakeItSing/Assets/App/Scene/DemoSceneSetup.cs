@@ -13,7 +13,7 @@ namespace Plerion.MakeItSing
         private static DemoSceneSetup _instance;
 
         [SerializeField]
-        private List<GameObject> _sceneViews;
+        private List<GameObject> _sceneViews = new();
 
         private void Awake()
         {

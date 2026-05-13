@@ -47,7 +47,7 @@ MonoBehaviour:
   m_KeyboardPrefab: {fileID: 7339749990365776448, guid: 1aaf2dceef22d1147bfc70d706ddd188, type: 3}
   m_PlayerRoot: {fileID: 0}
   m_Keyboard: {fileID: 0}
-  m_KeyboardOffset: {x: 0, y: -0.35, z: 0.25}
+  m_KeyboardOffset: {x: 0, y: -0.35, z: 0.55}
   m_CameraTransform: {fileID: 0}
   m_RepositionOutOfViewKeyboardOnOpen: 1
   m_FacingKeyboardThreshold: 0.15
