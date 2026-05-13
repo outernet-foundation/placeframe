@@ -32,11 +32,12 @@ from litestar.response import Stream
 from litestar.status_codes import HTTP_409_CONFLICT
 from numpy import ascontiguousarray, float32, load, uint8
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..database import get_session
 from ..settings import get_settings
+from itertools import starmap
 
 settings = get_settings()
 BUCKET = "dev-reconstructions"
@@ -56,8 +57,46 @@ class ReconstructionCreateWithOptions(BaseModel):
     )
 
 
+# Extends the generated row DTO with computed queue fields. The base type is auto-generated
+# from the database schema, so the queue numbers can't live there; they're computed per-read
+# from the queue ordering. Both fields are None when status != QUEUED.
+class ReconstructionReadWithQueue(ReconstructionRead):
+    queue_position: int | None = None
+    queue_depth: int | None = None
+
+
+# Single SELECT that returns each Reconstruction row alongside its queue position and depth
+# (NULL when the row isn't queued). Built as a CTE + LEFT JOIN so the queue computation
+# happens in the same round trip as the row fetch and against the same transaction snapshot.
+# Callers add their own .where() clauses; result rows are (Reconstruction, position, depth).
+QueuedReconstructionRow = tuple[Reconstruction, Optional[int], Optional[int]]
+
+
+def select_reconstructions_with_queue() -> Select[QueuedReconstructionRow]:
+    queued = (
+        select(
+            Reconstruction.id.label("id"),
+            func.row_number().over(order_by=Reconstruction.created_at).label("position"),
+            func.count().over().label("depth"),
+        )
+        .where(Reconstruction.status == ReconstructionStatus.QUEUED)
+        .cte("queued")
+    )
+    stmt = select(Reconstruction, queued.c.position, queued.c.depth).outerjoin(queued, queued.c.id == Reconstruction.id)
+    return cast("Select[QueuedReconstructionRow]", stmt)
+
+
+def to_reconstruction_with_queue(
+    row: Reconstruction, queue_position: int | None, queue_depth: int | None
+) -> ReconstructionReadWithQueue:
+    base = reconstruction_to_dto(row)
+    return ReconstructionReadWithQueue(**base.model_dump(), queue_position=queue_position, queue_depth=queue_depth)
+
+
 @post("")
-async def create_reconstruction(session: AsyncSession, data: ReconstructionCreateWithOptions) -> ReconstructionRead:
+async def create_reconstruction(
+    session: AsyncSession, data: ReconstructionCreateWithOptions
+) -> ReconstructionReadWithQueue:
     # If we were provided an ID, ensure it doesn't already exist
     if data.create.id is not None:
         result = await session.execute(select(Reconstruction).where(Reconstruction.id == data.create.id))
@@ -82,9 +121,9 @@ async def create_reconstruction(session: AsyncSession, data: ReconstructionCreat
     session.add(row)
 
     await session.flush()
-    await session.refresh(row)
 
-    return reconstruction_to_dto(row)
+    result = await session.execute(select_reconstructions_with_queue().where(Reconstruction.id == row.id))
+    return to_reconstruction_with_queue(*result.one())
 
 
 @delete("/{id:uuid}")
@@ -130,11 +169,11 @@ async def get_reconstructions(
     capture_session_name: Annotated[
         Optional[str], Parameter(description="Optional capture session name to filter by")
     ] = None,
-) -> list[ReconstructionRead]:
+) -> list[ReconstructionReadWithQueue]:
     if capture_session_name and capture_session_ids:
         raise ClientException("Cannot provide both capture_session_ids and capture_session_name")
 
-    query = select(Reconstruction)
+    query = select_reconstructions_with_queue()
 
     if ids:
         query = query.where(Reconstruction.id.in_(ids))
@@ -151,17 +190,17 @@ async def get_reconstructions(
 
     result = await session.execute(query)
 
-    return [reconstruction_to_dto(row) for row in result.scalars().all()]
+    return list(starmap(to_reconstruction_with_queue, result.all()))
 
 
 @get("/{id:uuid}")
-async def get_reconstruction(session: AsyncSession, id: UUID) -> ReconstructionRead:
-    row = await session.get(Reconstruction, id)
+async def get_reconstruction(session: AsyncSession, id: UUID) -> ReconstructionReadWithQueue:
+    result = (await session.execute(select_reconstructions_with_queue().where(Reconstruction.id == id))).first()
 
-    if not row:
+    if not result:
         raise NotFoundException(f"Reconstruction with id {id} not found")
 
-    return reconstruction_to_dto(row)
+    return to_reconstruction_with_queue(*result)
 
 
 async def fetch_reconstruction_status(session: AsyncSession, id: UUID) -> ReconstructionStatus:
@@ -190,7 +229,7 @@ async def get_reconstruction_localization_map(session: AsyncSession, id: UUID) -
 
 
 @put("/{id:uuid}/retry")
-async def retry_reconstruction(session: AsyncSession, id: UUID) -> ReconstructionRead:
+async def retry_reconstruction(session: AsyncSession, id: UUID) -> ReconstructionReadWithQueue:
     row = await session.get(Reconstruction, id)
 
     if not row:
@@ -209,9 +248,9 @@ async def retry_reconstruction(session: AsyncSession, id: UUID) -> Reconstructio
     row.progress_attempt = None
 
     await session.flush()
-    await session.refresh(row)
 
-    return reconstruction_to_dto(row)
+    result = await session.execute(select_reconstructions_with_queue().where(Reconstruction.id == row.id))
+    return to_reconstruction_with_queue(*result.one())
 
 
 @get("/{id:uuid}/points", media_type="application/octet-stream")

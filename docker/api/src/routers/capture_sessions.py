@@ -13,15 +13,19 @@ from datamodels.public_dtos import (
     CaptureSessionCreate,
     CaptureSessionRead,
     CaptureSessionUpdate,
-    ReconstructionRead,
     capture_session_apply_batch_update_dto,
     capture_session_apply_dto,
     capture_session_from_dto,
     capture_session_from_dto_overwrite,
     capture_session_to_dto,
-    reconstruction_to_dto,
 )
 from datamodels.public_tables import CaptureSession, DeviceType, LocalizationMap, Reconstruction
+
+from .reconstructions import (
+    ReconstructionReadWithQueue,
+    select_reconstructions_with_queue,
+    to_reconstruction_with_queue,
+)
 from litestar import Router, delete, get, patch, post
 from litestar.datastructures import UploadFile
 from litestar.di import Provide
@@ -146,7 +150,7 @@ async def get_capture_sessions(
 
 
 class ExpandedReconstruction(BaseModel):
-    reconstruction: ReconstructionRead
+    reconstruction: ReconstructionReadWithQueue
     localization_map_id: UUID | None = None
 
 
@@ -164,16 +168,19 @@ async def get_capture_sessions_expanded(session: AsyncSession) -> CaptureSession
     captures = list((await session.execute(select(CaptureSession))).scalars().all())
     capture_ids = [c.id for c in captures]
 
-    reconstructions: list[Reconstruction] = []
+    reconstruction_rows: list[tuple[Reconstruction, int | None, int | None]] = []
     if capture_ids:
-        reconstructions = list(
-            (await session.execute(select(Reconstruction).where(Reconstruction.capture_session_id.in_(capture_ids))))
-            .scalars()
-            .all()
-        )
+        reconstruction_rows = [
+            (row[0], row[1], row[2])
+            for row in (
+                await session.execute(
+                    select_reconstructions_with_queue().where(Reconstruction.capture_session_id.in_(capture_ids))
+                )
+            ).all()
+        ]
 
     map_by_reconstruction: dict[UUID, UUID] = {}
-    reconstruction_ids = [r.id for r in reconstructions]
+    reconstruction_ids = [r.id for r, _, _ in reconstruction_rows]
     if reconstruction_ids:
         map_result = await session.execute(
             select(LocalizationMap).where(LocalizationMap.reconstruction_id.in_(reconstruction_ids))
@@ -181,10 +188,10 @@ async def get_capture_sessions_expanded(session: AsyncSession) -> CaptureSession
         map_by_reconstruction = {row.reconstruction_id: row.id for row in map_result.scalars().all()}
 
     reconstructions_by_capture: dict[UUID, list[ExpandedReconstruction]] = {}
-    for r in reconstructions:
+    for r, position, depth in reconstruction_rows:
         reconstructions_by_capture.setdefault(r.capture_session_id, []).append(
             ExpandedReconstruction(
-                reconstruction=reconstruction_to_dto(r),
+                reconstruction=to_reconstruction_with_queue(r, position, depth),
                 localization_map_id=map_by_reconstruction.get(r.id),
             )
         )
