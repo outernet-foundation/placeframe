@@ -232,7 +232,7 @@ Class | Method | HTTP request | Description
  - [Model.ReconstructionCreateWithOptions](docs/ReconstructionCreateWithOptions.md)
  - [Model.ReconstructionMetrics](docs/ReconstructionMetrics.md)
  - [Model.ReconstructionOptions](docs/ReconstructionOptions.md)
- - [Model.ReconstructionRead](docs/ReconstructionRead.md)
+ - [Model.ReconstructionReadWithQueue](docs/ReconstructionReadWithQueue.md)
  - [Model.ReconstructionStatus](docs/ReconstructionStatus.md)
  - [Model.RigCameraConfig](docs/RigCameraConfig.md)
  - [Model.RigConfig](docs/RigConfig.md)

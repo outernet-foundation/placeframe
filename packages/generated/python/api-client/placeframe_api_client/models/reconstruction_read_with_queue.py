@@ -26,9 +26,9 @@ from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class ReconstructionRead(BaseModel):
+class ReconstructionReadWithQueue(BaseModel):
     """
-    ReconstructionRead
+    ReconstructionReadWithQueue
     """ # noqa: E501
     capture_session_id: UUID
     id: UUID
@@ -41,8 +41,10 @@ class ReconstructionRead(BaseModel):
     progress_total: Optional[StrictInt] = None
     progress_attempt: Optional[StrictInt] = None
     error: Optional[StrictStr] = None
+    queue_position: Optional[StrictInt] = None
+    queue_depth: Optional[StrictInt] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["capture_session_id", "id", "created_at", "updated_at", "status", "manifest_version", "manifest", "progress_current", "progress_total", "progress_attempt", "error"]
+    __properties: ClassVar[List[str]] = ["capture_session_id", "id", "created_at", "updated_at", "status", "manifest_version", "manifest", "progress_current", "progress_total", "progress_attempt", "error", "queue_position", "queue_depth"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -62,7 +64,7 @@ class ReconstructionRead(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of ReconstructionRead from a JSON string"""
+        """Create an instance of ReconstructionReadWithQueue from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -110,11 +112,21 @@ class ReconstructionRead(BaseModel):
         if self.error is None and "error" in self.model_fields_set:
             _dict['error'] = None
 
+        # set to None if queue_position (nullable) is None
+        # and model_fields_set contains the field
+        if self.queue_position is None and "queue_position" in self.model_fields_set:
+            _dict['queue_position'] = None
+
+        # set to None if queue_depth (nullable) is None
+        # and model_fields_set contains the field
+        if self.queue_depth is None and "queue_depth" in self.model_fields_set:
+            _dict['queue_depth'] = None
+
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of ReconstructionRead from a dict"""
+        """Create an instance of ReconstructionReadWithQueue from a dict"""
         if obj is None:
             return None
 
@@ -132,7 +144,9 @@ class ReconstructionRead(BaseModel):
             "progress_current": obj.get("progress_current"),
             "progress_total": obj.get("progress_total"),
             "progress_attempt": obj.get("progress_attempt"),
-            "error": obj.get("error")
+            "error": obj.get("error"),
+            "queue_position": obj.get("queue_position"),
+            "queue_depth": obj.get("queue_depth")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

@@ -1409,7 +1409,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/ReconstructionRead"
+                    "$ref": "#/components/schemas/ReconstructionReadWithQueue"
                   },
                   "type": "array"
                 }
@@ -1483,7 +1483,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReconstructionRead"
+                  "$ref": "#/components/schemas/ReconstructionReadWithQueue"
                 }
               }
             }
@@ -1559,7 +1559,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReconstructionRead"
+                  "$ref": "#/components/schemas/ReconstructionReadWithQueue"
                 }
               }
             }
@@ -1779,7 +1779,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReconstructionRead"
+                  "$ref": "#/components/schemas/ReconstructionReadWithQueue"
                 }
               }
             }
@@ -4533,7 +4533,7 @@
       "ExpandedReconstruction": {
         "properties": {
           "reconstruction": {
-            "$ref": "#/components/schemas/ReconstructionRead"
+            "$ref": "#/components/schemas/ReconstructionReadWithQueue"
           },
           "localization_map_id": {
             "nullable": true,
@@ -6321,7 +6321,7 @@
         "required": [],
         "title": "ReconstructionOptions"
       },
-      "ReconstructionRead": {
+      "ReconstructionReadWithQueue": {
         "properties": {
           "capture_session_id": {
             "type": "string",
@@ -6376,6 +6376,14 @@
             "title": "Error",
             "nullable": true,
             "type": "string"
+          },
+          "queue_position": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "queue_depth": {
+            "nullable": true,
+            "type": "integer"
           }
         },
         "type": "object",
@@ -6388,20 +6396,18 @@
           "status",
           "updated_at"
         ],
-        "title": "ReconstructionRead"
+        "title": "ReconstructionReadWithQueue"
       },
       "ReconstructionStatus": {
         "type": "string",
         "enum": [
           "queued",
-          "downloading",
           "extracting_features",
           "matching_features",
           "training_opq_matrix",
           "training_product_quantizer",
           "verifying_geometry",
           "reconstructing",
-          "uploading",
           "succeeded",
           "failed",
           "cancelled"

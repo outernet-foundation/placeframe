@@ -26,10 +26,10 @@ using OpenAPIDateConverter = PlaceframeApiClient.Client.OpenAPIDateConverter;
 namespace PlaceframeApiClient.Model
 {
     /// <summary>
-    /// ReconstructionRead
+    /// ReconstructionReadWithQueue
     /// </summary>
-    [DataContract(Name = "ReconstructionRead")]
-    public partial class ReconstructionRead
+    [DataContract(Name = "ReconstructionReadWithQueue")]
+    public partial class ReconstructionReadWithQueue
     {
 
         /// <summary>
@@ -58,12 +58,12 @@ namespace PlaceframeApiClient.Model
             return _flagStatus;
         }
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReconstructionRead" /> class.
+        /// Initializes a new instance of the <see cref="ReconstructionReadWithQueue" /> class.
         /// </summary>
         [JsonConstructorAttribute]
-        protected ReconstructionRead() { }
+        protected ReconstructionReadWithQueue() { }
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReconstructionRead" /> class.
+        /// Initializes a new instance of the <see cref="ReconstructionReadWithQueue" /> class.
         /// </summary>
         /// <param name="captureSessionId">captureSessionId (required).</param>
         /// <param name="id">id (required).</param>
@@ -76,7 +76,9 @@ namespace PlaceframeApiClient.Model
         /// <param name="progressTotal">progressTotal.</param>
         /// <param name="progressAttempt">progressAttempt.</param>
         /// <param name="error">error.</param>
-        public ReconstructionRead(Guid captureSessionId, Guid id, DateTime createdAt, DateTime updatedAt, ReconstructionStatus status, int manifestVersion, Dictionary<string, Object> manifest)
+        /// <param name="queuePosition">queuePosition.</param>
+        /// <param name="queueDepth">queueDepth.</param>
+        public ReconstructionReadWithQueue(Guid captureSessionId, Guid id, DateTime createdAt, DateTime updatedAt, ReconstructionStatus status, int manifestVersion, Dictionary<string, Object> manifest)
         {
             this.CaptureSessionId = captureSessionId;
             this.Id = id;
@@ -87,7 +89,7 @@ namespace PlaceframeApiClient.Model
             // to ensure "manifest" is required (not null)
             if (manifest == null)
             {
-                throw new ArgumentNullException("manifest is a required property for ReconstructionRead and cannot be null");
+                throw new ArgumentNullException("manifest is a required property for ReconstructionReadWithQueue and cannot be null");
             }
             this.Manifest = manifest;
         }
@@ -335,13 +337,61 @@ namespace PlaceframeApiClient.Model
             return _flagError;
         }
         /// <summary>
+        /// Gets or Sets QueuePosition
+        /// </summary>
+        [DataMember(Name = "queue_position", EmitDefaultValue = true)]
+        public int? QueuePosition
+        {
+            get{ return _QueuePosition;}
+            set
+            {
+                _QueuePosition = value;
+                _flagQueuePosition = true;
+            }
+        }
+        private int? _QueuePosition;
+        private bool _flagQueuePosition;
+
+        /// <summary>
+        /// Returns false as QueuePosition should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeQueuePosition()
+        {
+            return _flagQueuePosition;
+        }
+        /// <summary>
+        /// Gets or Sets QueueDepth
+        /// </summary>
+        [DataMember(Name = "queue_depth", EmitDefaultValue = true)]
+        public int? QueueDepth
+        {
+            get{ return _QueueDepth;}
+            set
+            {
+                _QueueDepth = value;
+                _flagQueueDepth = true;
+            }
+        }
+        private int? _QueueDepth;
+        private bool _flagQueueDepth;
+
+        /// <summary>
+        /// Returns false as QueueDepth should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeQueueDepth()
+        {
+            return _flagQueueDepth;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append("class ReconstructionRead {\n");
+            sb.Append("class ReconstructionReadWithQueue {\n");
             sb.Append("  CaptureSessionId: ").Append(CaptureSessionId).Append("\n");
             sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  CreatedAt: ").Append(CreatedAt).Append("\n");
@@ -353,6 +403,8 @@ namespace PlaceframeApiClient.Model
             sb.Append("  ProgressTotal: ").Append(ProgressTotal).Append("\n");
             sb.Append("  ProgressAttempt: ").Append(ProgressAttempt).Append("\n");
             sb.Append("  Error: ").Append(Error).Append("\n");
+            sb.Append("  QueuePosition: ").Append(QueuePosition).Append("\n");
+            sb.Append("  QueueDepth: ").Append(QueueDepth).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }
