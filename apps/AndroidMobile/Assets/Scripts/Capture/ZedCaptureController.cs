@@ -94,7 +94,7 @@ public static class ZedCaptureController
             throw new InvalidOperationException("ZedCaptureController.Initialize already called");
 
         capturesApi = new DefaultApi(
-            new HttpClient(new AndroidBoundHttpHandler(forZedBox: true))
+            new HttpClient(new ProgressTrackingHandler { InnerHandler = new AndroidBoundHttpHandler(forZedBox: true) })
             {
                 BaseAddress = new Uri(baseUrl),
                 Timeout = requestTimeout,
