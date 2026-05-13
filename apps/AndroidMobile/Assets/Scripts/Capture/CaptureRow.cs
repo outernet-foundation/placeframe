@@ -229,14 +229,12 @@ namespace Placeframe.Client
             return reconstruction.Status switch
             {
                 ReconstructionStatus.Queued => "Queued",
-                ReconstructionStatus.Downloading => "Downloading",
                 ReconstructionStatus.ExtractingFeatures => $"Extracting features{ProgressSuffix(reconstruction)}",
                 ReconstructionStatus.MatchingFeatures => $"Matching features{ProgressSuffix(reconstruction)}",
                 ReconstructionStatus.VerifyingGeometry => $"Verifying geometry{ProgressSuffix(reconstruction)}",
                 ReconstructionStatus.Reconstructing => $"Reconstructing{ProgressSuffix(reconstruction)}{AttemptSuffix(reconstruction)}",
                 ReconstructionStatus.TrainingOpqMatrix => "Training index",
                 ReconstructionStatus.TrainingProductQuantizer => "Training index",
-                ReconstructionStatus.Uploading => "Uploading model",
                 ReconstructionStatus.Succeeded => "Finalizing",
                 ReconstructionStatus.Failed => "Failed",
                 ReconstructionStatus.Cancelled => "Cancelled",

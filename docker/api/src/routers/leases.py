@@ -68,8 +68,9 @@ async def request_lease(session: AsyncSession) -> LeaseResponse:
         raise NotFoundException("No pending jobs")
 
     # Flip out of QUEUED so subsequent request_lease polls skip this row. The reconstructor's
-    # first action is to download model inputs, so DOWNLOADING is the honest first phase.
-    row.status = ReconstructionStatus.DOWNLOADING
+    # pre-extraction setup (tar download, manifest parse, rig build, pair gen) runs under
+    # EXTRACTING_FEATURES with no progress until the per-image loop sets the real total.
+    row.status = ReconstructionStatus.EXTRACTING_FEATURES
 
     await session.flush()
     await session.commit()
