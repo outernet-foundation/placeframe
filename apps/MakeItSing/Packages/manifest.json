@@ -17,7 +17,7 @@
     }
   ],
   "dependencies": {
-    "org.outernet.cesium-unity": "1.15.3-19",
+    "org.outernet.cesium-unity": "1.15.3-20",
     "com.cysharp.r3": "https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity#1.2.9",
     "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
     "com.fofx.nessle": "https://github.com/outernet-foundation/Nessle.git?path=Assets/Package/Core",
