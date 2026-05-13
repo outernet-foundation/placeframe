@@ -251,8 +251,16 @@ namespace Placeframe.Core
             switch (result.Rejection)
             {
                 case MeasurementRejection.InnovationGate:
+                    var r = result.InnovationResidual;
+                    var s = result.SigmaPredicted;
                     LogDebug(
-                        $"Localization rejected: innovation gate (m² = {result.InnovationMahalanobisSquared:0.00})"
+                        $"Localization rejected: innovation gate"
+                            + $" m²={result.InnovationMahalanobisSquared:0.00}"
+                            + $" hadAccepted={result.HadAcceptedMeasurementBeforeStep}"
+                            + $" residual=[ω={r[0]:0.0000},{r[1]:0.0000},{r[2]:0.0000}"
+                            + $" ν={r[3]:0.0000},{r[4]:0.0000},{r[5]:0.0000}]"
+                            + $" sigmaPredictedDiag=[{s[0,0]:E2},{s[1,1]:E2},{s[2,2]:E2},"
+                            + $"{s[3,3]:E2},{s[4,4]:E2},{s[5,5]:E2}]"
                     );
                     break;
             }
