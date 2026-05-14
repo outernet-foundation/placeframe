@@ -29,12 +29,12 @@ namespace Placeframe.Client
 {
     public static partial class UIElements
     {
-        public static string CaptureStatusLabel(CaptureUploadStatus status, ReconstructionRead reconstruction, DeviceType type) =>
+        public static string CaptureStatusLabel(CaptureUploadStatus status, ReconstructionReadWithQueue reconstruction, DeviceType type, float? clientProgress) =>
             status switch
             {
                 CaptureUploadStatus.NotUploaded => "Upload",
-                CaptureUploadStatus.Initializing => type == DeviceType.Zed ? "Copying from Zed" : "Uploading",
-                CaptureUploadStatus.Uploading => "Uploading",
+                CaptureUploadStatus.Initializing => (type == DeviceType.Zed ? "Copying from Zed" : "Uploading") + ClientProgressSuffix(clientProgress),
+                CaptureUploadStatus.Uploading => "Uploading" + ClientProgressSuffix(clientProgress),
                 CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
                 CaptureUploadStatus.Reconstructing => ReconstructingPhaseLabel(reconstruction),
                 CaptureUploadStatus.Uploaded => "Create Map",
@@ -42,6 +42,9 @@ namespace Placeframe.Client
                 CaptureUploadStatus.Failed => "Retry",
                 _ => throw new ArgumentOutOfRangeException(nameof(status), status, null)
             };
+
+        private static string ClientProgressSuffix(float? clientProgress) =>
+            clientProgress is float p && p >= 0f ? $" {p:0}%" : "";
 
         public static bool CaptureStatusIsActionable(CaptureUploadStatus status) =>
             status == CaptureUploadStatus.NotUploaded
@@ -82,31 +85,51 @@ namespace Placeframe.Client
                 var id = capture.id;
                 var type = capture.type.value;
 
-                capture.clientPhase.value = CaptureClientPhase.Initializing;
+                // Progress<T> captures the current SynchronizationContext at construction;
+                // Upload runs on the main thread, so reports marshal back to the main thread
+                // regardless of which worker the handler chain reports from.
+                var progress = new Progress<float>(p => capture.clientProgress.value = p);
 
-                var captureData = type switch
+                capture.clientPhase.value = CaptureClientPhase.Initializing;
+                capture.clientProgress.value = null;
+
+                Stream captureData;
+                if (type == DeviceType.Zed)
                 {
-                    DeviceType.Zed => await ZedCaptureController.GetCapture(id),
-                    DeviceType.ARFoundation => await CaptureManager.GetCaptureTar(id),
-                    _ => throw new ArgumentException($"Unknown DeviceType {type}"),
-                };
+                    using (HttpProgressContext.Set(progress))
+                        captureData = await ZedCaptureController.GetCapture(id);
+                }
+                else if (type == DeviceType.ARFoundation)
+                {
+                    captureData = await CaptureManager.GetCaptureTar(id);
+                }
+                else
+                {
+                    throw new ArgumentException($"Unknown DeviceType {type}");
+                }
 
                 await UniTask.SwitchToMainThread();
                 capture.clientPhase.value = CaptureClientPhase.Uploading;
+                capture.clientProgress.value = null;
 
-                var captureSession = await VisualPositioningSystem.Api
-                    .CreateCaptureSessionAsync(
-                        type,
-                        new FileParameter(captureData),
-                        id: id,
-                        name: capture.name.value,
-                        recordedAt: capture.recordedAt.value);
+                CaptureSessionRead captureSession;
+                using (HttpProgressContext.Set(progress))
+                {
+                    captureSession = await VisualPositioningSystem.Api
+                        .CreateCaptureSessionAsync(
+                            type,
+                            new FileParameter(captureData),
+                            id: id,
+                            name: capture.name.value,
+                            recordedAt: capture.recordedAt.value);
+                }
 
                 capture.serverCaptureExists.value = true;
 
                 var reconstruction = await CreateReconstruction(captureSession.Id, reconstructionOptions);
                 capture.reconstruction.value = reconstruction;
                 capture.clientPhase.value = CaptureClientPhase.Idle;
+                capture.clientProgress.value = null;
             }
             catch
             {
@@ -165,7 +188,7 @@ namespace Placeframe.Client
             }
         }
 
-        private static UniTask<ReconstructionRead> CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions) =>
+        private static UniTask<ReconstructionReadWithQueue> CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions) =>
             VisualPositioningSystem.Api
                 .CreateReconstructionAsync(
                     new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId))
@@ -198,22 +221,20 @@ namespace Placeframe.Client
                 },
             });
 
-        private static string ReconstructingPhaseLabel(ReconstructionRead reconstruction)
+        private static string ReconstructingPhaseLabel(ReconstructionReadWithQueue reconstruction)
         {
             if (reconstruction == null)
                 return "Queued";
 
             return reconstruction.Status switch
             {
-                ReconstructionStatus.Queued => "Queued",
-                ReconstructionStatus.Downloading => "Downloading",
+                ReconstructionStatus.Queued => $"Queued{QueuedSuffix(reconstruction)}",
                 ReconstructionStatus.ExtractingFeatures => $"Extracting features{ProgressSuffix(reconstruction)}",
                 ReconstructionStatus.MatchingFeatures => $"Matching features{ProgressSuffix(reconstruction)}",
                 ReconstructionStatus.VerifyingGeometry => $"Verifying geometry{ProgressSuffix(reconstruction)}",
                 ReconstructionStatus.Reconstructing => $"Reconstructing{ProgressSuffix(reconstruction)}{AttemptSuffix(reconstruction)}",
                 ReconstructionStatus.TrainingOpqMatrix => "Training index",
                 ReconstructionStatus.TrainingProductQuantizer => "Training index",
-                ReconstructionStatus.Uploading => "Uploading model",
                 ReconstructionStatus.Succeeded => "Finalizing",
                 ReconstructionStatus.Failed => "Failed",
                 ReconstructionStatus.Cancelled => "Cancelled",
@@ -221,10 +242,15 @@ namespace Placeframe.Client
             };
         }
 
-        private static string ProgressSuffix(ReconstructionRead reconstruction) =>
+        private static string ProgressSuffix(ReconstructionReadWithQueue reconstruction) =>
             reconstruction.ProgressTotal == null ? "" : $" [{reconstruction.ProgressCurrent}/{reconstruction.ProgressTotal}]";
 
-        private static string AttemptSuffix(ReconstructionRead reconstruction) =>
+        private static string QueuedSuffix(ReconstructionReadWithQueue reconstruction) =>
+            reconstruction.QueuePosition == null || reconstruction.QueueDepth == null
+                ? ""
+                : $" [{reconstruction.QueuePosition}/{reconstruction.QueueDepth}]";
+
+        private static string AttemptSuffix(ReconstructionReadWithQueue reconstruction) =>
             reconstruction.ProgressAttempt == null || reconstruction.ProgressAttempt <= 1 ? "" : $" (attempt {reconstruction.ProgressAttempt})";
 
         public static IControl CaptureRow(CaptureState capture)
@@ -321,6 +347,7 @@ namespace Placeframe.Client
                                     capture.status,
                                     capture.reconstruction,
                                     capture.type,
+                                    capture.clientProgress,
                                     CaptureStatusLabel
                                 ),
                                 interactable = capture.status.ObservableSelect(CaptureStatusIsActionable),

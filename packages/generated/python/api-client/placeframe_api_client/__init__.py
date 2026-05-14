@@ -73,7 +73,7 @@ __all__ = [
     "ReconstructionCreateWithOptions",
     "ReconstructionMetrics",
     "ReconstructionOptions",
-    "ReconstructionRead",
+    "ReconstructionReadWithQueue",
     "ReconstructionStatus",
     "RigCameraConfig",
     "RigConfig",
@@ -140,7 +140,7 @@ from placeframe_api_client.models.reconstruction_create import ReconstructionCre
 from placeframe_api_client.models.reconstruction_create_with_options import ReconstructionCreateWithOptions as ReconstructionCreateWithOptions
 from placeframe_api_client.models.reconstruction_metrics import ReconstructionMetrics as ReconstructionMetrics
 from placeframe_api_client.models.reconstruction_options import ReconstructionOptions as ReconstructionOptions
-from placeframe_api_client.models.reconstruction_read import ReconstructionRead as ReconstructionRead
+from placeframe_api_client.models.reconstruction_read_with_queue import ReconstructionReadWithQueue as ReconstructionReadWithQueue
 from placeframe_api_client.models.reconstruction_status import ReconstructionStatus as ReconstructionStatus
 from placeframe_api_client.models.rig_camera_config import RigCameraConfig as RigCameraConfig
 from placeframe_api_client.models.rig_config import RigConfig as RigConfig

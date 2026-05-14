@@ -128,10 +128,11 @@ namespace Placeframe.Client
         public StateValue<DateTime> recordedAt { get; private set; }
         public StateValue<CaptureUploadStatus> status { get; private set; }
         public StateValue<CaptureClientPhase> clientPhase { get; private set; }
+        public StateValue<float?> clientProgress { get; private set; }
         public StateValue<bool> serverCaptureExists { get; private set; }
         public StateValue<Guid> localizationMapId { get; private set; }
         public StateValue<bool> hasLocalFiles { get; private set; }
-        public StateValue<ReconstructionRead> reconstruction { get; private set; }
+        public StateValue<ReconstructionReadWithQueue> reconstruction { get; private set; }
 
         void IKeyedStateNode<Guid>.AssignKey(Guid key) => id = key;
 
@@ -148,7 +149,7 @@ namespace Placeframe.Client
         private static CaptureUploadStatus ComputeStatus(
             CaptureClientPhase clientPhase,
             bool serverCaptureExists,
-            ReconstructionRead reconstruction,
+            ReconstructionReadWithQueue reconstruction,
             Guid localizationMapId
         )
         {

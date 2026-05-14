@@ -52,14 +52,12 @@ class LabelType(enum.Enum):
 
 class ReconstructionStatus(enum.Enum):
     QUEUED = "queued"
-    DOWNLOADING = "downloading"
     EXTRACTING_FEATURES = "extracting_features"
     MATCHING_FEATURES = "matching_features"
     TRAINING_OPQ_MATRIX = "training_opq_matrix"
     TRAINING_PRODUCT_QUANTIZER = "training_product_quantizer"
     VERIFYING_GEOMETRY = "verifying_geometry"
     RECONSTRUCTING = "reconstructing"
-    UPLOADING = "uploading"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     CANCELLED = "cancelled"

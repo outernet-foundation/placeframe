@@ -52,7 +52,7 @@ from placeframe_api_client.models.pinhole_camera_config import PinholeCameraConf
 from placeframe_api_client.models.progress_update import ProgressUpdate
 from placeframe_api_client.models.reconstruction_create_with_options import ReconstructionCreateWithOptions
 from placeframe_api_client.models.reconstruction_metrics import ReconstructionMetrics
-from placeframe_api_client.models.reconstruction_read import ReconstructionRead
+from placeframe_api_client.models.reconstruction_read_with_queue import ReconstructionReadWithQueue
 
 from placeframe_api_client.api_client import ApiClient, RequestSerialized
 from placeframe_api_client.api_response import ApiResponse
@@ -2625,7 +2625,7 @@ class DefaultApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ReconstructionRead:
+    ) -> ReconstructionReadWithQueue:
         """CreateReconstruction
 
 
@@ -2662,7 +2662,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "ReconstructionRead",
+            '201': "ReconstructionReadWithQueue",
             '400': "GetCaptureSessions400Response",
         }
         response_data = await self.api_client.call_api(
@@ -2692,7 +2692,7 @@ class DefaultApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ApiResponse[ReconstructionRead]:
+    ) -> ApiResponse[ReconstructionReadWithQueue]:
         """CreateReconstruction
 
 
@@ -2729,7 +2729,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "ReconstructionRead",
+            '201': "ReconstructionReadWithQueue",
             '400': "GetCaptureSessions400Response",
         }
         response_data = await self.api_client.call_api(
@@ -2796,7 +2796,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '201': "ReconstructionRead",
+            '201': "ReconstructionReadWithQueue",
             '400': "GetCaptureSessions400Response",
         }
         response_data = await self.api_client.call_api(
@@ -9086,7 +9086,7 @@ class DefaultApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ReconstructionRead:
+    ) -> ReconstructionReadWithQueue:
         """GetReconstruction
 
 
@@ -9123,7 +9123,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "ReconstructionRead",
+            '200': "ReconstructionReadWithQueue",
             '400': "GetCaptureSessions400Response",
         }
         response_data = await self.api_client.call_api(
@@ -9153,7 +9153,7 @@ class DefaultApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ApiResponse[ReconstructionRead]:
+    ) -> ApiResponse[ReconstructionReadWithQueue]:
         """GetReconstruction
 
 
@@ -9190,7 +9190,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "ReconstructionRead",
+            '200': "ReconstructionReadWithQueue",
             '400': "GetCaptureSessions400Response",
         }
         response_data = await self.api_client.call_api(
@@ -9257,7 +9257,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "ReconstructionRead",
+            '200': "ReconstructionReadWithQueue",
             '400': "GetCaptureSessions400Response",
         }
         response_data = await self.api_client.call_api(
@@ -10164,7 +10164,7 @@ class DefaultApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> List[ReconstructionRead]:
+    ) -> List[ReconstructionReadWithQueue]:
         """GetReconstructions
 
 
@@ -10207,7 +10207,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "List[ReconstructionRead]",
+            '200': "List[ReconstructionReadWithQueue]",
             '400': "GetCaptureSessions400Response",
         }
         response_data = await self.api_client.call_api(
@@ -10239,7 +10239,7 @@ class DefaultApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ApiResponse[List[ReconstructionRead]]:
+    ) -> ApiResponse[List[ReconstructionReadWithQueue]]:
         """GetReconstructions
 
 
@@ -10282,7 +10282,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "List[ReconstructionRead]",
+            '200': "List[ReconstructionReadWithQueue]",
             '400': "GetCaptureSessions400Response",
         }
         response_data = await self.api_client.call_api(
@@ -10357,7 +10357,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "List[ReconstructionRead]",
+            '200': "List[ReconstructionReadWithQueue]",
             '400': "GetCaptureSessions400Response",
         }
         response_data = await self.api_client.call_api(
@@ -11601,7 +11601,7 @@ class DefaultApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ReconstructionRead:
+    ) -> ReconstructionReadWithQueue:
         """RetryReconstruction
 
 
@@ -11638,7 +11638,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "ReconstructionRead",
+            '200': "ReconstructionReadWithQueue",
             '400': "GetCaptureSessions400Response",
         }
         response_data = await self.api_client.call_api(
@@ -11668,7 +11668,7 @@ class DefaultApi:
         _content_type: Optional[StrictStr] = None,
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
-    ) -> ApiResponse[ReconstructionRead]:
+    ) -> ApiResponse[ReconstructionReadWithQueue]:
         """RetryReconstruction
 
 
@@ -11705,7 +11705,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "ReconstructionRead",
+            '200': "ReconstructionReadWithQueue",
             '400': "GetCaptureSessions400Response",
         }
         response_data = await self.api_client.call_api(
@@ -11772,7 +11772,7 @@ class DefaultApi:
         )
 
         _response_types_map: Dict[str, Optional[str]] = {
-            '200': "ReconstructionRead",
+            '200': "ReconstructionReadWithQueue",
             '400': "GetCaptureSessions400Response",
         }
         response_data = await self.api_client.call_api(

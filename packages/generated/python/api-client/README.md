@@ -191,7 +191,7 @@ Class | Method | HTTP request | Description
  - [ReconstructionCreateWithOptions](docs/ReconstructionCreateWithOptions.md)
  - [ReconstructionMetrics](docs/ReconstructionMetrics.md)
  - [ReconstructionOptions](docs/ReconstructionOptions.md)
- - [ReconstructionRead](docs/ReconstructionRead.md)
+ - [ReconstructionReadWithQueue](docs/ReconstructionReadWithQueue.md)
  - [ReconstructionStatus](docs/ReconstructionStatus.md)
  - [RigCameraConfig](docs/RigCameraConfig.md)
  - [RigConfig](docs/RigConfig.md)

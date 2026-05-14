@@ -19,7 +19,13 @@ namespace Placeframe.Client
                 message => Log.Info(LogGroup.Localizer, message),
                 message => Log.Warn(LogGroup.Localizer, message),
                 message => Log.Error(LogGroup.Localizer, message),
-                httpHandlerFactory: () => new LoggingHttpHandler { InnerHandler = InternetBoundHandler.Create() ?? new HttpClientHandler() }
+                httpHandlerFactory: () => new LoggingHttpHandler
+                {
+                    InnerHandler = new ProgressTrackingHandler
+                    {
+                        InnerHandler = InternetBoundHandler.Create() ?? new HttpClientHandler()
+                    }
+                }
             );
 
             _intializing = true;

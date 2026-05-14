@@ -1,13 +1,11 @@
 CREATE TYPE reconstruction_status AS ENUM (
   'queued',
-  'downloading',
   'extracting_features',
   'matching_features',
   'training_opq_matrix',
   'training_product_quantizer',
   'verifying_geometry',
   'reconstructing',
-  'uploading',
   'succeeded',
   'failed',
   'cancelled'

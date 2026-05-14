@@ -771,6 +771,7 @@ namespace Placeframe.Client
                                                                 capture.status,
                                                                 capture.reconstruction,
                                                                 capture.type,
+                                                                capture.clientProgress,
                                                                 CaptureStatusLabel
                                                             ),
                                                             interactable = capture.status.ObservableSelect(CaptureStatusIsActionable),

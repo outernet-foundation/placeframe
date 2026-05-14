@@ -89,7 +89,6 @@ def run_reconstruction(
         minio_secret_key=settings.minio_secret_key,
     )
 
-    publisher.set_phase(ReconstructionStatus.DOWNLOADING)
     print(
         f"Downloading capture session archive for capture session ID: {capture_id} from bucket {settings.captures_bucket}"
     )
@@ -246,7 +245,6 @@ def run_reconstruction(
         print("Reconstruction failed, no model was created")
         raise RuntimeError("No model was created")
 
-    publisher.set_phase(ReconstructionStatus.UPLOADING)
     for file_path in sfm_output_path.rglob("*"):
         if file_path.is_file():
             _put_artifact(

@@ -22,6 +22,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okio.BufferedSink;
 
 // Java façade over okhttp 5.x consumed by AndroidBoundHttpHandler.cs via JNI.
 // AndroidBoundHttpHandler.cs documents the why; this class does the how. The
@@ -72,6 +73,14 @@ public final class BoundHttpClient {
         return null;
     }
 
+    // Per-chunk progress callbacks invoke during the body write to the okhttp sink,
+    // which happens on the okhttp dispatcher thread — not the calling thread. Callers
+    // that touch UI from the callback must marshal back themselves. A null callback
+    // disables progress reporting and uses okhttp's default fixed-buffer write path.
+    public interface ProgressCallback {
+        void onProgress(long bytesWritten, long totalBytes);
+    }
+
     public static HttpResult execute(
         Network network,
         String method,
@@ -79,7 +88,8 @@ public final class BoundHttpClient {
         String[] headerNames,
         String[] headerValues,
         byte[] body,
-        String contentType
+        String contentType,
+        ProgressCallback progressCallback
     ) throws IOException {
         Request.Builder builder = new Request.Builder().url(url);
         for (int i = 0; i < headerNames.length; i++) {
@@ -89,7 +99,12 @@ public final class BoundHttpClient {
         boolean methodRequiresBody = method.equals("POST") || method.equals("PUT") || method.equals("PATCH");
         RequestBody requestBody;
         if (body != null) {
-            requestBody = RequestBody.create(body, contentType != null ? MediaType.parse(contentType) : null);
+            MediaType mediaType = contentType != null ? MediaType.parse(contentType) : null;
+            if (progressCallback != null) {
+                requestBody = new ProgressRequestBody(body, mediaType, progressCallback);
+            } else {
+                requestBody = RequestBody.create(body, mediaType);
+            }
         } else if (methodRequiresBody) {
             requestBody = RequestBody.create(new byte[0], null);
         } else {
@@ -153,6 +168,41 @@ public final class BoundHttpClient {
             this.headerValues = headerValues;
             this.response = response;
             this.bodyStream = bodyStream;
+        }
+    }
+
+    // Custom RequestBody that walks the in-memory byte[] in 64KB chunks, flushing
+    // after each chunk so the bytes hit the okhttp BufferedSink (and from there
+    // the socket) before the next progress callback fires. okhttp's default
+    // byte[] RequestBody writes the whole array in one sink.write() call with
+    // no intermediate sink.flush(), so we never observe partial-write progress.
+    private static final class ProgressRequestBody extends RequestBody {
+        private static final int CHUNK_SIZE = 64 * 1024;
+
+        private final byte[] data;
+        private final MediaType mediaType;
+        private final ProgressCallback callback;
+
+        ProgressRequestBody(byte[] data, MediaType mediaType, ProgressCallback callback) {
+            this.data = data;
+            this.mediaType = mediaType;
+            this.callback = callback;
+        }
+
+        @Override public MediaType contentType() { return mediaType; }
+        @Override public long contentLength() { return data.length; }
+
+        @Override
+        public void writeTo(BufferedSink sink) throws IOException {
+            long total = data.length;
+            long written = 0;
+            while (written < total) {
+                int n = (int) Math.min(CHUNK_SIZE, total - written);
+                sink.write(data, (int) written, n);
+                written += n;
+                sink.flush();
+                callback.onProgress(written, total);
+            }
         }
     }
 }
