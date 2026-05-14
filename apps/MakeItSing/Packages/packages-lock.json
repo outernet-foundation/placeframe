@@ -456,18 +456,6 @@
       "source": "local",
       "dependencies": {}
     },
-    "org.outernet.cesium-unity": {
-      "version": "1.15.3-20",
-      "depth": 0,
-      "source": "registry",
-      "dependencies": {
-        "com.unity.mathematics": "1.2.0",
-        "com.unity.test-framework": "1.1.31",
-        "com.unity.shadergraph": "12.1.6",
-        "com.unity.inputsystem": "1.4.2"
-      },
-      "url": "https://registry.npmjs.org"
-    },
     "org.outernet.logging": {
       "version": "file:../../../packages/unity/Logging/Assets/Package",
       "depth": 0,
