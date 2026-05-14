@@ -2,6 +2,7 @@
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -16,19 +17,28 @@ def _check_no_pipe(command: str) -> None:
         raise ValueError(msg)
 
 
+def _resolve_args(command: str) -> list[str]:
+    args = shlex.split(command, posix=(os.name != "nt"))
+    if os.name == "nt" and args:
+        resolved = shutil.which(args[0])
+        if resolved is None:
+            msg = f"Executable not found on PATH: {args[0]!r}"
+            raise FileNotFoundError(msg)
+        args[0] = resolved
+    return args
+
+
 def bash_output(command: str, *, cwd: Path | None = None, stdin_text: str | None = None) -> str:
     _check_no_pipe(command)
-    args = shlex.split(command, posix=(os.name != "nt"))
-    shell_mode = os.name == "nt"
+    args = _resolve_args(command)
 
     with Popen(
-        command if shell_mode else args,
+        args,
         cwd=str(cwd) if cwd else None,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         stdin=subprocess.PIPE if stdin_text else None,
         text=True,
-        shell=shell_mode,
     ) as process:
         try:
             stdout, stderr = process.communicate(input=stdin_text)
@@ -49,17 +59,15 @@ def bash_output(command: str, *, cwd: Path | None = None, stdin_text: str | None
 
 def bash(command: str, *, cwd: Path | None = None, stdin_text: str | None = None) -> None:
     _check_no_pipe(command)
-    args = shlex.split(command, posix=(os.name != "nt"))
-    shell_mode = os.name == "nt"
+    args = _resolve_args(command)
 
     with Popen(
-        command if shell_mode else args,
+        args,
         cwd=str(cwd) if cwd else None,
         stdout=sys.stdout,
         stderr=sys.stderr,
         stdin=subprocess.PIPE if stdin_text else None,
         text=True,
-        shell=shell_mode,
     ) as process:
         try:
             process.communicate(input=stdin_text)
@@ -82,7 +90,7 @@ def bash_pipe(*commands: str, cwd: Path | None = None) -> None:
     processes: list[Popen[bytes]] = []
     try:
         for i, command in enumerate(commands):
-            args = shlex.split(command, posix=(os.name != "nt"))
+            args = _resolve_args(command)
             stdin = processes[-1].stdout if i > 0 else None
             stdout = subprocess.PIPE if i < len(commands) - 1 else sys.stdout
             stderr = sys.stderr if i == len(commands) - 1 else subprocess.DEVNULL
@@ -107,26 +115,26 @@ def bash_pipe(*commands: str, cwd: Path | None = None) -> None:
 
 def bash_check(command: str, *, cwd: Path | None = None) -> bool:
     _check_no_pipe(command)
-    args = shlex.split(command, posix=(os.name != "nt"))
+    args = _resolve_args(command)
     result = subprocess.run(args, cwd=str(cwd) if cwd else None, capture_output=True)
     return result.returncode == 0
 
 
 def bash_check_stream(command: str, *, cwd: Path | None = None) -> bool:
     _check_no_pipe(command)
-    args = shlex.split(command, posix=(os.name != "nt"))
+    args = _resolve_args(command)
     result = subprocess.run(args, cwd=str(cwd) if cwd else None)
     return result.returncode == 0
 
 
 def bash_no_raise(command: str, *, cwd: Path | None = None) -> None:
     _check_no_pipe(command)
-    args = shlex.split(command, posix=(os.name != "nt"))
+    args = _resolve_args(command)
     subprocess.run(args, cwd=str(cwd) if cwd else None)
 
 
 def bash_handoff(command: str, *, cwd: Path | None = None) -> NoReturn:
-    args = shlex.split(command, posix=(os.name != "nt"))
+    args = _resolve_args(command)
 
     if cwd:
         os.chdir(cwd)
