@@ -13,23 +13,64 @@ using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 using System;
 using UnityEngine.XR.Interaction.Toolkit.UI;
+using UnityEngine.InputSystem;
 
 namespace Plerion.MakeItSing
 {
     public class AppUI : MonoBehaviour
     {
         private IControl _ui;
-        private IControl _overlayUI;
-        private IDisposable _subscription;
+        private IControl _notificationUI;
+        private IDisposable _subscriptions;
+
+        private InputAction _spaceAction = new InputAction(type: InputActionType.Button, binding: "<Keyboard>/space");
+        private InputAction _magicLeapMenuButtonAction = new InputAction(type: InputActionType.Button, binding: "<MagicLeapController>/menu");
 
         private void Awake()
         {
+            _spaceAction.Enable();
+            _magicLeapMenuButtonAction.Enable();
+
+            _subscriptions = App.state.inRoom.Subscribe(inRoom => App.state.systemUIOpen.value = !inRoom);
+
+            var systemUILayoutProps = default(LayoutProps);
+
+            if (App.state.platform.value == Platform.MagicLeap)
+            {
+                var transform = App.state.systemUIOpen.ObservableSelect(
+                    open =>
+                    {
+                        var camera = Camera.main;
+                        var forward = camera.transform.forward;
+
+                        forward.y = 0;
+                        forward = forward.normalized;
+                        forward.y = -0.33f;
+
+                        var position = camera.transform.position + forward;
+                        var rotation = Quaternion.LookRotation(position - camera.transform.position, Vector3.up);
+
+                        return (position, rotation);
+                    }
+                );
+
+                systemUILayoutProps.localPosition = transform.ObservableSelect(x => x.position);
+                systemUILayoutProps.localRotation = transform.ObservableSelect(x => x.rotation);
+            }
+            else
+            {
+                systemUILayoutProps = FillParentProps();
+            }
+
             _ui = SystemUICanvas(new()
             {
                 element = { active = App.state.config.disableSystemUI.ObservableSelect(x => !x) },
+                layout = systemUILayoutProps,
+                worldCamera = Value(Camera.main),
                 children = List(
-                    Control("SystemUI", new()
+                    Control("Menu", new()
                     {
+                        element = { active = App.state.systemUIOpen },
                         layout = FillParentProps(),
                         children = List(
                             Observables.ObservableCombineValues(
@@ -56,27 +97,84 @@ namespace Plerion.MakeItSing
                                 }
                             ).ObservableCreate(generator => generator?.Invoke())
                         )
+                    }),
+                    RoundButton(new()
+                    {
+                        element =
+                        {
+                            active = Observables.ObservableCombineValues(
+                                App.state.inRoom,
+                                App.state.joiningRoom,
+                                App.state.platform.ObservableSelect(x => x != Platform.MagicLeap),
+                                (inRoom, joiningRoom, platformValid) => inRoom && !joiningRoom && platformValid
+                            )
+                        },
+                        layout =
+                        {
+                            sizeDelta = Value(new Vector2(35, 35)),
+                            anchorMin = Value(new Vector2(1, 1)),
+                            anchorMax = Value(new Vector2(1, 1)),
+                            localPosition = Value(new Vector3(-10, -10, 0)),
+                            pivot = Value(new Vector2(1, 1))
+                        },
+                        content = List(Image(new() { sprite = Value(elements.hamburgerMenu) })),
+                        padding = Value(new RectOffset(9, 9, 9, 9)),
+                        onClick = () => App.state.systemUIOpen.value = !App.state.systemUIOpen.value
                     })
                 )
             });
 
-            _overlayUI = OverlayUICanvas(new()
+            if (App.state.platform.value == Platform.MagicLeap)
             {
-                children = List(
-                    NotificationList(new()
+                _notificationUI = Tagalong(new()
+                {
+                    targetCamera = Value(Camera.main),
+                    targetRegionMin = Value(new Vector3(0.45f, 0.45f, 1f)),
+                    targetRegionMax = Value(new Vector3(0.55f, 0.4f, 1.25f)),
+                    paddingLeft = Value(0.03f),
+                    paddingRight = Value(0.03f),
+                    paddingTop = Value(0.25f),
+                    children = List(WorldspaceCanvas(new()
                     {
-                        notifications = App.state.notifications,
-                        layout = FillParentProps()
-                    })
-                )
-            });
+                        layout =
+                        {
+                            localPosition = Value(Vector3.zero),
+                            localRotation = Value(Quaternion.AngleAxis(180f, Vector3.up)),
+                            pivot = Value(new Vector2(0.5f, 0))
+                        },
+                        children = List(NotificationList(new()
+                        {
+                            layout = FillParentProps(),
+                            notifications = App.state.notifications
+                        }))
+                    }))
+                });
+            }
+            else
+            {
+                _notificationUI = Canvas(new()
+                {
+                    sortingOrder = Value(1),
+                    children = List(NotificationList(new()
+                    {
+                        layout = FillParentProps(),
+                        notifications = App.state.notifications
+                    }))
+                });
+            }
+        }
+
+        private void Update()
+        {
+            if (_magicLeapMenuButtonAction.WasPerformedThisFrame() || _spaceAction.WasPerformedThisFrame())
+                App.state.systemUIOpen.value = !App.state.systemUIOpen.value;
         }
 
         private void OnDestroy()
         {
             _ui?.Dispose();
-            _overlayUI?.Dispose();
-            _subscription?.Dispose();
+            _notificationUI?.Dispose();
+            _subscriptions?.Dispose();
         }
 
         private IControl GenerateLoginUI()
@@ -146,11 +244,8 @@ namespace Plerion.MakeItSing
             return InRoomUI(new()
             {
                 layout = FillParentProps(),
-                onLeaveRoomSelected = () => App.ExecuteTransaction(new LeaveRoomAction()),
-                showMenuButton = App.state.platform.ObservableSelect(x => x != Platform.MagicLeap)
+                onLeaveRoomSelected = () => App.ExecuteTransaction(new LeaveRoomAction())
             });
-
-            // _screen = AppStateLog(new() { layout = FillParentProps() });
         }
 
         private IEnumerable<DemoSceneProps> EnumerateEmbeddedScenes()
@@ -208,18 +303,6 @@ namespace Plerion.MakeItSing
         {
             if (App.state.platform.value == Platform.MagicLeap)
             {
-                props.worldCamera = Value(Camera.main);
-
-                var camera = Camera.main.transform;
-                var position = camera.forward;
-
-                position.y = 0;
-                position = position.normalized;
-                position.y = camera.position.y - .33f;
-
-                props.layout.localPosition = props.layout.localPosition ?? Value(position);
-                props.layout.localRotation = props.layout.localRotation ?? Value(Quaternion.LookRotation(position - camera.position, Vector3.up));
-
                 return WorldspaceCanvas(props);
             }
             else
@@ -248,12 +331,16 @@ namespace Plerion.MakeItSing
             {
                 props.layout.localPosition = props.layout.localPosition ?? Value(Vector3.zero);
                 props.layout.localRotation = props.layout.localRotation ?? Value(Quaternion.AngleAxis(180f, Vector3.up));
+                props.layout.sizeDelta = props.layout.sizeDelta ?? Value(new Vector2(800, 540));
 
                 return Tagalong(new()
                 {
                     targetCamera = Value(Camera.main),
-                    targetRegionMin = Value(new Vector3(0.4f, 0.3f, 0.66f)),
-                    targetRegionMax = Value(new Vector3(0.6f, 0.7f, 1f)),
+                    targetRegionMin = Value(new Vector3(0.45f, 0.45f, 1f)),
+                    targetRegionMax = Value(new Vector3(0.55f, 0.4f, 1.25f)),
+                    paddingLeft = Value(0.03f),
+                    paddingRight = Value(0.03f),
+                    paddingTop = Value(0.25f),
                     children = List(WorldspaceCanvas(props))
                 });
             }
@@ -283,7 +370,7 @@ namespace Plerion.MakeItSing
                 padding = Value(new RectOffset(0, 0, 0, 15)),
                 childAlignment = Value(TextAnchor.LowerCenter),
                 children = props.notifications?
-                    .ObservableWhere(x => Observables.ObservableCombineValues(x.logLevel, App.state.config.notificationLogLevel, (level, minLevel) => level >= minLevel))
+                    .ObservableWhere(x => Observables.ObservableCombineValues(x.logLevel, App.state.config.notificationLevel, (level, minLevel) => level >= minLevel))
                     .ObservableSelect(x =>
                     {
                         bool isError = x.logLevel.value == Outernet.Logging.LogLevel.Error || x.logLevel.value == Outernet.Logging.LogLevel.Fatal;

@@ -10,9 +10,10 @@ namespace Plerion.MakeItSing
     public class InterpolationObservable<T> : IDisposable
     {
         private float _interpolationRate;
+        private AnimationCurve _curve;
         private T _targetValue;
         private T _currentValue;
-        private Func<T, T, bool> _checkInterpolationComplete;
+        private Func<T, T, float> _calcDelta;
         private Func<T, T, float, T> _interpolate;
         private IValueObserver<T> _receiver;
         private IDisposable _subscriptions;
@@ -20,15 +21,16 @@ namespace Plerion.MakeItSing
         private bool _initialized = false;
         private bool _disposed;
 
-        public InterpolationObservable(IValueObservable<T> source, IValueObservable<float> interpolationRate, Func<T, T, bool> checkInterpolationComplete, Func<T, T, float, T> interpolate, IValueObserver<T> receiver)
+        public InterpolationObservable(IValueObservable<T> source, IValueObservable<float> interpolationRate, IValueObservable<AnimationCurve> curve, Func<T, T, float> calcDelta, Func<T, T, float, T> interpolate, IValueObserver<T> receiver)
         {
-            _checkInterpolationComplete = checkInterpolationComplete;
+            _calcDelta = calcDelta;
             _interpolate = interpolate;
             _receiver = receiver;
 
             _subscriptions = new ComposedDisposable(
                 source.Subscribe(UpdateTargetValue),
-                interpolationRate.Subscribe(UpdateInterpolationRate)
+                interpolationRate.Subscribe(UpdateInterpolationRate),
+                curve.Subscribe(UpdateCurve)
             );
 
             _initialized = true;
@@ -45,10 +47,8 @@ namespace Plerion.MakeItSing
                 return;
             }
 
-            if (_interpolationTask.pending || !_initialized)
-                return;
-
-            _interpolationTask = TaskHandle.Execute(Interpolate);
+            _interpolationTask.Cancel();
+            _interpolationTask = TaskHandle.Execute(token => Interpolate(_currentValue, _targetValue, token));
         }
 
         private void UpdateInterpolationRate(float interpolationRate)
@@ -65,14 +65,20 @@ namespace Plerion.MakeItSing
             _receiver.OnNext(_currentValue);
         }
 
-        private async UniTask Interpolate(CancellationToken token = default)
+        private void UpdateCurve(AnimationCurve curve)
         {
-            float elapsedTime = 0;
+            _curve = curve ?? AnimationCurve.Linear(0, 0, 1, 1);
+        }
 
-            while (!_checkInterpolationComplete(_currentValue, _targetValue))
+        private async UniTask Interpolate(T startValue, T targetValue, CancellationToken token = default)
+        {
+            var elapsedTime = 0f;
+            var duration = _calcDelta(startValue, targetValue);
+
+            while (elapsedTime <= duration)
             {
                 elapsedTime += Time.deltaTime * _interpolationRate;
-                _currentValue = _interpolate(_currentValue, _targetValue, elapsedTime);
+                _currentValue = _interpolate(startValue, targetValue, _curve.Evaluate(elapsedTime / duration));
                 _receiver.OnNext(_currentValue);
 
                 await UniTask.Yield(PlayerLoopTiming.LastPostLateUpdate);

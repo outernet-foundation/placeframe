@@ -26,7 +26,7 @@ namespace Plerion.MakeItSing
         public int? log_groups;
         public Outernet.Logging.LogLevel? log_level;
         public Outernet.Logging.LogLevel? stack_trace_level;
-        public Outernet.Logging.LogLevel? notification_log_level;
+        public Outernet.Logging.LogLevel? notification_level;
         public string photon_project_id;
         public bool? login_automatically;
         public string domain;
@@ -146,7 +146,7 @@ namespace Plerion.MakeItSing
                 result.log_groups = result.log_groups ?? config.log_groups;
                 result.log_level = result.log_level ?? config.log_level;
                 result.stack_trace_level = result.stack_trace_level ?? config.stack_trace_level;
-                result.notification_log_level = result.notification_log_level ?? config.notification_log_level;
+                result.notification_level = result.notification_level ?? config.notification_level;
                 result.photon_project_id = config.photon_project_id ?? config.photon_project_id;
                 result.login_automatically = result.login_automatically ?? config.login_automatically;
                 result.domain = result.domain ?? config.domain;

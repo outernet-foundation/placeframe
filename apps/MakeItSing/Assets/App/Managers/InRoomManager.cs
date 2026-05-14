@@ -23,7 +23,7 @@ namespace Plerion.MakeItSing
             PlayerIdHelpers.Setup(
                 App.state.playerID.value,
                 App.state.scene.objects.ObservableSelect(x => x.Key),
-                App.state.scene.highFrequencyPrimitives.ObservableSelect(x => x.Value.id)
+                App.state.scene.highFrequencyPrimitives.ObservableSelect(x => x.Value.id.AsObservable())
             );
 
             _subscription = new ComposedDisposable(

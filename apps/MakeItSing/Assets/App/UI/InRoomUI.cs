@@ -15,79 +15,60 @@ namespace Plerion.MakeItSing
         {
             public ElementProps element;
             public LayoutProps layout;
-            public IValueObservable<bool> showMenuButton;
             public UnityAction onLeaveRoomSelected;
         }
 
         public static IControl InRoomUI(InRoomUIProps props)
         {
-            ObservableValue<bool> open = new ObservableValue<bool>();
-
-            return Control("InRoomUI", new()
+            return Control("InRoomMenu", new()
             {
                 element = props.element,
                 layout = props.layout,
                 children = List(
-                    Control("Menu", new()
+                    Image(new()
                     {
-                        element = { active = open },
+                        style = { color = Value(elements.backgroundColor) },
+                        layout = FillParentProps()
+                    }),
+                    VerticalLayout(new()
+                    {
                         layout = FillParentProps(),
+                        childControlWidth = Value(true),
+                        childControlHeight = Value(true),
+                        childForceExpandWidth = Value(true),
+                        padding = Value(new RectOffset(10, 10, 10, 10)),
                         children = List(
-                            Image(new()
+                            Text(new()
                             {
-                                style = { color = Value(elements.backgroundColor) },
-                                layout = FillParentProps()
+                                value = Value("Settings"),
+                                style =
+                                {
+                                    fontSize = Value(20f),
+                                    horizontalAlignment = Value(TMPro.HorizontalAlignmentOptions.Center)
+                                }
                             }),
-                            VerticalLayout(new()
+                            Text(new()
                             {
-                                layout = FillParentProps(),
-                                childControlWidth = Value(true),
-                                childControlHeight = Value(true),
-                                childForceExpandWidth = Value(true),
-                                children = List(
+                                value = Value("Add content here!"),
+                                style = { horizontalAlignment = Value(TMPro.HorizontalAlignmentOptions.Center) }
+                            }),
+                            Button(new()
+                            {
+                                background = { style = { color = Value(new Color(0.33f, 0, 0, 1f)) } },
+                                content = List(
                                     Text(new()
                                     {
-                                        value = Value("Settings"),
+                                        value = Value("Leave Room"),
                                         style =
                                         {
-                                            fontSize = Value(40f),
+                                            color = Value(Color.red),
                                             horizontalAlignment = Value(TMPro.HorizontalAlignmentOptions.Center)
                                         }
-                                    }),
-                                    Button(new()
-                                    {
-                                        background = { style = { color = Value(new Color(0.33f, 0, 0, 1f)) } },
-                                        content = List(
-                                            Text(new()
-                                            {
-                                                value = Value("Leave Room"),
-                                                style =
-                                                {
-                                                    color = Value(Color.red),
-                                                    horizontalAlignment = Value(TMPro.HorizontalAlignmentOptions.Center)
-                                                }
-                                            })
-                                        ),
-                                        onClick = props.onLeaveRoomSelected
                                     })
-                                )
+                                ),
+                                onClick = props.onLeaveRoomSelected
                             })
                         )
-                    }),
-                    RoundButton(new()
-                    {
-                        element = { active = props.showMenuButton },
-                        layout =
-                        {
-                            sizeDelta = Value(new Vector2(35, 35)),
-                            anchorMin = Value(new Vector2(1, 1)),
-                            anchorMax = Value(new Vector2(1, 1)),
-                            localPosition = Value(new Vector3(-10, -10, 0)),
-                            pivot = Value(new Vector2(1, 1))
-                        },
-                        content = List(Image(new() { sprite = Value(elements.hamburgerMenu) })),
-                        padding = Value(new RectOffset(9, 9, 9, 9)),
-                        onClick = () => open.value = !open.value
                     })
                 )
             });

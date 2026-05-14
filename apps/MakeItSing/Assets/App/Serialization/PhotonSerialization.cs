@@ -8,6 +8,7 @@ namespace Plerion.MakeItSing
 {
     public class Serializer<T> : Serializer
     {
+        public override Type type => typeof(T);
         private Action<BinaryWriter, T> _writeValue;
         private Func<BinaryReader, T> _readValue;
 
@@ -90,6 +91,7 @@ namespace Plerion.MakeItSing
 
     public abstract class Serializer
     {
+        public abstract Type type { get; }
         public abstract void Serialize(BinaryWriter writer, object value, bool isArray);
         public abstract object Deserialize(BinaryReader reader, bool isArray);
     }

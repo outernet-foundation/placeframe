@@ -350,8 +350,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _arAnchorManager: {fileID: 1971253312}
   _arCameraManager: {fileID: 1971253310}
-  _cesiumGeoreference: {fileID: 1290581387}
-  _groundTileset: {fileID: 2094851179}
   _controllers:
   - {fileID: 405281355}
   - {fileID: 841283076}
@@ -560,77 +558,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Asset: {fileID: -944628639613478452, guid: c348712bda248c246b8c49b3db54643f, type: 3}
   m_ActionId: c9a92aca-49d5-4910-8ade-8e994f0a31f0
---- !u!1 &1290581385
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1290581388}
-  - component: {fileID: 1290581387}
-  - component: {fileID: 1290581386}
-  m_Layer: 0
-  m_Name: CesiumGeoreference
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1290581386
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1290581385}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: be1fb41cdd01d7649a082f1a8f2bd114, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _useMainCamera: 1
-  _useSceneViewCameraInEditor: 1
-  _additionalCameras: []
---- !u!114 &1290581387
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1290581385}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d1305e05d46db92498ce698a4c366a5a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _ellipsoidOverride: {fileID: 0}
-  _originPlacement: 1
-  _originAuthority: 1
-  _latitude: 39.736401
-  _longitude: -105.25737
-  _height: 2249.999999999463
-  _ecefX: -1292934.4950404565
-  _ecefY: -4740026.104285267
-  _ecefZ: 4056960.1513377777
-  _scale: 1
---- !u!4 &1290581388
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1290581385}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1344.189, y: 281.17303, z: -0.056000046}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2094851178}
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1336748723
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -955,79 +882,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 117491872925537683, guid: 85a2c8901e7acfe45932592c50cdb76c, type: 3}
   m_PrefabInstance: {fileID: 1971253309}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &2094851177
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2094851178}
-  - component: {fileID: 2094851179}
-  m_Layer: 6
-  m_Name: Cesium World Terrain (For height sampling)
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2094851178
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2094851177}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1290581388}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2094851179
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2094851177}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 844ac86b07dcfa3468f56da55d787510, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _showCreditsOnScreen: 0
-  _tilesetSource: 0
-  _url: 
-  _ionAssetID: 1
-  _ionAccessToken: 
-  _ionServer: {fileID: 11400000, guid: 22e8d5b96c862f64ebf64e240351b00b, type: 2}
-  _maximumScreenSpaceError: 100
-  _preloadAncestors: 0
-  _preloadSiblings: 0
-  _forbidHoles: 0
-  _maximumSimultaneousTileLoads: 1
-  _maximumCachedBytes: 0
-  _loadingDescendantLimit: 20
-  _enableFrustumCulling: 0
-  _enableFogCulling: 1
-  _enforceCulledScreenSpaceError: 1
-  _culledScreenSpaceError: 64
-  _opaqueMaterial: {fileID: 0}
-  _generateSmoothNormals: 0
-  _pointCloudShading:
-    _attenuation: 0
-    _geometricErrorScale: 1
-    _maximumAttenuation: 0
-    _baseResolution: 0
-  _suspendUpdate: 1
-  _showTilesInHierarchy: 0
-  _updateInEditor: 0
-  _logSelectionStats: 0
-  _createPhysicsMeshes: 1
 --- !u!114 &2129664563
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1052,7 +906,6 @@ SceneRoots:
   - {fileID: 1971253309}
   - {fileID: 998282264}
   - {fileID: 520039903}
-  - {fileID: 1290581388}
   - {fileID: 1811777281}
   - {fileID: 1372666744}
   - {fileID: 1174793109}

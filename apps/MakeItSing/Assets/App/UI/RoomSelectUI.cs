@@ -102,7 +102,11 @@ namespace Plerion.MakeItSing
                                                     pivot = Value(new Vector2(0.5f, 0f))
                                                 },
                                                 children = List(
-                                                    Text(new() { value = Value("Join Room") }),
+                                                    Text(new()
+                                                    {
+                                                        value = Value("Join Room"),
+                                                        style = { fontSize = Value(20f) }
+                                                    }),
                                                     LabeledProperty(new()
                                                     {
                                                         label = Value("Room Name"),

@@ -129,7 +129,7 @@ namespace Plerion.MakeItSing
                     state.config.logGroups.value = env.logGroups;
                     state.config.logLevel.value = env.logLevel;
                     state.config.stackTraceLevel.value = env.stackTraceLevel;
-                    state.config.notificationLogLevel.value = env.notificationLogLevel;
+                    state.config.notificationLevel.value = env.notificationLogLevel;
                     state.nameServerConnection.connectionString.value = env.photonProjectId;
                     if (!string.IsNullOrEmpty(env.domain))
                         state.userSettings.domain.value = env.domain;
@@ -153,6 +153,8 @@ namespace Plerion.MakeItSing
             }
 
             Destroy(this);
+
+            App.state.loginStatus.value = LoginStatus.LoggedIn;
         }
 
         private void InitializeConfig()
@@ -172,8 +174,8 @@ namespace Plerion.MakeItSing
                 if (config.stack_trace_level != null)
                     App.state.config.stackTraceLevel.value = config.stack_trace_level.Value;
 
-                if (config.notification_log_level != null)
-                    App.state.config.notificationLogLevel.value = config.notification_log_level.Value;
+                if (config.notification_level != null)
+                    App.state.config.notificationLevel.value = config.notification_level.Value;
 
                 if (config.photon_project_id != null)
                     App.state.nameServerConnection.connectionString.value = config.photon_project_id;
