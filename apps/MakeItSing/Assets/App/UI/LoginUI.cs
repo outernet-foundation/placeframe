@@ -47,14 +47,14 @@ namespace Plerion.MakeItSing
                             childControlWidth = Value(true),
                             childControlHeight = Value(true),
                             padding = Value(new RectOffset(20, 20, 0, 0)),
-                            spacing = Value(25f),
+                            spacing = Value(10f),
                             children = List(
                                 Text(new()
                                 {
                                     value = Value("Outernet"),
                                     style =
                                     {
-                                        fontSize = Value(40f),
+                                        fontSize = Value(20f),
                                         horizontalAlignment = Value(TMPro.HorizontalAlignmentOptions.Center)
                                     }
                                 }),

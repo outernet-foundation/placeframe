@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using FofX.Stateful;
@@ -73,16 +74,23 @@ namespace Plerion.MakeItSing
         protected override void Execute(AppState target)
         {
             target.scene.players.Remove(_playerID);
-            //remove objects that this player owns here
+
+            foreach (var pathToRemove in target.scene.highFrequencyPrimitives.Where(x => x.Value.owner.value == _playerID).ToArray())
+                target.scene.highFrequencyPrimitives.Remove(pathToRemove.Key);
+
+            foreach (var toRemove in target.scene.objects.Where(x => x.Value.destroyOnOwnerDisconnect.value && x.Value.ownerID.value == _playerID).ToArray())
+                new DestroyObjectAction(toRemove.Key).ExecuteTransaction(target);
         }
     }
 
     public class ApplyIncrementalSyncAction : StateTransaction<AppState>
     {
+        private PathIDCache<SceneState> _pathIDCache;
         private byte[] _data;
 
-        public ApplyIncrementalSyncAction(byte[] data)
+        public ApplyIncrementalSyncAction(PathIDCache<SceneState> pathIDCache, byte[] data)
         {
+            _pathIDCache = pathIDCache;
             _data = data;
         }
 
@@ -95,11 +103,10 @@ namespace Plerion.MakeItSing
                 {
                     var startPosition = stream.Position;
                     var length = reader.ReadInt64();
-                    var path = reader.ReadString();
 
-                    if (!state.TryFindChild(path, out var dest))
+                    if (!_pathIDCache.TryReadPath(state.scene, reader, out var dest))
                     {
-                        UnityEngine.Debug.LogError($"Target state not found: {path}");
+                        UnityEngine.Debug.LogError($"Target state not found!");
                         stream.Position = startPosition + length;
                         continue;
                     }
@@ -176,12 +183,12 @@ namespace Plerion.MakeItSing
                     var length = reader.ReadInt64();
                     var id = reader.ReadInt32();
 
-                    IStateNode valueObj = default;
+                    IStateNode valueObj;
 
-                    if (!target.scene.highFrequencyPrimitives.TryGetValue(new HighFrequencyPrimitiveId(id), out var primitiveData) ||
-                        !target.TryFindChild(primitiveData.path.value, out valueObj))
+                    if (!target.scene.highFrequencyPrimitivesById.TryGetValue(new HighFrequencyPrimitiveId(id), out var path) ||
+                        !target.TryFindChild(path.value, out valueObj))
                     {
-                        UnityEngine.Debug.LogError($"Target state not found: {primitiveData}");
+                        UnityEngine.Debug.LogError($"Target state not found: ID: {id} Path: {path?.value}");
                         stream.Position = startPosition + length;
                         continue;
                     }
@@ -286,10 +293,10 @@ namespace Plerion.MakeItSing
             var objState = target.scene.objects.Add(avatarID);
             objState.ownerID.value = target.playerID.value;
             objState.viewPrefab.value = "PlayerAvatar";
+            objState.allowOwnershipTransfer.value = false;
+            objState.destroyOnOwnerDisconnect.value = true;
 
             var transformState = target.scene.transforms.Add(avatarID);
-
-            target.scene.avatarToPlayer.Add(avatarID).value = target.playerID.value;
 
             new AddHighFrequencyPrimitive(transformState.localPosition, PlayerIdHelpers.HighFrequencyPathIdHelper.AllocateID(), target.playerID.value, 16).ExecuteTransaction(target);
             new AddHighFrequencyPrimitive(transformState.localRotation, PlayerIdHelpers.HighFrequencyPathIdHelper.AllocateID(), target.playerID.value, 16).ExecuteTransaction(target);
@@ -313,10 +320,9 @@ namespace Plerion.MakeItSing
 
         protected override void Execute(AppState target)
         {
-            target.scene.highFrequencyPathsToIds.Add(_target.nodePath).value = _id;
-            var data = target.scene.highFrequencyPrimitives.Add(_id);
+            var data = target.scene.highFrequencyPrimitives.Add(_target.nodePath);
+            data.id.value = _id;
             data.owner.value = _owner;
-            data.path.value = _target.nodePath;
             data.syncRate.value = _syncRate;
         }
     }
@@ -325,6 +331,11 @@ namespace Plerion.MakeItSing
     {
         private string _path;
 
+        public RemoveHighFrequencyPrimitive(IStateValue target)
+        {
+            _path = target.nodePath;
+        }
+
         public RemoveHighFrequencyPrimitive(string path)
         {
             _path = path;
@@ -332,9 +343,7 @@ namespace Plerion.MakeItSing
 
         protected override void Execute(AppState target)
         {
-            var id = target.scene.highFrequencyPathsToIds[_path];
-            target.scene.highFrequencyPathsToIds.Remove(_path);
-            target.scene.highFrequencyPrimitives.Remove(id.value);
+            target.scene.highFrequencyPrimitives.Remove(_path);
         }
     }
 
@@ -431,6 +440,36 @@ namespace Plerion.MakeItSing
             state.masterClientID.Reset();
             state.playerID.Reset();
             state.scene.Reset();
+        }
+    }
+
+    public class DestroyObjectAction : StateTransaction<AppState>
+    {
+        private SceneObjectId _objectID;
+
+        public DestroyObjectAction(SceneObjectId objectID)
+        {
+            _objectID = objectID;
+        }
+
+        protected override void Execute(AppState state)
+        {
+            HashSet<string> _removedPaths = new HashSet<string>();
+
+            foreach (var componentDictionary in state.scene.componentDictionaries)
+            {
+                if (componentDictionary.TryGetValue(_objectID, out var toRemove))
+                {
+                    _removedPaths.Add(toRemove.nodePath);
+                    componentDictionary.Remove(_objectID);
+                }
+            }
+
+            var removedHighFrequencyPaths = state.scene.highFrequencyPrimitives.keys
+                .Where(highFrequencyPath => _removedPaths.Any(removedPath => highFrequencyPath.StartsWith(removedPath)));
+
+            foreach (var path in removedHighFrequencyPaths)
+                new RemoveHighFrequencyPrimitive(path).ExecuteTransaction(state);
         }
     }
 }

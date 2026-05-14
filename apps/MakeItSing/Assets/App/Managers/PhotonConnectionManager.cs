@@ -175,6 +175,7 @@ namespace Plerion.MakeItSing
 
         private MemoryStream _incrementalSyncStream = new MemoryStream();
         private MemoryStream _highFrequencySyncStream = new MemoryStream();
+        private PathIDCache<SceneState> _pathIDCache = new PathIDCache<SceneState>();
 
         private bool _inRoomAndSynchronized = false;
         private bool _applyingIncrementalSync = false;
@@ -194,11 +195,8 @@ namespace Plerion.MakeItSing
                 this.state = state;
                 IStateNode objTarget = default;
 
-                if (!App.state.scene.highFrequencyPrimitives.TryGetValue(state.id, out var data) ||
-                    !state.root.TryFindChild(data.path.value, out objTarget))
-                {
-                    throw new Exception($"Unable to find target state for {state.id}. Path: {data}");
-                }
+                if (!state.root.TryFindChild(state.path, out objTarget))
+                    throw new Exception($"Unable to find target state for {state.id}. Path: {state.path}");
 
                 if (!(objTarget is IStateValue))
                     throw new Exception($"High frequency sync for non-primitives is not supported!");
@@ -281,7 +279,7 @@ namespace Plerion.MakeItSing
                         var startPosition = writer.BaseStream.Position;
 
                         writer.Write(default(long)); // this will be the length of the message, after we know what it is
-                        writer.Write(data.state.id.value);
+                        writer.Write(data.state.id.value.value);
                         PhotonSerialization.GetSerializer(data.target.valueType).Serialize(
                             writer,
                             data.target.value,
@@ -381,7 +379,7 @@ namespace Plerion.MakeItSing
                     op.opType == OpType.Dispose ||
                     op.opType == OpType.None ||
                     op.source == App.state.inRoomAndSynchronized ||
-                    App.state.scene.highFrequencyPathsToIds.ContainsKey(op.source.nodePath) ||
+                    App.state.scene.highFrequencyPrimitives.ContainsKey(op.source.nodePath) ||
                     op.source.derived)
                 {
                     continue;
@@ -397,7 +395,7 @@ namespace Plerion.MakeItSing
             {
                 long startPosition = writer.BaseStream.Position;
                 writer.Write(default(long)); // this will be the length of the message, after we know what it is
-                writer.Write(change.source.nodePath);
+                _pathIDCache.WritePath(change.source, App.state.scene, writer);
                 writer.Write(change.opType == OpType.Remove);
 
                 if (change.source is IStateValue prim)
@@ -450,7 +448,9 @@ namespace Plerion.MakeItSing
 
         public void OnPlayerLeftRoom(Player otherPlayer)
         {
+            _applyingIncrementalSync = true; // disconnected players are removed on all clients simultaneously- no need to sync the operations
             App.ExecuteTransaction(new RemovePlayerAction(otherPlayer.ActorNumber));
+            _applyingIncrementalSync = false;
         }
 
         public void OnPlayerPropertiesUpdate(Player targetPlayer, PhotonHashtable changedProps)
@@ -475,7 +475,7 @@ namespace Plerion.MakeItSing
             else if (photonEvent.Code == INCREMENTAL_SYNC_EVENT)
             {
                 _applyingIncrementalSync = true;
-                App.ExecuteTransaction(new ApplyIncrementalSyncAction((byte[])photonEvent.CustomData));
+                App.ExecuteTransaction(new ApplyIncrementalSyncAction(_pathIDCache, (byte[])photonEvent.CustomData));
                 _applyingIncrementalSync = false;
             }
             else if (photonEvent.Code == INITIAL_SYNC_EVENT)

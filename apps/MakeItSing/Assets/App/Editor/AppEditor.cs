@@ -5,6 +5,7 @@ using UnityEditor;
 
 using FofX.Stateful;
 using System;
+using Unity.Mathematics;
 
 namespace Plerion.MakeItSing
 {
@@ -29,6 +30,47 @@ namespace Plerion.MakeItSing
                     EditorGUILayout.LabelField(label, ((HighFrequencyPrimitiveId)id).ToString());
                     return id;
                 }
+            },
+            {
+                typeof(double2),
+                (label, value) =>
+                {
+                    var val = (double2)value;
+                    EditorGUILayout.LabelField(label);
+                    EditorGUI.indentLevel++;
+                    val.x = EditorGUILayout.DoubleField("X", val.x);
+                    val.y = EditorGUILayout.DoubleField("Y", val.y);
+                    EditorGUI.indentLevel--;
+                    return val;
+                }
+            },
+            {
+                typeof(double3),
+                (label, value) =>
+                {
+                    var val = (double3)value;
+                    EditorGUILayout.LabelField(label);
+                    EditorGUI.indentLevel++;
+                    val.x = EditorGUILayout.DoubleField("X", val.x);
+                    val.y = EditorGUILayout.DoubleField("Y", val.y);
+                    val.z = EditorGUILayout.DoubleField("Z", val.z);
+                    EditorGUI.indentLevel--;
+                    return val;
+                }
+            },
+            {
+                typeof(quaternion),
+                (label, value) =>
+                {
+                    var val = ((Quaternion)(quaternion)value).eulerAngles;
+                    EditorGUILayout.LabelField(label);
+                    EditorGUI.indentLevel++;
+                    val.x = EditorGUILayout.FloatField("X", val.x);
+                    val.y = EditorGUILayout.FloatField("Y", val.y);
+                    val.z = EditorGUILayout.FloatField("Z", val.z);
+                    EditorGUI.indentLevel--;
+                    return (quaternion)Quaternion.Euler(val);
+                }
             }
         };
 
@@ -45,7 +87,7 @@ namespace Plerion.MakeItSing
             if (App.state == null)
                 return;
 
-            NodeEditors.DrawObservableNodeInspector(App.state, _openFoldouts);
+            NodeEditors.DrawObservableNodeInspector(App.state, _openFoldouts, _additionalDrawers);
         }
 
         public void OnEnable()

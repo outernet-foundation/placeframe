@@ -28,6 +28,18 @@ namespace Plerion.MakeItSing
         public static IListObservable<T> ObservableWhere<T>(this IListObservable<T> source, Func<T, IValueObservable<bool>> where)
             => ((ICollectionObservable<T>)source).ObservableWhere(where).ObservableOrderBy(x => source.ObservableIndexOf(x));
 
+        public static IDictionaryObservable<TKey, TValue> ObservableToDictionary<T, TKey, TValue>(this ICollectionObservable<T> source, Func<T, IValueObservable<TKey>> selectKey, Func<T, TValue> selectValue)
+            => new DictionaryOperator<TKey, TValue>(receiver => new ToDictionaryObservable<T, TKey, TValue>(source, selectKey, x => Value(selectValue(x)), receiver));
+
+        public static IDictionaryObservable<TKey, TValue> ObservableToDictionary<T, TKey, TValue>(this ICollectionObservable<T> source, Func<T, TKey> selectKey, Func<T, IValueObservable<TValue>> selectValue)
+            => new DictionaryOperator<TKey, TValue>(receiver => new ToDictionaryObservable<T, TKey, TValue>(source, x => Value(selectKey(x)), selectValue, receiver));
+
+        public static IDictionaryObservable<TKey, TValue> ObservableToDictionary<T, TKey, TValue>(this ICollectionObservable<T> source, Func<T, TKey> selectKey, Func<T, TValue> selectValue)
+            => new DictionaryOperator<TKey, TValue>(receiver => new ToDictionaryObservable<T, TKey, TValue>(source, x => Value(selectKey(x)), x => Value(selectValue(x)), receiver));
+
+        public static IDictionaryObservable<TKey, TValue> ObservableToDictionary<T, TKey, TValue>(this ICollectionObservable<T> source, Func<T, IValueObservable<TKey>> selectKey, Func<T, IValueObservable<TValue>> selectValue)
+            => new DictionaryOperator<TKey, TValue>(receiver => new ToDictionaryObservable<T, TKey, TValue>(source, selectKey, selectValue, receiver));
+
         public static ICollectionObservable<T> With<T>(this ICollectionObservable<T> source, params T[] with)
             => source.With(List(with));
 

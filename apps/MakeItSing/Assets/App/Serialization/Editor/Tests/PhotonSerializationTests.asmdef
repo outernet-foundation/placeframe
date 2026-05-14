@@ -1,5 +1,5 @@
 {
-    "name": "Tests",
+    "name": "PhotonSerializationTests",
     "rootNamespace": "",
     "references": [
         "UnityEngine.TestRunner",

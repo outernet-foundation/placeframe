@@ -22,9 +22,9 @@ namespace Plerion.MakeItSing
             {
                 transform =
                 {
-                    localPosition = transformState.localPosition.ObservableInterpolate(objectState.isMine.ObservableSelect(x => x ? -1 : 4f)),
-                    localRotation = transformState.localRotation.ObservableInterpolate(objectState.isMine.ObservableSelect(x => x ? -1 : 4f)),
-                    localScale = transformState.localScale.ObservableInterpolate(objectState.isMine.ObservableSelect(x => x ? -1 : 4f)),
+                    localPosition = transformState.localPosition.ObservableNetworkSmooth(objectState.isMine.ObservableSelect(x => x ? -1 : 0.6f)),
+                    localRotation = transformState.localRotation.ObservableNetworkSmooth(objectState.isMine.ObservableSelect(x => x ? -1 : 160f)),
+                    localScale = transformState.localScale.ObservableNetworkSmooth(objectState.isMine.ObservableSelect(x => x ? -1 : 0.6f)),
                     onLocalPositionChanged = x => transformState.localPosition.value = x,
                     onLocalRotationChanged = x => transformState.localRotation.value = x,
                     onLocalScaleChanged = x => transformState.localScale.value = x

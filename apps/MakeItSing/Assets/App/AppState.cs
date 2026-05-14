@@ -5,6 +5,8 @@ using System;
 using ObserveThing;
 using UnityEngine.Splines;
 using FofX;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace Plerion.MakeItSing
 {
@@ -31,7 +33,7 @@ namespace Plerion.MakeItSing
         public StateValue<LogGroup> logGroups { get; private set; }
         public StateValue<Outernet.Logging.LogLevel> logLevel { get; private set; }
         public StateValue<Outernet.Logging.LogLevel> stackTraceLevel { get; private set; }
-        public StateValue<Outernet.Logging.LogLevel> notificationLogLevel { get; private set; }
+        public StateValue<Outernet.Logging.LogLevel> notificationLevel { get; private set; }
         public StateValue<bool> disableSystemUI { get; private set; }
     }
 
@@ -42,6 +44,7 @@ namespace Plerion.MakeItSing
         public UserSettings userSettings { get; private set; }
         public AppConfigState config { get; private set; }
         public StateValue<bool> offlineMode { get; private set; }
+        public StateValue<bool> systemUIOpen { get; private set; }
 
 #if UNITY_EDITOR
         public EditorOnlyState editorOnly { get; private set; }
@@ -213,8 +216,47 @@ namespace Plerion.MakeItSing
         public StateDictionary<SceneObjectId, SceneTransformState> transforms { get; private set; }
         public StateDictionary<SceneObjectId, SplineState> splines { get; private set; }
 
-        public StateDictionary<HighFrequencyPrimitiveId, HighFrequencyPrimitiveData> highFrequencyPrimitives { get; private set; }
-        public StateDictionary<string, StateValue<HighFrequencyPrimitiveId>> highFrequencyPathsToIds { get; private set; }
+        public StateDictionary<string, HighFrequencyPrimitiveData> highFrequencyPrimitives { get; private set; }
+        public StateDictionary<HighFrequencyPrimitiveId, StateValue<string>> highFrequencyPrimitivesById { get; private set; }
+
+        public IEnumerable<IStateDictionary> componentDictionaries
+        {
+            get
+            {
+                yield return objects;
+                yield return transforms;
+                yield return splines;
+            }
+        }
+
+        protected override void PostInitializeInternal()
+        {
+            avatarToPlayer.Derive(
+                players.ObservableToDictionary(
+                    x => x.Value.avatar.AsObservable(),
+                    x =>
+                    {
+                        var prim = new StateValue<int>();
+                        prim.Initialize(avatarToPlayer, x.Key.ToString());
+                        prim.Derive(new ObservableValue<int>(x.Value.playerID));
+                        return prim;
+                    }
+                )
+            );
+
+            highFrequencyPrimitivesById.Derive(
+                highFrequencyPrimitives.ObservableToDictionary(
+                    x => x.Value.id.AsObservable(),
+                    x =>
+                    {
+                        var prim = new StateValue<string>();
+                        prim.Initialize(highFrequencyPrimitivesById, x.Key);
+                        prim.Derive(new ObservableValue<string>(x.Value.path));
+                        return prim;
+                    }
+                )
+            );
+        }
     }
 
     public class SceneObjectComponentState : StateObject, IKeyedStateNode<SceneObjectId>
@@ -231,6 +273,7 @@ namespace Plerion.MakeItSing
         public StateValue<bool> isMine { get; private set; }
         public StateValue<bool> allowOwnershipTransfer { get; private set; } = new StateValue<bool>(true);
         public StateValue<string> viewPrefab { get; private set; }
+        public StateValue<bool> destroyOnOwnerDisconnect { get; private set; }
 
         protected override void PostInitializeInternal()
         {
@@ -261,15 +304,15 @@ namespace Plerion.MakeItSing
         public StateList<StateValueArray<BezierKnot>> splines { get; private set; }
     }
 
-    public class HighFrequencyPrimitiveData : StateObject, IKeyedStateNode<HighFrequencyPrimitiveId>
+    public class HighFrequencyPrimitiveData : StateObject, IKeyedStateNode<string>
     {
-        public HighFrequencyPrimitiveId id { get; private set; }
-        public StateValue<string> path { get; private set; }
+        public string path { get; private set; }
+        public StateValue<HighFrequencyPrimitiveId> id { get; private set; }
         public StateValue<int> owner { get; private set; }
         public StateValue<byte> syncRate { get; private set; }
 
-        void IKeyedStateNode<HighFrequencyPrimitiveId>.AssignKey(HighFrequencyPrimitiveId key)
-            => id = key;
+        void IKeyedStateNode<string>.AssignKey(string key)
+            => path = key;
     }
 
 

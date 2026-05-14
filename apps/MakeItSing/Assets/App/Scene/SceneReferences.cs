@@ -11,8 +11,8 @@ namespace Plerion.MakeItSing
         public static ARAnchorManager ARAnchorManager => _instance._arAnchorManager;
         public static ARCameraManager ARCameraManager => _instance._arCameraManager;
         public static GameObject[] Controllers => _instance._controllers;
-        public static CesiumGeoreference CesiumGeoreference => _instance._cesiumGeoreference;
-        public static Cesium3DTileset GroundTileset => _instance._groundTileset;
+        // public static CesiumGeoreference CesiumGeoreference => _instance._cesiumGeoreference;
+        // public static Cesium3DTileset GroundTileset => _instance._groundTileset;
 
         [SerializeField]
         private ARAnchorManager _arAnchorManager;
@@ -20,11 +20,11 @@ namespace Plerion.MakeItSing
         [SerializeField]
         private ARCameraManager _arCameraManager;
 
-        [SerializeField]
-        private CesiumGeoreference _cesiumGeoreference;
+        // [SerializeField]
+        // private CesiumGeoreference _cesiumGeoreference;
 
-        [SerializeField]
-        private Cesium3DTileset _groundTileset;
+        // [SerializeField]
+        // private Cesium3DTileset _groundTileset;
 
         [SerializeField]
         private GameObject[] _controllers;
