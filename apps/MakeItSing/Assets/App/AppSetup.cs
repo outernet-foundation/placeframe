@@ -153,8 +153,6 @@ namespace Plerion.MakeItSing
             }
 
             Destroy(this);
-
-            App.state.loginStatus.value = LoginStatus.LoggedIn;
         }
 
         private void InitializeConfig()
