@@ -28,7 +28,7 @@ packages/unity/Logging/Assets/Package/
 ### Public surface
 
 - `Logger<TLogGroup>.Initialize(labels, suppressErrors = null)` -- set up Serilog, install Unity-log interception. `labels` (e.g. `[("app","capture-tool"),("platform","android-mobile")]`) bake into the Loki stream selector for every push. `suppressErrors` is a list of substrings: a message containing any of them is downgraded from `Error`/`Exception` to `Log` before forwarding (used for known-benign native spam like ARCore `GL_INVALID_ENUM`).
-- `Logger<TLogGroup>.EnableLoki(domain, tokenProvider, handler = null)` -- turn on the Loki drain. Until this is called, emitted events queue in memory. `tokenProvider` is a `Func<UniTask<string>>` returning a Bearer token (Placeframe consumers pass `() => Auth.GetOrRefreshToken()`). `handler` is an optional `HttpMessageHandler` (the Capture Tool injects an `InternetBoundHandler` to bind sockets to wifi rather than the ZED USB-ethernet interface).
+- `Logger<TLogGroup>.EnableLoki(domain, tokenProvider)` -- turn on the Loki drain. Until this is called, emitted events queue in memory. `tokenProvider` is a `Func<UniTask<string>>` returning a Bearer token (Placeframe consumers pass `() => Auth.GetOrRefreshToken()`). The sink builds its own `HttpClient` over the default `HttpClientHandler`.
 - `Logger<TLogGroup>.Terminate()` -- dispose the sink and unhook R3/Task subscriptions. Not used by any current consumer.
 - `Log<TLogGroup>.{Trace,Debug,Info,Warn,Error,Fatal}(...)` -- ~40 overloads covering combinations of `(TLogGroup, Exception, string template, object[] values)`.
 - `Log<TLogGroup>.{logLevel, stackTraceLevel, enabledLogGroups}` -- mutable static gates. Defaults: `Info`, `Warn`, all-bits-set. Consumers reconfigure at boot (and `MakeItSing` re-binds them to remote Supabase config at runtime -- `apps/MakeItSing/Assets/App/App.cs:66-68`).
@@ -111,8 +111,6 @@ The non-obvious pieces of this package fall out of three constraints: (a) Unity 
 
 **`tokenProvider` is called every drain cycle, not just on 401.** The package takes on faith that the consumer's auth helper caches and only refreshes when the cached token is near-expiry. Placeframe's `Auth.GetOrRefreshToken` does. A consumer with a naive provider that round-trips to Keycloak per call would cap the Loki drain rate at one POST per token roundtrip.
 
-**`HttpMessageHandler` parameter on `EnableLoki`.** Exists for `apps/AndroidMobile` to inject `InternetBoundHandler`, which socket-binds outbound TCP to the wifi interface rather than the ZED USB-ethernet gadget. The handler is otherwise an unused extension point; the package doesn't ship one.
-
 **JSON over Protobuf.** Loki accepts both. JSON keeps the implementation grep-able and avoids dragging a Protobuf dep across the IL2CPP boundary. The drain loop POSTs one stream per batch with `Content-Type: application/json` to `/loki/api/v1/push`.
 
 **Sort order in the JSON line.** `level`, `logGroup`, `messageTemplate`, `message`, then everything else, then `stackTrace`, `exception` last. Pure UX for the Grafana viewer -- these become the visible columns of a log row. Fatal becomes `critical` because Grafana has no native `fatal`.
@@ -136,5 +134,4 @@ The package works in production but has thin edges worth knowing about.
 ## See also
 
 - `docker/SPEC.md` -- the gateway's `/loki/` passthrough and the `service_name` label conventions for Loki queries; this package is the client side of that contract.
-- `apps/AndroidMobile/CLAUDE.md` -- describes the `InternetBoundHandler` reason for the `HttpMessageHandler` parameter on `EnableLoki` (USB-ethernet ZED vs wifi).
 - `apps/MakeItSing/SPEC.md` -- uses the package with remote-configurable log levels driven from Supabase `config` rows.

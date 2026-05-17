@@ -1,19 +1,23 @@
 # apps/AndroidMobile
 
-Unity 6 project for the phone-side Capture Tool. Talks to the ZED box over USB (ZED runs in USB gadget mode, Android sees it as `TRANSPORT_ETHERNET`).
+Unity 6 project for the phone-side Capture Tool. Talks to the ZED box over USB via the [Android Open Accessory (AOA) protocol](https://source.android.com/docs/core/interaction/accessories/aoa): the ZED is the USB host, the phone is a USB accessory, and the app speaks HTTP/2 cleartext (h2c, prior-knowledge) directly to the accessory file descriptor with no IP layer. HTTP/2 is required because the single duplex byte stream over the accessory FD permits only one in-flight HTTP/1.1 request — a concurrent request corrupts framing and tears the pipe down. HTTP/2 frames multiple logical streams over the one transport, which is exactly the property the medium is missing; `h2c` (prior-knowledge, no ALPN, no TLS) is the correct flavour for a fixed-topology USB link with no IP identity. The HTTP path is a Java+OkHttp hybrid: `Assets/Scripts/AndroidAoaHttpHandler.cs` is the `HttpMessageHandler` shim that marshals requests via JNI into `Assets/Plugins/Android/AoaAccessoryClient.java`, which holds a vendored-OkHttp client (`Protocol.H2_PRIOR_KNOWLEDGE`) wired to `AoaSocketFactory` (`AoaSocket.connect()` is a no-op so OkHttp writes straight into the `UsbAccessory` `ParcelFileDescriptor`). OkHttp still resolves URL hostnames before consulting the SocketFactory, so the client installs a synthetic `Dns` that returns `127.0.0.1` for any hostname — the address is never dialled. The ZED-side bridge is in `docker/aoa-bridge/src/aoa_bridge/main.py`. Internet-bound HTTP (ngrok, placeframe API, Loki push) uses .NET's default `HttpClientHandler` — there is no per-network binding because AOA isn't a Network from Android's point of view, so default routing can't accidentally use the USB cable.
 
-## Invoking Unity from a `--with-adb` slot
+## Invoking Unity from a Pulsar slot
 
-Prefix Unity build invocations with `env -u ADB_SERVER_SOCKET`:
+Use `uv run compile-unity` for every Unity invocation; never call `/opt/unity/.../Unity` directly.
+
+**Build + install on the host-attached phone:**
 
 ```
-env -u ADB_SERVER_SOCKET /opt/unity/.../Unity -batchmode -nographics -quit \
-  -projectPath apps/AndroidMobile -buildTarget Android -executeMethod ...
+uv run compile-unity --project CaptureTool --build android-mobile
+adb install -r apps/AndroidMobile/Build/<ProductName>.apk   # path is printed at end of build
 ```
 
-Unity's Android build module runs `adb kill-server` on teardown. With `ADB_SERVER_SOCKET` set (which `--with-adb` slots have by default), that kill message propagates through the slot and terminates the *host-side* adb server. Next `adb` call from the slot fails with `Connection refused` and the user has to restart the host server (`adb -a -P 5037 start-server` on the host). Unsetting the variable for the Unity subprocess confines Unity's adb dance to a local daemon inside the slot.
+Both `--project` and `--build` are required (no defaults). `--project` keys live in `build/unity-projects.json`; `--build` keys are the project's entries under `builds`. The command preps NuGet/dotnet tools, builds Unity in batchmode via the project's registered `executeMethod`, streams the log, and prints the produced APK path on success. Use the same command for a "did this `.cs` change compile?" sanity check — Unity bails fast on `error CS####` before the Android build starts.
 
-This applies to every Unity invocation that targets Android — production builds (`Placeframe.Client.Build.BuildForAndroidMobile`) and plain default-compile sanity checks.
+The CI-side `uv run build-unity` is a different entry point (cache, license, OCI registry, version tags) and is not usable from a slot. Don't reach for it.
+
+`compile-unity` goes through `unity_batchmode_command`, which prefixes `env -u ADB_SERVER_SOCKET` on non-Windows. Background: Unity's Android build module runs `adb kill-server` on teardown. Since every slot has `ADB_SERVER_SOCKET` forwarded to the host adb daemon (set unconditionally by `uv run agent-shell`), an unscrubbed kill propagates through the socket and terminates the *host-side* server — next `adb` call from the slot then fails with `Connection refused` until the host runs `adb -a -P 5037 start-server` again. The `env -u` strip in `unity_batchmode_command` confines Unity's adb dance to a local daemon inside the slot. Direct `/opt/unity/.../Unity` invocations bypass that guard, which is why the rule is "always `uv run compile-unity`."
 
 ## USB port contention when testing against the ZED box
 
@@ -44,6 +48,6 @@ Before starting any on-device testing, sanity check:
 | `adb version` | No `* daemon started successfully` line (would indicate a local daemon = wrong socket) |
 | `adb devices` | Pixel listed as `device`, not `unauthorized` or empty |
 
-If any check fails, the slot wasn't launched with `--with-adb` (or the host adb server isn't reachable). `forward_env` only fires at container creation — re-attaching a slot created without `--with-adb` won't pick up `ADB_SERVER_SOCKET`. Exit and relaunch with `uv run agent-shell --with-adb`.
+If any check fails, the host adb server isn't reachable or the slot was created before adb forwarding became unconditional. `forward_env` only fires at container creation, so an older slot may have a stale or absent `ADB_SERVER_SOCKET`. Destroy the slot and relaunch with `uv run agent-shell` to pick up the current value.
 
 If `ADB_SERVER_SOCKET` is set but the slot gets `connection refused` on `<incusbr0-host-ip>:5037` even after `adb -a -P 5037 start-server` on the host, suspect Unity Editor open on the host. Unity spawns its own adb daemon bound to `127.0.0.1:5037` whenever an Android-targeted project is open, which collides with the all-interface server and leaves the bridge IP unbound. Ask the user to close Unity, then re-run `adb -a -P 5037 start-server`.
