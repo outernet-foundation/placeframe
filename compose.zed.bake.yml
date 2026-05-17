@@ -1,8 +1,10 @@
 x-base-images:
   ZED_BASE_DIGEST: "stereolabs/zed:5.2-runtime-jetson-jp6.1.0"
+  CADDY_DIGEST: "docker.io/library/caddy:2.8.4-alpine"
 
 x-base-args: &base-args
   ZED_BASE_DIGEST: "${ZED_BASE_DIGEST:-}"
+  CADDY_DIGEST: "${CADDY_DIGEST:-}"
 
 x-registry-cache: ghcr.io/outernet-foundation/placeframe/build-cache
 
@@ -16,3 +18,20 @@ services:
       tags:
         - "ghcr.io/outernet-foundation/placeframe/zed-capture:latest"
         - "ghcr.io/outernet-foundation/placeframe/zed-capture:${ZED_CAPTURE_SHA}"
+  aoa-bridge:
+    build:
+      context: .
+      dockerfile: docker/aoa-bridge/Dockerfile
+      platforms: [ "linux/arm64" ]
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/aoa-bridge:latest"
+        - "ghcr.io/outernet-foundation/placeframe/aoa-bridge:${AOA_BRIDGE_SHA}"
+  aoa-gateway:
+    build:
+      context: .
+      dockerfile: docker/aoa-gateway/Dockerfile
+      platforms: [ "linux/arm64" ]
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/aoa-gateway:latest"
+        - "ghcr.io/outernet-foundation/placeframe/aoa-gateway:${AOA_GATEWAY_SHA}"

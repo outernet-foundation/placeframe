@@ -1,8 +1,24 @@
 import shutil
 import sys
 from pathlib import Path
+from typing import TypedDict
 
 from common.bash import bash
+
+from .projects import load_unity_projects
+
+
+class PlatformConfig(TypedDict):
+    build_flag: str
+    module: str
+
+
+PLATFORM_CONFIGS: dict[str, PlatformConfig] = {
+    "android-mobile": {"build_flag": "-buildTarget Android", "module": "android"},
+    "magicleap": {"build_flag": "-buildTarget Android", "module": "android"},
+    "linux64": {"build_flag": "-buildTarget StandaloneLinux64", "module": "linux-il2cpp"},
+    "win64": {"build_flag": "-buildTarget Win64", "module": "windows-mono"},
+}
 
 
 def find_unity_editor(project_path: Path) -> str:
@@ -49,6 +65,33 @@ def prepare_unity_project(project_path: Path) -> None:
 def unity_batchmode_command(project_path: Path) -> str:
     editor = find_unity_editor(project_path)
     command = f"{editor} -batchmode -nographics -quit -projectPath {project_path.resolve()}"
-    if sys.platform != "win32" and shutil.which("xvfb-run"):
-        command = f"xvfb-run {command}"
+    if sys.platform != "win32":
+        if shutil.which("xvfb-run"):
+            command = f"xvfb-run {command}"
+        # Unity runs `adb kill-server` on Android build teardown; strip the
+        # env var so the kill lands on a local daemon, not whatever
+        # ADB_SERVER_SOCKET points at.
+        command = f"env -u ADB_SERVER_SOCKET {command}"
     return command
+
+
+def resolve_unity_build(project: str, build: str) -> tuple[Path, str, str]:
+    config = load_unity_projects()
+    if project not in config.projects:
+        raise SystemExit(f"Unknown project '{project}'. Valid: {', '.join(config.projects)}")
+
+    project_config = config.projects[project]
+    valid_builds = project_config.builds or []
+    if build not in valid_builds:
+        valid = ", ".join(valid_builds) or "(none defined)"
+        raise SystemExit(f"Unknown build '{build}' for project '{project}'. Valid: {valid}")
+
+    execute_method = (project_config.execute_methods or {}).get(build)
+    if not execute_method:
+        raise SystemExit(f"No execute method for project '{project}' build '{build}'")
+
+    if build not in PLATFORM_CONFIGS:
+        raise SystemExit(f"No platform config for build '{build}'. Valid: {', '.join(PLATFORM_CONFIGS)}")
+
+    project_path = (Path(__file__).parents[4] / project_config.path).resolve()
+    return project_path, PLATFORM_CONFIGS[build]["build_flag"], execute_method

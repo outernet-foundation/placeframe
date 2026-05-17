@@ -10,6 +10,7 @@ dev = ["build-scripts", "scripts", "basedpyright>=1.28.0", "deptry>=0.24.0", "ru
 
 [tool.uv.workspace]
 members = [
+    "docker/aoa-bridge",
     "docker/database-manager",
     "docker/api",
     "docker/auth-initializer",

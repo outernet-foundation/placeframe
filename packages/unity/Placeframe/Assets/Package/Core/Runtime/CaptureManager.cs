@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using ICSharpCode.SharpZipLib.Tar;
+using PlaceframeApiClient.Client;
 using PlaceframeApiClient.Model;
 using R3;
 using UnityEngine;
@@ -102,7 +103,7 @@ namespace Placeframe.Core
             return Directory.GetCreationTimeUtc(SessionDir(captureId.ToString()));
         }
 
-        public static async UniTask<Stream> GetCaptureTar(Guid captureId)
+        public static async UniTask<FileParameter> GetCaptureTar(Guid captureId)
         {
             var directoryPath = SessionDir(captureId.ToString());
             if (!Directory.Exists(directoryPath))
@@ -134,7 +135,7 @@ namespace Placeframe.Core
             }
 
             memoryStream.Position = 0;
-            return memoryStream;
+            return new FileParameter($"{captureId}.tar", "application/x-tar", memoryStream);
         }
 
         public static void DeleteCapture(Guid id)

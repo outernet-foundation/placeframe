@@ -29,11 +29,10 @@ namespace Placeframe.Client
 {
     public static partial class UIElements
     {
-        public static string CaptureStatusLabel(CaptureUploadStatus status, ReconstructionReadWithQueue reconstruction, DeviceType type, float? clientProgress) =>
+        public static string CaptureStatusLabel(CaptureUploadStatus status, ReconstructionReadWithQueue reconstruction, float? clientProgress) =>
             status switch
             {
                 CaptureUploadStatus.NotUploaded => "Upload",
-                CaptureUploadStatus.Initializing => (type == DeviceType.Zed ? "Copying from Zed" : "Uploading") + ClientProgressSuffix(clientProgress),
                 CaptureUploadStatus.Uploading => "Uploading" + ClientProgressSuffix(clientProgress),
                 CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
                 CaptureUploadStatus.Reconstructing => ReconstructingPhaseLabel(reconstruction),
@@ -90,27 +89,17 @@ namespace Placeframe.Client
                 // regardless of which worker the handler chain reports from.
                 var progress = new Progress<float>(p => capture.clientProgress.value = p);
 
-                capture.clientPhase.value = CaptureClientPhase.Initializing;
-                capture.clientProgress.value = null;
-
-                Stream captureData;
-                if (type == DeviceType.Zed)
-                {
-                    using (HttpProgressContext.Set(progress))
-                        captureData = await ZedCaptureController.GetCapture(id);
-                }
-                else if (type == DeviceType.ARFoundation)
-                {
-                    captureData = await CaptureManager.GetCaptureTar(id);
-                }
-                else
-                {
-                    throw new ArgumentException($"Unknown DeviceType {type}");
-                }
-
-                await UniTask.SwitchToMainThread();
                 capture.clientPhase.value = CaptureClientPhase.Uploading;
                 capture.clientProgress.value = null;
+
+                var captureData = type switch
+                {
+                    DeviceType.Zed => await ZedCaptureController.GetCapture(id),
+                    DeviceType.ARFoundation => await CaptureManager.GetCaptureTar(id),
+                    _ => throw new ArgumentException($"Unknown DeviceType {type}"),
+                };
+
+                await UniTask.SwitchToMainThread();
 
                 CaptureSessionRead captureSession;
                 using (HttpProgressContext.Set(progress))
@@ -118,7 +107,7 @@ namespace Placeframe.Client
                     captureSession = await VisualPositioningSystem.Api
                         .CreateCaptureSessionAsync(
                             type,
-                            new FileParameter(captureData),
+                            captureData,
                             id: id,
                             name: capture.name.value,
                             recordedAt: capture.recordedAt.value);
@@ -346,7 +335,6 @@ namespace Placeframe.Client
                                 label = Observables.ObservableCombineValues(
                                     capture.status,
                                     capture.reconstruction,
-                                    capture.type,
                                     capture.clientProgress,
                                     CaptureStatusLabel
                                 ),

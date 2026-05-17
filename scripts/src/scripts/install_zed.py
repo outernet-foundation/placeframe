@@ -1,36 +1,42 @@
 import json
 import tempfile
+import time
 from contextlib import ExitStack
+from logging import getLogger
 from pathlib import Path
+from subprocess import CalledProcessError
+from typing import Annotated
 
 import typer
 from build_scripts.placeframe.context_sha import compute_service_shas
 from common.bash import bash, bash_check, bash_output
+from common.logging_config import configure_logging
+from common.ui import bail, note
 
-app = typer.Typer()
+from . import messages
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 BAKE_FILE = REPO_ROOT / "compose.zed.bake.yml"
 COMPOSE_SOURCE = REPO_ROOT / "docker" / "zed-capture" / "compose.rig.yml"
-CAPTIVE_PORTAL_SOURCE = REPO_ROOT / "docker" / "zed-capture" / "captive_portal.py"
 SYSTEMD_UNIT_SOURCE = REPO_ROOT / "docker" / "zed-capture" / "placeframe-zed.service"
 REMOTE_DIR = "~/.placeframe"
 REMOTE_COMPOSE = f"{REMOTE_DIR}/compose.rig.yml"
-REMOTE_CAPTIVE_PORTAL = f"{REMOTE_DIR}/captive_portal.py"
 SSH_SOCKET = "/tmp/install-zed-ssh-%C"
 SSH_MUX = f"-o ControlMaster=auto -o ControlPath={SSH_SOCKET} -o ControlPersist=120"
 SSH_KEY = Path.home() / ".ssh" / "id_ed25519"
+GHCR_BASE = "ghcr.io/outernet-foundation/placeframe"
 
-USB_SUBNET = "192.168.55.0/24"
-USB_HOST_IP = "192.168.55.100"
-USB_GADGET_IP = "192.168.55.1"
-
-# The ZED box reaches a local Docker registry on the host over the USB-ethernet
-# link. The host runs the registry on :5000; the box pulls from
-# 192.168.55.100:5000 (the host's IP on that link).
-REGISTRY_HOST_ADDR = "localhost:5000"
-REGISTRY_JETSON_ADDR = f"{USB_HOST_IP}:5000"
-LOCAL_IMAGE = f"{REGISTRY_JETSON_ADDR}/zed-capture:latest"
+# Inside RFC 6598 Shared Address Space (100.64.0.0/10), not RFC1918, so
+# sandbox containers with RFC1918-block firewall rules can still reach the
+# box.
+BOX_SUBNET = "100.64.0.0/24"
+BOX_IP = "100.64.0.1"
+HOST_CABLE_IP = "100.64.0.2"
+HOST_CABLE_CIDR = f"{HOST_CABLE_IP}/24"
+HOST_NM_CONNECTION = "zedbox"
+HOST_SYSCTL_FILE = "/etc/sysctl.d/99-zedbox.conf"
+HOST_SYSCTL_CONTENT = "net.ipv4.ip_forward = 1\n"
+BOX_SSH_TARGET = f"user@{BOX_IP}"
 
 DOCKER_DEB_BASE = "https://download.docker.com/linux/ubuntu/dists/jammy/pool/stable/arm64"
 DOCKER_DEBS = [
@@ -41,313 +47,490 @@ DOCKER_DEBS = [
     "docker-compose-plugin_5.1.1-1~ubuntu.22.04~jammy_arm64.deb",
 ]
 
+REGISTRY_IMAGE = "registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373"
+REGISTRY_PORT = 5000
+
+DHCP_LEASE_WAIT_SECONDS = 60
+
 SUDOERS_RULE = (
     "user ALL=(ALL) NOPASSWD: /usr/bin/dpkg, /usr/sbin/usermod, /usr/bin/nvidia-ctk,"
-    " /usr/bin/systemctl, /usr/bin/docker, /sbin/ip, /usr/bin/tee"
+    " /usr/bin/systemctl, /usr/bin/docker, /usr/bin/tee, /usr/bin/nmcli"
 )
 
-L4T_RUNTIME_START_SH = "/opt/nvidia/l4t-usb-device-mode/nv-l4t-usb-device-mode-runtime-start.sh"
-L4T_USB_RUNTIME_UNIT = "nv-l4t-usb-device-mode-runtime.service"
-PLACEFRAME_CAPTIVE_PORTAL_MARKER = "placeframe-captive-portal-fix"
-DHCP_LEASE_SECONDS = 3600
+# Pins the Jetson's USB-C port as a USB gadget, which is incompatible with
+# the box acting as USB host for the phone-as-accessory link. Disabling
+# frees the port for host duty.
+L4T_USB_DEVICE_MODE_UNIT = "nv-l4t-usb-device-mode.service"
+
+logger = getLogger(__name__)
+app = typer.Typer()
 
 
 @app.command()
 def main(
-    host: str = typer.Option(f"user@{USB_GADGET_IP}", help="SSH target for the ZED Box"),
-    build: bool = typer.Option(False, "--build", help="Cross-compile zed-capture locally instead of pulling from ghcr"),
+    build: Annotated[
+        bool,
+        typer.Option("--build", help="Cross-compile zed-capture locally instead of pulling from ghcr"),
+    ] = False,
 ) -> None:
+    configure_logging("install-zed")
+    logger.info("starting_install", extra={"target": BOX_SSH_TARGET, "build": build})
     with ExitStack() as stack:
-        _install(stack, host, build)
+        _install(stack, build)
 
 
-def _install(stack: ExitStack, host: str, build: bool) -> None:
-    shas = compute_service_shas(REPO_ROOT, BAKE_FILE)
+# Separate helper so ExitStack callbacks fire when this returns, not at the
+# typer command-function boundary.
+def _install(stack: ExitStack, build: bool) -> None:
+    service_shas = compute_service_shas(REPO_ROOT, BAKE_FILE)
 
-    # SSH bootstrap: key + control master + passwordless sudo. One-time setup
-    # the first time you target a given box.
-    if not SSH_KEY.exists():
-        print("  Generating SSH key...")
+    if need_ssh_key_generate():
         SSH_KEY.parent.mkdir(parents=True, exist_ok=True)
         bash(f'ssh-keygen -t ed25519 -N "" -f {SSH_KEY}')
-    if not bash_check(f"ssh -o BatchMode=yes -o ConnectTimeout=5 {host} true"):
-        print("  Copying SSH key to ZED Box (you will be prompted for the password one last time)...")
-        bash(f"ssh-copy-id -i {SSH_KEY} {host}")
-    print("Connecting to ZED Box...")
-    bash(f"ssh {SSH_MUX} -fN {host}")
-    # Best-effort: tear down the SSH control master at exit; ignore if it's already gone.
-    stack.callback(lambda: bash_check(f"ssh -o ControlPath={SSH_SOCKET} -O exit {host}"))
 
-    if _ssh_output(host, '"cat /etc/sudoers.d/install-zed 2>/dev/null || true"').strip() != SUDOERS_RULE:
-        print("  Configuring passwordless sudo (will prompt for sudo password one last time)...")
-        bash(f"ssh -t {SSH_MUX} {host} \"echo '{SUDOERS_RULE}' | sudo tee /etc/sudoers.d/install-zed > /dev/null\"")
+    _set_host_cable_to("manual")
 
-    fresh_install = not _ssh_check(host, "which docker")
+    if not bash_check(f"ssh -o BatchMode=yes -o ConnectTimeout=5 {BOX_SSH_TARGET} true"):
+        _bootstrap_box_via_dhcp()
+
+    if not bash_check(f"ssh -o BatchMode=yes -o ConnectTimeout=5 {BOX_SSH_TARGET} true"):
+        note(messages.SSH_KEY_COPY_PROMPT)
+        bash(f"ssh-copy-id -i {SSH_KEY} {BOX_SSH_TARGET}")
+
+    logger.info("connecting_to_box", extra={"target": BOX_SSH_TARGET})
+    bash(f"ssh {SSH_MUX} -fN {BOX_SSH_TARGET}")
+    stack.callback(lambda: bash_check(f"ssh -o ControlPath={SSH_SOCKET} -O exit {BOX_SSH_TARGET}"))
+
+    if need_sudoers_write():
+        note(messages.SUDOERS_INSTALL_PROMPT)
+        # `sudo install` (not pipe-into-tee) avoids a remote pipeline and
+        # works before passwordless sudo exists.
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".sudoers") as sudoers_file:
+            sudoers_file.write(SUDOERS_RULE + "\n")
+            sudoers_file.flush()
+            bash(f"scp {SSH_MUX} {sudoers_file.name} {BOX_SSH_TARGET}:/tmp/install-zed.sudoers")
+            bash(
+                f"ssh -t {SSH_MUX} {BOX_SSH_TARGET}"
+                ' "sudo install -m 0440 -o root -g root /tmp/install-zed.sudoers /etc/sudoers.d/install-zed"'
+            )
+            _ssh('"rm /tmp/install-zed.sudoers"')
+
+    fresh_install = need_docker_install()
     if fresh_install:
-        with tempfile.TemporaryDirectory() as tmpdir:
-            print("Downloading Docker packages...")
-            for deb in DOCKER_DEBS:
-                bash(f"curl -fsSL -o {tmpdir}/{deb} {DOCKER_DEB_BASE}/{deb}")
-            print("Transferring packages to ZED Box...")
-            for deb in DOCKER_DEBS:
-                bash(f"scp {SSH_MUX} {tmpdir}/{deb} {host}:/tmp/{deb}")
-        debs_str = " ".join(f"/tmp/{deb}" for deb in DOCKER_DEBS)
-        print("Installing Docker on ZED Box...")
-        _ssh(host, f'"sudo dpkg -i {debs_str} && sudo usermod -aG docker {host.split("@")[0]} && rm {debs_str}"')
-    else:
-        print("Docker already installed, skipping")
-    # Right after install, the user isn't yet picked up in the docker group on
-    # the existing SSH master, so we need sudo. Subsequent runs see docker
-    # already installed and use the user's group membership directly.
+        with tempfile.TemporaryDirectory() as temp_directory:
+            logger.info("downloading_docker_packages", extra={"count": len(DOCKER_DEBS)})
+            for deb_file in DOCKER_DEBS:
+                bash(f"curl -fsSL -o {temp_directory}/{deb_file} {DOCKER_DEB_BASE}/{deb_file}")
+            logger.info("transferring_docker_packages", extra={"target": BOX_SSH_TARGET})
+            for deb_file in DOCKER_DEBS:
+                bash(f"scp {SSH_MUX} {temp_directory}/{deb_file} {BOX_SSH_TARGET}:/tmp/{deb_file}")
+        deb_paths = " ".join(f"/tmp/{deb_file}" for deb_file in DOCKER_DEBS)
+        box_user = BOX_SSH_TARGET.split("@")[0]
+        _ssh(f'"sudo dpkg -i {deb_paths}"')
+        _ssh(f'"sudo usermod -aG docker {box_user}"')
+        _ssh(f'"rm {deb_paths}"')
+        logger.info("docker_installed", extra={"user": box_user})
+    # The just-added docker group membership isn't picked up on this SSH
+    # session, so the fresh-install path needs sudo.
     docker = "sudo docker" if fresh_install else "docker"
 
-    if not _ssh_check(host, '"grep -q nvidia /etc/docker/daemon.json 2>/dev/null"'):
-        print("  Configuring NVIDIA container runtime...")
-        _ssh(host, '"sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker"')
+    if need_nvidia_runtime_configure():
+        _ssh('"sudo nvidia-ctk runtime configure --runtime=docker"')
+        _ssh('"sudo systemctl restart docker"')
 
-    image = _acquire_image(stack, host, build, docker, shas)
+    logger.info("disabling_usb_device_mode_service", extra={"unit": L4T_USB_DEVICE_MODE_UNIT})
+    _ssh_check(f'"sudo systemctl disable --now {L4T_USB_DEVICE_MODE_UNIT}"')
 
-    print("Transfer compose file to ZED Box")
-    _ssh(host, f'"mkdir -p {REMOTE_DIR}"')
-    bash(f"scp {SSH_MUX} {COMPOSE_SOURCE!s} {host}:{REMOTE_COMPOSE}")
-    bash(f"scp {SSH_MUX} {CAPTIVE_PORTAL_SOURCE!s} {host}:{REMOTE_CAPTIVE_PORTAL}")
+    logger.info("configuring_box_networking")
+    box_hostname = _ssh_output('"hostname"').strip()
+    if need_etc_hosts_entry(box_hostname):
+        _ssh('"sudo tee -a /etc/hosts > /dev/null"', stdin_text=f"127.0.0.1 {box_hostname}\n")
 
-    # Jetson hardware-burned serial survives OS reflashes; fall back to
-    # /etc/machine-id on non-Jetson devices. ZED_BOX_ID becomes the Loki
-    # stream label for relayed logs from this box.
-    box_id = _ssh_output(
-        host,
-        "\"tr -d '\\0\\n' < /proc/device-tree/serial-number 2>/dev/null || cat /etc/machine-id\"",
-    ).strip()
+    if not _ssh_check('"systemctl is-active --quiet NetworkManager"'):
+        bail(messages.NETWORKMANAGER_NOT_ACTIVE)
+
+    # $SSH_CLIENT is the host IP the box can already reach us on — by
+    # construction the 100.64.0.0/24 address the host cable connection holds.
+    host_ip = _ssh_output('"echo $SSH_CLIENT"').split()[0]
+    route_out = _ssh_output(f'"ip route get {host_ip}"').strip().split()
+    if "dev" not in route_out:
+        bail(messages.BOX_INTERFACE_UNPARSEABLE, host_ip=host_ip, route_out=repr(route_out))
+    box_interface = route_out[route_out.index("dev") + 1]
+
+    connections_raw = _ssh_output('"nmcli -t -f NAME,DEVICE con show --active"').strip()
+    box_connection = next(
+        (
+            parts[0].replace("\\:", ":").replace("\\\\", "\\")
+            for line in connections_raw.splitlines()
+            if (parts := line.partition(":"))[2] == box_interface
+        ),
+        "",
+    )
+    if not box_connection:
+        bail(messages.NO_ACTIVE_NM_CONNECTION, interface=box_interface, connections_raw=repr(connections_raw))
+
+    nmcli_modify = (
+        f'sudo nmcli con mod \\"{box_connection}\\" ipv4.gateway {host_ip} ipv4.dns 8.8.8.8 ipv4.ignore-auto-dns yes'
+    )
+    _ssh(f'"{nmcli_modify}"')
+    _ssh(f'"sudo nmcli con up \\"{box_connection}\\""')
+
+    if need_ip_forward_enable():
+        bash(f"sudo tee {HOST_SYSCTL_FILE}", stdin_text=HOST_SYSCTL_CONTENT)
+        bash("sudo sysctl --system")
+
+    if not bash_check("which firewall-cmd"):
+        bail(messages.FIREWALLD_REQUIRED)
+    firewalld_changed = False
+    if need_firewalld_trusted_source_add():
+        bash(f"sudo firewall-cmd --permanent --zone=trusted --add-source={BOX_SUBNET}")
+        firewalld_changed = True
+    if need_firewalld_masquerade_enable():
+        bash("sudo firewall-cmd --permanent --zone=public --add-masquerade")
+        firewalld_changed = True
+    if firewalld_changed:
+        bash("sudo firewall-cmd --reload")
+
+    images = _acquire_images(host_ip, build, docker, service_shas)
+
+    logger.info("transferring_compose_file", extra={"source": str(COMPOSE_SOURCE)})
+    _ssh(f'"mkdir -p {REMOTE_DIR}"')
+    bash(f"scp {SSH_MUX} {COMPOSE_SOURCE!s} {BOX_SSH_TARGET}:{REMOTE_COMPOSE}")
+
+    # Jetson hardware-burned serial survives OS reflashes; /etc/machine-id is
+    # the non-Jetson fallback.
+    if _ssh_check('"test -e /proc/device-tree/serial-number"'):
+        box_id = _ssh_output("\"tr -d '\\0\\n' < /proc/device-tree/serial-number\"").strip()
+    else:
+        box_id = ""
     if not box_id:
-        raise SystemExit(
-            f"Could not resolve box id on {host}: both /proc/device-tree/serial-number and /etc/machine-id are empty"
-        )
-    _ssh(host, f"tee {REMOTE_DIR}/.env", stdin_text=f"ZED_IMAGE={image}\nZED_BOX_ID={box_id}\n")
+        box_id = _ssh_output('"cat /etc/machine-id"').strip()
+    if not box_id:
+        bail(messages.BOX_ID_UNRESOLVABLE)
+    _ssh(
+        f"tee {REMOTE_DIR}/.env",
+        stdin_text=(
+            f"ZED_IMAGE={images['zed_capture']}\n"
+            f"AOA_BRIDGE_IMAGE={images['aoa_bridge']}\n"
+            f"AOA_GATEWAY_IMAGE={images['aoa_gateway']}\n"
+            f"ZED_BOX_ID={box_id}\n"
+        ),
+    )
 
-    print("Install systemd unit for boot-time container recreation")
-    remote_home = _ssh_output(host, '"echo $HOME"').strip()
+    logger.info("installing_systemd_unit", extra={"unit": "placeframe-zed.service"})
+    remote_home = _ssh_output('"echo $HOME"').strip()
     remote_compose_abs = f"{remote_home}/.placeframe/compose.rig.yml"
     unit_content = SYSTEMD_UNIT_SOURCE.read_text().replace("COMPOSE_PATH", remote_compose_abs)
-    _ssh(host, '"sudo tee /etc/systemd/system/placeframe-zed.service > /dev/null"', stdin_text=unit_content)
-    _ssh(host, '"sudo systemctl daemon-reload && sudo systemctl enable placeframe-zed.service"')
+    _ssh('"sudo tee /etc/systemd/system/placeframe-zed.service > /dev/null"', stdin_text=unit_content)
+    _ssh('"sudo systemctl daemon-reload"')
+    _ssh('"sudo systemctl enable placeframe-zed.service"')
 
-    print("Ensure ZED camera daemons are running")
-    _ssh(host, '"sudo systemctl enable --now nvargus-daemon zed_x_daemon"')
-
-    print("Configure captive-portal DHCP option")
-    _setup_captive_portal_dhcp(host)
+    logger.info("enabling_camera_daemons")
+    _ssh('"sudo systemctl enable --now nvargus-daemon zed_x_daemon"')
 
     # `down` first so deploys are idempotent against any prior partially-failed
     # `up --force-recreate` (which can leave containers stuck under their
     # ID-prefixed rename, blocking the next recreate with a name conflict).
-    _ssh(host, f'"{docker} compose -f {REMOTE_COMPOSE} down --remove-orphans"')
-    _ssh(host, f'"{docker} compose -f {REMOTE_COMPOSE} up -d"')
+    logger.info("redeploying_compose_stack", extra={"compose": REMOTE_COMPOSE})
+    _ssh(f'"{docker} compose -f {REMOTE_COMPOSE} down --remove-orphans"')
+    _ssh(f'"{docker} compose -f {REMOTE_COMPOSE} up -d"')
 
-    # ZED SDK warmup downloads calibration + AI models. Only meaningful when
-    # the box has internet — i.e. when we've enabled USB internet sharing.
     if not build:
-        print("Warm up ZED SDK (downloads calibration + AI models while internet is available)...")
+        logger.info("warming_zed_sdk")
         bash(
-            f'ssh {SSH_MUX} {host} "{docker} compose -f {REMOTE_COMPOSE} exec zed-capture python -c \\"'
+            f'ssh {SSH_MUX} {BOX_SSH_TARGET} "{docker} compose -f {REMOTE_COMPOSE} exec zed-capture python -c \\"'
             f"import pyzed.sl as sl; c = sl.Camera(); p = sl.InitParameters(); c.open(p); c.close()"
             f'\\""'
         )
 
-    print("Done.")
+    logger.info("install_done")
 
 
-def _acquire_image(stack: ExitStack, host: str, build: bool, docker: str, shas: dict[str, str]) -> str:
-    # Local build pushes to a registry on the host reachable over USB-ethernet;
-    # CI build is on ghcr and requires the box to have internet (which we
-    # provide by sharing the host's connection over USB).
-    if build:
-        # Ensure local Docker registry is running on the host.
-        registry_exists = bash_check("docker container inspect registry")
-        already_running = (
-            registry_exists and bash_output('docker inspect -f "{{.State.Running}}" registry').strip() == "true"
-        )
-        if already_running:
-            print("Local registry already running")
-        else:
-            if registry_exists:
-                print("Removing stopped registry container...")
-                bash("docker rm -f registry")
-            print("Starting local Docker registry on :5000...")
-            bash("docker run -d -p 5000:5000 --name registry --restart unless-stopped registry:2")
+def _bootstrap_box_via_dhcp() -> None:
+    logger.info("bootstrapping_box_via_dhcp")
+    # NM's dnsmasq re-reads the lease file on startup, so a prior bootstrap's
+    # entry survives a manual-shared-manual cycle and gets re-served, pointing
+    # at an IP the box no longer holds. Delete the file so dnsmasq starts
+    # empty.
+    bash_check("sudo find /var/lib/NetworkManager -maxdepth 1 -name 'dnsmasq-*.leases' -delete")
+    _set_host_cable_to("shared")
 
-        print("Cross-compiling zed-capture for ARM64...")
-        env_prefix = " ".join(f"{k}={v}" for k, v in shas.items())
-        bash(
-            f"env {env_prefix} docker buildx bake -f {BAKE_FILE}"
-            f" --set zed-capture.tags={REGISTRY_HOST_ADDR}/zed-capture:latest"
-            " --push --provenance=false --sbom=false zed-capture",
-        )
+    leased_ip = _wait_for_box_lease()
+    logger.info("box_dhcp_lease_acquired", extra={"leased_ip": leased_ip})
+    bootstrap_target = f"user@{leased_ip}"
 
-        # Docker defaults to HTTPS for all registries. The local registry is plain HTTP, but that's
-        # fine here — traffic goes over a direct USB-ethernet cable with no network in between.
-        # This adds the host's USB IP to the Jetson's "insecure-registries" (Docker's name for "use HTTP").
-        if not _ssh_check(host, f'"grep -q {REGISTRY_JETSON_ADDR} /etc/docker/daemon.json 2>/dev/null"'):
-            print(f"Configuring Jetson Docker to use HTTP for {REGISTRY_JETSON_ADDR}...")
-            config = json.loads(_ssh_output(host, '"cat /etc/docker/daemon.json"').strip())
-            registries: list[str] = config.get("insecure-registries", [])
-            registries.append(REGISTRY_JETSON_ADDR)
-            config["insecure-registries"] = registries
-            _ssh(host, "sudo tee /etc/docker/daemon.json", stdin_text=json.dumps(config, indent=2))
-            _ssh(host, '"sudo systemctl restart docker"')
-        image = LOCAL_IMAGE
-    else:
-        image = f"ghcr.io/outernet-foundation/placeframe/zed-capture:{shas['ZED_CAPTURE_SHA']}"
-        print("Enable internet sharing over USB (may require sudo)...")
-        # Enable IP forwarding + NAT on host in a single sudo call.
-        # sysctl is idempotent; iptables -C checks if rule exists, adds only if missing.
-        bash(
-            f"sudo sh -c '"
-            f"sysctl -w net.ipv4.ip_forward=1"
-            f" && (iptables -t nat -C POSTROUTING -s {USB_SUBNET} -j MASQUERADE 2>/dev/null"
-            f" || iptables -t nat -A POSTROUTING -s {USB_SUBNET} -j MASQUERADE)'"
-        )
-        # Set up routing and DNS on the Jetson
-        # Ensure the Jetson's hostname is in /etc/hosts (suppresses sudo warnings)
-        bash(
-            f'ssh {SSH_MUX} {host} "'
-            f"grep -q $(hostname) /etc/hosts || echo 127.0.0.1 $(hostname) | sudo tee -a /etc/hosts > /dev/null"
-            f" && sudo ip route replace default via {USB_HOST_IP}"
-            f" && (grep -q 'nameserver 8.8.8.8' /etc/resolv.conf"
-            f" || echo 'nameserver 8.8.8.8' | sudo tee -a /etc/resolv.conf > /dev/null)\""
-        )
+    if not bash_check(f"ssh -o BatchMode=yes -o ConnectTimeout=5 {bootstrap_target} true"):
+        note(messages.SSH_KEY_COPY_PROMPT)
+        bash(f"ssh-copy-id -i {SSH_KEY} {bootstrap_target}")
 
-        def _disable_internet_sharing() -> None:
-            # Best-effort cleanup at exit; ignore failures (route/rule may already be gone, ssh may be down).
-            _ = _ssh_check(host, f'"sudo ip route del default via {USB_HOST_IP} 2>/dev/null || true"')
-            _ = bash_check(f"sudo iptables -t nat -D POSTROUTING -s {USB_SUBNET} -j MASQUERADE")
-
-        stack.callback(_disable_internet_sharing)
-
-    print("Pull image on ZED Box...")
-    try:
-        _ssh(host, f'"{docker} pull {image}"')
-    except Exception:
-        if build:
-            raise
-        raise SystemExit(
-            f"\nImage not found: zed-capture:{shas['ZED_CAPTURE_SHA']}\n"
-            "This tag has not been pushed to ghcr.io yet.\n"
-            "Either push via CI (merge/push to trigger the build workflow)\n"
-            "or build locally with: uv run install-zed --build"
-        ) from None
-
-    return image
-
-
-def _setup_captive_portal_dhcp(host: str) -> None:
-    # Two patches into NVIDIA's runtime-start.sh, both targeting the inline
-    # heredoc that regenerates /opt/nvidia/l4t-usb-device-mode/dhcpd.conf on
-    # every cable connect. Editing the generated conf directly is silently
-    # overwritten on the next plug; editing the heredoc itself sticks.
-    #
-    # Patch 1 — captive-portal DNS option. Android's NetworkMonitor probes
-    # connectivitycheck.gstatic.com/generate_204 over every new network. The
-    # USB-ethernet link has no internet, so probes fail and the network is
-    # marked unvalidated. We advertise the Jetson as DNS server via DHCP
-    # option 6 here; the captive-portal-responder service in compose.rig.yml
-    # answers the DNS+HTTP probes so validation passes.
-    #
-    # Patch 2 — DHCP lease times. NVIDIA's stock heredoc references
-    # ${net_dhcp_lease_time} which resolves to 15 seconds (either via L4T's
-    # config XML or because the variable is unset and dhcpd falls back to its
-    # 15s compile-time minimum). Android's DhcpClient schedules renewal at
-    # ~29s (its internal minimum), so the lease expires before renewal: kernel
-    # removes 192.168.55.100 from usb0, EthernetNetworkFactory restarts
-    # IpClient, kernel destroys live TCP sockets, in-flight HTTP calls die
-    # with `java.net.SocketException: Software caused connection abort`. We
-    # hardcode both lease-time directives in the heredoc to a sane value.
-    #
-    # Idempotency: each patch's anchor is the original NVIDIA text, so once a
-    # patch is applied its anchor no longer matches and re-running is a no-op.
-    # ISC dhcpd doesn't reread on SIGHUP; we restart the L4T runtime unit to
-    # force regeneration (cable must be plugged in for l4tbr0 to exist).
-    if not _ssh_check(host, f'"test -f {L4T_RUNTIME_START_SH}"'):
-        raise SystemExit(
-            f"\n{L4T_RUNTIME_START_SH} not found on {host}.\n"
-            "This deploy step assumes NVIDIA's stock L4T USB device mode setup.\n"
-            "If your Jetson uses a non-standard DHCP setup, the captive-portal\n"
-            "fix needs to be retargeted at whatever serves DHCP for l4tbr0.\n"
-            "See docker/zed-capture/CLAUDE.md for the design rationale."
-        )
-    current = _ssh_output(host, f"cat {L4T_RUNTIME_START_SH}")
-    new_content = current
-
-    # Anchors below match the heredoc shape in NVIDIA's stock script (verified
-    # on L4T R36). If a future L4T release tweaks the heredoc, neither anchor
-    # will match — _patch_or_exit raises SystemExit with a pointer to update.
-    new_content = _patch_or_exit(
-        new_content,
-        PLACEFRAME_CAPTIVE_PORTAL_MARKER in current,
-        "    range ${net_dhcp_start} ${net_dhcp_end};\n}",
-        (
-            "    range ${net_dhcp_start} ${net_dhcp_end};\n"
-            f"    # {PLACEFRAME_CAPTIVE_PORTAL_MARKER}: spoof DNS so Android's\n"
-            "    # NetworkMonitor probe resolves to captive-portal-responder and\n"
-            "    # the link validates instead of restart-looping IpClient.\n"
-            f"    option domain-name-servers {USB_GADGET_IP};\n}}"
-        ),
-        "dhcpd heredoc subnet block",
+    box_connection = _find_box_wired_connection_name(bootstrap_target)
+    logger.info("renumbering_box_to_static", extra={"connection": box_connection, "from": leased_ip, "to": BOX_IP})
+    # `nmcli con up` flips the box's IP, silently killing this TCP session
+    # (no FIN, no RST). ServerAlive* bounds the local SSH wait to ~10s
+    # instead of the kernel's multi-minute TCP retransmit timeout.
+    bash_check(
+        f"ssh -t -o ServerAliveInterval=5 -o ServerAliveCountMax=2 {bootstrap_target} "
+        f'"sudo nmcli con mod \\"{box_connection}\\" ipv4.method manual'
+        f" ipv4.addresses {BOX_IP}/24 ipv4.gateway '' ipv4.dns ''"
+        f' && sudo nmcli con up \\"{box_connection}\\""'
     )
 
-    lease_replacement = f"max-lease-time {DHCP_LEASE_SECONDS};\ndefault-lease-time {DHCP_LEASE_SECONDS};"
-    new_content = _patch_or_exit(
-        new_content,
-        lease_replacement in current,
-        "max-lease-time ${net_dhcp_lease_time};\ndefault-lease-time ${net_dhcp_lease_time};",
-        lease_replacement,
-        "lease-time directives",
+    _set_host_cable_to("manual")
+
+
+def _set_host_cable_to(method: str) -> None:
+    # `nmcli con show <name>` outputs property:value pairs, not a tabular
+    # view with a NAME column, so `-f NAME` matches no field and exits
+    # non-zero. List-view + membership check works.
+    existing_connections = bash_output("nmcli -t -f NAME con show").strip().splitlines()
+    if HOST_NM_CONNECTION not in existing_connections:
+        # Detect-by-name is more robust than detect-by-device because the
+        # device name varies per host (enp6s0, eno1, etc.).
+        devices_raw = bash_output("nmcli -t -f DEVICE,TYPE,STATE device").strip()
+        # `disconnected` is NM's state for "real NIC, no connection assigned".
+        # `unmanaged` (Docker veths, libvirt bridges) and `connected` (NIC
+        # owned by another NM connection) would both be wrong matches.
+        candidates = [
+            parts[0]
+            for line in devices_raw.splitlines()
+            if (parts := line.split(":")) and len(parts) >= 3 and parts[1] == "ethernet" and parts[2] == "disconnected"
+        ]
+        if len(candidates) != 1:
+            bail(
+                messages.NO_UNUSED_WIRED_INTERFACE,
+                connection_name=HOST_NM_CONNECTION,
+                candidates=candidates or "<none>",
+                cidr=HOST_CABLE_CIDR,
+            )
+        host_interface = candidates[0]
+        logger.info(
+            "creating_host_cable_connection",
+            extra={"connection": HOST_NM_CONNECTION, "interface": host_interface, "method": method},
+        )
+        bash(
+            f"sudo nmcli con add type ethernet ifname {host_interface} con-name {HOST_NM_CONNECTION}"
+            f' ipv4.method {method} ipv4.addresses {HOST_CABLE_CIDR} ipv4.gateway "" ipv4.dns ""'
+        )
+        bash(f"sudo nmcli con up {HOST_NM_CONNECTION}")
+        return
+
+    current_method = bash_output(f"nmcli -t -g ipv4.method con show {HOST_NM_CONNECTION}").strip()
+    current_addresses = bash_output(f"nmcli -t -g ipv4.addresses con show {HOST_NM_CONNECTION}").strip()
+    if current_method == method and current_addresses == HOST_CABLE_CIDR:
+        logger.info("host_cable_already_configured", extra={"method": method, "cidr": current_addresses})
+        return
+
+    logger.info(
+        "reconfiguring_host_cable",
+        extra={
+            "method": method,
+            "cidr": HOST_CABLE_CIDR,
+            "current_method": current_method,
+            "current_addresses": current_addresses,
+        },
+    )
+    bash(
+        f"sudo nmcli con mod {HOST_NM_CONNECTION} ipv4.method {method}"
+        f' ipv4.addresses {HOST_CABLE_CIDR} ipv4.gateway "" ipv4.dns ""'
+    )
+    bash(f"sudo nmcli con up {HOST_NM_CONNECTION}")
+
+
+def _wait_for_box_lease() -> str:
+    logger.info("waiting_for_box_dhcp_lease", extra={"timeout_seconds": DHCP_LEASE_WAIT_SECONDS})
+    deadline = time.monotonic() + DHCP_LEASE_WAIT_SECONDS
+    while True:
+        # /var/lib/NetworkManager is root-only-readable. `find -name` (not
+        # the shell glob) handles a no-match gracefully.
+        raw = bash_output(
+            'sudo find /var/lib/NetworkManager -maxdepth 1 -name "dnsmasq-*.leases" -exec cat {} +'
+        ).strip()
+        now = time.time()
+        # Lease format: `<expiry-unix-ts> <mac> <ip> <hostname> <client-id>`.
+        for line in raw.splitlines():
+            parts = line.split()
+            if len(parts) >= 3 and parts[0].isdigit() and int(parts[0]) > now:
+                return parts[2]
+        if time.monotonic() >= deadline:
+            bail(messages.NO_DHCP_LEASE_RECEIVED, timeout_seconds=DHCP_LEASE_WAIT_SECONDS, box_ip=BOX_IP)
+        time.sleep(1)
+
+
+def _find_box_wired_connection_name(bootstrap_target: str) -> str:
+    raw = bash_output(f'ssh {bootstrap_target} "nmcli -t -f NAME,TYPE con show --active"').strip()
+    # nmcli's terse output escapes colons in field values as `\:` and
+    # backslashes as `\\`. rpartition splits on the LAST colon so escaped
+    # colons in the connection name stay intact; we then unescape.
+    candidates = [
+        line.rpartition(":")[0].replace("\\:", ":").replace("\\\\", "\\")
+        for line in raw.splitlines()
+        if line.rpartition(":")[2] == "802-3-ethernet"
+    ]
+    if not candidates:
+        bail(messages.NO_BOX_WIRED_CONNECTION, raw=repr(raw))
+    return candidates[0]
+
+
+def _acquire_images(host_ip: str, build: bool, docker: str, service_shas: dict[str, str]) -> dict[str, str]:
+    if not build:
+        zed_image = f"{GHCR_BASE}/zed-capture:{service_shas['ZED_CAPTURE_SHA']}"
+        bridge_image = f"{GHCR_BASE}/aoa-bridge:{service_shas['AOA_BRIDGE_SHA']}"
+        gateway_image = f"{GHCR_BASE}/aoa-gateway:{service_shas['AOA_GATEWAY_SHA']}"
+        logger.info(
+            "pulling_images_from_ghcr",
+            extra={"zed": zed_image, "bridge": bridge_image, "gateway": gateway_image},
+        )
+        try:
+            _ssh(f'"{docker} pull {zed_image}"')
+            _ssh(f'"{docker} pull {bridge_image}"')
+            _ssh(f'"{docker} pull {gateway_image}"')
+        except CalledProcessError:
+            bail(messages.IMAGE_PULL_FAILED)
+        return {"zed_capture": zed_image, "aoa_bridge": bridge_image, "aoa_gateway": gateway_image}
+
+    # Local registry instead of `docker save | ssh docker load`: pulls are
+    # layer-aware, so iterative dev only ships changed layers across the
+    # cable.
+
+    # Docker treats `localhost` as insecure-by-default for push; the box's
+    # daemon needs the box-facing host IP in its insecure-registries.
+    if need_registry_start():
+        bash(
+            f"docker run -d -p {REGISTRY_PORT}:{REGISTRY_PORT} --name registry --restart unless-stopped"
+            f" {REGISTRY_IMAGE}"
+        )
+    elif need_registry_restart():
+        bash("docker start registry")
+
+    local_zed = f"localhost:{REGISTRY_PORT}/zed-capture:{service_shas['ZED_CAPTURE_SHA']}"
+    local_bridge = f"localhost:{REGISTRY_PORT}/aoa-bridge:{service_shas['AOA_BRIDGE_SHA']}"
+    local_gateway = f"localhost:{REGISTRY_PORT}/aoa-gateway:{service_shas['AOA_GATEWAY_SHA']}"
+    remote_zed = f"{host_ip}:{REGISTRY_PORT}/zed-capture:{service_shas['ZED_CAPTURE_SHA']}"
+    remote_bridge = f"{host_ip}:{REGISTRY_PORT}/aoa-bridge:{service_shas['AOA_BRIDGE_SHA']}"
+    remote_gateway = f"{host_ip}:{REGISTRY_PORT}/aoa-gateway:{service_shas['AOA_GATEWAY_SHA']}"
+
+    logger.info("cross_compiling_images", extra={"bake_file": str(BAKE_FILE)})
+    env_prefix = " ".join(f"{k}={v}" for k, v in service_shas.items())
+    bash(
+        f"env {env_prefix} docker buildx bake -f {BAKE_FILE}"
+        f" --set zed-capture.tags={local_zed}"
+        f" --set aoa-bridge.tags={local_bridge}"
+        f" --set aoa-gateway.tags={local_gateway}"
+        " --push --provenance=false --sbom=false zed-capture aoa-bridge aoa-gateway",
     )
 
-    if new_content != current:
-        print(f"  Patching {L4T_RUNTIME_START_SH}...")
-        # `sudo tee` preserves the existing file mode, so no chmod needed
-        # (and chmod isn't in the NOPASSWD allowlist anyway).
-        _ssh(host, f"sudo tee {L4T_RUNTIME_START_SH} > /dev/null", stdin_text=new_content)
+    if need_box_insecure_registry_config(host_ip):
+        config = json.loads(_ssh_output('"cat /etc/docker/daemon.json"').strip())
+        registries: list[str] = config.get("insecure-registries", [])
+        registries.append(f"{host_ip}:{REGISTRY_PORT}")
+        config["insecure-registries"] = registries
+        _ssh("sudo tee /etc/docker/daemon.json", stdin_text=json.dumps(config, indent=2))
+        _ssh('"sudo systemctl restart docker"')
 
-    # Verify the regenerated dhcpd.conf actually picked up both patches, and
-    # restart the runtime unit only if it didn't. This makes the step
-    # self-healing across partial-failure re-runs and a no-op once the
-    # generated conf is correct. The conf file only exists once the cable has
-    # been up at least once (regenerated on plug).
-    dhcpd_conf = "/opt/nvidia/l4t-usb-device-mode/dhcpd.conf"
-    needs_restart = True
-    if _ssh_check(host, f'"test -f {dhcpd_conf}"'):
-        regenerated = _ssh_output(host, f"cat {dhcpd_conf}")
-        if (
-            f"option domain-name-servers {USB_GADGET_IP}" in regenerated
-            and f"max-lease-time {DHCP_LEASE_SECONDS}" in regenerated
-        ):
-            needs_restart = False
-    if needs_restart:
-        print(f"  Restarting {L4T_USB_RUNTIME_UNIT} (cable must be plugged in)...")
-        _ssh(host, f'"sudo systemctl restart {L4T_USB_RUNTIME_UNIT}"')
+    logger.info("pulling_images_from_local_registry", extra={"registry": f"{host_ip}:{REGISTRY_PORT}"})
+    _ssh(f'"{docker} pull {remote_zed}"')
+    _ssh(f'"{docker} pull {remote_bridge}"')
+    _ssh(f'"{docker} pull {remote_gateway}"')
+    return {"zed_capture": remote_zed, "aoa_bridge": remote_bridge, "aoa_gateway": remote_gateway}
 
 
-def _patch_or_exit(content: str, already_applied: bool, anchor: str, replacement: str, label: str) -> str:
-    if already_applied:
-        return content
-    if anchor not in content:
-        raise SystemExit(
-            f"\nCould not locate {label} in {L4T_RUNTIME_START_SH}.\n"
-            "NVIDIA may have changed the heredoc shape in this L4T release.\n"
-            "Update the anchor in _setup_captive_portal_dhcp."
-        )
-    return content.replace(anchor, replacement)
+def need_ssh_key_generate() -> bool:
+    if SSH_KEY.exists():
+        logger.info("ssh_key_exists", extra={"path": str(SSH_KEY)})
+        return False
+    logger.info("generating_ssh_key", extra={"path": str(SSH_KEY)})
+    return True
 
 
-def _ssh(host: str, command: str, stdin_text: str | None = None) -> None:
-    bash(f"ssh {SSH_MUX} {host} {command}", stdin_text=stdin_text)
+def need_sudoers_write() -> bool:
+    if _ssh_check('"test -f /etc/sudoers.d/install-zed"'):
+        current = _ssh_output('"cat /etc/sudoers.d/install-zed"').strip()
+        if current == SUDOERS_RULE:
+            logger.info("sudoers_rule_present")
+            return False
+    logger.info("installing_sudoers_rule")
+    return True
 
 
-def _ssh_check(host: str, command: str) -> bool:
-    return bash_check(f"ssh {SSH_MUX} {host} {command}")
+def need_docker_install() -> bool:
+    if _ssh_check("which docker"):
+        logger.info("docker_already_installed")
+        return False
+    logger.info("installing_docker")
+    return True
 
 
-def _ssh_output(host: str, command: str) -> str:
-    return bash_output(f"ssh {SSH_MUX} {host} {command}")
+def need_nvidia_runtime_configure() -> bool:
+    if _ssh_check('"test -f /etc/docker/daemon.json"') and _ssh_check('"grep -q nvidia /etc/docker/daemon.json"'):
+        logger.info("nvidia_runtime_already_configured")
+        return False
+    logger.info("configuring_nvidia_runtime")
+    return True
+
+
+def need_etc_hosts_entry(box_hostname: str) -> bool:
+    if _ssh_check(f'"grep -q {box_hostname} /etc/hosts"'):
+        logger.info("etc_hosts_entry_present", extra={"hostname": box_hostname})
+        return False
+    logger.info("adding_etc_hosts_entry", extra={"hostname": box_hostname})
+    return True
+
+
+def need_ip_forward_enable() -> bool:
+    sysctl_path = Path(HOST_SYSCTL_FILE)
+    if sysctl_path.exists() and sysctl_path.read_text() == HOST_SYSCTL_CONTENT:
+        logger.info("ip_forward_already_enabled", extra={"path": HOST_SYSCTL_FILE})
+        return False
+    logger.info("enabling_ip_forward", extra={"path": HOST_SYSCTL_FILE})
+    return True
+
+
+def need_firewalld_trusted_source_add() -> bool:
+    if bash_check(f"sudo firewall-cmd --permanent --zone=trusted --query-source={BOX_SUBNET}"):
+        logger.info("firewalld_trusted_source_present", extra={"source": BOX_SUBNET})
+        return False
+    logger.info("adding_firewalld_trusted_source", extra={"source": BOX_SUBNET})
+    return True
+
+
+def need_firewalld_masquerade_enable() -> bool:
+    if bash_check("sudo firewall-cmd --permanent --zone=public --query-masquerade"):
+        logger.info("firewalld_masquerade_already_enabled")
+        return False
+    logger.info("enabling_firewalld_masquerade")
+    return True
+
+
+def need_registry_start() -> bool:
+    if bash_check("docker container inspect registry"):
+        return False
+    logger.info("starting_local_registry", extra={"port": REGISTRY_PORT})
+    return True
+
+
+def need_registry_restart() -> bool:
+    if bash_output('docker inspect -f "{{.State.Running}}" registry').strip() == "true":
+        logger.info("local_registry_already_running")
+        return False
+    logger.info("restarting_local_registry")
+    return True
+
+
+def need_box_insecure_registry_config(host_ip: str) -> bool:
+    if _ssh_check(f'"grep -q {host_ip}:{REGISTRY_PORT} /etc/docker/daemon.json"'):
+        logger.info("box_insecure_registry_present", extra={"registry": f"{host_ip}:{REGISTRY_PORT}"})
+        return False
+    logger.info("configuring_box_insecure_registry", extra={"registry": f"{host_ip}:{REGISTRY_PORT}"})
+    return True
+
+
+def _ssh(command: str, stdin_text: str | None = None) -> None:
+    bash(f"ssh {SSH_MUX} {BOX_SSH_TARGET} {command}", stdin_text=stdin_text)
+
+
+def _ssh_check(command: str) -> bool:
+    return bash_check(f"ssh {SSH_MUX} {BOX_SSH_TARGET} {command}")
+
+
+def _ssh_output(command: str) -> str:
+    return bash_output(f"ssh {SSH_MUX} {BOX_SSH_TARGET} {command}")

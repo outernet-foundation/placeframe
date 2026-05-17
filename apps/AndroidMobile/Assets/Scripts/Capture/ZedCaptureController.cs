@@ -7,6 +7,7 @@ using Cysharp.Threading.Tasks;
 using Placeframe.Client;
 using Placeframe.Core;
 using PlaceframeApiClient.Model;
+using FileParameter = PlaceframeApiClient.Client.FileParameter;
 using LogBatchModel = PlaceframeZedCaptureClient.Model.LogBatch;
 using ZedStatusModel = PlaceframeZedCaptureClient.Model.ZedStatus;
 
@@ -51,7 +52,7 @@ public static class ZedCaptureController
     public static UniTask<IEnumerable<LocalCapture>> EnumerateCaptures() =>
         UniTask.FromResult(Enumerable.Empty<LocalCapture>());
 
-    public static UniTask<Stream> GetCapture(Guid captureId, CancellationToken cancellationToken = default) =>
+    public static UniTask<FileParameter> GetCapture(Guid captureId, CancellationToken cancellationToken = default) =>
         throw new PlatformNotSupportedException(unsupportedMessage);
 
     public static UniTask DeleteCapture(Guid captureId, CancellationToken cancellationToken = default) =>
@@ -65,13 +66,17 @@ public static class ZedCaptureController
 
 #else
 
-    // The ZED box reaches the phone over a USB-ethernet gadget interface: the
-    // phone's USB-C cable to the ZED's OTG port, with the ZED running in USB
-    // gadget mode presenting as a USB-ethernet (RNDIS/ECM) peripheral. Android
-    // enumerates this as TRANSPORT_ETHERNET. No physical ethernet or dongle is
-    // involved — the USB cable *is* the ethernet link. 192.168.55.1 is the
-    // box's address on that interface; 9000 is the zed-capture HTTP server.
-    private const string baseUrl = "http://192.168.55.1:9000";
+    // The ZED is the USB host; the phone is a USB accessory speaking the
+    // Android Open Accessory (AOA) protocol. The ZED-side aoa_bridge daemon
+    // performs the AOA handshake and forwards the accessory's bulk endpoints
+    // to localhost:9000 (the box-side aoa-gateway Caddy sidecar) as a
+    // transparent byte pipe — so this client speaks HTTP/2 cleartext
+    // (h2c, prior-knowledge) directly to the accessory FD with no TCP,
+    // no IP, no Android ConnectivityService involvement. The hostname in
+    // baseUrl is a placeholder for the Host header only; the request never
+    // resolves anywhere. The Caddy sidecar terminates h2c and reverse-proxies
+    // HTTP/1.1 to uvicorn on 127.0.0.1:9001 on the box.
+    private const string baseUrl = "http://zed-box";
     private static readonly TimeSpan requestTimeout = TimeSpan.FromSeconds(600);
 
     private static DefaultApi capturesApi;
@@ -94,7 +99,7 @@ public static class ZedCaptureController
             throw new InvalidOperationException("ZedCaptureController.Initialize already called");
 
         capturesApi = new DefaultApi(
-            new HttpClient(new ProgressTrackingHandler { InnerHandler = new AndroidBoundHttpHandler(forZedBox: true) })
+            new HttpClient(new ProgressTrackingHandler { InnerHandler = new AndroidAoaHttpHandler() })
             {
                 BaseAddress = new Uri(baseUrl),
                 Timeout = requestTimeout,
@@ -155,8 +160,14 @@ public static class ZedCaptureController
         }
     }
 
-    public static async UniTask<Stream> GetCapture(Guid captureId, CancellationToken cancellationToken = default) =>
-        (await capturesApi.DownloadCaptureTarAsync(captureId, cancellationToken: cancellationToken)).Content;
+    public static async UniTask<FileParameter> GetCapture(Guid captureId, CancellationToken cancellationToken = default)
+    {
+        var response = await capturesApi.DownloadCaptureTarWithHttpInfoAsync(captureId, cancellationToken: cancellationToken);
+        return new FileParameter(
+            $"{captureId}.tar",
+            "application/x-tar",
+            new LengthOnlyStream(response.Data.Content, long.Parse(response.Headers["Content-Length"][0])));
+    }
 
     public static async UniTask DeleteCapture(Guid captureId, CancellationToken cancellationToken = default) =>
         await capturesApi.DeleteCaptureAsync(captureId, cancellationToken);
@@ -201,9 +212,9 @@ public static class ZedCaptureController
                 {
                     response = await GetStatus(requestCts.Token);
                 }
-                catch (Exception) when (!cancellationToken.IsCancellationRequested)
+                catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
                 {
-                    // Network failure, per-request timeout, deserialization error — treated as unreachable.
+                    Log.Info(LogGroup.Zed, exception, "health poll request failed");
                 }
 
                 consecutiveFailures = response == null ? consecutiveFailures + 1 : 0;
@@ -271,7 +282,7 @@ public static class ZedCaptureController
                 }
                 catch (Exception e) when (!cancellationToken.IsCancellationRequested)
                 {
-                    Log.Warn(LogGroup.Zed, $"log drain tick failed: {e.Message}");
+                    Log.Info(LogGroup.Zed, e, "log drain tick failed");
                 }
 
                 if (!hasMore)
@@ -288,7 +299,7 @@ public static class ZedCaptureController
         var batch = await GetLogs(logDrainPendingAck, logDrainBatchLimit, cancellationToken);
 
         if (batch.DroppedBefore)
-            Log.Warn(LogGroup.Zed, $"prior box logs rotated off before ack '{logDrainPendingAck}'.");
+            Log.Info(LogGroup.Zed, "prior box logs rotated off before ack {Ack}", logDrainPendingAck);
 
         // Defensive null check despite Entries being marked required in the
         // schema. Codegen gap: the C# httpclient template emits a protected

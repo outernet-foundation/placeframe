@@ -24,3 +24,4 @@ tidy-commits.json
 .build-version.json
 artifacts/
 .pnpm-store/
+.placeframe/

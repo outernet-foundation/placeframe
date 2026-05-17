@@ -770,7 +770,6 @@ namespace Placeframe.Client
                                                             label = Observables.ObservableCombineValues(
                                                                 capture.status,
                                                                 capture.reconstruction,
-                                                                capture.type,
                                                                 capture.clientProgress,
                                                                 CaptureStatusLabel
                                                             ),
