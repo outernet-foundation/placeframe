@@ -210,7 +210,10 @@ def _install(stack: ExitStack, build: bool) -> None:
     _ssh(
         f"tee {REMOTE_DIR}/.env",
         stdin_text=(
-            f"ZED_IMAGE={images['zed_capture']}\nAOA_BRIDGE_IMAGE={images['aoa_bridge']}\nZED_BOX_ID={box_id}\n"
+            f"ZED_IMAGE={images['zed_capture']}\n"
+            f"AOA_BRIDGE_IMAGE={images['aoa_bridge']}\n"
+            f"AOA_GATEWAY_IMAGE={images['aoa_gateway']}\n"
+            f"ZED_BOX_ID={box_id}\n"
         ),
     )
 
@@ -372,13 +375,18 @@ def _acquire_images(host_ip: str, build: bool, docker: str, service_shas: dict[s
     if not build:
         zed_image = f"{GHCR_BASE}/zed-capture:{service_shas['ZED_CAPTURE_SHA']}"
         bridge_image = f"{GHCR_BASE}/aoa-bridge:{service_shas['AOA_BRIDGE_SHA']}"
-        logger.info("pulling_images_from_ghcr", extra={"zed": zed_image, "bridge": bridge_image})
+        gateway_image = f"{GHCR_BASE}/aoa-gateway:{service_shas['AOA_GATEWAY_SHA']}"
+        logger.info(
+            "pulling_images_from_ghcr",
+            extra={"zed": zed_image, "bridge": bridge_image, "gateway": gateway_image},
+        )
         try:
             _ssh(f'"{docker} pull {zed_image}"')
             _ssh(f'"{docker} pull {bridge_image}"')
+            _ssh(f'"{docker} pull {gateway_image}"')
         except CalledProcessError:
             bail(messages.IMAGE_PULL_FAILED)
-        return {"zed_capture": zed_image, "aoa_bridge": bridge_image}
+        return {"zed_capture": zed_image, "aoa_bridge": bridge_image, "aoa_gateway": gateway_image}
 
     # Local registry instead of `docker save | ssh docker load`: pulls are
     # layer-aware, so iterative dev only ships changed layers across the
@@ -396,8 +404,10 @@ def _acquire_images(host_ip: str, build: bool, docker: str, service_shas: dict[s
 
     local_zed = f"localhost:{REGISTRY_PORT}/zed-capture:{service_shas['ZED_CAPTURE_SHA']}"
     local_bridge = f"localhost:{REGISTRY_PORT}/aoa-bridge:{service_shas['AOA_BRIDGE_SHA']}"
+    local_gateway = f"localhost:{REGISTRY_PORT}/aoa-gateway:{service_shas['AOA_GATEWAY_SHA']}"
     remote_zed = f"{host_ip}:{REGISTRY_PORT}/zed-capture:{service_shas['ZED_CAPTURE_SHA']}"
     remote_bridge = f"{host_ip}:{REGISTRY_PORT}/aoa-bridge:{service_shas['AOA_BRIDGE_SHA']}"
+    remote_gateway = f"{host_ip}:{REGISTRY_PORT}/aoa-gateway:{service_shas['AOA_GATEWAY_SHA']}"
 
     logger.info("cross_compiling_images", extra={"bake_file": str(BAKE_FILE)})
     env_prefix = " ".join(f"{k}={v}" for k, v in service_shas.items())
@@ -405,7 +415,8 @@ def _acquire_images(host_ip: str, build: bool, docker: str, service_shas: dict[s
         f"env {env_prefix} docker buildx bake -f {BAKE_FILE}"
         f" --set zed-capture.tags={local_zed}"
         f" --set aoa-bridge.tags={local_bridge}"
-        " --push --provenance=false --sbom=false zed-capture aoa-bridge",
+        f" --set aoa-gateway.tags={local_gateway}"
+        " --push --provenance=false --sbom=false zed-capture aoa-bridge aoa-gateway",
     )
 
     if need_box_insecure_registry_config(host_ip):
@@ -419,7 +430,8 @@ def _acquire_images(host_ip: str, build: bool, docker: str, service_shas: dict[s
     logger.info("pulling_images_from_local_registry", extra={"registry": f"{host_ip}:{REGISTRY_PORT}"})
     _ssh(f'"{docker} pull {remote_zed}"')
     _ssh(f'"{docker} pull {remote_bridge}"')
-    return {"zed_capture": remote_zed, "aoa_bridge": remote_bridge}
+    _ssh(f'"{docker} pull {remote_gateway}"')
+    return {"zed_capture": remote_zed, "aoa_bridge": remote_bridge, "aoa_gateway": remote_gateway}
 
 
 def need_ssh_key_generate() -> bool:

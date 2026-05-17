@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.ConnectionPool;
-import okhttp3.Dispatcher;
 import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -152,9 +151,6 @@ public final class AoaAccessoryClient {
         if (pfd == null) return "openAccessory returned null";
         currentPfd = pfd;
 
-        Dispatcher dispatcher = new Dispatcher();
-        dispatcher.setMaxRequests(1);
-        dispatcher.setMaxRequestsPerHost(1);
         currentClient = new OkHttpClient.Builder()
             .socketFactory(new AoaSocketFactory(pfd.getFileDescriptor()))
             // OkHttp resolves the URL hostname before invoking the
@@ -163,13 +159,19 @@ public final class AoaAccessoryClient {
             // OkHttp a synthetic loopback address keyed on the host
             // name — AoaSocket.connect() ignores it.
             .dns(host -> Collections.singletonList(InetAddress.getByAddress(host, new byte[] {127, 0, 0, 1})))
-            // Pin HTTP/1.1: defends against OkHttp default-changes; uvicorn
-            // doesn't speak HTTP/2 anyway.
-            .protocols(Collections.singletonList(Protocol.HTTP_1_1))
-            .dispatcher(dispatcher)
+            // HTTP/2 cleartext prior-knowledge: the AOA pipe is a single
+            // duplex byte stream, so HTTP/1.1 can only serve one in-flight
+            // request — a concurrent request corrupts framing and tears the
+            // pipe down. HTTP/2 multiplexes logical streams over the one
+            // transport. Cleartext (h2c) + prior-knowledge skip ALPN/TLS,
+            // which are meaningless on a fixed-topology USB link with no
+            // IP identity. Box-side h2c is terminated by the aoa-gateway
+            // Caddy sidecar, which proxies HTTP/1.1 to uvicorn on 9001.
+            .protocols(Collections.singletonList(Protocol.H2_PRIOR_KNOWLEDGE))
             // One connection, never evicted — the AOA FD can't back a fresh
-            // Socket on reconnect. On any pipe error execute() tears the
-            // whole client down.
+            // Socket on reconnect. HTTP/2 multiplexes streams onto this one
+            // connection. On any pipe error execute() tears the whole client
+            // down.
             .connectionPool(new ConnectionPool(1, 1, TimeUnit.DAYS))
             .retryOnConnectionFailure(false)
             .followRedirects(false)

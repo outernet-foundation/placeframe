@@ -1,0 +1,10 @@
+{
+	auto_https off
+	servers :9000 {
+		protocols h1 h2c
+	}
+}
+
+http://:9000 {
+	reverse_proxy http://127.0.0.1:9001
+}
