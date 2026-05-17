@@ -1,7 +1,7 @@
 import json
 
 from ..projects import load_unity_projects
-from .build_unity import PLATFORM_CONFIGS
+from ..unity import PLATFORM_CONFIGS
 
 
 def main() -> None:

@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import shutil
 from pathlib import Path
-from typing import TypedDict
 
 import typer
 from common.bash import bash
@@ -14,8 +13,7 @@ from ...shared.ci_step import ci_step
 from ...shared.license_restore import restore_license
 from ...shared.setup import configure_git, free_disk_space, install_dotnet
 from ...shared.setup_oras import install_oras
-from ..projects import load_unity_projects
-from ..unity import prepare_unity_project, unity_batchmode_command
+from ..unity import prepare_unity_project, resolve_unity_build, unity_batchmode_command
 from .git_tags import APP_TAG_PREFIXES, get_latest_tag_version
 
 
@@ -24,24 +22,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings.model_validate({})
-
-
-class PlatformConfig(TypedDict):
-    build_flag: str
-    build_target: str
-    module: str
-
-
-PLATFORM_CONFIGS: dict[str, PlatformConfig] = {
-    "android-mobile": {"build_flag": "-buildTarget Android", "build_target": "Android", "module": "android"},
-    "magicleap": {"build_flag": "-buildTarget Android", "build_target": "Android", "module": "android"},
-    "linux64": {
-        "build_flag": "-buildTarget StandaloneLinux64",
-        "build_target": "StandaloneLinux64",
-        "module": "linux-il2cpp",
-    },
-    "win64": {"build_flag": "-buildTarget Win64", "build_target": "Win64", "module": "windows-mono"},
-}
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
@@ -72,26 +52,13 @@ def main(
         restore(registry, "unity-library", tag, Path("."), fallback_tags=fallback_tags)
 
     with ci_step("Prepare build"):
-        config = load_unity_projects()
-        if project not in config.projects:
-            raise SystemExit(f"Unknown project '{project}'. Valid: {', '.join(config.projects)}")
-        if platform not in PLATFORM_CONFIGS:
-            raise SystemExit(f"Unknown platform '{platform}'. Valid: {', '.join(PLATFORM_CONFIGS)}")
-
-        project_config = config.projects[project]
-        platform_config = PLATFORM_CONFIGS[platform]
-        unity_project_path = project_config.path
+        unity_project_path, build_flag, execute_method = resolve_unity_build(project, platform)
 
     with ci_step("Prepare project"):
         prepare_unity_project(unity_project_path)
 
     with ci_step(f"Build {unity_project_path.name} [{platform}]"):
-        execute_method = (project_config.execute_methods or {}).get(platform)
-        if not execute_method:
-            raise SystemExit(f"No execute method for {unity_project_path.name} [{platform}]")
-
-        command = unity_batchmode_command(unity_project_path)
-        command += f" {platform_config['build_flag']} -executeMethod {execute_method}"
+        command = f"{unity_batchmode_command(unity_project_path)} {build_flag} -executeMethod {execute_method}"
 
         tag_prefix = APP_TAG_PREFIXES.get(project)
         if tag_prefix:
