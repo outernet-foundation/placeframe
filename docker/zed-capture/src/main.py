@@ -15,6 +15,7 @@ from common.litestar import create_litestar_app
 from litestar.openapi.config import OpenAPIConfig
 from litestar.openapi.plugins import ScalarRenderPlugin
 
+from .middleware import RequestIdMiddleware
 from .routers.captures import router as captures_router
 from .routers.logs import router as logs_router
 from .routers.status import router as status_router
@@ -28,4 +29,5 @@ app = create_litestar_app(
     [captures_router, status_router, logs_router],
     openapi_config,
     logging_config=None,
+    middleware=[RequestIdMiddleware()],
 )

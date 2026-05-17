@@ -21,10 +21,7 @@ namespace Placeframe.Client
                 message => Log.Error(LogGroup.Localizer, message),
                 httpHandlerFactory: () => new LoggingHttpHandler
                 {
-                    InnerHandler = new ProgressTrackingHandler
-                    {
-                        InnerHandler = InternetBoundHandler.Create() ?? new HttpClientHandler()
-                    }
+                    InnerHandler = new ProgressTrackingHandler { InnerHandler = new HttpClientHandler() }
                 }
             );
 

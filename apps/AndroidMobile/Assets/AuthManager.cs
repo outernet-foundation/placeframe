@@ -53,8 +53,7 @@ namespace Placeframe.Client
 
             Logger<LogGroup>.EnableLoki(
                 domain,
-                tokenProvider: () => Auth.GetOrRefreshToken(),
-                handler: InternetBoundHandler.Create()
+                tokenProvider: () => Auth.GetOrRefreshToken()
             );
 
             await UniTask.SwitchToMainThread(cancellationToken: cancellationToken);

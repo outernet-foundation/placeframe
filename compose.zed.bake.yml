@@ -16,3 +16,11 @@ services:
       tags:
         - "ghcr.io/outernet-foundation/placeframe/zed-capture:latest"
         - "ghcr.io/outernet-foundation/placeframe/zed-capture:${ZED_CAPTURE_SHA}"
+  aoa-bridge:
+    build:
+      context: .
+      dockerfile: docker/aoa-bridge/Dockerfile
+      platforms: [ "linux/arm64" ]
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/aoa-bridge:latest"
+        - "ghcr.io/outernet-foundation/placeframe/aoa-bridge:${AOA_BRIDGE_SHA}"
