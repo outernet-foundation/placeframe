@@ -22,8 +22,17 @@ services:
       - /tmp/camsock:/tmp/camsock
     restart: no
 
+  # Caddy sidecar terminating h2c (HTTP/2 cleartext, prior-knowledge) on 9000
+  # and reverse-proxying HTTP/1.1 to uvicorn on 127.0.0.1:9001. Required so the
+  # phone-side AOA client can multiplex concurrent requests over the single
+  # accessory FD; uvicorn itself doesn't speak HTTP/2.
+  aoa-gateway:
+    image: ${AOA_GATEWAY_IMAGE:-ghcr.io/outernet-foundation/placeframe/aoa-gateway:${AOA_GATEWAY_SHA:?err}}
+    network_mode: host
+    restart: unless-stopped
+
   # privileged + bind-mounted /dev/bus/usb for pyusb. network_mode: host so
-  # 127.0.0.1 resolves to zed-capture's bound port. The bind mount uses
+  # 127.0.0.1 resolves to aoa-gateway's bound port. The bind mount uses
   # rslave propagation so the AOA handshake's phone re-enumeration (pid flips
   # from MTP/PTP to a 0x2D0x accessory pid) is visible inside the container;
   # `devices:` would have snapshot-mapped only the device nodes present at

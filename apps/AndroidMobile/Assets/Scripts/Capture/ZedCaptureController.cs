@@ -68,11 +68,13 @@ public static class ZedCaptureController
     // The ZED is the USB host; the phone is a USB accessory speaking the
     // Android Open Accessory (AOA) protocol. The ZED-side aoa_bridge daemon
     // performs the AOA handshake and forwards the accessory's bulk endpoints
-    // to localhost:9000 (zed-capture's HTTP server) as a transparent byte
-    // pipe — so this client speaks HTTP/1.1 directly to the accessory FD
-    // with no TCP, no IP, no Android ConnectivityService involvement. The
-    // hostname in baseUrl is a placeholder for the Host header only; the
-    // request never resolves anywhere.
+    // to localhost:9000 (the box-side aoa-gateway Caddy sidecar) as a
+    // transparent byte pipe — so this client speaks HTTP/2 cleartext
+    // (h2c, prior-knowledge) directly to the accessory FD with no TCP,
+    // no IP, no Android ConnectivityService involvement. The hostname in
+    // baseUrl is a placeholder for the Host header only; the request never
+    // resolves anywhere. The Caddy sidecar terminates h2c and reverse-proxies
+    // HTTP/1.1 to uvicorn on 127.0.0.1:9001 on the box.
     private const string baseUrl = "http://zed-box";
     private static readonly TimeSpan requestTimeout = TimeSpan.FromSeconds(600);
 
