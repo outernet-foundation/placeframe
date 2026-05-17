@@ -57,14 +57,14 @@ namespace Outernet.Logging
             _httpClient?.Dispose();
         }
 
-        public void Enable(string domain, Func<UniTask<string>> tokenProvider, HttpMessageHandler handler)
+        public void Enable(string domain, Func<UniTask<string>> tokenProvider)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(LokiSink));
             if (_httpClient != null)
                 throw new InvalidOperationException("Enable has already been called");
 
-            _httpClient = new HttpClient(handler ?? new HttpClientHandler());
+            _httpClient = new HttpClient(new HttpClientHandler());
             _pushUrl = $"https://{domain}/loki/api/v1/push";
             _tokenProvider = tokenProvider;
 
