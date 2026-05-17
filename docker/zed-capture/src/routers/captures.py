@@ -6,7 +6,7 @@ from shutil import rmtree
 from typing import List, cast
 from uuid import UUID
 
-from common.stream_tar import stream_tar
+from common.stream_tar import compute_tar_size, stream_tar
 from litestar import Router, delete, get, post
 from litestar.exceptions import ClientException, NotFoundException
 from litestar.response import Stream
@@ -85,10 +85,14 @@ async def download_capture_tar(id: UUID, include_svo: bool = False) -> Stream:
         raise NotFoundException(f"Capture with id {id} not found")
 
     exclude_suffixes = () if include_svo else (".svo2",)
+    total_bytes = await to_thread(compute_tar_size, capture_directory, exclude_suffixes)
     return Stream(
         stream_tar(capture_directory, exclude_suffixes=exclude_suffixes),
         media_type="application/x-tar",
-        headers={"Content-Disposition": f'attachment; filename="{id}.tar"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="{id}.tar"',
+            "Content-Length": str(total_bytes),
+        },
     )
 
 

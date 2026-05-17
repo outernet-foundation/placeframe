@@ -15,6 +15,7 @@
     "nullableReferenceTypes": true,
     "sortModelPropertiesByRequiredFlag": true,
     "sortParamsByRequiredFlag": true,
+    "caseInsensitiveResponseHeaders": true,
     "examples": false
   },
   "typeMappings": {

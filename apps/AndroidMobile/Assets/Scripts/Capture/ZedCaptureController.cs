@@ -7,6 +7,7 @@ using Cysharp.Threading.Tasks;
 using Placeframe.Client;
 using Placeframe.Core;
 using PlaceframeApiClient.Model;
+using FileParameter = PlaceframeApiClient.Client.FileParameter;
 using LogBatchModel = PlaceframeZedCaptureClient.Model.LogBatch;
 using ZedStatusModel = PlaceframeZedCaptureClient.Model.ZedStatus;
 
@@ -51,7 +52,7 @@ public static class ZedCaptureController
     public static UniTask<IEnumerable<LocalCapture>> EnumerateCaptures() =>
         UniTask.FromResult(Enumerable.Empty<LocalCapture>());
 
-    public static UniTask<Stream> GetCapture(Guid captureId, CancellationToken cancellationToken = default) =>
+    public static UniTask<FileParameter> GetCapture(Guid captureId, CancellationToken cancellationToken = default) =>
         throw new PlatformNotSupportedException(unsupportedMessage);
 
     public static UniTask DeleteCapture(Guid captureId, CancellationToken cancellationToken = default) =>
@@ -159,8 +160,14 @@ public static class ZedCaptureController
         }
     }
 
-    public static async UniTask<Stream> GetCapture(Guid captureId, CancellationToken cancellationToken = default) =>
-        (await capturesApi.DownloadCaptureTarAsync(captureId, cancellationToken: cancellationToken)).Content;
+    public static async UniTask<FileParameter> GetCapture(Guid captureId, CancellationToken cancellationToken = default)
+    {
+        var response = await capturesApi.DownloadCaptureTarWithHttpInfoAsync(captureId, cancellationToken: cancellationToken);
+        return new FileParameter(
+            $"{captureId}.tar",
+            "application/x-tar",
+            new LengthOnlyStream(response.Data.Content, long.Parse(response.Headers["Content-Length"][0])));
+    }
 
     public static async UniTask DeleteCapture(Guid captureId, CancellationToken cancellationToken = default) =>
         await capturesApi.DeleteCaptureAsync(captureId, cancellationToken);
