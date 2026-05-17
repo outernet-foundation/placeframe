@@ -202,7 +202,7 @@ jobs:
           echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build
-        run: uv run --no-sync build --mode ci --gpu none --bake-file compose.zed.bake.yml --targets zed-capture aoa-bridge
+        run: uv run --no-sync build --mode ci --gpu none --bake-file compose.zed.bake.yml --targets zed-capture --targets aoa-bridge
 
       - name: Upload .env.lock
         uses: actions/upload-artifact@v6
