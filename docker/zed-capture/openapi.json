@@ -463,12 +463,17 @@
             "type": "string",
             "format": "date-time",
             "description": "datetime with the constraint that the value must have timezone info"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "format": "int64"
           }
         },
         "type": "object",
         "required": [
           "id",
-          "recorded_at"
+          "recorded_at",
+          "size_bytes"
         ],
         "title": "ZedCapture"
       },

@@ -29,11 +29,11 @@ namespace Placeframe.Client
 {
     public static partial class UIElements
     {
-        public static string CaptureStatusLabel(CaptureUploadStatus status, ReconstructionReadWithQueue reconstruction, float? clientProgress) =>
+        public static string CaptureStatusLabel(CaptureUploadStatus status, ReconstructionReadWithQueue reconstruction, float? clientProgress, double? uploadBytesPerSecond) =>
             status switch
             {
                 CaptureUploadStatus.NotUploaded => "Upload",
-                CaptureUploadStatus.Uploading => "Uploading" + ClientProgressSuffix(clientProgress),
+                CaptureUploadStatus.Uploading => "Uploading" + ClientProgressSuffix(clientProgress) + UploadSpeedSuffix(uploadBytesPerSecond),
                 CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
                 CaptureUploadStatus.Reconstructing => ReconstructingPhaseLabel(reconstruction),
                 CaptureUploadStatus.Uploaded => "Create Map",
@@ -44,6 +44,9 @@ namespace Placeframe.Client
 
         private static string ClientProgressSuffix(float? clientProgress) =>
             clientProgress is float p && p >= 0f ? $" {p:0}%" : "";
+
+        private static string UploadSpeedSuffix(double? uploadBytesPerSecond) =>
+            uploadBytesPerSecond is double bps && bps > 0 ? " · " + ByteFormatting.FormatBytesPerSecond(bps) : "";
 
         public static bool CaptureStatusIsActionable(CaptureUploadStatus status) =>
             status == CaptureUploadStatus.NotUploaded
@@ -77,20 +80,43 @@ namespace Placeframe.Client
             }
         }
 
+        private static readonly TimeSpan UploadCheckpointInterval = TimeSpan.FromSeconds(30);
+
         public static async UniTask Upload(CaptureState capture, ReconstructionOptions reconstructionOptions)
         {
+            var id = capture.id;
+            UploadProgress lastProgress = default;
+            var lastCheckpoint = DateTime.UtcNow;
             try
             {
-                var id = capture.id;
                 var type = capture.type.value;
 
                 // Progress<T> captures the current SynchronizationContext at construction;
                 // Upload runs on the main thread, so reports marshal back to the main thread
                 // regardless of which worker the handler chain reports from.
-                var progress = new Progress<float>(p => capture.clientProgress.value = p);
+                var progress = new Progress<UploadProgress>(p =>
+                {
+                    capture.clientProgress.value = p.Percent;
+                    capture.uploadBytesPerSecond.value = p.BytesPerSecond;
+                    lastProgress = p;
+                    var now = DateTime.UtcNow;
+                    if (now - lastCheckpoint >= UploadCheckpointInterval)
+                    {
+                        lastCheckpoint = now;
+                        Log.Info(
+                            LogGroup.Capture,
+                            "Upload checkpoint capture={CaptureId} sent={BytesSent}B total={BytesTotal}B speed={BytesPerSecond:F0}B/s percent={Percent:F1}",
+                            id,
+                            p.BytesSent,
+                            p.BytesTotal,
+                            p.BytesPerSecond ?? 0,
+                            p.Percent ?? 0);
+                    }
+                });
 
                 capture.clientPhase.value = CaptureClientPhase.Uploading;
                 capture.clientProgress.value = null;
+                capture.uploadBytesPerSecond.value = null;
 
                 var captureData = type switch
                 {
@@ -100,6 +126,8 @@ namespace Placeframe.Client
                 };
 
                 await UniTask.SwitchToMainThread();
+
+                Log.Info(LogGroup.Capture, "Upload starting capture={CaptureId} size={BytesTotal}B", id, capture.sessionSizeBytes.value);
 
                 CaptureSessionRead captureSession;
                 using (HttpProgressContext.Set(progress))
@@ -113,15 +141,26 @@ namespace Placeframe.Client
                             recordedAt: capture.recordedAt.value);
                 }
 
+                Log.Info(LogGroup.Capture, "Upload finished capture={CaptureId} sent={BytesSent}B", id, lastProgress.BytesSent);
+
                 capture.serverCaptureExists.value = true;
 
                 var reconstruction = await CreateReconstruction(captureSession.Id, reconstructionOptions);
                 capture.reconstruction.value = reconstruction;
                 capture.clientPhase.value = CaptureClientPhase.Idle;
                 capture.clientProgress.value = null;
+                capture.uploadBytesPerSecond.value = null;
             }
-            catch
+            catch (Exception ex)
             {
+                Log.Info(
+                    LogGroup.Capture,
+                    ex,
+                    "Upload failed capture={CaptureId} sent={BytesSent}B total={BytesTotal}B lastSpeed={BytesPerSecond:F0}B/s",
+                    id,
+                    lastProgress.BytesSent,
+                    lastProgress.BytesTotal,
+                    lastProgress.BytesPerSecond ?? 0);
                 capture.clientPhase.value = CaptureClientPhase.Failed;
                 throw;
             }
@@ -312,6 +351,21 @@ namespace Placeframe.Client
                     }),
                     LabeledControl(new LabeledControlProps()
                     {
+                        label = Props.Value("Size"),
+                        labelWidth = Props.Value(240f),
+                        control = Text(new TextProps()
+                        {
+                            layout = new() { flexibleWidth = Props.Value(1f) },
+                            value = capture.sessionSizeBytes.ObservableSelect(x => x is long bytes ? ByteFormatting.FormatBytes(bytes) : "—"),
+                            style = new TextStyleProps()
+                            {
+                                verticalAlignment = Props.Value(VerticalAlignmentOptions.Capline),
+                                horizontalAlignment = Props.Value(HorizontalAlignmentOptions.Right)
+                            }
+                        })
+                    }),
+                    LabeledControl(new LabeledControlProps()
+                    {
                         label = Props.Value("Recorded At"),
                         labelWidth = Props.Value(240f),
                         control = Text(new TextProps()
@@ -336,6 +390,7 @@ namespace Placeframe.Client
                                     capture.status,
                                     capture.reconstruction,
                                     capture.clientProgress,
+                                    capture.uploadBytesPerSecond,
                                     CaptureStatusLabel
                                 ),
                                 interactable = capture.status.ObservableSelect(CaptureStatusIsActionable),

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -7,17 +8,32 @@ using System.Threading.Tasks;
 
 namespace Placeframe.Core
 {
-    // AsyncLocal lets callers attach an IProgress<float> to the implicit request
-    // context without threading a parameter through generated API clients. The
-    // handler reads Current at send time and wraps the outgoing request body.
-    // Percent values are 0..100; -1 signals "in flight, total unknown".
+    public readonly struct UploadProgress
+    {
+        public readonly float? Percent;
+        public readonly long BytesSent;
+        public readonly long? BytesTotal;
+        public readonly double? BytesPerSecond;
+
+        public UploadProgress(float? percent, long bytesSent, long? bytesTotal, double? bytesPerSecond)
+        {
+            Percent = percent;
+            BytesSent = bytesSent;
+            BytesTotal = bytesTotal;
+            BytesPerSecond = bytesPerSecond;
+        }
+    }
+
+    // AsyncLocal lets callers attach an IProgress<UploadProgress> to the implicit
+    // request context without threading a parameter through generated API clients.
+    // The handler reads Current at send time and wraps the outgoing request body.
     public static class HttpProgressContext
     {
-        private static readonly AsyncLocal<IProgress<float>> _current = new AsyncLocal<IProgress<float>>();
+        private static readonly AsyncLocal<IProgress<UploadProgress>> _current = new AsyncLocal<IProgress<UploadProgress>>();
 
-        public static IProgress<float> Current => _current.Value;
+        public static IProgress<UploadProgress> Current => _current.Value;
 
-        public static IDisposable Set(IProgress<float> progress)
+        public static IDisposable Set(IProgress<UploadProgress> progress)
         {
             var prior = _current.Value;
             _current.Value = progress;
@@ -26,8 +42,8 @@ namespace Placeframe.Core
 
         private sealed class Resetter : IDisposable
         {
-            private readonly IProgress<float> _prior;
-            public Resetter(IProgress<float> prior) { _prior = prior; }
+            private readonly IProgress<UploadProgress> _prior;
+            public Resetter(IProgress<UploadProgress> prior) { _prior = prior; }
             public void Dispose() { _current.Value = _prior; }
         }
     }
@@ -51,10 +67,10 @@ namespace Placeframe.Core
     internal sealed class ProgressWritingContent : HttpContent
     {
         private readonly HttpContent _inner;
-        private readonly IProgress<float> _progress;
+        private readonly IProgress<UploadProgress> _progress;
         private readonly long? _total;
 
-        public ProgressWritingContent(HttpContent inner, IProgress<float> progress)
+        public ProgressWritingContent(HttpContent inner, IProgress<UploadProgress> progress)
         {
             _inner = inner;
             _progress = progress;
@@ -69,11 +85,19 @@ namespace Placeframe.Core
         // yielding, collapsing a streaming passthrough into a phone-side download-then-upload.
         protected override async Task SerializeToStreamAsync(Stream target, TransportContext context)
         {
-            _progress.Report(_total.HasValue && _total.Value > 0 ? 0f : -1f);
+            _progress.Report(new UploadProgress(
+                percent: _total.HasValue && _total.Value > 0 ? 0f : (float?)null,
+                bytesSent: 0,
+                bytesTotal: _total,
+                bytesPerSecond: null));
             using var progressTarget = new ProgressReportingStream(target, _progress, _total);
             await _inner.CopyToAsync(progressTarget, context).ConfigureAwait(false);
             if (_total.HasValue && _total.Value > 0)
-                _progress.Report(100f);
+                _progress.Report(new UploadProgress(
+                    percent: 100f,
+                    bytesSent: _total.Value,
+                    bytesTotal: _total,
+                    bytesPerSecond: progressTarget.LastBytesPerSecond));
         }
 
         protected override bool TryComputeLength(out long length)
@@ -92,19 +116,24 @@ namespace Placeframe.Core
         private sealed class ProgressReportingStream : Stream
         {
             private static readonly TimeSpan ReportInterval = TimeSpan.FromMilliseconds(200);
+            private static readonly TimeSpan SpeedWindow = TimeSpan.FromSeconds(1);
 
             private readonly Stream _inner;
-            private readonly IProgress<float> _progress;
+            private readonly IProgress<UploadProgress> _progress;
             private readonly long? _total;
+            private readonly Queue<(DateTime time, long bytes)> _speedSamples = new Queue<(DateTime, long)>();
             private long _written;
             private DateTime _lastReport = DateTime.MinValue;
+            private double? _lastBytesPerSecond;
 
-            public ProgressReportingStream(Stream inner, IProgress<float> progress, long? total)
+            public ProgressReportingStream(Stream inner, IProgress<UploadProgress> progress, long? total)
             {
                 _inner = inner;
                 _progress = progress;
                 _total = total;
             }
+
+            public double? LastBytesPerSecond => _lastBytesPerSecond;
 
             public override bool CanRead => false;
             public override bool CanSeek => false;
@@ -136,10 +165,20 @@ namespace Placeframe.Core
                 var now = DateTime.UtcNow;
                 if (now - _lastReport < ReportInterval) return;
                 _lastReport = now;
-                if (_total.HasValue && _total.Value > 0)
-                    _progress.Report((float)(_written * 100.0 / _total.Value));
-                else
-                    _progress.Report(-1f);
+
+                _speedSamples.Enqueue((now, _written));
+                while (_speedSamples.Count > 1 && now - _speedSamples.Peek().time > SpeedWindow)
+                    _speedSamples.Dequeue();
+
+                var oldest = _speedSamples.Peek();
+                var elapsed = (now - oldest.time).TotalSeconds;
+                _lastBytesPerSecond = elapsed > 0 ? (_written - oldest.bytes) / elapsed : (double?)null;
+
+                _progress.Report(new UploadProgress(
+                    percent: _total.HasValue && _total.Value > 0 ? (float?)(_written * 100.0 / _total.Value) : null,
+                    bytesSent: _written,
+                    bytesTotal: _total,
+                    bytesPerSecond: _lastBytesPerSecond));
             }
         }
     }

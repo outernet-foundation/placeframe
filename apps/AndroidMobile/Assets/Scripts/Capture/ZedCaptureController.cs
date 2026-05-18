@@ -152,7 +152,7 @@ public static class ZedCaptureController
         {
             using var cts = new CancellationTokenSource(enumerateTimeout);
             var captures = await capturesApi.GetCapturesAsync(cts.Token);
-            return captures.Select(c => new LocalCapture(c.Id, c.RecordedAt, DeviceType.Zed));
+            return captures.Select(c => new LocalCapture(c.Id, c.RecordedAt, DeviceType.Zed, c.SizeBytes));
         }
         catch
         {
