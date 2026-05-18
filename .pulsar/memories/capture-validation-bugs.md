@@ -2,6 +2,7 @@
 updated: 2026-05-17
 ---
 
+
 # Capture-tool validation mode: post-Stop/Start jump and far-from-origin point-cloud height error
 
 ## Goal
@@ -170,51 +171,93 @@ The world frame's Y axis is fixed at session start; later frames *don't* report 
 
 Per-frame tracking state is exposed (`ARSession.state`, ZED `POSITIONAL_TRACKING_STATE`); rough captures (camera covered) degrade *positional* tracking, but pitch/roll stay pinned by the accelerometer regardless.
 
-### The layered fix
+### OS gravity vs VIO world-Y (refined; the OS-sensor route is now de-prioritized)
 
-1. **Use the last stable frame (not the first) to anchor the origin** -- one-line reconstructor change. Bias estimates have had the entire session to converge. "Last stable" = tracking state OK + low-motion filter to avoid catching put-down motion. Re-capture stability is fine because content is map-relative.
-2. **Read the OS-fused gravity sensor at the anchor frame.** Available on every platform, independent of the AR SDK's session-start world frame:
-   - Android: `Sensor.TYPE_GRAVITY` (virtual sensor, accel+gyro fused). Per-frame poll via `SensorManager`.
-   - iOS: `CMMotionManager.deviceMotion.gravity`.
-   - ZED X: `SensorsData.get_imu_data()` exposes fused accelerometer / gravity.
-   Record per-frame gravity (3 floats, camera frame) in the capture format alongside the pose. At the anchor frame, gravity vector *is* the camera's "down"; define map +Y = its negation; pick +X/+Z from camera-forward projected onto the horizontal plane. VIO is used only for relative geometry between frames, never to choose world up.
-3. **Average gravity over multiple stationary samples** at the anchor -- 10 samples → √10 → ~0.03° (free).
+Earlier drafts of this memory pushed adding `Sensor.TYPE_GRAVITY` (Android) / `CMMotionManager.deviceMotion.gravity` (iOS) / `SensorsData.get_imu_data()` (ZED) as a new capture-format column. After user pushback, that plan was walked back. The honest summary:
 
-### Leverage table -- updated with sensor-floor accuracy
+- **At rest, OS gravity and the AR SDK's world-Y agree** (both ultimately derive from the same accelerometer reading directly measuring gravity-in-device-frame). The "we're leveraging different signals" framing was overstated.
+- **During motion they can differ transiently**, because the two filters have different gains/time-constants, but that difference vanishes the moment the device is stationary.
+- **The dominant fix is WHEN you sample, not WHICH source.** A warmed-up AR SDK at a stationary moment already gives you near-sensor-floor gravity via its reported camera rotation -- the non-yaw part of `R_unityWorldCamera` at a stable last frame *is* the SDK's current best estimate of "how the camera is tilted relative to true vertical." ARCore/ARKit/ZED SDK are doing continuous gravity refinement internally; their last-stable-frame output is probably close to what a separately-sampled OS gravity sensor would give.
+- The OS-sensor route remains available as a future addition if measurements show the AR SDK's world-Y is meaningfully worse than independently-sampled gravity. Not blocked; just unjustified at this point.
 
-Worst-case visible vertical error at distance D for given tilt baked into the map:
+### The simplified layered fix
 
-| Distance | 2° (current ARCore worst case) | 0.3° (last-stable + OS gravity) | 0.1° (averaged) |
-|---|---|---|---|
-| 1 m   | 3.5 cm | 0.5 cm | 0.2 cm |
-| 5 m   | 17 cm  | 2.6 cm | 0.9 cm |
-| 20 m  | 70 cm  | 10 cm  | 3.5 cm |
-| 50 m  | 1.75 m | 26 cm  | 9 cm   |
+1. **Use the last stable frame (not the first) for the origin's pose** -- one-line reconstructor change in `colmap.py` / `rig.py`. Bias estimates have had the entire session to converge. "Last stable" = tracking state OK + low motion (gyro magnitude below threshold for N consecutive frames; non-gravity linear-accel below threshold).
+2. **Pin the map's gravity to the non-yaw part of that frame's reported camera rotation.** No new capture-format column. No OS-sensor subscription. No camera-to-IMU extrinsic to manage. Just "pick the right frame and use the existing data better."
+3. **Optionally, average across multiple stationary samples** spread across the session. Each sample shares the same underlying world-Y estimate by the time the session is warmed up, but the random component (residual linear-accel contamination, sensor noise) averages down with √N. Diminishing returns past ~10 samples (you hit systematic floors below that).
+4. **Refuse the capture if no warmed-up stationary frame exists.** Better than silently producing a tilted map. Warmup window: ~3 s for ARFoundation, ~1 s for ZED (per-source config rather than a magic number).
 
-At 0.3° (the realistic target with last-stable-frame + OS gravity), even 50 m is fine for overlay use. The "warehouse-scale worry" disappears. 4 DOF is unambiguously correct for everything Placeframe is likely to target.
+### Final accuracy estimate for "sample gravity at the last stable frame"
+
+**Accuracy defined**: angular error between the direction declared as "world up" in the reconstructed map and true local vertical (opposite to actual gravity), in degrees. Decomposes into:
+- **Random** -- changes run-to-run on same device (sensor noise, sample timing, recent motion). Averages down with multiple samples.
+- **Systematic** -- consistent across runs under same conditions (residual online-bias estimate, camera-IMU extrinsic miscal, thermal state). Doesn't average within a session but varies between sessions/devices.
+
+Does *not* include map origin position, scale, or yaw alignment between captures -- just tilt of the map's Y axis from true gravity.
+
+Error budget (rough order-of-magnitude, speculative from MEMS literature, not measured against the actual pipeline):
+
+| Source | Typical contribution |
+|---|---|
+| Accelerometer sensor noise at rest | 0.1° (random) |
+| Online bias residual after a warmed-up session | 0.05--0.2° (systematic per session) |
+| Camera-to-IMU extrinsic miscalibration | 0.05--0.2° (systematic per device) |
+| Thermal drift during a long session | 0.1° (systematic per session) |
+| Gyro bias contribution to attitude at rest | <0.05° (negligible) |
+| Linear-accel residual in the last frame | 0--0.5° (depends on how stationary) |
+
+Estimated end-to-end accuracy for the recommended approach:
+
+- **Typical** (warmed-up session, genuinely stationary last frame, room temp): **0.3--0.5°**. Plan around this.
+- **Best** (averaging ~10 stationary samples, well-calibrated ZED X or high-tier phone): **~0.1--0.2°**. Approaching the practical floor.
+- **Worst** (short session, thermally stressed device, residual motion in last frame, cheap commodity IMU): **1--2°**. Defend with the stationary-detection threshold -- refuse the sample if motion is above it.
+
+### Leverage table -- visible vertical overlay error at distance D from map origin
+
+| Distance | 2° (broken / worst case) | 0.5° (typical w/ last-stable) | 0.3° (typical w/ last-stable) | 0.1° (averaged best case) |
+|---|---|---|---|---|
+| 1 m   | 3.5 cm | 0.9 cm | 0.5 cm | 0.2 cm |
+| 5 m   | 17 cm  | 4.4 cm | 2.6 cm | 0.9 cm |
+| 20 m  | 70 cm  | 17 cm  | 10 cm  | 3.5 cm |
+| 50 m  | 1.75 m | 44 cm  | 26 cm  | 9 cm   |
+
+For the scales Placeframe actually targets (room and building, up to ~20 m), this approach delivers visible overlay error in the single-digit-centimeter range typically, ~17 cm worst-case multi-room. That's much better than what 6 DOF with the current pivot bug delivers, and probably indistinguishable from a properly-fixed 6 DOF filter in practice. The accuracy story is good enough to commit to the 4 DOF plan **without** the OS gravity-sensor capture-format change.
 
 Important comparison: even a *fixed* 6 DOF filter would have ~1° per-measurement PnP rotation noise contributing leveraged error at distance. The 6 DOF flexibility only absorbs map tilt if per-measurement pitch/roll is unbiased. 6 DOF is **not** obviously better than 4 DOF for the relevant scales.
 
 ### Note on the 0.1° vs 1° figures
 
-Sensor floor for consumer MEMS is ~0.1° in quiescent conditions. The 1° figure earlier in the discussion is *end-to-end system delivery* (AR SDK output that integrates bias, motion contamination, calibration imperfection over a session). The reason for raising the OS gravity sensor: you can largely reclaim the sensor floor by reading the fused gravity directly at a stationary moment, instead of inheriting whatever world frame the AR SDK happened to settle on. The 0.1° row in the leverage table reflects this.
+Sensor floor for consumer MEMS is ~0.1° in quiescent conditions. The 1° figure earlier in the discussion is *end-to-end system delivery* (AR SDK output that integrates bias, motion contamination, calibration imperfection over a session). User caught the gap. The reason last-stable-frame helps: bias estimation and continuous world-frame refinement that have run for the whole session are far better than what existed at session start, recovering the system error from "~1°" to "~0.3--0.5°" -- not the full ten-fold recovery to sensor floor, but meaningful. Independent OS-sensor sampling would mostly duplicate work the SDK is already doing.
+
+### How to measure this for real
+
+No published benchmark gives attitude error directly for ARCore/ARKit/ZED X. To get real numbers for this pipeline: capture against a precision inclinometer, or compare independent captures of a known-vertical reference (plumb line, building corner). Cheapest proxy: capture the same scene twice, fit floor planes in both reconstructions, measure the angle between them -- that's a lower bound on random error including between-session systematic differences.
+
+### Localization-time gravity (deferred)
+
+Reconstruction-time gravity error is **permanent in the map and affects every future user** -- high leverage to fix. Localization-time gravity error (querying device's current world-Y drifted from true vertical) is **transient per-session**, typically smaller (AR session has had warm-up time before the user opens validation mode), affects only that one user's overlay, self-corrects on session restart -- lower leverage. **Ship reconstruction-time gravity pinning first; defer localization-time correction unless a real symptom is observed.** If it ever matters, the fix is ~30 lines in `Localize` / `ComputeAlignmentFromResult`, or (better) sending the device's gravity vector with the localization request as a PnP prior.
 
 ## Decisions
 
 - The 4 DOF (yaw + R^3) state-representation refactor of `RelocalizationFilter` is the agreed direction for the pivot bug. User indicated next step is **implement, not design more**.
 - The "open design decisions" in the earlier draft were not actually open (yaw extraction = Z-projection; multi-map ECEF out of scope; backend keeps 6×6 covariance and client projects). Implementer should not surface these as open questions.
 - **No permanent feature flag for 4 vs 6 DOF.** Permanent toggles mean "we never resolved the question." If a validation-period A/B is wanted, prefer a **shadow filter** (both filters update on every measurement, one drives rendering, surface the divergence in the metrics UI) over a runtime toggle. Has a clean "delete after validation" exit. User did not explicitly green-light building the shadow filter; treat as available option, not required.
-- Reconstructor work (last-stable-frame anchor, OS gravity sensor logging, averaging) is companion work to the 4 DOF refactor. Independent commits, can ship separately.
-- Investigation done on a fresh branch `investigation/validation-mode-bugs` (created at user's request). Memory was committed twice during the session (`602da12f`, `b717cd67`); this update is the third.
+- **Reconstructor companion work simplified to "last stable frame for origin pose."** The earlier plan that added an OS-fused gravity sensor (`TYPE_GRAVITY` / `CMMotionManager.gravity` / ZED `SensorsData`) to the capture format was walked back -- the AR SDK's own reported camera rotation at a warmed-up stationary frame is already a near-equivalent signal. New plan: one-line change in `colmap.py` / `rig.py` to pick the last frame whose tracking state is OK and motion is below threshold, and use the non-yaw component of its rotation as the map's "up." No capture-format change. OS-sensor route remains a future option if measurements show it's worth adding.
+- **Stationary detection thresholds are TBD-but-unblocked.** Pick reasonable values from MEMS spec sheets (e.g., gyro magnitude below X rad/s for N consecutive frames, non-gravity linear-accel below Y m/s²) and tune empirically.
+- **Investigation branch is `investigation/validation-mode-bugs`** (created at user's request). Memory has been committed three times during the session prior to this entry (`602da12f`, `b717cd67`, `6748d0b7`); this update is the fourth.
 - Trust-but-verify: initial Explore-agent pass produced an overview with inaccuracies (claimed `ComputeAlignmentFromResult` was strictly correct). Direct file reads confirmed the gravity-snap-then-translate bug. Use the same pattern for implementation review.
 
 ## Open questions
 
 - Whether to build the dual/shadow filter for the validation period, or just ship 4 DOF and rely on the reconstructor fixes. User leaned toward "trust upstream gravity" by end of session; implementer should ask before building the dual-filter scaffolding.
-- Whether to land the reconstructor "last stable frame for origin" change alongside the 4 DOF refactor or as a follow-up. Either is defensible; the leverage math justifies 4 DOF even without it for the building scale, but the reconstructor change tightens worst-case error.
-- Whether the capture format change (per-frame gravity vector from OS sensor) is in scope now or later. It is the strongest single mitigation but is a schema change with knock-on effects (datamodels regen, both capture tools, reconstructor consumer). Defensible to defer.
+- Whether to land the reconstructor "last stable frame for origin" change alongside the 4 DOF refactor or as a follow-up. Either is defensible; the leverage math justifies 4 DOF even without it for the building scale, but the reconstructor change tightens worst-case error to ~0.3--0.5°.
+- Concrete numeric thresholds for "stationary" frame detection (gyro magnitude, non-gravity linear-accel magnitude, sliding-window length). Pick from MEMS spec sheets initially and tune empirically.
+- Warmup-window durations per source (ARFoundation ~3 s, ZED ~1 s are tentative). Worth storing as per-source config (capture format already records which capture tool produced the data) rather than a magic number.
+- Refusal behavior for captures that never produce a warmed-up stationary frame -- error message and how it surfaces to the operator. Better than silently producing a tilted map.
+- Whether the OS-fused gravity sensor capture-format change is ever needed. Currently deferred indefinitely; revisit only if measurements show last-stable-frame VIO gravity is materially worse than independently-sampled gravity. The user explicitly questioned whether this added value at all, given AR SDKs do their own gravity refinement.
 - Which ARFoundation signal to use for VIO-discontinuity detection: no first-class "pose jumped" event. Options: `ARSession.sessionStateChanged` (coarse), tracking-state transitions on `XROrigin.Camera.trackingState`, or detect large frame-to-frame VIO deltas ourselves. Needs a small spike. Independent of the 4 DOF refactor.
 - Whether Bug 1's fix should reset the entire `_state` or only clear `HasAcceptedMeasurement` + `LastAcceptedVioPosition` so the first measurement snaps. Full reset is simpler/safer; partial reset preserves the prior as a hint, which is probably worthless after an arbitrary stop interval.
+- Validation harness for the gravity-pinning change: cheapest path is capture-the-same-scene-twice and measure floor-plane angle between reconstructions. More rigorous would be capturing against a precision inclinometer or a known plumb-line reference. Decision deferred to implementer.
 
 ### Implementation catches for the 4 DOF refactor
 
@@ -245,7 +288,7 @@ Sensor floor for consumer MEMS is ~0.1° in quiescent conditions. The 1° figure
 - **Fix Bug 1 (filter state carry-over).** Reset `_state` in `StartLocalizing` (or at minimum clear `HasAcceptedMeasurement` and `LastAcceptedVioPosition`) so the first post-Start measurement snaps. Independent of the 4 DOF refactor.
 - **Fix Bug 1 (VIO jump unhandled).** Subscribe to an ARFoundation tracking-discontinuity signal and re-bootstrap the filter covariance on detected jumps so the chi-squared gate softens enough to accept the next measurement. Independent of the 4 DOF refactor.
 - **Fix the LocalizationMap drift.** Make `LocalizationMap` subscribe to `OnEcefToUnityWorldTransformUpdated` like `GeoPose` does, so the point cloud tracks the live alignment instead of freezing at load-time. Independent of the 4 DOF refactor.
-- **Reconstructor: last-stable-frame for origin anchor.** One-line change in `colmap.py` / `rig.py`. Companion to the 4 DOF refactor; tightens worst-case map tilt from ~1–2° to ~0.5°.
-- **Capture format: per-frame OS-fused gravity vector.** Bigger change (schema, both capture tools, reconstructor consumer); gives near-sensor-floor (~0.1° with averaging) map alignment. Defer-or-do decision pending.
+- **Reconstructor: last-stable-frame for origin anchor.** ~Single-digit-lines change in `colmap.py` / `rig.py` plus a stationary-detection helper. Pin the map's "up" to the non-yaw component of that frame's reported camera rotation. Companion to the 4 DOF refactor; tightens typical map tilt from "~1°" (first-frame, possibly cold-start) to "~0.3--0.5°" (last warmed-up stable frame).
 - **Decide legacy-map handling.** 4 DOF filter against old (tilted) maps will look bent. Re-process vs version-flag-and-use-6DOF-for-legacy. Ask user.
 - **Verify Bug 2 field hypothesis.** Revisit the far room via different paths; if offset is consistent it's the alignment math (4 DOF refactor will fix it), if path-dependent it's reconstruction warp (separate problem). Worthwhile even after shipping the refactor.
+- **(Deferred, not active.)** OS-fused gravity sensor capture-format change. Was previously a planned thread; demoted to a future option pending evidence the last-stable-frame VIO output is insufficient. Don't pre-build.
