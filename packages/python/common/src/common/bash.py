@@ -5,6 +5,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+from contextlib import ExitStack
 from pathlib import Path
 from subprocess import CalledProcessError, Popen, TimeoutExpired
 from typing import NoReturn
@@ -57,18 +58,35 @@ def bash_output(command: str, *, cwd: Path | None = None, stdin_text: str | None
         return stdout or ""
 
 
-def bash(command: str, *, cwd: Path | None = None, stdin_text: str | None = None) -> None:
+def bash(
+    command: str,
+    *,
+    cwd: Path | None = None,
+    stdin_text: str | None = None,
+    log_path: Path | None = None,
+) -> None:
     _check_no_pipe(command)
     args = _resolve_args(command)
 
-    with Popen(
-        args,
-        cwd=str(cwd) if cwd else None,
-        stdout=sys.stdout,
-        stderr=sys.stderr,
-        stdin=subprocess.PIPE if stdin_text else None,
-        text=True,
-    ) as process:
+    with ExitStack() as stack:
+        if log_path:
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            log = stack.enter_context(log_path.open("a"))
+            stdout, stderr = log, log
+        else:
+            stdout, stderr = sys.stdout, sys.stderr
+
+        process = stack.enter_context(
+            Popen(
+                args,
+                cwd=str(cwd) if cwd else None,
+                stdout=stdout,
+                stderr=stderr,
+                stdin=subprocess.PIPE if stdin_text else None,
+                text=True,
+            )
+        )
+
         try:
             process.communicate(input=stdin_text)
         except KeyboardInterrupt:
