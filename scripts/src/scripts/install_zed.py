@@ -376,16 +376,9 @@ def _acquire_images(host_ip: str, build: bool, docker: str, service_shas: dict[s
         zed_image = f"{GHCR_BASE}/zed-capture:{service_shas['ZED_CAPTURE_SHA']}"
         bridge_image = f"{GHCR_BASE}/aoa-bridge:{service_shas['AOA_BRIDGE_SHA']}"
         gateway_image = f"{GHCR_BASE}/aoa-gateway:{service_shas['AOA_GATEWAY_SHA']}"
-        logger.info(
-            "pulling_images_from_ghcr",
-            extra={"zed": zed_image, "bridge": bridge_image, "gateway": gateway_image},
-        )
-        try:
-            _ssh(f'"{docker} pull {zed_image}"')
-            _ssh(f'"{docker} pull {bridge_image}"')
-            _ssh(f'"{docker} pull {gateway_image}"')
-        except CalledProcessError:
-            bail(messages.IMAGE_PULL_FAILED)
+        _pull_image_on_box(docker, zed_image)
+        _pull_image_on_box(docker, bridge_image)
+        _pull_image_on_box(docker, gateway_image)
         return {"zed_capture": zed_image, "aoa_bridge": bridge_image, "aoa_gateway": gateway_image}
 
     # Local registry instead of `docker save | ssh docker load`: pulls are
@@ -427,11 +420,18 @@ def _acquire_images(host_ip: str, build: bool, docker: str, service_shas: dict[s
         _ssh("sudo tee /etc/docker/daemon.json", stdin_text=json.dumps(config, indent=2))
         _ssh('"sudo systemctl restart docker"')
 
-    logger.info("pulling_images_from_local_registry", extra={"registry": f"{host_ip}:{REGISTRY_PORT}"})
-    _ssh(f'"{docker} pull {remote_zed}"')
-    _ssh(f'"{docker} pull {remote_bridge}"')
-    _ssh(f'"{docker} pull {remote_gateway}"')
+    _pull_image_on_box(docker, remote_zed)
+    _pull_image_on_box(docker, remote_bridge)
+    _pull_image_on_box(docker, remote_gateway)
     return {"zed_capture": remote_zed, "aoa_bridge": remote_bridge, "aoa_gateway": remote_gateway}
+
+
+def _pull_image_on_box(docker: str, image: str) -> None:
+    logger.info("pulling_image_on_box", extra={"image": image})
+    try:
+        _ssh(f'"{docker} pull {image}"')
+    except CalledProcessError:
+        bail(messages.IMAGE_PULL_FAILED, image=image)
 
 
 def need_ssh_key_generate() -> bool:
