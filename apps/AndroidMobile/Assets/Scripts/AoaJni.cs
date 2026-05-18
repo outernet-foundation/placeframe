@@ -1,4 +1,5 @@
 #if !UNITY_EDITOR && UNITY_ANDROID
+using System;
 using UnityEngine;
 
 namespace Placeframe.Client
@@ -11,6 +12,14 @@ namespace Placeframe.Client
     {
         private static readonly AndroidJavaClass cls = new("io.placeframe.android.AoaAccessoryClient");
 
+        // ReadChunk is per-chunk in the AOA download hot path. AndroidJavaClass.CallStatic<byte[]>
+        // forces a reflective signature lookup per call and emits two AndroidJNIHelper deprecation
+        // warnings per chunk (signed/unsigned byte[] marshal). Raw JNI with a cached method ID
+        // bypasses both.
+        private static readonly IntPtr clsRaw = cls.GetRawClass();
+        private static readonly IntPtr readChunkMethod =
+            AndroidJNI.GetStaticMethodID(clsRaw, "readChunk", "(Ljava/io/InputStream;I)[B");
+
         public static AndroidJavaObject Execute(
             AndroidJavaObject activity,
             string method,
@@ -22,8 +31,22 @@ namespace Placeframe.Client
         ) => cls.CallStatic<AndroidJavaObject>(
             "execute", activity, method, url, headerNames, headerValues, body, contentType);
 
-        public static byte[] ReadChunk(AndroidJavaObject stream, int maxSize) =>
-            cls.CallStatic<byte[]>("readChunk", stream, maxSize);
+        public static byte[] ReadChunk(AndroidJavaObject stream, int maxSize)
+        {
+            var args = new jvalue[2];
+            args[0].l = stream.GetRawObject();
+            args[1].i = maxSize;
+            IntPtr result = AndroidJNI.CallStaticObjectMethod(clsRaw, readChunkMethod, args);
+            if (result == IntPtr.Zero) return null;
+            try
+            {
+                return AndroidJNI.FromByteArray(result);
+            }
+            finally
+            {
+                AndroidJNI.DeleteLocalRef(result);
+            }
+        }
 
         public static void CloseResponse(AndroidJavaObject response) =>
             cls.CallStatic("closeResponse", response);
