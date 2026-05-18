@@ -41,10 +41,12 @@ namespace PlaceframeZedCaptureClient.Model
         /// </summary>
         /// <param name="id">id (required).</param>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (required).</param>
-        public ZedCapture(Guid id, DateTime recordedAt)
+        /// <param name="sizeBytes">sizeBytes (required).</param>
+        public ZedCapture(Guid id, DateTime recordedAt, long sizeBytes)
         {
             this.Id = id;
             this.RecordedAt = recordedAt;
+            this.SizeBytes = sizeBytes;
         }
 
         /// <summary>
@@ -97,6 +99,30 @@ namespace PlaceframeZedCaptureClient.Model
             return _flagRecordedAt;
         }
         /// <summary>
+        /// Gets or Sets SizeBytes
+        /// </summary>
+        [DataMember(Name = "size_bytes", IsRequired = true, EmitDefaultValue = true)]
+        public long SizeBytes
+        {
+            get{ return _SizeBytes;}
+            set
+            {
+                _SizeBytes = value;
+                _flagSizeBytes = true;
+            }
+        }
+        private long _SizeBytes;
+        private bool _flagSizeBytes;
+
+        /// <summary>
+        /// Returns false as SizeBytes should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeSizeBytes()
+        {
+            return _flagSizeBytes;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -106,6 +132,7 @@ namespace PlaceframeZedCaptureClient.Model
             sb.Append("class ZedCapture {\n");
             sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  RecordedAt: ").Append(RecordedAt).Append("\n");
+            sb.Append("  SizeBytes: ").Append(SizeBytes).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }
