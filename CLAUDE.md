@@ -18,20 +18,10 @@ The repo uses a two-tier docs model: `CLAUDE.md` for always-loaded rules (prescr
 
 ## Commands
 
-All top-level commands are run via `uv run <command>` from the repo root. These are defined in `scripts/src/scripts/` and registered in `scripts/pyproject.toml`.
+Top-level commands are `uv run <name>` from the repo root. See `build/SPEC.md` for the stack-lifecycle / Unity / Cesium catalog (`up`, `down`, `build`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`, `compile-unity`, …) including per-command flags. See `scripts/SPEC.md` for operator utilities (`install`, `install-zed`, `fit-calibration`, debug-attach helpers). Every command accepts `--help`.
 
-| Command | Purpose |
-|---|---|
-| `uv run up` | Start all Docker services (detached). Pass `--attached` for streaming logs. |
-| `uv run down` | Stop all Docker services |
-| `uv run build` | Build Docker images (auto-detects CUDA/ROCm) |
-| `uv run migrate-database` | Run PostgreSQL schema migrations |
-| `uv run generate-clients` | Regenerate OpenAPI client packages |
-| `uv run generate-datamodels` | Regenerate Pydantic data models |
-| `uv run lock-python` | Regenerate workspace `uv.lock` and per-service `pylock.toml` files |
-| `uv run deptry-check` | Check for dependency issues across all packages |
+**Linting and type checking** (from repo root):
 
-**Linting and type checking** (run from repo root):
 ```bash
 uv run ruff check .          # Lint
 uv run ruff format .         # Format
@@ -69,7 +59,7 @@ Auto-generated packages in `packages/generated/` should not be edited directly �
 2. `uv sync --all-packages` then `uv run lock-python` (sync first if any `pyproject.toml` changed; lock files must precede generate-clients)
 3. `uv run generate-clients --config openapi-projects.json` (dumps updated OpenAPI spec, generates clients)
 
-All three scripts live in `scripts/src/scripts/`.
+All three scripts live in `build/src/build_scripts/placeframe/` — see `build/SPEC.md` for per-command flag details.
 
 **Codegen commit hygiene**: Regenerated artifacts under `packages/generated/` always live in their own dedicated commit, separate from any source change. The codegen commit's message must be exactly `Run generate-clients`, `Run generate-datamodels`, or `Run generate-clients and generate-datamodels` — no body, no rationale, no reference to the source change or repo state. The reason: codegen output is not reviewed; reviewers must be able to spot and skip these commits at a glance, which only works if they're (a) always separate and (b) always have the same canonical message. A single codegen commit may cover multiple preceding source commits — there is no requirement of a 1:1 source↔codegen pairing. The only constraint is that the codegen commit's contents must reflect the cumulative source state at its position (i.e. running `generate-clients` / `generate-datamodels` against that tree must produce a no-op diff).
 
