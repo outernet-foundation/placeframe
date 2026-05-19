@@ -18,6 +18,7 @@
   ],
   "dependencies": {
     "com.cysharp.r3": "https://github.com/Cysharp/R3.git?path=src/R3.Unity/Assets/R3.Unity#1.2.9",
+    "io.livekit.livekit-sdk": "https://github.com/livekit/client-sdk-unity.git#v1.3.7",
     "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
     "com.fofx.nessle": "https://github.com/outernet-foundation/Nessle.git?path=Assets/Package/Core",
     "com.fofx.observething": "https://github.com/outernet-foundation/ObserveThing.git?path=Assets/Package/Core",
