@@ -177,6 +177,26 @@ services:
       PUBLIC_PORT: "${GATEWAY_PORT:?err}"
       PUBLIC_DOMAIN: "${PUBLIC_DOMAIN:?err}"
 
+  livekit:
+    x-image-ref: docker.io/livekit/livekit-server:v1.12.0
+    image: "${LIVEKIT_IMAGE:?err}"
+    environment:
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:?err}: ${LIVEKIT_API_SECRET:?err}"
+      LIVEKIT_PORT: "7880"
+      LIVEKIT_RTC_TCP_PORT: "7881"
+      LIVEKIT_RTC_UDP_PORT_RANGE_START: "50000"
+      LIVEKIT_RTC_UDP_PORT_RANGE_END: "50100"
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "50000-50100:50000-50100/udp"
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:7880/" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
   ngrok:
     profiles:
       - ngrok
