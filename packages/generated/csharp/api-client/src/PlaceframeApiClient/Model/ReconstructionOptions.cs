@@ -36,28 +36,28 @@ namespace PlaceframeApiClient.Model
         /// </summary>
         /// <param name="deterministicSeed">If set, run the reconstruction deterministically: this value is the PRNG seed AND the pipeline runs single-threaded so thread-scheduling does not introduce non-determinism between reruns. If None, the reconstruction is non-deterministic (seed unpinned, threading enabled)..</param>
         /// <param name="neighborsCount">How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage. (default to 12).</param>
-        /// <param name="rotationThreshold">Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. Smaller values reduce weak overlaps and speed up matching at the cost of some coverage. (default to 30.0M).</param>
+        /// <param name="rotationThreshold">Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. Smaller values reduce weak overlaps and speed up matching at the cost of some coverage. (default to 30.0D).</param>
         /// <param name="lightglueBatchSize">Batch size to use when running LightGlue for feature matching. Larger batch sizes can improve GPU utilization but require more memory. (default to 16).</param>
-        /// <param name="ransacMaxError">Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower &#x3D; stricter inlier test; removes borderline correspondences before SfM. (default to 2.0M).</param>
-        /// <param name="ransacMinInlierRatio">Two-view RANSAC minimum inlier ratio to accept the model. Higher &#x3D; reject more weak pairs; typically 0.10–0.20 for stricter matching. (default to 0.15M).</param>
+        /// <param name="ransacMaxError">Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower &#x3D; stricter inlier test; removes borderline correspondences before SfM. (default to 2.0D).</param>
+        /// <param name="ransacMinInlierRatio">Two-view RANSAC minimum inlier ratio to accept the model. Higher &#x3D; reject more weak pairs; typically 0.10–0.20 for stricter matching. (default to 0.15D).</param>
         /// <param name="usePriorPosition">If true, use position priors during registration. This leverages PosePrior(position&#x3D;...) written into the database to guide image registration. (default to true).</param>
         /// <param name="rigVerification">If true, perform rig-based verification during feature matching and two-view geometry verification. Requires images to be tagged with rig/camera IDs. (default to true).</param>
-        /// <param name="triangulationMinimumAngle">Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points. (default to 3.0M).</param>
-        /// <param name="triangulationCompleteMaxReprojectionError">Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points (triangulation.complete_max_reproj_error). Lower → fewer borderline new points. (default to 2.0M).</param>
-        /// <param name="triangulationMergeMaxReprojectionError">Triangulation-time gate (pixels) for MERGING near-duplicate 3D points (triangulation.merge_max_reproj_error). Lower → fewer merges; higher → more aggressive deduplication. (default to 4.0M).</param>
-        /// <param name="mapperFilterMaxReprojectionError">Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). Points exceeding this after local/global BA are culled. This is NOT a triangulation accept threshold. (default to 2.0M).</param>
+        /// <param name="triangulationMinimumAngle">Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points. (default to 3.0D).</param>
+        /// <param name="triangulationCompleteMaxReprojectionError">Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points (triangulation.complete_max_reproj_error). Lower → fewer borderline new points. (default to 2.0D).</param>
+        /// <param name="triangulationMergeMaxReprojectionError">Triangulation-time gate (pixels) for MERGING near-duplicate 3D points (triangulation.merge_max_reproj_error). Lower → fewer merges; higher → more aggressive deduplication. (default to 4.0D).</param>
+        /// <param name="mapperFilterMaxReprojectionError">Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). Points exceeding this after local/global BA are culled. This is NOT a triangulation accept threshold. (default to 2.0D).</param>
         /// <param name="bundleAdjustmentRefineSensorFromRig">If true, refine per-camera extrinsics within the rig during the incremental BA loop (ba_refine_sensor_from_rig). The shipped pattern leaves this False, pins rigs via constant_rigs, and re-enables rig refinement only on the final standalone BA pass. See docker/reconstructor/SPEC.md for rationale. (default to false).</param>
         /// <param name="bundleAdjustmentRefineFocalLength">If true, refine the camera focal length during BA (ba_refine_focal_length). (default to true).</param>
         /// <param name="bundleAdjustmentRefinePrincipalPoint">If true, refine the camera principal point during BA (ba_refine_principal_point). (default to false).</param>
         /// <param name="bundleAdjustmentRefineAdditionalParams">If true, refine model-specific additional parameters during BA (ba_refine_extra_params), e.g., radial/tangential distortion where applicable. (default to true).</param>
-        /// <param name="bundleAdjustmentGlobalFramesRatio">Growth ratio of registered frames after which to trigger a global bundle adjustment (ba_global_frames_ratio). Larger &#x3D; fewer global BA events, less wall time, longer between cleanup passes. (default to 1.5M).</param>
+        /// <param name="bundleAdjustmentGlobalFramesRatio">Growth ratio of registered frames after which to trigger a global bundle adjustment (ba_global_frames_ratio). Larger &#x3D; fewer global BA events, less wall time, longer between cleanup passes. (default to 1.5D).</param>
         /// <param name="bundleAdjustmentGlobalMaxRefinements">Maximum BA refinement passes per global-BA event (ba_global_max_refinements). Dev default 1; production-quality maps should override to 3 (or higher). See docker/reconstructor/SPEC.md. (default to 1).</param>
-        /// <param name="bundleAdjustmentGlobalFunctionTolerance">Ceres solver function tolerance for global bundle adjustment (ba_global_function_tolerance). Larger &#x3D; earlier exit when residual delta becomes insignificant. (default to 0.001M).</param>
+        /// <param name="bundleAdjustmentGlobalFunctionTolerance">Ceres solver function tolerance for global bundle adjustment (ba_global_function_tolerance). Larger &#x3D; earlier exit when residual delta becomes insignificant. (default to 0.001D).</param>
         /// <param name="bundleAdjustmentIgnoreRedundantPoints3D">If true, solve global BA without redundant 3D points first, then refine pruned points in a second pass with everything else fixed (mapper.ba_global_ignore_redundant_points3D). Same final geometry, smaller main problem. Activates only when ≥10 frames are registered. (default to true).</param>
         /// <param name="compressionOpqNumberOfSubvectors">Number of subvectors for OPQ compression. (default to 16).</param>
         /// <param name="compressionOpqNumberOfBitsPerSubvector">Number of bits per subvector for OPQ compression. (default to 8).</param>
         /// <param name="compressionOpqNumberOfTrainingIterations">Number of training iterations for OPQ compression. (default to 20).</param>
-        /// <param name="posePriorPositionSigmaM">Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values &#x3D; stronger priors. (default to 0.25M).</param>
+        /// <param name="posePriorPositionSigmaM">Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values &#x3D; stronger priors. (default to 0.25D).</param>
         /// <param name="maxKeypointsPerImage">Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode). (default to 2500).</param>
         /// <param name="heldOutFrameTimestamps">Frame timestamps (Unix milliseconds, matching the first column of each rig&#39;s frames.csv) to exclude from this reconstruction. Held-out frames never enter the rig&#39;s frame_poses, so their images are skipped during feature extraction, pair generation, and SfM. Used by calibration to build a map without specific frames so those frames can later be localized as held-out queries..</param>
         public ReconstructionOptions()
@@ -103,7 +103,7 @@ namespace PlaceframeApiClient.Model
                 _flagNeighborsCount = true;
             }
         }
-        private int _NeighborsCount;
+        private int _NeighborsCount = 12;
         private bool _flagNeighborsCount;
 
         /// <summary>
@@ -128,7 +128,7 @@ namespace PlaceframeApiClient.Model
                 _flagRotationThreshold = true;
             }
         }
-        private double _RotationThreshold;
+        private double _RotationThreshold = 30.0D;
         private bool _flagRotationThreshold;
 
         /// <summary>
@@ -153,7 +153,7 @@ namespace PlaceframeApiClient.Model
                 _flagLightglueBatchSize = true;
             }
         }
-        private int _LightglueBatchSize;
+        private int _LightglueBatchSize = 16;
         private bool _flagLightglueBatchSize;
 
         /// <summary>
@@ -178,7 +178,7 @@ namespace PlaceframeApiClient.Model
                 _flagRansacMaxError = true;
             }
         }
-        private double _RansacMaxError;
+        private double _RansacMaxError = 2.0D;
         private bool _flagRansacMaxError;
 
         /// <summary>
@@ -203,7 +203,7 @@ namespace PlaceframeApiClient.Model
                 _flagRansacMinInlierRatio = true;
             }
         }
-        private double _RansacMinInlierRatio;
+        private double _RansacMinInlierRatio = 0.15D;
         private bool _flagRansacMinInlierRatio;
 
         /// <summary>
@@ -228,7 +228,7 @@ namespace PlaceframeApiClient.Model
                 _flagUsePriorPosition = true;
             }
         }
-        private bool _UsePriorPosition;
+        private bool _UsePriorPosition = true;
         private bool _flagUsePriorPosition;
 
         /// <summary>
@@ -253,7 +253,7 @@ namespace PlaceframeApiClient.Model
                 _flagRigVerification = true;
             }
         }
-        private bool _RigVerification;
+        private bool _RigVerification = true;
         private bool _flagRigVerification;
 
         /// <summary>
@@ -278,7 +278,7 @@ namespace PlaceframeApiClient.Model
                 _flagTriangulationMinimumAngle = true;
             }
         }
-        private double _TriangulationMinimumAngle;
+        private double _TriangulationMinimumAngle = 3.0D;
         private bool _flagTriangulationMinimumAngle;
 
         /// <summary>
@@ -303,7 +303,7 @@ namespace PlaceframeApiClient.Model
                 _flagTriangulationCompleteMaxReprojectionError = true;
             }
         }
-        private double _TriangulationCompleteMaxReprojectionError;
+        private double _TriangulationCompleteMaxReprojectionError = 2.0D;
         private bool _flagTriangulationCompleteMaxReprojectionError;
 
         /// <summary>
@@ -328,7 +328,7 @@ namespace PlaceframeApiClient.Model
                 _flagTriangulationMergeMaxReprojectionError = true;
             }
         }
-        private double _TriangulationMergeMaxReprojectionError;
+        private double _TriangulationMergeMaxReprojectionError = 4.0D;
         private bool _flagTriangulationMergeMaxReprojectionError;
 
         /// <summary>
@@ -353,7 +353,7 @@ namespace PlaceframeApiClient.Model
                 _flagMapperFilterMaxReprojectionError = true;
             }
         }
-        private double _MapperFilterMaxReprojectionError;
+        private double _MapperFilterMaxReprojectionError = 2.0D;
         private bool _flagMapperFilterMaxReprojectionError;
 
         /// <summary>
@@ -378,7 +378,7 @@ namespace PlaceframeApiClient.Model
                 _flagBundleAdjustmentRefineSensorFromRig = true;
             }
         }
-        private bool _BundleAdjustmentRefineSensorFromRig;
+        private bool _BundleAdjustmentRefineSensorFromRig = false;
         private bool _flagBundleAdjustmentRefineSensorFromRig;
 
         /// <summary>
@@ -403,7 +403,7 @@ namespace PlaceframeApiClient.Model
                 _flagBundleAdjustmentRefineFocalLength = true;
             }
         }
-        private bool _BundleAdjustmentRefineFocalLength;
+        private bool _BundleAdjustmentRefineFocalLength = true;
         private bool _flagBundleAdjustmentRefineFocalLength;
 
         /// <summary>
@@ -428,7 +428,7 @@ namespace PlaceframeApiClient.Model
                 _flagBundleAdjustmentRefinePrincipalPoint = true;
             }
         }
-        private bool _BundleAdjustmentRefinePrincipalPoint;
+        private bool _BundleAdjustmentRefinePrincipalPoint = false;
         private bool _flagBundleAdjustmentRefinePrincipalPoint;
 
         /// <summary>
@@ -453,7 +453,7 @@ namespace PlaceframeApiClient.Model
                 _flagBundleAdjustmentRefineAdditionalParams = true;
             }
         }
-        private bool _BundleAdjustmentRefineAdditionalParams;
+        private bool _BundleAdjustmentRefineAdditionalParams = true;
         private bool _flagBundleAdjustmentRefineAdditionalParams;
 
         /// <summary>
@@ -478,7 +478,7 @@ namespace PlaceframeApiClient.Model
                 _flagBundleAdjustmentGlobalFramesRatio = true;
             }
         }
-        private double _BundleAdjustmentGlobalFramesRatio;
+        private double _BundleAdjustmentGlobalFramesRatio = 1.5D;
         private bool _flagBundleAdjustmentGlobalFramesRatio;
 
         /// <summary>
@@ -503,7 +503,7 @@ namespace PlaceframeApiClient.Model
                 _flagBundleAdjustmentGlobalMaxRefinements = true;
             }
         }
-        private int _BundleAdjustmentGlobalMaxRefinements;
+        private int _BundleAdjustmentGlobalMaxRefinements = 1;
         private bool _flagBundleAdjustmentGlobalMaxRefinements;
 
         /// <summary>
@@ -528,7 +528,7 @@ namespace PlaceframeApiClient.Model
                 _flagBundleAdjustmentGlobalFunctionTolerance = true;
             }
         }
-        private double _BundleAdjustmentGlobalFunctionTolerance;
+        private double _BundleAdjustmentGlobalFunctionTolerance = 0.001D;
         private bool _flagBundleAdjustmentGlobalFunctionTolerance;
 
         /// <summary>
@@ -553,7 +553,7 @@ namespace PlaceframeApiClient.Model
                 _flagBundleAdjustmentIgnoreRedundantPoints3D = true;
             }
         }
-        private bool _BundleAdjustmentIgnoreRedundantPoints3D;
+        private bool _BundleAdjustmentIgnoreRedundantPoints3D = true;
         private bool _flagBundleAdjustmentIgnoreRedundantPoints3D;
 
         /// <summary>
@@ -578,7 +578,7 @@ namespace PlaceframeApiClient.Model
                 _flagCompressionOpqNumberOfSubvectors = true;
             }
         }
-        private int _CompressionOpqNumberOfSubvectors;
+        private int _CompressionOpqNumberOfSubvectors = 16;
         private bool _flagCompressionOpqNumberOfSubvectors;
 
         /// <summary>
@@ -603,7 +603,7 @@ namespace PlaceframeApiClient.Model
                 _flagCompressionOpqNumberOfBitsPerSubvector = true;
             }
         }
-        private int _CompressionOpqNumberOfBitsPerSubvector;
+        private int _CompressionOpqNumberOfBitsPerSubvector = 8;
         private bool _flagCompressionOpqNumberOfBitsPerSubvector;
 
         /// <summary>
@@ -628,7 +628,7 @@ namespace PlaceframeApiClient.Model
                 _flagCompressionOpqNumberOfTrainingIterations = true;
             }
         }
-        private int _CompressionOpqNumberOfTrainingIterations;
+        private int _CompressionOpqNumberOfTrainingIterations = 20;
         private bool _flagCompressionOpqNumberOfTrainingIterations;
 
         /// <summary>
@@ -653,7 +653,7 @@ namespace PlaceframeApiClient.Model
                 _flagPosePriorPositionSigmaM = true;
             }
         }
-        private double _PosePriorPositionSigmaM;
+        private double _PosePriorPositionSigmaM = 0.25D;
         private bool _flagPosePriorPositionSigmaM;
 
         /// <summary>
@@ -678,7 +678,7 @@ namespace PlaceframeApiClient.Model
                 _flagMaxKeypointsPerImage = true;
             }
         }
-        private int _MaxKeypointsPerImage;
+        private int _MaxKeypointsPerImage = 2500;
         private bool _flagMaxKeypointsPerImage;
 
         /// <summary>
