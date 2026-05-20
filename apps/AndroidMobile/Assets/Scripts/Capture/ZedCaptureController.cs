@@ -112,7 +112,7 @@ public static class ZedCaptureController
         accessoryEvents = new AccessoryEventBridge(
             onAttached: OnAccessoryAttached,
             onDetached: OnAccessoryDetached,
-            onPermissionResult: _ => { }
+            onPermissionResult: OnAccessoryPermissionResult
         );
         using (var activity = new AndroidJavaClass("com.unity3d.player.UnityPlayer")
             .GetStatic<AndroidJavaObject>("currentActivity"))
@@ -210,6 +210,9 @@ public static class ZedCaptureController
                 ? ZedStatusKind.LostMidCapture
                 : ZedStatusKind.Unreachable;
     }
+
+    private static void OnAccessoryPermissionResult(bool granted) =>
+        Log.Info(LogGroup.Zed, "AOA accessory permission result granted={Granted}", granted);
 
     private static void EvaluateHealthPollState()
     {

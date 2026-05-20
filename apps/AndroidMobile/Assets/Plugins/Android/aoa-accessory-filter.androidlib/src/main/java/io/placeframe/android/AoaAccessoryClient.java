@@ -37,6 +37,7 @@ public final class AoaAccessoryClient {
     private static volatile ParcelFileDescriptor currentPfd;
     private static volatile OkHttpClient currentClient;
     private static long lastPermissionRequestMs;
+    private static volatile boolean permissionDenied;
 
     private static volatile AccessoryEventListener eventListener;
     private static volatile BroadcastReceiver eventReceiver;
@@ -61,12 +62,15 @@ public final class AoaAccessoryClient {
                     AccessoryEventListener current = eventListener;
                     if (current == null) return;
                     if (UsbManager.ACTION_USB_ACCESSORY_ATTACHED.equals(action)) {
+                        // Clear so the next open attempt re-prompts after a prior denial.
+                        permissionDenied = false;
                         current.onAttached();
                     } else if (UsbManager.ACTION_USB_ACCESSORY_DETACHED.equals(action)) {
                         synchronized (lock) { closeCurrentLocked(); }
                         current.onDetached();
                     } else if (PERMISSION_ACTION.equals(action)) {
                         boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
+                        permissionDenied = !granted;
                         current.onPermissionResult(granted);
                     }
                 }
@@ -192,6 +196,9 @@ public final class AoaAccessoryClient {
         if (!manager.hasPermission(accessory)) {
             String error = "accessory=" + accessory.getManufacturer() + "/" + accessory.getModel()
                 + "/" + accessory.getVersion() + " hasPermission=false";
+            // User already denied for this attachment; suppress further prompts
+            // until USB_ACCESSORY_ATTACHED clears the flag.
+            if (permissionDenied) return error + " deniedByUser=true";
             long now = System.currentTimeMillis();
             if (now - lastPermissionRequestMs < PERMISSION_REQUEST_COOLDOWN_MS) return error;
             lastPermissionRequestMs = now;
