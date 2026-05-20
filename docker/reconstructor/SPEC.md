@@ -109,6 +109,38 @@ The full lease state machine lives in `docker/api/src/routers/leases.py`. Worth 
 
 **One bundle of artifacts per reconstruction id, S3 prefix-keyed.** All outputs live under `<id>/`, so DELETE cascades and retry-cleanup can operate on a single prefix without a manifest of keys. The cost: there is no explicit "I am done" sentinel inside the prefix; completion is inferred from the presence of `sfm_model/`.
 
+## Bundle adjustment tuning
+
+This section captures the BA-related findings that constrain the reconstructor's option defaults. Source assertions are verified against COLMAP at SHA `dec2ec4b4daa53f51cbe0d25edb28bcd2c164718`, which is also `master` HEAD at the time of writing.
+
+### Findings
+
+**The incremental-pipeline controller drops Ceres linear-solver knobs.** `IncrementalPipelineOptions::GlobalBundleAdjustment()` (`colmap/controllers/incremental_pipeline.cc:159-233`) returns a fresh `BundleAdjustmentOptions` populated from `IncrementalPipelineOptions` fields. The set of fields it copies includes the refine_* booleans, the per-call iter caps, the function tolerances, and `ba_use_gpu`. It does **not** copy `linear_solver_type`, `preconditioner_type`, or `auto_select_solver_type` -- those defaults stay as constructed (`auto_select_solver_type = true`, which at our scale resolves to `SUITE_SPARSE`). There is no Python-side path through `pycolmap.incremental_mapping()` to override the linear-solver choice for global BA. The `OptionManager` indirection that the COLMAP CLI uses to inject these is not exposed in the pybind11 surface for `incremental_mapping`.
+
+**cuDSS / GPU BA is equivalent to SuiteSparse at our problem size.** A custom pycolmap wheel built against Ceres+cuDSS was measured on capture `68cd9dfd` (n=318 cameras, RTX 4080) and produced no measurable wall-clock improvement vs. SuiteSparse. The custom-wheel infrastructure has been removed; not worth re-pursuing unless problem size grows by an order of magnitude.
+
+**GLOMAP cannot replace incremental SfM for our use case.** `pycolmap.global_mapping()` (the GLOMAP entry point) does not apply pose-prior position residuals during its bundle-adjustment stage. Priors are only fed into rotation averaging (`colmap/sfm/global_mapper.cc:113-122`); the BA stage calls plain `RunBundleAdjustment` without prior residuals (`global_mapper.cc:324-325, 360-361` contain TODOs explicitly noting this is unimplemented). For ARFoundation mono captures, priors are the only thing pinning scale and absolute pose, so a GLOMAP run would float the entire reconstruction during BA. Incremental SfM is the only viable path while GLOMAP lacks priors-in-BA support.
+
+### Shipped BA pattern
+
+The reconstructor runs `pycolmap.incremental_mapping` with rig refinement disabled (`ba_refine_sensor_from_rig=False`, `constant_rigs` populated with the rig ids), then runs **one** final standalone `pycolmap.bundle_adjustment(reconstruction, opts)` with rig refinement re-enabled. Rationale: rig refinement on every one of ~33 global-BA events during a typical incremental run scales N times; doing it once at the end against the final geometry is structurally cheaper and the standalone BA gets an uncapped solve to let the rig parameters settle.
+
+`mapper.ba_global_ignore_redundant_points3D = True` is the shipped default. Two-stage solve: BA without redundant 3D points first, then refine pruned points with everything else fixed. Same final geometry, smaller main problem. Activates only when the reconstruction has at least 10 registered frames (COLMAP-side gate).
+
+### `bundle_adjustment_global_max_refinements` is dev-biased
+
+The shipped default is `1`, well below COLMAP's default of `5`. Each refinement is one full BA solve plus `CompleteAndMergeTracks` plus outlier filter; cutting from 3 to 1 saves roughly 3x of the pose-prior BA block at the cost of fewer outlier-cleanup passes per global-BA event.
+
+For **production-quality map builds**, callers should override `bundle_adjustment_global_max_refinements` to `3` (or higher) and accept the wall-time cost. The final standalone BA pass partially backstops the lower default, but it cannot recover all the outlier-discovery a multi-refinement schedule provides during the incremental phase.
+
+This is repo policy, not a defect: iteration speed during pipeline development outweighs marginal map-quality improvements; production map builds explicitly opt back into the higher quality.
+
+### `deterministic_seed` is the single reproducibility knob
+
+`ReconstructionOptions.deterministic_seed: int | None` is the only way to request a reproducible reconstruction. When set, the value pins the PRNG seed for the pipeline / triangulation / RANSAC AND forces single-threaded BA (`num_threads = 1` on both `IncrementalPipelineOptions` and the inner `mapper`). When `None`, the reconstruction is non-deterministic.
+
+The two older fields this replaces (`random_seed` and `single_threaded`) were footguns. `random_seed` alone was a lie: BA thread scheduling still varied between runs, so reruns drifted despite a pinned seed. `single_threaded` alone was a lie: each run drew a fresh PRNG seed, so reruns drifted despite pinned threading. Every "interesting" state of the original pair was the paired state; collapsing eliminates the broken-but-plausible combinations.
+
 ## Known gaps
 
 - **No reconciliation between MinIO and DB status.** If `succeed_lease` fails after `sfm_model/` has fully uploaded, the row stays at `RECONSTRUCTING` until the API-side reaper marks it `FAILED` 30 minutes later, even though the artifacts are complete. Nothing scans MinIO to recover. `docker/SPEC.md` flags this; the worker code path is `src/reconstructor/main.py:74-82` (succeed/fail both inside the outer try, no retry on the lease finalization itself).
@@ -118,8 +150,6 @@ The full lease state machine lives in `docker/api/src/routers/leases.py`. Worth 
 - **Capture tar held entirely in RAM.** `run_reconstruction.py:96` reads the whole `.tar` into `bytes` before extracting. For multi-GB captures this is a hard RAM ceiling; streaming extract would suffice.
 - **`CAPTURE_SESSION_DIRECTORY` is not cleaned between jobs.** `/tmp/reconstruction/capture_session` is the extraction target; `tarfile.extractall` overlays on top of any existing tree. Stale files from a previous job that aren't overwritten by the new tar persist.
 - **`_aliked_model.dkd.n_limit` is mutated on a module-global singleton** (`run_reconstruction.py:131`) per job. Safe only because the worker is single-job-per-process; a second concurrent job in the same process would race.
-- **`options.single_threaded` is silently ignored.** The field exists in `ReconstructionOptions`; the matching `incremental_pipeline_options.num_threads = 1` lines in `options_builder.py:72-73` are commented out. "Deterministic mode" is not actually wired up.
-- **`options.bundle_adjustment_refine_additional_params` is silently ignored.** Declared in `reconstruction_options.py:105`; `OptionsBuilder.incremental_pipeline_options` has no corresponding `ba_refine_extra_params` assignment.
 - **`OptionsBuilder.feature_matching_options` is dead.** LightGlue replaced COLMAP feature matching; the function builds a `FeatureMatchingOptions` that nobody reads.
 - **`pairs.pairs_from_retrieval` is dead.** Defined in `pairs.py:79` but unreferenced; appears to be a vestige of an earlier retrieval-based pair-gen path.
 - **Multi-model situations are not surfaced in metrics.** `colmap.py:153` has a `# TODO: Write information to metrics about this for visibility`. When `incremental_mapping` returns multiple models the worker picks the largest and discards the rest; the existence of multiple models is invisible to the API.
