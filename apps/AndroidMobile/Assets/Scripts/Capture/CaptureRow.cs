@@ -224,27 +224,38 @@ namespace Placeframe.Client
                         Options = reconstructionOptions,
                     });
 
+        private static string ReconstructionOptionsCachePath =>
+            Path.Join(Application.persistentDataPath, "reconstructionOptions.json");
+
+        private static ReconstructionOptions LoadReconstructionOptions()
+        {
+            if (!File.Exists(ReconstructionOptionsCachePath))
+                return new ReconstructionOptions();
+
+            var options = new ReconstructionOptions();
+            try
+            {
+                JsonConvert.PopulateObject(File.ReadAllText(ReconstructionOptionsCachePath), options);
+            }
+            catch (Exception exception)
+            {
+                Log.Info(LogGroup.Capture, exception, "Reconstruction options cache unreadable, using defaults path={Path}", ReconstructionOptionsCachePath);
+                return new ReconstructionOptions();
+            }
+            return options;
+        }
+
+        private static void SaveReconstructionOptions(ReconstructionOptions updated) =>
+            File.WriteAllText(ReconstructionOptionsCachePath, JsonConvert.SerializeObject(updated, Formatting.Indented));
+
         private static void PromptOptionsThen(CaptureState capture, Action<ReconstructionOptions> onConfirmed) =>
             ReconstructionOptionsDialog(new ReconstructionOptionsDialogProps()
             {
                 capture = capture,
-                options = File.Exists(Path.Join(Application.persistentDataPath, "reconstructionOptions.json"))
-                    ? JsonConvert.DeserializeObject<ReconstructionOptions>(File.ReadAllText(Path.Join(Application.persistentDataPath, "reconstructionOptions.json")))
-                    : new ReconstructionOptions()
-                    {
-                        NeighborsCount = 12,
-                        RansacMaxError = 2.0,
-                        RansacMinInlierRatio = 0.15,
-                        TriangulationMinimumAngle = 3.0,
-                        TriangulationCompleteMaxReprojectionError = 2.0,
-                        TriangulationMergeMaxReprojectionError = 4.0,
-                        MapperFilterMaxReprojectionError = 2.0,
-                        UsePriorPosition = true,
-                        RigVerification = true,
-                    },
+                options = LoadReconstructionOptions(),
                 onDialogComplete = updated =>
                 {
-                    File.WriteAllText(Path.Join(Application.persistentDataPath, "reconstructionOptions.json"), updated.ToJson());
+                    SaveReconstructionOptions(updated);
                     onConfirmed(updated);
                 },
             });
