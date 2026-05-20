@@ -98,13 +98,14 @@ public final class AoaAccessoryClient {
         byte[] body,
         String contentType
     ) throws IOException {
+        OkHttpClient client;
+        Request request;
         synchronized (lock) {
             String openError = tryOpenLocked(context);
             if (openError != null) {
                 throw new IOException("AOA accessory not ready (" + openError + ")");
             }
-
-            OkHttpClient client = currentClient;
+            client = currentClient;
             Request.Builder builder = new Request.Builder().url(url);
             for (int i = 0; i < headerNames.length; i++) {
                 builder.addHeader(headerNames[i], headerValues[i]);
@@ -119,40 +120,47 @@ public final class AoaAccessoryClient {
                 requestBody = null;
             }
             builder.method(method, requestBody);
+            request = builder.build();
+        }
 
-            Response response;
-            try {
-                response = client.newCall(builder.build()).execute();
-            } catch (IOException e) {
-                // Pipe error poisons the FD; reopen on next execute.
-                OkHttpClient oldClient = currentClient;
-                ParcelFileDescriptor oldPfd = currentPfd;
-                currentClient = null;
-                currentPfd = null;
-                if (oldClient != null) {
-                    oldClient.dispatcher().executorService().shutdown();
-                    oldClient.connectionPool().evictAll();
-                }
-                if (oldPfd != null) {
-                    try { oldPfd.close(); } catch (IOException ignored) {}
-                }
-                throw e;
-            }
+        Response response;
+        try {
+            response = client.newCall(request).execute();
+        } catch (IOException e) {
+            invalidateClient(client);
+            throw e;
+        }
 
-            Headers responseHeaders = response.headers();
-            String[] respNames = new String[responseHeaders.size()];
-            String[] respValues = new String[responseHeaders.size()];
-            for (int i = 0; i < responseHeaders.size(); i++) {
-                respNames[i] = responseHeaders.name(i);
-                respValues[i] = responseHeaders.value(i);
+        Headers responseHeaders = response.headers();
+        String[] respNames = new String[responseHeaders.size()];
+        String[] respValues = new String[responseHeaders.size()];
+        for (int i = 0; i < responseHeaders.size(); i++) {
+            respNames[i] = responseHeaders.name(i);
+            respValues[i] = responseHeaders.value(i);
+        }
+        return new HttpResult(
+            response.code(),
+            respNames,
+            respValues,
+            response,
+            response.body() != null ? response.body().byteStream() : null
+        );
+    }
+
+    // Pipe error poisons the FD; reopen on next execute. Guarded by equality
+    // check so concurrent requests that all hit the same dead connection
+    // don't race to close it twice.
+    private static void invalidateClient(OkHttpClient failed) {
+        synchronized (lock) {
+            if (currentClient != failed) return;
+            ParcelFileDescriptor oldPfd = currentPfd;
+            currentClient = null;
+            currentPfd = null;
+            failed.dispatcher().executorService().shutdown();
+            failed.connectionPool().evictAll();
+            if (oldPfd != null) {
+                try { oldPfd.close(); } catch (IOException ignored) {}
             }
-            return new HttpResult(
-                response.code(),
-                respNames,
-                respValues,
-                response,
-                response.body() != null ? response.body().byteStream() : null
-            );
         }
     }
 
