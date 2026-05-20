@@ -1,20 +1,20 @@
-# Phase 3 — Backend API (token-mint endpoint + codegen)
+# Phase 4 — Backend API (token-mint endpoint + codegen)
 
 ## Context
 
-Phase 1 added the LiveKit server to compose. Phase 2 verified the SDK works on ML2 + Android Mobile. This phase finishes the **server-side** half of the swap: a `POST /livekit/token` endpoint that mints LiveKit JWTs for authenticated callers, settings plumbing, router registration, and regeneration of the C# API client so Phase 5's Unity transport has a typed method to call.
+Phase 1 added the LiveKit server to compose. Phase 3 verified the SDK works on ML2 + Android Mobile. This phase finishes the **server-side** half of the swap: a `POST /livekit/token` endpoint that mints LiveKit JWTs for authenticated callers, settings plumbing, router registration, and regeneration of the C# API client so Phase 6's Unity transport has a typed method to call.
 
 **No Unity code changes in this phase.** Picks up from where Phase 1 left off — the compose service, `.env.sample` keys, and `.env.lock` digest pin are already in place.
 
 Read `/placeframe/CLAUDE.md` for project conventions before starting — especially the codegen commit hygiene, `common.bash` for any shell-out, no inline imports, no docstrings.
 
-Phase 3 and Phase 4 are independent — different parts of the repo, no shared files. They may run in parallel or in either order after Phase 2 passes.
+Phase 4 and Phase 5 are independent — different parts of the repo, no shared files. They may run in parallel or in either order after Phase 3 passes.
 
 ## Goal
 
 After this phase:
 - `POST /api/livekit/token` returns `{token, url, identity}` for an authenticated caller.
-- The auto-generated C# API client (`packages/generated/csharp/api-client/`) exposes a `PostLivekitToken` method that Phase 5 will call.
+- The auto-generated C# API client (`packages/generated/csharp/api-client/`) exposes a `PostLivekitToken` method that Phase 6 will call.
 - Settings (`livekit_api_key`, `livekit_api_secret`, `livekit_url`) are declared on the API service's settings model.
 
 ## Work
@@ -35,7 +35,7 @@ livekit_url: str
 
 The endpoint lives in `/placeframe/docker/api/src/routers/livekit.py`. Mirror the controller pattern already used elsewhere in `docker/api/src/routers/` — read `leases.py` and one other router file first to match conventions (Litestar `Controller` class, auth dependency name, settings injection style).
 
-Authentication: LiveKit identity must be **server-derived from the validated Keycloak `sub` claim**, not client-supplied. This is the key design choice — it gives slot-claim (Phase 5) stable identities to map to playerIds. Look at how the existing routes obtain the authenticated user (probably an `AuthenticatedUser` dependency from `docker/api/src/auth.py`) and match it.
+Authentication: LiveKit identity must be **server-derived from the validated Keycloak `sub` claim**, not client-supplied. This is the key design choice — it gives slot-claim (Phase 6) stable identities to map to playerIds. Look at how the existing routes obtain the authenticated user (probably an `AuthenticatedUser` dependency from `docker/api/src/auth.py`) and match it.
 
 Sketch (adapt names/types to match the project):
 
@@ -124,7 +124,7 @@ Two or three commits, in this order:
 
 1. **Source code commit.** All of: `docker/api/src/routers/livekit.py`, `docker/api/src/settings.py`, `docker/api/src/main.py`, any `pyproject.toml` / `uv.lock` / `pylock.toml` changes from adding PyJWT (if needed). Conventional commit-style message.
 2. **Codegen commit.** Contents: only files under `packages/generated/`. Message: exactly `Run generate-clients` — no body, no rationale.
-3. **(If needed) Prose commit.** If `docker/SPEC.md` needs an entry for the new service (it should — service inventory + the token-mint endpoint + the colocalized-LAN deployment model), put it in its own commit, never sharing a commit with code. Phase 6 also touches `docker/SPEC.md`; if you'd rather defer the prose entry there, that's acceptable, but note in the PR that the spec entry is pending.
+3. **(If needed) Prose commit.** If `docker/SPEC.md` needs an entry for the new service (it should — service inventory + the token-mint endpoint + the colocalized-LAN deployment model), put it in its own commit, never sharing a commit with code. Phase 7 also touches `docker/SPEC.md`; if you'd rather defer the prose entry there, that's acceptable, but note in the PR that the spec entry is pending.
 
 No `Co-Authored-By`. No `--no-verify`. If a hook fails, fix the underlying issue and make a new commit (never amend).
 
@@ -145,7 +145,7 @@ No `Co-Authored-By`. No `--no-verify`. If a hook fails, fix the underlying issue
 
 ## Out of scope
 
-- Anything in `apps/MakeItSing/` — Phases 4–6.
+- Anything in `apps/MakeItSing/` — Phases 5–7.
 - Anonymous/guest token paths (open question #1).
 - Voice/audio capabilities (the `video` claim is the canonical LiveKit grant name even for data-only use).
 - Multi-node LiveKit / Redis-backed room state.

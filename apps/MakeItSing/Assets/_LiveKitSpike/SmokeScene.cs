@@ -116,7 +116,7 @@ namespace Plerion.MakeItSing.LiveKitSpike
                 _room.Connected += _ => Append("CONNECTED event fired");
 
                 Append($"Connecting url={_urlInput.text}");
-                await _room.Connect(_urlInput.text, _tokenInput.text, new RoomOptions()).ToUniTask();
+                await _room.Connect(_urlInput.text, _tokenInput.text, new LiveKit.RoomOptions()).ToUniTask();
                 Append($"Connect returned. identity={_room.LocalParticipant?.Identity}");
 
                 await UniTask.Delay(250);

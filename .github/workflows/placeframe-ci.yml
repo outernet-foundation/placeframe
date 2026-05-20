@@ -126,6 +126,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - uses: ./.github/actions/setup-git-lfs
+
       - uses: ./.github/actions/setup-uv
 
       - name: Cache UPM packages

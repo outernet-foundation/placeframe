@@ -1,0 +1,9 @@
+name: Setup git-lfs
+description: Install git-lfs and register its smudge/clean filters so UPM resolves LFS-tracked package binaries (e.g. LiveKit Unity SDK native plugins).
+
+runs:
+  using: composite
+  steps:
+    - name: Install git-lfs and register filters
+      shell: bash
+      run: apt-get update && apt-get install -y --no-install-recommends git-lfs && git lfs install --system

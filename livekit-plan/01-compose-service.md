@@ -2,11 +2,11 @@
 
 ## Context
 
-We are swapping MakeItSing's Photon Realtime transport for self-hosted LiveKit. The full plan is split across `README.md` and Phases 1–6 in this directory; see `README.md` for the dependency graph.
+We are swapping MakeItSing's Photon Realtime transport for self-hosted LiveKit. The full plan is split across `README.md` and Phases 1–7 in this directory; see `README.md` for the dependency graph.
 
-**This phase is the minimum infrastructure to run the Phase 2 spike.** It adds the LiveKit server to the docker compose stack, scaffolds the env keys, and pins the image digest. Nothing more — no API endpoint, no settings model fields, no codegen. Phase 3 picks up where this leaves off.
+**This phase is the minimum infrastructure to run the Phase 3 spike.** It adds the LiveKit server to the docker compose stack, scaffolds the env keys, and pins the image digest. Nothing more — no API endpoint, no settings model fields, no codegen. Phase 4 picks up where this leaves off.
 
-The artifacts produced here are **durable** — designed to land on mainline as the first real commit of the swap. If the Phase 2 spike fails, this phase still survives unmodified for any WebRTC-SFU experiment; the only revertible piece is the one-stanza compose block.
+The artifacts produced here are **durable** — designed to land on mainline as the first real commit of the swap. If the Phase 3 spike fails, this phase still survives unmodified for any WebRTC-SFU experiment; the only revertible piece is the one-stanza compose block.
 
 Read `/placeframe/CLAUDE.md` before starting. Especially the pinning rule (no `:latest`, all images digest-pinned), commit-style conventions, and the no-bare-`docker compose` rule.
 
@@ -36,7 +36,7 @@ The CLAUDE.md rule: no `:latest`, no `stable`, no mutable tags. All container im
    ```
    If `scripts/src/scripts/context_sha.py` (or similar) automates digest resolution for other images, follow that pattern. Otherwise pin by hand and add a one-line comment in `.env.sample` pointing at the release tag for future bumps.
 
-**Phase 2 reuses this exact image.** Pick the version intentionally — not as a placeholder. The digest decision propagates to every subsequent phase.
+**Phase 3 reuses this exact image.** Pick the version intentionally — not as a placeholder. The digest decision propagates to every subsequent phase.
 
 ### 2. Add the LiveKit service to compose
 
@@ -80,13 +80,13 @@ LIVEKIT_URL=ws://livekit:7880
 
 The real `/placeframe/.env` (gitignored) needs the same three keys. **Do not touch the real `.env`** — the user manages it. Stop and tell them to set the keys if they aren't already present.
 
-`LIVEKIT_URL` here is the URL Unity clients dial. Inside the compose network the service is `ws://livekit:7880`, but Unity runs on host devices, not in compose — they need a URL that resolves over WiFi (e.g. `ws://<host-lan-ip>:7880`). For Phase 1's purposes any non-empty value is fine; Phase 2 supplies the device-reachable URL into the smoke scene directly.
+`LIVEKIT_URL` here is the URL Unity clients dial. Inside the compose network the service is `ws://livekit:7880`, but Unity runs on host devices, not in compose — they need a URL that resolves over WiFi (e.g. `ws://<host-lan-ip>:7880`). For Phase 1's purposes any non-empty value is fine; Phase 3 supplies the device-reachable URL into the smoke scene directly.
 
 For production the API key/secret must be regenerated per environment.
 
 ## Commit hygiene
 
-Single source-code commit covering: `compose.yml`, `.env.sample`, `.env.lock`. Conventional commit style. No prose changes in this phase (`docker/SPEC.md` updates happen later in Phase 3 or Phase 6 — your choice).
+Single source-code commit covering: `compose.yml`, `.env.sample`, `.env.lock`. Conventional commit style. No prose changes in this phase (`docker/SPEC.md` updates happen later in Phase 4 or Phase 7 — your choice).
 
 No `Co-Authored-By`. No `--no-verify`. If a hook fails, fix the issue and make a new commit (never amend).
 
@@ -100,7 +100,7 @@ No `Co-Authored-By`. No `--no-verify`. If a hook fails, fix the issue and make a
 
 ## Out of scope
 
-- Token-mint endpoint, settings, codegen — Phase 3.
-- Unity SDK install — Phase 2 (smoke scene) and Phase 5 (real transport).
-- Gateway/ngrok WebSocket route — Phase 3 or deferred entirely depending on deployment topology.
+- Token-mint endpoint, settings, codegen — Phase 4.
+- Unity SDK install — Phase 3 (smoke scene) and Phase 6 (real transport).
+- Gateway/ngrok WebSocket route — Phase 4 or deferred entirely depending on deployment topology.
 - Multi-node LiveKit / Redis-backed room state.

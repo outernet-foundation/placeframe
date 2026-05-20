@@ -1,4 +1,4 @@
-# Phase 4 — Transport abstraction
+# Phase 5 — Transport abstraction
 
 ## Context
 
@@ -18,7 +18,7 @@ Read `/placeframe/CLAUDE.md` and `/placeframe/apps/MakeItSing/CLAUDE.md` before 
 - **Serilog message templates, not interpolated strings.** Every log call uses `{PascalCase}` placeholders and separate args.
 - **No docstrings, no inline imports, no temporal language in comments.**
 
-Phase 4 has no strict technical dependency on Phases 1–3 — the refactor only touches existing Photon code and adds a `LiveKitTransport` stub that throws. Pragmatically, you wouldn't spend the refactor effort if the Phase 2 spike hadn't passed, but the file changes themselves are LiveKit-independent. Phase 5 will invoke the generated `PostLivekitToken` client method (produced in Phase 3), but this phase only wires up the dispatch so Phase 5 can drop the real implementation in without touching `AppSetup`.
+Phase 5 has no strict technical dependency on Phases 1–4 — the refactor only touches existing Photon code and adds a `LiveKitTransport` stub that throws. Pragmatically, you wouldn't spend the refactor effort if the Phase 3 spike hadn't passed, but the file changes themselves are LiveKit-independent. Phase 6 will invoke the generated `PostLivekitToken` client method (produced in Phase 4), but this phase only wires up the dispatch so Phase 6 can drop the real implementation in without touching `AppSetup`.
 
 ## Goal
 
@@ -71,7 +71,7 @@ Adjust the namespace to match the project's convention if it isn't file-scoped n
 
 Rationale for **two send methods**:
 - `Send` carries single-packet payloads — under ~12 KiB after framing. Covers incremental diffs and HF pose updates.
-- `SendLargeAsync` carries arbitrarily-sized payloads. In `PhotonTransport`, route this through the same `OpRaiseEvent` reliable path Photon already uses for initial sync — Photon's max payload size is per-event-buffer-tuned and the existing code handles it. In `LiveKitTransport` (Phase 5), this becomes a chunked stream via LiveKit's `StreamBytes` API. The chunking concern goes away in Phase 6 when Photon is deleted.
+- `SendLargeAsync` carries arbitrarily-sized payloads. In `PhotonTransport`, route this through the same `OpRaiseEvent` reliable path Photon already uses for initial sync — Photon's max payload size is per-event-buffer-tuned and the existing code handles it. In `LiveKitTransport` (Phase 6), this becomes a chunked stream via LiveKit's `StreamBytes` API. The chunking concern goes away in Phase 7 when Photon is deleted.
 
 ## Move PhotonConnectionManager → PhotonTransport
 
@@ -84,7 +84,7 @@ Rationale for **two send methods**:
 | `OnEvent` callback | fire `OnDataReceived(senderId, code, payload)` |
 | `OnPlayerEnteredRoom` | fire `OnPlayerJoined(playerId)` |
 | `OnPlayerLeftRoom` | fire `OnPlayerLeft(playerId)` |
-| `OnMasterClientSwitched` | fire `OnMasterChanged(newMasterPlayerId)` (still buggy in Photon — known issue per `apps/MakeItSing/SPEC.md`; do not attempt to fix here, fix lives in Phase 5's master election) |
+| `OnMasterClientSwitched` | fire `OnMasterChanged(newMasterPlayerId)` (still buggy in Photon — known issue per `apps/MakeItSing/SPEC.md`; do not attempt to fix here, fix lives in Phase 6's master election) |
 | `LocalPlayer.ActorNumber` | `LocalPlayerId` |
 | `CurrentRoom.Players.Keys` | `ConnectedPlayerIds` |
 | `PhotonNetwork.IsConnected` | `IsConnected` |
@@ -125,19 +125,19 @@ public class LiveKitTransport : MonoBehaviour, INetworkTransport
     public event Action? OnDisconnected;
 
     public UniTask ConnectAsync(string roomId, CancellationToken cancellationToken) =>
-        throw new NotImplementedException("LiveKitTransport is implemented in Phase 5.");
+        throw new NotImplementedException("LiveKitTransport is implemented in Phase 6.");
 
     public UniTask DisconnectAsync() => UniTask.CompletedTask;
 
     public void Send(byte eventCode, byte[] payload, DeliveryReliability reliability, int? targetPlayerId = null) =>
-        throw new NotImplementedException("LiveKitTransport is implemented in Phase 5.");
+        throw new NotImplementedException("LiveKitTransport is implemented in Phase 6.");
 
     public UniTask SendLargeAsync(byte eventCode, byte[] payload, int? targetPlayerId = null) =>
-        throw new NotImplementedException("LiveKitTransport is implemented in Phase 5.");
+        throw new NotImplementedException("LiveKitTransport is implemented in Phase 6.");
 }
 ```
 
-The unused-event warnings (`OnDataReceived` etc. never raised) are intentional — Phase 5 fills them in. If the project's nullable-event style differs (some C# codebases use `event ... = delegate { }` to avoid null-check), match the surrounding code.
+The unused-event warnings (`OnDataReceived` etc. never raised) are intentional — Phase 6 fills them in. If the project's nullable-event style differs (some C# codebases use `event ... = delegate { }` to avoid null-check), match the surrounding code.
 
 ## Dispatch in AppSetup
 
@@ -163,7 +163,7 @@ uv run compile-unity --project MakeItSing --build android-mobile
 
 Must succeed. The dispatch ternary compiles, `PhotonTransport` is wired up, the codec is unchanged.
 
-`PhotonSerializationTests.cs` should still pass (the codec wasn't touched). Run via whatever test runner the project uses — `uv run compile-unity` won't run editor tests; if a separate test entry point exists, invoke it. If there isn't one, note this in the PR description as "tests will be re-run with Phase 5's additions."
+`PhotonSerializationTests.cs` should still pass (the codec wasn't touched). Run via whatever test runner the project uses — `uv run compile-unity` won't run editor tests; if a separate test entry point exists, invoke it. If there isn't one, note this in the PR description as "tests will be re-run with Phase 6's additions."
 
 **Behavioral verification cannot happen from a Claude Code session.** State in the PR description that the user must smoke-test on two clients (editor + device) with `use_livekit = false` and confirm Photon behavior is identical to pre-refactor. Do not claim "verified working" — claim "compiles, awaiting device verification."
 
@@ -179,7 +179,7 @@ Code-only changes here; no prose changes expected. One commit covering:
 
 If the project keeps separate `.asmdef` files and adding a new `Networking/` folder requires an `Assets/App/Networking/Networking.asmdef`, include that in the same commit — it's structurally tied to the new folder.
 
-No prose updates in this phase. `apps/MakeItSing/SPEC.md` updates land in Phase 6 (the "Known issues" master-handoff entry isn't resolved yet, so updating the spec now would mislead readers).
+No prose updates in this phase. `apps/MakeItSing/SPEC.md` updates land in Phase 7 (the "Known issues" master-handoff entry isn't resolved yet, so updating the spec now would mislead readers).
 
 No `Co-Authored-By` trailers. No `--no-verify`. No codegen runs here — this phase doesn't touch the OpenAPI spec.
 
@@ -187,7 +187,7 @@ No `Co-Authored-By` trailers. No `--no-verify`. No codegen runs here — this ph
 
 - `apps/MakeItSing/Assets/App/Networking/` contains `INetworkTransport.cs`, `PhotonTransport.cs`, `LiveKitTransport.cs` (+ `.meta`).
 - `apps/MakeItSing/Assets/App/Managers/PhotonConnectionManager.cs` no longer exists.
-- `grep -r "Photon\.Realtime" apps/MakeItSing/Assets/App/ | grep -v "Networking/PhotonTransport.cs"` returns nothing. (Photon SDK files under `Assets/ThirdParty/` are not part of `App/` and are out of scope until Phase 6.)
+- `grep -r "Photon\.Realtime" apps/MakeItSing/Assets/App/ | grep -v "Networking/PhotonTransport.cs"` returns nothing. (Photon SDK files under `Assets/ThirdParty/` are not part of `App/` and are out of scope until Phase 7.)
 - `uv run compile-unity --project MakeItSing --build android-mobile` succeeds.
 - The state-replication code subscribes to `INetworkTransport` events.
 - `UnityEnv.use_livekit` exists and defaults to `false`.
@@ -195,8 +195,8 @@ No `Co-Authored-By` trailers. No `--no-verify`. No codegen runs here — this ph
 
 ## Out of scope
 
-- Anything LiveKit-actual (real SDK integration, slot-claim, master election, send/receive mappings) — Phase 5.
+- Anything LiveKit-actual (real SDK integration, slot-claim, master election, send/receive mappings) — Phase 6.
 - Renaming `PhotonSerialization.cs` — kept as-is.
-- Fixing the master-handoff bug — fix lives in Phase 5's master election.
-- Deleting Photon SDK or `PhotonTransport.cs` — Phase 6.
-- SPEC/CLAUDE.md prose updates — Phase 6.
+- Fixing the master-handoff bug — fix lives in Phase 6's master election.
+- Deleting Photon SDK or `PhotonTransport.cs` — Phase 7.
+- SPEC/CLAUDE.md prose updates — Phase 7.

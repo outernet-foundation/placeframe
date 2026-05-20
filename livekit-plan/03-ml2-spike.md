@@ -1,10 +1,10 @@
-# Phase 2 — ML2 + Android Mobile SDK smoke spike
+# Phase 3 — ML2 + Android Mobile SDK smoke spike
 
 ## Context
 
 Phase 1 stood up the LiveKit server in compose. This phase verifies that the LiveKit Unity SDK actually works on **Magic Leap 2** at runtime before we commit to the rest of the swap. ML2 is the riskiest platform: arm64 Android 10 with a stripped-down AOSP runtime, OpenXR-backed XR rendering, and possible network-stack quirks XR devices sometimes ship with.
 
-**This is the only throwaway phase.** Most artifacts produced here are deleted after the spike passes. The exception is the LiveKit Unity SDK pin in `apps/MakeItSing/Packages/manifest.json` — that's small, useful, and carries forward to Phase 5.
+**This is the only throwaway phase.** Most artifacts produced here are deleted after the spike passes. The exception is the LiveKit Unity SDK pin in `apps/MakeItSing/Packages/manifest.json` — that's small, useful, and carries forward to Phase 6.
 
 Calibrated odds the spike kills the LiveKit approach:
 - `.so` loading on ML2: ~15-20%. ML2's AOSP-derived runtime is mostly standard, but stripped builds sometimes drop libraries the SDK assumes.
@@ -24,7 +24,7 @@ After this phase, you have a binary answer to:
 - Can a `Room.Connect()` against the Phase 1 LiveKit server complete on ML2 over the local WiFi?
 - Can a byte round-trip ML2 → server → ML2 (echoed by an Android-Mobile counterparty or a Python echo bot)?
 
-Pass: proceed to Phase 3 (the rest of the backend) and Phase 4 (the abstraction layer) in either order. Fail: stop, document the failure mode and logcat, and re-evaluate the LiveKit decision before doing more work.
+Pass: proceed to Phase 4 (the rest of the backend) and Phase 5 (the abstraction layer) in either order. Fail: stop, document the failure mode and logcat, and re-evaluate the LiveKit decision before doing more work.
 
 ## Work
 
@@ -34,7 +34,7 @@ Check whether the SDK ships via UPM Git URL, OpenUPM, or NuGet for the project's
 
 Pin to a specific release tag from <https://github.com/livekit/client-sdk-unity/releases>. The SDK is "Developer Preview" — an unpinned ref is unsafe.
 
-**This pin is committed.** It carries forward to Phase 5. The rest of Phase 2's artifacts are uncommitted/throwaway.
+**This pin is committed.** It carries forward to Phase 6. The rest of Phase 3's artifacts are uncommitted/throwaway.
 
 ### 2. Smoke scene
 
@@ -74,7 +74,7 @@ Two separate APKs get built (one for each device) with distinct hardcoded identi
 
 ### 3. Mint JWTs
 
-Tokens are minted out-of-band with a tiny Python script (not the API endpoint — that's Phase 3's work, not needed here). Use `PyJWT` directly:
+Tokens are minted out-of-band with a tiny Python script (not the API endpoint — that's Phase 4's work, not needed here). Use `PyJWT` directly:
 
 ```python
 import jwt
@@ -182,15 +182,15 @@ If anything goes wrong, paste the logcat into the conversation. Common signature
 
 ## Cleanup
 
-After the spike passes, before starting Phase 3:
+After the spike passes, before starting Phase 4:
 
-1. The SDK pin in `apps/MakeItSing/Packages/manifest.json` stays committed. It's the only durable Phase 2 artifact.
+1. The SDK pin in `apps/MakeItSing/Packages/manifest.json` stays committed. It's the only durable Phase 3 artifact.
 2. Delete `apps/MakeItSing/Assets/_LiveKitSpike/` (and its `.meta`).
 3. Revert the `EditorBuildSettings.asset` change that added the smoke scene to the build list.
 4. Discard the local `mint_tokens.py`, `echo_bot.py`, and any token strings (they're hardcoded in the throwaway scene anyway).
 5. Confirm `uv run compile-unity --project MakeItSing --build android-mobile` still passes against the original MakeItSing entry scene.
 
-The working branch state after cleanup: Phase 1's compose-service commit, plus a small SDK-pin commit. Phase 3 starts from there.
+The working branch state after cleanup: Phase 1's compose-service commit, plus a small SDK-pin commit. Phase 4 starts from there.
 
 ## Commit hygiene
 
@@ -211,12 +211,12 @@ No `Co-Authored-By`. No `--no-verify`. No prose updates in this phase.
 - `_LiveKitSpike/` is deleted, `EditorBuildSettings.asset` reverted.
 - One small commit (SDK pin) remains on the working branch.
 
-If any of these fail, the gate is failed. Stop and re-evaluate before proceeding to Phase 3.
+If any of these fail, the gate is failed. Stop and re-evaluate before proceeding to Phase 4.
 
 ## Out of scope
 
-- The full `LiveKitTransport` — Phase 5.
-- `INetworkTransport` abstraction — Phase 4.
-- Token-mint API endpoint — Phase 3.
-- Slot-claim, master election, send/receive mapping — Phase 5.
+- The full `LiveKitTransport` — Phase 6.
+- `INetworkTransport` abstraction — Phase 5.
+- Token-mint API endpoint — Phase 4.
+- Slot-claim, master election, send/receive mapping — Phase 6.
 - Voice/audio.

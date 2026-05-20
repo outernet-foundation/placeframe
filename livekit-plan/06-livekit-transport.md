@@ -1,8 +1,8 @@
-# Phase 5 — LiveKit transport implementation
+# Phase 6 — LiveKit transport implementation
 
 ## Context
 
-Phases 1 and 3 added the LiveKit compose service and the `POST /livekit/token` endpoint. Phase 2 validated that the LiveKit Unity SDK loads and operates on Magic Leap 2 + Android Mobile. Phase 4 introduced `INetworkTransport` and a stubbed `LiveKitTransport` that throws on `ConnectAsync`. This phase implements `LiveKitTransport` for real, so setting `UnityEnv.use_livekit = true` produces behavior equivalent to the existing Photon transport.
+Phases 1 and 4 added the LiveKit compose service and the `POST /livekit/token` endpoint. Phase 3 validated that the LiveKit Unity SDK loads and operates on Magic Leap 2 + Android Mobile. Phase 5 introduced `INetworkTransport` and a stubbed `LiveKitTransport` that throws on `ConnectAsync`. This phase implements `LiveKitTransport` for real, so setting `UnityEnv.use_livekit = true` produces behavior equivalent to the existing Photon transport.
 
 Read before starting:
 - `/placeframe/CLAUDE.md` — especially UniTask-not-Task.Run, Serilog message templates, no docstrings, no inline imports, no temporal language in comments, no nested try blocks, callers-before-callees, classes-at-the-top.
@@ -19,9 +19,9 @@ These were verified by reading `livekit/client-sdk-unity` v1.3.7 and `livekit/ru
 - `Participant.JoinedAt` exists in the proto (`Proto/Participant.cs`) but is **not** publicly exposed on the C# `Participant` wrapper. Public members: `Sid / Identity / Name / Metadata / Attributes / ConnectionQuality`. See "Master election" below for the workaround.
 - The Unity SDK is "Developer Preview" per its README. Pin to a tagged release. Treat API surface as potentially-shifting between SDK revisions.
 
-## ML2 validation: already done in Phase 2
+## ML2 validation: already done in Phase 3
 
-Phase 2's smoke spike confirmed the SDK's native `liblivekit_ffi.so` loads on ML2, ICE traversal works on the local WiFi, and `Room.Connect` + `PublishData` round-trips succeed. This phase proceeds on that basis. If Phase 2 surfaced platform-specific quirks (an `AndroidManifest.xml` permission, a `LIVEKIT_RTC_TCP_PORT` fallback requirement, a custom WebRTC config tweak), carry them forward into the real `LiveKitTransport` here.
+Phase 3's smoke spike confirmed the SDK's native `liblivekit_ffi.so` loads on ML2, ICE traversal works on the local WiFi, and `Room.Connect` + `PublishData` round-trips succeed. This phase proceeds on that basis. If Phase 3 surfaced platform-specific quirks (an `AndroidManifest.xml` permission, a `LIVEKIT_RTC_TCP_PORT` fallback requirement, a custom WebRTC config tweak), carry them forward into the real `LiveKitTransport` here.
 
 ## Goal
 
@@ -35,11 +35,11 @@ After this phase:
 
 ## Work
 
-### 1. SDK install (already pinned in Phase 2)
+### 1. SDK install (already pinned in Phase 3)
 
-The LiveKit Unity SDK pin landed in `apps/MakeItSing/Packages/manifest.json` during Phase 2. Confirm it's still there and matches the version that passed the smoke spike. If a newer release has shipped since Phase 2 and you want to bump, do that as an explicit decision — not a passive upgrade. The Phase 2 validation result only covers the validated version.
+The LiveKit Unity SDK pin landed in `apps/MakeItSing/Packages/manifest.json` during Phase 3. Confirm it's still there and matches the version that passed the smoke spike. If a newer release has shipped since Phase 3 and you want to bump, do that as an explicit decision — not a passive upgrade. The Phase 3 validation result only covers the validated version.
 
-If Phase 2 added an `AndroidManifest.xml` INTERNET permission, confirm it's still present. Don't add RECORD_AUDIO or CAMERA — voice/audio is explicitly out of scope.
+If Phase 3 added an `AndroidManifest.xml` INTERNET permission, confirm it's still present. Don't add RECORD_AUDIO or CAMERA — voice/audio is explicitly out of scope.
 
 ### 2. LiveKitTransport.cs structure
 
@@ -246,7 +246,7 @@ uv run compile-unity --project MakeItSing --build android-mobile
 uv run compile-unity --project MakeItSing --build magicleap
 ```
 
-Both must succeed. The Magic Leap target's native-`.so` runtime risk was already retired in Phase 2; compile failures here would point at integration mistakes (missing UniTask wrappers, `using` directives, asmdef references), not SDK-level platform issues.
+Both must succeed. The Magic Leap target's native-`.so` runtime risk was already retired in Phase 3; compile failures here would point at integration mistakes (missing UniTask wrappers, `using` directives, asmdef references), not SDK-level platform issues.
 
 Unit tests must pass.
 
@@ -254,7 +254,7 @@ Unit tests must pass.
 
 ## Device-validation handoff (user-driven, post-PR)
 
-Claude Code cannot run on-device validation. State explicitly in the PR description that the following must pass before Phase 6 begins:
+Claude Code cannot run on-device validation. State explicitly in the PR description that the following must pass before Phase 7 begins:
 
 1. Two clients (editor + Android Mobile device, both with `use_livekit = true`) join the same room. Avatar appears for each, transforms sync at 16 Hz, grabbing an `XRGrabbable` syncs ownership.
 2. Three clients including one Magic Leap 2. Late joiner sees full state via initial sync. The HF channel doesn't head-of-line-block the incremental diff stream.
@@ -266,13 +266,13 @@ If any of these fail, document the failure mode and the workaround/fix. Real fai
 
 ## Commit hygiene
 
-Code changes only in this phase. Single commit covering the full `LiveKitTransport` implementation plus unit tests. The `manifest.json` SDK pin already landed in Phase 2 — don't re-touch it unless deliberately bumping the version.
+Code changes only in this phase. Single commit covering the full `LiveKitTransport` implementation plus unit tests. The `manifest.json` SDK pin already landed in Phase 3 — don't re-touch it unless deliberately bumping the version.
 
-No `.asmdef` cross-folder edits should be needed — `Networking/` was set up in Phase 4.
+No `.asmdef` cross-folder edits should be needed — `Networking/` was set up in Phase 5.
 
-No prose updates in this phase — those land in Phase 6 once devices verify the swap works. No `Co-Authored-By`. No `--no-verify`.
+No prose updates in this phase — those land in Phase 7 once devices verify the swap works. No `Co-Authored-By`. No `--no-verify`.
 
-No codegen runs in this phase (the API endpoint already exists from Phase 3).
+No codegen runs in this phase (the API endpoint already exists from Phase 4).
 
 ## Exit criteria
 
@@ -286,9 +286,9 @@ No codegen runs in this phase (the API endpoint already exists from Phase 3).
 
 ## Out of scope
 
-- Flipping `UnityEnv.use_livekit` to `true` by default — Phase 6.
-- Deleting `PhotonTransport.cs` and the Photon SDK — Phase 6.
-- SPEC.md / CLAUDE.md prose updates — Phase 6.
+- Flipping `UnityEnv.use_livekit` to `true` by default — Phase 7.
+- Deleting `PhotonTransport.cs` and the Photon SDK — Phase 7.
+- SPEC.md / CLAUDE.md prose updates — Phase 7.
 - Master-flip debounce — defer until observed.
 - Voice/audio.
 - Anonymous/guest identity paths.

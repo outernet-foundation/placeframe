@@ -6,14 +6,8 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/App/Scenes/Main.unity
-    guid: 99c9720ab356a0642a771bea13969a05
-  - enabled: 1
-    path: Assets/App/Scenes/testscene.unity
-    guid: 2a5304f876b7546419699ca1224a5829
-  - enabled: 1
-    path: Assets/App/Scenes/tyler's scene.unity
-    guid: c98ad7219a8063c958dddf14e3382cdd
+    path: Assets/_LiveKitSpike/SmokeScene.unity
+    guid: 0e68a0ff14bd4596cb85e13520b8d6cb
   m_configObjects:
     UnityEditor.XR.ARCore.ARCoreSettings: {fileID: 11400000, guid: d04e8de729bd9714aa5c03a82baaff99, type: 2}
     com.unity.addressableassets: {fileID: 11400000, guid: d36ab8ec9eeaf8c42aab37517a2d106d, type: 2}

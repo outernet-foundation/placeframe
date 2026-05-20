@@ -1,5 +1,19 @@
 # Plan: Swap Photon → LiveKit for MakeItSing networking
 
+> **Status note.** This file is the original design rationale. The active operational breakdown lives in `livekit-plan/` and now spans seven phases (originally six). See `livekit-plan/README.md` for current per-phase status; below is a summary.
+>
+> | Phase (operational) | Status |
+> |---|---|
+> | 1 — LiveKit compose service | ✅ Done (commit `cb3f866d`) |
+> | 2 — Ngrok routing for LiveKit | 🔜 Next — inserted after the dev-sandbox network model made LAN-direct unworkable for headsets on the user's WiFi |
+> | 3 — ML2 + Android Mobile spike | 🟡 Partial — SDK pinned (`f77afe40`), smoke scaffold landed (`89c5a42c`), Magic Leap compile + APK verified, device round-trip blocked on Phase 2 URL |
+> | 4 — Backend API (token-mint) | Not started |
+> | 5 — Transport abstraction | Not started |
+> | 6 — LiveKit transport implementation | Not started |
+> | 7 — Cutover and Photon teardown | Not started |
+>
+> The phase numbers in the rest of this document (Phase 0 / Spike, Phase 1 / Backend infrastructure, etc.) reflect the original 5-phase rationale grouping and do **not** map 1:1 onto the operational phases above. When in doubt, defer to `livekit-plan/`.
+
 ## Context
 
 MakeItSing currently uses Photon Realtime (5.1.9, bundled SDK at `Assets/ThirdParty/photon-unity-sdk_v5-1-9/`) for its multiplayer state replication. The integration is unusually clean: ~530 lines in `Assets/App/Managers/PhotonConnectionManager.cs` and a small custom binary codec, sitting on top of three Photon `OpRaiseEvent` channels (reliable-targeted, reliable-broadcast, unreliable-broadcast). The state-tree replication model above the transport (path-as-schema, `App.ExecuteTransaction`, `ISceneObjectViewComponent`, `PlayerIdHelper`'s ID slicing) is transport-agnostic.

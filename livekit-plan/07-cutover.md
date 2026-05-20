@@ -1,8 +1,8 @@
-# Phase 6 — Cutover and Photon teardown
+# Phase 7 — Cutover and Photon teardown
 
 ## Context
 
-Phases 1–5 added the LiveKit backend, the `INetworkTransport` abstraction with Photon behind it, and the real `LiveKitTransport` implementation. After Phase 5, the user has verified on real devices (Android Mobile + Magic Leap 2 + Editor) that `UnityEnv.use_livekit = true` produces equivalent behavior to the Photon path.
+Phases 1–6 added the LiveKit backend, the `INetworkTransport` abstraction with Photon behind it, and the real `LiveKitTransport` implementation. After Phase 6, the user has verified on real devices (Android Mobile + Magic Leap 2 + Editor) that `UnityEnv.use_livekit = true` produces equivalent behavior to the Photon path.
 
 **This phase is gated on that device verification.** Do not start it until the user confirms the two-headset (or three-client) demo passed end-to-end on LiveKit. If they haven't confirmed, ask explicitly — don't assume.
 
@@ -18,7 +18,7 @@ Read `/placeframe/CLAUDE.md` and `/placeframe/apps/MakeItSing/CLAUDE.md` before 
 
 Before any edits, confirm with the user:
 
-> Phase 5's on-device validation passed for all five scenarios (two-client basic, three-client late-join, master-disconnect recovery, network-blip recovery, all-three-platforms). Any failures have separate follow-up fixes merged, or are documented as known-acceptable. Confirm and I'll proceed.
+> Phase 6's on-device validation passed for all five scenarios (two-client basic, three-client late-join, master-disconnect recovery, network-blip recovery, all-three-platforms). Any failures have separate follow-up fixes merged, or are documented as known-acceptable. Confirm and I'll proceed.
 
 If they confirm, proceed. If anything is outstanding, surface it and stop — don't delete Photon while LiveKit has open bugs that might force a rollback.
 
@@ -59,7 +59,7 @@ uv run compile-unity --project MakeItSing --build android-mobile
 uv run compile-unity --project MakeItSing --build magicleap
 ```
 
-Both must succeed. The Photon delete should not affect compilation if Phase 4's refactor was clean — there should be no straggling `Photon.Realtime` references.
+Both must succeed. The Photon delete should not affect compilation if Phase 5's refactor was clean — there should be no straggling `Photon.Realtime` references.
 
 It is unlikely the API client surface changed, but if it did (extremely unlikely — this phase is delete-only on the Unity side), regenerate:
 
@@ -78,7 +78,7 @@ In a **separate commit** from the code changes (prose-and-code separation rule):
 - Rewrite §Replicated scene-graph (or whichever section describes the networking model) to reference LiveKit data channels and `INetworkTransport` instead of Photon `OpRaiseEvent`. Match the SPEC-STYLE-GUIDE.md conventions (`/SPEC-STYLE-GUIDE.md`) — read that file first if you haven't recently. Keep the narrative durable; don't reference "the swap" or "the migration" — describe the current state.
 - Update §Rationale: replace "Raw Photon Realtime over Fusion/PUN" (or equivalent existing reasoning) with the LiveKit decision and the `INetworkTransport` abstraction rationale.
 - Update §Known Issues:
-  - Remove or amend the entry about `OnMasterClientSwitched` only logging — the LiveKit master election in Phase 5 fixes this. Document it as resolved (or remove the entry entirely if the spec convention is to delete-when-fixed; check how other known-issue resolutions were handled historically with `git log -p apps/MakeItSing/SPEC.md | head -200`).
+  - Remove or amend the entry about `OnMasterClientSwitched` only logging — the LiveKit master election in Phase 6 fixes this. Document it as resolved (or remove the entry entirely if the spec convention is to delete-when-fixed; check how other known-issue resolutions were handled historically with `git log -p apps/MakeItSing/SPEC.md | head -200`).
   - Leave the orphan-cleanup TODO (and any other still-unresolved issues) alone unless they're affected by this swap.
 
 Cold-reader test: after the edits, the SPEC.md should read as if LiveKit had always been the transport — no temporal markers like "previously", "was Photon", "after the migration".
@@ -93,7 +93,7 @@ Cold-reader test: after the edits, the SPEC.md should read as if LiveKit had alw
 - Add LiveKit to the service inventory. Include the role (data-channel SFU for MakeItSing), the ports (7880 signaling, 7881 RTC TCP, 50000–50100/udp media), the in-memory state model, and the no-Postgres/no-Redis note.
 - Document the API token-mint endpoint (`POST /livekit/token`, identity from Keycloak `sub`).
 - Document the colocalized-LAN deployment model and the (deferred) ngrok-UDP question.
-- If Phase 1 or Phase 3 already added a LiveKit entry to `docker/SPEC.md`, **edit it** rather than duplicating. Check `git log -p docker/SPEC.md` for recent LiveKit additions.
+- If Phase 1 or Phase 4 already added a LiveKit entry to `docker/SPEC.md`, **edit it** rather than duplicating. Check `git log -p docker/SPEC.md` for recent LiveKit additions.
 
 ### 5. Final commit hygiene check
 
