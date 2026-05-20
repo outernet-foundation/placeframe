@@ -21,6 +21,7 @@ using Placeframe.Core;
 using PlaceframeApiClient.Model;
 using PlaceframeZedCaptureClient.Api;
 using PlaceframeZedCaptureClient.Client;
+using UnityEngine;
 using DeviceType = PlaceframeApiClient.Model.DeviceType;
 #endif
 
@@ -81,6 +82,7 @@ public static class ZedCaptureController
 
     private static DefaultApi capturesApi;
     private static IDisposable subscriptions;
+    private static AccessoryEventBridge accessoryEvents;
 
     private const float healthPollIntervalSeconds = 0.5f;
     private const float healthRequestTimeoutSeconds = 2f;
@@ -106,6 +108,17 @@ public static class ZedCaptureController
             },
             new Configuration { BasePath = baseUrl, Timeout = requestTimeout }
         );
+
+        accessoryEvents = new AccessoryEventBridge(
+            onAttached: OnAccessoryAttached,
+            onDetached: OnAccessoryDetached,
+            onPermissionResult: _ => { }
+        );
+        using (var activity = new AndroidJavaClass("com.unity3d.player.UnityPlayer")
+            .GetStatic<AndroidJavaObject>("currentActivity"))
+        {
+            AoaJni.RegisterEventListener(activity, accessoryEvents);
+        }
 
         // TODO(ObserveThing): explicit lambda parameter types are a workaround for
         // an overload-resolution gap. StateValue<T> implements both IValueObservable<T>
@@ -180,6 +193,23 @@ public static class ZedCaptureController
         int limit,
         CancellationToken cancellationToken = default
     ) => await capturesApi.GetLogsAsync(since, limit, cancellationToken);
+
+    private static void OnAccessoryAttached()
+    {
+        Log.Info(LogGroup.Zed, "AOA accessory attached");
+        if (App.state.loggedIn.value)
+            App.state.zedStatus.value = ZedStatusKind.Connecting;
+    }
+
+    private static void OnAccessoryDetached()
+    {
+        Log.Info(LogGroup.Zed, "AOA accessory detached");
+        ZedStatusKind previous = App.state.zedStatus.value;
+        App.state.zedStatus.value =
+            previous == ZedStatusKind.Recording || previous == ZedStatusKind.LostMidCapture
+                ? ZedStatusKind.LostMidCapture
+                : ZedStatusKind.Unreachable;
+    }
 
     private static void EvaluateHealthPollState()
     {

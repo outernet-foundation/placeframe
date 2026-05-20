@@ -1,8 +1,10 @@
 package io.placeframe.android;
 
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
 import android.os.Build;
@@ -35,6 +37,55 @@ public final class AoaAccessoryClient {
     private static volatile ParcelFileDescriptor currentPfd;
     private static volatile OkHttpClient currentClient;
     private static long lastPermissionRequestMs;
+
+    private static volatile AccessoryEventListener eventListener;
+    private static volatile BroadcastReceiver eventReceiver;
+
+    public interface AccessoryEventListener {
+        void onAttached();
+        void onDetached();
+        void onPermissionResult(boolean granted);
+    }
+
+    // Application context so the registration spans the app lifetime
+    // regardless of which activity calls in.
+    public static void registerEventListener(Context context, AccessoryEventListener listener) {
+        synchronized (lock) {
+            eventListener = listener;
+            if (eventReceiver != null) return;
+            eventReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    String action = intent.getAction();
+                    if (action == null) return;
+                    AccessoryEventListener current = eventListener;
+                    if (current == null) return;
+                    if (UsbManager.ACTION_USB_ACCESSORY_ATTACHED.equals(action)) {
+                        current.onAttached();
+                    } else if (UsbManager.ACTION_USB_ACCESSORY_DETACHED.equals(action)) {
+                        current.onDetached();
+                    } else if (PERMISSION_ACTION.equals(action)) {
+                        boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
+                        current.onPermissionResult(granted);
+                    }
+                }
+            };
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(UsbManager.ACTION_USB_ACCESSORY_ATTACHED);
+            filter.addAction(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
+            filter.addAction(PERMISSION_ACTION);
+            Context application = context.getApplicationContext();
+            // Android 13+ requires explicit export flags. The system-fired
+            // accessory actions reach us as exported broadcasts; our own
+            // PERMISSION_ACTION fires from a same-package PendingIntent so
+            // RECEIVER_EXPORTED accepts both without opening external entry.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                application.registerReceiver(eventReceiver, filter, Context.RECEIVER_EXPORTED);
+            } else {
+                application.registerReceiver(eventReceiver, filter);
+            }
+        }
+    }
 
     private AoaAccessoryClient() {}
 
