@@ -606,7 +606,10 @@ namespace Placeframe.Client
                                                 offsetMax = Props.Value(new Vector2(0, 0)),
                                                 fitContentVertical = Props.Value(ContentSizeFitter.FitMode.PreferredSize),
                                             },
-                                            children = Props.List(ObjectFieldInspectors(props.options))
+                                            children = Props.List(ObjectFieldInspectors(
+                                                props.options,
+                                                includeField: name => name != nameof(ReconstructionOptions.BundleAdjustmentRefineSensorFromRig)
+                                            ))
                                         })
                                     )
                                 }),
