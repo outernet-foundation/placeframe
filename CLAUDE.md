@@ -10,11 +10,11 @@ The repo also hosts two Unity apps that consume Placeframe: `apps/AndroidMobile/
 
 ## Documentation
 
-The repo uses a two-tier docs model: `CLAUDE.md` for always-loaded rules (prescriptive, terse, under ~80 lines per file) and `SPEC.md` for on-demand narrative co-located with the code it describes. The authoring rules for `SPEC.md` are locked in `/SPEC-STYLE-GUIDE.md` — **read it before authoring or editing any `SPEC.md`**.
+The repo uses a two-tier docs model: `CLAUDE.md` for always-loaded rules (prescriptive, terse, under ~80 lines per file) and `SPEC.md` for on-demand narrative co-located with the code it describes. The authoring rules for `SPEC.md` are locked in `.pulsar/SPEC-STYLE-GUIDE.md` — **read it before authoring or editing any `SPEC.md`**.
 
 - **Prose and code commit separately.** Markdown (`*.md`) and source code never share a commit, even when changed in the same session. This keeps prose diffs reviewable on their own terms.
 - **Spec-first on disagreement.** When a `SPEC.md` and the code it describes disagree, update the spec first and surface the diff, *then* change the code. This converts every disagreement from silent rot into an explicit human decision.
-- **No `docs/` directory.** Cross-cutting content lives in a parent-directory `SPEC.md` or a top-level special file (`README.md`, `SPEC-STYLE-GUIDE.md`, etc.).
+- **No `docs/` directory.** Cross-cutting content lives in a parent-directory `SPEC.md` or a top-level special file (`README.md`, etc.).
 
 ## Commands
 
