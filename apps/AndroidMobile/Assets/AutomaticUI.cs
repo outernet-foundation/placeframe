@@ -285,7 +285,7 @@ namespace Placeframe.Client
                     }),
                     PrimitiveControl(new()
                     {
-                        type = nullableUnderlyingType,
+                        type = type,
                         value = value,
                         onValueChanged = onValueChanged,
                         interactable = interactable,
