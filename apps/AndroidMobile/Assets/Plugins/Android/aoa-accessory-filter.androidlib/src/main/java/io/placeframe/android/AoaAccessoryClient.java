@@ -63,6 +63,7 @@ public final class AoaAccessoryClient {
                     if (UsbManager.ACTION_USB_ACCESSORY_ATTACHED.equals(action)) {
                         current.onAttached();
                     } else if (UsbManager.ACTION_USB_ACCESSORY_DETACHED.equals(action)) {
+                        synchronized (lock) { closeCurrentLocked(); }
                         current.onDetached();
                     } else if (PERMISSION_ACTION.equals(action)) {
                         boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
@@ -127,7 +128,12 @@ public final class AoaAccessoryClient {
         try {
             response = client.newCall(request).execute();
         } catch (IOException e) {
-            invalidateClient(client);
+            // Pipe error poisons the FD; reopen on next execute. The
+            // equality check debounces concurrent requests that all hit the
+            // same dead connection so they don't race to close it twice.
+            synchronized (lock) {
+                if (currentClient == client) closeCurrentLocked();
+            }
             throw e;
         }
 
@@ -147,20 +153,17 @@ public final class AoaAccessoryClient {
         );
     }
 
-    // Pipe error poisons the FD; reopen on next execute. Guarded by equality
-    // check so concurrent requests that all hit the same dead connection
-    // don't race to close it twice.
-    private static void invalidateClient(OkHttpClient failed) {
-        synchronized (lock) {
-            if (currentClient != failed) return;
-            ParcelFileDescriptor oldPfd = currentPfd;
-            currentClient = null;
-            currentPfd = null;
-            failed.dispatcher().executorService().shutdown();
-            failed.connectionPool().evictAll();
-            if (oldPfd != null) {
-                try { oldPfd.close(); } catch (IOException ignored) {}
-            }
+    private static void closeCurrentLocked() {
+        OkHttpClient client = currentClient;
+        ParcelFileDescriptor pfd = currentPfd;
+        currentClient = null;
+        currentPfd = null;
+        if (client != null) {
+            client.dispatcher().executorService().shutdown();
+            client.connectionPool().evictAll();
+        }
+        if (pfd != null) {
+            try { pfd.close(); } catch (IOException ignored) {}
         }
     }
 
