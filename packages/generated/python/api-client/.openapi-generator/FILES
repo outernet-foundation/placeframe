@@ -51,6 +51,7 @@ placeframe_api_client/models/node_batch_create.py
 placeframe_api_client/models/node_batch_update.py
 placeframe_api_client/models/node_create.py
 placeframe_api_client/models/node_read.py
+placeframe_api_client/models/phase_timing.py
 placeframe_api_client/models/pinhole_camera_config.py
 placeframe_api_client/models/progress_update.py
 placeframe_api_client/models/reconstruction_create.py

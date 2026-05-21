@@ -52,6 +52,7 @@ from placeframe_api_client.models.node_batch_create import NodeBatchCreate
 from placeframe_api_client.models.node_batch_update import NodeBatchUpdate
 from placeframe_api_client.models.node_create import NodeCreate
 from placeframe_api_client.models.node_read import NodeRead
+from placeframe_api_client.models.phase_timing import PhaseTiming
 from placeframe_api_client.models.pinhole_camera_config import PinholeCameraConfig
 from placeframe_api_client.models.progress_update import ProgressUpdate
 from placeframe_api_client.models.reconstruction_create import ReconstructionCreate

@@ -67,6 +67,7 @@ __all__ = [
     "NodeBatchUpdate",
     "NodeCreate",
     "NodeRead",
+    "PhaseTiming",
     "PinholeCameraConfig",
     "ProgressUpdate",
     "ReconstructionCreate",
@@ -134,6 +135,7 @@ from placeframe_api_client.models.node_batch_create import NodeBatchCreate as No
 from placeframe_api_client.models.node_batch_update import NodeBatchUpdate as NodeBatchUpdate
 from placeframe_api_client.models.node_create import NodeCreate as NodeCreate
 from placeframe_api_client.models.node_read import NodeRead as NodeRead
+from placeframe_api_client.models.phase_timing import PhaseTiming as PhaseTiming
 from placeframe_api_client.models.pinhole_camera_config import PinholeCameraConfig as PinholeCameraConfig
 from placeframe_api_client.models.progress_update import ProgressUpdate as ProgressUpdate
 from placeframe_api_client.models.reconstruction_create import ReconstructionCreate as ReconstructionCreate

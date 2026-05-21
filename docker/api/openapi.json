@@ -6024,6 +6024,25 @@
         ],
         "title": "NodeRead"
       },
+      "PhaseTiming": {
+        "properties": {
+          "phase": {
+            "type": "string",
+            "description": "ReconstructionStatus value of the phase, e.g. 'extracting_features'."
+          },
+          "duration_seconds": {
+            "type": "number",
+            "format": "double",
+            "description": "Wall-clock seconds the phase spent in-flight, measured between the publisher's set_phase boundaries."
+          }
+        },
+        "type": "object",
+        "required": [
+          "duration_seconds",
+          "phase"
+        ],
+        "title": "PhaseTiming"
+      },
       "PinholeCameraConfig": {
         "properties": {
           "width": {
@@ -6323,6 +6342,14 @@
             "nullable": true,
             "type": "number",
             "format": "double"
+          },
+          "phase_timings": {
+            "description": "Per-phase wall-clock durations in execution order, captured at each ReconstructionPublisher set_phase boundary. Useful for after-the-fact attribution of total reconstruction time across feature extraction, OPQ/PQ training, matching, geometric verification, and incremental mapping.",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/PhaseTiming"
+            },
+            "type": "array"
           }
         },
         "type": "object",

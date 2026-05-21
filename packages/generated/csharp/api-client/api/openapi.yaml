@@ -3918,6 +3918,24 @@ components:
       - updated_at
       title: NodeRead
       type: object
+    PhaseTiming:
+      example:
+        phase: phase
+        duration_seconds: 5.944895607614016
+      properties:
+        phase:
+          description: "ReconstructionStatus value of the phase, e.g. 'extracting_features'."
+          type: string
+        duration_seconds:
+          description: "Wall-clock seconds the phase spent in-flight, measured between\
+            \ the publisher's set_phase boundaries."
+          format: double
+          type: number
+      required:
+      - duration_seconds
+      - phase
+      title: PhaseTiming
+      type: object
     PinholeCameraConfig:
       example:
         orientation: TOP_LEFT
@@ -4055,6 +4073,11 @@ components:
     ReconstructionMetrics:
       example:
         truth_alignment_max_residual_m: 6.878052220127876
+        phase_timings:
+        - phase: phase
+          duration_seconds: 5.944895607614016
+        - phase: phase
+          duration_seconds: 5.944895607614016
         all_verified_match_inliers_median: 1.2315135367772556
         cross_sensor_verified_matches: 9
         reprojection_pixel_error_50th_percentile: 2.3021358869347655
@@ -4265,6 +4288,15 @@ components:
           format: double
           nullable: true
           type: number
+        phase_timings:
+          description: "Per-phase wall-clock durations in execution order, captured\
+            \ at each ReconstructionPublisher set_phase boundary. Useful for after-the-fact\
+            \ attribution of total reconstruction time across feature extraction,\
+            \ OPQ/PQ training, matching, geometric verification, and incremental mapping."
+          items:
+            $ref: "#/components/schemas/PhaseTiming"
+          nullable: true
+          type: array
       title: ReconstructionMetrics
       type: object
     ReconstructionOptions:

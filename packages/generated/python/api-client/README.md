@@ -185,6 +185,7 @@ Class | Method | HTTP request | Description
  - [NodeBatchUpdate](docs/NodeBatchUpdate.md)
  - [NodeCreate](docs/NodeCreate.md)
  - [NodeRead](docs/NodeRead.md)
+ - [PhaseTiming](docs/PhaseTiming.md)
  - [PinholeCameraConfig](docs/PinholeCameraConfig.md)
  - [ProgressUpdate](docs/ProgressUpdate.md)
  - [ReconstructionCreate](docs/ReconstructionCreate.md)

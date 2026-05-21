@@ -226,6 +226,7 @@ Class | Method | HTTP request | Description
  - [Model.NodeBatchUpdate](docs/NodeBatchUpdate.md)
  - [Model.NodeCreate](docs/NodeCreate.md)
  - [Model.NodeRead](docs/NodeRead.md)
+ - [Model.PhaseTiming](docs/PhaseTiming.md)
  - [Model.PinholeCameraConfig](docs/PinholeCameraConfig.md)
  - [Model.ProgressUpdate](docs/ProgressUpdate.md)
  - [Model.ReconstructionCreate](docs/ReconstructionCreate.md)
