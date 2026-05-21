@@ -169,6 +169,9 @@ namespace Placeframe.Core
             if (_maps.Count == 0)
                 throw new InvalidOperationException("VisualPositioningSystem has no maps loaded; call SetLocalizationMaps or AddLocalizationMap first");
 
+            // Re-bootstrap filter history so a Stop→Start cycle is a real recovery, not a no-op against a locked posterior.
+            ApplyStepResult(RelocalizationFilter.Reset(_state, _state.AlignmentCurrent));
+
             _localizationSubscription = _cameraProvider
                 // Get camera configuration asynchronously
                 .CameraConfig()
