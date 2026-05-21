@@ -1,4 +1,24 @@
+from dataclasses import dataclass
 from pathlib import Path
+
+
+@dataclass(frozen=True)
+class ZedService:
+    # compose.rig.yml service key, image base name, and compose.zed.bake.yml target.
+    # These three are the same string by construction.
+    name: str
+    # Env var compose.rig.yml uses to override the image (`${X:-default}`). Asymmetric
+    # with name (`zed-capture` → `ZED_IMAGE`, not `ZED_CAPTURE_IMAGE`), so listed explicitly.
+    image_env: str
+    # Key into the dict returned by `compute_service_shas`.
+    sha_key: str
+
+
+ZED_SERVICES: tuple[ZedService, ...] = (
+    ZedService("zed-capture", "ZED_IMAGE", "ZED_CAPTURE_SHA"),
+    ZedService("aoa-bridge", "AOA_BRIDGE_IMAGE", "AOA_BRIDGE_SHA"),
+    ZedService("aoa-gateway", "AOA_GATEWAY_IMAGE", "AOA_GATEWAY_SHA"),
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 BAKE_FILE = REPO_ROOT / "compose.zed.bake.yml"
@@ -16,9 +36,9 @@ GHCR_BASE = "ghcr.io/outernet-foundation/placeframe"
 # box.
 BOX_SUBNET = "100.64.0.0/24"
 BOX_IP = "100.64.0.1"
-HOST_CABLE_IP = "100.64.0.2"
-HOST_CABLE_CIDR = f"{HOST_CABLE_IP}/24"
+HOST_CABLE_CIDR = "100.64.0.2/24"
 HOST_NM_CONNECTION = "zedbox"
+HOST_NO_AUTO_DEFAULT_CONF = "/etc/NetworkManager/conf.d/zedbox-no-auto-default.conf"
 HOST_SYSCTL_FILE = "/etc/sysctl.d/99-zedbox.conf"
 HOST_SYSCTL_CONTENT = "net.ipv4.ip_forward = 1\n"
 BOX_SSH_TARGET = f"user@{BOX_IP}"
