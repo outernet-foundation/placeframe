@@ -64,21 +64,22 @@ Pulled from Loki `{service_name="capture-tool"}`. 75 rejections, **0 accepts** o
 3. ~~**Surface lockup in UI.**~~ **Done** (`d738045d`). `ConsecutiveRejections` moved into `FilterState`; wall-clock and view-model stay in VPS as `_lastAcceptedTime` / `IsLocalizationLost` / `FilterHealth.Snapshot()`. Metrics dialog shows a red "localization lost" banner and `ReadonlyInspector(filterHealth)` when `Localizing && (ConsecutiveRejections > 5 || SecondsSinceLastAccept > 5)`. Bottom-bar Metrics button label turns red on lockup. **No dedicated Reset button** — Stop→Start equals Reset post-fix-2.
 4. ~~**`LocalizationMap` subscribes to `OnEcefToUnityWorldTransformUpdated`.**~~ **Struck — not a bug.** `LocalizationMap.prefab` already has a `GeoPose` sibling. `GeoPose.OnEnable` subscribes (`GeoPose.cs:67`); `GeoPose.LateUpdate` back-fills the stored ECEF when the transform is written externally. The direct `transform.position` write at `LocalizationMap.cs:119-120` is reconciled the same frame. If the "looks good, then drifts" symptom recurs on device, re-investigate; do not assume this was the cause.
 5. **4 DOF refactor of `RelocalizationFilter`.** Fixes Bug 2 (gravity-snap pivot / far-room height bias). Large: rewrite filter, delete `Se3.Log/Exp`, port tests. Design is fully spec'd in `.pulsar/capture-validation-bugs.md` — do **not** re-surface its "open design decisions." **Next up.** Now that 1-3 are in and lockups recover in-session, the locked-filter blind spot is gone and Bug 2 should be observable on the next field session.
-6. **Reconstructor "last stable frame for origin pose."** Single-digit-line change in `colmap.py` / `rig.py`. Only matters once (5) is in (6 DOF flexibility absorbs map tilt; 4 DOF doesn't). Lands typical map gravity error from "~1°" to "~0.3-0.5°."
+6. **Reconstructor anchor change: split translation/rotation sources.** `colmap.py:182-200`. Anchor translation = first registered frame's truth pose (preserves "map origin = where capture started" for Cesium georegistration). Anchor rotation = latest stationary-detected frame's truth pose (VIO has had longest to refine world-Y → ~0.3-0.5° gravity vs. cold-start ~1°). Stationary detection from pose deltas in `frames.csv` (sliding 30-frame window, < 2 cm translation traversal, < 0.5° per-frame rotation magnitude). Fallback when no stationary window exists: median rotation across last 25% of registered frames. No capture-format change, no operator requirement. ~30-50 lines of Python. **Now ordered BEFORE (5)** — see "Strategic ordering" below. Sort registered frames by integer `frame_id` (timestamp) across all rigs to handle multi-rig captures correctly.
 7. **ARFoundation tracking-state subscription → re-bootstrap on jump.** Per-platform, more work. Catches the 21:32:22-style jump at source. Refinement after 1-3; revisit if 1-3 prove insufficient.
-8. **Decide legacy-map handling for the 4 DOF rollout.** Not code, but a precondition for (5): 4 DOF against an old tilted map renders bent geometry. Re-process vs version-flag — ask the user before (5) lands.
+8. ~~**Decide legacy-map handling for the 4 DOF rollout.**~~ **Resolved 2026-05-20**: user does not care about legacy maps. After (5)+(6) land, rebuild any map that shows bent geometry. No re-process pipeline, no version-flag, no compatibility shim.
 
 ### Strategic ordering
 
 - (1)+(2)+(3) shipped. Field-test next session: does a deliberate phone bump now show the lockup banner, and does Stop→Start recover?
 - (4) struck; the assumed bug doesn't exist.
-- (5) is next. Block on (8) — user decision on legacy maps — before starting the filter rewrite.
-- (6) waits on (5); (7) is a deferred refinement.
+- **(6) is next — land it BEFORE (5).** Sequencing rationale: (6) tightens the upstream gravity that the 4 DOF refactor depends on. Field-testing (5) with cold-start-gravity-tilted maps would confound "is the filter right?" with "is the map level?". Landing (6) first makes the 4 DOF assumption well-grounded when (5) gets its first field session.
+- (5) is after (6). (8) — legacy-map handling — answered: user does not care about legacy maps. Rebuild if bent. Strike (8) from active work.
+- (7) is a deferred refinement.
 
 ## Open questions
 
 - Whether to use ARFoundation's `XROrigin.Camera.trackingState` or a frame-to-frame VIO-delta heuristic for (7). No first-class "pose jumped" event; needs a small spike.
-- Legacy-map handling for the 4 DOF rollout (re-process vs version-flag) — user decision required before (5).
+- Stationary detection thresholds for fix (6): starting values are 30-frame window, < 2 cm translation traversal, < 0.5° per-frame rotation magnitude. Need empirical tuning against real captures.
 
 ### Resolved during 2026-05-20 session
 
@@ -86,6 +87,10 @@ Pulled from Loki `{service_name="capture-tool"}`. 75 rejections, **0 accepts** o
 - Reset semantics for fix (2) — picked: `Reset(_state, _state.AlignmentCurrent)` (partial), preserving visible alignment.
 - Lockup thresholds for fix (3) — picked: 5 rejections OR 5 seconds since last accept.
 - Whether to add a dedicated Reset button in the UI — picked: no, Stop→Start is the reset path post-fix-2.
+- Fix (4) (`LocalizationMap` subscription) — struck; `LocalizationMap.prefab` has a `GeoPose` sibling that handles re-application.
+- Legacy maps for (8) — user does not care; rebuild if bent post-5+6 rollout.
+- Fix (6) anchor strategy — picked: translation from first registered frame, rotation from latest stationary-detected frame (median of last 25% as fallback). Stationary detection from pose deltas in `frames.csv`. No capture-format change. No operator-pause requirement.
+- Fix (6) sequencing — picked: land before (5), so the 4 DOF refactor's first field session uses gravity-tightened maps.
 
 ## Key files
 
@@ -99,8 +104,8 @@ Pulled from Loki `{service_name="capture-tool"}`. 75 rejections, **0 accepts** o
 
 ## Pending threads
 
-- **Field-test fixes 1-3 on device.** Validation session against a freshly built map: deliberate phone bump should briefly raise `ConsecutiveRejections`, show the red banner if it exceeds threshold, and recover within seconds (covariance writeback unlocks the gate). Stop→Start should recover from any locked state without restarting the app. If "looks good then drifts" recurs, the cause is **not** fix-4-as-memo'd (struck) — re-investigate.
+- **Implement fix (6).** `docker/reconstructor/src/reconstructor/colmap.py:182-200`. Sort registered frames by integer `frame_id` across all rigs. Build a stationary-detection helper that classifies a frame as stationary if its 30-frame sliding-window translation traversal < 2 cm AND per-frame rotation magnitude < ~0.5°. Anchor: `Transform(rotation=R_from_latest_stationary, translation=T_from_first_registered)`. Fallback when no stationary window exists: median rotation across last 25% of registered frames. Anchor's COLMAP rig pose stays as the first registered frame's; the Sim3d math is consistent because we're free to pick any target pose. Touches `colmap.py`; possibly a small standalone helper for stationary detection (keep co-located for v1). Field-test by capturing the same scene twice and measuring floor-plane angle between the two reconstructions (lower bound on random error).
+- **Field-test fixes 1-3 on device.** Validation session against a freshly built map: deliberate phone bump should briefly raise `ConsecutiveRejections`, show the red banner if it exceeds threshold, and recover within seconds. Stop→Start should recover from any locked state without restarting the app. If "looks good then drifts" recurs, the cause is **not** fix-4-as-memo'd (struck) — re-investigate.
 - **Add the lockup regression test** to `RelocalizationFilterTests.cs` per `relocalization-filter-rejection-lockup.md` § "Verification." Now trivial because `FilterState.ConsecutiveRejections` is directly assertable.
-- **Ask the user about legacy-map handling (8)** before starting fix (5). 4 DOF against an old tilted map renders bent geometry; need a re-process vs version-flag decision.
-- **Start fix (5)** — 4 DOF refactor of `RelocalizationFilter`. Design fully spec'd in `.pulsar/capture-validation-bugs.md`; do not re-open. Blocked on (8).
-- Defer (6) until (5) is in. Defer (7) indefinitely unless field-testing 1-3 proves insufficient.
+- **After (6) lands, start fix (5)** — 4 DOF refactor of `RelocalizationFilter`. Design fully spec'd in `.pulsar/capture-validation-bugs.md`; do not re-open. No blockers — (8) was resolved (user does not care about legacy maps).
+- Defer (7) indefinitely unless field-testing 1-3 proves insufficient.

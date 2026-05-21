@@ -180,12 +180,37 @@ Earlier drafts of this memory pushed adding `Sensor.TYPE_GRAVITY` (Android) / `C
 - **The dominant fix is WHEN you sample, not WHICH source.** A warmed-up AR SDK at a stationary moment already gives you near-sensor-floor gravity via its reported camera rotation -- the non-yaw part of `R_unityWorldCamera` at a stable last frame *is* the SDK's current best estimate of "how the camera is tilted relative to true vertical." ARCore/ARKit/ZED SDK are doing continuous gravity refinement internally; their last-stable-frame output is probably close to what a separately-sampled OS gravity sensor would give.
 - The OS-sensor route remains available as a future addition if measurements show the AR SDK's world-Y is meaningfully worse than independently-sampled gravity. Not blocked; just unjustified at this point.
 
-### The simplified layered fix
+### The simplified layered fix (revised 2026-05-20)
 
-1. **Use the last stable frame (not the first) for the origin's pose** -- one-line reconstructor change in `colmap.py` / `rig.py`. Bias estimates have had the entire session to converge. "Last stable" = tracking state OK + low motion (gyro magnitude below threshold for N consecutive frames; non-gravity linear-accel below threshold).
-2. **Pin the map's gravity to the non-yaw part of that frame's reported camera rotation.** No new capture-format column. No OS-sensor subscription. No camera-to-IMU extrinsic to manage. Just "pick the right frame and use the existing data better."
-3. **Optionally, average across multiple stationary samples** spread across the session. Each sample shares the same underlying world-Y estimate by the time the session is warmed up, but the random component (residual linear-accel contamination, sensor noise) averages down with √N. Diminishing returns past ~10 samples (you hit systematic floors below that).
-4. **Refuse the capture if no warmed-up stationary frame exists.** Better than silently producing a tilted map. Warmup window: ~3 s for ARFoundation, ~1 s for ZED (per-source config rather than a magic number).
+Reconstructor change in `colmap.py:182-200`. The current code uses the first registered frame's truth pose (from `frames.csv`) as the anchor for the Sim3d that aligns the reconstruction to the rig coordinate frame. Replace this with:
+
+1. **Translation: from the first registered frame.** Sorted by integer `frame_id` (timestamp) across all rigs. The map origin lands where capture started — natural reference for manual Cesium georegistration. Translation is essentially arbitrary for localization correctness; this choice is purely an operator-convenience signal.
+
+2. **Rotation: from the latest stationary-detected frame.** Walk backwards through the registered frames; classify a frame as "stationary" if the translation delta and frame-to-frame rotation magnitude over a sliding window (say 30 frames ≈ 1 s) are both below thresholds. Take the rotation from the latest such frame. VIO has had the full session to refine its world-Y by that point.
+
+3. **Fallback if no stationary window exists.** Use the median rotation across the last 25% of registered frames. Random per-frame motion contamination averages down; the result is still much better than the first frame's cold-start gravity. Avoids hard-failing on fly-through captures.
+
+4. **No capture-format change. No operator requirements.** Stationary detection uses only the pose deltas already in `frames.csv` — translation delta is a position-jitter proxy, frame-to-frame rotation delta is a gyro-magnitude proxy. The system works regardless of whether the operator pauses before stopping capture.
+
+The original framing of this fix in this memo (verbatim: "Use the last stable frame for the origin's pose") had both translation and rotation come from the same stable frame, plus an optional multi-sample averaging step. That was rejected because:
+- Taking translation from a late frame puts the map origin wherever the user happened to stop — arbitrary, anti-intuitive for georegistration.
+- The user explicitly does not want operator-side requirements ("pause before stopping"). The stationary-detection-from-pose-deltas approach removes that requirement entirely; the average-multiple-samples extension is a further refinement we could add later but isn't needed for the baseline.
+
+Confirmed: `frames.csv` is recorded **live** (each row appended at frame-capture time, not regenerated post-hoc) — verified at `docker/zed-capture/src/zed/zed.py:309-322` (`update_pose` + immediate `csv_writer.writerow`) and `packages/unity/Placeframe/Assets/Package/Core/Runtime/CaptureManager.cs:43` (`AutoFlush=true`). So frame 0's row reflects the SDK's world-Y as of T_0 (cold-start) and frame N's row reflects the SDK's world-Y as of T_N (converged). The plan relies on this distinction — if the capture tools ever switch to post-hoc pose recording, the rotation-from-late-frame strategy becomes a no-op.
+
+### Stationary detection thresholds (starting values)
+
+- **Window size**: 30 frames (~1 s at 30 fps).
+- **Translation delta**: total translation traversed in the window < 2 cm. Hand-jitter floor for a held device.
+- **Frame-to-frame rotation magnitude**: each consecutive frame's `R_i · R_{i-1}^-1` rotation angle < ~0.5°, summed across the window < 5° (or: max single-frame delta < 1°). Catches pure in-place panning that wouldn't show up in translation delta alone.
+- Tunable empirically. The cost of being too strict is falling back to the "median of last 25%" path (still good); the cost of being too loose is admitting a moving frame whose gravity is contaminated.
+
+### Implementation footprint
+
+- ~30-50 lines of Python in `colmap.py` (sliding-window stationary detection helper + anchor-selection logic).
+- Possibly extract the stationary-detection helper to a small standalone function for reuse.
+- One change to the `Sim3d` construction at `colmap.py:189-200`: the rotation and translation now come from different frames, so the formula needs to build `anchor_frame_prior_pose` as a `Transform(rotation=R_chosen, translation=T_first)` rather than reading both off one anchor.
+- Anchor's COLMAP rig pose (`anchor_rig_from_world_transform`) stays as the first registered frame's. The Sim3d math is internally consistent because the Sim3d only needs *one* target pose; we're free to pick (R_chosen, T_first) as that target.
 
 ### Final accuracy estimate for "sample gravity at the last stable frame"
 
@@ -242,19 +267,18 @@ Reconstruction-time gravity error is **permanent in the map and affects every fu
 - The 4 DOF (yaw + R^3) state-representation refactor of `RelocalizationFilter` is the agreed direction for the pivot bug. User indicated next step is **implement, not design more**.
 - The "open design decisions" in the earlier draft were not actually open (yaw extraction = Z-projection; multi-map ECEF out of scope; backend keeps 6×6 covariance and client projects). Implementer should not surface these as open questions.
 - **No permanent feature flag for 4 vs 6 DOF.** Permanent toggles mean "we never resolved the question." If a validation-period A/B is wanted, prefer a **shadow filter** (both filters update on every measurement, one drives rendering, surface the divergence in the metrics UI) over a runtime toggle. Has a clean "delete after validation" exit. User did not explicitly green-light building the shadow filter; treat as available option, not required.
-- **Reconstructor companion work simplified to "last stable frame for origin pose."** The earlier plan that added an OS-fused gravity sensor (`TYPE_GRAVITY` / `CMMotionManager.gravity` / ZED `SensorsData`) to the capture format was walked back -- the AR SDK's own reported camera rotation at a warmed-up stationary frame is already a near-equivalent signal. New plan: one-line change in `colmap.py` / `rig.py` to pick the last frame whose tracking state is OK and motion is below threshold, and use the non-yaw component of its rotation as the map's "up." No capture-format change. OS-sensor route remains a future option if measurements show it's worth adding.
-- **Stationary detection thresholds are TBD-but-unblocked.** Pick reasonable values from MEMS spec sheets (e.g., gyro magnitude below X rad/s for N consecutive frames, non-gravity linear-accel below Y m/s²) and tune empirically.
+- **Reconstructor companion work: "translation from first registered frame, rotation from latest stationary frame, fallback to median rotation across last 25%."** Earlier framing had both components come from one "last stable frame" plus operator-pause-before-stop assumption; both walked back. New framing splits the components by their actual roles (translation = georegistration convenience; rotation = gravity quality) and uses pose-delta-based stationary detection so no operator behavior is required. No capture-format change. OS-sensor route remains a future option but currently unjustified. Implementation ~30-50 lines of Python in `colmap.py`.
+- **Stationary detection thresholds**: window of 30 frames (~1 s at 30 fps); translation traversal < 2 cm; per-frame rotation magnitude < ~0.5° (cumulative < 5°). Tunable empirically.
 - **Investigation branch is `investigation/validation-mode-bugs`** (created at user's request). Memory has been committed three times during the session prior to this entry (`602da12f`, `b717cd67`, `6748d0b7`); this update is the fourth.
 - Trust-but-verify: initial Explore-agent pass produced an overview with inaccuracies (claimed `ComputeAlignmentFromResult` was strictly correct). Direct file reads confirmed the gravity-snap-then-translate bug. Use the same pattern for implementation review.
 
 ## Open questions
 
 - Whether to build the dual/shadow filter for the validation period, or just ship 4 DOF and rely on the reconstructor fixes. User leaned toward "trust upstream gravity" by end of session; implementer should ask before building the dual-filter scaffolding.
-- Whether to land the reconstructor "last stable frame for origin" change alongside the 4 DOF refactor or as a follow-up. Either is defensible; the leverage math justifies 4 DOF even without it for the building scale, but the reconstructor change tightens worst-case error to ~0.3--0.5°.
-- Concrete numeric thresholds for "stationary" frame detection (gyro magnitude, non-gravity linear-accel magnitude, sliding-window length). Pick from MEMS spec sheets initially and tune empirically.
-- Warmup-window durations per source (ARFoundation ~3 s, ZED ~1 s are tentative). Worth storing as per-source config (capture format already records which capture tool produced the data) rather than a magic number.
-- Refusal behavior for captures that never produce a warmed-up stationary frame -- error message and how it surfaces to the operator. Better than silently producing a tilted map.
-- Whether the OS-fused gravity sensor capture-format change is ever needed. Currently deferred indefinitely; revisit only if measurements show last-stable-frame VIO gravity is materially worse than independently-sampled gravity. The user explicitly questioned whether this added value at all, given AR SDKs do their own gravity refinement.
+- The reconstructor anchor change is being landed **before** the 4 DOF refactor (not bundled). Sequencing rationale: tightens upstream gravity first so the 4 DOF assumption (zero tilt in the map) is well-grounded when (5) is field-tested.
+- Stationary detection thresholds need empirical tuning. Starting values: 30-frame window, < 2 cm translation traversal, < 0.5° per-frame rotation magnitude.
+- Refusal behavior for captures that produce no stationary window: not needed in the baseline plan — the "median rotation across last 25%" fallback handles fly-through captures without hard-failing. Revisit only if field data shows the fallback produces unacceptably tilted maps.
+- Whether the OS-fused gravity sensor capture-format change is ever needed. Currently deferred indefinitely; revisit only if measurements show pose-delta-based stationary detection is materially worse than an independent gravity signal. The user explicitly questioned whether this added value at all, given AR SDKs do their own gravity refinement.
 - Which ARFoundation signal to use for VIO-discontinuity detection: no first-class "pose jumped" event. Options: `ARSession.sessionStateChanged` (coarse), tracking-state transitions on `XROrigin.Camera.trackingState`, or detect large frame-to-frame VIO deltas ourselves. Needs a small spike. Independent of the 4 DOF refactor.
 - Whether Bug 1's fix should reset the entire `_state` or only clear `HasAcceptedMeasurement` + `LastAcceptedVioPosition` so the first measurement snaps. Full reset is simpler/safer; partial reset preserves the prior as a hint, which is probably worthless after an arbitrary stop interval.
 - Validation harness for the gravity-pinning change: cheapest path is capture-the-same-scene-twice and measure floor-plane angle between reconstructions. More rigorous would be capturing against a precision inclinometer or a known plumb-line reference. Decision deferred to implementer.
@@ -288,7 +312,7 @@ Reconstruction-time gravity error is **permanent in the map and affects every fu
 - **Fix Bug 1 (filter state carry-over).** Reset `_state` in `StartLocalizing` (or at minimum clear `HasAcceptedMeasurement` and `LastAcceptedVioPosition`) so the first post-Start measurement snaps. Independent of the 4 DOF refactor.
 - **Fix Bug 1 (VIO jump unhandled).** Subscribe to an ARFoundation tracking-discontinuity signal and re-bootstrap the filter covariance on detected jumps so the chi-squared gate softens enough to accept the next measurement. Independent of the 4 DOF refactor.
 - **Fix the LocalizationMap drift.** Make `LocalizationMap` subscribe to `OnEcefToUnityWorldTransformUpdated` like `GeoPose` does, so the point cloud tracks the live alignment instead of freezing at load-time. Independent of the 4 DOF refactor.
-- **Reconstructor: last-stable-frame for origin anchor.** ~Single-digit-lines change in `colmap.py` / `rig.py` plus a stationary-detection helper. Pin the map's "up" to the non-yaw component of that frame's reported camera rotation. Companion to the 4 DOF refactor; tightens typical map tilt from "~1°" (first-frame, possibly cold-start) to "~0.3--0.5°" (last warmed-up stable frame).
+- **Reconstructor anchor change: translation from first registered frame, rotation from latest stationary frame (or median rotation across last 25% as fallback).** Implementation ~30-50 lines of Python in `colmap.py:182-200`. Stationary detection from pose deltas in `frames.csv` — no capture-format change, no operator requirement. Companion to the 4 DOF refactor; tightens typical map tilt from "~1°" (first-frame, possibly cold-start) to "~0.3-0.5°" (warmed-up converged gravity). **Land this before (5).**
 - **Decide legacy-map handling.** 4 DOF filter against old (tilted) maps will look bent. Re-process vs version-flag-and-use-6DOF-for-legacy. Ask user.
 - **Verify Bug 2 field hypothesis.** Revisit the far room via different paths; if offset is consistent it's the alignment math (4 DOF refactor will fix it), if path-dependent it's reconstruction warp (separate problem). Worthwhile even after shipping the refactor.
 - **(Deferred, not active.)** OS-fused gravity sensor capture-format change. Was previously a planned thread; demoted to a future option pending evidence the last-stable-frame VIO output is insufficient. Don't pre-build.
