@@ -226,6 +226,112 @@ namespace Placeframe.Core.Tests
         }
 
         [Test]
+        public void ApplyMeasurement_RejectionInflatesStoredCovariance()
+        {
+            var origin = new CameraFrame
+            {
+                CameraTranslationUnityWorldFromCamera = float3.zero,
+                CameraRotationUnityWorldFromCamera = quaternion.identity,
+            };
+            var accepted = RelocalizationFilter.ApplyMeasurement(
+                RelocalizationFilter.InitialState(),
+                MakeMapLocalization(tightConfidence: 0.99, looseConfidence: 0.99),
+                origin
+            ).NewState;
+            var sigmaAfterAccept = accepted.AlignmentCovariance;
+
+            // 10 m residual against σ_meas = I_6 yields m² ≈ 100 — well above the 16.81 gate.
+            var jumped = new CameraFrame
+            {
+                CameraTranslationUnityWorldFromCamera = new float3(10f, 0f, 0f),
+                CameraRotationUnityWorldFromCamera = quaternion.identity,
+            };
+            var rejected = RelocalizationFilter.ApplyMeasurement(
+                accepted,
+                MakeMapLocalization(tightConfidence: 0.99, looseConfidence: 0.99),
+                jumped
+            );
+
+            Assert.That(rejected.Rejection, Is.EqualTo(MeasurementRejection.InnovationGate));
+            // Motion noise (0.01·10)² = 1e-2 dwarfs the 1e-4 per-tick base term.
+            for (int i = 3; i < 6; i++)
+                Assert.That(
+                    rejected.NewState.AlignmentCovariance[i, i],
+                    Is.GreaterThan(sigmaAfterAccept[i, i] + 9e-3),
+                    $"diag[{i}] did not absorb motion-proportional process noise"
+                );
+        }
+
+        [Test]
+        public void ApplyMeasurement_RejectionRecoversAfterRepeatedJumpMeasurements()
+        {
+            var measurement = MakeMapLocalization(tightConfidence: 0.99, looseConfidence: 0.99);
+            var state = RelocalizationFilter
+                .ApplyMeasurement(
+                    RelocalizationFilter.InitialState(),
+                    measurement,
+                    new CameraFrame
+                    {
+                        CameraTranslationUnityWorldFromCamera = float3.zero,
+                        CameraRotationUnityWorldFromCamera = quaternion.identity,
+                    }
+                )
+                .NewState;
+            var jumpedFrame = new CameraFrame
+            {
+                CameraTranslationUnityWorldFromCamera = new float3(10f, 0f, 0f),
+                CameraRotationUnityWorldFromCamera = quaternion.identity,
+            };
+
+            var recovered = false;
+            for (int tick = 0; tick < 600; tick++)
+            {
+                var step = RelocalizationFilter.ApplyMeasurement(state, measurement, jumpedFrame);
+                state = step.NewState;
+                if (step.Rejection == MeasurementRejection.None)
+                {
+                    recovered = true;
+                    break;
+                }
+            }
+
+            Assert.That(recovered, Is.True, "filter never re-accepted after a sustained VIO jump");
+        }
+
+        [Test]
+        public void ApplyMeasurement_RejectionCapsCovarianceAtBootstrap()
+        {
+            var bootstrap = RelocalizationFilter.BootstrapCovariance();
+            var oversized = bootstrap.Clone();
+            for (int i = 0; i < 6; i++)
+                oversized[i, i] = bootstrap[i, i] * 10.0;
+            var state = RelocalizationFilter.InitialState();
+            state.HasAcceptedMeasurement = true;
+            state.LastAcceptedVioPosition = new double3(0, 0, 0);
+            state.AlignmentCovariance = oversized;
+            // Residual must dwarf the inflated innovation covariance for the gate to fire.
+            var jumped = new CameraFrame
+            {
+                CameraTranslationUnityWorldFromCamera = new float3(2000f, 0f, 0f),
+                CameraRotationUnityWorldFromCamera = quaternion.identity,
+            };
+
+            var result = RelocalizationFilter.ApplyMeasurement(
+                state,
+                MakeMapLocalization(tightConfidence: 0.99, looseConfidence: 0.99),
+                jumped
+            );
+
+            Assert.That(result.Rejection, Is.EqualTo(MeasurementRejection.InnovationGate));
+            for (int i = 0; i < 6; i++)
+                Assert.That(
+                    result.NewState.AlignmentCovariance[i, i],
+                    Is.LessThanOrEqualTo(bootstrap[i, i] + 1e-9),
+                    $"diag[{i}] exceeded bootstrap cap"
+                );
+        }
+
+        [Test]
         public void ShiftMagnitudeSquared_SamePose_IsZero()
         {
             var pose = double4x4.identity;

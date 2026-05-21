@@ -111,15 +111,25 @@ namespace Placeframe.Core
             var innovation = ComputeInnovation(state.AlignmentMean, sigmaPredicted, measurementMean, sigmaMeas);
 
             if (innovation.MahalanobisSquared > Chi2_99_6dof)
+            {
+                // Cap at bootstrap so eventual unlock doesn't admit outliers as eagerly as a good measurement.
+                var bootstrap = BootstrapCovariance();
+                for (var i = 0; i < 6; i++)
+                    sigmaPredicted[i, i] = math.min(sigmaPredicted[i, i], bootstrap[i, i]);
+
+                var rejectedState = state;
+                rejectedState.AlignmentCovariance = sigmaPredicted;
+
                 return new StepResult
                 {
-                    NewState = state,
+                    NewState = rejectedState,
                     Rejection = MeasurementRejection.InnovationGate,
                     InnovationMahalanobisSquared = innovation.MahalanobisSquared,
                     InnovationResidual = innovation.Residual,
                     SigmaPredicted = sigmaPredicted,
                     HadAcceptedMeasurementBeforeStep = state.HasAcceptedMeasurement,
                 };
+            }
 
             var posterior = KalmanUpdate(
                 state.AlignmentMean,
