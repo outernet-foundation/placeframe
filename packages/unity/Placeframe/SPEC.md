@@ -2,7 +2,7 @@
 
 ## What this is
 
-The Unity-side wrapper around Placeframe's relocalization service. It exposes a static facade (`VisualPositioningSystem`) that authenticates against Placeframe's Keycloak, streams camera frames to `POST /localize`, runs a Bayesian SE(3) filter over the returned poses, and publishes a smoothly-slewed ECEF-to-Unity-world transform that consumers use to anchor virtual content to a real physical place. Consumers in this repo: `apps/MakeItSing/` (multiplayer XR) and `apps/AndroidMobile/` (capture tool). The host Unity project at this directory is not the package -- it's the editor harness for developing the package; the package itself lives entirely under `Assets/Package/`.
+The Unity-side wrapper around Placeframe's relocalization service. It exposes a static facade (`VisualPositioningSystem`) that authenticates against Placeframe's Keycloak, streams camera frames to `POST /localize`, runs a Bayesian 4 DOF filter (yaw + R^3 translation) over the returned poses, and publishes a smoothly-slewed ECEF-to-Unity-world transform that consumers use to anchor virtual content to a real physical place. Consumers in this repo: `apps/MakeItSing/` (multiplayer XR) and `apps/AndroidMobile/` (capture tool). The host Unity project at this directory is not the package -- it's the editor harness for developing the package; the package itself lives entirely under `Assets/Package/`.
 
 ## Shape
 
@@ -69,23 +69,27 @@ The Keycloak realm path `placeframe-dev` is hardcoded at `Assets/Package/Core/Ru
 
 `RelocalizationFilter` (`Assets/Package/Core/Runtime/RelocalizationFilter.cs`) is a pure-functional static class. Every public method takes a `FilterState` value and returns a `StepResult`. State:
 
-- `AlignmentMean: double4x4` -- Bayesian posterior mean (ECEF to Unity), in Unity basis.
-- `AlignmentCovariance: Matrix<double>` (6x6) -- posterior covariance in se(3) tangent (rotation first, translation second -- matches pycolmap PnP ordering).
-- `AlignmentCurrent`, `AlignmentCurrentInverse` -- the actively-published transform (lags `AlignmentMean` during slew).
-- `SlewStart`, `SlewProgress`, `LastAcceptedVioPosition`, `HasAcceptedMeasurement`, `MostRecentMetrics`.
+- `Yaw: double` -- rotation around Unity +Y, in radians wrapped to (-pi, pi].
+- `Translation: double3` -- ECEF-origin position in Unity world, in meters.
+- `AlignmentCovariance: Matrix<double>` (4x4) -- posterior covariance, ordering `[yaw, tx, ty, tz]`.
+- `YawCurrent`, `TranslationCurrent` -- the actively-published alignment (lags posterior during slew). Consumers read these via `EcefToUnityWorldTransform`, which assembles a `double4x4` from `(YawCurrent, TranslationCurrent)` on demand.
+- `YawSlewStart`, `TranslationSlewStart`, `SlewProgress`, `LastAcceptedVioPosition`, `HasAcceptedMeasurement`, `ConsecutiveRejections`, `MostRecentMetrics`.
+
+The 4 DOF parameterisation encodes pitch=0 and roll=0 as a structural constraint, delegating gravity alignment to the reconstructor's anchor selection (see `docker/reconstructor/colmap.py`). The earlier 6 DOF filter applied a per-measurement gravity snap after composing the full SE(3) transform; that snap rotated `R` while leaving `t` untouched, which is equivalent to rotating around the map origin and produced a leveraged vertical offset that scaled with distance from origin. The 4 DOF projection extracts yaw at the camera anchor instead, so the same constraint cannot pivot a far-from-origin point.
 
 The Bayesian update for each measurement (`ApplyMeasurement`):
 
-1. Compute `measurementMean` from the localizer response: `CameraFromMapTransform`, `MapTransform`, and the VIO `CameraFromUnityWorld` are combined and the result has its up-vector projected to Unity-up (an empirical tilt-drift correction at lines 287-291). The ECEF-to-Unity basis change (`diag(1, -1, 1)`) is applied inline.
-2. Inflate the predicted covariance by a base diagonal (`1e-6` rad squared, `1e-4` m squared per tick) plus VIO drift proportional to translated distance (0.01 m sigma per meter of motion, squared). Rotation-only motion contributes no extra noise -- a known simplification.
-3. Innovation: `residual = Se3.Log(currentMean^-1 * measurementMean)`, Mahalanobis squared `= residual . (Sigma_pred + Sigma_meas)^-1 . residual`.
-4. Gate at chi-squared 99% with 6 DOF = 16.81 (`Chi2_99_6dof`). Reject and log if exceeded.
-5. Kalman update in se(3) tangent: `K = Sigma_pred (Sigma_pred + Sigma_meas)^-1`, `mu_new = mu * Se3.Exp(K residual)`, `Sigma_new = (I - K) Sigma_pred`.
-6. Snap-or-slew decision: first accept always snaps (the bootstrap covariance is intentionally large). Subsequent updates: snap if the Mahalanobis-squared shift from current mean to new mean exceeds 36 (about 6 sigma); else start a 0.5s smoothstep slew.
+1. Compute `(yawMeas, translationMeas)` from the localizer response: `CameraFromMapTransform`, `MapTransform`, and the VIO `CameraFromUnityWorld` compose to a raw 6 DOF `R_unityFromEcef`. Yaw is extracted via Z-projection (`atan2(forward.x, forward.z)`, degrades gracefully near pitch = +/-90 degrees). Translation is anchored on the camera: `tMeas = t_unityWorldCamera - R_yawOnly * t_ecefFromCamera`, so the camera's reported Unity-world position determines the alignment translation regardless of pitch/roll noise in the raw measurement. The ECEF-to-Unity basis change (`diag(1, -1, 1)`) is applied inline.
+2. Project the 6x6 pycolmap measurement covariance to 4x4 by picking the `(omega_y, nu_x, nu_y, nu_z)` rows and columns. Diagonal-dominant approximation; full Jacobian would add cross-terms scaling with `|t_mapFromCamera|` (TODO if the filter looks under-confident far from the map origin).
+3. Inflate the predicted covariance by a base diagonal (`1e-6` rad squared on yaw, `1e-4` m squared per tick on translation) plus VIO drift proportional to translated distance (0.01 sigma per meter of motion, squared, applied uniformly). Rotation-only motion contributes no extra noise -- a known simplification.
+4. Innovation: `residual = [wrap(yawMeas - yawState), translationMeas - translationState]`, Mahalanobis squared `= residual . (Sigma_pred + Sigma_meas)^-1 . residual`.
+5. Gate at chi-squared 99% with 4 DOF = 13.28 (`Chi2_99_4dof`). Reject and log if exceeded.
+6. Kalman update: `K = Sigma_pred (Sigma_pred + Sigma_meas)^-1`, `(yaw, t)_new = (yaw, t) + K residual` (yaw rewrapped), `Sigma_new = (I - K) Sigma_pred`.
+7. Snap-or-slew decision: first accept always snaps (the bootstrap covariance is intentionally large). Subsequent updates: snap if the Mahalanobis-squared shift from current mean to new mean exceeds 36 (about 6 sigma); else start a 0.5s smoothstep slew.
 
-`TickSlew` runs every Unity frame via the `EveryUpdate` subscription installed in `Initialize`, advancing `SlewProgress` and recomputing `AlignmentCurrent` via `Double4x4.Interpolate` (decompose, slerp rotation, lerp translation/scale, recompose -- component-wise lerping a 4x4 destroys orthonormality). The `TransformChanged` flag drives `OnEcefToUnityWorldTransformUpdated`.
+`TickSlew` runs every Unity frame via the `EveryUpdate` subscription installed in `Initialize`, advancing `SlewProgress`, lerping `TranslationCurrent` linearly between start and target, and stepping `YawCurrent` along the shortest arc (via `WrapAngle` on the delta). The `TransformChanged` flag drives `OnEcefToUnityWorldTransformUpdated`.
 
-`Reset(newAlignment)` wipes filter history and re-bootstraps the covariance. Used by `SetEcefToUnityTransform` for operator-supplied alignment overrides.
+`Reset(newYaw, newTranslation)` (or the `double4x4` overload, which extracts yaw via `MathUtil.YawFromRotation`) wipes filter history and re-bootstraps the covariance. Used by `SetEcefToUnityTransform` for operator-supplied alignment overrides.
 
 ### ECEF to Unity coordinate transform
 
@@ -121,7 +125,7 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 ### Tests
 
-`Assets/Package/Core/Tests/Editor/` holds five NUnit edit-mode test files (about 650 lines): `Double4x4Tests` (decompose, interpolate), `LocationUtilitiesTests` (basis-change involutions), `Se3Tests` (Exp/Log round-trip including small-angle branch), `WGS84Tests` (cartographic to/from ECEF round-trip at known sites), `RelocalizationFilterTests` (bootstrap, slew, snap-vs-slew, gate, posterior, VIO drift inflation). These are the only Unity-side regression net; there is no integration test against a running localizer.
+`Assets/Package/Core/Tests/Editor/` holds four NUnit edit-mode test files: `Double4x4Tests` (decompose, interpolate), `LocationUtilitiesTests` (basis-change involutions), `WGS84Tests` (cartographic to/from ECEF round-trip at known sites), `RelocalizationFilterTests` (bootstrap, slew, snap-vs-slew, gate, posterior, VIO drift inflation, yaw-wrap, 4 DOF covariance projection, gravity-projection regression for a pitched input at 20 m, repeated-rejection consecutive counter). These are the only Unity-side regression net; there is no integration test against a running localizer.
 
 ### Editor utilities
 
@@ -135,9 +139,9 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 **Three asmdefs, not one.** Pulling ARFoundation into a MagicLeap-only build (or vice versa) creates compile-time conflicts and binary bloat. Per-stack camera providers in their own asmdefs compile only when their platform is the target. Core has zero AR/XR refs and can be tested in pure C#. The cost is three `package.json` files to keep version-aligned and three asmdefs to keep ref-correct.
 
-**Bayesian filter in tangent space with chi-squared gate.** A naive moving average over the measurement transform is wrong on SE(3) -- averaging rotation matrices isn't a rotation. Working in se(3) tangent (the Lie algebra) makes the Kalman update linear-to-first-order around the current mean, and lets the innovation gate use a standard Mahalanobis distance against the analytic measurement covariance the server returns (`MeasurementCovariance = alpha * PnP + beta * I`, see `docker/localizer/SPEC.md`). The trade-off: tangent-space accuracy degrades for large innovations, which is why large posterior shifts snap rather than slew.
+**4 DOF filter with chi-squared gate.** Pitch and roll of the ECEF-to-Unity alignment are known a-priori to be zero -- the AR SDK's Y-up axis already tracks gravity, and the reconstructor pins the map's gravity to a stationary frame's VIO Y-up. Filtering them as free parameters lets per-measurement PnP noise leak into them; the 6 DOF predecessor compensated with a per-measurement gravity snap that rotated `R` without compensating `t`, which pivoted far-from-origin points vertically. Encoding the constraint in the state representation -- yaw + R^3 translation -- removes the bug class: the projection happens at the camera anchor where the measurement is geometrically valid, the Kalman update is linear without tangent-space approximations, and the innovation gate uses a 4-DOF Mahalanobis distance against the projected 4x4 covariance. The trade-off: legacy maps reconstructed before fix #6 may have baked-in tilt, which the 4 DOF filter forces to zero (looks slightly bent rather than tilted). Accepted as a known limitation; only field-recent maps are expected to load against this filter.
 
-**Snap-or-slew with smoothstep.** Visual continuity matters more than mathematical pristineness -- a 30cm position jump on a successful first localize is shocking on-headset. The 0.5s smoothstep slew hides small refinements; the 6-sigma snap threshold catches cases where slewing would be longer-than-correct-tracking (e.g. recovering from an outlier-rejected sequence). The first accept always snaps because the bootstrap covariance (pi squared rad squared, 100 squared m squared) is degenerate and the snap-magnitude calculation isn't meaningful.
+**Snap-or-slew with smoothstep.** Visual continuity matters more than mathematical pristineness -- a 30cm position jump on a successful first localize is shocking on-headset. The 0.5s smoothstep slew hides small refinements; the 6-sigma snap threshold catches cases where slewing would be longer-than-correct-tracking (e.g. recovering from an outlier-rejected sequence). The first accept always snaps because the bootstrap covariance (pi squared rad squared on yaw, 100 squared m squared on translation) is degenerate and the snap-magnitude calculation isn't meaningful.
 
 **Server-computed measurement covariance.** Earlier versions of the filter applied a client-side confidence gate; commit `06bff440` dropped it in favor of consuming the calibrated `MeasurementCovariance` directly. The localizer's `fit_calibration` pipeline now solves for the alpha/beta formula at build time, and the client filter stays calibration-agnostic -- see `docker/localizer/SPEC.md` Calibration runtime.
 
