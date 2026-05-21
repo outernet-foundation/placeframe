@@ -5,6 +5,13 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
+class PhaseTiming(BaseModel):
+    phase: str = Field(description="ReconstructionStatus value of the phase, e.g. 'extracting_features'.")
+    duration_seconds: float = Field(
+        description="Wall-clock seconds the phase spent in-flight, measured between the publisher's set_phase boundaries."
+    )
+
+
 class ReconstructionMetrics(BaseModel):
     total_images: Optional[int] = Field(
         default=None, description="Total number of input images considered for this reconstruction run."
@@ -143,5 +150,13 @@ class ReconstructionMetrics(BaseModel):
         description=(
             "Maximum over registered cameras of ||T·c_map - c_truth|| in meters. Companion to the RMS "
             "field; surfaces single-frame outliers that the RMS would smooth over."
+        ),
+    )
+    phase_timings: Optional[list[PhaseTiming]] = Field(
+        default=None,
+        description=(
+            "Per-phase wall-clock durations in execution order, captured at each ReconstructionPublisher "
+            "set_phase boundary. Useful for after-the-fact attribution of total reconstruction time across "
+            "feature extraction, OPQ/PQ training, matching, geometric verification, and incremental mapping."
         ),
     )

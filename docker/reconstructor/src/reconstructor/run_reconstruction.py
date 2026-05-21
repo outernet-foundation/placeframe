@@ -4,7 +4,6 @@ import tarfile
 from collections.abc import Callable
 from io import BytesIO
 from pathlib import Path
-from time import perf_counter
 from typing import Any
 from uuid import UUID
 
@@ -210,7 +209,6 @@ def run_reconstruction(
 
     # Match features
     publisher.set_phase(ReconstructionStatus.MATCHING_FEATURES, total=len(pairs))
-    matching_t0 = perf_counter()
     match_indices = local_feature_matcher(
         pairs,
         keypoints,
@@ -219,7 +217,6 @@ def run_reconstruction(
         options.lightglue_batch_size(),
         publisher.on_progress,
     )
-    print(f"matching_features wall_time={perf_counter() - matching_t0:.2f}s pairs={len(pairs)}")
     if cuda.is_available():
         cuda.empty_cache()
 
@@ -254,6 +251,9 @@ def run_reconstruction(
                 f"sfm_model/{file_path.relative_to(sfm_output_path)}",
                 file_path.read_bytes(),
             )
+
+    publisher.finalize_timings()
+    metrics.metrics.phase_timings = publisher.phase_timings
 
     return metrics.metrics
 
