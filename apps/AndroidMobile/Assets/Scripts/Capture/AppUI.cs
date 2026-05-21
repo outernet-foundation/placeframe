@@ -345,7 +345,7 @@ namespace Placeframe.Client
             });
 
             control.AddBinding(
-                new Disposable(() => VisualPositioningSystem.OnMetricsReceived -= handleMetricsChanged)
+                new ObserveThing.Disposable(() => VisualPositioningSystem.OnMetricsReceived -= handleMetricsChanged)
             );
             control.AddBinding(tickSubscription);
 
