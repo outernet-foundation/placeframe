@@ -16,6 +16,7 @@ from numpy import (
     float32,
     float64,
     intp,
+    pi,
     savez_compressed,
     sign,
     stack,
@@ -49,6 +50,13 @@ from .rig import Rig, Transform
 
 COLMAP_DB_FILE = "database.db"
 COLMAP_SFM_DIRECTORY = "sfm_model"
+
+# Anchor rotation comes from the latest 30-frame window where the operator is effectively
+# still: net translation under 2 cm and every per-frame rotation under 0.5°. VIO has had
+# the most time to refine the gravity vector by then.
+STATIONARY_WINDOW_FRAMES = 30
+STATIONARY_TRANSLATION_THRESHOLD_M = 0.02
+STATIONARY_ROTATION_THRESHOLD_RAD = 0.5 * pi / 180.0
 
 
 def run_colmap_reconstruction(
@@ -179,20 +187,49 @@ def run_colmap_reconstruction(
 
     metrics.build_reconstruction_metrics(best_reconstruction)
 
-    # Use the first frame that is registered in the best reconstruction to determine the similarity transform
-    anchor = next(_registered_frames(rigs, colmap_image_ids, best_reconstruction), None)
-    if anchor is None:
+    # Sim3d anchor: translation from the first registered frame (keeps the map origin at the
+    # capture start for Cesium georegistration), rotation from the latest stationary-detected
+    # frame (VIO has had the most time to converge on the true gravity vector). Sort by integer
+    # frame_id so multi-rig captures interleave by timestamp instead of dict-iteration order.
+    registered = sorted(_registered_frames(rigs, colmap_image_ids, best_reconstruction), key=lambda entry: entry[0])
+    if not registered:
         raise RuntimeError("Could not find anchor frame in best reconstruction")
-    anchor_frame_prior_pose, anchor_rig_from_world_transform = anchor
 
-    # Transform the reconstruction to align with the rig coordinate system
+    _first_frame_id, first_transform, first_rig_from_world = registered[0]
+
+    anchor_rotation: NDArray[float64] | None = None
+    for start in range(len(registered) - STATIONARY_WINDOW_FRAMES, -1, -1):
+        window = registered[start : start + STATIONARY_WINDOW_FRAMES]
+        net_translation = norm(window[-1][1].translation - window[0][1].translation)
+        if net_translation >= STATIONARY_TRANSLATION_THRESHOLD_M:
+            continue
+        max_per_frame_rotation = max(
+            float(Rotation.from_matrix(window[i + 1][1].rotation @ window[i][1].rotation.T).magnitude())
+            for i in range(STATIONARY_WINDOW_FRAMES - 1)
+        )
+        if max_per_frame_rotation >= STATIONARY_ROTATION_THRESHOLD_RAD:
+            continue
+        anchor_rotation = window[-1][1].rotation
+        break
+
+    # Fly-through fallback: no stationary window exists, so average the rotations across the
+    # tail of the capture where bias estimates have had the most time to settle.
+    if anchor_rotation is None:
+        tail_start = (len(registered) * 3) // 4
+        tail_rotation_matrices = stack([entry[1].rotation for entry in registered[tail_start:]])
+        anchor_rotation = Rotation.from_matrix(tail_rotation_matrices).mean().as_matrix()
+
+    # The first registered frame's COLMAP pose stays as the source side of the Sim3d; the
+    # target side is the synthesized (R_anchor, T_first) pair. Sim3d only needs one (source,
+    # target) pose so any rotation is admissible — picking a stationary-frame rotation rotates
+    # the entire reconstruction by the gravity correction relative to first-frame anchoring.
     best_reconstruction.transform(
         Sim3d(
             concatenate(
                 [
-                    anchor_frame_prior_pose.rotation @ anchor_rig_from_world_transform.rotation.matrix(),
-                    anchor_frame_prior_pose.rotation @ anchor_rig_from_world_transform.translation.reshape(3, 1)
-                    + anchor_frame_prior_pose.translation.reshape(3, 1),
+                    anchor_rotation @ first_rig_from_world.rotation.matrix(),
+                    anchor_rotation @ first_rig_from_world.translation.reshape(3, 1)
+                    + first_transform.translation.reshape(3, 1),
                 ],
                 axis=1,
             )
@@ -203,7 +240,7 @@ def run_colmap_reconstruction(
     # kept as the VIO-quality signal that filters unreliable captures from the calibration corpus.
     truth_centers_list: list[NDArray[float64]] = []
     map_centers_list: list[NDArray[float64]] = []
-    for transform, rig_from_world in _registered_frames(rigs, colmap_image_ids, best_reconstruction):
+    for _frame_id, transform, rig_from_world in registered:
         truth_centers_list.append(transform.translation.astype(float64))
         map_centers_list.append(-rig_from_world.rotation.matrix().T @ rig_from_world.translation)
 
@@ -261,7 +298,7 @@ def _registered_frames(
     rigs: dict[str, Rig],
     colmap_image_ids: dict[str, int],
     reconstruction: Reconstruction,
-) -> Iterator[tuple[Transform, Rigid3d]]:
+) -> Iterator[tuple[int, Transform, Rigid3d]]:
     # Multi-camera rigs (e.g. ZED stereo) share one Frame per rig+frame, so any registered
     # image of any camera in that frame yields the Frame's rig_from_world.
     for rig_id, rig in rigs.items():
@@ -270,7 +307,7 @@ def _registered_frames(
                 image_id = colmap_image_ids[f"{rig_id}/{camera_id}/{frame_id}.jpg"]
                 if image_id in reconstruction.images:
                     rig_from_world = cast(Rigid3d, cast(Frame, reconstruction.images[image_id].frame).rig_from_world)  # type: ignore
-                    yield transform, rig_from_world
+                    yield int(frame_id), transform, rig_from_world
                     break
 
 
