@@ -1,5 +1,5 @@
 ---
-updated: 2026-05-17
+updated: 2026-05-20
 ---
 
 
@@ -16,7 +16,12 @@ Investigate root cause, distinguish math/geometry bugs from possible reconstruct
 
 ## State
 
-Diagnosis complete; design for the 4 DOF refactor drafted; no code changes yet. Investigation done on branch `investigation/validation-mode-bugs`. Findings verified by reading source directly (not just by trusting a sub-agent), so the line numbers and code structure below are confirmed against the working tree at this commit.
+- **Fix (6) landed** at `1fdad105` (reconstructor anchor: translation from first registered frame, rotation from latest stationary-detected window with chordal-mean fallback on fly-through captures).
+- **Fix (5) landed** at `764d3325` — full 4 DOF refactor of `RelocalizationFilter` per the design below. `Se3.cs` / `Se3Tests.cs` deleted; `MathUtil.WrapAngle` and `MathUtil.YawFromRotation` added; `RelocalizationFilterTests` rewritten with a gravity-projection regression (2° pitch input must produce zero vertical offset at 20 m), a yaw-wrap test, a 4D covariance-projection test, and a `ConsecutiveRejections` lockup regression. Prose spec rewritten in `packages/unity/Placeframe/SPEC.md` at commit `8c69dff6`. MakeItSing compiled clean (`uv run compile-unity --project MakeItSing --build android-mobile`); CaptureTool has a pre-existing unrelated `AppUI.cs:348` ambiguity from `d738045d` (do not chase as a refactor regression). The NUnit suite has not been run from a slot — Unity test runner will exercise on next CI/editor open.
+- The "Build a 6 DOF / 4 DOF shadow filter" option was rejected. Shipped 4 DOF outright; trust the reconstructor anchor fix to keep map tilt bounded.
+- Legacy-map handling: explicitly chose **"accept the bend"** — no version flag, no fallback to 6 DOF for legacy maps. The user does not care about archived/old maps; the bend on legacy maps will be small in practice (~1°) and only affects whichever legacy maps stay loaded.
+
+Original investigation on branch `investigation/validation-mode-bugs`. Findings verified by reading source directly, so the line numbers and code structure below are confirmed against the working tree at the pre-fix commits.
 
 ### Bug 1 root cause (confirmed)
 
@@ -30,9 +35,9 @@ Diagnosis complete; design for the 4 DOF refactor drafted; no code changes yet. 
 
 User's original hypothesis ("VIO jump after VPS lock gets baked in, nothing reacts to it") is correct, with the added multiplier that the rejection gate then locks the bad alignment in permanently.
 
-### Bug 1 bonus finding (probably also contributes)
+### Bug 1 bonus finding (closed: not a bug)
 
-`LocalizationMap.cs:119-120` sets `transform.position` / `transform.rotation` **exactly once** in `DownloadMapAndLoad`, using whatever `EcefToUnityWorld` returns at that instant. Unlike `GeoPose.cs:67` -- which subscribes to `VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated` and re-applies the transform -- `LocalizationMap` never re-syncs. So the point cloud's Unity-world pose is frozen against the alignment that existed when the HTTP fetch completed (possibly identity / stale), and never tracks subsequent filter updates. This is likely a second contributor to "looks good, then drifts."
+An earlier draft of this memo claimed `LocalizationMap.cs:119-120` is a second drift contributor because it sets `transform.position` / `transform.rotation` only once at load. That was wrong: `LocalizationMap.prefab` carries a `GeoPose` MonoBehaviour on the same GameObject. `GeoPose.OnEnable` subscribes to `VisualPositioningSystem.OnEcefToUnityWorldTransformUpdated` and re-applies the world transform whenever the filter publishes, so the point cloud tracks the live alignment via its sibling component. The one-shot write in `DownloadMapAndLoad` just seeds the initial pose before `GeoPose` takes over. Do not re-open this thread.
 
 ### Bug 2 root cause (now reframed: not a "translation bug" but a constraint-encoded-in-wrong-place bug)
 
@@ -308,11 +313,12 @@ Reconstruction-time gravity error is **permanent in the map and affects every fu
 
 ## Pending threads
 
-- **Implement the 6 DOF → 4 DOF refactor of `RelocalizationFilter`.** User said "go ahead and implement"; design above is the spec. Do NOT re-surface the "open design decisions" -- they're settled. Touches `RelocalizationFilter`, `VisualPositioningSystem` (state shape), `Se3` (mostly deleted), `MathUtil` (new helpers), `RelocalizationFilterTests` (rewrite), possibly `Placeframe/SPEC.md`. Branch is `investigation/validation-mode-bugs`. Ask user before committing the first cut.
-- **Fix Bug 1 (filter state carry-over).** Reset `_state` in `StartLocalizing` (or at minimum clear `HasAcceptedMeasurement` and `LastAcceptedVioPosition`) so the first post-Start measurement snaps. Independent of the 4 DOF refactor.
-- **Fix Bug 1 (VIO jump unhandled).** Subscribe to an ARFoundation tracking-discontinuity signal and re-bootstrap the filter covariance on detected jumps so the chi-squared gate softens enough to accept the next measurement. Independent of the 4 DOF refactor.
-- **Fix the LocalizationMap drift.** Make `LocalizationMap` subscribe to `OnEcefToUnityWorldTransformUpdated` like `GeoPose` does, so the point cloud tracks the live alignment instead of freezing at load-time. Independent of the 4 DOF refactor.
-- **Reconstructor anchor change: translation from first registered frame, rotation from latest stationary frame (or median rotation across last 25% as fallback).** Implementation ~30-50 lines of Python in `colmap.py:182-200`. Stationary detection from pose deltas in `frames.csv` — no capture-format change, no operator requirement. Companion to the 4 DOF refactor; tightens typical map tilt from "~1°" (first-frame, possibly cold-start) to "~0.3-0.5°" (warmed-up converged gravity). **Land this before (5).**
-- **Decide legacy-map handling.** 4 DOF filter against old (tilted) maps will look bent. Re-process vs version-flag-and-use-6DOF-for-legacy. Ask user.
-- **Verify Bug 2 field hypothesis.** Revisit the far room via different paths; if offset is consistent it's the alignment math (4 DOF refactor will fix it), if path-dependent it's reconstruction warp (separate problem). Worthwhile even after shipping the refactor.
-- **(Deferred, not active.)** OS-fused gravity sensor capture-format change. Was previously a planned thread; demoted to a future option pending evidence the last-stable-frame VIO output is insufficient. Don't pre-build.
+- **Fix Bug 1 (VIO jump unhandled).** Subscribe to an ARFoundation tracking-discontinuity signal and re-bootstrap the filter covariance on detected jumps so the chi-squared gate softens enough to accept the next measurement. Needs a small spike to pick the right signal (`ARSession.sessionStateChanged`, tracking-state transitions on `XROrigin.Camera.trackingState`, or detect large frame-to-frame VIO deltas ourselves). Independent of the 4 DOF refactor.
+- **Field-test fixes (1), (3), (5), (6) on device.** Recovery: deliberate phone bump should raise `ConsecutiveRejections`, show the red banner, then recover within seconds; Stop→Start should clear any locked posterior. Far-room: verify the 4 DOF refactor flattens the height bias observed in the original Bug 2. Requires hardware; not a slot task.
+- **Validation harness for the gravity-pinning change.** Capture the same scene twice, fit floor planes in both reconstructions, measure the angle between them — that's a lower bound on random error including between-session systematic differences. Requires hardware + reconstructor.
+- **Verify Bug 2 field hypothesis.** Revisit the far room via different paths; if offset is now negligible the 4 DOF refactor closed it, if path-dependent residual offset remains it's reconstruction warp (separate problem). Requires hardware.
+- **(Closed: not a bug.)** "`LocalizationMap` drift" — `LocalizationMap.prefab` already carries a `GeoPose` component; `GeoPose.OnEnable` subscribes to `OnEcefToUnityWorldTransformUpdated` and keeps the point cloud's transform in sync with the live alignment. The single `transform.position` / `transform.rotation` write in `DownloadMapAndLoad` just seeds the initial pose. Do not re-open.
+- **(Closed: shipped.)** Fix (5) 4 DOF refactor — landed at code commit `764d3325`, spec commit `8c69dff6`.
+- **(Closed: shipped.)** Fix (6) reconstructor anchor change — landed at code commit `1fdad105`, plan commit `50c3ca14`.
+- **(Closed: not a bug.)** Filter state carry-over across Stop→Start was addressed by the `Reset` call in `StartLocalizing` (`VisualPositioningSystem.cs:206`), which clears `HasAcceptedMeasurement` and `LastAcceptedVioPosition` so the first post-Start measurement snaps.
+- **(Deferred, not active.)** OS-fused gravity sensor capture-format change. Demoted to a future option pending evidence the last-stable-frame VIO output is insufficient. Don't pre-build.
