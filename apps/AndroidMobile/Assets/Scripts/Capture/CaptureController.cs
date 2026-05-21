@@ -20,11 +20,13 @@ namespace Placeframe.Client
     public static class CaptureController
     {
         private static float captureIntervalSeconds = 0.5f;
+        private static readonly TimeSpan idleRefreshInterval = TimeSpan.FromSeconds(5);
 
         private static bool capturesLoaded;
         private static string localCaptureNamePath;
         private static Dictionary<Guid, string> _localCaptureNames = new();
         private static IDisposable _subscription;
+        private static IDisposable _idleRefreshTimerSubscription;
         private static CompositeDisposable _pollSubscriptions = new();
 
         public static void Initialize()
@@ -62,13 +64,24 @@ namespace Placeframe.Client
                     {
                         if (isStoppingAndLoggedIn) StopCaptureForCurrentDevice().Forget();
                     }),
-                App.state.zedReachable.Subscribe(isReachable =>
-                {
-                    if (isReachable
-                        && App.state.loggedIn.value
-                        && App.state.captureStatus.value == CaptureStatus.Idle)
-                        UpdateCaptureList().Forget();
-                }),
+                ObservableCombineValues(
+                    App.state.loggedIn,
+                    App.state.captureStatus,
+                    App.state.zedReachable,
+                    (loggedIn, captureStatus, zedReachable) =>
+                        loggedIn && captureStatus == CaptureStatus.Idle && zedReachable)
+                    .Subscribe(shouldRefresh =>
+                    {
+                        if (shouldRefresh && _idleRefreshTimerSubscription == null)
+                            _idleRefreshTimerSubscription = Observable
+                                .Timer(TimeSpan.Zero, idleRefreshInterval)
+                                .Subscribe(_ => UpdateCaptureList().Forget());
+                        else if (!shouldRefresh && _idleRefreshTimerSubscription != null)
+                        {
+                            _idleRefreshTimerSubscription.Dispose();
+                            _idleRefreshTimerSubscription = null;
+                        }
+                    }),
                 App.state.captures.SubscribeOperations(HandleCapturesChanged),
                 App.state.captures
                     .ObservableSelect(entry => entry.Value)
@@ -104,6 +117,8 @@ namespace Placeframe.Client
         {
             _subscription?.Dispose();
             _subscription = null;
+            _idleRefreshTimerSubscription?.Dispose();
+            _idleRefreshTimerSubscription = null;
             _pollSubscriptions.Dispose();
             ZedCaptureController.Shutdown();
         }
