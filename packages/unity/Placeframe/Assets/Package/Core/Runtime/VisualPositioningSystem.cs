@@ -63,8 +63,9 @@ namespace Placeframe.Core
         public static LocalizationMetrics LastReceivedMetrics { get; private set; }
         public static bool Localizing => _localizationSubscription != null;
         public static int LoadedMapCount => _maps.Count;
-        public static double4x4 EcefToUnityWorldTransform => _state.AlignmentCurrent;
-        public static double4x4 UnityWorldToEcefTransform => _state.AlignmentCurrentInverse;
+        public static double4x4 EcefToUnityWorldTransform =>
+            RelocalizationFilter.BuildAlignment(_state.YawCurrent, _state.TranslationCurrent);
+        public static double4x4 UnityWorldToEcefTransform => math.inverse(EcefToUnityWorldTransform);
         public static event Action OnEcefToUnityWorldTransformUpdated;
         public static event Action OnMetricsReceived;
         public static AlignmentUncertainty CurrentUncertainty =>
@@ -203,7 +204,7 @@ namespace Placeframe.Core
                 throw new InvalidOperationException("VisualPositioningSystem has no maps loaded; call SetLocalizationMaps or AddLocalizationMap first");
 
             // Re-bootstrap filter history so a Stop→Start cycle is a real recovery, not a no-op against a locked posterior.
-            ApplyStepResult(RelocalizationFilter.Reset(_state, _state.AlignmentCurrent));
+            ApplyStepResult(RelocalizationFilter.Reset(_state, _state.YawCurrent, _state.TranslationCurrent));
             _lastAcceptedTime = -1f;
             LastRejectionReason = MeasurementRejection.None;
             LastInnovationMahalanobisSquared = 0.0;
@@ -243,7 +244,7 @@ namespace Placeframe.Core
         )
         {
             var (position, rotation) = LocationUtilities.UnityFromEcef(
-                _state.AlignmentCurrent,
+                EcefToUnityWorldTransform,
                 ecefPosition,
                 ecefRotation
             );
@@ -255,7 +256,7 @@ namespace Placeframe.Core
 
         public static (double3 position, quaternion rotation) UnityWorldToEcef(Vector3 position, Quaternion rotation) =>
             LocationUtilities.EcefFromUnity(
-                _state.AlignmentCurrentInverse,
+                UnityWorldToEcefTransform,
                 new double3(position.x, position.y, position.z),
                 rotation
             );
@@ -310,10 +311,9 @@ namespace Placeframe.Core
                         $"Localization rejected: innovation gate"
                             + $" m²={result.InnovationMahalanobisSquared:0.00}"
                             + $" hadAccepted={result.HadAcceptedMeasurementBeforeStep}"
-                            + $" residual=[ω={r[0]:0.0000},{r[1]:0.0000},{r[2]:0.0000}"
-                            + $" ν={r[3]:0.0000},{r[4]:0.0000},{r[5]:0.0000}]"
-                            + $" sigmaPredictedDiag=[{s[0,0]:E2},{s[1,1]:E2},{s[2,2]:E2},"
-                            + $"{s[3,3]:E2},{s[4,4]:E2},{s[5,5]:E2}]"
+                            + $" residual=[yaw={r[0]:0.0000}"
+                            + $" ν={r[1]:0.0000},{r[2]:0.0000},{r[3]:0.0000}]"
+                            + $" sigmaPredictedDiag=[{s[0,0]:E2},{s[1,1]:E2},{s[2,2]:E2},{s[3,3]:E2}]"
                     );
                     break;
             }

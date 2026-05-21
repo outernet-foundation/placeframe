@@ -9,13 +9,14 @@ namespace Placeframe.Core.Tests
     public class RelocalizationFilterTests
     {
         [Test]
-        public void InitialState_HasIdentityAlignmentAndUnflaggedHistory()
+        public void InitialState_HasZeroAlignmentAndUnflaggedHistory()
         {
             var state = RelocalizationFilter.InitialState();
 
-            AssertNearIdentity(state.AlignmentMean);
-            AssertNearIdentity(state.AlignmentCurrent);
-            AssertNearIdentity(state.AlignmentCurrentInverse);
+            Assert.That(state.Yaw, Is.EqualTo(0.0));
+            Assert.That(state.Translation, Is.EqualTo(double3.zero));
+            Assert.That(state.YawCurrent, Is.EqualTo(0.0));
+            Assert.That(state.TranslationCurrent, Is.EqualTo(double3.zero));
             Assert.That(state.HasAcceptedMeasurement, Is.False);
             Assert.That(state.LastAcceptedVioPosition, Is.Null);
             Assert.That(state.SlewProgress, Is.EqualTo(1f));
@@ -25,16 +26,14 @@ namespace Placeframe.Core.Tests
         public void BootstrapCovariance_IsDiagonalWithExpectedVariances()
         {
             var sigma = RelocalizationFilter.BootstrapCovariance();
-            var rotVar = RelocalizationFilter.BootstrapSigmaRotationRadians * RelocalizationFilter.BootstrapSigmaRotationRadians;
+            var yawVar = RelocalizationFilter.BootstrapSigmaYawRadians * RelocalizationFilter.BootstrapSigmaYawRadians;
             var transVar =
                 RelocalizationFilter.BootstrapSigmaTranslationMeters * RelocalizationFilter.BootstrapSigmaTranslationMeters;
 
-            for (int r = 0; r < 6; r++)
-            for (int c = 0; c < 6; c++)
-            {
-                var expected = r != c ? 0.0 : (r < 3 ? rotVar : transVar);
-                Assert.That(sigma[r, c], Is.EqualTo(expected).Within(1e-9), $"sigma[{r},{c}]");
-            }
+            var expected = new[] { yawVar, transVar, transVar, transVar };
+            for (int r = 0; r < 4; r++)
+                for (int c = 0; c < 4; c++)
+                    Assert.That(sigma[r, c], Is.EqualTo(r == c ? expected[r] : 0.0).Within(1e-9), $"sigma[{r},{c}]");
         }
 
         [Test]
@@ -52,15 +51,13 @@ namespace Placeframe.Core.Tests
 
             var expected = new[]
             {
-                RelocalizationFilter.BaseProcessNoiseRotationVariancePerTick,
-                RelocalizationFilter.BaseProcessNoiseRotationVariancePerTick,
-                RelocalizationFilter.BaseProcessNoiseRotationVariancePerTick,
+                RelocalizationFilter.BaseProcessNoiseYawVariancePerTick,
                 RelocalizationFilter.BaseProcessNoiseTranslationVariancePerTick,
                 RelocalizationFilter.BaseProcessNoiseTranslationVariancePerTick,
                 RelocalizationFilter.BaseProcessNoiseTranslationVariancePerTick,
             };
-            for (int r = 0; r < 6; r++)
-                for (int c = 0; c < 6; c++)
+            for (int r = 0; r < 4; r++)
+                for (int c = 0; c < 4; c++)
                     Assert.That(noise[r, c], Is.EqualTo(r == c ? expected[r] : 0.0).Within(1e-12));
         }
 
@@ -73,27 +70,25 @@ namespace Placeframe.Core.Tests
 
             var motionAtOne =
                 RelocalizationFilter.ProcessNoise(oneMeter, origin)[0, 0]
-                - RelocalizationFilter.BaseProcessNoiseRotationVariancePerTick;
+                - RelocalizationFilter.BaseProcessNoiseYawVariancePerTick;
             var motionAtTwo =
                 RelocalizationFilter.ProcessNoise(twoMeters, origin)[0, 0]
-                - RelocalizationFilter.BaseProcessNoiseRotationVariancePerTick;
+                - RelocalizationFilter.BaseProcessNoiseYawVariancePerTick;
 
-            // Variance scales with σ², σ scales linearly with distance, so variance ∝ distance².
             Assert.That(motionAtTwo / motionAtOne, Is.EqualTo(4.0).Within(1e-9));
         }
 
         [Test]
         public void BuildCovarianceMatrix_CopiesElementsInOrder()
         {
-            var covariance = new List<List<double>>
+            var covariance = new List<List<double>>();
+            for (int r = 0; r < 6; r++)
             {
-                new List<double> { 1, 2, 3, 4, 5, 6 },
-                new List<double> { 7, 8, 9, 10, 11, 12 },
-                new List<double> { 13, 14, 15, 16, 17, 18 },
-                new List<double> { 19, 20, 21, 22, 23, 24 },
-                new List<double> { 25, 26, 27, 28, 29, 30 },
-                new List<double> { 31, 32, 33, 34, 35, 36 },
-            };
+                var row = new List<double>();
+                for (int c = 0; c < 6; c++)
+                    row.Add(r * 6 + c + 1);
+                covariance.Add(row);
+            }
 
             var sigma = RelocalizationFilter.BuildCovarianceMatrix(covariance);
 
@@ -103,10 +98,23 @@ namespace Placeframe.Core.Tests
         }
 
         [Test]
+        public void ProjectCovariance_KeepsYawAndTranslationDimensions()
+        {
+            var sigma6 = Matrix<double>.Build.Dense(6, 6, (r, c) => r * 6 + c + 1);
+
+            var sigma4 = RelocalizationFilter.ProjectCovariance(sigma6);
+
+            var keep = new[] { 1, 3, 4, 5 };
+            for (int i = 0; i < 4; i++)
+                for (int j = 0; j < 4; j++)
+                    Assert.That(sigma4[i, j], Is.EqualTo(sigma6[keep[i], keep[j]]));
+        }
+
+        [Test]
         public void MahalanobisSquared_IdentityCovariance_EqualsResidualNormSquared()
         {
-            var residual = Vector<double>.Build.DenseOfArray(new[] { 1.0, 2.0, 3.0, 0.0, 0.0, 0.0 });
-            var sigma = Matrix<double>.Build.DenseIdentity(6);
+            var residual = Vector<double>.Build.DenseOfArray(new[] { 1.0, 2.0, 3.0, 0.0 });
+            var sigma = Matrix<double>.Build.DenseIdentity(4);
 
             var m2 = RelocalizationFilter.MahalanobisSquared(residual, sigma);
 
@@ -114,15 +122,14 @@ namespace Placeframe.Core.Tests
         }
 
         [Test]
-        public void SummariseCovariance_ExtractsTranslationAndRotationStds()
+        public void SummariseCovariance_ExtractsTranslationAndYawStds()
         {
-            var sigma = Matrix<double>.Build.DenseOfDiagonalArray(new[] { 1.0, 1.0, 1.0, 4.0, 4.0, 4.0 });
+            var sigma = Matrix<double>.Build.DenseOfDiagonalArray(new[] { 1.0, 4.0, 4.0, 4.0 });
 
             var summary = RelocalizationFilter.SummariseCovariance(sigma);
 
             Assert.That(summary.TranslationStdMeters, Is.EqualTo(math.sqrt(12.0)).Within(1e-5));
-            // sqrt(3) radians ≈ 99.22 degrees.
-            Assert.That(summary.RotationStdDegrees, Is.EqualTo(math.degrees(math.sqrt(3.0))).Within(1e-3));
+            Assert.That(summary.RotationStdDegrees, Is.EqualTo(math.degrees(1.0)).Within(1e-3));
         }
 
         [Test]
@@ -141,9 +148,6 @@ namespace Placeframe.Core.Tests
         {
             var state = RelocalizationFilter.InitialState();
             state.SlewProgress = 0f;
-            state.SlewStart = double4x4.identity;
-            state.AlignmentMean = double4x4.identity;
-            state.AlignmentCurrent = double4x4.identity;
 
             var result = RelocalizationFilter.TickSlew(state, RelocalizationFilter.SlewDurationSeconds * 0.25f);
 
@@ -156,9 +160,6 @@ namespace Placeframe.Core.Tests
         {
             var state = RelocalizationFilter.InitialState();
             state.SlewProgress = 0.9f;
-            state.SlewStart = double4x4.identity;
-            state.AlignmentMean = double4x4.identity;
-            state.AlignmentCurrent = double4x4.identity;
 
             var result = RelocalizationFilter.TickSlew(state, RelocalizationFilter.SlewDurationSeconds);
 
@@ -166,40 +167,69 @@ namespace Placeframe.Core.Tests
         }
 
         [Test]
-        public void Reset_ReplacesAlignmentAndClearsHistory()
+        public void TickSlew_YawTakesShortestArcAcrossPi()
+        {
+            var state = RelocalizationFilter.InitialState();
+            state.YawSlewStart = math.PI_DBL - 0.1;
+            state.Yaw = -math.PI_DBL + 0.1;
+            state.SlewProgress = 0f;
+
+            var result = RelocalizationFilter.TickSlew(state, RelocalizationFilter.SlewDurationSeconds * 0.5f);
+
+            // Midpoint of the shortest arc across +π should land near ±π, not near 0.
+            Assert.That(math.abs(MathUtil.WrapAngle(result.NewState.YawCurrent - math.PI_DBL)), Is.LessThan(0.1));
+        }
+
+        [Test]
+        public void Reset_FromYawAndTranslation_ClearsHistory()
         {
             var state = RelocalizationFilter.InitialState();
             state.HasAcceptedMeasurement = true;
             state.LastAcceptedVioPosition = new double3(5, 5, 5);
-            var newAlignment = Double4x4.FromTranslationRotation(new double3(1, 2, 3), quaternion.identity);
 
-            var result = RelocalizationFilter.Reset(state, newAlignment);
+            var result = RelocalizationFilter.Reset(state, 1.0, new double3(1, 2, 3));
 
-            Assert.That(result.NewState.AlignmentMean.c3.x, Is.EqualTo(1.0).Within(1e-9));
-            Assert.That(result.NewState.AlignmentMean.c3.y, Is.EqualTo(2.0).Within(1e-9));
-            Assert.That(result.NewState.AlignmentMean.c3.z, Is.EqualTo(3.0).Within(1e-9));
+            Assert.That(result.NewState.Yaw, Is.EqualTo(1.0).Within(1e-9));
+            Assert.That(result.NewState.Translation, Is.EqualTo(new double3(1, 2, 3)));
             Assert.That(result.NewState.HasAcceptedMeasurement, Is.False);
             Assert.That(result.NewState.LastAcceptedVioPosition, Is.Null);
             Assert.That(result.TransformChanged, Is.True);
         }
 
         [Test]
+        public void Reset_FromDouble4x4_ExtractsYawAndTranslation()
+        {
+            var yaw = math.radians(45.0);
+            var translation = new double3(7, 8, 9);
+            var alignment = RelocalizationFilter.BuildAlignment(yaw, translation);
+
+            var result = RelocalizationFilter.Reset(RelocalizationFilter.InitialState(), alignment);
+
+            Assert.That(result.NewState.Yaw, Is.EqualTo(yaw).Within(1e-6));
+            Assert.That(result.NewState.Translation.x, Is.EqualTo(7.0).Within(1e-9));
+            Assert.That(result.NewState.Translation.y, Is.EqualTo(8.0).Within(1e-9));
+            Assert.That(result.NewState.Translation.z, Is.EqualTo(9.0).Within(1e-9));
+        }
+
+        [Test]
         public void KalmanUpdate_ZeroResidual_PreservesMean()
         {
-            var mean = double4x4.identity;
-            var sigmaPredicted = Matrix<double>.Build.DenseIdentity(6);
-            var residual = Vector<double>.Build.Dense(6);
-            var innovationCov = Matrix<double>.Build.DenseIdentity(6) * 2.0;
+            var sigmaPredicted = Matrix<double>.Build.DenseIdentity(4);
+            var residual = Vector<double>.Build.Dense(4);
+            var innovationCov = Matrix<double>.Build.DenseIdentity(4) * 2.0;
 
-            var posterior = RelocalizationFilter.KalmanUpdate(mean, sigmaPredicted, residual, innovationCov);
+            var posterior = RelocalizationFilter.KalmanUpdate(
+                0.5,
+                new double3(1, 2, 3),
+                sigmaPredicted,
+                residual,
+                innovationCov
+            );
 
-            // Mean unchanged when residual is zero.
-            for (int c = 0; c < 4; c++)
-                for (int r = 0; r < 4; r++)
-                    Assert.That(posterior.NewMean[c][r], Is.EqualTo(mean[c][r]).Within(1e-9));
-            // Posterior covariance shrinks: I - K = I - 0.5I = 0.5I, applied to sigmaPredicted = I → 0.5I.
-            for (int r = 0; r < 6; r++)
-                for (int c = 0; c < 6; c++)
+            Assert.That(posterior.NewYaw, Is.EqualTo(0.5).Within(1e-9));
+            Assert.That(posterior.NewTranslation, Is.EqualTo(new double3(1, 2, 3)));
+            for (int r = 0; r < 4; r++)
+                for (int c = 0; c < 4; c++)
                 {
                     var expected = r == c ? 0.5 : 0.0;
                     Assert.That(posterior.NewCovariance[r, c], Is.EqualTo(expected).Within(1e-9));
@@ -207,10 +237,27 @@ namespace Placeframe.Core.Tests
         }
 
         [Test]
+        public void ComputeInnovation_YawResidualWrapsAcrossPi()
+        {
+            var sigma = Matrix<double>.Build.DenseIdentity(4);
+
+            var innov = RelocalizationFilter.ComputeInnovation(
+                math.PI_DBL - 0.01,
+                double3.zero,
+                sigma,
+                -math.PI_DBL + 0.01,
+                double3.zero,
+                sigma
+            );
+
+            Assert.That(innov.Residual[0], Is.EqualTo(0.02).Within(1e-9));
+        }
+
+        [Test]
         public void ApplyMeasurement_FirstAcceptAlwaysSnaps()
         {
             var state = RelocalizationFilter.InitialState();
-            var measurement = MakeMapLocalization(tightConfidence: 0.99, looseConfidence: 0.99);
+            var measurement = MakeMapLocalization();
             var frame = new CameraFrame
             {
                 CameraTranslationUnityWorldFromCamera = float3.zero,
@@ -226,6 +273,29 @@ namespace Placeframe.Core.Tests
         }
 
         [Test]
+        public void ApplyMeasurement_PitchInputProducesYawOnlyAlignment()
+        {
+            // Two degrees of pitch in cameraFromMap. With the old 6 DOF + gravity-snap path, this
+            // would push a map point at distance D vertically by ~D·sin(2°). The 4 DOF projection
+            // must extract zero yaw and produce an alignment that cannot lift any ECEF point.
+            var pitchRotation = quaternion.AxisAngle(new float3(1, 0, 0), math.radians(2f));
+            var measurement = MakeMapLocalization(cameraFromMapRotation: pitchRotation);
+            var frame = new CameraFrame
+            {
+                CameraTranslationUnityWorldFromCamera = float3.zero,
+                CameraRotationUnityWorldFromCamera = quaternion.identity,
+            };
+
+            var result = RelocalizationFilter.ApplyMeasurement(RelocalizationFilter.InitialState(), measurement, frame);
+
+            Assert.That(result.NewState.Yaw, Is.EqualTo(0.0).Within(1e-9));
+            var alignment = RelocalizationFilter.BuildAlignment(result.NewState.Yaw, result.NewState.Translation);
+            var ecefPointAt20m = new double3(0, 0, 20);
+            var unityPoint = math.transform(alignment, ecefPointAt20m);
+            Assert.That(unityPoint.y - result.NewState.Translation.y, Is.EqualTo(0.0).Within(1e-9));
+        }
+
+        [Test]
         public void ApplyMeasurement_RejectionInflatesStoredCovariance()
         {
             var origin = new CameraFrame
@@ -235,26 +305,21 @@ namespace Placeframe.Core.Tests
             };
             var accepted = RelocalizationFilter.ApplyMeasurement(
                 RelocalizationFilter.InitialState(),
-                MakeMapLocalization(tightConfidence: 0.99, looseConfidence: 0.99),
+                MakeMapLocalization(),
                 origin
             ).NewState;
             var sigmaAfterAccept = accepted.AlignmentCovariance;
 
-            // 10 m residual against σ_meas = I_6 yields m² ≈ 100 — well above the 16.81 gate.
             var jumped = new CameraFrame
             {
                 CameraTranslationUnityWorldFromCamera = new float3(10f, 0f, 0f),
                 CameraRotationUnityWorldFromCamera = quaternion.identity,
             };
-            var rejected = RelocalizationFilter.ApplyMeasurement(
-                accepted,
-                MakeMapLocalization(tightConfidence: 0.99, looseConfidence: 0.99),
-                jumped
-            );
+            var rejected = RelocalizationFilter.ApplyMeasurement(accepted, MakeMapLocalization(), jumped);
 
             Assert.That(rejected.Rejection, Is.EqualTo(MeasurementRejection.InnovationGate));
             // Motion noise (0.01·10)² = 1e-2 dwarfs the 1e-4 per-tick base term.
-            for (int i = 3; i < 6; i++)
+            for (int i = 1; i < 4; i++)
                 Assert.That(
                     rejected.NewState.AlignmentCovariance[i, i],
                     Is.GreaterThan(sigmaAfterAccept[i, i] + 9e-3),
@@ -265,7 +330,7 @@ namespace Placeframe.Core.Tests
         [Test]
         public void ApplyMeasurement_RejectionRecoversAfterRepeatedJumpMeasurements()
         {
-            var measurement = MakeMapLocalization(tightConfidence: 0.99, looseConfidence: 0.99);
+            var measurement = MakeMapLocalization();
             var state = RelocalizationFilter
                 .ApplyMeasurement(
                     RelocalizationFilter.InitialState(),
@@ -299,31 +364,56 @@ namespace Placeframe.Core.Tests
         }
 
         [Test]
+        public void ApplyMeasurement_RepeatedRejectionsIncrementConsecutiveRejections()
+        {
+            var measurement = MakeMapLocalization();
+            var state = RelocalizationFilter
+                .ApplyMeasurement(
+                    RelocalizationFilter.InitialState(),
+                    measurement,
+                    new CameraFrame
+                    {
+                        CameraTranslationUnityWorldFromCamera = float3.zero,
+                        CameraRotationUnityWorldFromCamera = quaternion.identity,
+                    }
+                )
+                .NewState;
+            var jumpedFrame = new CameraFrame
+            {
+                CameraTranslationUnityWorldFromCamera = new float3(50f, 0f, 0f),
+                CameraRotationUnityWorldFromCamera = quaternion.identity,
+            };
+
+            for (int i = 1; i <= 3; i++)
+            {
+                var step = RelocalizationFilter.ApplyMeasurement(state, measurement, jumpedFrame);
+                Assert.That(step.Rejection, Is.EqualTo(MeasurementRejection.InnovationGate), $"iteration {i} not rejected");
+                Assert.That(step.NewState.ConsecutiveRejections, Is.EqualTo(i));
+                state = step.NewState;
+            }
+        }
+
+        [Test]
         public void ApplyMeasurement_RejectionCapsCovarianceAtBootstrap()
         {
             var bootstrap = RelocalizationFilter.BootstrapCovariance();
             var oversized = bootstrap.Clone();
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 4; i++)
                 oversized[i, i] = bootstrap[i, i] * 10.0;
             var state = RelocalizationFilter.InitialState();
             state.HasAcceptedMeasurement = true;
             state.LastAcceptedVioPosition = new double3(0, 0, 0);
             state.AlignmentCovariance = oversized;
-            // Residual must dwarf the inflated innovation covariance for the gate to fire.
             var jumped = new CameraFrame
             {
                 CameraTranslationUnityWorldFromCamera = new float3(2000f, 0f, 0f),
                 CameraRotationUnityWorldFromCamera = quaternion.identity,
             };
 
-            var result = RelocalizationFilter.ApplyMeasurement(
-                state,
-                MakeMapLocalization(tightConfidence: 0.99, looseConfidence: 0.99),
-                jumped
-            );
+            var result = RelocalizationFilter.ApplyMeasurement(state, MakeMapLocalization(), jumped);
 
             Assert.That(result.Rejection, Is.EqualTo(MeasurementRejection.InnovationGate));
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 4; i++)
                 Assert.That(
                     result.NewState.AlignmentCovariance[i, i],
                     Is.LessThanOrEqualTo(bootstrap[i, i] + 1e-9),
@@ -334,15 +424,46 @@ namespace Placeframe.Core.Tests
         [Test]
         public void ShiftMagnitudeSquared_SamePose_IsZero()
         {
-            var pose = double4x4.identity;
-            var sigma = Matrix<double>.Build.DenseIdentity(6);
+            var sigma = Matrix<double>.Build.DenseIdentity(4);
 
-            var shift = RelocalizationFilter.ShiftMagnitudeSquared(pose, pose, sigma);
+            var shift = RelocalizationFilter.ShiftMagnitudeSquared(0.5, new double3(1, 2, 3), 0.5, new double3(1, 2, 3), sigma);
 
             Assert.That(shift, Is.EqualTo(0.0).Within(1e-9));
         }
 
-        private static MapLocalization MakeMapLocalization(double tightConfidence, double looseConfidence)
+        [Test]
+        public void WrapAngle_WrapsToHalfOpenIntervalAroundPi()
+        {
+            Assert.That(MathUtil.WrapAngle(0.0), Is.EqualTo(0.0));
+            Assert.That(MathUtil.WrapAngle(math.PI_DBL), Is.EqualTo(math.PI_DBL).Within(1e-9));
+            Assert.That(MathUtil.WrapAngle(-math.PI_DBL), Is.EqualTo(math.PI_DBL).Within(1e-9));
+            Assert.That(MathUtil.WrapAngle(3.0 * math.PI_DBL), Is.EqualTo(math.PI_DBL).Within(1e-9));
+            Assert.That(MathUtil.WrapAngle(math.PI_DBL + 0.5), Is.EqualTo(-math.PI_DBL + 0.5).Within(1e-9));
+            Assert.That(MathUtil.WrapAngle(-math.PI_DBL - 0.5), Is.EqualTo(math.PI_DBL - 0.5).Within(1e-9));
+        }
+
+        [Test]
+        public void YawFromRotation_PureYawIsExtractedExactly()
+        {
+            var yaw = math.radians(37.0);
+            var rotation = MathUtil.YawOnlyRotation(yaw);
+
+            Assert.That(MathUtil.YawFromRotation(rotation), Is.EqualTo(yaw).Within(1e-6));
+        }
+
+        [Test]
+        public void YawFromRotation_PurePitchExtractsZeroYaw()
+        {
+            var rotation = quaternion.AxisAngle(new float3(1, 0, 0), math.radians(15f)).ToDouble3x3();
+
+            Assert.That(MathUtil.YawFromRotation(rotation), Is.EqualTo(0.0).Within(1e-6));
+        }
+
+        private static MapLocalization MakeMapLocalization(
+            double tightConfidence = 0.99,
+            double looseConfidence = 0.99,
+            quaternion? cameraFromMapRotation = null
+        )
         {
             var identityCov = new List<List<double>>();
             for (int r = 0; r < 6; r++)
@@ -366,26 +487,21 @@ namespace Placeframe.Core.Tests
                 pnpCovariance: identityCov,
                 pipelineVersion: "test"
             );
-            var identityTransform = new Transform(
+            var rotation = cameraFromMapRotation ?? quaternion.identity;
+            var cameraFromMap = new PlaceframeApiClient.Model.Transform(
+                translation: new Float3(0, 0, 0),
+                rotation: new Float4(rotation.value.x, rotation.value.y, rotation.value.z, rotation.value.w)
+            );
+            var identityTransform = new PlaceframeApiClient.Model.Transform(
                 translation: new Float3(0, 0, 0),
                 rotation: new Float4(0, 0, 0, 1)
             );
             return new MapLocalization(
                 id: System.Guid.NewGuid(),
-                cameraFromMapTransform: identityTransform,
+                cameraFromMapTransform: cameraFromMap,
                 mapTransform: identityTransform,
                 metrics: metrics
             );
-        }
-
-        private static void AssertNearIdentity(double4x4 m)
-        {
-            for (int c = 0; c < 4; c++)
-                for (int r = 0; r < 4; r++)
-                {
-                    var expected = c == r ? 1.0 : 0.0;
-                    Assert.That(m[c][r], Is.EqualTo(expected).Within(1e-9), $"m[{c}][{r}]");
-                }
         }
     }
 }

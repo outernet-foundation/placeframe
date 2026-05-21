@@ -2,6 +2,32 @@ using Unity.Mathematics;
 
 namespace Placeframe.Core
 {
+    public static class MathUtil
+    {
+        // Wraps an angle in radians to the half-open interval (-π, π].
+        public static double WrapAngle(double radians)
+        {
+            var twoPi = 2.0 * math.PI_DBL;
+            var result = radians % twoPi;
+            if (result > math.PI_DBL)
+                result -= twoPi;
+            else if (result <= -math.PI_DBL)
+                result += twoPi;
+            return result;
+        }
+
+        // Yaw of a rotation around +Y, extracted from where the +Z axis lands after rotation.
+        // Degrades gracefully near pitch = ±90°: the projected (x, z) vector shrinks but atan2 stays defined.
+        public static double YawFromRotation(double3x3 rotation)
+        {
+            var forward = math.mul(rotation, new double3(0, 0, 1));
+            return math.atan2(forward.x, forward.z);
+        }
+
+        public static double3x3 YawOnlyRotation(double yaw) =>
+            quaternion.AxisAngle(new float3(0, 1, 0), (float)yaw).ToDouble3x3();
+    }
+
     public static class Double4x4
     {
         public static double4x4 FromTranslationRotationScale(double3 translation, double3x3 rotation, double3 scale)

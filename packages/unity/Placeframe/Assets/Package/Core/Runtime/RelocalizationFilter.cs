@@ -11,13 +11,19 @@ namespace Placeframe.Core
         public float RotationStdDegrees;
     }
 
+    // The alignment is parameterised as 4 DOF: yaw around Unity +Y plus an R³ translation.
+    // Pitch and roll are constrained to zero — gravity alignment of the map is delegated to the
+    // reconstructor's anchor selection rather than absorbed per-measurement by the filter.
+    // Covariance ordering: [yaw, tx, ty, tz].
     public struct FilterState
     {
-        public double4x4 AlignmentMean;
+        public double Yaw;
+        public double3 Translation;
         public Matrix<double> AlignmentCovariance;
-        public double4x4 AlignmentCurrent;
-        public double4x4 AlignmentCurrentInverse;
-        public double4x4 SlewStart;
+        public double YawCurrent;
+        public double3 TranslationCurrent;
+        public double YawSlewStart;
+        public double3 TranslationSlewStart;
         public float SlewProgress;
         public double3? LastAcceptedVioPosition;
         public bool HasAcceptedMeasurement;
@@ -44,29 +50,30 @@ namespace Placeframe.Core
 
     public static class RelocalizationFilter
     {
-        // Chi-square 99% critical value for 6 degrees of freedom — outlier gate threshold.
-        public const double Chi2_99_6dof = 16.81;
+        // Chi-square 99% critical value for 4 degrees of freedom — outlier gate threshold.
+        public const double Chi2_99_4dof = 13.28;
 
         // Snap (don't slew) when the Bayesian update shifts the alignment more than this many σ.
         public const double SnapThresholdSigmasSquared = 36.0;
 
         public const float SlewDurationSeconds = 0.5f;
 
-        // Per meter of VIO motion, σ_translation grows by 1cm and σ_rotation by 0.01 rad ≈ 0.57°.
+        // Per meter of VIO motion, σ grows by 1 cm on translation and 0.01 rad ≈ 0.57° on yaw.
         public const double DriftPerMeter = 0.01;
 
         // Base process noise added per measurement regardless of VIO motion, so σ_posterior
-        // cannot shrink unboundedly during stationary observation. Without this, ~30 stationary
+        // cannot shrink unboundedly during stationary observation. Without this, repeated stationary
         // measurements drive σ_posterior below σ_meas/√N and the innovation gate locks the filter
-        // onto its first cluster, rejecting all further measurements. Sized to keep steady-state
-        // σ_posterior at roughly σ_meas/3 given a 1Hz query cadence and the current bootstrapped
-        // σ_meas (translation ≈ 10cm, rotation tight from PnP Hessian). Re-tuned in Phase 3 once
-        // σ_meas is fit from real data.
+        // onto its first cluster, rejecting all further measurements.
         public const double BaseProcessNoiseTranslationVariancePerTick = 1e-4;
-        public const double BaseProcessNoiseRotationVariancePerTick = 1e-6;
+        public const double BaseProcessNoiseYawVariancePerTick = 1e-6;
 
         public const double BootstrapSigmaTranslationMeters = 100.0;
-        public static readonly double BootstrapSigmaRotationRadians = math.PI_DBL;
+        public static readonly double BootstrapSigmaYawRadians = math.PI_DBL;
+
+        // Indices of (ωy, νx, νy, νz) inside the 6 DOF (ωx, ωy, ωz, νx, νy, νz) pycolmap covariance.
+        // Diagonal-dominant projection: yaw ← ωy, translation ← ν.
+        private static readonly int[] FourDofIndicesIn6Dof = { 1, 3, 4, 5 };
 
         public struct Innovation
         {
@@ -77,18 +84,21 @@ namespace Placeframe.Core
 
         public struct PosteriorUpdate
         {
-            public double4x4 NewMean;
+            public double NewYaw;
+            public double3 NewTranslation;
             public Matrix<double> NewCovariance;
         }
 
         public static FilterState InitialState() =>
             new FilterState
             {
-                AlignmentMean = double4x4.identity,
+                Yaw = 0.0,
+                Translation = double3.zero,
                 AlignmentCovariance = BootstrapCovariance(),
-                AlignmentCurrent = double4x4.identity,
-                AlignmentCurrentInverse = double4x4.identity,
-                SlewStart = double4x4.identity,
+                YawCurrent = 0.0,
+                TranslationCurrent = double3.zero,
+                YawSlewStart = 0.0,
+                TranslationSlewStart = double3.zero,
                 SlewProgress = 1f,
                 LastAcceptedVioPosition = null,
                 HasAcceptedMeasurement = false,
@@ -96,8 +106,6 @@ namespace Placeframe.Core
                 MostRecentMetrics = null,
             };
 
-        // Bayesian update on the SE(3) alignment posterior. VIO motion only inflates Σ (not the mean).
-        // Returns NewState plus a flag indicating whether the visible transform changed (snap).
         public static StepResult ApplyMeasurement(
             FilterState state,
             MapLocalization localizationResult,
@@ -105,18 +113,24 @@ namespace Placeframe.Core
         )
         {
             var metrics = localizationResult.Metrics;
-            var measurementMean = ComputeAlignmentFromResult(localizationResult, frame);
-            var sigmaMeas = BuildCovarianceMatrix(metrics.MeasurementCovariance);
+            var measurement = ComputeAlignmentFromResult(localizationResult, frame);
+            var sigmaMeas = ProjectCovariance(BuildCovarianceMatrix(metrics.MeasurementCovariance));
             var currentVioPosition = (double3)(float3)frame.CameraTranslationUnityWorldFromCamera;
             var sigmaPredicted =
                 state.AlignmentCovariance + ProcessNoise(currentVioPosition, state.LastAcceptedVioPosition);
-            var innovation = ComputeInnovation(state.AlignmentMean, sigmaPredicted, measurementMean, sigmaMeas);
+            var innovation = ComputeInnovation(
+                state.Yaw,
+                state.Translation,
+                sigmaPredicted,
+                measurement.Yaw,
+                measurement.Translation,
+                sigmaMeas
+            );
 
-            if (innovation.MahalanobisSquared > Chi2_99_6dof)
+            if (innovation.MahalanobisSquared > Chi2_99_4dof)
             {
-                // Cap at bootstrap so eventual unlock doesn't admit outliers as eagerly as a good measurement.
                 var bootstrap = BootstrapCovariance();
-                for (var i = 0; i < 6; i++)
+                for (var i = 0; i < 4; i++)
                     sigmaPredicted[i, i] = math.min(sigmaPredicted[i, i], bootstrap[i, i]);
 
                 var rejectedState = state;
@@ -135,24 +149,26 @@ namespace Placeframe.Core
             }
 
             var posterior = KalmanUpdate(
-                state.AlignmentMean,
+                state.Yaw,
+                state.Translation,
                 sigmaPredicted,
                 innovation.Residual,
                 innovation.Covariance
             );
 
             var newState = state;
-            newState.AlignmentMean = posterior.NewMean;
+            newState.Yaw = posterior.NewYaw;
+            newState.Translation = posterior.NewTranslation;
             newState.AlignmentCovariance = posterior.NewCovariance;
 
-            // First accept always snaps — bootstrap covariance is intentionally large and the snap-vs-slew
-            // shift_mag would be ill-conditioned against a near-singular Σ_new on the first update.
             var shouldSnap = !state.HasAcceptedMeasurement;
             if (!shouldSnap)
             {
                 var shiftMagSquared = ShiftMagnitudeSquared(
-                    state.AlignmentCurrent,
-                    posterior.NewMean,
+                    state.YawCurrent,
+                    state.TranslationCurrent,
+                    posterior.NewYaw,
+                    posterior.NewTranslation,
                     posterior.NewCovariance
                 );
                 shouldSnap = shiftMagSquared > SnapThresholdSigmasSquared;
@@ -161,15 +177,17 @@ namespace Placeframe.Core
             var transformChanged = false;
             if (shouldSnap)
             {
-                newState.SlewStart = posterior.NewMean;
-                newState.AlignmentCurrent = posterior.NewMean;
-                newState.AlignmentCurrentInverse = math.inverse(posterior.NewMean);
+                newState.YawSlewStart = posterior.NewYaw;
+                newState.TranslationSlewStart = posterior.NewTranslation;
+                newState.YawCurrent = posterior.NewYaw;
+                newState.TranslationCurrent = posterior.NewTranslation;
                 newState.SlewProgress = 1f;
                 transformChanged = true;
             }
             else
             {
-                newState.SlewStart = state.AlignmentCurrent;
+                newState.YawSlewStart = state.YawCurrent;
+                newState.TranslationSlewStart = state.TranslationCurrent;
                 newState.SlewProgress = 0f;
             }
 
@@ -181,7 +199,6 @@ namespace Placeframe.Core
             return new StepResult { NewState = newState, TransformChanged = transformChanged };
         }
 
-        // Advances the slew toward AlignmentMean by deltaSeconds. No-op when slew is settled.
         public static StepResult TickSlew(FilterState state, float deltaSeconds)
         {
             if (state.SlewProgress >= 1f)
@@ -190,24 +207,30 @@ namespace Placeframe.Core
             var newState = state;
             newState.SlewProgress = math.min(1f, state.SlewProgress + deltaSeconds / SlewDurationSeconds);
             var t = SmoothStep(newState.SlewProgress);
-            newState.AlignmentCurrent = Double4x4.Interpolate(state.SlewStart, state.AlignmentMean, t);
+            var yawDelta = MathUtil.WrapAngle(state.Yaw - state.YawSlewStart);
+            newState.YawCurrent = MathUtil.WrapAngle(state.YawSlewStart + yawDelta * t);
+            newState.TranslationCurrent = math.lerp(state.TranslationSlewStart, state.Translation, t);
             if (newState.SlewProgress >= 1f)
-                newState.AlignmentCurrent = state.AlignmentMean;
-            newState.AlignmentCurrentInverse = math.inverse(newState.AlignmentCurrent);
+            {
+                newState.YawCurrent = state.Yaw;
+                newState.TranslationCurrent = state.Translation;
+            }
 
             return new StepResult { NewState = newState, TransformChanged = true };
         }
 
-        // Externally-driven reset to a known alignment. Clears filter history and re-bootstraps Σ.
-        public static StepResult Reset(FilterState state, double4x4 newAlignment)
+        public static StepResult Reset(FilterState state, double newYaw, double3 newTranslation)
         {
+            var wrappedYaw = MathUtil.WrapAngle(newYaw);
             var newState = new FilterState
             {
-                AlignmentMean = newAlignment,
+                Yaw = wrappedYaw,
+                Translation = newTranslation,
                 AlignmentCovariance = BootstrapCovariance(),
-                AlignmentCurrent = newAlignment,
-                AlignmentCurrentInverse = math.inverse(newAlignment),
-                SlewStart = newAlignment,
+                YawCurrent = wrappedYaw,
+                TranslationCurrent = newTranslation,
+                YawSlewStart = wrappedYaw,
+                TranslationSlewStart = newTranslation,
                 SlewProgress = 1f,
                 LastAcceptedVioPosition = null,
                 HasAcceptedMeasurement = false,
@@ -218,26 +241,43 @@ namespace Placeframe.Core
             return new StepResult { NewState = newState, TransformChanged = true };
         }
 
+        public static StepResult Reset(FilterState state, double4x4 newAlignment)
+        {
+            var rotation = newAlignment.RotationMatrix();
+            var yaw = MathUtil.YawFromRotation(rotation);
+            return Reset(state, yaw, newAlignment.Position());
+        }
+
         public static Matrix<double> BootstrapCovariance()
         {
-            var rotVar = BootstrapSigmaRotationRadians * BootstrapSigmaRotationRadians;
+            var yawVar = BootstrapSigmaYawRadians * BootstrapSigmaYawRadians;
             var transVar = BootstrapSigmaTranslationMeters * BootstrapSigmaTranslationMeters;
-            return Matrix<double>.Build.DenseOfDiagonalArray(
-                new[] { rotVar, rotVar, rotVar, transVar, transVar, transVar }
-            );
+            return Matrix<double>.Build.DenseOfDiagonalArray(new[] { yawVar, transVar, transVar, transVar });
         }
 
         public static Matrix<double> BuildCovarianceMatrix(List<List<double>> covariance) =>
             Matrix<double>.Build.Dense(6, 6, (r, c) => covariance[r][c]);
+
+        // Projects a 6 DOF pycolmap covariance (ωx, ωy, ωz, νx, νy, νz) down to the 4 DOF
+        // [yaw, tx, ty, tz] state. Diagonal-dominant approximation: discards cross-correlation
+        // between the dropped pitch/roll dimensions and the kept dimensions. Full Jacobian would
+        // add cross-terms scaling with |t_mapFromCamera|; revisit if the filter under-reports
+        // confidence at large distances from the map origin.
+        public static Matrix<double> ProjectCovariance(Matrix<double> sigma6)
+        {
+            var sigma4 = Matrix<double>.Build.Dense(4, 4);
+            for (var i = 0; i < 4; i++)
+                for (var j = 0; j < 4; j++)
+                    sigma4[i, j] = sigma6[FourDofIndicesIn6Dof[i], FourDofIndicesIn6Dof[j]];
+            return sigma4;
+        }
 
         public static Matrix<double> ProcessNoise(double3 currentVioPosition, double3? lastAcceptedVioPosition)
         {
             var noise = Matrix<double>.Build.DenseOfDiagonalArray(
                 new[]
                 {
-                    BaseProcessNoiseRotationVariancePerTick,
-                    BaseProcessNoiseRotationVariancePerTick,
-                    BaseProcessNoiseRotationVariancePerTick,
+                    BaseProcessNoiseYawVariancePerTick,
                     BaseProcessNoiseTranslationVariancePerTick,
                     BaseProcessNoiseTranslationVariancePerTick,
                     BaseProcessNoiseTranslationVariancePerTick,
@@ -247,14 +287,14 @@ namespace Placeframe.Core
             if (lastAcceptedVioPosition == null)
                 return noise;
 
-            // VIO drift is modeled as proportional to translated distance and applied uniformly to all 6
-            // tangent dimensions: σ_translation in meters, σ_rotation in radians. Rotation-only motion
-            // contributes zero noise here — a known simplification; rotational VIO drift is a smaller
-            // effect than translational and harder to attribute without an IMU bias model.
+            // VIO drift is modeled as proportional to translated distance and applied uniformly
+            // to all four dimensions: σ_translation in meters, σ_yaw in radians. Rotation-only
+            // motion contributes zero noise here — a known simplification, since yaw drift without
+            // translation is small and hard to attribute without an IMU bias model.
             var deltaTranslation = math.length(currentVioPosition - lastAcceptedVioPosition.Value);
             var sigma = DriftPerMeter * deltaTranslation;
             var motionVariance = sigma * sigma;
-            return noise + Matrix<double>.Build.DenseDiagonal(6, 6, motionVariance);
+            return noise + Matrix<double>.Build.DenseDiagonal(4, 4, motionVariance);
         }
 
         public static double MahalanobisSquared(Vector<double> residual, Matrix<double> covariance)
@@ -268,71 +308,73 @@ namespace Placeframe.Core
 
         public static AlignmentUncertainty SummariseCovariance(Matrix<double> sigma)
         {
-            var rotationVarianceSum = sigma[0, 0] + sigma[1, 1] + sigma[2, 2];
-            var translationVarianceSum = sigma[3, 3] + sigma[4, 4] + sigma[5, 5];
+            var translationVarianceSum = sigma[1, 1] + sigma[2, 2] + sigma[3, 3];
             return new AlignmentUncertainty
             {
                 TranslationStdMeters = (float)math.sqrt(translationVarianceSum),
-                RotationStdDegrees = (float)(math.sqrt(rotationVarianceSum) * (180.0 / math.PI_DBL)),
+                RotationStdDegrees = (float)(math.sqrt(sigma[0, 0]) * (180.0 / math.PI_DBL)),
             };
         }
 
-        public static double4x4 ComputeAlignmentFromResult(MapLocalization localizationResult, CameraFrame frame)
+        public struct Measurement
         {
-            // Get the transform from the map to the camera (The inverse of the camera's pose in the map)
+            public double Yaw;
+            public double3 Translation;
+        }
+
+        public static Measurement ComputeAlignmentFromResult(MapLocalization localizationResult, CameraFrame frame)
+        {
             var translationCameraFromMap = localizationResult.CameraFromMapTransform.Translation.ToDouble3();
             var rotationCameraFromMap = localizationResult
                 .CameraFromMapTransform.Rotation.ToMathematicsQuaternion()
                 .ToDouble3x3();
 
-            // Get the transform from the map to the ECEF reference frame (the map's ECEF pose)
             var translationEcefFromMap = localizationResult.MapTransform.Translation.ToDouble3();
             var rotationEcefFromMap = localizationResult.MapTransform.Rotation.ToMathematicsQuaternion().ToDouble3x3();
 
-            // Change the basis of the map's pose to Unity's conventions
             (translationEcefFromMap, rotationEcefFromMap) = LocationUtilities.ChangeBasisUnityFromEcef(
                 translationEcefFromMap,
                 rotationEcefFromMap
             );
 
-            // Get the transform from the camera to Unity world (the camera's pose in the Unity world)
-            var translationUnityWorldFromCamera = (float3)frame.CameraTranslationUnityWorldFromCamera;
-            // TODO: Adjust unity rotation to account for phone orientation (portrait vs landscape).
-            var rotationUnityWorldFromCamera = math.mul(
-                ((quaternion)frame.CameraRotationUnityWorldFromCamera).ToDouble3x3(),
-                quaternion.AxisAngle(new float3(0f, 0f, 1f), math.radians(0f)).ToDouble3x3()
-            );
+            var translationUnityWorldFromCamera = (double3)(float3)frame.CameraTranslationUnityWorldFromCamera;
+            var rotationUnityWorldFromCamera = ((quaternion)frame.CameraRotationUnityWorldFromCamera).ToDouble3x3();
 
-            // Compute the transform from the map to Unity world
+            // Camera position in ECEF (Unity basis), via the map.
+            var rotationMapFromCamera = math.transpose(rotationCameraFromMap);
+            var translationMapFromCamera = math.mul(-rotationMapFromCamera, translationCameraFromMap);
+            var translationEcefFromCamera =
+                math.mul(rotationEcefFromMap, translationMapFromCamera) + translationEcefFromMap;
+
+            // Composed raw rotation Unity ← ECEF, before the yaw-only projection.
             var rotationUnityFromMap = math.mul(rotationUnityWorldFromCamera, rotationCameraFromMap);
+            var rotationUnityFromEcef = math.mul(rotationUnityFromMap, rotationEcefFromMap);
 
-            // Align matrix up with unity world up
-            var right = math.rotate(rotationUnityFromMap.ToQuaternion(), new float3(1, 0, 0));
-            var forward = math.cross(right, new float3(0, 1, 0));
-            rotationUnityFromMap = quaternion.LookRotation(forward, new float3(0, 1, 0)).ToDouble3x3();
+            var yawMeas = MathUtil.YawFromRotation(rotationUnityFromEcef);
+            var rotationYawOnly = MathUtil.YawOnlyRotation(yawMeas);
 
-            var translationUnityFromMap =
-                math.mul(rotationUnityWorldFromCamera, translationCameraFromMap) + translationUnityWorldFromCamera;
+            // Translation: anchored on the camera. Map origin's vertical offset is whatever the
+            // map says; the yaw-only rotation never lifts it spuriously.
+            var translationMeas =
+                translationUnityWorldFromCamera - math.mul(rotationYawOnly, translationEcefFromCamera);
 
-            var transformUnityFromMap = Double4x4.FromTranslationRotation(
-                translationUnityFromMap,
-                rotationUnityFromMap
-            );
-
-            return math.mul(
-                transformUnityFromMap,
-                math.inverse(Double4x4.FromTranslationRotation(translationEcefFromMap, rotationEcefFromMap))
-            );
+            return new Measurement { Yaw = yawMeas, Translation = translationMeas };
         }
 
         public static Innovation ComputeInnovation(
-            double4x4 currentMean,
+            double yawState,
+            double3 translationState,
             Matrix<double> sigmaPredicted,
-            double4x4 measurementMean,
+            double yawMeas,
+            double3 translationMeas,
             Matrix<double> sigmaMeas
         )
         {
-            var residual = Se3.Log(math.mul(math.inverse(currentMean), measurementMean));
+            var deltaYaw = MathUtil.WrapAngle(yawMeas - yawState);
+            var deltaTranslation = translationMeas - translationState;
+            var residual = Vector<double>.Build.DenseOfArray(
+                new[] { deltaYaw, deltaTranslation.x, deltaTranslation.y, deltaTranslation.z }
+            );
             var innovationCov = sigmaPredicted + sigmaMeas;
             return new Innovation
             {
@@ -343,23 +385,43 @@ namespace Placeframe.Core
         }
 
         public static PosteriorUpdate KalmanUpdate(
-            double4x4 currentMean,
+            double yawState,
+            double3 translationState,
             Matrix<double> sigmaPredicted,
             Vector<double> residual,
             Matrix<double> innovationCovariance
         )
         {
             var kalmanGain = sigmaPredicted * innovationCovariance.Inverse();
-            var residualUpdate = kalmanGain * residual;
-            var newMean = math.mul(currentMean, Se3.Exp(residualUpdate));
-            var newCov = (Matrix<double>.Build.DenseIdentity(6) - kalmanGain) * sigmaPredicted;
-            return new PosteriorUpdate { NewMean = newMean, NewCovariance = newCov };
+            var update = kalmanGain * residual;
+            var newYaw = MathUtil.WrapAngle(yawState + update[0]);
+            var newTranslation = translationState + new double3(update[1], update[2], update[3]);
+            var newCov = (Matrix<double>.Build.DenseIdentity(4) - kalmanGain) * sigmaPredicted;
+            return new PosteriorUpdate
+            {
+                NewYaw = newYaw,
+                NewTranslation = newTranslation,
+                NewCovariance = newCov,
+            };
         }
 
-        public static double ShiftMagnitudeSquared(double4x4 from, double4x4 to, Matrix<double> covariance)
+        public static double ShiftMagnitudeSquared(
+            double yawFrom,
+            double3 translationFrom,
+            double yawTo,
+            double3 translationTo,
+            Matrix<double> covariance
+        )
         {
-            var residual = Se3.Log(math.mul(math.inverse(from), to));
+            var deltaYaw = MathUtil.WrapAngle(yawTo - yawFrom);
+            var deltaTranslation = translationTo - translationFrom;
+            var residual = Vector<double>.Build.DenseOfArray(
+                new[] { deltaYaw, deltaTranslation.x, deltaTranslation.y, deltaTranslation.z }
+            );
             return MahalanobisSquared(residual, covariance);
         }
+
+        public static double4x4 BuildAlignment(double yaw, double3 translation) =>
+            Double4x4.FromTranslationRotation(translation, MathUtil.YawOnlyRotation(yaw));
     }
 }
