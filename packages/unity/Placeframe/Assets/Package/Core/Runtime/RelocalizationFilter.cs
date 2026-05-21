@@ -21,6 +21,7 @@ namespace Placeframe.Core
         public float SlewProgress;
         public double3? LastAcceptedVioPosition;
         public bool HasAcceptedMeasurement;
+        public int ConsecutiveRejections;
         public LocalizationMetrics MostRecentMetrics;
     }
 
@@ -91,6 +92,7 @@ namespace Placeframe.Core
                 SlewProgress = 1f,
                 LastAcceptedVioPosition = null,
                 HasAcceptedMeasurement = false,
+                ConsecutiveRejections = 0,
                 MostRecentMetrics = null,
             };
 
@@ -119,6 +121,7 @@ namespace Placeframe.Core
 
                 var rejectedState = state;
                 rejectedState.AlignmentCovariance = sigmaPredicted;
+                rejectedState.ConsecutiveRejections = state.ConsecutiveRejections + 1;
 
                 return new StepResult
                 {
@@ -172,6 +175,7 @@ namespace Placeframe.Core
 
             newState.HasAcceptedMeasurement = true;
             newState.LastAcceptedVioPosition = currentVioPosition;
+            newState.ConsecutiveRejections = 0;
             newState.MostRecentMetrics = metrics;
 
             return new StepResult { NewState = newState, TransformChanged = transformChanged };
@@ -207,6 +211,7 @@ namespace Placeframe.Core
                 SlewProgress = 1f,
                 LastAcceptedVioPosition = null,
                 HasAcceptedMeasurement = false,
+                ConsecutiveRejections = 0,
                 MostRecentMetrics = state.MostRecentMetrics,
             };
 

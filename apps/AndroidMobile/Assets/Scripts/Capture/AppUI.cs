@@ -17,6 +17,7 @@ using DeviceType = PlaceframeApiClient.Model.DeviceType;
 using PlaceframeApiClient.Model;
 using Cysharp.Threading.Tasks;
 using Placeframe.Core;
+using R3;
 using UnityEngine.Events;
 using Placeframe.Core.ARFoundation;
 
@@ -303,8 +304,15 @@ namespace Placeframe.Client
         public static IControl LocalizationMetricsDialog(LocalizationMetricsDialogProps props)
         {
             var metrics = new ObservableValue<LocalizationMetrics>(VisualPositioningSystem.LastReceivedMetrics);
+            var filterHealth = new ObservableValue<FilterHealth>(FilterHealth.Snapshot());
             Action handleMetricsChanged = () => metrics.value = VisualPositioningSystem.LastReceivedMetrics;
             VisualPositioningSystem.OnMetricsReceived += handleMetricsChanged;
+
+            var tickSubscription = Observable
+                .EveryUpdate(UnityFrameProvider.Update)
+                .Subscribe(_ => filterHealth.value = FilterHealth.Snapshot());
+
+            var lostObservable = filterHealth.ObservableSelect(h => h.LocalizationLost);
 
             var control = VerticalLayout(new()
             {
@@ -320,6 +328,18 @@ namespace Placeframe.Client
                         value = Props.Value("Metrics"),
                         style = new() { outlineWidth = Props.Value(.15f) }
                     }),
+                    Text(new()
+                    {
+                        value = Props.Value("LOCALIZATION LOST — Stop and Start to recover."),
+                        element = new() { active = lostObservable },
+                        style = new()
+                        {
+                            color = Props.Value(Color.red),
+                            outlineWidth = Props.Value(.15f),
+                            horizontalAlignment = Props.Value(TMPro.HorizontalAlignmentOptions.Center)
+                        }
+                    }),
+                    ReadonlyInspector(filterHealth),
                     ReadonlyInspector(metrics)
                 )
             });
@@ -327,6 +347,7 @@ namespace Placeframe.Client
             control.AddBinding(
                 new Disposable(() => VisualPositioningSystem.OnMetricsReceived -= handleMetricsChanged)
             );
+            control.AddBinding(tickSubscription);
 
             return control;
         }
@@ -398,9 +419,13 @@ namespace Placeframe.Client
         public static IControl ValidationUI()
         {
             var metricsDialogOpen = new ObservableValue<bool>(false);
+            var lockupHealth = new ObservableValue<FilterHealth>(FilterHealth.Snapshot());
+            var lockupTick = Observable
+                .EveryUpdate(UnityFrameProvider.Update)
+                .Subscribe(_ => lockupHealth.value = FilterHealth.Snapshot());
             IControl selectValidationTargetDialog = default;
 
-            return Control("Validation UI", new()
+            var control = Control("Validation UI", new()
             {
                 layout = Utility.FillParentProps(),
                 children = Props.List(
@@ -427,6 +452,10 @@ namespace Placeframe.Client
                             LabeledButton(new LabeledButtonProps()
                             {
                                 label = Props.Value("Metrics"),
+                                labelStyle = new TextStyleProps()
+                                {
+                                    color = lockupHealth.ObservableSelect(h => h.LocalizationLost ? Color.red : Color.white)
+                                },
                                 onClick = () => metricsDialogOpen.value = !metricsDialogOpen.value,
                                 layout = new()
                                 {
@@ -492,6 +521,9 @@ namespace Placeframe.Client
                     })
                 )
             });
+
+            control.AddBinding(lockupTick);
+            return control;
         }
 
         public struct SelectValidationTargetProps
