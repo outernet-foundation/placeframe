@@ -53,7 +53,11 @@ public final class LogcatReader {
     }
 
     private static String[] buildCommand(String[] tagFilters) {
-        String[] base = {"logcat", "-v", "threadtime", "-T", "1", "-b", "all"};
+        // Diagnostic: drop `-T 1` so the reader picks up buffered history,
+        // catching OkHttpH2 frames written during cold-start app launch
+        // before LogcatRelay.Start() spawns this process. Restore `-T 1`
+        // once the cold-start frame-size corruption is root-caused.
+        String[] base = {"logcat", "-v", "threadtime", "-b", "all"};
         String[] command = new String[base.length + tagFilters.length];
         System.arraycopy(base, 0, command, 0, base.length);
         System.arraycopy(tagFilters, 0, command, base.length, tagFilters.length);

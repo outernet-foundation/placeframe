@@ -44,6 +44,10 @@ OUT_TIMEOUT_MS = 5000
 EVENT_LOOP_TICK_S = 0.1
 DRAIN_DEADLINE_S = 2.0
 
+# Diagnostic only: hex-dump the first N IN bytes of each session to localize
+# cold-start frame-size corruption. Remove once root cause is found.
+HEX_DUMP_BUDGET = 512
+
 LOG_DIR = Path(os.environ.get("ZED_LOG_DIR", "/var/log/zed-capture"))
 LOG_FILE_NAME = "aoa-bridge.jsonl"
 LOG_MAX_BYTES = 50 * 1024 * 1024
@@ -129,12 +133,22 @@ class ShuttleState:
 
         length = transfer.getActualLength()
         if length > 0:
+            payload = bytes(transfer.getBuffer()[:length])
             try:
                 with self.socket_lock:
-                    self.upstream.sendall(bytes(transfer.getBuffer()[:length]))
+                    self.upstream.sendall(payload)
             except OSError as exception:
                 self.fail("upstream write error: %s", exception)
                 return
+
+            if self.bytes_from_phone < HEX_DUMP_BUDGET:
+                remaining = HEX_DUMP_BUDGET - self.bytes_from_phone
+                logger.info(
+                    "IN bytes offset=%d len=%d hex=%s",
+                    self.bytes_from_phone,
+                    length,
+                    payload[:remaining].hex(),
+                )
 
             self.bytes_from_phone += length
 
