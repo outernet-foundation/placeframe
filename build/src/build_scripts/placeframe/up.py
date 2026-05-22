@@ -6,6 +6,7 @@ import typer
 from common.bash import bash, bash_handoff
 from common.detect_gpu import Gpu, detect_gpu
 
+from .build_docker import run_build
 from .context_sha import compute_service_shas
 
 ENV_FILE = Path(".env")
@@ -24,8 +25,9 @@ app = typer.Typer(add_completion=False)
 def up(
     attached: bool = typer.Option(False, "--attached", "-a", help="Run in foreground (not detached)"),
     quiet_pull: bool = typer.Option(
-        False, "--quiet-pull", "-q", help="Pull verbosely to a log file under .placeframe/logs/ instead of the console"
+        False, "--quiet-pull", "-q", help="Send pull progress to a log file under .placeframe/logs/ instead of the console"
     ),
+    build: bool = typer.Option(False, "--build", help="Build all images locally before bringing the stack up; skips pulling"),
     gpu: Gpu = typer.Option("auto", "--gpu", help="auto|cuda|rocm|none"),
 ) -> None:
     if not LOCK_FILE.exists():
@@ -37,16 +39,22 @@ def up(
     if gpu == "auto":
         gpu = detect_gpu()
 
+    if build:
+        run_build(gpu=gpu)
+
     _resolve_service_shas()
 
     gpu_file = f"-f compose.{gpu}.yml " if gpu != "none" else ""
     compose_args = f"-f compose.yml {gpu_file}--env-file .env --env-file {LOCK_FILE}"
 
-    if quiet_pull:
-        timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
-        log_path = LOG_DIRECTORY / f"up-pull-{timestamp}.log"
-        print(f"Pulling images → {log_path}")
-        bash(f"docker compose --progress plain {compose_args} pull", log_path=log_path)
+    if not build:
+        if quiet_pull:
+            timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+            log_path = LOG_DIRECTORY / f"up-pull-{timestamp}.log"
+            print(f"Pulling images → {log_path}")
+            bash(f"docker compose --progress plain {compose_args} pull", log_path=log_path)
+        else:
+            bash(f"docker compose {compose_args} pull")
 
     up_command = f"docker compose {compose_args} up"
     if not attached:
