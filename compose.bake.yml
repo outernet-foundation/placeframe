@@ -106,6 +106,7 @@ services:
       args:
         <<: *base-args
         TORCH_DEVICE: "cuda"
+        RECONSTRUCTOR_SHA: "${RECONSTRUCTOR_SHA:?err}"
       tags:
         - "ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:latest"
         - "ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:${RECONSTRUCTOR_SHA}"
@@ -133,6 +134,7 @@ services:
       args:
         <<: *base-args
         TORCH_DEVICE: "rocm"
+        RECONSTRUCTOR_SHA: "${RECONSTRUCTOR_SHA:?err}"
       tags:
         - "ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:latest"
         - "ghcr.io/outernet-foundation/placeframe/reconstructor-rocm:${RECONSTRUCTOR_SHA}"

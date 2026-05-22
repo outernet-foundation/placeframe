@@ -160,3 +160,12 @@ class ReconstructionMetrics(BaseModel):
             "feature extraction, OPQ/PQ training, matching, geometric verification, and incremental mapping."
         ),
     )
+    pipeline_version: Optional[str] = Field(
+        default=None,
+        description=(
+            "Content-addressed hash of the reconstructor image's build context (RECONSTRUCTOR_SHA, computed by "
+            "build_scripts.placeframe.context_sha.compute_service_shas) that produced this reconstruction. "
+            "None on rows whose manifest was created before the lease succeeded. Mirrors the localizer's "
+            "LocalizationMetrics.pipeline_version contract."
+        ),
+    )

@@ -3,6 +3,7 @@ from __future__ import annotations
 import tarfile
 from collections.abc import Callable
 from io import BytesIO
+from os import environ
 from pathlib import Path
 from typing import Any
 from uuid import UUID
@@ -254,6 +255,7 @@ def run_reconstruction(
 
     publisher.finalize_timings()
     metrics.metrics.phase_timings = publisher.phase_timings
+    metrics.metrics.pipeline_version = environ["RECONSTRUCTOR_SHA"]
 
     return metrics.metrics
 
