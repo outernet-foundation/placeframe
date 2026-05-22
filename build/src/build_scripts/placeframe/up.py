@@ -25,9 +25,14 @@ app = typer.Typer(add_completion=False)
 def up(
     attached: bool = typer.Option(False, "--attached", "-a", help="Run in foreground (not detached)"),
     quiet_pull: bool = typer.Option(
-        False, "--quiet-pull", "-q", help="Send pull progress to a log file under .placeframe/logs/ instead of the console"
+        False,
+        "--quiet-pull",
+        "-q",
+        help="Send pull progress to a log file under .placeframe/logs/ instead of the console",
     ),
-    build: bool = typer.Option(False, "--build", help="Build all images locally before bringing the stack up; skips pulling"),
+    build: bool = typer.Option(
+        False, "--build", help="Build all images locally before bringing the stack up; skips pulling"
+    ),
     gpu: Gpu = typer.Option("auto", "--gpu", help="auto|cuda|rocm|none"),
 ) -> None:
     if not LOCK_FILE.exists():
