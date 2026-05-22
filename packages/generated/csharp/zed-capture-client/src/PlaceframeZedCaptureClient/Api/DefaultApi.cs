@@ -99,26 +99,6 @@ namespace PlaceframeZedCaptureClient.Api
         /// <returns>ApiResponse of List&lt;ZedCapture&gt;</returns>
         ApiResponse<List<ZedCapture>> GetCapturesWithHttpInfo();
         /// <summary>
-        /// GetLogs
-        /// </summary>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <returns>LogBatch</returns>
-        LogBatch GetLogs(string? ack = default, int? limit = default);
-
-        /// <summary>
-        /// GetLogs
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <returns>ApiResponse of LogBatch</returns>
-        ApiResponse<LogBatch> GetLogsWithHttpInfo(string? ack = default, int? limit = default);
-        /// <summary>
         /// GetStatus
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -267,31 +247,6 @@ namespace PlaceframeZedCaptureClient.Api
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;ZedCapture&gt;)</returns>
         Cysharp.Threading.Tasks.UniTask<ApiResponse<List<ZedCapture>>> GetCapturesWithHttpInfoAsync(System.Threading.CancellationToken cancellationToken = default);
-        /// <summary>
-        /// GetLogs
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of LogBatch</returns>
-        Cysharp.Threading.Tasks.UniTask<LogBatch> GetLogsAsync(string? ack = default, int? limit = default, System.Threading.CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// GetLogs
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (LogBatch)</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<LogBatch>> GetLogsWithHttpInfoAsync(string? ack = default, int? limit = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetStatus
         /// </summary>
@@ -988,131 +943,6 @@ namespace PlaceframeZedCaptureClient.Api
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("GetCaptures", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// GetLogs 
-        /// </summary>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <returns>LogBatch</returns>
-        public LogBatch GetLogs(string? ack = default, int? limit = default)
-        {
-            PlaceframeZedCaptureClient.Client.ApiResponse<LogBatch> localVarResponse = GetLogsWithHttpInfo(ack, limit);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// GetLogs 
-        /// </summary>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <returns>ApiResponse of LogBatch</returns>
-        public PlaceframeZedCaptureClient.Client.ApiResponse<LogBatch> GetLogsWithHttpInfo(string? ack = default, int? limit = default)
-        {
-            PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-            var localVarContentType = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            if (ack != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "ack", ack));
-            }
-            if (limit != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "limit", limit));
-            }
-
-
-            // make the HTTP request
-            var localVarResponse = this.Client.Get<LogBatch>("/logs", localVarRequestOptions, this.Configuration);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("GetLogs", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// GetLogs 
-        /// </summary>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of LogBatch</returns>
-        public async Cysharp.Threading.Tasks.UniTask<LogBatch> GetLogsAsync(string? ack = default, int? limit = default, System.Threading.CancellationToken cancellationToken = default)
-        {
-            PlaceframeZedCaptureClient.Client.ApiResponse<LogBatch> localVarResponse = await GetLogsWithHttpInfoAsync(ack, limit, cancellationToken);
-            return localVarResponse.Data;
-        }
-
-        /// <summary>
-        /// GetLogs 
-        /// </summary>
-        /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="ack">Token from previous response; ack-on-next-fetch advances the box&#39;s persistent cursor (optional, default to &quot;&quot;)</param>
-        /// <param name="limit"> (optional, default to 1000)</param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse (LogBatch)</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<LogBatch>> GetLogsWithHttpInfoAsync(string? ack = default, int? limit = default, System.Threading.CancellationToken cancellationToken = default)
-        {
-
-            PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-
-            var localVarContentType = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            if (ack != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "ack", ack));
-            }
-            if (limit != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "limit", limit));
-            }
-
-
-            // make the HTTP request
-
-            var localVarResponse = await this.AsynchronousClient.GetAsync<LogBatch>("/logs", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("GetLogs", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 

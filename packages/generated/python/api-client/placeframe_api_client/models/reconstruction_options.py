@@ -50,7 +50,7 @@ class ReconstructionOptions(BaseModel):
     compression_opq_number_of_subvectors: Optional[StrictInt] = Field(default=16, description="Number of subvectors for OPQ compression.")
     compression_opq_number_of_bits_per_subvector: Optional[StrictInt] = Field(default=8, description="Number of bits per subvector for OPQ compression.")
     compression_opq_number_of_training_iterations: Optional[StrictInt] = Field(default=20, description="Number of training iterations for OPQ compression.")
-    pose_prior_position_sigma_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.25, description="Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values = stronger priors.")
+    pose_prior_position_sigma_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.05, description="Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values = stronger priors.")
     max_keypoints_per_image: Optional[StrictInt] = Field(default=2500, description="Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode).")
     held_out_frame_timestamps: Optional[List[StrictInt]] = Field(default=None, description="Frame timestamps (Unix milliseconds, matching the first column of each rig's frames.csv) to exclude from this reconstruction. Held-out frames never enter the rig's frame_poses, so their images are skipped during feature extraction, pair generation, and SfM. Used by calibration to build a map without specific frames so those frames can later be localized as held-out queries.")
     additional_properties: Dict[str, Any] = {}
@@ -147,7 +147,7 @@ class ReconstructionOptions(BaseModel):
             "compression_opq_number_of_subvectors": obj.get("compression_opq_number_of_subvectors") if obj.get("compression_opq_number_of_subvectors") is not None else 16,
             "compression_opq_number_of_bits_per_subvector": obj.get("compression_opq_number_of_bits_per_subvector") if obj.get("compression_opq_number_of_bits_per_subvector") is not None else 8,
             "compression_opq_number_of_training_iterations": obj.get("compression_opq_number_of_training_iterations") if obj.get("compression_opq_number_of_training_iterations") is not None else 20,
-            "pose_prior_position_sigma_m": obj.get("pose_prior_position_sigma_m") if obj.get("pose_prior_position_sigma_m") is not None else 0.25,
+            "pose_prior_position_sigma_m": obj.get("pose_prior_position_sigma_m") if obj.get("pose_prior_position_sigma_m") is not None else 0.05,
             "max_keypoints_per_image": obj.get("max_keypoints_per_image") if obj.get("max_keypoints_per_image") is not None else 2500,
             "held_out_frame_timestamps": obj.get("held_out_frame_timestamps")
         })

@@ -46,7 +46,6 @@ from placeframe_api_client.models.localization_map_create import LocalizationMap
 from placeframe_api_client.models.localization_map_read import LocalizationMapRead
 from placeframe_api_client.models.localization_map_update import LocalizationMapUpdate
 from placeframe_api_client.models.localization_metrics import LocalizationMetrics
-from placeframe_api_client.models.log_relay_batch import LogRelayBatch
 from placeframe_api_client.models.map_localization import MapLocalization
 from placeframe_api_client.models.node_batch_create import NodeBatchCreate
 from placeframe_api_client.models.node_batch_update import NodeBatchUpdate

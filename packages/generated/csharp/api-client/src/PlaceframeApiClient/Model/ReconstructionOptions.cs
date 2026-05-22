@@ -57,7 +57,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="compressionOpqNumberOfSubvectors">Number of subvectors for OPQ compression. (default to 16).</param>
         /// <param name="compressionOpqNumberOfBitsPerSubvector">Number of bits per subvector for OPQ compression. (default to 8).</param>
         /// <param name="compressionOpqNumberOfTrainingIterations">Number of training iterations for OPQ compression. (default to 20).</param>
-        /// <param name="posePriorPositionSigmaM">Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values &#x3D; stronger priors. (default to 0.25D).</param>
+        /// <param name="posePriorPositionSigmaM">Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values &#x3D; stronger priors. (default to 0.05D).</param>
         /// <param name="maxKeypointsPerImage">Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode). (default to 2500).</param>
         /// <param name="heldOutFrameTimestamps">Frame timestamps (Unix milliseconds, matching the first column of each rig&#39;s frames.csv) to exclude from this reconstruction. Held-out frames never enter the rig&#39;s frame_poses, so their images are skipped during feature extraction, pair generation, and SfM. Used by calibration to build a map without specific frames so those frames can later be localized as held-out queries..</param>
         public ReconstructionOptions()
@@ -653,7 +653,7 @@ namespace PlaceframeApiClient.Model
                 _flagPosePriorPositionSigmaM = true;
             }
         }
-        private double _PosePriorPositionSigmaM = 0.25D;
+        private double _PosePriorPositionSigmaM = 0.05D;
         private bool _flagPosePriorPositionSigmaM;
 
         /// <summary>

@@ -61,7 +61,6 @@ __all__ = [
     "LocalizationMapRead",
     "LocalizationMapUpdate",
     "LocalizationMetrics",
-    "LogRelayBatch",
     "MapLocalization",
     "NodeBatchCreate",
     "NodeBatchUpdate",
@@ -129,7 +128,6 @@ from placeframe_api_client.models.localization_map_create import LocalizationMap
 from placeframe_api_client.models.localization_map_read import LocalizationMapRead as LocalizationMapRead
 from placeframe_api_client.models.localization_map_update import LocalizationMapUpdate as LocalizationMapUpdate
 from placeframe_api_client.models.localization_metrics import LocalizationMetrics as LocalizationMetrics
-from placeframe_api_client.models.log_relay_batch import LogRelayBatch as LogRelayBatch
 from placeframe_api_client.models.map_localization import MapLocalization as MapLocalization
 from placeframe_api_client.models.node_batch_create import NodeBatchCreate as NodeBatchCreate
 from placeframe_api_client.models.node_batch_update import NodeBatchUpdate as NodeBatchUpdate

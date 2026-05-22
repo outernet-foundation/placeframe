@@ -24,6 +24,10 @@ namespace Placeframe.Client
             "UsbHostController:V",
             "UsbPortManager:V",
             "UsbDescriptorParser:V",
+            // OkHttp HTTP/2 frame trace, emitted by AoaAccessoryClient's static
+            // initializer when it pipes okhttp3.internal.http2.Http2's JUL
+            // logger to logcat under this tag.
+            "OkHttpH2:V",
             "*:S",
         };
 

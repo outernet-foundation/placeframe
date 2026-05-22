@@ -45,7 +45,6 @@ placeframe_api_client/models/localization_map_create.py
 placeframe_api_client/models/localization_map_read.py
 placeframe_api_client/models/localization_map_update.py
 placeframe_api_client/models/localization_metrics.py
-placeframe_api_client/models/log_relay_batch.py
 placeframe_api_client/models/map_localization.py
 placeframe_api_client/models/node_batch_create.py
 placeframe_api_client/models/node_batch_update.py

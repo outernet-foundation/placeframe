@@ -8,13 +8,15 @@ using Placeframe.Client;
 using Placeframe.Core;
 using PlaceframeApiClient.Model;
 using FileParameter = PlaceframeApiClient.Client.FileParameter;
-using LogBatchModel = PlaceframeZedCaptureClient.Model.LogBatch;
 using ZedStatusModel = PlaceframeZedCaptureClient.Model.ZedStatus;
 
 #if !UNITY_EDITOR && UNITY_ANDROID
 using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
 using FofX;
 using FofX.Stateful;
+using Newtonsoft.Json;
 using ObserveThing;
 using Placeframe.Client;
 using Placeframe.Core;
@@ -62,9 +64,6 @@ public static class ZedCaptureController
     public static UniTask<ZedStatusModel> GetStatus(CancellationToken cancellationToken = default) =>
         throw new PlatformNotSupportedException(unsupportedMessage);
 
-    public static UniTask<LogBatchModel> GetLogs(string since, int limit, CancellationToken cancellationToken = default) =>
-        throw new PlatformNotSupportedException(unsupportedMessage);
-
 #else
 
     // The ZED is the USB host; the phone is a USB accessory speaking the
@@ -92,22 +91,50 @@ public static class ZedCaptureController
 
     private const int logDrainBatchLimit = 500;
     private const float logDrainIdlePollIntervalSeconds = 5f;
-    private static string logDrainPendingAck = "";
+
+    // LogQL matcher selecting every stream box-Alloy writes to box-Loki. Alloy
+    // assigns `service` from each container's compose-service label, so this
+    // matches all box containers without an explicit allowlist.
+    private const string boxLokiQuery = "{service=~\".+\"}";
+    private const string boxLokiQueryPath = "/loki/api/v1/query_range";
+    private const string hostLokiPushPath = "/loki/api/v1/push";
+
+    private static HttpClient capturesHttpClient;
+    private static HttpClient hostLokiHttpClient;
+    private static long logDrainCursorNs;
     private static TaskHandle logDrainTask = TaskHandle.Complete;
+
+    private sealed class LokiQueryResponse
+    {
+        [JsonProperty("data")] public LokiQueryData Data { get; set; }
+    }
+
+    private sealed class LokiQueryData
+    {
+        [JsonProperty("result")] public List<LokiStream> Result { get; set; }
+    }
+
+    private sealed class LokiStream
+    {
+        [JsonProperty("stream")] public Dictionary<string, string> Stream { get; set; }
+        [JsonProperty("values")] public List<List<string>> Values { get; set; }
+    }
 
     public static void Initialize()
     {
         if (capturesApi != null)
             throw new InvalidOperationException("ZedCaptureController.Initialize already called");
 
+        capturesHttpClient = new HttpClient(new ProgressTrackingHandler { InnerHandler = new AndroidAoaHttpHandler() })
+        {
+            BaseAddress = new Uri(baseUrl),
+            Timeout = requestTimeout,
+        };
         capturesApi = new DefaultApi(
-            new HttpClient(new ProgressTrackingHandler { InnerHandler = new AndroidAoaHttpHandler() })
-            {
-                BaseAddress = new Uri(baseUrl),
-                Timeout = requestTimeout,
-            },
+            capturesHttpClient,
             new Configuration { BasePath = baseUrl, Timeout = requestTimeout }
         );
+        hostLokiHttpClient = new HttpClient(new HttpClientHandler());
 
         accessoryEvents = new AccessoryEventBridge(
             onAttached: OnAccessoryAttached,
@@ -141,6 +168,10 @@ public static class ZedCaptureController
         subscriptions?.Dispose();
         subscriptions = null;
         capturesApi = null;
+        capturesHttpClient?.Dispose();
+        capturesHttpClient = null;
+        hostLokiHttpClient?.Dispose();
+        hostLokiHttpClient = null;
     }
 
     public static async UniTask StartCapture(float captureInterval, CancellationToken cancellationToken = default)
@@ -196,12 +227,6 @@ public static class ZedCaptureController
 
     public static async UniTask<ZedStatusModel> GetStatus(CancellationToken cancellationToken = default) =>
         await capturesApi.GetStatusAsync(cancellationToken);
-
-    public static async UniTask<LogBatchModel> GetLogs(
-        string since,
-        int limit,
-        CancellationToken cancellationToken = default
-    ) => await capturesApi.GetLogsAsync(since, limit, cancellationToken);
 
     private static void OnAccessoryAttached()
     {
@@ -305,10 +330,14 @@ public static class ZedCaptureController
     private static void EvaluateLogDrainState()
     {
         logDrainTask.Cancel();
-        if (App.state.loggedIn.value && App.state.zedReachable.value)
-        {
-            logDrainTask = TaskHandle.Execute(LogDrainLoop);
-        }
+
+        if (!App.state.loggedIn.value || !App.state.zedReachable.value)
+            return;
+
+        // Start at "now" so we don't replay history accumulated on the box
+        // before this session.
+        logDrainCursorNs = ToUnixNanos(DateTime.UtcNow);
+        logDrainTask = TaskHandle.Execute(LogDrainLoop);
     }
 
     private static async UniTask LogDrainLoop(CancellationToken cancellationToken)
@@ -322,15 +351,13 @@ public static class ZedCaptureController
                 {
                     hasMore = await LogDrainOnce(cancellationToken);
                 }
-                catch (Exception e) when (!cancellationToken.IsCancellationRequested)
+                catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
                 {
-                    Log.Info(LogGroup.Zed, e, "log drain tick failed");
+                    Log.Info(LogGroup.Zed, exception, "log drain tick failed");
                 }
 
                 if (!hasMore)
-                {
                     await UniTask.WaitForSeconds(logDrainIdlePollIntervalSeconds, cancellationToken: cancellationToken);
-                }
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
@@ -338,30 +365,69 @@ public static class ZedCaptureController
 
     private static async UniTask<bool> LogDrainOnce(CancellationToken cancellationToken)
     {
-        var batch = await GetLogs(logDrainPendingAck, logDrainBatchLimit, cancellationToken);
+        long startNs = logDrainCursorNs;
+        long endNs = ToUnixNanos(DateTime.UtcNow);
+        if (endNs <= startNs)
+            return false;
 
-        if (batch.DroppedBefore)
-            Log.Info(LogGroup.Zed, "prior box logs rotated off before ack {Ack}", logDrainPendingAck);
+        // Query box-Loki via box-Caddy over the AOA pipe.
+        string queryUrl = $"{baseUrl}{boxLokiQueryPath}"
+            + $"?query={Uri.EscapeDataString(boxLokiQuery)}"
+            + $"&start={startNs}&end={endNs}&limit={logDrainBatchLimit}&direction=forward";
 
-        // Defensive null check despite Entries being marked required in the
-        // schema. Codegen gap: the C# httpclient template emits a protected
-        // parameterless constructor with [JsonConstructorAttribute], so
-        // Newtonsoft deserializes via property setters and ignores the
-        // [DataMember(IsRequired = true)] annotation — a malformed server
-        // response with no "entries" field leaves Entries null. Fix belongs
-        // in build/openapi-generator/templates-patches/csharp/ as a new
-        // patch that adds [JsonProperty(Required = Required.Always)] to
-        // required ref-type fields; once that lands this guard can go.
-        if (batch.Entries != null && batch.Entries.Count > 0)
+        LokiQueryResponse parsed;
+        using (var queryRequest = new HttpRequestMessage(HttpMethod.Get, queryUrl))
+        using (var queryResponse = await capturesHttpClient.SendAsync(queryRequest, cancellationToken))
         {
-            await VisualPositioningSystem.Api
-                .PushZedBoxLogsAsync(new LogRelayBatch(batch.Entries), cancellationToken);
+            queryResponse.EnsureSuccessStatusCode();
+            string queryBody = await queryResponse.Content.ReadAsStringAsync();
+            parsed = JsonConvert.DeserializeObject<LokiQueryResponse>(queryBody);
         }
 
-        // Update logDrainPendingAck only after a successful round trip (fetch + forward).
-        // Any throw above leaves it unchanged so the box re-serves on retry.
-        logDrainPendingAck = batch.NextCursor;
-        return batch.HasMore;
+        var streams = parsed?.Data?.Result;
+        if (streams == null || streams.Count == 0)
+            return false;
+
+        long maxNs = startNs;
+        int entryCount = 0;
+        foreach (var stream in streams)
+        {
+            if (stream.Values == null)
+                continue;
+            foreach (var pair in stream.Values)
+            {
+                if (pair.Count < 2)
+                    continue;
+                if (long.TryParse(pair[0], out long timestampNs) && timestampNs > maxNs)
+                    maxNs = timestampNs;
+                entryCount++;
+            }
+        }
+
+        if (entryCount == 0)
+            return false;
+
+        // Push Loki-shaped streams verbatim to host-Loki through host-Caddy.
+        string domain = App.state.settings.domain.value;
+        string pushUrl = $"https://{domain}{hostLokiPushPath}";
+        string pushBody = JsonConvert.SerializeObject(new { streams });
+        string token = await Auth.GetOrRefreshToken();
+
+        using (var pushRequest = new HttpRequestMessage(HttpMethod.Post, pushUrl))
+        {
+            pushRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            pushRequest.Content = new StringContent(pushBody, Encoding.UTF8, "application/json");
+            using var pushResponse = await hostLokiHttpClient.SendAsync(pushRequest, cancellationToken);
+            pushResponse.EnsureSuccessStatusCode();
+        }
+
+        // +1 so the next query starts strictly after the latest entry we saw.
+        logDrainCursorNs = maxNs + 1;
+        return entryCount >= logDrainBatchLimit;
     }
+
+    private static readonly long unixEpochTicks = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
+
+    private static long ToUnixNanos(DateTime utc) => (utc.Ticks - unixEpochTicks) * 100;
 #endif
 }

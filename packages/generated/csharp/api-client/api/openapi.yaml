@@ -1832,28 +1832,6 @@ paths:
       summary: CreateGraph
       tags:
       - Default
-  /zed-boxes/logs:
-    post:
-      deprecated: false
-      operationId: push_zed_box_logs
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/LogRelayBatch"
-        required: true
-      responses:
-        "201":
-          description: "Document created, URL follows"
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/get_capture_sessions_400_response"
-          description: Bad request syntax or unsupported method
-      summary: PushZedBoxLogs
-      tags:
-      - Default
 components:
   schemas:
     AxisConvention:
@@ -3380,21 +3358,6 @@ components:
       - map_ids
       title: LocalizationRequest
       type: object
-    LogRelayBatch:
-      example:
-        entries:
-        - entries
-        - entries
-      properties:
-        entries:
-          items:
-            type: string
-          minItems: 1
-          type: array
-      required:
-      - entries
-      title: LogRelayBatch
-      type: object
     MapLocalization:
       example:
         camera_from_map_transform:
@@ -4478,7 +4441,7 @@ components:
           description: Number of training iterations for OPQ compression.
           type: integer
         pose_prior_position_sigma_m:
-          default: 0.25
+          default: 0.05
           description: Standard deviation (meters) for position priors when writing
             PosePrior to the database. Smaller values = stronger priors.
           format: double

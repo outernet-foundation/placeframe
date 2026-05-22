@@ -4192,73 +4192,6 @@
         },
         "deprecated": false
       }
-    },
-    "/zed-boxes/logs": {
-      "post": {
-        "tags": [
-          "zed-box-logs"
-        ],
-        "summary": "PushZedBoxLogs",
-        "operationId": "push_zed_box_logs",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LogRelayBatch"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Document created, URL follows",
-            "headers": {}
-          },
-          "400": {
-            "description": "Bad request syntax or unsupported method",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "status_code": {
-                      "type": "integer"
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "extra": {
-                      "additionalProperties": {},
-                      "anyOf": [
-                        {
-                          "type": "object"
-                        },
-                        {
-                          "type": "array",
-                          "items": {}
-                        }
-                      ],
-                      "nullable": true
-                    }
-                  },
-                  "type": "object",
-                  "required": [
-                    "detail",
-                    "status_code"
-                  ],
-                  "description": "Validation Exception",
-                  "example": {
-                    "status_code": 400,
-                    "detail": "Bad Request",
-                    "extra": {}
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
     }
   },
   "components": {
@@ -5513,22 +5446,6 @@
         ],
         "title": "LocalizationRequest"
       },
-      "LogRelayBatch": {
-        "properties": {
-          "entries": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "minItems": 1
-          }
-        },
-        "type": "object",
-        "required": [
-          "entries"
-        ],
-        "title": "LogRelayBatch"
-      },
       "MapLocalization": {
         "properties": {
           "id": {
@@ -6491,7 +6408,7 @@
             "type": "number",
             "format": "double",
             "description": "Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values = stronger priors.",
-            "default": 0.25
+            "default": 0.05
           },
           "max_keypoints_per_image": {
             "type": "integer",

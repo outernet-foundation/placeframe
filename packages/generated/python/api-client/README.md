@@ -129,7 +129,6 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**get_reconstructions**](docs/DefaultApi.md#get_reconstructions) | **GET** /reconstructions | GetReconstructions
 *DefaultApi* | [**list_localization_evaluations**](docs/DefaultApi.md#list_localization_evaluations) | **GET** /reconstructions/{reconstruction_id}/localization-evaluations | ListLocalizationEvaluations
 *DefaultApi* | [**localize_image**](docs/DefaultApi.md#localize_image) | **POST** /localize | LocalizeImage
-*DefaultApi* | [**push_zed_box_logs**](docs/DefaultApi.md#push_zed_box_logs) | **POST** /zed-boxes/logs | PushZedBoxLogs
 *DefaultApi* | [**request_lease**](docs/DefaultApi.md#request_lease) | **POST** /internal/leases/request | RequestLease
 *DefaultApi* | [**retry_reconstruction**](docs/DefaultApi.md#retry_reconstruction) | **PUT** /reconstructions/{id}/retry | RetryReconstruction
 *DefaultApi* | [**succeed_lease**](docs/DefaultApi.md#succeed_lease) | **PUT** /internal/leases/{id}/succeed | SucceedLease
@@ -179,7 +178,6 @@ Class | Method | HTTP request | Description
  - [LocalizationMapRead](docs/LocalizationMapRead.md)
  - [LocalizationMapUpdate](docs/LocalizationMapUpdate.md)
  - [LocalizationMetrics](docs/LocalizationMetrics.md)
- - [LogRelayBatch](docs/LogRelayBatch.md)
  - [MapLocalization](docs/MapLocalization.md)
  - [NodeBatchCreate](docs/NodeBatchCreate.md)
  - [NodeBatchUpdate](docs/NodeBatchUpdate.md)

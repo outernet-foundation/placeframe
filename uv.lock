@@ -62,10 +62,14 @@ version = "0.1.0"
 source = { editable = "docker/aoa-bridge" }
 dependencies = [
     { name = "libusb1" },
+    { name = "python-json-logger" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "libusb1", specifier = ">=3.1.0" }]
+requires-dist = [
+    { name = "libusb1", specifier = ">=3.1.0" },
+    { name = "python-json-logger", specifier = ">=3.2.0" },
+]
 
 [[package]]
 name = "argcomplete"

@@ -127,7 +127,6 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**DeleteCapture**](docs/DefaultApi.md#deletecapture) | **DELETE** /captures/{id} | DeleteCapture
 *DefaultApi* | [**DownloadCaptureTar**](docs/DefaultApi.md#downloadcapturetar) | **GET** /captures/{id} | DownloadCaptureTar
 *DefaultApi* | [**GetCaptures**](docs/DefaultApi.md#getcaptures) | **GET** /captures | GetCaptures
-*DefaultApi* | [**GetLogs**](docs/DefaultApi.md#getlogs) | **GET** /logs | GetLogs
 *DefaultApi* | [**GetStatus**](docs/DefaultApi.md#getstatus) | **GET** /status | GetStatus
 *DefaultApi* | [**StartCapture**](docs/DefaultApi.md#startcapture) | **POST** /captures/start | StartCapture
 *DefaultApi* | [**StopCapture**](docs/DefaultApi.md#stopcapture) | **POST** /captures/stop | StopCapture
@@ -136,7 +135,6 @@ Class | Method | HTTP request | Description
 <a id="documentation-for-models"></a>
 ## Documentation for Models
 
- - [Model.LogBatch](docs/LogBatch.md)
  - [Model.StartCapture400Response](docs/StartCapture400Response.md)
  - [Model.StartCapture400ResponseExtra](docs/StartCapture400ResponseExtra.md)
  - [Model.ZedCapture](docs/ZedCapture.md)
