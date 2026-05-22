@@ -81,11 +81,11 @@ The OkHttp h2 frame log instrumentation (`service=capture-tool` Tag=`OkHttpH2`, 
 
 ### Branch state
 
-- Current branch: `squash/zed-box-logging` (HEAD `bded64f5`)
-- `fix/install-zed-aoa-gateway-and-pull-logging` force-pushed authorized; tip is byte-identical to `squash/zed-box-logging`
-- Commits 18 → 5: `696d7f47` (fat code), `c61c177f` (forbid `typing.cast`), `baf328ea` (CODEGEN env in generate-clients), `94de9bbc` (ruff format on pre-existing debt), `bded64f5` (this memory)
+- Current branch: `squash/zed-box-logging` (HEAD `e92e588c`)
+- `fix/install-zed-aoa-gateway-and-pull-logging` force-pushed authorized; tip was byte-identical to `squash/zed-box-logging` through `bded64f5`, has since advanced with prose-only commits (`028e5c99` updating this memo, `e92e588c` adding `unity-build-install-surface-refactor.md`)
+- Commits since squash base: `696d7f47` (fat code), `c61c177f` (forbid `typing.cast`), `baf328ea` (CODEGEN env in generate-clients), `94de9bbc` (ruff format on pre-existing debt), `bded64f5` (this memory v1), `028e5c99` (this memory v2 with FRAME_SIZE_ERROR root cause), `e92e588c` (`unity-build-install-surface-refactor.md`)
 - Three superseded memos dropped in the squash: `aoa-gateway-caddy-field-injection.md`, `box-loki-log-shipping-refactor.md`, plus one other detour memo
-- Working tree clean except `.claude/scheduled_tasks.lock` (runtime) and `response.md` (scratch); user's stash@{0} preserves a pre-autosquash conflict on `config/calibration/global.json` for them to re-pop later
+- Working tree has `docker/aoa-bridge/src/aoa_bridge/main.py` modified (`NUM_IN_TRANSFERS = 1` for path-B diagnostic — see pending threads), `.claude/scheduled_tasks.lock` (runtime), `response.md` (scratch); user's stash@{0} preserves a pre-autosquash conflict on `config/calibration/global.json` for them to re-pop later
 
 ## Decisions
 
@@ -133,7 +133,7 @@ Lowering OkHttp's `readTimeout` from 60 s and plumbing the C# `CancellationToken
 
 ## Pending threads
 
-1. **Confirm the parallel-completions hypothesis cheaply.** Edit `docker/aoa-bridge/src/aoa_bridge/main.py:43` to set `NUM_IN_TRANSFERS = 1`. Rebuild aoa-bridge, `uv run install-zed --build` from the physical host, repro cold start. Expected result: no `FRAME_SIZE_ERROR` in `service=aoa-gateway` GODEBUG, no `>> RST_STREAM`/`ConnectionShutdownException` in `service=capture-tool`, captures tab populates immediately. This is a diagnostic, not the durable fix — single-in-flight cripples throughput.
+1. **Confirm the parallel-completions hypothesis cheaply — path B initiated, awaiting host-side deploy + repro.** Edit applied in the working tree: `docker/aoa-bridge/src/aoa_bridge/main.py:41` now reads `NUM_IN_TRANSFERS = 1` (was `4`, and the two-line comment above it about "multiple in-flight transfers" was removed by the same edit since it no longer described the code). User chose path B over path A (grant `READ_LOGS` + OkHttpH2 frame trace) when surfaced as a discriminator. Next: rebuild aoa-bridge, `uv run install-zed --build` from the physical host (this command cannot run inside the COI sandbox; user runs it), repro cold start. Expected result: no `FRAME_SIZE_ERROR` in `service=aoa-gateway` GODEBUG, no `>> RST_STREAM`/`ConnectionShutdownException` in `service=capture-tool`, captures tab populates immediately. This is a diagnostic, not the durable fix — single-in-flight cripples throughput.
 
 2. **If (1) confirms: write the durable fix.** Two shapes worth considering:
    - **(a) Single writer task with submission-indexed reorder buffer.** Each transfer gets a monotonic submission index at submit time; `on_in_complete` enqueues `(index, bytes)` onto an `asyncio.Queue`; a single consumer task pops in index order (using a small priority-heap / dict-of-waiters) and `sendall`s. Preserves the parallel-IN throughput benefit. ~30 lines.
