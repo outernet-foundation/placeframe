@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt
+from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from placeframe_api_client.models.phase_timing import PhaseTiming
 from typing import Optional, Set
@@ -61,8 +61,9 @@ class ReconstructionMetrics(BaseModel):
     truth_alignment_rms_residual_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="RMS over registered cameras of ||T·c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration.")
     truth_alignment_max_residual_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Maximum over registered cameras of ||T·c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over.")
     phase_timings: Optional[List[PhaseTiming]] = Field(default=None, description="Per-phase wall-clock durations in execution order, captured at each ReconstructionPublisher set_phase boundary. Useful for after-the-fact attribution of total reconstruction time across feature extraction, OPQ/PQ training, matching, geometric verification, and incremental mapping.")
+    pipeline_version: Optional[StrictStr] = Field(default=None, description="Content-addressed hash of the reconstructor image's build context (RECONSTRUCTOR_SHA, computed by build_scripts.placeframe.context_sha.compute_service_shas) that produced this reconstruction. None on rows whose manifest was created before the lease succeeded. Mirrors the localizer's LocalizationMetrics.pipeline_version contract.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["total_images", "registered_images", "registration_rate", "num_3d_points", "average_keypoints_per_image", "reprojection_pixel_error_50th_percentile", "reprojection_pixel_error_90th_percentile", "track_length_50th_percentile", "percent_tracks_with_length_greater_than_or_equal_to_3", "all_verified_matches", "all_verified_match_rate", "all_verified_match_inliers_mean", "all_verified_match_inliers_median", "stereo_verified_matches", "stereo_verified_match_rate", "stereo_verified_match_inliers_mean", "stereo_verified_match_inliers_median", "same_sensor_verified_matches", "same_sensor_verified_match_rate", "same_sensor_verified_match_inliers_mean", "same_sensor_verified_match_inliers_median", "cross_sensor_verified_matches", "cross_sensor_verified_match_rate", "cross_sensor_verified_match_inliers_mean", "cross_sensor_verified_match_inliers_median", "map_image_count", "map_point_count", "map_avg_track_length", "map_bounding_volume_m3", "map_viewpoint_diversity", "truth_alignment_rms_residual_m", "truth_alignment_max_residual_m", "phase_timings"]
+    __properties: ClassVar[List[str]] = ["total_images", "registered_images", "registration_rate", "num_3d_points", "average_keypoints_per_image", "reprojection_pixel_error_50th_percentile", "reprojection_pixel_error_90th_percentile", "track_length_50th_percentile", "percent_tracks_with_length_greater_than_or_equal_to_3", "all_verified_matches", "all_verified_match_rate", "all_verified_match_inliers_mean", "all_verified_match_inliers_median", "stereo_verified_matches", "stereo_verified_match_rate", "stereo_verified_match_inliers_mean", "stereo_verified_match_inliers_median", "same_sensor_verified_matches", "same_sensor_verified_match_rate", "same_sensor_verified_match_inliers_mean", "same_sensor_verified_match_inliers_median", "cross_sensor_verified_matches", "cross_sensor_verified_match_rate", "cross_sensor_verified_match_inliers_mean", "cross_sensor_verified_match_inliers_median", "map_image_count", "map_point_count", "map_avg_track_length", "map_bounding_volume_m3", "map_viewpoint_diversity", "truth_alignment_rms_residual_m", "truth_alignment_max_residual_m", "phase_timings", "pipeline_version"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -282,6 +283,11 @@ class ReconstructionMetrics(BaseModel):
         if self.phase_timings is None and "phase_timings" in self.model_fields_set:
             _dict['phase_timings'] = None
 
+        # set to None if pipeline_version (nullable) is None
+        # and model_fields_set contains the field
+        if self.pipeline_version is None and "pipeline_version" in self.model_fields_set:
+            _dict['pipeline_version'] = None
+
         return _dict
 
     @classmethod
@@ -326,7 +332,8 @@ class ReconstructionMetrics(BaseModel):
             "map_viewpoint_diversity": obj.get("map_viewpoint_diversity"),
             "truth_alignment_rms_residual_m": obj.get("truth_alignment_rms_residual_m"),
             "truth_alignment_max_residual_m": obj.get("truth_alignment_max_residual_m"),
-            "phase_timings": [PhaseTiming.from_dict(_item) for _item in obj["phase_timings"]] if obj.get("phase_timings") is not None else None
+            "phase_timings": [PhaseTiming.from_dict(_item) for _item in obj["phase_timings"]] if obj.get("phase_timings") is not None else None,
+            "pipeline_version": obj.get("pipeline_version")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

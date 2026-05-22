@@ -35,6 +35,7 @@ __all__ = [
     "LocalizationMetrics",
     "LocalizeImage400Response",
     "LocalizeImage400ResponseExtra",
+    "PhaseTiming",
     "PinholeCameraConfig",
     "ReconstructionMetrics",
     "Transform",
@@ -62,6 +63,7 @@ from placeframe_localizer_client.models.localization import Localization as Loca
 from placeframe_localizer_client.models.localization_metrics import LocalizationMetrics as LocalizationMetrics
 from placeframe_localizer_client.models.localize_image400_response import LocalizeImage400Response as LocalizeImage400Response
 from placeframe_localizer_client.models.localize_image400_response_extra import LocalizeImage400ResponseExtra as LocalizeImage400ResponseExtra
+from placeframe_localizer_client.models.phase_timing import PhaseTiming as PhaseTiming
 from placeframe_localizer_client.models.pinhole_camera_config import PinholeCameraConfig as PinholeCameraConfig
 from placeframe_localizer_client.models.reconstruction_metrics import ReconstructionMetrics as ReconstructionMetrics
 from placeframe_localizer_client.models.transform import Transform as Transform
