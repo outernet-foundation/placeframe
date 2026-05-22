@@ -1,7 +1,5 @@
 using System;
-using System.Collections;
 using System.Linq;
-using System.Reflection;
 
 using UnityEngine;
 using UnityEngine.UI;
@@ -303,16 +301,20 @@ namespace Placeframe.Client
 
         public static IControl LocalizationMetricsDialog(LocalizationMetricsDialogProps props)
         {
-            var metrics = new ObservableValue<LocalizationMetrics>(VisualPositioningSystem.LastReceivedMetrics);
             var filterHealth = new ObservableValue<FilterHealth>(FilterHealth.Snapshot());
-            Action handleMetricsChanged = () => metrics.value = VisualPositioningSystem.LastReceivedMetrics;
-            VisualPositioningSystem.OnMetricsReceived += handleMetricsChanged;
+            var bypassInnovationGate = new ObservableValue<bool>(VisualPositioningSystem.BypassInnovationGate);
+            var bypassKalman = new ObservableValue<bool>(VisualPositioningSystem.BypassKalman);
 
             var tickSubscription = Observable
                 .EveryUpdate(UnityFrameProvider.Update)
                 .Subscribe(_ => filterHealth.value = FilterHealth.Snapshot());
 
             var lostObservable = filterHealth.ObservableSelect(h => h.LocalizationLost);
+            var lastAcceptObservable = filterHealth.ObservableSelect(h =>
+                float.IsPositiveInfinity(h.SecondsSinceLastAccept)
+                    ? "Last accept: never"
+                    : $"Last accept: {h.SecondsSinceLastAccept:F1}s ago"
+            );
 
             var control = VerticalLayout(new()
             {
@@ -339,78 +341,53 @@ namespace Placeframe.Client
                             horizontalAlignment = Props.Value(TMPro.HorizontalAlignmentOptions.Center)
                         }
                     }),
-                    ReadonlyInspector(filterHealth),
-                    ReadonlyInspector(metrics)
+                    Text(new() { value = lastAcceptObservable }),
+                    BypassToggleRow(
+                        "Bypass innovation gate",
+                        bypassInnovationGate,
+                        isOn => VisualPositioningSystem.BypassInnovationGate = isOn
+                    ),
+                    BypassToggleRow(
+                        "Bypass Kalman update",
+                        bypassKalman,
+                        isOn => VisualPositioningSystem.BypassKalman = isOn
+                    )
                 )
             });
 
-            control.AddBinding(
-                new ObserveThing.Disposable(() => VisualPositioningSystem.OnMetricsReceived -= handleMetricsChanged)
-            );
             control.AddBinding(tickSubscription);
 
             return control;
         }
 
-        public static IControl ReadonlyInspector<T>(IValueObservable<T> target)
+        private static IControl BypassToggleRow(string label, ObservableValue<bool> state, Action<bool> setStatic)
         {
-            return VerticalLayout(new()
+            return HorizontalLayout(new()
             {
                 childControlWidth = Props.Value(true),
                 childControlHeight = Props.Value(true),
+                childAlignment = Props.Value(TextAnchor.MiddleLeft),
                 spacing = Props.Value(10f),
-                children = Props.List(typeof(T)
-                    .GetMembers(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public)
-                    .Where(x => x is FieldInfo || x is PropertyInfo)
-                    .Where(x =>
+                children = Props.List(
+                    Text(new()
                     {
-                        var t = x is FieldInfo f ? f.FieldType : ((PropertyInfo)x).PropertyType;
-                        return t == typeof(string) || !typeof(IEnumerable).IsAssignableFrom(t);
-                    })
-                    .Select(memberInfo =>
+                        value = Props.Value(label),
+                        layout = new() { flexibleWidth = Props.Value(1f) },
+                        style = new()
+                        {
+                            verticalAlignment = Props.Value(TMPro.VerticalAlignmentOptions.Capline),
+                            overflowMode = Props.Value(TMPro.TextOverflowModes.Ellipsis),
+                            textWrappingMode = Props.Value(TMPro.TextWrappingModes.NoWrap)
+                        }
+                    }),
+                    Toggle(new ToggleProps()
                     {
-                        string name = default;
-                        Func<object, object> getValue = default;
-
-                        if (memberInfo is FieldInfo fieldInfo)
+                        value = state,
+                        onValueChanged = isOn =>
                         {
-                            name = fieldInfo.Name;
-                            getValue = fieldInfo.GetValue;
+                            setStatic(isOn);
+                            state.value = isOn;
                         }
-                        else
-                        {
-                            var propertyInfo = memberInfo as PropertyInfo;
-
-                            name = propertyInfo.Name;
-                            getValue = propertyInfo.GetValue;
-                        }
-
-                        return HorizontalLayout(new()
-                        {
-                            childControlWidth = Props.Value(true),
-                            childControlHeight = Props.Value(true),
-                            spacing = Props.Value(10f),
-                            children = Props.List(
-                                Text(new()
-                                {
-                                    value = Props.Value(name),
-                                    style = new() { outlineWidth = Props.Value(.15f) },
-                                    layout = new() { minWidth = Props.Value(470f) }
-                                }),
-                                Text(new()
-                                {
-                                    value = target.ObservableSelect(x => x == null ? "--" : getValue(x).ToString()),
-                                    layout = new() { flexibleWidth = Props.Value(1f) },
-                                    style = new()
-                                    {
-                                        outlineWidth = Props.Value(.15f),
-                                        horizontalAlignment = Props.Value(TMPro.HorizontalAlignmentOptions.Right),
-                                        overflowMode = Props.Value(TMPro.TextOverflowModes.Ellipsis),
-                                        textWrappingMode = Props.Value(TMPro.TextWrappingModes.NoWrap)
-                                    }
-                                })
-                            )
-                        });
                     })
                 )
             });

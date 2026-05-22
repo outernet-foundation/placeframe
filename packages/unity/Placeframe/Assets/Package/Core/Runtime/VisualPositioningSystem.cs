@@ -58,6 +58,13 @@ namespace Placeframe.Core
 
         private static float _lastAcceptedTime = -1f;
 
+        // Diagnostic bypass switches surfaced as toggles in the metrics dialog. Flipped at
+        // runtime to A/B individual pipeline stages against the same camera feed without a
+        // rebuild. Neither gates the early-out behavior of StartLocalizing — both only affect
+        // per-measurement processing in Localize/ApplyMeasurement.
+        public static bool BypassInnovationGate;
+        public static bool BypassKalman;
+
         public static DefaultApi Api { get; private set; }
         public static LocalizationMetrics MostRecentMetrics => _state.MostRecentMetrics;
         public static LocalizationMetrics LastReceivedMetrics { get; private set; }
@@ -67,17 +74,14 @@ namespace Placeframe.Core
         public static double4x4 UnityWorldToEcefTransform => _state.AlignmentCurrentInverse;
         public static event Action OnEcefToUnityWorldTransformUpdated;
         public static event Action OnMetricsReceived;
-        public static AlignmentUncertainty CurrentUncertainty =>
-            RelocalizationFilter.SummariseCovariance(_state.AlignmentCovariance);
+        public static AlignmentUncertainty CurrentUncertainty => RelocalizationFilter.SummariseCovariance(_state.AlignmentCovariance);
 
         public static int ConsecutiveRejections => _state.ConsecutiveRejections;
         public static MeasurementRejection LastRejectionReason { get; private set; }
         public static double LastInnovationMahalanobisSquared { get; private set; }
-        public static float SecondsSinceLastAccept =>
-            _lastAcceptedTime < 0f ? float.PositiveInfinity : Time.realtimeSinceStartup - _lastAcceptedTime;
+        public static float SecondsSinceLastAccept => _lastAcceptedTime < 0f ? float.PositiveInfinity : Time.realtimeSinceStartup - _lastAcceptedTime;
         public static bool IsLocalizationLost =>
-            Localizing
-            && (ConsecutiveRejections > LockupRejectionThreshold || SecondsSinceLastAccept > LockupSecondsThreshold);
+            Localizing && (ConsecutiveRejections > LockupRejectionThreshold || SecondsSinceLastAccept > LockupSecondsThreshold);
 
         public static void SetMapVisualizationsVisible(bool visible)
         {
@@ -113,9 +117,7 @@ namespace Placeframe.Core
             _cameraProvider = cameraProvider;
             _slewSubscription = Observable
                 .EveryUpdate(UnityFrameProvider.Update)
-                .Subscribe(_ =>
-                    ApplyStepResult(RelocalizationFilter.TickSlew(_state, Time.deltaTime))
-                );
+                .Subscribe(_ => ApplyStepResult(RelocalizationFilter.TickSlew(_state, Time.deltaTime)));
         }
 
         public static async UniTask Login(string domain, string username, string password)
@@ -130,18 +132,12 @@ namespace Placeframe.Core
             // HttpClient.Timeout, so setting only one leaves the other to fire.
             // Capture uploads can be large; cancellation comes from user action.
             Api = new DefaultApi(
-                new HttpClient(
-                    new AuthHttpHandler() { InnerHandler = _httpHandlerFactory?.Invoke() ?? new HttpClientHandler() }
-                )
+                new HttpClient(new AuthHttpHandler() { InnerHandler = _httpHandlerFactory?.Invoke() ?? new HttpClientHandler() })
                 {
                     BaseAddress = new Uri(apiUrl),
                     Timeout = Timeout.InfiniteTimeSpan,
                 },
-                new Configuration
-                {
-                    BasePath = apiUrl,
-                    Timeout = Timeout.InfiniteTimeSpan,
-                }
+                new Configuration { BasePath = apiUrl, Timeout = Timeout.InfiniteTimeSpan }
             );
         }
 
@@ -212,9 +208,7 @@ namespace Placeframe.Core
                 // Get camera configuration asynchronously
                 .CameraConfig()
                 // Observe CameraFrames and emit a (PinholeCameraConfig, CameraFrame) tuple for each new CameraFrame
-                .SelectMany(cameraConfig =>
-                    _cameraProvider.Frames(intervalSeconds).Select(frame => (cameraConfig, frame))
-                )
+                .SelectMany(cameraConfig => _cameraProvider.Frames(intervalSeconds).Select(frame => (cameraConfig, frame)))
                 // Localize this client using each new CameraFrame
                 .SubscribeAwait(
                     async (data, cancellationToken) => await Localize(data.cameraConfig, data.frame, cancellationToken),
@@ -237,16 +231,9 @@ namespace Placeframe.Core
             _localizationSubscription = null;
         }
 
-        public static (Vector3 position, Quaternion rotation) EcefToUnityWorld(
-            double3 ecefPosition,
-            quaternion ecefRotation
-        )
+        public static (Vector3 position, Quaternion rotation) EcefToUnityWorld(double3 ecefPosition, quaternion ecefRotation)
         {
-            var (position, rotation) = LocationUtilities.UnityFromEcef(
-                _state.AlignmentCurrent,
-                ecefPosition,
-                ecefRotation
-            );
+            var (position, rotation) = LocationUtilities.UnityFromEcef(EcefToUnityWorldTransform, ecefPosition, ecefRotation);
             return (
                 new Vector3((float)position.x, (float)position.y, (float)position.z),
                 new Quaternion(rotation.value.x, rotation.value.y, rotation.value.z, rotation.value.w)
@@ -254,17 +241,9 @@ namespace Placeframe.Core
         }
 
         public static (double3 position, quaternion rotation) UnityWorldToEcef(Vector3 position, Quaternion rotation) =>
-            LocationUtilities.EcefFromUnity(
-                _state.AlignmentCurrentInverse,
-                new double3(position.x, position.y, position.z),
-                rotation
-            );
+            LocationUtilities.EcefFromUnity(UnityWorldToEcefTransform, new double3(position.x, position.y, position.z), rotation);
 
-        private static async UniTask<Unit> Localize(
-            PinholeCameraConfig cameraConfig,
-            CameraFrame frame,
-            CancellationToken cancellationToken
-        )
+        private static async UniTask<Unit> Localize(PinholeCameraConfig cameraConfig, CameraFrame frame, CancellationToken cancellationToken)
         {
             // Switch to main thread to read _maps
             await UniTask.SwitchToMainThread();
@@ -294,33 +273,73 @@ namespace Placeframe.Core
             LastReceivedMetrics = localizationResult.Metrics;
             OnMetricsReceived?.Invoke();
 
-            var result = RelocalizationFilter.ApplyMeasurement(_state, localizationResult, frame);
+            var priorTranslation = _state.AlignmentMean.Position();
+            var options = new ApplyMeasurementOptions { BypassInnovationGate = BypassInnovationGate, BypassKalman = BypassKalman };
+
+            var result = RelocalizationFilter.ApplyMeasurement(_state, localizationResult, frame, options);
 
             LastRejectionReason = result.Rejection;
             LastInnovationMahalanobisSquared = result.InnovationMahalanobisSquared;
             if (result.Rejection == MeasurementRejection.None)
                 _lastAcceptedTime = Time.realtimeSinceStartup;
 
-            switch (result.Rejection)
+            var measurement = result.Measurement;
+            var residual = result.InnovationResidual;
+            var sigma = result.SigmaPredicted;
+            var posteriorTranslation = result.NewState.AlignmentMean.Position();
+            var bypassTag = BypassFlagsTag();
+            var stepResult = result.Rejection == MeasurementRejection.None ? "accept" : "reject";
+            var reason = result.Rejection switch
             {
-                case MeasurementRejection.InnovationGate:
-                    var r = result.InnovationResidual;
-                    var s = result.SigmaPredicted;
-                    LogDebug(
-                        $"Localization rejected: innovation gate"
-                            + $" m²={result.InnovationMahalanobisSquared:0.00}"
-                            + $" hadAccepted={result.HadAcceptedMeasurementBeforeStep}"
-                            + $" residual=[ω={r[0]:0.0000},{r[1]:0.0000},{r[2]:0.0000}"
-                            + $" ν={r[3]:0.0000},{r[4]:0.0000},{r[5]:0.0000}]"
-                            + $" sigmaPredictedDiag=[{s[0,0]:E2},{s[1,1]:E2},{s[2,2]:E2},"
-                            + $"{s[3,3]:E2},{s[4,4]:E2},{s[5,5]:E2}]"
-                    );
-                    break;
-            }
+                MeasurementRejection.None => "ok",
+                MeasurementRejection.InnovationGate => "innovationGate",
+                _ => "unknown",
+            };
+            LogDebug(
+                $"step=loc.measure result={stepResult} reason={reason}"
+                    + $" hadAccept={result.HadAcceptedMeasurementBeforeStep}"
+                    + $" snapped={result.Snapped} bypass={bypassTag}"
+                    + $" mahalanobisSq={result.InnovationMahalanobisSquared:F4}"
+                    + $" gateThresh={RelocalizationFilter.Chi2_99_6dof:F2}"
+                    + $" tilt={measurement.TiltRadians:F4}"
+                    + $" measTx={measurement.Translation.x:F3}"
+                    + $" measTy={measurement.Translation.y:F3}"
+                    + $" measTz={measurement.Translation.z:F3}"
+                    + $" priorTx={priorTranslation.x:F3}"
+                    + $" priorTy={priorTranslation.y:F3}"
+                    + $" priorTz={priorTranslation.z:F3}"
+                    + $" postTx={posteriorTranslation.x:F3}"
+                    + $" postTy={posteriorTranslation.y:F3}"
+                    + $" postTz={posteriorTranslation.z:F3}"
+                    + $" resRx={residual[0]:F4}"
+                    + $" resRy={residual[1]:F4}"
+                    + $" resRz={residual[2]:F4}"
+                    + $" resTx={residual[3]:F3}"
+                    + $" resTy={residual[4]:F3}"
+                    + $" resTz={residual[5]:F3}"
+                    + $" sigRx={sigma[0, 0]:E2}"
+                    + $" sigRy={sigma[1, 1]:E2}"
+                    + $" sigRz={sigma[2, 2]:E2}"
+                    + $" sigTx={sigma[3, 3]:E2}"
+                    + $" sigTy={sigma[4, 4]:E2}"
+                    + $" sigTz={sigma[5, 5]:E2}"
+            );
 
             ApplyStepResult(result);
 
             return Unit.Default;
+        }
+
+        private static string BypassFlagsTag()
+        {
+            if (!BypassInnovationGate && !BypassKalman)
+                return "none";
+            var parts = new List<string>();
+            if (BypassInnovationGate)
+                parts.Add("gate");
+            if (BypassKalman)
+                parts.Add("kalman");
+            return string.Join("+", parts);
         }
 
         public static void SetEcefToUnityTransform(double4x4 ecefToUnityTransform)
@@ -328,18 +347,22 @@ namespace Placeframe.Core
             ApplyStepResult(RelocalizationFilter.Reset(_state, ecefToUnityTransform));
         }
 
-        public static UniTask<List<LocalizationMapRead>> GetLocalizationMaps(List<Guid> ids = default, List<Guid> reconstructionIds = default, double? positionX = default, double? positionY = default, double? positionZ = default, double? radius = default, CancellationToken cancellationToken = default)
-            => Api.GetLocalizationMapsAsync(ids, reconstructionIds, positionX, positionY, positionZ, radius, cancellationToken);
+        public static UniTask<List<LocalizationMapRead>> GetLocalizationMaps(
+            List<Guid> ids = default,
+            List<Guid> reconstructionIds = default,
+            double? positionX = default,
+            double? positionY = default,
+            double? positionZ = default,
+            double? radius = default,
+            CancellationToken cancellationToken = default
+        ) => Api.GetLocalizationMapsAsync(ids, reconstructionIds, positionX, positionY, positionZ, radius, cancellationToken);
 
         public static UniTask<LocalizationMapRead> GetMapData(Guid mapID)
         {
             return Api.GetLocalizationMapAsync(mapID);
         }
 
-        public static async UniTask<ReconstructionPoint[]> GetReconstructionPoints(
-            Guid reconstructionID,
-            CancellationToken cancellationToken = default
-        )
+        public static async UniTask<ReconstructionPoint[]> GetReconstructionPoints(Guid reconstructionID, CancellationToken cancellationToken = default)
         {
             var pointPayload = await FetchPayloadAsync(
                 Api.GetReconstructionPointsAsync(reconstructionID, AxisConvention.UNITY),
@@ -371,10 +394,7 @@ namespace Placeframe.Core
             return points;
         }
 
-        public static async UniTask<Vector3[]> GetReconstructionFramePoses(
-            Guid reconstructionID,
-            CancellationToken cancellationToken = default
-        )
+        public static async UniTask<Vector3[]> GetReconstructionFramePoses(Guid reconstructionID, CancellationToken cancellationToken = default)
         {
             var framePayload = await FetchPayloadAsync(
                 Api.GetReconstructionFramePosesAsync(reconstructionID, AxisConvention.UNITY),
@@ -414,11 +434,7 @@ namespace Placeframe.Core
                 OnEcefToUnityWorldTransformUpdated?.Invoke();
         }
 
-        private static async UniTask<byte[]> FetchPayloadAsync(
-            UniTask<FileParameter> responseTask,
-            int bytesPerElement,
-            CancellationToken cancellationToken
-        )
+        private static async UniTask<byte[]> FetchPayloadAsync(UniTask<FileParameter> responseTask, int bytesPerElement, CancellationToken cancellationToken)
         {
             var response = await responseTask;
             var stream = response.Content;
@@ -445,13 +461,7 @@ namespace Placeframe.Core
 
     internal static class StreamExtensions
     {
-        public static async UniTask ReadExactlyAsync(
-            this Stream stream,
-            byte[] buffer,
-            int offset,
-            int count,
-            CancellationToken cancellationToken
-        )
+        public static async UniTask ReadExactlyAsync(this Stream stream, byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             while (count > 0)
             {
