@@ -53,6 +53,7 @@ Public API surface:
 - **State**: `Localizing`, `EcefToUnityWorldTransform`, `UnityWorldToEcefTransform`, `CurrentUncertainty`, `MostRecentMetrics`, `LastReceivedMetrics`, `Api` (the underlying generated client, for advanced use).
 - **Events**: `OnEcefToUnityWorldTransformUpdated` (fired whenever the visible transform changes -- snap or slew tick), `OnMetricsReceived` (per-localization metrics).
 - **Coord conversion**: `EcefToUnityWorld(double3, quaternion) -> (Vector3, Quaternion)`, `UnityWorldToEcef(Vector3, Quaternion) -> (double3, quaternion)`.
+- **Diagnostic bypass switches**: `BypassInnovationGate` and `BypassKalman` are `public static bool` flags surfaced as toggles in the metrics dialog. Setting `BypassInnovationGate=true` skips the chi-squared outlier reject; `BypassKalman=true` snaps the posterior to each accepted measurement instead of merging it with the prior. Used to A/B individual pipeline stages against the same camera feed without a rebuild.
 - **Manual reset**: `SetEcefToUnityTransform(double4x4)` calls `RelocalizationFilter.Reset` -- wipes filter history, re-bootstraps the covariance.
 - **Reconstruction download**: `GetReconstructionPoints(Guid)`, `GetReconstructionFramePoses(Guid)` -- used by editor tooling (e.g. MakeItSing's `ReconstructionDownloadHelperWindow`).
 - **Map visualization**: `SetMapVisualizationsVisible(bool)`, `LocalizationMapManager.AddMap/RemoveMap` -- spawn ParticleSystem-based point-cloud renderers from the downloaded reconstruction points.
@@ -72,12 +73,12 @@ The Keycloak realm path `placeframe-dev` is hardcoded at `Assets/Package/Core/Ru
 - `AlignmentMean: double4x4` -- Bayesian posterior mean (ECEF to Unity), in Unity basis.
 - `AlignmentCovariance: Matrix<double>` (6x6) -- posterior covariance in se(3) tangent (rotation first, translation second -- matches pycolmap PnP ordering).
 - `AlignmentCurrent`, `AlignmentCurrentInverse` -- the actively-published transform (lags `AlignmentMean` during slew).
-- `SlewStart`, `SlewProgress`, `LastAcceptedVioPosition`, `HasAcceptedMeasurement`, `MostRecentMetrics`.
+- `SlewStart`, `SlewProgress`, `LastAcceptedVioPosition`, `HasAcceptedMeasurement`, `ConsecutiveRejections`, `MostRecentMetrics`.
 
 The Bayesian update for each measurement (`ApplyMeasurement`):
 
-1. Compute `measurementMean` from the localizer response: `CameraFromMapTransform`, `MapTransform`, and the VIO `CameraFromUnityWorld` are combined and the result has its up-vector projected to Unity-up (an empirical tilt-drift correction at lines 287-291). The ECEF-to-Unity basis change (`diag(1, -1, 1)`) is applied inline.
-2. Inflate the predicted covariance by a base diagonal (`1e-6` rad squared, `1e-4` m squared per tick) plus VIO drift proportional to translated distance (0.01 m sigma per meter of motion, squared). Rotation-only motion contributes no extra noise -- a known simplification.
+1. Compute `measurementMean` from the localizer response. `CameraFromMapTransform`, `MapTransform`, and the VIO `CameraFromUnityWorld` compose to the raw 6 DOF `R_unityFromEcef`. The translation is anchored on the camera: `tMeas = t_unityWorldCamera - R_unityFromEcef * t_ecefFromCamera`, so the camera's reported Unity-world position determines the alignment translation regardless of how the rotation noise lever-arms around the map origin. The ECEF-to-Unity basis change (`diag(1, -1, 1)`) is applied inline.
+2. Inflate the predicted covariance by a base diagonal (`1e-6` rad squared on rotation, `1e-4` m squared per tick on translation) plus VIO drift proportional to translated distance (0.01 sigma per meter of motion, squared, applied uniformly to all six tangent dimensions). Rotation-only motion contributes no extra noise -- a known simplification.
 3. Innovation: `residual = Se3.Log(currentMean^-1 * measurementMean)`, Mahalanobis squared `= residual . (Sigma_pred + Sigma_meas)^-1 . residual`.
 4. Gate at chi-squared 99% with 6 DOF = 16.81 (`Chi2_99_6dof`). Reject and log if exceeded.
 5. Kalman update in se(3) tangent: `K = Sigma_pred (Sigma_pred + Sigma_meas)^-1`, `mu_new = mu * Se3.Exp(K residual)`, `Sigma_new = (I - K) Sigma_pred`.
@@ -121,7 +122,7 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 ### Tests
 
-`Assets/Package/Core/Tests/Editor/` holds five NUnit edit-mode test files (about 650 lines): `Double4x4Tests` (decompose, interpolate), `LocationUtilitiesTests` (basis-change involutions), `Se3Tests` (Exp/Log round-trip including small-angle branch), `WGS84Tests` (cartographic to/from ECEF round-trip at known sites), `RelocalizationFilterTests` (bootstrap, slew, snap-vs-slew, gate, posterior, VIO drift inflation). These are the only Unity-side regression net; there is no integration test against a running localizer.
+`Assets/Package/Core/Tests/Editor/` holds five NUnit edit-mode test files: `Double4x4Tests` (decompose, interpolate), `LocationUtilitiesTests` (basis-change involutions), `Se3Tests` (Exp/Log round-trip including small-angle branch), `WGS84Tests` (cartographic to/from ECEF round-trip at known sites), `RelocalizationFilterTests` (bootstrap, slew, snap-vs-slew, gate, posterior, VIO drift inflation, camera-anchored translation regression for a pitched input, repeated-rejection consecutive counter, bypass-flag plumbing). These are the only Unity-side regression net; there is no integration test against a running localizer.
 
 ### Editor utilities
 
@@ -137,7 +138,11 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 **Bayesian filter in tangent space with chi-squared gate.** A naive moving average over the measurement transform is wrong on SE(3) -- averaging rotation matrices isn't a rotation. Working in se(3) tangent (the Lie algebra) makes the Kalman update linear-to-first-order around the current mean, and lets the innovation gate use a standard Mahalanobis distance against the analytic measurement covariance the server returns (`MeasurementCovariance = alpha * PnP + beta * I`, see `docker/localizer/SPEC.md`). The trade-off: tangent-space accuracy degrades for large innovations, which is why large posterior shifts snap rather than slew.
 
+**Camera-anchored measurement translation.** The earlier "compose `tMap` directly" formulation pivoted the alignment around the ECEF origin: any rotation noise produced a position offset that scaled linearly with `|t_ecefFromCamera|`, so a 0.5-degree rotation error displaced the rendered camera by ~50cm at 50m from origin. Anchoring the measurement translation on the camera (`tMeas = t_unityWorldCamera - R_unityFromEcef * t_ecefFromCamera`) makes the camera position correct by construction at the moment of measurement, and lets the Kalman update propagate rotation refinements through the camera anchor instead of the ECEF origin. A briefly-explored 4 DOF filter parameterisation (`d1e15fbb`..`a7f6336c`) was reverted in favor of keeping the full SO(3) state with camera anchoring; see `.pulsar/memories/relocalization-fix-priorities.md` for the design history.
+
 **Snap-or-slew with smoothstep.** Visual continuity matters more than mathematical pristineness -- a 30cm position jump on a successful first localize is shocking on-headset. The 0.5s smoothstep slew hides small refinements; the 6-sigma snap threshold catches cases where slewing would be longer-than-correct-tracking (e.g. recovering from an outlier-rejected sequence). The first accept always snaps because the bootstrap covariance (pi squared rad squared, 100 squared m squared) is degenerate and the snap-magnitude calculation isn't meaningful.
+
+**Diagnostic bypass switches over per-build feature flags.** `BypassInnovationGate` and `BypassKalman` are `public static bool` flags toggleable at runtime through the metrics dialog. Flipping them in the field lets a tester A/B individual pipeline stages against the same camera feed without an APK rebuild and a re-walk of the space. The cost is two always-checked branches in the hot path, which are predictable enough that the cost is negligible.
 
 **Server-computed measurement covariance.** Earlier versions of the filter applied a client-side confidence gate; commit `06bff440` dropped it in favor of consuming the calibrated `MeasurementCovariance` directly. The localizer's `fit_calibration` pipeline now solves for the alpha/beta formula at build time, and the client filter stays calibration-agnostic -- see `docker/localizer/SPEC.md` Calibration runtime.
 
