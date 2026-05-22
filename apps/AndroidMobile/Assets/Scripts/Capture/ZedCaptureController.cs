@@ -161,14 +161,23 @@ public static class ZedCaptureController
 
     public static async UniTask<IEnumerable<LocalCapture>> EnumerateCaptures()
     {
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             using var cts = new CancellationTokenSource(enumerateTimeout);
             var captures = await capturesApi.GetCapturesAsync(cts.Token);
-            return captures.Select(c => new LocalCapture(c.Id, c.RecordedAt, DeviceType.Zed, c.SizeBytes));
+            var result = captures
+                .Select(c => new LocalCapture(c.Id, c.RecordedAt, DeviceType.Zed, c.SizeBytes))
+                .ToList();
+            Log.Info(LogGroup.Zed, "EnumerateCaptures success count={Count} durationMs={DurationMs}",
+                result.Count, stopwatch.ElapsedMilliseconds);
+            return result;
         }
-        catch
+        catch (Exception exception)
         {
+            Log.Info(LogGroup.Zed, exception,
+                "EnumerateCaptures failed durationMs={DurationMs} timeoutMs={TimeoutMs}",
+                stopwatch.ElapsedMilliseconds, (int)enumerateTimeout.TotalMilliseconds);
             return Enumerable.Empty<LocalCapture>();
         }
     }
