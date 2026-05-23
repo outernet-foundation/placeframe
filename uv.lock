@@ -73,11 +73,11 @@ name = "aoa-bridge"
 version = "0.1.0"
 source = { editable = "docker/aoa-bridge" }
 dependencies = [
-    { name = "pyusb" },
+    { name = "libusb1" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pyusb", specifier = ">=1.3.1" }]
+requires-dist = [{ name = "libusb1", specifier = ">=3.1.0" }]
 
 [[package]]
 name = "argcomplete"
@@ -915,6 +915,17 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/18/6c/6fc86eb855bcc723924c3b91de98dc6c0f381987ce582e080b8eade3bc88/kornia_rs-0.1.10-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:021b0a02b2356b12b3954a298f369ed4fe2dd522dcf8b6d72f91bf3bd8eea201", size = 2204672, upload-time = "2025-11-08T11:29:38.777Z" },
     { url = "https://files.pythonhosted.org/packages/19/26/3ac706d1b36761c0f7a36934327079adcb42d761c8c219865123d49fc1b2/kornia_rs-0.1.10-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:8d9b07e2ae79e423b3248d94afd092e324c5ddfe3157fafc047531cc8bffa6a3", size = 3042797, upload-time = "2025-11-08T11:29:54.719Z" },
     { url = "https://files.pythonhosted.org/packages/8d/f4/d62728d86bc67f5516249b154ff0bdfcf38a854dae284ff0ce62da87af99/kornia_rs-0.1.10-cp313-cp313t-win_amd64.whl", hash = "sha256:b80a037e34d63cb021bcd5fc571e41aff804a2981311f66e883768c6b8e5f8de", size = 2543855, upload-time = "2025-11-08T11:30:37.437Z" },
+]
+
+[[package]]
+name = "libusb1"
+version = "3.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/89/35/f9d2a990d092d647b47540cd229e1d68432c0f51183484ca189612a4824c/libusb1-3.4.0.tar.gz", hash = "sha256:9cf5638506d54f21bf36550d97ea63189111a23c4d8078f630103a2052135f45", size = 91206, upload-time = "2026-05-16T20:59:19.315Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d4/64/d4b59444e4d3b6979aa5eb58840634465a24b41a9ab03dcf8434c9b89551/libusb1-3.4.0-py3-none-any.whl", hash = "sha256:e83d034e44c3efe1c4599c6281d34bca50a38c12cab3b7b6217d583161a01ffd", size = 67373, upload-time = "2026-05-16T20:59:13.142Z" },
+    { url = "https://files.pythonhosted.org/packages/7e/55/a838a4278fac4ee49bf670ddc59d621999a1cb2a3188fb13a23609ea4f06/libusb1-3.4.0-py3-none-win32.whl", hash = "sha256:0a1aa1416034690eb9dc9a895eda0fef44d853bca1053eb1de50a5906684846d", size = 129704, upload-time = "2026-05-16T20:59:15.243Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/08/02aecf6dad627534a5835244ece14d7f187ef430354d9b8551199934d059/libusb1-3.4.0-py3-none-win_amd64.whl", hash = "sha256:b7dcc1f324a895af6aac708bc5513a17373f97349cc2ab8a277519c788bd18ca", size = 141212, upload-time = "2026-05-16T20:59:17.286Z" },
 ]
 
 [[package]]
@@ -2107,15 +2118,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f8/c2/62a4b2378bbf2239f78eba17ecec5d5173bb1df6cad8b4c89ccd6c2ced0c/pytransform3d-3.15.0.tar.gz", hash = "sha256:496538dbd4d3b189f79744dc983554a8c194ee57bfc8c1a2db9bf2e8f68b1053", size = 8254749, upload-time = "2026-04-10T11:40:56.668Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ee/90/dec318aa22c0d9699b2fe856866e165194d743c462f24dc6780577994a93/pytransform3d-3.15.0-py3-none-any.whl", hash = "sha256:a72b01556dee3e3023c328a2f424c2966a6bdbee62e7543e64ff3700054d65e5", size = 165463, upload-time = "2026-04-10T11:40:54.045Z" },
-]
-
-[[package]]
-name = "pyusb"
-version = "1.3.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/00/6b/ce3727395e52b7b76dfcf0c665e37d223b680b9becc60710d4bc08b7b7cb/pyusb-1.3.1.tar.gz", hash = "sha256:3af070b607467c1c164f49d5b0caabe8ac78dbed9298d703a8dbf9df4052d17e", size = 77281, upload-time = "2025-01-08T23:45:01.866Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/28/b8/27e6312e86408a44fe16bd28ee12dd98608b39f7e7e57884a24e8f29b573/pyusb-1.3.1-py3-none-any.whl", hash = "sha256:bf9b754557af4717fe80c2b07cc2b923a9151f5c08d17bdb5345dac09d6a0430", size = 58465, upload-time = "2025-01-08T23:45:00.029Z" },
 ]
 
 [[package]]
