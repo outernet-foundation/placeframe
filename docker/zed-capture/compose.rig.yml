@@ -20,7 +20,7 @@ services:
       - /tmp/argus_socket:/tmp/argus_socket
       - /tmp/nvscsock:/tmp/nvscsock
       - /tmp/camsock:/tmp/camsock
-    restart: no
+    restart: unless-stopped
 
   # Caddy sidecar terminating h2c (HTTP/2 cleartext, prior-knowledge) on 9000
   # and reverse-proxying HTTP/1.1 to uvicorn on 127.0.0.1:9001. Required so the
