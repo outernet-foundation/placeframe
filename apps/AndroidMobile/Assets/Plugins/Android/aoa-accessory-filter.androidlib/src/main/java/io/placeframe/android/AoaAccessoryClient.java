@@ -1,8 +1,10 @@
 package io.placeframe.android;
 
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
 import android.os.Build;
@@ -35,6 +37,60 @@ public final class AoaAccessoryClient {
     private static volatile ParcelFileDescriptor currentPfd;
     private static volatile OkHttpClient currentClient;
     private static long lastPermissionRequestMs;
+    private static volatile boolean permissionDenied;
+
+    private static volatile AccessoryEventListener eventListener;
+    private static volatile BroadcastReceiver eventReceiver;
+
+    public interface AccessoryEventListener {
+        void onAttached();
+        void onDetached();
+        void onPermissionResult(boolean granted);
+    }
+
+    // Application context so the registration spans the app lifetime
+    // regardless of which activity calls in.
+    public static void registerEventListener(Context context, AccessoryEventListener listener) {
+        synchronized (lock) {
+            eventListener = listener;
+            if (eventReceiver != null) return;
+            eventReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    String action = intent.getAction();
+                    if (action == null) return;
+                    AccessoryEventListener current = eventListener;
+                    if (current == null) return;
+                    if (UsbManager.ACTION_USB_ACCESSORY_ATTACHED.equals(action)) {
+                        // Clear so the next open attempt re-prompts after a prior denial.
+                        permissionDenied = false;
+                        current.onAttached();
+                    } else if (UsbManager.ACTION_USB_ACCESSORY_DETACHED.equals(action)) {
+                        synchronized (lock) { closeCurrentLocked(); }
+                        current.onDetached();
+                    } else if (PERMISSION_ACTION.equals(action)) {
+                        boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
+                        permissionDenied = !granted;
+                        current.onPermissionResult(granted);
+                    }
+                }
+            };
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(UsbManager.ACTION_USB_ACCESSORY_ATTACHED);
+            filter.addAction(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
+            filter.addAction(PERMISSION_ACTION);
+            Context application = context.getApplicationContext();
+            // Android 13+ requires explicit export flags. The system-fired
+            // accessory actions reach us as exported broadcasts; our own
+            // PERMISSION_ACTION fires from a same-package PendingIntent so
+            // RECEIVER_EXPORTED accepts both without opening external entry.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                application.registerReceiver(eventReceiver, filter, Context.RECEIVER_EXPORTED);
+            } else {
+                application.registerReceiver(eventReceiver, filter);
+            }
+        }
+    }
 
     private AoaAccessoryClient() {}
 
@@ -47,13 +103,14 @@ public final class AoaAccessoryClient {
         byte[] body,
         String contentType
     ) throws IOException {
+        OkHttpClient client;
+        Request request;
         synchronized (lock) {
             String openError = tryOpenLocked(context);
             if (openError != null) {
                 throw new IOException("AOA accessory not ready (" + openError + ")");
             }
-
-            OkHttpClient client = currentClient;
+            client = currentClient;
             Request.Builder builder = new Request.Builder().url(url);
             for (int i = 0; i < headerNames.length; i++) {
                 builder.addHeader(headerNames[i], headerValues[i]);
@@ -68,40 +125,49 @@ public final class AoaAccessoryClient {
                 requestBody = null;
             }
             builder.method(method, requestBody);
+            request = builder.build();
+        }
 
-            Response response;
-            try {
-                response = client.newCall(builder.build()).execute();
-            } catch (IOException e) {
-                // Pipe error poisons the FD; reopen on next execute.
-                OkHttpClient oldClient = currentClient;
-                ParcelFileDescriptor oldPfd = currentPfd;
-                currentClient = null;
-                currentPfd = null;
-                if (oldClient != null) {
-                    oldClient.dispatcher().executorService().shutdown();
-                    oldClient.connectionPool().evictAll();
-                }
-                if (oldPfd != null) {
-                    try { oldPfd.close(); } catch (IOException ignored) {}
-                }
-                throw e;
+        Response response;
+        try {
+            response = client.newCall(request).execute();
+        } catch (IOException e) {
+            // Pipe error poisons the FD; reopen on next execute. The
+            // equality check debounces concurrent requests that all hit the
+            // same dead connection so they don't race to close it twice.
+            synchronized (lock) {
+                if (currentClient == client) closeCurrentLocked();
             }
+            throw e;
+        }
 
-            Headers responseHeaders = response.headers();
-            String[] respNames = new String[responseHeaders.size()];
-            String[] respValues = new String[responseHeaders.size()];
-            for (int i = 0; i < responseHeaders.size(); i++) {
-                respNames[i] = responseHeaders.name(i);
-                respValues[i] = responseHeaders.value(i);
-            }
-            return new HttpResult(
-                response.code(),
-                respNames,
-                respValues,
-                response,
-                response.body() != null ? response.body().byteStream() : null
-            );
+        Headers responseHeaders = response.headers();
+        String[] respNames = new String[responseHeaders.size()];
+        String[] respValues = new String[responseHeaders.size()];
+        for (int i = 0; i < responseHeaders.size(); i++) {
+            respNames[i] = responseHeaders.name(i);
+            respValues[i] = responseHeaders.value(i);
+        }
+        return new HttpResult(
+            response.code(),
+            respNames,
+            respValues,
+            response,
+            response.body() != null ? response.body().byteStream() : null
+        );
+    }
+
+    private static void closeCurrentLocked() {
+        OkHttpClient client = currentClient;
+        ParcelFileDescriptor pfd = currentPfd;
+        currentClient = null;
+        currentPfd = null;
+        if (client != null) {
+            client.dispatcher().executorService().shutdown();
+            client.connectionPool().evictAll();
+        }
+        if (pfd != null) {
+            try { pfd.close(); } catch (IOException ignored) {}
         }
     }
 
@@ -130,6 +196,9 @@ public final class AoaAccessoryClient {
         if (!manager.hasPermission(accessory)) {
             String error = "accessory=" + accessory.getManufacturer() + "/" + accessory.getModel()
                 + "/" + accessory.getVersion() + " hasPermission=false";
+            // User already denied for this attachment; suppress further prompts
+            // until USB_ACCESSORY_ATTACHED clears the flag.
+            if (permissionDenied) return error + " deniedByUser=true";
             long now = System.currentTimeMillis();
             if (now - lastPermissionRequestMs < PERMISSION_REQUEST_COOLDOWN_MS) return error;
             lastPermissionRequestMs = now;
