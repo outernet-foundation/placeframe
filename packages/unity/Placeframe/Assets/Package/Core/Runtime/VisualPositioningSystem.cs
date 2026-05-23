@@ -92,14 +92,23 @@ namespace Placeframe.Core
 
             await Auth.Login(authTokenUrl, username, password);
 
+            // Infinite timeout on both: the generated client wraps each request in a
+            // CancellationTokenSource driven by Configuration.Timeout in addition to
+            // HttpClient.Timeout, so setting only one leaves the other to fire.
+            // Capture uploads can be large; cancellation comes from user action.
             Api = new DefaultApi(
                 new HttpClient(
                     new AuthHttpHandler() { InnerHandler = _httpHandlerFactory?.Invoke() ?? new HttpClientHandler() }
                 )
                 {
                     BaseAddress = new Uri(apiUrl),
+                    Timeout = Timeout.InfiniteTimeSpan,
                 },
-                apiUrl
+                new Configuration
+                {
+                    BasePath = apiUrl,
+                    Timeout = Timeout.InfiniteTimeSpan,
+                }
             );
         }
 
