@@ -3,8 +3,12 @@ created-by = "uv"
 requires-python = "==3.13.*"
 
 [[packages]]
-name = "pyusb"
-version = "1.3.1"
+name = "libusb1"
+version = "3.4.0"
 index = "https://pypi.org/simple"
-sdist = { url = "https://files.pythonhosted.org/packages/00/6b/ce3727395e52b7b76dfcf0c665e37d223b680b9becc60710d4bc08b7b7cb/pyusb-1.3.1.tar.gz", upload-time = 2025-01-08T23:45:01Z, size = 77281, hashes = { sha256 = "3af070b607467c1c164f49d5b0caabe8ac78dbed9298d703a8dbf9df4052d17e" } }
-wheels = [{ url = "https://files.pythonhosted.org/packages/28/b8/27e6312e86408a44fe16bd28ee12dd98608b39f7e7e57884a24e8f29b573/pyusb-1.3.1-py3-none-any.whl", upload-time = 2025-01-08T23:45:00Z, size = 58465, hashes = { sha256 = "bf9b754557af4717fe80c2b07cc2b923a9151f5c08d17bdb5345dac09d6a0430" } }]
+sdist = { url = "https://files.pythonhosted.org/packages/89/35/f9d2a990d092d647b47540cd229e1d68432c0f51183484ca189612a4824c/libusb1-3.4.0.tar.gz", upload-time = 2026-05-16T20:59:19Z, size = 91206, hashes = { sha256 = "9cf5638506d54f21bf36550d97ea63189111a23c4d8078f630103a2052135f45" } }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d4/64/d4b59444e4d3b6979aa5eb58840634465a24b41a9ab03dcf8434c9b89551/libusb1-3.4.0-py3-none-any.whl", upload-time = 2026-05-16T20:59:13Z, size = 67373, hashes = { sha256 = "e83d034e44c3efe1c4599c6281d34bca50a38c12cab3b7b6217d583161a01ffd" } },
+    { url = "https://files.pythonhosted.org/packages/7e/55/a838a4278fac4ee49bf670ddc59d621999a1cb2a3188fb13a23609ea4f06/libusb1-3.4.0-py3-none-win32.whl", upload-time = 2026-05-16T20:59:15Z, size = 129704, hashes = { sha256 = "0a1aa1416034690eb9dc9a895eda0fef44d853bca1053eb1de50a5906684846d" } },
+    { url = "https://files.pythonhosted.org/packages/5f/08/02aecf6dad627534a5835244ece14d7f187ef430354d9b8551199934d059/libusb1-3.4.0-py3-none-win_amd64.whl", upload-time = 2026-05-16T20:59:17Z, size = 141212, hashes = { sha256 = "b7dcc1f324a895af6aac708bc5513a17373f97349cc2ab8a277519c788bd18ca" } },
+]
