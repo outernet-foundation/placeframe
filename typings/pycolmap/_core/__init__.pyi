@@ -5,10 +5,12 @@ from __future__ import annotations
 import collections.abc
 import numpy
 import numpy.typing
+import os
+import pathlib
 import typing
 from . import cost_functions
 from . import pyceres
-__all__: list[str] = ['AbsolutePoseEstimationOptions', 'AbsolutePoseRefinementOptions', 'AlignedBox3d', 'BACovariance', 'BACovarianceOptions', 'BACovarianceOptionsParams', 'Bitmap', 'BundleAdjuster', 'BundleAdjustmentConfig', 'BundleAdjustmentGauge', 'BundleAdjustmentOptions', 'COLMAP_build', 'COLMAP_version', 'CalculateTriangulationAngle', 'Camera', 'CameraMap', 'CameraMode', 'CameraModelId', 'CopyType', 'Correspondence', 'CorrespondenceGraph', 'Database', 'DatabaseCache', 'DatabaseTransaction', 'DelaunayMeshingOptions', 'Device', 'EstimateTriangulationOptions', 'ExhaustivePairGenerator', 'ExhaustivePairingOptions', 'ExperimentalPoseParam', 'FeatureExtractionOptions', 'FeatureKeypoint', 'FeatureKeypoints', 'FeatureMatch', 'FeatureMatches', 'FeatureMatchingOptions', 'Frame', 'FrameMap', 'GPSTransform', 'GPSTransfromEllipsoid', 'INVALID_CAMERA_ID', 'INVALID_IMAGE_ID', 'INVALID_IMAGE_PAIR_ID', 'INVALID_POINT2D_IDX', 'INVALID_POINT3D_ID', 'Image', 'ImageAlignmentError', 'ImageMap', 'ImagePairStat', 'ImageReaderOptions', 'ImageScore', 'ImageSelectionMethod', 'ImportedPairGenerator', 'ImportedPairingOptions', 'IncrementalMapper', 'IncrementalMapperCallback', 'IncrementalMapperOptions', 'IncrementalMapperStatus', 'IncrementalPipeline', 'IncrementalPipelineOptions', 'IncrementalTriangulator', 'IncrementalTriangulatorOptions', 'LocalBundleAdjustmentReport', 'LossFunctionType', 'MVSModel', 'Normalization', 'ObservationManager', 'PairGenerator', 'PatchMatchOptions', 'Point2D', 'Point2DList', 'Point3D', 'Point3DMap', 'PoissonMeshingOptions', 'PosePrior', 'PosePriorBundleAdjustmentOptions', 'PosePriorCoordinateSystem', 'RANSACOptions', 'Reconstruction', 'ReconstructionManager', 'Rig', 'RigConfig', 'RigConfigCamera', 'RigMap', 'Rigid3d', 'Rotation3d', 'SensorType', 'SequentialPairGenerator', 'SequentialPairingOptions', 'Sift', 'SiftExtractionOptions', 'SiftMatchingOptions', 'Sim3d', 'SpatialPairGenerator', 'SpatialPairingOptions', 'StereoFusionOptions', 'SyntheticDatasetMatchConfig', 'SyntheticDatasetOptions', 'SyntheticImageOptions', 'SyntheticNoiseOptions', 'Timer', 'Track', 'TrackElement', 'TriangulatePoint', 'TriangulationResidualType', 'TwoViewGeometry', 'TwoViewGeometryConfiguration', 'TwoViewGeometryOptions', 'UndistortCameraOptions', 'VisualIndex', 'VocabTreePairGenerator', 'VocabTreePairingOptions', 'absolute_pose_estimation', 'align_reconstruction_to_locations', 'align_reconstruction_to_orig_rig_scales', 'align_reconstructions_via_points', 'align_reconstructions_via_proj_centers', 'align_reconstructions_via_reprojections', 'apply_rig_config', 'average_quaternions', 'bundle_adjustment', 'calculate_triangulation_angle', 'compare_reconstructions', 'compute_squared_sampson_error', 'cost_functions', 'create_default_bundle_adjuster', 'create_pose_prior_bundle_adjuster', 'data_t', 'essential_matrix_estimation', 'essential_matrix_from_pose', 'estimate_absolute_pose', 'estimate_affine2d', 'estimate_affine2d_robust', 'estimate_and_refine_absolute_pose', 'estimate_and_refine_generalized_absolute_pose', 'estimate_ba_covariance', 'estimate_ba_covariance_from_problem', 'estimate_calibrated_two_view_geometry', 'estimate_essential_matrix', 'estimate_fundamental_matrix', 'estimate_generalized_absolute_pose', 'estimate_generalized_relative_pose', 'estimate_homography_matrix', 'estimate_relative_pose', 'estimate_rigid3d', 'estimate_rigid3d_robust', 'estimate_sim3d', 'estimate_sim3d_robust', 'estimate_triangulation', 'estimate_two_view_geometry', 'estimate_two_view_geometry_pose', 'extract_features', 'fundamental_matrix_estimation', 'get_covariance_for_composed_rigid3d', 'get_covariance_for_inverse', 'get_covariance_for_relative_rigid3d', 'has_cuda', 'homography_decomposition', 'homography_matrix_estimation', 'image_pair_to_pair_id', 'import_images', 'incremental_mapping', 'infer_camera_from_image', 'interpolate_camera_poses', 'logging', 'match_exhaustive', 'match_sequential', 'match_spatial', 'match_vocabtree', 'ostream', 'pair_id_to_image_pair', 'patch_match_stereo', 'poisson_meshing', 'pose_from_homography_matrix', 'pyceres', 'read_rig_config', 'refine_absolute_pose', 'refine_generalized_absolute_pose', 'refine_relative_pose', 'rig_absolute_pose_estimation', 'sensor_t', 'set_random_seed', 'squared_sampson_error', 'stereo_fusion', 'swap_image_pair', 'synthesize_dataset', 'synthesize_images', 'synthesize_noise', 'triangulate_mid_point', 'triangulate_point', 'triangulate_points', 'undistort_camera', 'undistort_image', 'undistort_images', 'verify_matches']
+__all__: list[str] = ['AbsolutePoseEstimationOptions', 'AbsolutePoseRefinementOptions', 'AlignedBox3d', 'BACovariance', 'BACovarianceOptions', 'BACovarianceOptionsParams', 'Bitmap', 'BitmapRescaleFilter', 'BundleAdjuster', 'BundleAdjustmentBackend', 'BundleAdjustmentConfig', 'BundleAdjustmentGauge', 'BundleAdjustmentOptions', 'BundleAdjustmentSummary', 'BundleAdjustmentTerminationType', 'COLMAP_build', 'COLMAP_version', 'Camera', 'CameraMap', 'CameraMode', 'CameraModelId', 'CeresBundleAdjuster', 'CeresBundleAdjustmentOptions', 'CeresBundleAdjustmentSummary', 'CeresPosePriorBundleAdjustmentOptions', 'Correspondence', 'CorrespondenceGraph', 'CorrespondenceRange', 'Database', 'DatabaseCache', 'DatabaseCacheOptions', 'DatabaseTransaction', 'DelaunayMeshingOptions', 'DepthMap', 'Device', 'EstimateTriangulationOptions', 'ExhaustivePairGenerator', 'ExhaustivePairingOptions', 'ExistingMatchedPairingOptions', 'ExperimentalPoseParam', 'FeatureDescriptors', 'FeatureDescriptorsFloat', 'FeatureExtractionOptions', 'FeatureExtractor', 'FeatureExtractorType', 'FeatureKeypoint', 'FeatureKeypoints', 'FeatureMatch', 'FeatureMatcher', 'FeatureMatcherType', 'FeatureMatches', 'FeatureMatchingOptions', 'FileCopyType', 'Frame', 'FrameMap', 'GPSTransform', 'GPSTransfromEllipsoid', 'GeometricVerifierOptions', 'GlobalMapperOptions', 'GlobalPipelineOptions', 'GlobalPositionerOptions', 'GravityRefinerOptions', 'INVALID_CAMERA_ID', 'INVALID_DATA_ID', 'INVALID_IMAGE_ID', 'INVALID_IMAGE_PAIR_ID', 'INVALID_POINT2D_IDX', 'INVALID_POINT3D_ID', 'INVALID_POSE_PRIOR_ID', 'INVALID_SENSOR_ID', 'Image', 'ImageAlignmentError', 'ImageMap', 'ImagePairStat', 'ImageReaderOptions', 'ImageScore', 'ImageSelectionMethod', 'ImportedPairGenerator', 'ImportedPairingOptions', 'IncrementalMapper', 'IncrementalMapperOptions', 'IncrementalPipeline', 'IncrementalPipelineCallback', 'IncrementalPipelineOptions', 'IncrementalPipelineStatus', 'IncrementalTriangulator', 'IncrementalTriangulatorOptions', 'LocalBundleAdjustmentReport', 'LossFunctionType', 'MVSModel', 'MeshSimplificationOptions', 'NormalMap', 'Normalization', 'ObservationManager', 'PairGenerator', 'PatchMatchOptions', 'Point2D', 'Point2DList', 'Point3D', 'Point3DMap', 'PoissonMeshingOptions', 'PoseGraph', 'PoseGraphEdge', 'PoseGraphEdgeMap', 'PosePrior', 'PosePriorBundleAdjustmentOptions', 'PosePriorCoordinateSystem', 'RANSACOptions', 'Reconstruction', 'ReconstructionManager', 'Rig', 'RigConfig', 'RigConfigCamera', 'RigMap', 'Rigid3d', 'Rotation3d', 'RotationEstimatorOptions', 'RotationWeightType', 'SensorType', 'SequentialPairGenerator', 'SequentialPairingOptions', 'Sift', 'SiftExtractionOptions', 'SiftMatchingOptions', 'Sim3d', 'SpatialPairGenerator', 'SpatialPairingOptions', 'StereoFusionOptions', 'SyntheticDatasetMatchConfig', 'SyntheticDatasetOptions', 'SyntheticImageOptions', 'SyntheticNoiseOptions', 'Timer', 'Track', 'TrackElement', 'TriangulationResidualType', 'TwoViewGeometry', 'TwoViewGeometryConfiguration', 'TwoViewGeometryOptions', 'UndistortCameraOptions', 'ViewGraphCalibrationOptions', 'VisualIndex', 'VocabTreePairGenerator', 'VocabTreePairingOptions', 'align_reconstruction_to_locations', 'align_reconstruction_to_orig_rig_scales', 'align_reconstructions_via_points', 'align_reconstructions_via_proj_centers', 'align_reconstructions_via_reprojections', 'apply_rig_config', 'average_quaternions', 'bundle_adjustment', 'calculate_triangulation_angle', 'calibrate_view_graph', 'compare_reconstructions', 'compute_squared_sampson_error', 'cost_functions', 'create_default_bundle_adjuster', 'create_default_ceres_bundle_adjuster', 'create_pose_prior_bundle_adjuster', 'create_pose_prior_ceres_bundle_adjuster', 'data_t', 'essential_matrix_from_pose', 'estimate_absolute_pose', 'estimate_affine2d', 'estimate_affine2d_robust', 'estimate_and_refine_absolute_pose', 'estimate_and_refine_generalized_absolute_pose', 'estimate_ba_covariance', 'estimate_ba_covariance_from_problem', 'estimate_calibrated_two_view_geometry', 'estimate_essential_matrix', 'estimate_fundamental_matrix', 'estimate_generalized_absolute_pose', 'estimate_generalized_relative_pose', 'estimate_homography_matrix', 'estimate_relative_pose', 'estimate_rigid3d', 'estimate_rigid3d_robust', 'estimate_sim3d', 'estimate_sim3d_robust', 'estimate_triangulation', 'estimate_two_view_geometry', 'estimate_two_view_geometry_pose', 'extract_features', 'geometric_verification', 'get_covariance_for_composed_rigid3d', 'get_covariance_for_inverse', 'get_covariance_for_relative_rigid3d', 'global_mapping', 'guided_geometric_verification', 'has_cuda', 'image_pair_to_pair_id', 'import_images', 'incremental_mapping', 'infer_camera_from_image', 'interpolate_camera_poses', 'keypoints_from_matrix', 'keypoints_to_matrix', 'logging', 'match_exhaustive', 'match_image_pairs', 'match_sequential', 'match_spatial', 'match_vocabtree', 'matches_from_matrix', 'matches_to_matrix', 'ostream', 'pair_id_to_image_pair', 'patch_match_stereo', 'poisson_meshing', 'pose_from_homography_matrix', 'pyceres', 'read_rig_config', 'refine_absolute_pose', 'refine_generalized_absolute_pose', 'refine_relative_pose', 'run_global_positioning', 'run_gravity_refinement', 'run_rotation_averaging', 'sensor_t', 'set_random_seed', 'should_swap_image_pair', 'simplify_mesh', 'stereo_fusion', 'synthesize_dataset', 'synthesize_images', 'synthesize_noise', 'triangulate_mid_point', 'triangulate_point', 'triangulate_points', 'undistort_camera', 'undistort_image', 'undistort_images', 'verify_matches']
 class AbsolutePoseEstimationOptions:
     __hash__: typing.ClassVar[None] = None
     @staticmethod
@@ -52,7 +54,7 @@ class AbsolutePoseEstimationOptions:
     @property
     def ransac(self) -> RANSACOptions:
         """
-         (RANSACOptions, default: RANSACOptions(max_error=12.0, min_inlier_ratio=0.1, confidence=0.99999, dyn_num_trials_multiplier=3.0, min_num_trials=100, max_num_trials=10000, random_seed=-1))
+         (RANSACOptions, default: RANSACOptions(max_error=12.0, min_inlier_ratio=0.1, confidence=0.99999, dyn_num_trials_multiplier=3.0, min_num_trials=100, max_num_trials=10000, random_seed=-1, num_threads=1))
         """
     @ransac.setter
     def ransac(self, arg0: RANSACOptions) -> None:
@@ -114,6 +116,24 @@ class AbsolutePoseRefinementOptions:
     def max_num_iterations(self, arg0: typing.SupportsInt) -> None:
         ...
     @property
+    def position_prior_covariance(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]:
+        """
+         (ndarray, default: [[1. 0. 0.]
+         [0. 1. 0.]
+         [0. 0. 1.]])
+        """
+    @position_prior_covariance.setter
+    def position_prior_covariance(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]) -> None:
+        ...
+    @property
+    def position_prior_in_world(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+        """
+         (ndarray, default: [0. 0. 0.])
+        """
+    @position_prior_in_world.setter
+    def position_prior_in_world(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> None:
+        ...
+    @property
     def print_summary(self) -> bool:
         """
          (bool, default: False)
@@ -136,6 +156,14 @@ class AbsolutePoseRefinementOptions:
         """
     @refine_focal_length.setter
     def refine_focal_length(self, arg0: bool) -> None:
+        ...
+    @property
+    def use_position_prior(self) -> bool:
+        """
+         (bool, default: False)
+        """
+    @use_position_prior.setter
+    def use_position_prior(self, arg0: bool) -> None:
         ...
 class AlignedBox3d:
     __hash__: typing.ClassVar[None] = None
@@ -332,32 +360,171 @@ class Bitmap:
     def _pybind11_conduit_v1_(*args, **kwargs):
         ...
     @staticmethod
-    def from_array(array: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8]) -> Bitmap:
+    def from_array(array: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8], linear_colorspace: bool = False) -> Bitmap:
         """
         Create bitmap as a copy of array. Returns RGB bitmap, if array has shape (H, W, 3), or grayscale bitmap, if array has shape (H, W[, 1]).
         """
     @staticmethod
-    def read(path: str, as_rgb: bool) -> pycolmap._core.Bitmap | None:
+    def read(path: os.PathLike[str] | str | bytes, as_rgb: bool, linearize_colorspace: bool = False) -> pycolmap._core.Bitmap | None:
         """
-        Read bitmap from file.
+        Read bitmap at given path and convert to grey- or colorscale. Defaults to keeping the original colorspace (potentially non-linear) for image processing.
         """
+    @typing.overload
     def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, width: typing.SupportsInt, height: typing.SupportsInt, as_rgb: bool, linear_colorspace: bool = False) -> None:
         ...
     def __repr__(self) -> str:
         ...
+    def clone(self) -> Bitmap:
+        """
+        Clone the image to a new bitmap.
+        """
+    def clone_as_grey(self) -> Bitmap:
+        """
+        Clone the image as grayscale.
+        """
+    def clone_as_rgb(self) -> Bitmap:
+        """
+        Clone the image as RGB.
+        """
+    def exif_altitude(self) -> float | None:
+        """
+        Extract EXIF altitude. Returns None if not available.
+        """
+    def exif_camera_model(self) -> str | None:
+        """
+        Extract EXIF camera model. Returns None if not available.
+        """
+    def exif_focal_length(self) -> float | None:
+        """
+        Extract EXIF focal length. Returns None if not available.
+        """
+    def exif_latitude(self) -> float | None:
+        """
+        Extract EXIF latitude. Returns None if not available.
+        """
+    def exif_longitude(self) -> float | None:
+        """
+        Extract EXIF longitude. Returns None if not available.
+        """
+    def exif_orientation(self) -> int | None:
+        """
+        Extract EXIF orientation. Returns None if not available.
+        """
+    def rescale(self, new_width: typing.SupportsInt, new_height: typing.SupportsInt, filter: BitmapRescaleFilter = ...) -> None:
+        """
+        Rescale image to the new dimensions.
+        """
+    def rot90(self, arg0: typing.SupportsInt) -> None:
+        """
+        Rotate image by k * 90 degrees counter-clockwise.
+        """
+    def set_jpeg_quality(self, quality: typing.SupportsInt) -> None:
+        """
+        Set compression quality when writing to JPEG in the range [1, 100]. Lower values reduce quality and file size. By default, bitmaps are written in superb (100) quality, if not otherwise specified.
+        """
     def to_array(self) -> numpy.typing.NDArray[numpy.uint8]:
         ...
-    def write(self, path: str, flags: typing.SupportsInt = 0) -> bool:
+    def write(self, path: os.PathLike[str] | str | bytes, delinearize_colorspace: bool = True) -> bool:
         """
-        Write bitmap to file.
+        Write bitmap to file at given path. Defaults to converting to sRGB colorspace for file storage.
         """
+    @property
+    def bits_per_pixel(self) -> int:
+        """
+        Number of bits per pixel (8 for grey, 24 for RGB).
+        """
+    @property
+    def channels(self) -> int:
+        """
+        Number of channels of the image.
+        """
+    @property
+    def height(self) -> int:
+        """
+        Height of the image.
+        """
+    @property
+    def is_empty(self) -> bool:
+        """
+        Whether the image is empty.
+        """
+    @property
+    def is_grey(self) -> bool:
+        """
+        Whether the image is greyscale.
+        """
+    @property
+    def is_rgb(self) -> bool:
+        """
+        Whether the image is colorscale.
+        """
+    @property
+    def pitch(self) -> int:
+        """
+        Scan line size in bytes (stride).
+        """
+    @property
+    def width(self) -> int:
+        """
+        Width of the image.
+        """
+class BitmapRescaleFilter:
+    """
+    Members:
+    
+      BILINEAR
+    
+      BOX
+    """
+    BILINEAR: typing.ClassVar[BitmapRescaleFilter]  # value = BitmapRescaleFilter.BILINEAR
+    BOX: typing.ClassVar[BitmapRescaleFilter]  # value = BitmapRescaleFilter.BOX
+    __members__: typing.ClassVar[dict[str, BitmapRescaleFilter]]  # value = {'BILINEAR': BitmapRescaleFilter.BILINEAR, 'BOX': BitmapRescaleFilter.BOX}
+    @staticmethod
+    def __repr__(*args, **kwargs):
+        """
+        __str__(self: object, /) -> str
+        """
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __eq__(self, other: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> int:
+        ...
+    def __hash__(self) -> int:
+        ...
+    def __index__(self) -> int:
+        ...
+    @typing.overload
+    def __init__(self, value: typing.SupportsInt) -> None:
+        ...
+    @typing.overload
+    def __init__(self, name: str) -> None:
+        ...
+    def __int__(self) -> int:
+        ...
+    def __ne__(self, other: typing.Any) -> bool:
+        ...
+    def __setstate__(self, state: typing.SupportsInt) -> None:
+        ...
+    def __str__(self) -> str:
+        ...
+    @property
+    def name(self) -> str:
+        ...
+    @property
+    def value(self) -> int:
+        ...
 class BundleAdjuster:
     @staticmethod
     def _pybind11_conduit_v1_(*args, **kwargs):
         ...
     def __init__(self, options: BundleAdjustmentOptions, config: BundleAdjustmentConfig) -> None:
         ...
-    def solve(self) -> pyceres.SolverSummary:
+    def solve(self) -> BundleAdjustmentSummary:
         ...
     @property
     def config(self) -> BundleAdjustmentConfig:
@@ -365,8 +532,49 @@ class BundleAdjuster:
     @property
     def options(self) -> BundleAdjustmentOptions:
         ...
+class BundleAdjustmentBackend:
+    """
+    Members:
+    
+      CERES
+    """
+    CERES: typing.ClassVar[BundleAdjustmentBackend]  # value = BundleAdjustmentBackend.CERES
+    __members__: typing.ClassVar[dict[str, BundleAdjustmentBackend]]  # value = {'CERES': BundleAdjustmentBackend.CERES}
+    @staticmethod
+    def __repr__(*args, **kwargs):
+        """
+        __str__(self: object, /) -> str
+        """
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __eq__(self, other: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> int:
+        ...
+    def __hash__(self) -> int:
+        ...
+    def __index__(self) -> int:
+        ...
+    @typing.overload
+    def __init__(self, value: typing.SupportsInt) -> None:
+        ...
+    @typing.overload
+    def __init__(self, name: str) -> None:
+        ...
+    def __int__(self) -> int:
+        ...
+    def __ne__(self, other: typing.Any) -> bool:
+        ...
+    def __setstate__(self, state: typing.SupportsInt) -> None:
+        ...
+    def __str__(self) -> str:
+        ...
     @property
-    def problem(self) -> ...:
+    def name(self) -> str:
+        ...
+    @property
+    def value(self) -> int:
         ...
 class BundleAdjustmentConfig:
     __hash__: typing.ClassVar[None] = None
@@ -565,9 +773,7 @@ class BundleAdjustmentOptions:
         ...
     def __setstate__(self, arg0: dict) -> None:
         ...
-    def create_loss_function(self) -> ...:
-        ...
-    def create_solver_options(self, config: BundleAdjustmentConfig, problem: ...) -> pyceres.SolverOptions:
+    def check(self) -> bool:
         ...
     def mergedict(self, kwargs: dict) -> None:
         ...
@@ -576,76 +782,36 @@ class BundleAdjustmentOptions:
     def todict(self, recursive: bool = True) -> dict:
         ...
     @property
-    def gpu_index(self) -> str:
+    def backend(self) -> BundleAdjustmentBackend:
         """
-        Which GPU to use for solving the problem. (str, default: -1)
+        Solver backend to use for bundle adjustment. (BundleAdjustmentBackend, default: BundleAdjustmentBackend.CERES)
         """
-    @gpu_index.setter
-    def gpu_index(self, arg0: str) -> None:
+    @backend.setter
+    def backend(self, arg0: BundleAdjustmentBackend) -> None:
         ...
     @property
-    def loss_function_scale(self) -> float:
+    def ceres(self) -> CeresBundleAdjustmentOptions:
         """
-        Scaling factor determines residual at which robustification takes place. (float, default: 1.0)
+        Ceres-specific bundle adjustment options. (CeresBundleAdjustmentOptions, default: CeresBundleAdjustmentOptions(loss_function_type=LossFunctionType.TRIVIAL, loss_function_scale=1.0, use_gpu=False, gpu_index='-1', solver_options=SolverOptions(minimizer_type=MinimizerType.TRUST_REGION, line_search_direction_type=LineSearchDirectionType.LBFGS, line_search_type=LineSearchType.WOLFE, nonlinear_conjugate_gradient_type=NonlinearConjugateGradientType.FLETCHER_REEVES, max_lbfgs_rank=20, use_approximate_eigenvalue_bfgs_scaling=False, line_search_interpolation_type=LineSearchInterpolationType.CUBIC, min_line_search_step_size=1e-09, line_search_sufficient_function_decrease=0.0001, max_line_search_step_contraction=0.001, min_line_search_step_contraction=0.6, max_num_line_search_step_size_iterations=20, max_num_line_search_direction_restarts=5, line_search_sufficient_curvature_decrease=0.9, max_line_search_step_expansion=10.0, trust_region_strategy_type=TrustRegionStrategyType.LEVENBERG_MARQUARDT, dogleg_type=DoglegType.TRADITIONAL_DOGLEG, use_nonmonotonic_steps=False, max_consecutive_nonmonotonic_steps=10, max_num_iterations=100, max_solver_time_in_seconds=1000000000.0, num_threads=-1, initial_trust_region_radius=10000.0, max_trust_region_radius=1e+16, min_trust_region_radius=1e-32, min_relative_decrease=0.001, min_lm_diagonal=1e-06, max_lm_diagonal=1e+32, max_num_consecutive_invalid_steps=10, function_tolerance=0.0, gradient_tolerance=0.0001, parameter_tolerance=0.0, linear_solver_type=LinearSolverType.SPARSE_NORMAL_CHOLESKY, preconditioner_type=PreconditionerType.JACOBI, visibility_clustering_type=VisibilityClusteringType.CANONICAL_VIEWS, dense_linear_algebra_library_type=DenseLinearAlgebraLibraryType.EIGEN, sparse_linear_algebra_library_type=SparseLinearAlgebraLibraryType.SUITE_SPARSE, use_explicit_schur_complement=False, dynamic_sparsity=False, use_inner_iterations=False, inner_iteration_tolerance=0.001, min_linear_solver_iterations=0, max_linear_solver_iterations=200, eta=0.1, jacobi_scaling=True, logging_type=LoggingType.SILENT, minimizer_progress_to_stdout=False, trust_region_problem_dump_directory='/tmp', trust_region_problem_dump_format_type=DumpFormatType.TEXTFILE, check_gradients=False, gradient_check_relative_precision=1e-08, gradient_check_numeric_derivative_relative_step_size=1e-06, update_state_every_iteration=False), min_num_images_gpu_solver=50, min_num_residuals_for_cpu_multi_threading=50000, max_num_images_direct_dense_cpu_solver=50, max_num_images_direct_sparse_cpu_solver=1000, max_num_images_direct_dense_gpu_solver=200, max_num_images_direct_sparse_gpu_solver=4000, auto_select_solver_type=True))
         """
-    @loss_function_scale.setter
-    def loss_function_scale(self, arg0: typing.SupportsFloat) -> None:
+    @ceres.setter
+    def ceres(self, arg0: CeresBundleAdjustmentOptions) -> None:
         ...
     @property
-    def loss_function_type(self) -> LossFunctionType:
+    def constant_rig_from_world_rotation(self) -> bool:
         """
-        Loss function types: Trivial (non-robust) and Cauchy (robust) loss. (LossFunctionType, default: LossFunctionType.TRIVIAL)
+        Whether to keep the rotation component of rig_from_world constant. Only takes effect when refine_rig_from_world is true. (bool, default: False)
         """
-    @loss_function_type.setter
-    def loss_function_type(self, arg0: LossFunctionType) -> None:
+    @constant_rig_from_world_rotation.setter
+    def constant_rig_from_world_rotation(self, arg0: bool) -> None:
         ...
     @property
-    def max_num_images_direct_dense_cpu_solver(self) -> int:
+    def min_track_length(self) -> int:
         """
-        Threshold to switch between direct, sparse, and iterative solvers. (int, default: 50)
+        Minimum track length for a 3D point. (int, default: 0)
         """
-    @max_num_images_direct_dense_cpu_solver.setter
-    def max_num_images_direct_dense_cpu_solver(self, arg0: typing.SupportsInt) -> None:
-        ...
-    @property
-    def max_num_images_direct_dense_gpu_solver(self) -> int:
-        """
-        Threshold to switch between direct, sparse, and iterative solvers. (int, default: 200)
-        """
-    @max_num_images_direct_dense_gpu_solver.setter
-    def max_num_images_direct_dense_gpu_solver(self, arg0: typing.SupportsInt) -> None:
-        ...
-    @property
-    def max_num_images_direct_sparse_cpu_solver(self) -> int:
-        """
-        Threshold to switch between direct, sparse, and iterative solvers. (int, default: 1000)
-        """
-    @max_num_images_direct_sparse_cpu_solver.setter
-    def max_num_images_direct_sparse_cpu_solver(self, arg0: typing.SupportsInt) -> None:
-        ...
-    @property
-    def max_num_images_direct_sparse_gpu_solver(self) -> int:
-        """
-        Threshold to switch between direct, sparse, and iterative solvers. (int, default: 4000)
-        """
-    @max_num_images_direct_sparse_gpu_solver.setter
-    def max_num_images_direct_sparse_gpu_solver(self, arg0: typing.SupportsInt) -> None:
-        ...
-    @property
-    def min_num_images_gpu_solver(self) -> int:
-        """
-        Minimum number of images to use the GPU solver. (int, default: 50)
-        """
-    @min_num_images_gpu_solver.setter
-    def min_num_images_gpu_solver(self, arg0: typing.SupportsInt) -> None:
-        ...
-    @property
-    def min_num_residuals_for_cpu_multi_threading(self) -> int:
-        """
-        Minimum number of residuals to enable multi-threading. Note that single-threaded is typically better for small bundle adjustment problems due to the overhead of threading. (int, default: 50000)
-        """
-    @min_num_residuals_for_cpu_multi_threading.setter
-    def min_num_residuals_for_cpu_multi_threading(self, arg0: typing.SupportsInt) -> None:
+    @min_track_length.setter
+    def min_track_length(self, arg0: typing.SupportsInt) -> None:
         ...
     @property
     def print_summary(self) -> bool:
@@ -672,6 +838,14 @@ class BundleAdjustmentOptions:
     def refine_focal_length(self, arg0: bool) -> None:
         ...
     @property
+    def refine_points3D(self) -> bool:
+        """
+        Whether to refine 3D points. (bool, default: True)
+        """
+    @refine_points3D.setter
+    def refine_points3D(self, arg0: bool) -> None:
+        ...
+    @property
     def refine_principal_point(self) -> bool:
         """
         Whether to refine the principal point parameter group. (bool, default: False)
@@ -695,21 +869,113 @@ class BundleAdjustmentOptions:
     @refine_sensor_from_rig.setter
     def refine_sensor_from_rig(self, arg0: bool) -> None:
         ...
-    @property
-    def solver_options(self) -> pyceres.SolverOptions:
-        """
-        Options for the Ceres solver. Using this member requires having PyCeres installed. (SolverOptions, default: SolverOptions(minimizer_type=MinimizerType.TRUST_REGION, line_search_direction_type=LineSearchDirectionType.LBFGS, line_search_type=LineSearchType.WOLFE, nonlinear_conjugate_gradient_type=NonlinearConjugateGradientType.FLETCHER_REEVES, max_lbfgs_rank=20, use_approximate_eigenvalue_bfgs_scaling=False, line_search_interpolation_type=LineSearchInterpolationType.CUBIC, min_line_search_step_size=1e-09, line_search_sufficient_function_decrease=0.0001, max_line_search_step_contraction=0.001, min_line_search_step_contraction=0.6, max_num_line_search_step_size_iterations=20, max_num_line_search_direction_restarts=5, line_search_sufficient_curvature_decrease=0.9, max_line_search_step_expansion=10.0, trust_region_strategy_type=TrustRegionStrategyType.LEVENBERG_MARQUARDT, dogleg_type=DoglegType.TRADITIONAL_DOGLEG, use_nonmonotonic_steps=False, max_consecutive_nonmonotonic_steps=10, max_num_iterations=100, max_solver_time_in_seconds=1000000000.0, num_threads=-1, initial_trust_region_radius=10000.0, max_trust_region_radius=1e+16, min_trust_region_radius=1e-32, min_relative_decrease=0.001, min_lm_diagonal=1e-06, max_lm_diagonal=1e+32, max_num_consecutive_invalid_steps=10, function_tolerance=0.0, gradient_tolerance=0.0001, parameter_tolerance=0.0, linear_solver_type=LinearSolverType.SPARSE_NORMAL_CHOLESKY, preconditioner_type=PreconditionerType.JACOBI, visibility_clustering_type=VisibilityClusteringType.CANONICAL_VIEWS, dense_linear_algebra_library_type=DenseLinearAlgebraLibraryType.EIGEN, sparse_linear_algebra_library_type=SparseLinearAlgebraLibraryType.SUITE_SPARSE, use_explicit_schur_complement=False, dynamic_sparsity=False, use_inner_iterations=False, inner_iteration_tolerance=0.001, min_linear_solver_iterations=0, max_linear_solver_iterations=200, eta=0.1, jacobi_scaling=True, logging_type=LoggingType.SILENT, minimizer_progress_to_stdout=False, trust_region_problem_dump_directory='/tmp', trust_region_problem_dump_format_type=DumpFormatType.TEXTFILE, check_gradients=False, gradient_check_relative_precision=1e-08, gradient_check_numeric_derivative_relative_step_size=1e-06, update_state_every_iteration=False))
-        """
-    @solver_options.setter
-    def solver_options(self, arg0: pyceres.SolverOptions) -> None:
+class BundleAdjustmentSummary:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __copy__(self) -> BundleAdjustmentSummary:
+        ...
+    def __deepcopy__(self, arg0: dict) -> BundleAdjustmentSummary:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def brief_report(self) -> str:
+        ...
+    def is_solution_usable(self) -> bool:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def todict(self, recursive: bool = True) -> dict:
         ...
     @property
-    def use_gpu(self) -> bool:
+    def num_residuals(self) -> int:
         """
-        Whether to use Ceres' CUDA linear algebra library, if available. (bool, default: False)
+         (int, default: 0) (int, default: 0)
         """
-    @use_gpu.setter
-    def use_gpu(self, arg0: bool) -> None:
+    @num_residuals.setter
+    def num_residuals(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def termination_type(self) -> BundleAdjustmentTerminationType:
+        """
+         (BundleAdjustmentTerminationType, default: BundleAdjustmentTerminationType.FAILURE) (BundleAdjustmentTerminationType, default: BundleAdjustmentTerminationType.FAILURE)
+        """
+    @termination_type.setter
+    def termination_type(self, arg0: BundleAdjustmentTerminationType) -> None:
+        ...
+class BundleAdjustmentTerminationType:
+    """
+    Members:
+    
+      CONVERGENCE
+    
+      NO_CONVERGENCE
+    
+      FAILURE
+    
+      USER_SUCCESS
+    
+      USER_FAILURE
+    """
+    CONVERGENCE: typing.ClassVar[BundleAdjustmentTerminationType]  # value = BundleAdjustmentTerminationType.CONVERGENCE
+    FAILURE: typing.ClassVar[BundleAdjustmentTerminationType]  # value = BundleAdjustmentTerminationType.FAILURE
+    NO_CONVERGENCE: typing.ClassVar[BundleAdjustmentTerminationType]  # value = BundleAdjustmentTerminationType.NO_CONVERGENCE
+    USER_FAILURE: typing.ClassVar[BundleAdjustmentTerminationType]  # value = BundleAdjustmentTerminationType.USER_FAILURE
+    USER_SUCCESS: typing.ClassVar[BundleAdjustmentTerminationType]  # value = BundleAdjustmentTerminationType.USER_SUCCESS
+    __members__: typing.ClassVar[dict[str, BundleAdjustmentTerminationType]]  # value = {'CONVERGENCE': BundleAdjustmentTerminationType.CONVERGENCE, 'NO_CONVERGENCE': BundleAdjustmentTerminationType.NO_CONVERGENCE, 'FAILURE': BundleAdjustmentTerminationType.FAILURE, 'USER_SUCCESS': BundleAdjustmentTerminationType.USER_SUCCESS, 'USER_FAILURE': BundleAdjustmentTerminationType.USER_FAILURE}
+    @staticmethod
+    def __repr__(*args, **kwargs):
+        """
+        __str__(self: object, /) -> str
+        """
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __eq__(self, other: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> int:
+        ...
+    def __hash__(self) -> int:
+        ...
+    def __index__(self) -> int:
+        ...
+    @typing.overload
+    def __init__(self, value: typing.SupportsInt) -> None:
+        ...
+    @typing.overload
+    def __init__(self, name: str) -> None:
+        ...
+    def __int__(self) -> int:
+        ...
+    def __ne__(self, other: typing.Any) -> bool:
+        ...
+    def __setstate__(self, state: typing.SupportsInt) -> None:
+        ...
+    def __str__(self) -> str:
+        ...
+    @property
+    def name(self) -> str:
+        ...
+    @property
+    def value(self) -> int:
         ...
 class Camera:
     __hash__: typing.ClassVar[None] = None
@@ -717,8 +983,18 @@ class Camera:
     def _pybind11_conduit_v1_(*args, **kwargs):
         ...
     @staticmethod
-    def create(camera_id: typing.SupportsInt, model: CameraModelId, focal_length: typing.SupportsFloat, width: typing.SupportsInt, height: typing.SupportsInt) -> Camera:
+    def create(*args, **kwargs) -> typing.Any:
+        """
+        Deprecated, use ``create_from_model_id`` instead.
+        """
+    @staticmethod
+    def create_from_model_id(camera_id: typing.SupportsInt, model: CameraModelId, focal_length: typing.SupportsFloat, width: typing.SupportsInt, height: typing.SupportsInt) -> Camera:
         ...
+    @staticmethod
+    def create_from_model_name(camera_id: typing.SupportsInt, model_name: str, focal_length: typing.SupportsFloat, width: typing.SupportsInt, height: typing.SupportsInt) -> Camera:
+        """
+        Create camera from model name string.
+        """
     def __copy__(self) -> Camera:
         ...
     def __deepcopy__(self, arg0: dict) -> Camera:
@@ -781,24 +1057,13 @@ class Camera:
         Project point from camera frame to image plane.
         """
     @typing.overload
-    def img_from_cam(self, cam_point: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[2, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[2, 1]"] | None:
-        """
-        (Deprecated) Project point from camera frame to image plane.
-        """
-    @typing.overload
     def img_from_cam(self, cam_points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 3]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 2]"]:
         """
         Project list of points from camera frame to image plane.
         """
-    @typing.overload
-    def img_from_cam(self, cam_points: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 2]"]) -> typing.Any:
+    def is_undistorted(self) -> bool:
         """
-        (Deprecated) Project list of points from camera frame to image plane.
-        """
-    @typing.overload
-    def img_from_cam(self, cam_points: Point2DList) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 2]"]:
-        """
-        Project list of points from camera frame to image plane.
+        Check whether camera is already undistorted.
         """
     def mean_focal_length(self) -> float:
         ...
@@ -884,6 +1149,11 @@ class Camera:
     @model.setter
     def model(self, arg0: CameraModelId) -> None:
         ...
+    @property
+    def model_name(self) -> str:
+        """
+        Camera model name as string. (str, default: )
+        """
     @property
     def params(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"]:
         """
@@ -1040,7 +1310,17 @@ class CameraModelId:
       THIN_PRISM_FISHEYE
     
       RAD_TAN_THIN_PRISM_FISHEYE
+    
+      SIMPLE_DIVISION
+    
+      DIVISION
+    
+      SIMPLE_FISHEYE
+    
+      FISHEYE
     """
+    DIVISION: typing.ClassVar[CameraModelId]  # value = CameraModelId.DIVISION
+    FISHEYE: typing.ClassVar[CameraModelId]  # value = CameraModelId.FISHEYE
     FOV: typing.ClassVar[CameraModelId]  # value = CameraModelId.FOV
     FULL_OPENCV: typing.ClassVar[CameraModelId]  # value = CameraModelId.FULL_OPENCV
     INVALID: typing.ClassVar[CameraModelId]  # value = CameraModelId.INVALID
@@ -1050,11 +1330,13 @@ class CameraModelId:
     RADIAL: typing.ClassVar[CameraModelId]  # value = CameraModelId.RADIAL
     RADIAL_FISHEYE: typing.ClassVar[CameraModelId]  # value = CameraModelId.RADIAL_FISHEYE
     RAD_TAN_THIN_PRISM_FISHEYE: typing.ClassVar[CameraModelId]  # value = CameraModelId.RAD_TAN_THIN_PRISM_FISHEYE
+    SIMPLE_DIVISION: typing.ClassVar[CameraModelId]  # value = CameraModelId.SIMPLE_DIVISION
+    SIMPLE_FISHEYE: typing.ClassVar[CameraModelId]  # value = CameraModelId.SIMPLE_FISHEYE
     SIMPLE_PINHOLE: typing.ClassVar[CameraModelId]  # value = CameraModelId.SIMPLE_PINHOLE
     SIMPLE_RADIAL: typing.ClassVar[CameraModelId]  # value = CameraModelId.SIMPLE_RADIAL
     SIMPLE_RADIAL_FISHEYE: typing.ClassVar[CameraModelId]  # value = CameraModelId.SIMPLE_RADIAL_FISHEYE
     THIN_PRISM_FISHEYE: typing.ClassVar[CameraModelId]  # value = CameraModelId.THIN_PRISM_FISHEYE
-    __members__: typing.ClassVar[dict[str, CameraModelId]]  # value = {'INVALID': CameraModelId.INVALID, 'SIMPLE_PINHOLE': CameraModelId.SIMPLE_PINHOLE, 'PINHOLE': CameraModelId.PINHOLE, 'SIMPLE_RADIAL': CameraModelId.SIMPLE_RADIAL, 'SIMPLE_RADIAL_FISHEYE': CameraModelId.SIMPLE_RADIAL_FISHEYE, 'RADIAL': CameraModelId.RADIAL, 'RADIAL_FISHEYE': CameraModelId.RADIAL_FISHEYE, 'OPENCV': CameraModelId.OPENCV, 'OPENCV_FISHEYE': CameraModelId.OPENCV_FISHEYE, 'FULL_OPENCV': CameraModelId.FULL_OPENCV, 'FOV': CameraModelId.FOV, 'THIN_PRISM_FISHEYE': CameraModelId.THIN_PRISM_FISHEYE, 'RAD_TAN_THIN_PRISM_FISHEYE': CameraModelId.RAD_TAN_THIN_PRISM_FISHEYE}
+    __members__: typing.ClassVar[dict[str, CameraModelId]]  # value = {'INVALID': CameraModelId.INVALID, 'SIMPLE_PINHOLE': CameraModelId.SIMPLE_PINHOLE, 'PINHOLE': CameraModelId.PINHOLE, 'SIMPLE_RADIAL': CameraModelId.SIMPLE_RADIAL, 'SIMPLE_RADIAL_FISHEYE': CameraModelId.SIMPLE_RADIAL_FISHEYE, 'RADIAL': CameraModelId.RADIAL, 'RADIAL_FISHEYE': CameraModelId.RADIAL_FISHEYE, 'OPENCV': CameraModelId.OPENCV, 'OPENCV_FISHEYE': CameraModelId.OPENCV_FISHEYE, 'FULL_OPENCV': CameraModelId.FULL_OPENCV, 'FOV': CameraModelId.FOV, 'THIN_PRISM_FISHEYE': CameraModelId.THIN_PRISM_FISHEYE, 'RAD_TAN_THIN_PRISM_FISHEYE': CameraModelId.RAD_TAN_THIN_PRISM_FISHEYE, 'SIMPLE_DIVISION': CameraModelId.SIMPLE_DIVISION, 'DIVISION': CameraModelId.DIVISION, 'SIMPLE_FISHEYE': CameraModelId.SIMPLE_FISHEYE, 'FISHEYE': CameraModelId.FISHEYE}
     @staticmethod
     def __repr__(*args, **kwargs):
         """
@@ -1091,55 +1373,236 @@ class CameraModelId:
     @property
     def value(self) -> int:
         ...
-class CopyType:
-    """
-    Members:
-    
-      copy
-    
-      softlink
-    
-      hardlink
-    """
-    __members__: typing.ClassVar[dict[str, CopyType]]  # value = {'copy': CopyType.copy, 'softlink': CopyType.softlink, 'hardlink': CopyType.hardlink}
-    copy: typing.ClassVar[CopyType]  # value = CopyType.copy
-    hardlink: typing.ClassVar[CopyType]  # value = CopyType.hardlink
-    softlink: typing.ClassVar[CopyType]  # value = CopyType.softlink
-    @staticmethod
-    def __repr__(*args, **kwargs):
-        """
-        __str__(self: object, /) -> str
-        """
+class CeresBundleAdjuster(BundleAdjuster):
     @staticmethod
     def _pybind11_conduit_v1_(*args, **kwargs):
         ...
-    def __eq__(self, other: typing.Any) -> bool:
-        ...
-    def __getstate__(self) -> int:
-        ...
-    def __hash__(self) -> int:
-        ...
-    def __index__(self) -> int:
-        ...
-    @typing.overload
-    def __init__(self, value: typing.SupportsInt) -> None:
-        ...
-    @typing.overload
-    def __init__(self, name: str) -> None:
-        ...
-    def __int__(self) -> int:
-        ...
-    def __ne__(self, other: typing.Any) -> bool:
-        ...
-    def __setstate__(self, state: typing.SupportsInt) -> None:
-        ...
-    def __str__(self) -> str:
+    def __init__(self, options: BundleAdjustmentOptions, config: BundleAdjustmentConfig) -> None:
         ...
     @property
-    def name(self) -> str:
+    def problem(self) -> ...:
+        ...
+class CeresBundleAdjustmentOptions:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __copy__(self) -> CeresBundleAdjustmentOptions:
+        ...
+    def __deepcopy__(self, arg0: dict) -> CeresBundleAdjustmentOptions:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def check(self) -> bool:
+        ...
+    def create_loss_function(self) -> ...:
+        ...
+    def create_solver_options(self, config: BundleAdjustmentConfig, problem: ...) -> pyceres.SolverOptions:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def todict(self, recursive: bool = True) -> dict:
         ...
     @property
-    def value(self) -> int:
+    def auto_select_solver_type(self) -> bool:
+        """
+        Whether to automatically select solver type based on problem size. When False, uses the linear_solver_type and preconditioner_type from solver_options directly. (bool, default: True)
+        """
+    @auto_select_solver_type.setter
+    def auto_select_solver_type(self, arg0: bool) -> None:
+        ...
+    @property
+    def gpu_index(self) -> str:
+        """
+        Which GPU to use for solving the problem. (str, default: -1)
+        """
+    @gpu_index.setter
+    def gpu_index(self, arg0: str) -> None:
+        ...
+    @property
+    def loss_function_scale(self) -> float:
+        """
+        Scaling factor determines residual at which robustification takes place. (float, default: 1.0)
+        """
+    @loss_function_scale.setter
+    def loss_function_scale(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def loss_function_type(self) -> LossFunctionType:
+        """
+        Loss function types: Trivial (non-robust) and Cauchy (robust) loss. (LossFunctionType, default: LossFunctionType.TRIVIAL)
+        """
+    @loss_function_type.setter
+    def loss_function_type(self, arg0: LossFunctionType) -> None:
+        ...
+    @property
+    def max_num_images_direct_dense_cpu_solver(self) -> int:
+        """
+        Threshold to switch between direct, sparse, and iterative solvers. (int, default: 50)
+        """
+    @max_num_images_direct_dense_cpu_solver.setter
+    def max_num_images_direct_dense_cpu_solver(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def max_num_images_direct_dense_gpu_solver(self) -> int:
+        """
+        Threshold to switch between direct, sparse, and iterative solvers. (int, default: 200)
+        """
+    @max_num_images_direct_dense_gpu_solver.setter
+    def max_num_images_direct_dense_gpu_solver(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def max_num_images_direct_sparse_cpu_solver(self) -> int:
+        """
+        Threshold to switch between direct, sparse, and iterative solvers. (int, default: 1000)
+        """
+    @max_num_images_direct_sparse_cpu_solver.setter
+    def max_num_images_direct_sparse_cpu_solver(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def max_num_images_direct_sparse_gpu_solver(self) -> int:
+        """
+        Threshold to switch between direct, sparse, and iterative solvers. (int, default: 4000)
+        """
+    @max_num_images_direct_sparse_gpu_solver.setter
+    def max_num_images_direct_sparse_gpu_solver(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def min_num_images_gpu_solver(self) -> int:
+        """
+        Minimum number of images to use the GPU solver. (int, default: 50)
+        """
+    @min_num_images_gpu_solver.setter
+    def min_num_images_gpu_solver(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def min_num_residuals_for_cpu_multi_threading(self) -> int:
+        """
+        Minimum number of residuals to enable multi-threading. Note that single-threaded is typically better for small bundle adjustment problems due to the overhead of threading. (int, default: 50000)
+        """
+    @min_num_residuals_for_cpu_multi_threading.setter
+    def min_num_residuals_for_cpu_multi_threading(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def solver_options(self) -> pyceres.SolverOptions:
+        """
+        Options for the Ceres solver. Using this member requires having PyCeres installed. (SolverOptions, default: SolverOptions(minimizer_type=MinimizerType.TRUST_REGION, line_search_direction_type=LineSearchDirectionType.LBFGS, line_search_type=LineSearchType.WOLFE, nonlinear_conjugate_gradient_type=NonlinearConjugateGradientType.FLETCHER_REEVES, max_lbfgs_rank=20, use_approximate_eigenvalue_bfgs_scaling=False, line_search_interpolation_type=LineSearchInterpolationType.CUBIC, min_line_search_step_size=1e-09, line_search_sufficient_function_decrease=0.0001, max_line_search_step_contraction=0.001, min_line_search_step_contraction=0.6, max_num_line_search_step_size_iterations=20, max_num_line_search_direction_restarts=5, line_search_sufficient_curvature_decrease=0.9, max_line_search_step_expansion=10.0, trust_region_strategy_type=TrustRegionStrategyType.LEVENBERG_MARQUARDT, dogleg_type=DoglegType.TRADITIONAL_DOGLEG, use_nonmonotonic_steps=False, max_consecutive_nonmonotonic_steps=10, max_num_iterations=100, max_solver_time_in_seconds=1000000000.0, num_threads=-1, initial_trust_region_radius=10000.0, max_trust_region_radius=1e+16, min_trust_region_radius=1e-32, min_relative_decrease=0.001, min_lm_diagonal=1e-06, max_lm_diagonal=1e+32, max_num_consecutive_invalid_steps=10, function_tolerance=0.0, gradient_tolerance=0.0001, parameter_tolerance=0.0, linear_solver_type=LinearSolverType.SPARSE_NORMAL_CHOLESKY, preconditioner_type=PreconditionerType.JACOBI, visibility_clustering_type=VisibilityClusteringType.CANONICAL_VIEWS, dense_linear_algebra_library_type=DenseLinearAlgebraLibraryType.EIGEN, sparse_linear_algebra_library_type=SparseLinearAlgebraLibraryType.SUITE_SPARSE, use_explicit_schur_complement=False, dynamic_sparsity=False, use_inner_iterations=False, inner_iteration_tolerance=0.001, min_linear_solver_iterations=0, max_linear_solver_iterations=200, eta=0.1, jacobi_scaling=True, logging_type=LoggingType.SILENT, minimizer_progress_to_stdout=False, trust_region_problem_dump_directory='/tmp', trust_region_problem_dump_format_type=DumpFormatType.TEXTFILE, check_gradients=False, gradient_check_relative_precision=1e-08, gradient_check_numeric_derivative_relative_step_size=1e-06, update_state_every_iteration=False))
+        """
+    @solver_options.setter
+    def solver_options(self, arg0: pyceres.SolverOptions) -> None:
+        ...
+    @property
+    def use_gpu(self) -> bool:
+        """
+        Whether to use Ceres' CUDA linear algebra library, if available. (bool, default: False)
+        """
+    @use_gpu.setter
+    def use_gpu(self, arg0: bool) -> None:
+        ...
+class CeresBundleAdjustmentSummary(BundleAdjustmentSummary):
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __copy__(self) -> CeresBundleAdjustmentSummary:
+        ...
+    def __deepcopy__(self, arg0: dict) -> CeresBundleAdjustmentSummary:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def todict(self, recursive: bool = True) -> dict:
+        ...
+    @property
+    def ceres_summary(self) -> pyceres.SolverSummary:
+        """
+        Full Ceres solver summary. (SolverSummary, default: SolverSummary(minimizer_type=MinimizerType.TRUST_REGION, termination_type=TerminationType.FAILURE, message='ceres::Solve was not called.', initial_cost=-1.0, final_cost=-1.0, fixed_cost=-1.0, num_successful_steps=-1, num_unsuccessful_steps=-1, num_inner_iteration_steps=-1, num_line_search_steps=-1, preprocessor_time_in_seconds=-1.0, minimizer_time_in_seconds=-1.0, postprocessor_time_in_seconds=-1.0, total_time_in_seconds=-1.0, linear_solver_time_in_seconds=-1.0, num_linear_solves=-1, residual_evaluation_time_in_seconds=-1.0, num_residual_evaluations=-1, jacobian_evaluation_time_in_seconds=-1.0, num_jacobian_evaluations=-1, inner_iteration_time_in_seconds=-1.0, line_search_cost_evaluation_time_in_seconds=-1.0, line_search_gradient_evaluation_time_in_seconds=-1.0, line_search_polynomial_minimization_time_in_seconds=-1.0, line_search_total_time_in_seconds=-1.0, num_parameter_blocks=-1, num_parameters=-1, num_effective_parameters=-1, num_residual_blocks=-1, num_residuals=-1, num_parameter_blocks_reduced=-1, num_parameters_reduced=-1, num_effective_parameters_reduced=-1, num_residual_blocks_reduced=-1, num_residuals_reduced=-1, is_constrained=False, num_threads_given=-1, num_threads_used=-1, linear_solver_type_given=LinearSolverType.SPARSE_NORMAL_CHOLESKY, linear_solver_type_used=LinearSolverType.SPARSE_NORMAL_CHOLESKY, schur_structure_given='', schur_structure_used='', inner_iterations_given=False, inner_iterations_used=False, preconditioner_type_given=PreconditionerType.IDENTITY, preconditioner_type_used=PreconditionerType.IDENTITY, visibility_clustering_type=VisibilityClusteringType.CANONICAL_VIEWS, trust_region_strategy_type=TrustRegionStrategyType.LEVENBERG_MARQUARDT, dogleg_type=DoglegType.TRADITIONAL_DOGLEG, dense_linear_algebra_library_type=DenseLinearAlgebraLibraryType.EIGEN, sparse_linear_algebra_library_type=SparseLinearAlgebraLibraryType.NO_SPARSE, line_search_direction_type=LineSearchDirectionType.LBFGS, line_search_type=LineSearchType.WOLFE, line_search_interpolation_type=LineSearchInterpolationType.CUBIC, nonlinear_conjugate_gradient_type=NonlinearConjugateGradientType.FLETCHER_REEVES, max_lbfgs_rank=-1))
+        """
+    @ceres_summary.setter
+    def ceres_summary(self, arg0: pyceres.SolverSummary) -> None:
+        ...
+class CeresPosePriorBundleAdjustmentOptions:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __copy__(self) -> CeresPosePriorBundleAdjustmentOptions:
+        ...
+    def __deepcopy__(self, arg0: dict) -> CeresPosePriorBundleAdjustmentOptions:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def check(self) -> bool:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def todict(self, recursive: bool = True) -> dict:
+        ...
+    @property
+    def prior_position_loss_function_type(self) -> LossFunctionType:
+        """
+        Loss function for prior position loss. (LossFunctionType, default: LossFunctionType.TRIVIAL)
+        """
+    @prior_position_loss_function_type.setter
+    def prior_position_loss_function_type(self, arg0: LossFunctionType) -> None:
+        ...
+    @property
+    def prior_position_loss_scale(self) -> float:
+        """
+        Threshold on the residual for the robust loss (chi2 for 3DOF at 95% = 7.815). (float, default: 2.7954834829151074)
+        """
+    @prior_position_loss_scale.setter
+    def prior_position_loss_scale(self, arg0: typing.SupportsFloat) -> None:
         ...
 class Correspondence:
     __hash__: typing.ClassVar[None] = None
@@ -1196,6 +1659,21 @@ class CorrespondenceGraph:
     @staticmethod
     def _pybind11_conduit_v1_(*args, **kwargs):
         ...
+    @staticmethod
+    def find_correspondences_between_images(*args, **kwargs) -> typing.Any:
+        """
+        Deprecated, use ``extract_matches_between_images`` instead.
+        """
+    @staticmethod
+    def num_correspondences_between_all_images(*args, **kwargs) -> typing.Any:
+        """
+        Deprecated, use ``num_matches_between_all_images`` instead.
+        """
+    @staticmethod
+    def num_correspondences_between_images(*args, **kwargs) -> typing.Any:
+        """
+        Deprecated, use ``num_matches_between_images`` instead.
+        """
     def __copy__(self) -> CorrespondenceGraph:
         ...
     def __deepcopy__(self, arg0: dict) -> CorrespondenceGraph:
@@ -1204,27 +1682,31 @@ class CorrespondenceGraph:
         ...
     def __repr__(self) -> str:
         ...
-    def add_correspondences(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt, correspondences: typing.Annotated[numpy.typing.ArrayLike, numpy.uint32, "[m, 2]"]) -> None:
-        ...
     def add_image(self, image_id: typing.SupportsInt, num_points2D: typing.SupportsInt) -> None:
+        ...
+    def add_two_view_geometry(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt, two_view_geometry: TwoViewGeometry) -> None:
         ...
     def exists_image(self, image_id: typing.SupportsInt) -> bool:
         ...
     def extract_correspondences(self, image_id: typing.SupportsInt, point2D_idx: typing.SupportsInt) -> list[Correspondence]:
         ...
+    def extract_matches_between_images(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> typing.Annotated[numpy.typing.NDArray[numpy.uint32], "[m, 2]"]:
+        ...
     def extract_transitive_correspondences(self, image_id: typing.SupportsInt, point2D_idx: typing.SupportsInt, transitivity: typing.SupportsInt) -> list[Correspondence]:
+        ...
+    def extract_two_view_geometry(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt, extract_inlier_matches: bool) -> TwoViewGeometry:
         ...
     def finalize(self) -> None:
         ...
-    def find_correspondences_between_images(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> typing.Annotated[numpy.typing.NDArray[numpy.uint32], "[m, 2]"]:
-        ...
+    def find_correspondences(self, image_id: typing.SupportsInt, point2D_idx: typing.SupportsInt) -> CorrespondenceRange:
+        """
+        Find range of correspondences of an image observation.
+        """
     def has_correspondences(self, image_id: typing.SupportsInt, point2D_idx: typing.SupportsInt) -> bool:
         ...
+    def image_pairs(self) -> list[int]:
+        ...
     def is_two_view_observation(self, image_id: typing.SupportsInt, point2D_idx: typing.SupportsInt) -> bool:
-        ...
-    def num_correspondences_between_all_images(self) -> dict[int, int]:
-        ...
-    def num_correspondences_between_images(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> int:
         ...
     def num_correspondences_for_image(self, image_id: typing.SupportsInt) -> int:
         ...
@@ -1232,8 +1714,25 @@ class CorrespondenceGraph:
         ...
     def num_images(self) -> int:
         ...
+    def num_matches_between_all_images(self) -> dict[int, int]:
+        ...
+    def num_matches_between_images(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> int:
+        ...
     def num_observations_for_image(self, image_id: typing.SupportsInt) -> int:
         ...
+class CorrespondenceRange:
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def to_list(self) -> list[Correspondence]:
+        """
+        Convert range to list of correspondences.
+        """
+    @property
+    def empty(self) -> bool:
+        """
+        Whether the range is empty.
+        """
 class Database:
     @staticmethod
     def _pybind11_conduit_v1_(*args, **kwargs):
@@ -1242,7 +1741,7 @@ class Database:
     def merge(database1: Database, database2: Database, merged_database: Database) -> None:
         ...
     @staticmethod
-    def open(path: str) -> Database:
+    def open(path: os.PathLike[str] | str | bytes) -> Database:
         ...
     def __enter__(self) -> Database:
         ...
@@ -1276,6 +1775,8 @@ class Database:
         ...
     def delete_matches(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> None:
         ...
+    def delete_two_view_geometry(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> None:
+        ...
     def exists_camera(self, camera_id: typing.SupportsInt) -> bool:
         ...
     def exists_descriptors(self, image_id: typing.SupportsInt) -> bool:
@@ -1288,15 +1789,15 @@ class Database:
     @typing.overload
     def exists_image(self, name: str) -> bool:
         ...
-    def exists_inlier_matches(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> bool:
-        ...
     def exists_keypoints(self, image_id: typing.SupportsInt) -> bool:
         ...
     def exists_matches(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> bool:
         ...
-    def exists_pose_prior(self, image_id: typing.SupportsInt) -> bool:
+    def exists_pose_prior(self, pose_prior_id: typing.SupportsInt, is_deprecated_image_prior: bool = True) -> bool:
         ...
     def exists_rig(self, rig_id: typing.SupportsInt) -> bool:
+        ...
+    def exists_two_view_geometry(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> bool:
         ...
     def num_cameras(self) -> int:
         ...
@@ -1332,11 +1833,13 @@ class Database:
         ...
     def read_all_matches(self) -> tuple[list[int], list[typing.Annotated[numpy.typing.NDArray[numpy.uint32], "[m, 2]"]]]:
         ...
+    def read_all_pose_priors(self) -> list[PosePrior]:
+        ...
     def read_all_rigs(self) -> list[Rig]:
         ...
     def read_camera(self, camera_id: typing.SupportsInt) -> Camera:
         ...
-    def read_descriptors(self, image_id: typing.SupportsInt) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
+    def read_descriptors(self, image_id: typing.SupportsInt) -> FeatureDescriptors:
         ...
     def read_frame(self, frame_id: typing.SupportsInt) -> Frame:
         ...
@@ -1350,7 +1853,7 @@ class Database:
         ...
     def read_num_matches(self) -> tuple[list[int], list[int]]:
         ...
-    def read_pose_prior(self, image_id: typing.SupportsInt) -> PosePrior:
+    def read_pose_prior(self, pose_prior_id: typing.SupportsInt, is_deprecated_image_prior: bool = True) -> PosePrior:
         ...
     def read_rig(self, rig_id: typing.SupportsInt) -> Rig:
         ...
@@ -1370,13 +1873,15 @@ class Database:
         ...
     def update_keypoints(self, image_id: typing.SupportsInt, keypoints: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"]) -> None:
         ...
-    def update_pose_prior(self, image_id: typing.SupportsInt, pose_prior: PosePrior) -> None:
+    def update_pose_prior(self, pose_prior: PosePrior) -> None:
         ...
     def update_rig(self, rig: Rig) -> None:
         ...
+    def update_two_view_geometry(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt, two_view_geometry: TwoViewGeometry) -> None:
+        ...
     def write_camera(self, camera: Camera, use_camera_id: bool = False) -> int:
         ...
-    def write_descriptors(self, image_id: typing.SupportsInt, descriptors: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8, "[m, n]"]) -> None:
+    def write_descriptors(self, image_id: typing.SupportsInt, descriptors: FeatureDescriptors) -> None:
         ...
     def write_frame(self, frame: Frame, use_frame_id: bool = False) -> int:
         ...
@@ -1386,7 +1891,7 @@ class Database:
         ...
     def write_matches(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt, matches: typing.Annotated[numpy.typing.ArrayLike, numpy.uint32, "[m, 2]"]) -> None:
         ...
-    def write_pose_prior(self, image_id: typing.SupportsInt, pose_prior: PosePrior) -> None:
+    def write_pose_prior(self, pose_prior: PosePrior, use_pose_prior_id: bool = False) -> int:
         ...
     def write_rig(self, rig: Rig, use_rig_id: bool = False) -> int:
         ...
@@ -1397,7 +1902,10 @@ class DatabaseCache:
     def _pybind11_conduit_v1_(*args, **kwargs):
         ...
     @staticmethod
-    def create(database: Database, min_num_matches: typing.SupportsInt, ignore_watermarks: bool, image_names: collections.abc.Set[str]) -> DatabaseCache:
+    def create(database: Database, options: DatabaseCacheOptions) -> DatabaseCache:
+        ...
+    @staticmethod
+    def create_from_cache(database_cache: DatabaseCache, options: DatabaseCacheOptions) -> DatabaseCache:
         ...
     def __init__(self) -> None:
         ...
@@ -1407,7 +1915,11 @@ class DatabaseCache:
         ...
     def add_image(self, arg0: Image) -> None:
         ...
+    def add_pose_prior(self, arg0: PosePrior) -> None:
+        ...
     def add_rig(self, arg0: Rig) -> None:
+        ...
+    def camera(self, camera_id: typing.SupportsInt) -> Camera:
         ...
     def exists_camera(self, camera_id: typing.SupportsInt) -> bool:
         ...
@@ -1419,13 +1931,23 @@ class DatabaseCache:
         ...
     def find_image_with_name(self, name: str) -> Image:
         ...
+    def frame(self, frame_id: typing.SupportsInt) -> Frame:
+        ...
+    def image(self, image_id: typing.SupportsInt) -> Image:
+        ...
+    def load(self, database: Database, options: DatabaseCacheOptions) -> None:
+        ...
     def num_cameras(self) -> int:
         ...
     def num_frames(self) -> int:
         ...
     def num_images(self) -> int:
         ...
+    def num_pose_priors(self) -> int:
+        ...
     def num_rigs(self) -> int:
+        ...
+    def rig(self, rig_id: typing.SupportsInt) -> Rig:
         ...
     @property
     def cameras(self) -> dict[int, Camera]:
@@ -1440,7 +1962,82 @@ class DatabaseCache:
     def images(self) -> dict[int, Image]:
         ...
     @property
+    def pose_priors(self) -> list[PosePrior]:
+        ...
+    @property
     def rigs(self) -> dict[int, Rig]:
+        ...
+class DatabaseCacheOptions:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __copy__(self) -> DatabaseCacheOptions:
+        ...
+    def __deepcopy__(self, arg0: dict) -> DatabaseCacheOptions:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def todict(self, recursive: bool = True) -> dict:
+        ...
+    @property
+    def convert_pose_priors_to_enu(self) -> bool:
+        """
+        Whether to convert pose priors to ENU coordinate system. (bool, default: False)
+        """
+    @convert_pose_priors_to_enu.setter
+    def convert_pose_priors_to_enu(self, arg0: bool) -> None:
+        ...
+    @property
+    def ignore_watermarks(self) -> bool:
+        """
+        Whether to ignore watermark image pairs. (bool, default: False)
+        """
+    @ignore_watermarks.setter
+    def ignore_watermarks(self, arg0: bool) -> None:
+        ...
+    @property
+    def image_names(self) -> set[str]:
+        """
+        Only load the data for a subset of the images. All images are used if empty. (set, default: set())
+        """
+    @image_names.setter
+    def image_names(self, arg0: collections.abc.Set[str]) -> None:
+        ...
+    @property
+    def load_all_images(self) -> bool:
+        """
+        Whether to load all candidate images regardless of whether they have correspondences. Only useful for triangulation. (bool, default: False)
+        """
+    @load_all_images.setter
+    def load_all_images(self, arg0: bool) -> None:
+        ...
+    @property
+    def min_num_matches(self) -> int:
+        """
+        Only load image pairs with a minimum number of matches. (int, default: 0)
+        """
+    @min_num_matches.setter
+    def min_num_matches(self, arg0: typing.SupportsInt) -> None:
         ...
 class DatabaseTransaction:
     @staticmethod
@@ -1550,6 +2147,65 @@ class DelaunayMeshingOptions:
     @visibility_sigma.setter
     def visibility_sigma(self, arg0: typing.SupportsFloat) -> None:
         ...
+class DepthMap:
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    @staticmethod
+    def from_array(array: typing.Annotated[numpy.typing.ArrayLike, numpy.float32], depth_min: typing.SupportsFloat, depth_max: typing.SupportsFloat) -> DepthMap:
+        """
+        Create depth map as a copy of array. Returns depth map with shape (H, W).
+        """
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, width: typing.SupportsInt, height: typing.SupportsInt, depth_min: typing.SupportsFloat, depth_max: typing.SupportsFloat) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def downsize(self, max_width: typing.SupportsInt, max_height: typing.SupportsInt) -> None:
+        """
+        Downsize depth map to fit maximum dimensions.
+        """
+    def read(self, path: os.PathLike[str] | str | bytes) -> None:
+        """
+        Read depth map from file at given path.
+        """
+    def rescale(self, factor: typing.SupportsFloat) -> None:
+        """
+        Rescale depth map.
+        """
+    def to_array(self) -> numpy.typing.NDArray[numpy.float32]:
+        ...
+    def to_bitmap(self, min_percentile: typing.SupportsFloat, max_percentile: typing.SupportsFloat) -> Bitmap:
+        """
+        Convert depth map to bitmap for visualization.
+        """
+    def write(self, path: os.PathLike[str] | str | bytes) -> None:
+        """
+        Write depth map to file at given path.
+        """
+    @property
+    def depth_max(self) -> float:
+        """
+        Maximum depth value.
+        """
+    @property
+    def depth_min(self) -> float:
+        """
+        Minimum depth value.
+        """
+    @property
+    def height(self) -> int:
+        """
+        Height of the depth map.
+        """
+    @property
+    def width(self) -> int:
+        """
+        Width of the depth map.
+        """
 class Device:
     """
     Members:
@@ -1643,7 +2299,7 @@ class EstimateTriangulationOptions:
     @property
     def ransac(self) -> RANSACOptions:
         """
-        RANSAC options. (RANSACOptions, default: RANSACOptions(max_error=0.03490658503988659, min_inlier_ratio=0.02, confidence=0.9999, dyn_num_trials_multiplier=3.0, min_num_trials=0, max_num_trials=10000, random_seed=-1))
+        RANSAC options. (RANSACOptions, default: RANSACOptions(max_error=0.03490658503988659, min_inlier_ratio=0.02, confidence=0.9999, dyn_num_trials_multiplier=3.0, min_num_trials=0, max_num_trials=10000, random_seed=-1, num_threads=1))
         """
     @ransac.setter
     def ransac(self, arg0: RANSACOptions) -> None:
@@ -1704,6 +2360,48 @@ class ExhaustivePairingOptions:
     @block_size.setter
     def block_size(self, arg0: typing.SupportsInt) -> None:
         ...
+class ExistingMatchedPairingOptions:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __copy__(self) -> ExistingMatchedPairingOptions:
+        ...
+    def __deepcopy__(self, arg0: dict) -> ExistingMatchedPairingOptions:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def check(self) -> bool:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def todict(self, recursive: bool = True) -> dict:
+        ...
+    @property
+    def batch_size(self) -> int:
+        """
+         (int, default: 1000)
+        """
+    @batch_size.setter
+    def batch_size(self, arg0: typing.SupportsInt) -> None:
+        ...
 class ExperimentalPoseParam:
     __hash__: typing.ClassVar[None] = None
     @staticmethod
@@ -1737,6 +2435,14 @@ class ExperimentalPoseParam:
     def todict(self, recursive: bool = True) -> dict:
         ...
     @property
+    def cam_from_world(self) -> numpy.typing.NDArray[numpy.float64] | None:
+        """
+         (NoneType, default: None)
+        """
+    @cam_from_world.setter
+    def cam_from_world(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -> None:
+        ...
+    @property
     def image_id(self) -> int:
         """
          (int, default: 4294967295)
@@ -1744,21 +2450,125 @@ class ExperimentalPoseParam:
     @image_id.setter
     def image_id(self, arg0: typing.SupportsInt) -> None:
         ...
-    @property
-    def qvec(self) -> numpy.typing.NDArray[numpy.float64] | None:
+class FeatureDescriptors:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    @staticmethod
+    def from_float(float_desc: FeatureDescriptorsFloat) -> FeatureDescriptors:
         """
-         (NoneType, default: None)
+        Create from float descriptors by reinterpreting float32 data as uint8 bytes.
         """
-    @qvec.setter
-    def qvec(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -> None:
+    def __copy__(self) -> FeatureDescriptors:
+        ...
+    def __deepcopy__(self, arg0: dict) -> FeatureDescriptors:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, type: FeatureExtractorType, data: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8, "[m, n]"]) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def to_float(self) -> FeatureDescriptorsFloat:
+        """
+        Convert to float descriptors by reinterpreting uint8 data as float32.
+        """
+    def todict(self, recursive: bool = True) -> dict:
         ...
     @property
-    def tvec(self) -> numpy.typing.NDArray[numpy.float64] | None:
+    def data(self) -> typing.Annotated[numpy.typing.NDArray[numpy.uint8], "[m, n]"]:
         """
-         (NoneType, default: None)
+         (ndarray, default: [])
         """
-    @tvec.setter
-    def tvec(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -> None:
+    @data.setter
+    def data(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8, "[m, n]"]) -> None:
+        ...
+    @property
+    def type(self) -> FeatureExtractorType:
+        """
+         (FeatureExtractorType, default: FeatureExtractorType.UNDEFINED)
+        """
+    @type.setter
+    def type(self, arg0: FeatureExtractorType) -> None:
+        ...
+class FeatureDescriptorsFloat:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    @staticmethod
+    def from_bytes(byte_desc: FeatureDescriptors) -> FeatureDescriptorsFloat:
+        """
+        Create from byte descriptors by reinterpreting uint8 data as float32.
+        """
+    def __copy__(self) -> FeatureDescriptorsFloat:
+        ...
+    def __deepcopy__(self, arg0: dict) -> FeatureDescriptorsFloat:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, type: FeatureExtractorType, data: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"]) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def to_bytes(self) -> FeatureDescriptors:
+        """
+        Convert to byte descriptors by reinterpreting float32 data as uint8.
+        """
+    def todict(self, recursive: bool = True) -> dict:
+        ...
+    @property
+    def data(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, n]"]:
+        """
+         (ndarray, default: [])
+        """
+    @data.setter
+    def data(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"]) -> None:
+        ...
+    @property
+    def type(self) -> FeatureExtractorType:
+        """
+         (FeatureExtractorType, default: FeatureExtractorType.UNDEFINED)
+        """
+    @type.setter
+    def type(self, arg0: FeatureExtractorType) -> None:
         ...
 class FeatureExtractionOptions:
     __hash__: typing.ClassVar[None] = None
@@ -1774,7 +2584,7 @@ class FeatureExtractionOptions:
     def __getstate__(self) -> dict:
         ...
     @typing.overload
-    def __init__(self) -> None:
+    def __init__(self, type: FeatureExtractorType = ...) -> None:
         ...
     @typing.overload
     def __init__(self, arg0: dict) -> None:
@@ -1788,7 +2598,13 @@ class FeatureExtractionOptions:
         ...
     def check(self) -> bool:
         ...
+    def eff_max_image_size(self) -> int:
+        ...
     def mergedict(self, kwargs: dict) -> None:
+        ...
+    def requires_opengl(self) -> bool:
+        ...
+    def requires_rgb(self) -> bool:
         ...
     def summary(self, write_type: bool = False) -> str:
         ...
@@ -1805,7 +2621,7 @@ class FeatureExtractionOptions:
     @property
     def max_image_size(self) -> int:
         """
-        Maximum image size, otherwise image will be down-scaled. (int, default: 3200)
+        Maximum image size, otherwise image will be down-scaled. If max_image_size is non-positive, the appropriate size is selected automatically based on the extractor type. (int, default: -1)
         """
     @max_image_size.setter
     def max_image_size(self, arg0: typing.SupportsInt) -> None:
@@ -1827,12 +2643,85 @@ class FeatureExtractionOptions:
     def sift(self, arg0: SiftExtractionOptions) -> None:
         ...
     @property
+    def type(self) -> FeatureExtractorType:
+        """
+         (FeatureExtractorType, default: FeatureExtractorType.SIFT)
+        """
+    @type.setter
+    def type(self, arg0: FeatureExtractorType) -> None:
+        ...
+    @property
     def use_gpu(self) -> bool:
         """
          (bool, default: False)
         """
     @use_gpu.setter
     def use_gpu(self, arg0: bool) -> None:
+        ...
+class FeatureExtractor:
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    @staticmethod
+    def create(options: pycolmap._core.FeatureExtractionOptions | None = None, device: Device = ...) -> FeatureExtractor:
+        ...
+    def extract(self, bitmap: Bitmap) -> tuple:
+        """
+        Extract features from a Bitmap. Returns (FeatureKeypoints, FeatureDescriptors).
+        """
+    def extract_from_float32_array(self, image: typing.Annotated[numpy.typing.ArrayLike, numpy.float32]) -> tuple:
+        """
+        Extract features from a float32 numpy array with values in [0, 1] and shape (H, W) or (H, W, 3). Returns (FeatureKeypoints, FeatureDescriptors).
+        """
+    def extract_from_uint8_array(self, image: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8]) -> tuple:
+        """
+        Extract features from a uint8 numpy array with shape (H, W) or (H, W, 3). Returns (FeatureKeypoints, FeatureDescriptors).
+        """
+class FeatureExtractorType:
+    """
+    Members:
+    
+      UNDEFINED
+    
+      SIFT
+    
+      ALIKED_N16ROT
+    
+      ALIKED_N32
+    """
+    ALIKED_N16ROT: typing.ClassVar[FeatureExtractorType]  # value = <FeatureExtractorType.ALIKED_N16ROT: 1>
+    ALIKED_N32: typing.ClassVar[FeatureExtractorType]  # value = <FeatureExtractorType.ALIKED_N32: 2>
+    SIFT: typing.ClassVar[FeatureExtractorType]  # value = <FeatureExtractorType.SIFT: 0>
+    UNDEFINED: typing.ClassVar[FeatureExtractorType]  # value = <FeatureExtractorType.UNDEFINED: -1>
+    __members__: typing.ClassVar[dict[str, FeatureExtractorType]]  # value = {'UNDEFINED': <FeatureExtractorType.UNDEFINED: -1>, 'SIFT': <FeatureExtractorType.SIFT: 0>, 'ALIKED_N16ROT': <FeatureExtractorType.ALIKED_N16ROT: 1>, 'ALIKED_N32': <FeatureExtractorType.ALIKED_N32: 2>}
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __eq__(self, other: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> int:
+        ...
+    def __hash__(self) -> int:
+        ...
+    def __index__(self) -> int:
+        ...
+    def __init__(self, value: typing.SupportsInt) -> None:
+        ...
+    def __int__(self) -> int:
+        ...
+    def __ne__(self, other: typing.Any) -> bool:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, state: typing.SupportsInt) -> None:
+        ...
+    def __str__(self) -> str:
+        ...
+    @property
+    def name(self) -> str:
+        ...
+    @property
+    def value(self) -> int:
         ...
 class FeatureKeypoint:
     __hash__: typing.ClassVar[None] = None
@@ -2082,6 +2971,70 @@ class FeatureMatch:
     @point2D_idx2.setter
     def point2D_idx2(self, arg0: typing.SupportsInt) -> None:
         ...
+class FeatureMatcher:
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    @staticmethod
+    def create(options: pycolmap._core.FeatureMatchingOptions | None = None, device: Device = ...) -> FeatureMatcher:
+        ...
+    def match(self, keypoints1: FeatureKeypoints, descriptors1: FeatureDescriptors, keypoints2: FeatureKeypoints, descriptors2: FeatureDescriptors) -> typing.Annotated[numpy.typing.NDArray[numpy.uint32], "[m, 2]"]:
+        """
+        Match features between two images. Keypoints are optional. Returns an Nx2 matrix of point2D indices.
+        """
+    def match_guided(self, max_error: typing.SupportsFloat, keypoints1: FeatureKeypoints, descriptors1: FeatureDescriptors, camera1: Camera, keypoints2: FeatureKeypoints, descriptors2: FeatureDescriptors, camera2: Camera, two_view_geometry: TwoViewGeometry) -> None:
+        """
+        Perform guided matching using existing two-view geometry. Updates the two_view_geometry in-place.
+        """
+class FeatureMatcherType:
+    """
+    Members:
+    
+      UNDEFINED
+    
+      SIFT_BRUTEFORCE
+    
+      SIFT_LIGHTGLUE
+    
+      ALIKED_BRUTEFORCE
+    
+      ALIKED_LIGHTGLUE
+    """
+    ALIKED_BRUTEFORCE: typing.ClassVar[FeatureMatcherType]  # value = <FeatureMatcherType.ALIKED_BRUTEFORCE: 2>
+    ALIKED_LIGHTGLUE: typing.ClassVar[FeatureMatcherType]  # value = <FeatureMatcherType.ALIKED_LIGHTGLUE: 3>
+    SIFT_BRUTEFORCE: typing.ClassVar[FeatureMatcherType]  # value = <FeatureMatcherType.SIFT_BRUTEFORCE: 0>
+    SIFT_LIGHTGLUE: typing.ClassVar[FeatureMatcherType]  # value = <FeatureMatcherType.SIFT_LIGHTGLUE: 1>
+    UNDEFINED: typing.ClassVar[FeatureMatcherType]  # value = <FeatureMatcherType.UNDEFINED: -1>
+    __members__: typing.ClassVar[dict[str, FeatureMatcherType]]  # value = {'UNDEFINED': <FeatureMatcherType.UNDEFINED: -1>, 'SIFT_BRUTEFORCE': <FeatureMatcherType.SIFT_BRUTEFORCE: 0>, 'SIFT_LIGHTGLUE': <FeatureMatcherType.SIFT_LIGHTGLUE: 1>, 'ALIKED_BRUTEFORCE': <FeatureMatcherType.ALIKED_BRUTEFORCE: 2>, 'ALIKED_LIGHTGLUE': <FeatureMatcherType.ALIKED_LIGHTGLUE: 3>}
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __eq__(self, other: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> int:
+        ...
+    def __hash__(self) -> int:
+        ...
+    def __index__(self) -> int:
+        ...
+    def __init__(self, value: typing.SupportsInt) -> None:
+        ...
+    def __int__(self) -> int:
+        ...
+    def __ne__(self, other: typing.Any) -> bool:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, state: typing.SupportsInt) -> None:
+        ...
+    def __str__(self) -> str:
+        ...
+    @property
+    def name(self) -> str:
+        ...
+    @property
+    def value(self) -> int:
+        ...
 class FeatureMatches:
     __hash__: typing.ClassVar[None] = None
     @staticmethod
@@ -2194,7 +3147,7 @@ class FeatureMatchingOptions:
     def __getstate__(self) -> dict:
         ...
     @typing.overload
-    def __init__(self) -> None:
+    def __init__(self, type: FeatureMatcherType = ...) -> None:
         ...
     @typing.overload
     def __init__(self, arg0: dict) -> None:
@@ -2249,7 +3202,7 @@ class FeatureMatchingOptions:
     @property
     def rig_verification(self) -> bool:
         """
-        Whether to perform geometric verification using rig constraints between pairs of non-trivial frames. If disabled, performs geometric two-view verification for non-trivial frames without rig constraints. (bool, default: False)
+        Whether to perform geometric verification using rig constraints between pairs of non-trivial frames. If disabled, performs geometric two-view verification for non-trivial frames without rig constraints. Ignored when skip_geometric_verification is enabled. (bool, default: False)
         """
     @rig_verification.setter
     def rig_verification(self, arg0: bool) -> None:
@@ -2263,6 +3216,14 @@ class FeatureMatchingOptions:
     def sift(self, arg0: SiftMatchingOptions) -> None:
         ...
     @property
+    def skip_geometric_verification(self) -> bool:
+        """
+        Skips the geometric verification stage and forwards matches unchanged. Ignored when guided matching is enabled, because guided matching depends on the two-view geometry produced by geometric verification. (bool, default: False)
+        """
+    @skip_geometric_verification.setter
+    def skip_geometric_verification(self, arg0: bool) -> None:
+        ...
+    @property
     def skip_image_pairs_in_same_frame(self) -> bool:
         """
         Whether to skip matching images within the same frame. This is useful for the case of non-overlapping cameras in a rig. (bool, default: False)
@@ -2271,12 +3232,70 @@ class FeatureMatchingOptions:
     def skip_image_pairs_in_same_frame(self, arg0: bool) -> None:
         ...
     @property
+    def type(self) -> FeatureMatcherType:
+        """
+         (FeatureMatcherType, default: FeatureMatcherType.SIFT_BRUTEFORCE)
+        """
+    @type.setter
+    def type(self, arg0: FeatureMatcherType) -> None:
+        ...
+    @property
     def use_gpu(self) -> bool:
         """
          (bool, default: False)
         """
     @use_gpu.setter
     def use_gpu(self, arg0: bool) -> None:
+        ...
+class FileCopyType:
+    """
+    Members:
+    
+      copy
+    
+      softlink
+    
+      hardlink
+    """
+    __members__: typing.ClassVar[dict[str, FileCopyType]]  # value = {'copy': FileCopyType.copy, 'softlink': FileCopyType.softlink, 'hardlink': FileCopyType.hardlink}
+    copy: typing.ClassVar[FileCopyType]  # value = FileCopyType.copy
+    hardlink: typing.ClassVar[FileCopyType]  # value = FileCopyType.hardlink
+    softlink: typing.ClassVar[FileCopyType]  # value = FileCopyType.softlink
+    @staticmethod
+    def __repr__(*args, **kwargs):
+        """
+        __str__(self: object, /) -> str
+        """
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __eq__(self, other: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> int:
+        ...
+    def __hash__(self) -> int:
+        ...
+    def __index__(self) -> int:
+        ...
+    @typing.overload
+    def __init__(self, value: typing.SupportsInt) -> None:
+        ...
+    @typing.overload
+    def __init__(self, name: str) -> None:
+        ...
+    def __int__(self) -> int:
+        ...
+    def __ne__(self, other: typing.Any) -> bool:
+        ...
+    def __setstate__(self, state: typing.SupportsInt) -> None:
+        ...
+    def __str__(self) -> str:
+        ...
+    @property
+    def name(self) -> str:
+        ...
+    @property
+    def value(self) -> int:
         ...
 class Frame:
     __hash__: typing.ClassVar[None] = None
@@ -2308,6 +3327,14 @@ class Frame:
         """
         Associate data with frame.
         """
+    def clear_data_ids(self) -> None:
+        """
+        Clear all the associated data.
+        """
+    def data_ids_by_sensor(self, type: SensorType) -> list[data_t]:
+        """
+        The associated data for a given sensor type.
+        """
     def has_data(self, arg0: data_t) -> bool:
         """
         Check whether frame has associated data.
@@ -2315,6 +3342,10 @@ class Frame:
     def has_pose(self) -> bool:
         """
         Whether the frame has a valid pose.
+        """
+    def has_rig_id(self) -> bool:
+        """
+        Check whether the rig_id is set.
         """
     def mergedict(self, kwargs: dict) -> None:
         ...
@@ -2428,11 +3459,11 @@ class GPSTransform:
         ...
     def ecef_to_ellipsoid(self, xyz_in_ecef: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 3]"]:
         ...
-    def ecef_to_enu(self, xyz_in_ecef: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"], ref_lat: typing.SupportsFloat, ref_lon: typing.SupportsFloat) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 3]"]:
+    def ecef_to_enu(self, xyz_in_ecef: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"], ref_ecef: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 3]"]:
         ...
     def ellipsoid_to_ecef(self, lat_lon_alt: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 3]"]:
         ...
-    def ellipsoid_to_enu(self, lat_lon_alt: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"], ref_lat: typing.SupportsFloat, ref_lon: typing.SupportsFloat) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 3]"]:
+    def ellipsoid_to_enu(self, lat_lon_alt: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"], ref_lat: typing.SupportsFloat, ref_lon: typing.SupportsFloat, ref_alt: typing.SupportsFloat) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 3]"]:
         ...
     def ellipsoid_to_utm(self, lat_lon_alt: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"]) -> tuple[typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 3]"], int]:
         ...
@@ -2488,6 +3519,534 @@ class GPSTransfromEllipsoid:
         ...
     @property
     def value(self) -> int:
+        ...
+class GeometricVerifierOptions:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __copy__(self) -> GeometricVerifierOptions:
+        ...
+    def __deepcopy__(self, arg0: dict) -> GeometricVerifierOptions:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def todict(self, recursive: bool = True) -> dict:
+        ...
+    @property
+    def num_threads(self) -> int:
+        """
+         (int, default: -1)
+        """
+    @num_threads.setter
+    def num_threads(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def rig_verification(self) -> bool:
+        """
+         (bool, default: False)
+        """
+    @rig_verification.setter
+    def rig_verification(self, arg0: bool) -> None:
+        ...
+    @property
+    def use_existing_relative_pose(self) -> bool:
+        """
+         (bool, default: False)
+        """
+    @use_existing_relative_pose.setter
+    def use_existing_relative_pose(self, arg0: bool) -> None:
+        ...
+class GlobalMapperOptions:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __copy__(self) -> GlobalMapperOptions:
+        ...
+    def __deepcopy__(self, arg0: dict) -> GlobalMapperOptions:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def todict(self, recursive: bool = True) -> dict:
+        ...
+    @property
+    def ba_num_iterations(self) -> int:
+        """
+         (int, default: 3)
+        """
+    @ba_num_iterations.setter
+    def ba_num_iterations(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def ba_skip_fixed_rotation_stage(self) -> bool:
+        """
+         (bool, default: False)
+        """
+    @ba_skip_fixed_rotation_stage.setter
+    def ba_skip_fixed_rotation_stage(self, arg0: bool) -> None:
+        ...
+    @property
+    def ba_skip_joint_optimization_stage(self) -> bool:
+        """
+         (bool, default: False)
+        """
+    @ba_skip_joint_optimization_stage.setter
+    def ba_skip_joint_optimization_stage(self, arg0: bool) -> None:
+        ...
+    @property
+    def bundle_adjustment(self) -> BundleAdjustmentOptions:
+        """
+         (BundleAdjustmentOptions, default: BundleAdjustmentOptions(refine_focal_length=True, refine_principal_point=False, refine_extra_params=True, refine_rig_from_world=True, refine_sensor_from_rig=False, constant_rig_from_world_rotation=False, refine_points3D=True, min_track_length=3, print_summary=False, backend=BundleAdjustmentBackend.CERES, ceres=CeresBundleAdjustmentOptions(loss_function_type=LossFunctionType.HUBER, loss_function_scale=1.0, use_gpu=True, gpu_index='-1', solver_options=SolverOptions(minimizer_type=MinimizerType.TRUST_REGION, line_search_direction_type=LineSearchDirectionType.LBFGS, line_search_type=LineSearchType.WOLFE, nonlinear_conjugate_gradient_type=NonlinearConjugateGradientType.FLETCHER_REEVES, max_lbfgs_rank=20, use_approximate_eigenvalue_bfgs_scaling=False, line_search_interpolation_type=LineSearchInterpolationType.CUBIC, min_line_search_step_size=1e-09, line_search_sufficient_function_decrease=0.0001, max_line_search_step_contraction=0.001, min_line_search_step_contraction=0.6, max_num_line_search_step_size_iterations=20, max_num_line_search_direction_restarts=5, line_search_sufficient_curvature_decrease=0.9, max_line_search_step_expansion=10.0, trust_region_strategy_type=TrustRegionStrategyType.LEVENBERG_MARQUARDT, dogleg_type=DoglegType.TRADITIONAL_DOGLEG, use_nonmonotonic_steps=False, max_consecutive_nonmonotonic_steps=10, max_num_iterations=200, max_solver_time_in_seconds=1000000000.0, num_threads=-1, initial_trust_region_radius=10000.0, max_trust_region_radius=1e+16, min_trust_region_radius=1e-32, min_relative_decrease=0.001, min_lm_diagonal=1e-06, max_lm_diagonal=1e+32, max_num_consecutive_invalid_steps=10, function_tolerance=1e-05, gradient_tolerance=0.0001, parameter_tolerance=0.0, linear_solver_type=LinearSolverType.SPARSE_SCHUR, preconditioner_type=PreconditionerType.CLUSTER_TRIDIAGONAL, visibility_clustering_type=VisibilityClusteringType.CANONICAL_VIEWS, dense_linear_algebra_library_type=DenseLinearAlgebraLibraryType.EIGEN, sparse_linear_algebra_library_type=SparseLinearAlgebraLibraryType.SUITE_SPARSE, use_explicit_schur_complement=False, dynamic_sparsity=False, use_inner_iterations=False, inner_iteration_tolerance=0.001, min_linear_solver_iterations=0, max_linear_solver_iterations=200, eta=0.1, jacobi_scaling=True, logging_type=LoggingType.SILENT, minimizer_progress_to_stdout=False, trust_region_problem_dump_directory='/tmp', trust_region_problem_dump_format_type=DumpFormatType.TEXTFILE, check_gradients=False, gradient_check_relative_precision=1e-08, gradient_check_numeric_derivative_relative_step_size=1e-06, update_state_every_iteration=False), min_num_images_gpu_solver=50, min_num_residuals_for_cpu_multi_threading=50000, max_num_images_direct_dense_cpu_solver=50, max_num_images_direct_sparse_cpu_solver=1000, max_num_images_direct_dense_gpu_solver=200, max_num_images_direct_sparse_gpu_solver=4000, auto_select_solver_type=False)))
+        """
+    @bundle_adjustment.setter
+    def bundle_adjustment(self, arg0: BundleAdjustmentOptions) -> None:
+        ...
+    @property
+    def global_positioning(self) -> GlobalPositionerOptions:
+        """
+         (GlobalPositionerOptions, default: GlobalPositionerOptions(generate_random_positions=True, generate_random_points=True, generate_scales=True, optimize_positions=True, optimize_points=True, optimize_scales=True, use_gpu=True, gpu_index='-1', min_num_images_gpu_solver=50, min_num_view_per_track=3, random_seed=-1, loss_function_scale=0.1, use_parameter_block_ordering=True))
+        """
+    @global_positioning.setter
+    def global_positioning(self, arg0: GlobalPositionerOptions) -> None:
+        ...
+    @property
+    def max_angular_reproj_error_deg(self) -> float:
+        """
+         (float, default: 1.0)
+        """
+    @max_angular_reproj_error_deg.setter
+    def max_angular_reproj_error_deg(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def max_normalized_reproj_error(self) -> float:
+        """
+         (float, default: 0.01)
+        """
+    @max_normalized_reproj_error.setter
+    def max_normalized_reproj_error(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def min_tri_angle_deg(self) -> float:
+        """
+         (float, default: 1.0)
+        """
+    @min_tri_angle_deg.setter
+    def min_tri_angle_deg(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def num_threads(self) -> int:
+        """
+         (int, default: -1)
+        """
+    @num_threads.setter
+    def num_threads(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def random_seed(self) -> int:
+        """
+         (int, default: -1)
+        """
+    @random_seed.setter
+    def random_seed(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def retriangulation(self) -> IncrementalTriangulatorOptions:
+        """
+         (IncrementalTriangulatorOptions, default: IncrementalTriangulatorOptions(max_transitivity=1, create_max_angle_error=2.0, continue_max_angle_error=2.0, merge_max_reproj_error=15.0, complete_max_reproj_error=15.0, complete_max_transitivity=5, re_max_angle_error=5.0, re_min_ratio=0.2, re_max_trials=1, min_angle=1.0, ignore_two_view_tracks=True, min_focal_length_ratio=0.1, max_focal_length_ratio=10.0, max_extra_param=1.0, random_seed=-1))
+        """
+    @retriangulation.setter
+    def retriangulation(self, arg0: IncrementalTriangulatorOptions) -> None:
+        ...
+    @property
+    def rotation_averaging(self) -> RotationEstimatorOptions:
+        """
+         (RotationEstimatorOptions, default: RotationEstimatorOptions(random_seed=-1, max_num_l1_iterations=5, l1_step_convergence_threshold=0.001, max_num_irls_iterations=100, irls_step_convergence_threshold=0.001, gravity_dir=[0. 1. 0.], irls_loss_parameter_sigma=5.0, weight_type=RotationWeightType.GEMAN_MCCLURE, skip_initialization=False, use_gravity=False, use_stratified=True, filter_unregistered=False, max_rotation_error_deg=10.0))
+        """
+    @rotation_averaging.setter
+    def rotation_averaging(self, arg0: RotationEstimatorOptions) -> None:
+        ...
+    @property
+    def skip_bundle_adjustment(self) -> bool:
+        """
+         (bool, default: False)
+        """
+    @skip_bundle_adjustment.setter
+    def skip_bundle_adjustment(self, arg0: bool) -> None:
+        ...
+    @property
+    def skip_global_positioning(self) -> bool:
+        """
+         (bool, default: False)
+        """
+    @skip_global_positioning.setter
+    def skip_global_positioning(self, arg0: bool) -> None:
+        ...
+    @property
+    def skip_retriangulation(self) -> bool:
+        """
+         (bool, default: False)
+        """
+    @skip_retriangulation.setter
+    def skip_retriangulation(self, arg0: bool) -> None:
+        ...
+    @property
+    def skip_rotation_averaging(self) -> bool:
+        """
+         (bool, default: False)
+        """
+    @skip_rotation_averaging.setter
+    def skip_rotation_averaging(self, arg0: bool) -> None:
+        ...
+    @property
+    def skip_track_establishment(self) -> bool:
+        """
+         (bool, default: False)
+        """
+    @skip_track_establishment.setter
+    def skip_track_establishment(self, arg0: bool) -> None:
+        ...
+    @property
+    def track_intra_image_consistency_threshold(self) -> float:
+        """
+         (float, default: 10.0)
+        """
+    @track_intra_image_consistency_threshold.setter
+    def track_intra_image_consistency_threshold(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def track_min_num_views_per_track(self) -> int:
+        """
+         (int, default: 3)
+        """
+    @track_min_num_views_per_track.setter
+    def track_min_num_views_per_track(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def track_required_tracks_per_view(self) -> int:
+        """
+         (int, default: 2147483647)
+        """
+    @track_required_tracks_per_view.setter
+    def track_required_tracks_per_view(self, arg0: typing.SupportsInt) -> None:
+        ...
+class GlobalPipelineOptions:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __copy__(self) -> GlobalPipelineOptions:
+        ...
+    def __deepcopy__(self, arg0: dict) -> GlobalPipelineOptions:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def todict(self, recursive: bool = True) -> dict:
+        ...
+    @property
+    def decompose_relative_pose(self) -> bool:
+        """
+         (bool, default: True)
+        """
+    @decompose_relative_pose.setter
+    def decompose_relative_pose(self, arg0: bool) -> None:
+        ...
+    @property
+    def ignore_watermarks(self) -> bool:
+        """
+         (bool, default: False)
+        """
+    @ignore_watermarks.setter
+    def ignore_watermarks(self, arg0: bool) -> None:
+        ...
+    @property
+    def image_names(self) -> list[str]:
+        """
+         (list, default: [])
+        """
+    @image_names.setter
+    def image_names(self, arg0: collections.abc.Sequence[str]) -> None:
+        ...
+    @property
+    def mapper(self) -> GlobalMapperOptions:
+        """
+         (GlobalMapperOptions, default: GlobalMapperOptions(num_threads=-1, random_seed=-1, rotation_averaging=RotationEstimatorOptions(random_seed=-1, max_num_l1_iterations=5, l1_step_convergence_threshold=0.001, max_num_irls_iterations=100, irls_step_convergence_threshold=0.001, gravity_dir=[0. 1. 0.], irls_loss_parameter_sigma=5.0, weight_type=RotationWeightType.GEMAN_MCCLURE, skip_initialization=False, use_gravity=False, use_stratified=True, filter_unregistered=False, max_rotation_error_deg=10.0), global_positioning=GlobalPositionerOptions(generate_random_positions=True, generate_random_points=True, generate_scales=True, optimize_positions=True, optimize_points=True, optimize_scales=True, use_gpu=True, gpu_index='-1', min_num_images_gpu_solver=50, min_num_view_per_track=3, random_seed=-1, loss_function_scale=0.1, use_parameter_block_ordering=True), bundle_adjustment=BundleAdjustmentOptions(refine_focal_length=True, refine_principal_point=False, refine_extra_params=True, refine_rig_from_world=True, refine_sensor_from_rig=False, constant_rig_from_world_rotation=False, refine_points3D=True, min_track_length=3, print_summary=False, backend=BundleAdjustmentBackend.CERES, ceres=CeresBundleAdjustmentOptions(loss_function_type=LossFunctionType.HUBER, loss_function_scale=1.0, use_gpu=True, gpu_index='-1', solver_options=SolverOptions(minimizer_type=MinimizerType.TRUST_REGION, line_search_direction_type=LineSearchDirectionType.LBFGS, line_search_type=LineSearchType.WOLFE, nonlinear_conjugate_gradient_type=NonlinearConjugateGradientType.FLETCHER_REEVES, max_lbfgs_rank=20, use_approximate_eigenvalue_bfgs_scaling=False, line_search_interpolation_type=LineSearchInterpolationType.CUBIC, min_line_search_step_size=1e-09, line_search_sufficient_function_decrease=0.0001, max_line_search_step_contraction=0.001, min_line_search_step_contraction=0.6, max_num_line_search_step_size_iterations=20, max_num_line_search_direction_restarts=5, line_search_sufficient_curvature_decrease=0.9, max_line_search_step_expansion=10.0, trust_region_strategy_type=TrustRegionStrategyType.LEVENBERG_MARQUARDT, dogleg_type=DoglegType.TRADITIONAL_DOGLEG, use_nonmonotonic_steps=False, max_consecutive_nonmonotonic_steps=10, max_num_iterations=200, max_solver_time_in_seconds=1000000000.0, num_threads=-1, initial_trust_region_radius=10000.0, max_trust_region_radius=1e+16, min_trust_region_radius=1e-32, min_relative_decrease=0.001, min_lm_diagonal=1e-06, max_lm_diagonal=1e+32, max_num_consecutive_invalid_steps=10, function_tolerance=1e-05, gradient_tolerance=0.0001, parameter_tolerance=0.0, linear_solver_type=LinearSolverType.SPARSE_SCHUR, preconditioner_type=PreconditionerType.CLUSTER_TRIDIAGONAL, visibility_clustering_type=VisibilityClusteringType.CANONICAL_VIEWS, dense_linear_algebra_library_type=DenseLinearAlgebraLibraryType.EIGEN, sparse_linear_algebra_library_type=SparseLinearAlgebraLibraryType.SUITE_SPARSE, use_explicit_schur_complement=False, dynamic_sparsity=False, use_inner_iterations=False, inner_iteration_tolerance=0.001, min_linear_solver_iterations=0, max_linear_solver_iterations=200, eta=0.1, jacobi_scaling=True, logging_type=LoggingType.SILENT, minimizer_progress_to_stdout=False, trust_region_problem_dump_directory='/tmp', trust_region_problem_dump_format_type=DumpFormatType.TEXTFILE, check_gradients=False, gradient_check_relative_precision=1e-08, gradient_check_numeric_derivative_relative_step_size=1e-06, update_state_every_iteration=False), min_num_images_gpu_solver=50, min_num_residuals_for_cpu_multi_threading=50000, max_num_images_direct_dense_cpu_solver=50, max_num_images_direct_sparse_cpu_solver=1000, max_num_images_direct_dense_gpu_solver=200, max_num_images_direct_sparse_gpu_solver=4000, auto_select_solver_type=False)), retriangulation=IncrementalTriangulatorOptions(max_transitivity=1, create_max_angle_error=2.0, continue_max_angle_error=2.0, merge_max_reproj_error=15.0, complete_max_reproj_error=15.0, complete_max_transitivity=5, re_max_angle_error=5.0, re_min_ratio=0.2, re_max_trials=1, min_angle=1.0, ignore_two_view_tracks=True, min_focal_length_ratio=0.1, max_focal_length_ratio=10.0, max_extra_param=1.0, random_seed=-1), track_intra_image_consistency_threshold=10.0, track_required_tracks_per_view=2147483647, track_min_num_views_per_track=3, max_angular_reproj_error_deg=1.0, max_normalized_reproj_error=0.01, min_tri_angle_deg=1.0, ba_num_iterations=3, ba_skip_fixed_rotation_stage=False, ba_skip_joint_optimization_stage=False, skip_rotation_averaging=False, skip_track_establishment=False, skip_global_positioning=False, skip_bundle_adjustment=False, skip_retriangulation=False))
+        """
+    @mapper.setter
+    def mapper(self, arg0: GlobalMapperOptions) -> None:
+        ...
+    @property
+    def min_num_matches(self) -> int:
+        """
+         (int, default: 15)
+        """
+    @min_num_matches.setter
+    def min_num_matches(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def num_threads(self) -> int:
+        """
+         (int, default: -1)
+        """
+    @num_threads.setter
+    def num_threads(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def random_seed(self) -> int:
+        """
+         (int, default: -1)
+        """
+    @random_seed.setter
+    def random_seed(self, arg0: typing.SupportsInt) -> None:
+        ...
+class GlobalPositionerOptions:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __copy__(self) -> GlobalPositionerOptions:
+        ...
+    def __deepcopy__(self, arg0: dict) -> GlobalPositionerOptions:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def todict(self, recursive: bool = True) -> dict:
+        ...
+    @property
+    def generate_random_points(self) -> bool:
+        """
+        Whether to initialize 3D point positions randomly. (bool, default: True)
+        """
+    @generate_random_points.setter
+    def generate_random_points(self, arg0: bool) -> None:
+        ...
+    @property
+    def generate_random_positions(self) -> bool:
+        """
+        Whether to initialize camera positions randomly. (bool, default: True)
+        """
+    @generate_random_positions.setter
+    def generate_random_positions(self, arg0: bool) -> None:
+        ...
+    @property
+    def generate_scales(self) -> bool:
+        """
+        Whether to initialize scales to constant 1 or derive from positions. (bool, default: True)
+        """
+    @generate_scales.setter
+    def generate_scales(self, arg0: bool) -> None:
+        ...
+    @property
+    def gpu_index(self) -> str:
+        """
+        GPU device index (-1 for auto). (str, default: -1)
+        """
+    @gpu_index.setter
+    def gpu_index(self, arg0: str) -> None:
+        ...
+    @property
+    def loss_function_scale(self) -> float:
+        """
+        Scaling factor for the loss function. (float, default: 0.1)
+        """
+    @loss_function_scale.setter
+    def loss_function_scale(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def min_num_images_gpu_solver(self) -> int:
+        """
+        Minimum number of images to use GPU solver. (int, default: 50)
+        """
+    @min_num_images_gpu_solver.setter
+    def min_num_images_gpu_solver(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def min_num_view_per_track(self) -> int:
+        """
+        Minimum number of views per track. (int, default: 3)
+        """
+    @min_num_view_per_track.setter
+    def min_num_view_per_track(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def optimize_points(self) -> bool:
+        """
+        Whether to optimize 3D point positions. (bool, default: True)
+        """
+    @optimize_points.setter
+    def optimize_points(self, arg0: bool) -> None:
+        ...
+    @property
+    def optimize_positions(self) -> bool:
+        """
+        Whether to optimize camera positions. (bool, default: True)
+        """
+    @optimize_positions.setter
+    def optimize_positions(self, arg0: bool) -> None:
+        ...
+    @property
+    def optimize_scales(self) -> bool:
+        """
+        Whether to optimize scales. (bool, default: True)
+        """
+    @optimize_scales.setter
+    def optimize_scales(self, arg0: bool) -> None:
+        ...
+    @property
+    def random_seed(self) -> int:
+        """
+        PRNG seed for random initialization. -1 for non-deterministic. (int, default: -1)
+        """
+    @random_seed.setter
+    def random_seed(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def use_gpu(self) -> bool:
+        """
+        Whether to use GPU for optimization. (bool, default: True)
+        """
+    @use_gpu.setter
+    def use_gpu(self, arg0: bool) -> None:
+        ...
+    @property
+    def use_parameter_block_ordering(self) -> bool:
+        """
+        Whether to use custom parameter block ordering. (bool, default: True)
+        """
+    @use_parameter_block_ordering.setter
+    def use_parameter_block_ordering(self, arg0: bool) -> None:
+        ...
+class GravityRefinerOptions:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __copy__(self) -> GravityRefinerOptions:
+        ...
+    def __deepcopy__(self, arg0: dict) -> GravityRefinerOptions:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def todict(self, recursive: bool = True) -> dict:
+        ...
+    @property
+    def max_gravity_error(self) -> float:
+        """
+        Maximum allowed angle error in degrees. (float, default: 1.0)
+        """
+    @max_gravity_error.setter
+    def max_gravity_error(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def max_outlier_ratio(self) -> float:
+        """
+        Maximum ratio that gravity should be consistent with. (float, default: 0.5)
+        """
+    @max_outlier_ratio.setter
+    def max_outlier_ratio(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def min_num_neighbors(self) -> int:
+        """
+        Minimum neighbors required for refinement. (int, default: 7)
+        """
+    @min_num_neighbors.setter
+    def min_num_neighbors(self, arg0: typing.SupportsInt) -> None:
         ...
 class Image:
     __hash__: typing.ClassVar[None] = None
@@ -2552,6 +4111,10 @@ class Image:
     def has_point3D(self, point3D_id: typing.SupportsInt) -> bool:
         """
         Check whether one of the image points is part of a 3D point track.
+        """
+    def is_ref_in_frame(self) -> bool:
+        """
+        Check if the image was captured by the reference sensor in the rig.
         """
     def mergedict(self, kwargs: dict) -> None:
         ...
@@ -2775,12 +4338,12 @@ class ImageReaderOptions:
     def todict(self, recursive: bool = True) -> dict:
         ...
     @property
-    def camera_mask_path(self) -> str:
+    def camera_mask_path(self) -> pathlib.Path:
         """
-        Optional path to an image file specifying a mask for all images. No features will be extracted in regions where the mask is black (pixel intensity value 0 in grayscale) (str, default: )
+        Optional path to an image file specifying a mask for all images. No features will be extracted in regions where the mask is black (pixel intensity value 0 in grayscale) (PosixPath, default: .)
         """
     @camera_mask_path.setter
-    def camera_mask_path(self, arg0: str) -> None:
+    def camera_mask_path(self, arg0: os.PathLike[str] | str | bytes) -> None:
         ...
     @property
     def camera_model(self) -> str:
@@ -2815,12 +4378,12 @@ class ImageReaderOptions:
     def existing_camera_id(self, arg0: typing.SupportsInt) -> None:
         ...
     @property
-    def mask_path(self) -> str:
+    def mask_path(self) -> pathlib.Path:
         """
-        Optional root path to folder which contains imagemasks. For a given image, the corresponding maskmust have the same sub-path below this root as theimage has below image_path. The filename must beequal, aside from the added extension .png. For example, for an image image_path/abc/012.jpg,the mask would be mask_path/abc/012.jpg.png. Nofeatures will be extracted in regions where themask image is black (pixel intensity value 0 ingrayscale). (str, default: )
+        Optional root path to folder which contains imagemasks. For a given image, the corresponding maskmust have the same sub-path below this root as theimage has below image_path. The filename must beequal, aside from the added extension .png. For example, for an image image_path/abc/012.jpg,the mask would be mask_path/abc/012.jpg.png. Nofeatures will be extracted in regions where themask image is black (pixel intensity value 0 ingrayscale). (PosixPath, default: .)
         """
     @mask_path.setter
-    def mask_path(self, arg0: str) -> None:
+    def mask_path(self, arg0: os.PathLike[str] | str | bytes) -> None:
         ...
 class ImageScore:
     __hash__: typing.ClassVar[None] = None
@@ -2963,67 +4526,124 @@ class ImportedPairingOptions:
     def block_size(self, arg0: typing.SupportsInt) -> None:
         ...
     @property
-    def match_list_path(self) -> str:
+    def match_list_path(self) -> pathlib.Path:
         """
-        Path to the file with the matches. (str, default: )
+        Path to the file with the matches. (PosixPath, default: .)
         """
     @match_list_path.setter
-    def match_list_path(self, arg0: str) -> None:
+    def match_list_path(self, arg0: os.PathLike[str] | str | bytes) -> None:
         ...
 class IncrementalMapper:
+    """
+    Class that provides all functionality for the incremental reconstruction procedure.
+    """
     @staticmethod
     def _pybind11_conduit_v1_(*args, **kwargs):
         ...
     def __init__(self, database_cache: DatabaseCache) -> None:
-        ...
+        """
+        Create incremental mapper. The database cache must live for the entire life-time of the incremental mapper.
+        """
     def adjust_global_bundle(self, options: IncrementalMapperOptions, ba_options: BundleAdjustmentOptions) -> bool:
-        ...
+        """
+        Global bundle adjustment using Ceres Solver.
+        """
     def adjust_local_bundle(self, options: IncrementalMapperOptions, ba_options: BundleAdjustmentOptions, tri_options: IncrementalTriangulatorOptions, image_id: typing.SupportsInt, point3D_ids: collections.abc.Set[typing.SupportsInt]) -> LocalBundleAdjustmentReport:
-        ...
+        """
+        Adjust locally connected images and points of a reference image. In addition, refine the provided 3D points. Only images connected to the reference image are optimized. If the provided 3D points are not locally connected to the reference image, their observing images are set as constant in the adjustment.
+        """
     def begin_reconstruction(self, reconstruction: Reconstruction) -> None:
-        ...
+        """
+        Prepare the mapper for a new reconstruction, which might have existing registered images (in which case register_next_image must be called) or which is empty (in which case register_initial_image_pair must be called).
+        """
     def clear_modified_points3D(self) -> None:
-        ...
+        """
+        Clear the collection of changed 3D points.
+        """
     def complete_and_merge_tracks(self, tri_options: IncrementalTriangulatorOptions) -> int:
-        ...
+        """
+        Globally complete and merge tracks.
+        """
     def complete_tracks(self, tri_options: IncrementalTriangulatorOptions) -> int:
-        ...
+        """
+        Complete tracks by transitively following the scene graph correspondences. This is especially effective after bundle adjustment, since many cameras and point locations might have improved.
+        """
     def end_reconstruction(self, discard: bool) -> None:
-        ...
+        """
+        Cleanup the mapper after the current reconstruction is done. If the model is discarded, the number of total and shared registered images will be updated accordingly.
+        """
     def estimate_initial_two_view_geometry(self, options: IncrementalMapperOptions, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> pycolmap._core.Rigid3d | None:
-        ...
+        """
+        Estimate two-view geometry and check if it is suitable for initialization. Returns the relative pose on success, or None on failure.
+        """
     def filter_frames(self, options: IncrementalMapperOptions) -> int:
-        ...
+        """
+        Filter frames with degenerate camera parameters or no observations.
+        """
     def filter_points(self, options: IncrementalMapperOptions) -> int:
-        ...
+        """
+        Filter points with large reprojection errors or small triangulation angles.
+        """
     def find_initial_image_pair(self, options: IncrementalMapperOptions, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> tuple[tuple[int, int], Rigid3d] | None:
-        ...
+        """
+        Find initial image pair to seed the incremental reconstruction. Returns a tuple of ((image_id1, image_id2), cam2_from_cam1) on success, or None on failure. This function automatically ignores image pairs that failed to register previously.
+        """
     def find_local_bundle(self, options: IncrementalMapperOptions, image_id: typing.SupportsInt) -> list[int]:
-        ...
-    def find_next_images(self, options: IncrementalMapperOptions) -> list[int]:
-        ...
+        """
+        Find local bundle for given image in the reconstruction. The local bundle is defined as the images that are most connected, i.e. maximum number of shared 3D points, to the given image.
+        """
+    def find_next_images(self, options: IncrementalMapperOptions, structure_less: bool) -> list[int]:
+        """
+        Find best next images to register in the incremental reconstruction. This function automatically ignores images that failed to register for max_reg_trials.
+        """
     def get_modified_points3D(self) -> set[int]:
-        ...
+        """
+        Get changed 3D points, since the last call to clear_modified_points3D.
+        """
     def iterative_global_refinement(self, max_num_refinements: typing.SupportsInt, max_refinement_change: typing.SupportsFloat, options: IncrementalMapperOptions, ba_options: BundleAdjustmentOptions, tri_options: IncrementalTriangulatorOptions, normalize_reconstruction: bool = True) -> None:
-        ...
+        """
+        Perform multiple rounds of global bundle adjustment.
+        """
     def iterative_local_refinement(self, max_num_refinements: typing.SupportsInt, max_refinement_change: typing.SupportsFloat, options: IncrementalMapperOptions, ba_options: BundleAdjustmentOptions, tri_options: IncrementalTriangulatorOptions, image_id: typing.SupportsInt) -> None:
-        ...
+        """
+        Perform multiple rounds of local bundle adjustment.
+        """
     def merge_tracks(self, tri_options: IncrementalTriangulatorOptions) -> int:
-        ...
+        """
+        Merge tracks by using scene graph correspondences. Similar to complete_tracks, this is effective after bundle adjustment and improves the redundancy in subsequent bundle adjustments.
+        """
     def num_shared_reg_images(self) -> int:
-        ...
+        """
+        Number of shared images between current reconstruction and all other previous reconstructions.
+        """
     def num_total_reg_images(self) -> int:
-        ...
+        """
+        Number of images that are registered in at least one reconstruction.
+        """
     def register_initial_image_pair(self, options: IncrementalMapperOptions, two_view_geometry: typing.SupportsInt, image_id1: typing.SupportsInt, image_id2: Rigid3d) -> None:
-        ...
+        """
+        Attempt to seed the reconstruction from an image pair.
+        """
     def register_next_image(self, options: IncrementalMapperOptions, image_id: typing.SupportsInt) -> bool:
-        ...
+        """
+        Attempt to register image to the existing model. This requires that a previous call to register_initial_image_pair was successful.
+        """
+    def register_next_structure_less_image(self, options: IncrementalMapperOptions, image_id: typing.SupportsInt) -> bool:
+        """
+        Attempt to register image using structure-less resectioning.
+        """
     def reset_initialization_stats(self) -> None:
-        ...
+        """
+        Reset registration statistics for initialization. This can be used when relaxing the initialization thresholds, such that previously tried pairs will be tried again.
+        """
     def retriangulate(self, tri_options: IncrementalTriangulatorOptions) -> int:
-        ...
+        """
+        Retriangulate image pairs that should have common observations according to the scene graph but don't due to drift, etc.
+        """
     def triangulate_image(self, tri_options: IncrementalTriangulatorOptions, image_id: typing.SupportsInt) -> int:
-        ...
+        """
+        Triangulate observations of image.
+        """
     @property
     def existing_frame_ids(self) -> set[int]:
         ...
@@ -3044,56 +4664,6 @@ class IncrementalMapper:
         ...
     @property
     def triangulator(self) -> IncrementalTriangulator:
-        ...
-class IncrementalMapperCallback:
-    """
-    Members:
-    
-      INITIAL_IMAGE_PAIR_REG_CALLBACK
-    
-      NEXT_IMAGE_REG_CALLBACK
-    
-      LAST_IMAGE_REG_CALLBACK
-    """
-    INITIAL_IMAGE_PAIR_REG_CALLBACK: typing.ClassVar[IncrementalMapperCallback]  # value = IncrementalMapperCallback.INITIAL_IMAGE_PAIR_REG_CALLBACK
-    LAST_IMAGE_REG_CALLBACK: typing.ClassVar[IncrementalMapperCallback]  # value = IncrementalMapperCallback.LAST_IMAGE_REG_CALLBACK
-    NEXT_IMAGE_REG_CALLBACK: typing.ClassVar[IncrementalMapperCallback]  # value = IncrementalMapperCallback.NEXT_IMAGE_REG_CALLBACK
-    __members__: typing.ClassVar[dict[str, IncrementalMapperCallback]]  # value = {'INITIAL_IMAGE_PAIR_REG_CALLBACK': IncrementalMapperCallback.INITIAL_IMAGE_PAIR_REG_CALLBACK, 'NEXT_IMAGE_REG_CALLBACK': IncrementalMapperCallback.NEXT_IMAGE_REG_CALLBACK, 'LAST_IMAGE_REG_CALLBACK': IncrementalMapperCallback.LAST_IMAGE_REG_CALLBACK}
-    @staticmethod
-    def __repr__(*args, **kwargs):
-        """
-        __str__(self: object, /) -> str
-        """
-    @staticmethod
-    def _pybind11_conduit_v1_(*args, **kwargs):
-        ...
-    def __eq__(self, other: typing.Any) -> bool:
-        ...
-    def __getstate__(self) -> int:
-        ...
-    def __hash__(self) -> int:
-        ...
-    def __index__(self) -> int:
-        ...
-    @typing.overload
-    def __init__(self, value: typing.SupportsInt) -> None:
-        ...
-    @typing.overload
-    def __init__(self, name: str) -> None:
-        ...
-    def __int__(self) -> int:
-        ...
-    def __ne__(self, other: typing.Any) -> bool:
-        ...
-    def __setstate__(self, state: typing.SupportsInt) -> None:
-        ...
-    def __str__(self) -> str:
-        ...
-    @property
-    def name(self) -> str:
-        ...
-    @property
-    def value(self) -> int:
         ...
 class IncrementalMapperOptions:
     __hash__: typing.ClassVar[None] = None
@@ -3337,23 +4907,74 @@ class IncrementalMapperOptions:
     @random_seed.setter
     def random_seed(self, arg0: typing.SupportsInt) -> None:
         ...
-class IncrementalMapperStatus:
+class IncrementalPipeline:
+    """
+    Class that controls the incremental mapping procedure by iteratively initializing reconstructions from the same scene graph.
+    """
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    @typing.overload
+    def __init__(self, options: IncrementalPipelineOptions, database: Database, reconstruction_manager: ReconstructionManager) -> None:
+        ...
+    @typing.overload
+    def __init__(self, options: IncrementalPipelineOptions, database_cache: DatabaseCache, reconstruction_manager: ReconstructionManager) -> None:
+        ...
+    def add_callback(self, id: typing.SupportsInt, func: collections.abc.Callable[[], None]) -> None:
+        """
+        Add a callback function for the given callback type.
+        """
+    def callback(self, id: typing.SupportsInt) -> None:
+        """
+        Invoke the callback for the given callback type.
+        """
+    def check_reached_max_runtime(self) -> bool:
+        """
+        Check whether the maximum runtime has been reached.
+        """
+    def check_run_global_refinement(self, reconstruction: Reconstruction, ba_prev_num_reg_images: typing.SupportsInt, ba_prev_num_points: typing.SupportsInt) -> bool:
+        """
+        Check whether global bundle adjustment should be run based on the growth of registered images and points.
+        """
+    def initialize_reconstruction(self, mapper: IncrementalMapper, mapper_options: IncrementalMapperOptions, reconstruction: Reconstruction) -> IncrementalPipelineStatus:
+        """
+        Initialize the reconstruction by finding and registering an initial image pair.
+        """
+    def reconstruct(self, mapper: IncrementalMapper, mapper_options: IncrementalMapperOptions, continue_reconstruction: bool) -> IncrementalPipelineStatus:
+        """
+        Reconstruct the scene using the given mapper and options.
+        """
+    def reconstruct_sub_model(self, mapper: IncrementalMapper, mapper_options: IncrementalMapperOptions, reconstruction: Reconstruction) -> IncrementalPipelineStatus:
+        """
+        Reconstruct a sub-model using the given mapper and options.
+        """
+    def run(self) -> None:
+        """
+        Run the full incremental mapping pipeline.
+        """
+    @property
+    def database_cache(self) -> DatabaseCache:
+        ...
+    @property
+    def options(self) -> IncrementalPipelineOptions:
+        ...
+    @property
+    def reconstruction_manager(self) -> ReconstructionManager:
+        ...
+class IncrementalPipelineCallback:
     """
     Members:
     
-      NO_INITIAL_PAIR
+      INITIAL_IMAGE_PAIR_REG_CALLBACK
     
-      BAD_INITIAL_PAIR
+      NEXT_IMAGE_REG_CALLBACK
     
-      SUCCESS
-    
-      INTERRUPTED
+      LAST_IMAGE_REG_CALLBACK
     """
-    BAD_INITIAL_PAIR: typing.ClassVar[IncrementalMapperStatus]  # value = IncrementalMapperStatus.BAD_INITIAL_PAIR
-    INTERRUPTED: typing.ClassVar[IncrementalMapperStatus]  # value = IncrementalMapperStatus.INTERRUPTED
-    NO_INITIAL_PAIR: typing.ClassVar[IncrementalMapperStatus]  # value = IncrementalMapperStatus.NO_INITIAL_PAIR
-    SUCCESS: typing.ClassVar[IncrementalMapperStatus]  # value = IncrementalMapperStatus.SUCCESS
-    __members__: typing.ClassVar[dict[str, IncrementalMapperStatus]]  # value = {'NO_INITIAL_PAIR': IncrementalMapperStatus.NO_INITIAL_PAIR, 'BAD_INITIAL_PAIR': IncrementalMapperStatus.BAD_INITIAL_PAIR, 'SUCCESS': IncrementalMapperStatus.SUCCESS, 'INTERRUPTED': IncrementalMapperStatus.INTERRUPTED}
+    INITIAL_IMAGE_PAIR_REG_CALLBACK: typing.ClassVar[IncrementalPipelineCallback]  # value = IncrementalPipelineCallback.INITIAL_IMAGE_PAIR_REG_CALLBACK
+    LAST_IMAGE_REG_CALLBACK: typing.ClassVar[IncrementalPipelineCallback]  # value = IncrementalPipelineCallback.LAST_IMAGE_REG_CALLBACK
+    NEXT_IMAGE_REG_CALLBACK: typing.ClassVar[IncrementalPipelineCallback]  # value = IncrementalPipelineCallback.NEXT_IMAGE_REG_CALLBACK
+    __members__: typing.ClassVar[dict[str, IncrementalPipelineCallback]]  # value = {'INITIAL_IMAGE_PAIR_REG_CALLBACK': IncrementalPipelineCallback.INITIAL_IMAGE_PAIR_REG_CALLBACK, 'NEXT_IMAGE_REG_CALLBACK': IncrementalPipelineCallback.NEXT_IMAGE_REG_CALLBACK, 'LAST_IMAGE_REG_CALLBACK': IncrementalPipelineCallback.LAST_IMAGE_REG_CALLBACK}
     @staticmethod
     def __repr__(*args, **kwargs):
         """
@@ -3390,43 +5011,6 @@ class IncrementalMapperStatus:
     @property
     def value(self) -> int:
         ...
-class IncrementalPipeline:
-    @staticmethod
-    def _pybind11_conduit_v1_(*args, **kwargs):
-        ...
-    def __init__(self, options: IncrementalPipelineOptions, image_path: str, database_path: str, reconstruction_manager: ReconstructionManager) -> None:
-        ...
-    def add_callback(self, id: typing.SupportsInt, func: collections.abc.Callable[[], None]) -> None:
-        ...
-    def callback(self, id: typing.SupportsInt) -> None:
-        ...
-    def check_run_global_refinement(self, reconstruction: Reconstruction, ba_prev_num_reg_images: typing.SupportsInt, ba_prev_num_points: typing.SupportsInt) -> bool:
-        ...
-    def initialize_reconstruction(self, mapper: IncrementalMapper, mapper_options: IncrementalMapperOptions, reconstruction: Reconstruction) -> IncrementalMapperStatus:
-        ...
-    def load_database(self) -> bool:
-        ...
-    def reconstruct(self, mapper: IncrementalMapper, mapper_options: IncrementalMapperOptions, continue_reconstruction: bool) -> None:
-        ...
-    def reconstruct_sub_model(self, mapper: IncrementalMapper, mapper_options: IncrementalMapperOptions, reconstruction: Reconstruction) -> IncrementalMapperStatus:
-        ...
-    def run(self) -> None:
-        ...
-    @property
-    def database_cache(self) -> DatabaseCache:
-        ...
-    @property
-    def database_path(self) -> str:
-        ...
-    @property
-    def image_path(self) -> str:
-        ...
-    @property
-    def options(self) -> IncrementalPipelineOptions:
-        ...
-    @property
-    def reconstruction_manager(self) -> ReconstructionManager:
-        ...
 class IncrementalPipelineOptions:
     __hash__: typing.ClassVar[None] = None
     @staticmethod
@@ -3456,15 +5040,25 @@ class IncrementalPipelineOptions:
     def check(self) -> bool:
         ...
     def get_global_bundle_adjustment(self) -> BundleAdjustmentOptions:
-        ...
+        """
+        Get global bundle adjustment options.
+        """
     def get_local_bundle_adjustment(self) -> BundleAdjustmentOptions:
-        ...
+        """
+        Get local bundle adjustment options.
+        """
     def get_mapper(self) -> IncrementalMapperOptions:
-        ...
+        """
+        Get mapper options with shared settings applied.
+        """
     def get_triangulation(self) -> IncrementalTriangulatorOptions:
-        ...
+        """
+        Get triangulation options with shared settings applied.
+        """
     def is_initial_pair_provided(self) -> bool:
-        ...
+        """
+        Check whether both initial image identifiers are provided.
+        """
     def mergedict(self, kwargs: dict) -> None:
         ...
     def summary(self, write_type: bool = False) -> str:
@@ -3672,6 +5266,14 @@ class IncrementalPipelineOptions:
     def image_names(self, arg0: collections.abc.Sequence[str]) -> None:
         ...
     @property
+    def image_path(self) -> pathlib.Path:
+        """
+        The image path at which to find the images to extract point colors. (PosixPath, default: .)
+        """
+    @image_path.setter
+    def image_path(self, arg0: os.PathLike[str] | str | bytes) -> None:
+        ...
+    @property
     def init_image_id1(self) -> int:
         """
         The image identifier of the first image used to initialize the reconstruction. (int, default: -1)
@@ -3694,6 +5296,14 @@ class IncrementalPipelineOptions:
         """
     @init_num_trials.setter
     def init_num_trials(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def load_all_images(self) -> bool:
+        """
+        Whether to load all images from the database, including those without correspondences. Only useful for triangulation. (bool, default: False)
+        """
+    @load_all_images.setter
+    def load_all_images(self, arg0: bool) -> None:
         ...
     @property
     def mapper(self) -> IncrementalMapperOptions:
@@ -3754,7 +5364,7 @@ class IncrementalPipelineOptions:
     @property
     def min_model_size(self) -> int:
         """
-        The minimum number of registered images of a sub-model, otherwise the sub-model is discarded. Note that the first sub-model is always kept independent of size. (int, default: 10)
+        The minimum number of registered images of a sub-model, otherwise the sub-model is discarded. Note that the first sub-model is always kept independent of size. If the model contains at least half of the total number of images, we also always keep it. (int, default: 10)
         """
     @min_model_size.setter
     def min_model_size(self, arg0: typing.SupportsInt) -> None:
@@ -3808,12 +5418,28 @@ class IncrementalPipelineOptions:
     def snapshot_frames_freq(self, arg0: typing.SupportsInt) -> None:
         ...
     @property
-    def snapshot_path(self) -> str:
+    def snapshot_path(self) -> pathlib.Path:
         """
-        Path to a folder in which reconstruction snapshots will be saved during incremental reconstruction. (str, default: )
+        Path to a folder in which reconstruction snapshots will be saved during incremental reconstruction. (PosixPath, default: .)
         """
     @snapshot_path.setter
-    def snapshot_path(self, arg0: str) -> None:
+    def snapshot_path(self, arg0: os.PathLike[str] | str | bytes) -> None:
+        ...
+    @property
+    def structure_less_registration_fallback(self) -> bool:
+        """
+        Enable fallback to structure-less image registration using 2D-2D correspondences, if structured-based registration fails using 2D-3D correspondences. (bool, default: True)
+        """
+    @structure_less_registration_fallback.setter
+    def structure_less_registration_fallback(self, arg0: bool) -> None:
+        ...
+    @property
+    def structure_less_registration_only(self) -> bool:
+        """
+        Only use structure-less and skip structure-based image registration. (bool, default: False)
+        """
+    @structure_less_registration_only.setter
+    def structure_less_registration_only(self, arg0: bool) -> None:
         ...
     @property
     def triangulation(self) -> IncrementalTriangulatorOptions:
@@ -3839,7 +5465,72 @@ class IncrementalPipelineOptions:
     @use_robust_loss_on_prior_position.setter
     def use_robust_loss_on_prior_position(self, arg0: bool) -> None:
         ...
+class IncrementalPipelineStatus:
+    """
+    Members:
+    
+      SUCCESS
+    
+      INTERRUPTED
+    
+      CONTINUE
+    
+      STOP
+    
+      UNKNOWN_SENSOR_FROM_RIG
+    
+      NO_INITIAL_PAIR
+    
+      BAD_INITIAL_PAIR
+    """
+    BAD_INITIAL_PAIR: typing.ClassVar[IncrementalPipelineStatus]  # value = IncrementalPipelineStatus.BAD_INITIAL_PAIR
+    CONTINUE: typing.ClassVar[IncrementalPipelineStatus]  # value = IncrementalPipelineStatus.CONTINUE
+    INTERRUPTED: typing.ClassVar[IncrementalPipelineStatus]  # value = IncrementalPipelineStatus.INTERRUPTED
+    NO_INITIAL_PAIR: typing.ClassVar[IncrementalPipelineStatus]  # value = IncrementalPipelineStatus.NO_INITIAL_PAIR
+    STOP: typing.ClassVar[IncrementalPipelineStatus]  # value = IncrementalPipelineStatus.STOP
+    SUCCESS: typing.ClassVar[IncrementalPipelineStatus]  # value = IncrementalPipelineStatus.SUCCESS
+    UNKNOWN_SENSOR_FROM_RIG: typing.ClassVar[IncrementalPipelineStatus]  # value = IncrementalPipelineStatus.UNKNOWN_SENSOR_FROM_RIG
+    __members__: typing.ClassVar[dict[str, IncrementalPipelineStatus]]  # value = {'SUCCESS': IncrementalPipelineStatus.SUCCESS, 'INTERRUPTED': IncrementalPipelineStatus.INTERRUPTED, 'CONTINUE': IncrementalPipelineStatus.CONTINUE, 'STOP': IncrementalPipelineStatus.STOP, 'UNKNOWN_SENSOR_FROM_RIG': IncrementalPipelineStatus.UNKNOWN_SENSOR_FROM_RIG, 'NO_INITIAL_PAIR': IncrementalPipelineStatus.NO_INITIAL_PAIR, 'BAD_INITIAL_PAIR': IncrementalPipelineStatus.BAD_INITIAL_PAIR}
+    @staticmethod
+    def __repr__(*args, **kwargs):
+        """
+        __str__(self: object, /) -> str
+        """
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __eq__(self, other: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> int:
+        ...
+    def __hash__(self) -> int:
+        ...
+    def __index__(self) -> int:
+        ...
+    @typing.overload
+    def __init__(self, value: typing.SupportsInt) -> None:
+        ...
+    @typing.overload
+    def __init__(self, name: str) -> None:
+        ...
+    def __int__(self) -> int:
+        ...
+    def __ne__(self, other: typing.Any) -> bool:
+        ...
+    def __setstate__(self, state: typing.SupportsInt) -> None:
+        ...
+    def __str__(self) -> str:
+        ...
+    @property
+    def name(self) -> str:
+        ...
+    @property
+    def value(self) -> int:
+        ...
 class IncrementalTriangulator:
+    """
+    Class that triangulates points during the incremental reconstruction. It holds the state and provides all functionality for triangulation.
+    """
     @staticmethod
     def _pybind11_conduit_v1_(*args, **kwargs):
         ...
@@ -3848,27 +5539,51 @@ class IncrementalTriangulator:
     def __deepcopy__(self, arg0: dict) -> IncrementalTriangulator:
         ...
     def __init__(self, correspondence_graph: CorrespondenceGraph, reconstruction: Reconstruction, observation_manager: ObservationManager = None) -> None:
-        ...
+        """
+        Create new incremental triangulator. Note that both the correspondence graph and the reconstruction objects must live as long as the triangulator.
+        """
     def __repr__(self) -> str:
         ...
     def add_modified_point3D(self, point3D_id: typing.SupportsInt) -> None:
-        ...
+        """
+        Indicate that a 3D point has been modified.
+        """
     def clear_modified_points3D(self) -> None:
-        ...
+        """
+        Clear the collection of changed 3D points.
+        """
     def complete_all_tracks(self, options: IncrementalTriangulatorOptions) -> int:
-        ...
+        """
+        Complete tracks of all 3D points. Returns the number of completed observations.
+        """
     def complete_image(self, options: IncrementalTriangulatorOptions, image_id: typing.SupportsInt) -> int:
-        ...
+        """
+        Complete triangulations for image. Tries to create new tracks for not yet triangulated observations and tries to complete existing tracks. Returns the number of completed observations.
+        """
     def complete_tracks(self, options: IncrementalTriangulatorOptions, point3D_ids: collections.abc.Set[typing.SupportsInt]) -> int:
-        ...
+        """
+        Complete tracks for specific 3D points. Completion tries to recursively add observations to a track that might have failed to triangulate before due to inaccurate poses, etc. Returns the number of completed observations.
+        """
+    def get_modified_points3D(self) -> set[int]:
+        """
+        Get changed 3D points, since the last call to clear_modified_points3D.
+        """
     def merge_all_tracks(self, options: IncrementalTriangulatorOptions) -> int:
-        ...
+        """
+        Merge tracks of all 3D points. Returns the number of merged observations.
+        """
     def merge_tracks(self, options: IncrementalTriangulatorOptions, point3D_ids: collections.abc.Set[typing.SupportsInt]) -> int:
-        ...
+        """
+        Merge tracks for specific 3D points. Returns the number of merged observations.
+        """
     def retriangulate(self, options: IncrementalTriangulatorOptions) -> int:
-        ...
+        """
+        Perform retriangulation for under-reconstructed image pairs. Under-reconstruction usually occurs in the case of a drifting reconstruction.
+        """
     def triangulate_image(self, options: IncrementalTriangulatorOptions, image_id: typing.SupportsInt) -> int:
-        ...
+        """
+        Triangulate observations of image. Triangulation includes creation of new points, continuation of existing points, and merging of separate points if given image bridges tracks. Note that the given image must be registered and its pose must be set in the associated reconstruction.
+        """
 class IncrementalTriangulatorOptions:
     __hash__: typing.ClassVar[None] = None
     @staticmethod
@@ -4096,11 +5811,14 @@ class LossFunctionType:
       SOFT_L1
     
       CAUCHY
+    
+      HUBER
     """
     CAUCHY: typing.ClassVar[LossFunctionType]  # value = LossFunctionType.CAUCHY
+    HUBER: typing.ClassVar[LossFunctionType]  # value = LossFunctionType.HUBER
     SOFT_L1: typing.ClassVar[LossFunctionType]  # value = LossFunctionType.SOFT_L1
     TRIVIAL: typing.ClassVar[LossFunctionType]  # value = LossFunctionType.TRIVIAL
-    __members__: typing.ClassVar[dict[str, LossFunctionType]]  # value = {'TRIVIAL': LossFunctionType.TRIVIAL, 'SOFT_L1': LossFunctionType.SOFT_L1, 'CAUCHY': LossFunctionType.CAUCHY}
+    __members__: typing.ClassVar[dict[str, LossFunctionType]]  # value = {'TRIVIAL': LossFunctionType.TRIVIAL, 'SOFT_L1': LossFunctionType.SOFT_L1, 'CAUCHY': LossFunctionType.CAUCHY, 'HUBER': LossFunctionType.HUBER}
     @staticmethod
     def __repr__(*args, **kwargs):
         """
@@ -4173,17 +5891,140 @@ class MVSModel:
         """
         Get overlapping images defined in the PMVS vis.dat file.
         """
-    def read(self, path: str, format: str) -> None:
+    def read(self, path: os.PathLike[str] | str | bytes, format: str) -> None:
         """
         Read the model from the given path in the specified format.
         """
-    def read_from_colmap(self, path: str, sparse_path: str = 'sparse', images_path: str = 'images') -> None:
+    def read_from_colmap(self, path: os.PathLike[str] | str | bytes, sparse_path: os.PathLike[str] | str | bytes = ..., images_path: os.PathLike[str] | str | bytes = ...) -> None:
         """
         Read the model from a COLMAP reconstruction.
         """
-    def read_from_pmvs(self, path: str) -> None:
+    def read_from_pmvs(self, path: os.PathLike[str] | str | bytes) -> None:
         """
         Read the model from PMVS output.
+        """
+class MeshSimplificationOptions:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __copy__(self) -> MeshSimplificationOptions:
+        ...
+    def __deepcopy__(self, arg0: dict) -> MeshSimplificationOptions:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def check(self) -> bool:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def todict(self, recursive: bool = True) -> dict:
+        ...
+    @property
+    def boundary_weight(self) -> float:
+        """
+        Penalty weight for boundary edges; 0 = disabled. (float, default: 1000.0)
+        """
+    @boundary_weight.setter
+    def boundary_weight(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def interpolate_colors(self) -> bool:
+        """
+        Blend colors on collapse vs. pick lower-error vertex. (bool, default: True)
+        """
+    @interpolate_colors.setter
+    def interpolate_colors(self, arg0: bool) -> None:
+        ...
+    @property
+    def max_error(self) -> float:
+        """
+        Maximum quadric error per collapse; 0 = disabled. (float, default: 0.0)
+        """
+    @max_error.setter
+    def max_error(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def num_threads(self) -> int:
+        """
+        The number of threads to use for initialization. -1 = all threads. (int, default: -1)
+        """
+    @num_threads.setter
+    def num_threads(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def target_face_ratio(self) -> float:
+        """
+        Fraction of faces to retain, in (0, 1]. (float, default: 0.1)
+        """
+    @target_face_ratio.setter
+    def target_face_ratio(self, arg0: typing.SupportsFloat) -> None:
+        ...
+class NormalMap:
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    @staticmethod
+    def from_array(array: typing.Annotated[numpy.typing.ArrayLike, numpy.float32]) -> NormalMap:
+        """
+        Create normal map as a copy of array. Returns normal map with shape (H, W, 3) where the 3 channels represent the x, y, z components of the normal vectors.
+        """
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, width: typing.SupportsInt, height: typing.SupportsInt) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def downsize(self, max_width: typing.SupportsInt, max_height: typing.SupportsInt) -> None:
+        """
+        Downsize normal map to fit maximum dimensions.
+        """
+    def read(self, path: os.PathLike[str] | str | bytes) -> None:
+        """
+        Read normal map from file at given path.
+        """
+    def rescale(self, factor: typing.SupportsFloat) -> None:
+        """
+        Rescale normal map.
+        """
+    def to_array(self) -> numpy.typing.NDArray[numpy.float32]:
+        ...
+    def to_bitmap(self) -> Bitmap:
+        """
+        Convert normal map to bitmap for visualization.
+        """
+    def write(self, path: os.PathLike[str] | str | bytes) -> None:
+        """
+        Write normal map to file at given path.
+        """
+    @property
+    def height(self) -> int:
+        """
+        Height of the normal map.
+        """
+    @property
+    def width(self) -> int:
+        """
+        Width of the normal map.
         """
 class Normalization:
     """
@@ -4268,9 +6109,9 @@ class ObservationManager:
         """
         Filter 3D points with large reprojection error, negative depth, orinsufficient triangulation angle. Return the number of filtered observations.
         """
-    def filter_frames(self, min_focal_length_ratio: typing.SupportsFloat, max_focal_length_ratio: typing.SupportsFloat, max_extra_param: typing.SupportsFloat) -> list[int]:
+    def filter_frames(self, min_focal_length_ratio: typing.SupportsFloat, max_focal_length_ratio: typing.SupportsFloat, max_extra_param: typing.SupportsFloat, min_num_observations: typing.SupportsInt) -> list[int]:
         """
-        Filter frames without observations or bogus camera parameters.Return the identifiers of the filtered frames.
+        Find frames that should be filtered due to having no observations or bogus camera parameters, without de-registering them. Pass them to DeRegisterFrame to reset their pose.Return the identifiers of the frames to filter.
         """
     def filter_observations_with_negative_depth(self) -> int:
         """
@@ -4283,6 +6124,10 @@ class ObservationManager:
     def filter_points3D_in_images(self, max_reproj_error: typing.SupportsFloat, min_tri_angle: typing.SupportsFloat, image_ids: collections.abc.Set[typing.SupportsInt]) -> int:
         """
         Filter 3D points with large reprojection error, negative depth, orinsufficient triangulation angle. Return the number of filtered observations.
+        """
+    def filter_points3D_with_short_tracks(self, min_track_length: typing.SupportsInt) -> int:
+        """
+        Filter points with track length below threshold. Return the number of filtered observations.
         """
     def increment_correspondence_has_point3D(self, image_id: typing.SupportsInt, point2D_idx: typing.SupportsInt) -> None:
         """
@@ -4300,6 +6145,10 @@ class ObservationManager:
         """
         Number of observations, i.e. the number of image points thathave at least one correspondence to another image.
         """
+    def num_visible_correspondences(self, image_id: typing.SupportsInt) -> int:
+        """
+        Number of visible correspondences for all image points.
+        """
     def num_visible_points3D(self, image_id: typing.SupportsInt) -> int:
         """
         Get the number of observations that see a triangulated point, i.e. the number of image points that have at least one correspondence toa triangulated point in another image.
@@ -4310,7 +6159,7 @@ class ObservationManager:
         """
     def register_frame(self, frame_id: typing.SupportsInt) -> None:
         """
-        Register an existing frame, and all its references.
+        Register an existing frame, and all its references..
         """
     @property
     def image_pairs(self) -> dict[int, ImagePairStat]:
@@ -4512,6 +6361,14 @@ class PatchMatchOptions:
         """
     @num_samples.setter
     def num_samples(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def num_threads(self) -> int:
+        """
+        Number of threads for processing. -1 uses all available threads. (int, default: -1)
+        """
+    @num_threads.setter
+    def num_threads(self, arg0: typing.SupportsInt) -> None:
         ...
     @property
     def sigma_color(self) -> float:
@@ -4738,6 +6595,10 @@ class Point3D:
         ...
     def __setstate__(self, arg0: dict) -> None:
         ...
+    def has_error(self) -> bool:
+        """
+        Check if error has been computed.
+        """
     def mergedict(self, kwargs: dict) -> None:
         ...
     def summary(self, write_type: bool = False) -> str:
@@ -4847,12 +6708,12 @@ class PoissonMeshingOptions:
     def todict(self, recursive: bool = True) -> dict:
         ...
     @property
-    def color(self) -> float:
+    def color(self) -> bool:
         """
-        If specified, the reconstruction code assumes that the input is equippedwith colors and will extrapolate the color values to the vertices of thereconstructed mesh. The floating point value specifies the relativeimportance of finer color estimates over lower ones. (float, default: 32.0)
+        If specified, the reconstruction code assumes that the input is equippedwith colors and will extrapolate the color values to the vertices of thereconstructed mesh. The floating point value specifies the relativeimportance of finer color estimates over lower ones. (bool, default: True)
         """
     @color.setter
-    def color(self, arg0: typing.SupportsFloat) -> None:
+    def color(self, arg0: bool) -> None:
         ...
     @property
     def depth(self) -> int:
@@ -4886,11 +6747,189 @@ class PoissonMeshingOptions:
     @trim.setter
     def trim(self, arg0: typing.SupportsFloat) -> None:
         ...
+class PoseGraph:
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __init__(self) -> None:
+        ...
+    def add_edge(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt, edge: PoseGraphEdge) -> PoseGraphEdge:
+        """
+        Add a new edge between two images. Throws if edge already exists.
+        """
+    def clear(self) -> None:
+        """
+        Remove all edges.
+        """
+    def compute_largest_connected_frame_component(self, reconstruction: Reconstruction, filter_unregistered: bool = True) -> set[int]:
+        """
+        Compute the largest connected component of frames. If filter_unregistered is True, only considers frames with poses.
+        """
+    def delete_edge(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> bool:
+        """
+        Delete the edge between two images. Returns True if deleted.
+        """
+    def get_edge(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> PoseGraphEdge:
+        """
+        Get a copy of the edge between two images. Automatically handles geometric inversion if image order was swapped.
+        """
+    def has_edge(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> bool:
+        """
+        Check if an edge exists between two images.
+        """
+    def invalidate_pairs_outside_active_image_ids(self, active_image_ids: collections.abc.Set[typing.SupportsInt]) -> None:
+        """
+        Mark image pairs as invalid if either image is not in the active set.
+        """
+    def is_valid(self, pair_id: typing.SupportsInt) -> bool:
+        """
+        Check if an edge is marked as valid.
+        """
+    def load(self, corr_graph: CorrespondenceGraph) -> None:
+        """
+        Load edges from a correspondence graph.
+        """
+    def mark_connected_components(self, reconstruction: Reconstruction, min_num_images: typing.SupportsInt = -1) -> dict:
+        """
+        Mark connected clusters of images. Returns dict with num_components and cluster_ids mapping frame IDs to cluster IDs.
+        """
+    def set_invalid_edge(self, pair_id: typing.SupportsInt) -> None:
+        """
+        Mark an edge as invalid.
+        """
+    def set_valid_edge(self, pair_id: typing.SupportsInt) -> None:
+        """
+        Mark an edge as valid.
+        """
+    def update_edge(self, image_id1: typing.SupportsInt, image_id2: typing.SupportsInt, edge: PoseGraphEdge) -> None:
+        """
+        Update an existing edge. Throws if edge does not exist.
+        """
+    @property
+    def edges(self) -> PoseGraphEdgeMap:
+        """
+        Access to all edges in the pose graph.
+        """
+    @property
+    def empty(self) -> bool:
+        """
+        Whether the pose graph has no edges.
+        """
+    @property
+    def num_edges(self) -> int:
+        """
+        Number of edges in the pose graph.
+        """
+class PoseGraphEdge:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __copy__(self) -> PoseGraphEdge:
+        ...
+    def __deepcopy__(self, arg0: dict) -> PoseGraphEdge:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, cam2_from_cam1: Rigid3d) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def invert(self) -> None:
+        """
+        Invert the geometry to match swapped image order.
+        """
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def todict(self, recursive: bool = True) -> dict:
+        ...
+    @property
+    def cam2_from_cam1(self) -> Rigid3d:
+        """
+        Relative pose from image 1 to image 2. (Rigid3d, default: Rigid3d(rotation_xyzw=[0, 0, 0, 1], translation=[0, 0, 0]))
+        """
+    @cam2_from_cam1.setter
+    def cam2_from_cam1(self, arg0: Rigid3d) -> None:
+        ...
+    @property
+    def num_matches(self) -> int:
+        """
+        Number of two-view matches used to compute the relative pose. (int, default: 0)
+        """
+    @num_matches.setter
+    def num_matches(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def valid(self) -> bool:
+        """
+        Whether this edge is valid for reconstruction. (bool, default: True)
+        """
+    @valid.setter
+    def valid(self, arg0: bool) -> None:
+        ...
+class PoseGraphEdgeMap:
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __bool__(self) -> bool:
+        """
+        Check whether the map is nonempty
+        """
+    @typing.overload
+    def __contains__(self, arg0: typing.SupportsInt) -> bool:
+        ...
+    @typing.overload
+    def __contains__(self, arg0: typing.Any) -> bool:
+        ...
+    def __delitem__(self, arg0: typing.SupportsInt) -> None:
+        ...
+    def __getitem__(self, arg0: typing.SupportsInt) -> PoseGraphEdge:
+        ...
+    def __init__(self) -> None:
+        ...
+    def __iter__(self) -> collections.abc.Iterator[int]:
+        ...
+    def __len__(self) -> int:
+        ...
+    def __setitem__(self, arg0: typing.SupportsInt, arg1: PoseGraphEdge) -> None:
+        ...
+    def items(self) -> typing.ItemsView:
+        ...
+    def keys(self) -> typing.KeysView:
+        ...
+    def values(self) -> typing.ValuesView:
+        ...
 class PosePrior:
     __hash__: typing.ClassVar[None] = None
     @staticmethod
     def _pybind11_conduit_v1_(*args, **kwargs):
         ...
+    @staticmethod
+    def is_covariance_valid(*args, **kwargs) -> typing.Any:
+        """
+        Deprecated, use ``has_position_cov`` instead.
+        """
+    @staticmethod
+    def is_valid(*args, **kwargs) -> typing.Any:
+        """
+        Deprecated, use ``has_position`` instead.
+        """
     def __copy__(self) -> PosePrior:
         ...
     def __deepcopy__(self, arg0: dict) -> PosePrior:
@@ -4903,18 +6942,6 @@ class PosePrior:
     def __init__(self) -> None:
         ...
     @typing.overload
-    def __init__(self, position: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> None:
-        ...
-    @typing.overload
-    def __init__(self, position: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"], coordinate_system: PosePriorCoordinateSystem) -> None:
-        ...
-    @typing.overload
-    def __init__(self, position: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"], position_covariance: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]) -> None:
-        ...
-    @typing.overload
-    def __init__(self, position: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"], position_covariance: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"], coordinate_system: PosePriorCoordinateSystem) -> None:
-        ...
-    @typing.overload
     def __init__(self, arg0: dict) -> None:
         ...
     @typing.overload
@@ -4924,9 +6951,11 @@ class PosePrior:
         ...
     def __setstate__(self, arg0: dict) -> None:
         ...
-    def is_covariance_valid(self) -> bool:
+    def has_gravity(self) -> bool:
         ...
-    def is_valid(self) -> bool:
+    def has_position(self) -> bool:
+        ...
+    def has_position_cov(self) -> bool:
         ...
     def mergedict(self, kwargs: dict) -> None:
         ...
@@ -4941,6 +6970,30 @@ class PosePrior:
         """
     @coordinate_system.setter
     def coordinate_system(self, arg0: PosePriorCoordinateSystem) -> None:
+        ...
+    @property
+    def corr_data_id(self) -> data_t:
+        """
+         (data_t, default: data_t(sensor_id=sensor_t(type=SensorType.INVALID, id=4294967295), id=4294967295))
+        """
+    @corr_data_id.setter
+    def corr_data_id(self, arg0: data_t) -> None:
+        ...
+    @property
+    def gravity(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+        """
+         (ndarray, default: [nan nan nan])
+        """
+    @gravity.setter
+    def gravity(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> None:
+        ...
+    @property
+    def pose_prior_id(self) -> int:
+        """
+         (int, default: 4294967295)
+        """
+    @pose_prior_id.setter
+    def pose_prior_id(self, arg0: typing.SupportsInt) -> None:
         ...
     @property
     def position(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
@@ -4986,6 +7039,8 @@ class PosePriorBundleAdjustmentOptions:
         ...
     def __setstate__(self, arg0: dict) -> None:
         ...
+    def check(self) -> bool:
+        ...
     def mergedict(self, kwargs: dict) -> None:
         ...
     def summary(self, write_type: bool = False) -> str:
@@ -4995,26 +7050,26 @@ class PosePriorBundleAdjustmentOptions:
     @property
     def alignment_ransac(self) -> RANSACOptions:
         """
-        RANSAC options for Sim3 alignment. (RANSACOptions, default: RANSACOptions(max_error=0.0, min_inlier_ratio=0.1, confidence=0.99, dyn_num_trials_multiplier=3.0, min_num_trials=0, max_num_trials=2147483647, random_seed=-1))
+        RANSAC options for Sim3 alignment. (RANSACOptions, default: RANSACOptions(max_error=0.0, min_inlier_ratio=0.1, confidence=0.99, dyn_num_trials_multiplier=3.0, min_num_trials=0, max_num_trials=2147483647, random_seed=-1, num_threads=1))
         """
     @alignment_ransac.setter
     def alignment_ransac(self, arg0: RANSACOptions) -> None:
         ...
     @property
-    def prior_position_loss_scale(self) -> float:
+    def ceres(self) -> CeresPosePriorBundleAdjustmentOptions:
         """
-        Threshold on the residual for the robust loss (chi2 for 3DOF at 95% = 7.815). (float, default: 2.7954834829151074)
+        Ceres-specific pose prior bundle adjustment options. (CeresPosePriorBundleAdjustmentOptions, default: CeresPosePriorBundleAdjustmentOptions(prior_position_loss_function_type=LossFunctionType.TRIVIAL, prior_position_loss_scale=2.7954834829151074))
         """
-    @prior_position_loss_scale.setter
-    def prior_position_loss_scale(self, arg0: typing.SupportsFloat) -> None:
+    @ceres.setter
+    def ceres(self, arg0: CeresPosePriorBundleAdjustmentOptions) -> None:
         ...
     @property
-    def use_robust_loss_on_prior_position(self) -> bool:
+    def prior_position_fallback_stddev(self) -> float:
         """
-        Whether to use a robust loss on prior locations. (bool, default: False)
+        Fallback if no prior position covariance is provided. (float, default: 1.0)
         """
-    @use_robust_loss_on_prior_position.setter
-    def use_robust_loss_on_prior_position(self, arg0: bool) -> None:
+    @prior_position_fallback_stddev.setter
+    def prior_position_fallback_stddev(self, arg0: typing.SupportsFloat) -> None:
         ...
 class PosePriorCoordinateSystem:
     """
@@ -5149,6 +7204,14 @@ class RANSACOptions:
     def min_num_trials(self, arg0: typing.SupportsInt) -> None:
         ...
     @property
+    def num_threads(self) -> int:
+        """
+         (int, default: 1)
+        """
+    @num_threads.setter
+    def num_threads(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
     def random_seed(self) -> int:
         """
          (int, default: -1)
@@ -5171,13 +7234,17 @@ class Reconstruction:
     def __init__(self, reconstruction: Reconstruction) -> None:
         ...
     @typing.overload
-    def __init__(self, path: str) -> None:
+    def __init__(self, path: os.PathLike[str] | str | bytes) -> None:
         ...
     def __repr__(self) -> str:
         ...
     def add_camera(self, camera: Camera) -> None:
         """
         Add new camera. There is only one camera per image, while multiple images might be taken by the same camera.
+        """
+    def add_camera_with_trivial_rig(self, camera: Camera) -> None:
+        """
+        Add a new camera and also create a trivial rig whose rig_id matches the camera_id. The camera becomes the rig's only sensor.
         """
     def add_frame(self, frame: Frame) -> None:
         """
@@ -5187,6 +7254,16 @@ class Reconstruction:
         """
         Add new image. Its camera must have been added before. If its camera object is unset, it will be automatically populated from the added cameras.
         """
+    @typing.overload
+    def add_image_with_trivial_frame(self, image: Image) -> None:
+        """
+        Add a new image and create a frame with the same ID (frame_id = image_id). Assumes a rig exists whose rig_id equals the camera_id of the image.
+        """
+    @typing.overload
+    def add_image_with_trivial_frame(self, image: Image, cam_from_world: Rigid3d) -> None:
+        """
+        Add a new image, create a trivial frame (frame_id = image_id), and also register the frame with an input pose.
+        """
     def add_observation(self, point3D_id: typing.SupportsInt, track_element: TrackElement) -> None:
         """
         Add observation to existing 3D point.
@@ -5194,6 +7271,10 @@ class Reconstruction:
     def add_point3D(self, xyz: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"], track: Track, color: typing.Annotated[numpy.typing.ArrayLike, numpy.uint8, "[3, 1]"] = ...) -> int:
         """
         Add new 3D object, and return its unique ID.
+        """
+    def add_point3D_with_id(self, point3D_id: typing.SupportsInt, point3D: Point3D) -> None:
+        """
+        Add new 3D point with known ID.
         """
     def add_rig(self, rig: Rig) -> None:
         """
@@ -5215,7 +7296,7 @@ class Reconstruction:
         ...
     def compute_num_observations(self) -> int:
         ...
-    def create_image_dirs(self, path: str) -> None:
+    def create_image_dirs(self, path: os.PathLike[str] | str | bytes) -> None:
         """
         Create all image sub-directories in the given path.
         """
@@ -5247,15 +7328,15 @@ class Reconstruction:
         ...
     def exists_rig(self, rig_id: typing.SupportsInt) -> bool:
         ...
-    def export_PLY(self, output_path: str) -> None:
+    def export_PLY(self, output_path: os.PathLike[str] | str | bytes) -> None:
         """
         Export 3D points to PLY format (.ply).
         """
-    def extract_colors_for_all_images(self, path: str) -> None:
+    def extract_colors_for_all_images(self, path: os.PathLike[str] | str | bytes) -> None:
         """
         Extract colors for all 3D points by computing the mean color of all images.
         """
-    def extract_colors_for_image(self, image_id: typing.SupportsInt, path: str) -> bool:
+    def extract_colors_for_image(self, image_id: typing.SupportsInt, path: os.PathLike[str] | str | bytes) -> bool:
         """
         Extract colors for 3D points of given image. Colors will be extracted only for 3D points which are completely black. Return True if the image could be read at the given path.
         """
@@ -5275,9 +7356,13 @@ class Reconstruction:
         """
         Direct accessor for an image.
         """
-    def import_PLY(self, path: str) -> None:
+    def import_PLY(self, path: os.PathLike[str] | str | bytes) -> None:
         """
-        Import from PLY format. Note that these import functions areonly intended for visualization of data and usable for reconstruction.
+        Import from PLY format. Note that these import functions are only intended for visualization of data and not usable for reconstruction.
+        """
+    def is_valid(self) -> bool:
+        """
+        Check whether the reconstruction object is internally consistent.
         """
     def load(self, database_cache: DatabaseCache) -> None:
         ...
@@ -5287,11 +7372,11 @@ class Reconstruction:
         """
     def normalize(self, fixed_scale: bool = False, extent: typing.SupportsFloat = 10.0, min_percentile: typing.SupportsFloat = 0.1, max_percentile: typing.SupportsFloat = 0.9, use_images: bool = True) -> Sim3d:
         """
-        Normalize scene by scaling and translation to avoid degeneratevisualization after bundle adjustment and to improve numericalstability of algorithms.
+        Normalize scene by scaling and translation to avoid degenerate visualization after bundle adjustment and to improve numerical stability of algorithms.
         
-        Translates scene such that the mean of the camera centers or pointlocations are at the origin of the coordinate system.
+        Translates scene such that the mean of the camera centers or point locations are at the origin of the coordinate system.
         
-         Scales scene such that the minimum and maximum camera centers (or points) are  at the given `extent`, whereas `min_percentile` and  `max_percentile` determine the minimum  and maximum percentiles of the camera centers (or points) considered.
+        Scales scene such that the minimum and maximum camera centers (or points) are at the given `extent`, whereas `min_percentile` and `max_percentile` determine the minimum and maximum percentiles of the camera centers (or points) considered.
         """
     def num_cameras(self) -> int:
         ...
@@ -5313,13 +7398,13 @@ class Reconstruction:
         """
     def point3D_ids(self) -> set[int]:
         ...
-    def read(self, path: str) -> None:
+    def read(self, path: os.PathLike[str] | str | bytes) -> None:
         """
         Read reconstruction in COLMAP format. Prefer binary.
         """
-    def read_binary(self, path: str) -> None:
+    def read_binary(self, path: os.PathLike[str] | str | bytes) -> None:
         ...
-    def read_text(self, path: str) -> None:
+    def read_text(self, path: os.PathLike[str] | str | bytes) -> None:
         ...
     def reg_frame_ids(self) -> list[int]:
         ...
@@ -5327,29 +7412,37 @@ class Reconstruction:
         ...
     def register_frame(self, frame_id: typing.SupportsInt) -> None:
         """
-        Register an existing frame.
+        Register an existing frame, and all its references.
         """
     def rig(self, rig_id: typing.SupportsInt) -> Rig:
         """
         Direct accessor for a rig.
         """
+    def set_rigs_and_frames(self, rigs: collections.abc.Sequence[Rig], frames: collections.abc.Sequence[Frame]) -> None:
+        """
+        Set rigs and frames together.
+        """
     def summary(self) -> str:
         ...
     def tear_down(self) -> None:
         ...
+    def transcribe_image_ids_to_database(self, database: Database) -> None:
+        """
+        Update image identifiers to match the database by name.
+        """
     def transform(self, new_from_old_world: Sim3d) -> None:
         """
         Apply the 3D similarity transformation to all images and points.
         """
     def update_point_3d_errors(self) -> None:
         ...
-    def write(self, output_dir: str) -> None:
+    def write(self, output_dir: os.PathLike[str] | str | bytes) -> None:
         """
         Write reconstruction in COLMAP binary format.
         """
-    def write_binary(self, path: str) -> None:
+    def write_binary(self, path: os.PathLike[str] | str | bytes) -> None:
         ...
-    def write_text(self, path: str) -> None:
+    def write_text(self, path: os.PathLike[str] | str | bytes) -> None:
         ...
     @property
     def cameras(self) -> CameraMap:
@@ -5380,11 +7473,11 @@ class ReconstructionManager:
         ...
     def get(self, idx: typing.SupportsInt) -> Reconstruction:
         ...
-    def read(self, path: str) -> int:
+    def read(self, path: os.PathLike[str] | str | bytes) -> int:
         ...
     def size(self) -> int:
         ...
-    def write(self, path: str) -> None:
+    def write(self, path: os.PathLike[str] | str | bytes) -> None:
         ...
 class Rig:
     __hash__: typing.ClassVar[None] = None
@@ -5424,6 +7517,10 @@ class Rig:
         """
         Whether the rig has a specific sensor.
         """
+    def has_sensor_from_rig(self, sensor_id: sensor_t) -> bool:
+        """
+        Check if sensor has calibrated transformation from rig.
+        """
     def is_ref_sensor(self, arg0: sensor_t) -> bool:
         """
         Check whether the given sensor is the reference sensor.
@@ -5434,9 +7531,13 @@ class Rig:
         """
         The number of sensors in the rig.
         """
+    def reset_sensor_from_rig(self, sensor_id: sensor_t) -> None:
+        """
+        Reset the sensor's calibration.
+        """
     def sensor_from_rig(self, sensor_id: sensor_t) -> pycolmap._core.Rigid3d | None:
         """
-        The the transformation from rig to the sensor.
+        The transformation from rig to the sensor.
         """
     def sensor_ids(self) -> set[sensor_t]:
         """
@@ -5666,7 +7767,17 @@ class Rigid3d:
         ...
     def summary(self, write_type: bool = False) -> str:
         ...
+    def tgt_origin_in_src(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+        ...
     def todict(self, recursive: bool = True) -> dict:
+        ...
+    @property
+    def params(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[7, 1]"]:
+        """
+         (ndarray, default: [0. 0. 0. 1. 0. 0. 0.])
+        """
+    @params.setter
+    def params(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[7, 1]"]) -> None:
         ...
     @property
     def rotation(self) -> Rotation3d:
@@ -5674,26 +7785,31 @@ class Rigid3d:
          (Rotation3d, default: Rotation3d(xyzw=[0, 0, 0, 1]))
         """
     @rotation.setter
-    def rotation(self, arg0: Rotation3d) -> None:
+    def rotation(self, arg1: Rotation3d) -> None:
         ...
     @property
-    def translation(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+    def translation(self) -> numpy.typing.NDArray[numpy.float64]:
         """
          (ndarray, default: [0. 0. 0.])
         """
     @translation.setter
-    def translation(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> None:
+    def translation(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> None:
         ...
 class Rotation3d:
     __hash__: typing.ClassVar[None] = None
     @staticmethod
     def _pybind11_conduit_v1_(*args, **kwargs):
         ...
+    @staticmethod
+    def from_buffer(array: typing.Annotated[numpy.typing.ArrayLike, numpy.float64]) -> Rotation3d:
+        """
+        Create from numpy array view (zero-copy if contiguous).
+        """
     def __copy__(self) -> Rotation3d:
         ...
     def __deepcopy__(self, arg0: dict) -> Rotation3d:
         ...
-    def __eq__(self, arg0: Rotation3d) -> bool:
+    def __eq__(self, arg0: typing.Any) -> bool:
         ...
     def __getstate__(self) -> dict:
         ...
@@ -5753,12 +7869,195 @@ class Rotation3d:
     def todict(self, recursive: bool = True) -> dict:
         ...
     @property
-    def quat(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[4, 1]"]:
+    def quat(self) -> numpy.typing.NDArray[numpy.float64]:
         """
         Quaternion in [x,y,z,w] format. (ndarray, default: [0. 0. 0. 1.])
         """
     @quat.setter
     def quat(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[4, 1]"]) -> None:
+        ...
+class RotationEstimatorOptions:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __copy__(self) -> RotationEstimatorOptions:
+        ...
+    def __deepcopy__(self, arg0: dict) -> RotationEstimatorOptions:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def todict(self, recursive: bool = True) -> dict:
+        ...
+    @property
+    def filter_unregistered(self) -> bool:
+        """
+        Only consider frames with existing poses for connected components. (bool, default: False)
+        """
+    @filter_unregistered.setter
+    def filter_unregistered(self, arg0: bool) -> None:
+        ...
+    @property
+    def gravity_dir(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+        """
+        Gravity direction vector. (ndarray, default: [0. 1. 0.])
+        """
+    @gravity_dir.setter
+    def gravity_dir(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> None:
+        ...
+    @property
+    def irls_loss_parameter_sigma(self) -> float:
+        """
+        Point where Huber-like cost switches from L1 to L2 (degrees). (float, default: 5.0)
+        """
+    @irls_loss_parameter_sigma.setter
+    def irls_loss_parameter_sigma(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def irls_step_convergence_threshold(self) -> float:
+        """
+        Average step size threshold to terminate IRLS. (float, default: 0.001)
+        """
+    @irls_step_convergence_threshold.setter
+    def irls_step_convergence_threshold(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def l1_step_convergence_threshold(self) -> float:
+        """
+        Average step size threshold to terminate L1 minimization. (float, default: 0.001)
+        """
+    @l1_step_convergence_threshold.setter
+    def l1_step_convergence_threshold(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def max_num_irls_iterations(self) -> int:
+        """
+        Number of IRLS iterations to perform. (int, default: 100)
+        """
+    @max_num_irls_iterations.setter
+    def max_num_irls_iterations(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def max_num_l1_iterations(self) -> int:
+        """
+        Maximum number of L1 minimization iterations. (int, default: 5)
+        """
+    @max_num_l1_iterations.setter
+    def max_num_l1_iterations(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def max_rotation_error_deg(self) -> float:
+        """
+        Filter pairs with rotation error exceeding this threshold (degrees). (float, default: 10.0)
+        """
+    @max_rotation_error_deg.setter
+    def max_rotation_error_deg(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def random_seed(self) -> int:
+        """
+        PRNG seed. -1 for non-deterministic, >=0 for deterministic. (int, default: -1)
+        """
+    @random_seed.setter
+    def random_seed(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def skip_initialization(self) -> bool:
+        """
+        Skip maximum spanning tree initialization. (bool, default: False)
+        """
+    @skip_initialization.setter
+    def skip_initialization(self, arg0: bool) -> None:
+        ...
+    @property
+    def use_gravity(self) -> bool:
+        """
+        Use gravity priors for rotation averaging. (bool, default: False)
+        """
+    @use_gravity.setter
+    def use_gravity(self, arg0: bool) -> None:
+        ...
+    @property
+    def use_stratified(self) -> bool:
+        """
+        Use stratified solving for mixed gravity systems. (bool, default: True)
+        """
+    @use_stratified.setter
+    def use_stratified(self, arg0: bool) -> None:
+        ...
+    @property
+    def weight_type(self) -> RotationWeightType:
+        """
+        Weight type for IRLS: GEMAN_MCCLURE or HALF_NORM. (RotationWeightType, default: RotationWeightType.GEMAN_MCCLURE)
+        """
+    @weight_type.setter
+    def weight_type(self, arg0: RotationWeightType) -> None:
+        ...
+class RotationWeightType:
+    """
+    Members:
+    
+      GEMAN_MCCLURE
+    
+      HALF_NORM
+    """
+    GEMAN_MCCLURE: typing.ClassVar[RotationWeightType]  # value = RotationWeightType.GEMAN_MCCLURE
+    HALF_NORM: typing.ClassVar[RotationWeightType]  # value = RotationWeightType.HALF_NORM
+    __members__: typing.ClassVar[dict[str, RotationWeightType]]  # value = {'GEMAN_MCCLURE': RotationWeightType.GEMAN_MCCLURE, 'HALF_NORM': RotationWeightType.HALF_NORM}
+    @staticmethod
+    def __repr__(*args, **kwargs):
+        """
+        __str__(self: object, /) -> str
+        """
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __eq__(self, other: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> int:
+        ...
+    def __hash__(self) -> int:
+        ...
+    def __index__(self) -> int:
+        ...
+    @typing.overload
+    def __init__(self, value: typing.SupportsInt) -> None:
+        ...
+    @typing.overload
+    def __init__(self, name: str) -> None:
+        ...
+    def __int__(self) -> int:
+        ...
+    def __ne__(self, other: typing.Any) -> bool:
+        ...
+    def __setstate__(self, state: typing.SupportsInt) -> None:
+        ...
+    def __str__(self) -> str:
+        ...
+    @property
+    def name(self) -> str:
+        ...
+    @property
+    def value(self) -> int:
         ...
 class SensorType:
     """
@@ -5941,12 +8240,12 @@ class SequentialPairingOptions:
     def quadratic_overlap(self, arg0: bool) -> None:
         ...
     @property
-    def vocab_tree_path(self) -> str:
+    def vocab_tree_path(self) -> pathlib.Path:
         """
-        Path to the vocabulary tree. (str, default: https://github.com/colmap/colmap/releases/download/3.11.1/vocab_tree_faiss_flickr100K_words256K.bin;vocab_tree_faiss_flickr100K_words256K.bin;96ca8ec8ea60b1f73465aaf2c401fd3b3ca75cdba2d3c50d6a2f6f760f275ddc)
+        Path to the vocabulary tree. (PosixPath, default: .)
         """
     @vocab_tree_path.setter
-    def vocab_tree_path(self, arg0: str) -> None:
+    def vocab_tree_path(self, arg0: os.PathLike[str] | str | bytes) -> None:
         ...
 class Sift:
     @staticmethod
@@ -6242,28 +8541,36 @@ class Sim3d:
     def transform_camera_world(self, cam_from_world: Rigid3d) -> Rigid3d:
         ...
     @property
+    def params(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[8, 1]"]:
+        """
+         (ndarray, default: [0. 0. 0. 1. 0. 0. 0. 1.])
+        """
+    @params.setter
+    def params(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[8, 1]"]) -> None:
+        ...
+    @property
     def rotation(self) -> Rotation3d:
         """
          (Rotation3d, default: Rotation3d(xyzw=[0, 0, 0, 1]))
         """
     @rotation.setter
-    def rotation(self, arg0: Rotation3d) -> None:
+    def rotation(self, arg1: Rotation3d) -> None:
         ...
     @property
-    def scale(self) -> numpy.ndarray:
+    def scale(self) -> numpy.typing.NDArray[numpy.float64]:
         """
          (ndarray, default: 1.0)
         """
     @scale.setter
-    def scale(self, arg1: typing.SupportsFloat) -> None:
+    def scale(self, arg1: typing.Any) -> None:
         ...
     @property
-    def translation(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+    def translation(self) -> numpy.typing.NDArray[numpy.float64]:
         """
          (ndarray, default: [0. 0. 0.])
         """
     @translation.setter
-    def translation(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> None:
+    def translation(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> None:
         ...
 class SpatialPairGenerator(PairGenerator):
     @staticmethod
@@ -6404,12 +8711,12 @@ class StereoFusionOptions:
     def check_num_images(self, arg0: typing.SupportsInt) -> None:
         ...
     @property
-    def mask_path(self) -> str:
+    def mask_path(self) -> pathlib.Path:
         """
-        Path for PNG masks. Same format expected as ImageReaderOptions. (str, default: )
+        Path for PNG masks. Same format expected as ImageReaderOptions. (PosixPath, default: .)
         """
     @mask_path.setter
-    def mask_path(self, arg0: str) -> None:
+    def mask_path(self, arg0: os.PathLike[str] | str | bytes) -> None:
         ...
     @property
     def max_depth_error(self) -> float:
@@ -6490,10 +8797,13 @@ class SyntheticDatasetMatchConfig:
       EXHAUSTIVE
     
       CHAINED
+    
+      SPARSE
     """
     CHAINED: typing.ClassVar[SyntheticDatasetMatchConfig]  # value = SyntheticDatasetMatchConfig.CHAINED
     EXHAUSTIVE: typing.ClassVar[SyntheticDatasetMatchConfig]  # value = SyntheticDatasetMatchConfig.EXHAUSTIVE
-    __members__: typing.ClassVar[dict[str, SyntheticDatasetMatchConfig]]  # value = {'EXHAUSTIVE': SyntheticDatasetMatchConfig.EXHAUSTIVE, 'CHAINED': SyntheticDatasetMatchConfig.CHAINED}
+    SPARSE: typing.ClassVar[SyntheticDatasetMatchConfig]  # value = SyntheticDatasetMatchConfig.SPARSE
+    __members__: typing.ClassVar[dict[str, SyntheticDatasetMatchConfig]]  # value = {'EXHAUSTIVE': SyntheticDatasetMatchConfig.EXHAUSTIVE, 'CHAINED': SyntheticDatasetMatchConfig.CHAINED, 'SPARSE': SyntheticDatasetMatchConfig.SPARSE}
     @staticmethod
     def __repr__(*args, **kwargs):
         """
@@ -6563,6 +8873,14 @@ class SyntheticDatasetOptions:
     def todict(self, recursive: bool = True) -> dict:
         ...
     @property
+    def camera_has_prior_focal_length(self) -> bool:
+        """
+         (bool, default: False)
+        """
+    @camera_has_prior_focal_length.setter
+    def camera_has_prior_focal_length(self, arg0: bool) -> None:
+        ...
+    @property
     def camera_height(self) -> int:
         """
          (int, default: 768)
@@ -6595,12 +8913,36 @@ class SyntheticDatasetOptions:
     def camera_width(self, arg0: typing.SupportsInt) -> None:
         ...
     @property
+    def feature_type(self) -> FeatureExtractorType:
+        """
+        The type of feature descriptors to synthesize. (FeatureExtractorType, default: FeatureExtractorType.SIFT)
+        """
+    @feature_type.setter
+    def feature_type(self, arg0: FeatureExtractorType) -> None:
+        ...
+    @property
+    def inlier_match_ratio(self) -> float:
+        """
+         (float, default: 1.0)
+        """
+    @inlier_match_ratio.setter
+    def inlier_match_ratio(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
     def match_config(self) -> SyntheticDatasetMatchConfig:
         """
          (SyntheticDatasetMatchConfig, default: SyntheticDatasetMatchConfig.EXHAUSTIVE)
         """
     @match_config.setter
     def match_config(self, arg0: SyntheticDatasetMatchConfig) -> None:
+        ...
+    @property
+    def match_sparsity(self) -> float:
+        """
+        Sparsity parameter for SPARSE match config [0,1]. (float, default: 0.0)
+        """
+    @match_sparsity.setter
+    def match_sparsity(self, arg0: typing.SupportsFloat) -> None:
         ...
     @property
     def num_cameras_per_rig(self) -> int:
@@ -6643,12 +8985,36 @@ class SyntheticDatasetOptions:
     def num_rigs(self, arg0: typing.SupportsInt) -> None:
         ...
     @property
-    def prior_position_stddev(self) -> float:
+    def prior_gravity(self) -> bool:
         """
-         (float, default: 1.5)
+         (bool, default: False)
         """
-    @prior_position_stddev.setter
-    def prior_position_stddev(self, arg0: typing.SupportsFloat) -> None:
+    @prior_gravity.setter
+    def prior_gravity(self, arg0: bool) -> None:
+        ...
+    @property
+    def prior_gravity_in_world(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 1]"]:
+        """
+        Prior gravity direction in world coordinates. (ndarray, default: [0. 1. 0.])
+        """
+    @prior_gravity_in_world.setter
+    def prior_gravity_in_world(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 1]"]) -> None:
+        ...
+    @property
+    def prior_position(self) -> bool:
+        """
+         (bool, default: False)
+        """
+    @prior_position.setter
+    def prior_position(self, arg0: bool) -> None:
+        ...
+    @property
+    def prior_position_coordinate_system(self) -> PosePriorCoordinateSystem:
+        """
+         (PosePriorCoordinateSystem, default: PosePriorCoordinateSystem.CARTESIAN)
+        """
+    @prior_position_coordinate_system.setter
+    def prior_position_coordinate_system(self, arg0: PosePriorCoordinateSystem) -> None:
         ...
     @property
     def sensor_from_rig_rotation_stddev(self) -> float:
@@ -6667,20 +9033,20 @@ class SyntheticDatasetOptions:
     def sensor_from_rig_translation_stddev(self, arg0: typing.SupportsFloat) -> None:
         ...
     @property
-    def use_geographic_coords_prior(self) -> bool:
+    def track_length(self) -> int:
         """
-         (bool, default: False)
+        Target track length per 3D point. -1 = dense visibility (default), >= 2 = pruned observations. (int, default: -1)
         """
-    @use_geographic_coords_prior.setter
-    def use_geographic_coords_prior(self, arg0: bool) -> None:
+    @track_length.setter
+    def track_length(self, arg0: typing.SupportsInt) -> None:
         ...
     @property
-    def use_prior_position(self) -> bool:
+    def two_view_geometry_has_relative_pose(self) -> bool:
         """
-         (bool, default: False)
+        Whether to include decomposed relative poses in two-view geometries. (bool, default: False)
         """
-    @use_prior_position.setter
-    def use_prior_position(self, arg0: bool) -> None:
+    @two_view_geometry_has_relative_pose.setter
+    def two_view_geometry_has_relative_pose(self, arg0: bool) -> None:
         ...
 class SyntheticImageOptions:
     __hash__: typing.ClassVar[None] = None
@@ -6787,6 +9153,22 @@ class SyntheticNoiseOptions:
     def point3D_stddev(self, arg0: typing.SupportsFloat) -> None:
         ...
     @property
+    def prior_gravity_stddev(self) -> float:
+        """
+         (float, default: 1.0)
+        """
+    @prior_gravity_stddev.setter
+    def prior_gravity_stddev(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def prior_position_stddev(self) -> float:
+        """
+         (float, default: 1.5)
+        """
+    @prior_position_stddev.setter
+    def prior_position_stddev(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
     def rig_from_world_rotation_stddev(self) -> float:
         """
         Random rotation in degrees around the z-axis of the rig. (float, default: 0.0)
@@ -6873,6 +9255,10 @@ class Track:
         """
         Add multiple elements.
         """
+    def compress(self) -> None:
+        """
+        Shrink capacity to fit size.
+        """
     @typing.overload
     def delete_element(self, image_id: typing.SupportsInt, point2D_idx: typing.SupportsInt) -> None:
         """
@@ -6883,12 +9269,24 @@ class Track:
         """
         Remove TrackElement at index.
         """
+    def element(self, index: typing.SupportsInt) -> TrackElement:
+        """
+        Access specific element by index.
+        """
     def length(self) -> int:
         """
         Track Length.
         """
     def mergedict(self, kwargs: dict) -> None:
         ...
+    def reserve(self, num_elements: typing.SupportsInt) -> None:
+        """
+        Reserve capacity for elements.
+        """
+    def set_element(self, index: typing.SupportsInt, element: TrackElement) -> None:
+        """
+        Set element at specific index.
+        """
     def summary(self, write_type: bool = False) -> str:
         ...
     def todict(self, recursive: bool = True) -> dict:
@@ -7034,42 +9432,36 @@ class TwoViewGeometry:
     def todict(self, recursive: bool = True) -> dict:
         ...
     @property
-    def E(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]:
+    def E(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"] | None:
         """
-         (ndarray, default: [[0. 0. 0.]
-         [0. 0. 0.]
-         [0. 0. 0.]])
+         (NoneType, default: None)
         """
     @E.setter
-    def E(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]) -> None:
+    def E(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"] | None) -> None:
         ...
     @property
-    def F(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]:
+    def F(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"] | None:
         """
-         (ndarray, default: [[0. 0. 0.]
-         [0. 0. 0.]
-         [0. 0. 0.]])
+         (NoneType, default: None)
         """
     @F.setter
-    def F(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]) -> None:
+    def F(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"] | None) -> None:
         ...
     @property
-    def H(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]:
+    def H(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"] | None:
         """
-         (ndarray, default: [[0. 0. 0.]
-         [0. 0. 0.]
-         [0. 0. 0.]])
+         (NoneType, default: None)
         """
     @H.setter
-    def H(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]) -> None:
+    def H(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"] | None) -> None:
         ...
     @property
-    def cam2_from_cam1(self) -> Rigid3d:
+    def cam2_from_cam1(self) -> pycolmap._core.Rigid3d | None:
         """
-         (Rigid3d, default: Rigid3d(rotation_xyzw=[0, 0, 0, 1], translation=[0, 0, 0]))
+         (NoneType, default: None)
         """
     @cam2_from_cam1.setter
-    def cam2_from_cam1(self, arg0: Rigid3d) -> None:
+    def cam2_from_cam1(self, arg0: pycolmap._core.Rigid3d | None) -> None:
         ...
     @property
     def config(self) -> int:
@@ -7085,7 +9477,7 @@ class TwoViewGeometry:
          (ndarray, default: [])
         """
     @inlier_matches.setter
-    def inlier_matches(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.uint32, "[m, 2]"]) -> None:
+    def inlier_matches(self, arg1: typing.Annotated[numpy.typing.NDArray[numpy.uint32], "[m, 2]", "flags.c_contiguous"]) -> None:
         ...
     @property
     def tri_angle(self) -> float:
@@ -7247,6 +9639,14 @@ class TwoViewGeometryOptions:
     def min_E_F_inlier_ratio(self, arg0: typing.SupportsFloat) -> None:
         ...
     @property
+    def min_inlier_ratio(self) -> float:
+        """
+         (float, default: 0.0)
+        """
+    @min_inlier_ratio.setter
+    def min_inlier_ratio(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
     def min_num_inliers(self) -> int:
         """
          (int, default: 15)
@@ -7273,7 +9673,7 @@ class TwoViewGeometryOptions:
     @property
     def ransac(self) -> RANSACOptions:
         """
-         (RANSACOptions, default: RANSACOptions(max_error=4.0, min_inlier_ratio=0.25, confidence=0.999, dyn_num_trials_multiplier=3.0, min_num_trials=100, max_num_trials=10000, random_seed=-1))
+         (RANSACOptions, default: RANSACOptions(max_error=4.0, min_inlier_ratio=0.25, confidence=0.999, dyn_num_trials_multiplier=3.0, min_num_trials=100, max_num_trials=10000, random_seed=-1, num_threads=1))
         """
     @ransac.setter
     def ransac(self, arg0: RANSACOptions) -> None:
@@ -7405,6 +9805,126 @@ class UndistortCameraOptions:
         """
     @roi_min_y.setter
     def roi_min_y(self, arg0: typing.SupportsFloat) -> None:
+        ...
+class ViewGraphCalibrationOptions:
+    __hash__: typing.ClassVar[None] = None
+    @staticmethod
+    def _pybind11_conduit_v1_(*args, **kwargs):
+        ...
+    def __copy__(self) -> ViewGraphCalibrationOptions:
+        ...
+    def __deepcopy__(self, arg0: dict) -> ViewGraphCalibrationOptions:
+        ...
+    def __eq__(self, arg0: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> dict:
+        ...
+    @typing.overload
+    def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, arg0: dict) -> None:
+        ...
+    @typing.overload
+    def __init__(self, **kwargs) -> None:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, arg0: dict) -> None:
+        ...
+    def mergedict(self, kwargs: dict) -> None:
+        ...
+    def summary(self, write_type: bool = False) -> str:
+        ...
+    def todict(self, recursive: bool = True) -> dict:
+        ...
+    @property
+    def cross_validate_prior_focal_lengths(self) -> bool:
+        """
+         (bool, default: True)
+        """
+    @cross_validate_prior_focal_lengths.setter
+    def cross_validate_prior_focal_lengths(self, arg0: bool) -> None:
+        ...
+    @property
+    def loss_function_scale(self) -> float:
+        """
+         (float, default: 0.01)
+        """
+    @loss_function_scale.setter
+    def loss_function_scale(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def max_calibration_error(self) -> float:
+        """
+         (float, default: 2.0)
+        """
+    @max_calibration_error.setter
+    def max_calibration_error(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def max_focal_length_ratio(self) -> float:
+        """
+         (float, default: 10.0)
+        """
+    @max_focal_length_ratio.setter
+    def max_focal_length_ratio(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def min_calibrated_pair_ratio(self) -> float:
+        """
+         (float, default: 0.5)
+        """
+    @min_calibrated_pair_ratio.setter
+    def min_calibrated_pair_ratio(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def min_focal_length_ratio(self) -> float:
+        """
+         (float, default: 0.1)
+        """
+    @min_focal_length_ratio.setter
+    def min_focal_length_ratio(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def random_seed(self) -> int:
+        """
+         (int, default: -1)
+        """
+    @random_seed.setter
+    def random_seed(self, arg0: typing.SupportsInt) -> None:
+        ...
+    @property
+    def reestimate_relative_pose(self) -> bool:
+        """
+         (bool, default: True)
+        """
+    @reestimate_relative_pose.setter
+    def reestimate_relative_pose(self, arg0: bool) -> None:
+        ...
+    @property
+    def relpose_max_error(self) -> float:
+        """
+         (float, default: 1.0)
+        """
+    @relpose_max_error.setter
+    def relpose_max_error(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def relpose_min_inlier_ratio(self) -> float:
+        """
+         (float, default: 0.25)
+        """
+    @relpose_min_inlier_ratio.setter
+    def relpose_min_inlier_ratio(self, arg0: typing.SupportsFloat) -> None:
+        ...
+    @property
+    def relpose_min_num_inliers(self) -> int:
+        """
+         (int, default: 30)
+        """
+    @relpose_min_num_inliers.setter
+    def relpose_min_num_inliers(self, arg0: typing.SupportsInt) -> None:
         ...
 class VisualIndex:
     class BuildOptions:
@@ -7614,19 +10134,21 @@ class VisualIndex:
     def create(arg0: typing.SupportsInt, arg1: typing.SupportsInt) -> VisualIndex:
         ...
     @staticmethod
-    def read(arg0: str) -> VisualIndex:
+    def read(arg0: os.PathLike[str] | str | bytes) -> VisualIndex:
         ...
     def __init__(self) -> None:
         ...
     def __repr__(self) -> str:
         ...
-    def add(self, arg0: VisualIndex.IndexOptions, arg1: typing.SupportsInt, arg2: collections.abc.Sequence[FeatureKeypoint], arg3: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"]) -> None:
+    def add(self, arg0: VisualIndex.IndexOptions, arg1: typing.SupportsInt, arg2: FeatureKeypoints, arg3: FeatureDescriptorsFloat) -> None:
         ...
-    def build(self, arg0: VisualIndex.BuildOptions, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"]) -> None:
+    def build(self, arg0: VisualIndex.BuildOptions, arg1: FeatureDescriptorsFloat) -> None:
         ...
     def desc_dim(self) -> int:
         ...
     def embedding_dim(self) -> int:
+        ...
+    def feature_type(self) -> FeatureExtractorType:
         ...
     def is_image_indexed(self, arg0: typing.SupportsInt) -> bool:
         ...
@@ -7637,12 +10159,12 @@ class VisualIndex:
     def prepare(self) -> None:
         ...
     @typing.overload
-    def query(self, arg0: VisualIndex.QueryOptions, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"], arg2: collections.abc.Sequence[ImageScore]) -> None:
+    def query(self, arg0: VisualIndex.QueryOptions, arg1: FeatureDescriptorsFloat, arg2: collections.abc.Sequence[ImageScore]) -> None:
         ...
     @typing.overload
-    def query(self, arg0: VisualIndex.QueryOptions, arg1: collections.abc.Sequence[FeatureKeypoint], arg2: typing.Annotated[numpy.typing.ArrayLike, numpy.float32, "[m, n]"], arg3: collections.abc.Sequence[ImageScore]) -> None:
+    def query(self, arg0: VisualIndex.QueryOptions, arg1: FeatureKeypoints, arg2: FeatureDescriptorsFloat, arg3: collections.abc.Sequence[ImageScore]) -> None:
         ...
-    def write(self, arg0: str) -> None:
+    def write(self, arg0: os.PathLike[str] | str | bytes) -> None:
         ...
 class VocabTreePairGenerator(PairGenerator):
     @staticmethod
@@ -7685,12 +10207,12 @@ class VocabTreePairingOptions:
     def todict(self, recursive: bool = True) -> dict:
         ...
     @property
-    def match_list_path(self) -> str:
+    def match_list_path(self) -> pathlib.Path:
         """
-        Optional path to file with specific image names to match. (str, default: )
+        Optional path to file with specific image names to match. (PosixPath, default: .)
         """
     @match_list_path.setter
-    def match_list_path(self, arg0: str) -> None:
+    def match_list_path(self, arg0: os.PathLike[str] | str | bytes) -> None:
         ...
     @property
     def max_num_features(self) -> int:
@@ -7741,12 +10263,12 @@ class VocabTreePairingOptions:
     def num_threads(self, arg0: typing.SupportsInt) -> None:
         ...
     @property
-    def vocab_tree_path(self) -> str:
+    def vocab_tree_path(self) -> pathlib.Path:
         """
-        Path to the vocabulary tree. (str, default: https://github.com/colmap/colmap/releases/download/3.11.1/vocab_tree_faiss_flickr100K_words256K.bin;vocab_tree_faiss_flickr100K_words256K.bin;96ca8ec8ea60b1f73465aaf2c401fd3b3ca75cdba2d3c50d6a2f6f760f275ddc)
+        Path to the vocabulary tree. (PosixPath, default: .)
         """
     @vocab_tree_path.setter
-    def vocab_tree_path(self, arg0: str) -> None:
+    def vocab_tree_path(self, arg0: os.PathLike[str] | str | bytes) -> None:
         ...
 class data_t:
     @staticmethod
@@ -7764,6 +10286,9 @@ class data_t:
         ...
     @typing.overload
     def __init__(self) -> None:
+        ...
+    @typing.overload
+    def __init__(self, sensor_id: sensor_t, id: typing.SupportsInt) -> None:
         ...
     @typing.overload
     def __init__(self, arg0: dict) -> None:
@@ -7851,8 +10376,11 @@ class logging:
     INFO: typing.ClassVar[logging.Level]  # value = <Level.INFO: 0>
     WARNING: typing.ClassVar[logging.Level]  # value = <Level.WARNING: 1>
     alsologtostderr: typing.ClassVar[bool] = True
+    colorlogtostderr: typing.ClassVar[bool] = False
+    colorlogtostdout: typing.ClassVar[bool] = False
     log_dir: typing.ClassVar[str] = ''
     logtostderr: typing.ClassVar[bool] = False
+    logtostdout: typing.ClassVar[bool] = False
     minloglevel: typing.ClassVar[int] = 0
     stderrthreshold: typing.ClassVar[int] = 2
     verbose_level: typing.ClassVar[int] = 0
@@ -7869,7 +10397,7 @@ class logging:
     def info(message: str) -> None:
         ...
     @staticmethod
-    def set_log_destination(level: logging.Level, path: str) -> None:
+    def set_log_destination(level: logging.Level, path: os.PathLike[str] | str | bytes) -> None:
         ...
     @staticmethod
     def verbose(level: typing.SupportsInt, message: str) -> None:
@@ -7905,6 +10433,9 @@ class sensor_t:
     def __init__(self) -> None:
         ...
     @typing.overload
+    def __init__(self, type: SensorType, id: typing.SupportsInt) -> None:
+        ...
+    @typing.overload
     def __init__(self, arg0: dict) -> None:
         ...
     @typing.overload
@@ -7938,18 +10469,6 @@ class sensor_t:
     @type.setter
     def type(self, arg0: SensorType) -> None:
         ...
-def CalculateTriangulationAngle(*args, **kwargs) -> typing.Any:
-    """
-    Deprecated, use ``calculate_triangulation_angle`` instead.
-    """
-def TriangulatePoint(*args, **kwargs) -> typing.Any:
-    """
-    Deprecated, use ``triangulate_point`` instead.
-    """
-def absolute_pose_estimation(*args, **kwargs) -> typing.Any:
-    """
-    Deprecated, use ``estimate_and_refine_absolute_pose`` instead.
-    """
 def align_reconstruction_to_locations(src: Reconstruction, tgt_image_names: collections.abc.Sequence[str], tgt_locations: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 3]"], min_common_images: typing.SupportsInt, ransac_options: RANSACOptions) -> pycolmap._core.Sim3d | None:
     ...
 def align_reconstruction_to_orig_rig_scales(orig_rigs: collections.abc.Mapping[typing.SupportsInt, Rig], reconstruction: Reconstruction) -> bool:
@@ -7974,6 +10493,10 @@ def calculate_triangulation_angle(proj_center1: typing.Annotated[numpy.typing.Ar
     """
     Calculate triangulation angle in radians.
     """
+def calibrate_view_graph(database_path: os.PathLike[str] | str | bytes, options: ViewGraphCalibrationOptions = ...) -> bool:
+    """
+    Calibrate focal lengths from fundamental matrices and upgrade two-view geometries to CALIBRATED in the database. Run before global_mapping when reliable intrinsics are unavailable.
+    """
 def compare_reconstructions(reconstruction1: Reconstruction, reconstruction2: Reconstruction, alignment_error: str = 'reprojection', min_inlier_observations: typing.SupportsFloat = 0.3, max_reproj_error: typing.SupportsFloat = 8.0, max_proj_center_error: typing.SupportsFloat = 0.1) -> dict | None:
     ...
 def compute_squared_sampson_error(points2D1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 2]"], points2D2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 2]"], E: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[3, 3]"]) -> list[float]:
@@ -7982,12 +10505,12 @@ def compute_squared_sampson_error(points2D1: typing.Annotated[numpy.typing.Array
     """
 def create_default_bundle_adjuster(options: BundleAdjustmentOptions, config: BundleAdjustmentConfig, reconstruction: Reconstruction) -> BundleAdjuster:
     ...
-def create_pose_prior_bundle_adjuster(options: BundleAdjustmentOptions, prior_options: PosePriorBundleAdjustmentOptions, config: BundleAdjustmentConfig, pose_priors: collections.abc.Mapping[typing.SupportsInt, PosePrior], reconstruction: Reconstruction) -> BundleAdjuster:
+def create_default_ceres_bundle_adjuster(options: BundleAdjustmentOptions, config: BundleAdjustmentConfig, reconstruction: Reconstruction) -> CeresBundleAdjuster:
     ...
-def essential_matrix_estimation(*args, **kwargs) -> typing.Any:
-    """
-    Deprecated, use ``estimate_essential_matrix`` instead.
-    """
+def create_pose_prior_bundle_adjuster(options: BundleAdjustmentOptions, prior_options: PosePriorBundleAdjustmentOptions, config: BundleAdjustmentConfig, pose_priors: collections.abc.Sequence[PosePrior], reconstruction: Reconstruction) -> BundleAdjuster:
+    ...
+def create_pose_prior_ceres_bundle_adjuster(options: BundleAdjustmentOptions, prior_options: PosePriorBundleAdjustmentOptions, config: BundleAdjustmentConfig, pose_priors: collections.abc.Sequence[PosePrior], reconstruction: Reconstruction) -> CeresBundleAdjuster:
+    ...
 def essential_matrix_from_pose(cam2_from_cam1: Rigid3d) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[3, 3]"]:
     """
     Construct essential matrix from relative pose.
@@ -8012,7 +10535,7 @@ def estimate_and_refine_generalized_absolute_pose(points2D: typing.Annotated[num
     """
     Robustly estimate generalized absolute pose using LO-RANSACfollowed by non-linear refinement.
     """
-def estimate_ba_covariance(options: BACovarianceOptions, reconstruction: Reconstruction, bundle_adjuster: BundleAdjuster) -> pycolmap._core.BACovariance | None:
+def estimate_ba_covariance(options: BACovarianceOptions, reconstruction: Reconstruction, bundle_adjuster: CeresBundleAdjuster) -> pycolmap._core.BACovariance | None:
     """
     Computes covariances for the parameters in a bundle adjustment problem. It is important that the problem has a structure suitable for solving using the Schur complement trick. This is the case for the standard configuration of bundle adjustment problems, but be careful if you modify the underlying problem with custom residuals. Returns null if the estimation was not successful.
     """
@@ -8066,13 +10589,13 @@ def estimate_two_view_geometry(camera1: Camera, points1: typing.Annotated[numpy.
     ...
 def estimate_two_view_geometry_pose(camera1: Camera, points1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 2]"], camera2: Camera, points2: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 2]"], geometry: TwoViewGeometry) -> bool:
     ...
-def extract_features(database_path: str, image_path: str, image_names: collections.abc.Sequence[str] = [], camera_mode: CameraMode = ..., camera_model: str = 'SIMPLE_RADIAL', reader_options: ImageReaderOptions = ..., extraction_options: FeatureExtractionOptions = ..., device: Device = ...) -> None:
+def extract_features(database_path: os.PathLike[str] | str | bytes, image_path: os.PathLike[str] | str | bytes, image_names: collections.abc.Sequence[str] = [], camera_mode: CameraMode = ..., reader_options: ImageReaderOptions = ..., extraction_options: FeatureExtractionOptions = ..., device: Device = ...) -> None:
     """
     Extract SIFT Features and write them to database
     """
-def fundamental_matrix_estimation(*args, **kwargs) -> typing.Any:
+def geometric_verification(database_path: os.PathLike[str] | str | bytes, verifier_options: GeometricVerifierOptions = ..., pairing_options: ExistingMatchedPairingOptions = ..., two_view_geometry_options: TwoViewGeometryOptions = ...) -> None:
     """
-    Deprecated, use ``estimate_fundamental_matrix`` instead.
+    Run geometric verification on all image pairs in the database
     """
 def get_covariance_for_composed_rigid3d(left_rigid3d: Rigid3d, joint_covar: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[12, 12]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[6, 6]"]:
     ...
@@ -8080,53 +10603,73 @@ def get_covariance_for_inverse(rigid3d: Rigid3d, covar: typing.Annotated[numpy.t
     ...
 def get_covariance_for_relative_rigid3d(base_rigid3d: Rigid3d, target_rigid3d: Rigid3d, joint_covar: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[12, 12]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[6, 6]"]:
     ...
-def homography_decomposition(*args, **kwargs) -> typing.Any:
+def global_mapping(database_path: os.PathLike[str] | str | bytes, image_path: os.PathLike[str] | str | bytes, output_path: os.PathLike[str] | str | bytes, options: GlobalPipelineOptions = ...) -> dict[int, Reconstruction]:
     """
-    Deprecated, use ``pose_from_homography_matrix`` instead.
+    Recover 3D points and camera poses using global SfM (GLOMAP)
     """
-def homography_matrix_estimation(*args, **kwargs) -> typing.Any:
+def guided_geometric_verification(reconstruction: Reconstruction, database_path: os.PathLike[str] | str | bytes, pairing_options: ExistingMatchedPairingOptions = ..., two_view_geometry_options: TwoViewGeometryOptions = ..., num_threads: typing.SupportsInt = -1) -> None:
     """
-    Deprecated, use ``estimate_homography_matrix`` instead.
+    Run geometric verification given an existing colmap reconstruction on all image pairs in the database
     """
 def image_pair_to_pair_id(image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> int:
     ...
-def import_images(database_path: str, image_path: str, camera_mode: CameraMode = ..., image_names: collections.abc.Sequence[str] = [], options: ImageReaderOptions = ...) -> None:
+def import_images(database_path: os.PathLike[str] | str | bytes, image_path: os.PathLike[str] | str | bytes, camera_mode: CameraMode = ..., image_names: collections.abc.Sequence[str] = [], options: ImageReaderOptions = ...) -> None:
     """
     Import images into a database
     """
-def incremental_mapping(database_path: str, image_path: str, output_path: str, options: IncrementalPipelineOptions = ..., input_path: str = '', initial_image_pair_callback: collections.abc.Callable[[], None] = None, next_image_callback: collections.abc.Callable[[], None] = None) -> dict[int, Reconstruction]:
+def incremental_mapping(database_path: os.PathLike[str] | str | bytes, image_path: os.PathLike[str] | str | bytes, output_path: os.PathLike[str] | str | bytes, options: IncrementalPipelineOptions = ..., input_path: os.PathLike[str] | str | bytes = '', initial_image_pair_callback: collections.abc.Callable[[], None] = None, next_image_callback: collections.abc.Callable[[], None] = None) -> dict[int, Reconstruction]:
     """
     Recover 3D points and unknown camera poses
     """
-def infer_camera_from_image(image_path: str, options: ImageReaderOptions = ...) -> Camera:
+def infer_camera_from_image(image_path: os.PathLike[str] | str | bytes, options: ImageReaderOptions = ...) -> Camera:
     """
     Guess the camera parameters from the EXIF metadata
     """
 def interpolate_camera_poses(cam1_from_world: Rigid3d, cam2_from_world: Rigid3d, t: typing.SupportsFloat) -> Rigid3d:
     ...
-def match_exhaustive(database_path: str, matching_options: FeatureMatchingOptions = ..., pairing_options: ExhaustivePairingOptions = ..., verification_options: TwoViewGeometryOptions = ..., device: Device = ...) -> None:
+def keypoints_from_matrix(keypoints: typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 4]", "flags.c_contiguous"]) -> FeatureKeypoints:
+    """
+    Convert an Nx4 matrix [x, y, scale, orientation] to FeatureKeypoints.
+    """
+def keypoints_to_matrix(keypoints: FeatureKeypoints) -> typing.Annotated[numpy.typing.NDArray[numpy.float32], "[m, 4]"]:
+    """
+    Convert FeatureKeypoints to an Nx4 matrix [x, y, scale, orientation].
+    """
+def match_exhaustive(database_path: os.PathLike[str] | str | bytes, matching_options: FeatureMatchingOptions = ..., pairing_options: ExhaustivePairingOptions = ..., verification_options: TwoViewGeometryOptions = ..., device: Device = ...) -> None:
     """
     Exhaustive feature matching
     """
-def match_sequential(database_path: str, matching_options: FeatureMatchingOptions = ..., pairing_options: SequentialPairingOptions = ..., verification_options: TwoViewGeometryOptions = ..., device: Device = ...) -> None:
+def match_image_pairs(database_path: os.PathLike[str] | str | bytes, matching_options: FeatureMatchingOptions = ..., pairing_options: ImportedPairingOptions = ..., verification_options: TwoViewGeometryOptions = ..., device: Device = ...) -> None:
+    """
+    Match features between image pairs specified in a file
+    """
+def match_sequential(database_path: os.PathLike[str] | str | bytes, matching_options: FeatureMatchingOptions = ..., pairing_options: SequentialPairingOptions = ..., verification_options: TwoViewGeometryOptions = ..., device: Device = ...) -> None:
     """
     Sequential feature matching
     """
-def match_spatial(database_path: str, matching_options: FeatureMatchingOptions = ..., pairing_options: SpatialPairingOptions = ..., verification_options: TwoViewGeometryOptions = ..., device: Device = ...) -> None:
+def match_spatial(database_path: os.PathLike[str] | str | bytes, matching_options: FeatureMatchingOptions = ..., pairing_options: SpatialPairingOptions = ..., verification_options: TwoViewGeometryOptions = ..., device: Device = ...) -> None:
     """
     Spatial feature matching
     """
-def match_vocabtree(database_path: str, matching_options: FeatureMatchingOptions = ..., pairing_options: VocabTreePairingOptions = ..., verification_options: TwoViewGeometryOptions = ..., device: Device = ...) -> None:
+def match_vocabtree(database_path: os.PathLike[str] | str | bytes, matching_options: FeatureMatchingOptions = ..., pairing_options: VocabTreePairingOptions = ..., verification_options: TwoViewGeometryOptions = ..., device: Device = ...) -> None:
     """
     Vocab tree feature matching
     """
+def matches_from_matrix(matches: typing.Annotated[numpy.typing.NDArray[numpy.uint32], "[m, 2]", "flags.c_contiguous"]) -> FeatureMatches:
+    """
+    Convert an Nx2 matrix of point2D indices to FeatureMatches.
+    """
+def matches_to_matrix(matches: FeatureMatches) -> typing.Annotated[numpy.typing.NDArray[numpy.uint32], "[m, 2]"]:
+    """
+    Convert FeatureMatches to an Nx2 matrix of point2D indices.
+    """
 def pair_id_to_image_pair(pair_id: typing.SupportsInt) -> tuple[int, int]:
     ...
-def patch_match_stereo(workspace_path: str, workspace_format: str = 'COLMAP', pmvs_option_name: str = 'option-all', options: PatchMatchOptions = ..., config_path: str = '') -> None:
+def patch_match_stereo(workspace_path: os.PathLike[str] | str | bytes, workspace_format: str = 'COLMAP', pmvs_option_name: str = 'option-all', options: PatchMatchOptions = ..., config_path: os.PathLike[str] | str | bytes = '') -> None:
     """
     Runs Patch-Match-Stereo (requires CUDA)
     """
-def poisson_meshing(input_path: str, output_path: str, options: PoissonMeshingOptions = ...) -> None:
+def poisson_meshing(input_path: os.PathLike[str] | str | bytes, output_path: os.PathLike[str] | str | bytes, options: PoissonMeshingOptions = ...) -> None:
     """
     Perform Poisson surface reconstruction and return true if successful.
     """
@@ -8134,7 +10677,7 @@ def pose_from_homography_matrix(H: typing.Annotated[numpy.typing.ArrayLike, nump
     """
     Recover the most probable pose from the given homography matrix using the cheirality check.
     """
-def read_rig_config(path: str) -> list[RigConfig]:
+def read_rig_config(path: os.PathLike[str] | str | bytes) -> list[RigConfig]:
     """
     Read the rig configuration from a .json file.
     """
@@ -8150,27 +10693,35 @@ def refine_relative_pose(cam2_from_cam1: Rigid3d, cam_rays1: typing.Annotated[nu
     """
     Non-linear refinement of relative pose.
     """
-def rig_absolute_pose_estimation(*args, **kwargs) -> typing.Any:
+def run_global_positioning(options: GlobalPositionerOptions, pose_graph: PoseGraph, reconstruction: Reconstruction) -> bool:
     """
-    Deprecated, use ``estimate_and_refine_generalized_absolute_pose`` instead.
+    Solve global positioning using point-to-camera constraints. Returns True if optimization succeeded.
+    """
+def run_gravity_refinement(options: GravityRefinerOptions, pose_graph: PoseGraph, reconstruction: Reconstruction, pose_priors: collections.abc.Sequence[PosePrior]) -> None:
+    """
+    Refine gravity stored in pose priors using relative rotations from the pose graph. Modifies pose_priors in-place.
+    """
+def run_rotation_averaging(options: RotationEstimatorOptions, pose_graph: PoseGraph, reconstruction: Reconstruction, pose_priors: collections.abc.Sequence[PosePrior]) -> bool:
+    """
+    High-level rotation averaging solver that handles rig expansion. Returns True if rotation averaging succeeded.
     """
 def set_random_seed(seed: typing.SupportsInt) -> None:
     """
     Initialize the PRNG with the given seed.
     """
-def squared_sampson_error(*args, **kwargs) -> typing.Any:
+def should_swap_image_pair(image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> bool:
+    ...
+def simplify_mesh(input_path: os.PathLike[str] | str | bytes, output_path: os.PathLike[str] | str | bytes, options: MeshSimplificationOptions = ...) -> None:
     """
-    Deprecated, use ``compute_squared_sampson_error`` instead.
+    Read a PLY mesh, simplify it using QEM decimation, and write the result.
     """
-def stereo_fusion(output_path: str, workspace_path: str, workspace_format: str = 'COLMAP', pmvs_option_name: str = 'option-all', input_type: str = 'geometric', options: StereoFusionOptions = ...) -> Reconstruction:
+def stereo_fusion(output_path: os.PathLike[str] | str | bytes, workspace_path: os.PathLike[str] | str | bytes, workspace_format: str = 'COLMAP', pmvs_option_name: str = 'option-all', input_type: str = 'geometric', options: StereoFusionOptions = ..., output_type: str = 'bin') -> Reconstruction:
     """
     Stereo Fusion
     """
-def swap_image_pair(image_id1: typing.SupportsInt, image_id2: typing.SupportsInt) -> bool:
-    ...
 def synthesize_dataset(options: SyntheticDatasetOptions, database: Database = None) -> Reconstruction:
     ...
-def synthesize_images(options: SyntheticImageOptions, reconstruction: Reconstruction, image_path: str) -> None:
+def synthesize_images(options: SyntheticImageOptions, reconstruction: Reconstruction, image_path: os.PathLike[str] | str | bytes) -> None:
     ...
 def synthesize_noise(options: SyntheticNoiseOptions, reconstruction: Reconstruction, database: Database = None) -> None:
     ...
@@ -8182,7 +10733,7 @@ def triangulate_point(cam1_from_world: typing.Annotated[numpy.typing.ArrayLike, 
     """
     Triangulate point in world from two-view observation.
     """
-def triangulate_points(reconstruction: Reconstruction, database_path: str, image_path: str, output_path: str, clear_points: bool = True, options: IncrementalPipelineOptions = ..., refine_intrinsics: bool = False) -> Reconstruction:
+def triangulate_points(reconstruction: Reconstruction, database_path: os.PathLike[str] | str | bytes, image_path: os.PathLike[str] | str | bytes, output_path: os.PathLike[str] | str | bytes, clear_points: bool = True, options: IncrementalPipelineOptions = ..., refine_intrinsics: bool = False) -> Reconstruction:
     """
     Triangulate 3D points from known camera poses
     """
@@ -8194,21 +10745,24 @@ def undistort_image(options: UndistortCameraOptions, distorted_image: Bitmap, di
     """
     Undistort image and corresponding camera.
     """
-def undistort_images(output_path: str, input_path: str, image_path: str, image_names: collections.abc.Sequence[str] = [], output_type: str = 'COLMAP', copy_policy: CopyType = ..., num_patch_match_src_images: typing.SupportsInt = 20, undistort_options: UndistortCameraOptions = ...) -> None:
+def undistort_images(output_path: os.PathLike[str] | str | bytes, input_path: os.PathLike[str] | str | bytes, image_path: os.PathLike[str] | str | bytes, image_names: collections.abc.Sequence[str] = [], output_type: str = 'COLMAP', copy_policy: FileCopyType = ..., num_patch_match_src_images: typing.SupportsInt = -1, undistort_options: UndistortCameraOptions = ..., jpeg_quality: typing.SupportsInt = -1, num_threads: typing.SupportsInt = -1) -> None:
     """
     Undistort images
     """
-def verify_matches(database_path: str, pairs_path: str, options: TwoViewGeometryOptions = ...) -> None:
+def verify_matches(database_path: os.PathLike[str] | str | bytes, pairs_path: os.PathLike[str] | str | bytes, options: TwoViewGeometryOptions = ...) -> None:
     """
     Run geometric verification of the matches
     """
-COLMAP_build: str = 'Commit 0b31f98 on 2025-11-07 without CUDA'
-COLMAP_version: str = 'COLMAP 3.13.0'
+COLMAP_build: str = 'Commit 9c23f69 on 2026-04-27 without CUDA'
+COLMAP_version: str = 'COLMAP 4.0.4'
 INVALID_CAMERA_ID: int = 4294967295
+INVALID_DATA_ID: data_t  # value = data_t(sensor_id=sensor_t(type=SensorType.INVALID, id=4294967295), id=4294967295)
 INVALID_IMAGE_ID: int = 4294967295
 INVALID_IMAGE_PAIR_ID: int = 18446744073709551615
 INVALID_POINT2D_IDX: int = 4294967295
 INVALID_POINT3D_ID: int = 18446744073709551615
+INVALID_POSE_PRIOR_ID: int = 4294967295
+INVALID_SENSOR_ID: sensor_t  # value = sensor_t(type=SensorType.INVALID, id=4294967295)
 __ceres_version__: str = '2.2.0'
-__version__: str = '3.13.0'
+__version__: str = '4.0.4'
 has_cuda: bool = False

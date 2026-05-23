@@ -356,12 +356,12 @@ wheels = [{ url = "https://files.pythonhosted.org/packages/d9/21/93363d7b802aa90
 
 [[packages]]
 name = "pycolmap"
-version = "3.13.0"
+version = "4.0.4"
 index = "https://pypi.org/simple"
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/66/49/c3eb91b2b25b3ebbb32c95a9777a3cb9ea0fbb4318dab54bd050bf7891a0/pycolmap-3.13.0-cp313-cp313-macosx_14_0_arm64.whl", upload-time = 2025-11-07T17:00:30Z, size = 14542168, hashes = { sha256 = "46d2108eaa1191584796a63f17a5f0204d59e30ec5f2778489ce44e19fff6ac2" } },
-    { url = "https://files.pythonhosted.org/packages/d1/aa/342ae17a3f22beffe3fd01ffff7afd28d66dcb57c306ef4991dfc738255a/pycolmap-3.13.0-cp313-cp313-manylinux_2_28_x86_64.whl", upload-time = 2025-11-07T17:00:33Z, size = 20337637, hashes = { sha256 = "dc749231ef310d867ad33db56feb9656c9223dd5db8bd816007b8cfdf7f1b0cc" } },
-    { url = "https://files.pythonhosted.org/packages/53/54/e85329ec5768bd3d13b0e0217e3b07c215003df487e5c95bb6df43768c7d/pycolmap-3.13.0-cp313-cp313-win_amd64.whl", upload-time = 2025-11-07T17:00:35Z, size = 18661874, hashes = { sha256 = "906511975ec614d9dd4f7566f38e17523106002f69b65adca3b13b1ed261088c" } },
+    { url = "https://files.pythonhosted.org/packages/5f/43/f142a64d8e9a8bd9c640c5ce06891209df49baa8d442d1d8672bc457eaf1/pycolmap-4.0.4-cp313-cp313-macosx_14_0_arm64.whl", upload-time = 2026-04-27T14:44:50Z, size = 19896178, hashes = { sha256 = "d20daf8dc004ce2b9b7b02eb1a6e920cb940eb9a5356842afa0dc471a06cb180" } },
+    { url = "https://files.pythonhosted.org/packages/34/90/2fcd24a24d36ef62e712b56a9cc6d78fda0fb87d2017068a2e01b9f8938d/pycolmap-4.0.4-cp313-cp313-manylinux_2_28_x86_64.whl", upload-time = 2026-04-27T14:44:52Z, size = 27117963, hashes = { sha256 = "964a704a0adc1df5d7337bd15a65544a67b8a31942ad7d4cfa137dfdf3dfa119" } },
+    { url = "https://files.pythonhosted.org/packages/35/5a/727dd1971bf14246e1b199a529e2d5f0a0fc59f64136ff23ba5833cc0154/pycolmap-4.0.4-cp313-cp313-win_amd64.whl", upload-time = 2026-04-27T14:44:55Z, size = 23381748, hashes = { sha256 = "9af65a0dde7487f15e0851cefe5c084e41904e2fc7c809d80cca0ef13ff2e366" } },
 ]
 
 [[packages]]

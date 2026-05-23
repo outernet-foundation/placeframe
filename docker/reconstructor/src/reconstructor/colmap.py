@@ -25,7 +25,19 @@ from numpy import (
 from numpy.linalg import det, norm, svd
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from pycolmap import Camera as ColmapCamera
-from pycolmap import Database, Frame, Point3D, PosePrior, PosePriorCoordinateSystem, Reconstruction, Rigid3d, Sim3d
+from pycolmap import (
+    Database,
+    Frame,
+    Point3D,
+    PosePrior,
+    PosePriorCoordinateSystem,
+    Reconstruction,
+    Rigid3d,
+    SensorType,
+    Sim3d,
+    data_t,
+    sensor_t,
+)
 from pycolmap import Image as pycolmapImage
 from pycolmap._core import apply_rig_config, estimate_two_view_geometry, incremental_mapping  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
@@ -84,11 +96,14 @@ def run_colmap_reconstruction(
                 # Only write pose prior for images from reference sensors (all others are implied by rig)
                 if camera[0].ref_sensor:
                     database.write_pose_prior(
-                        colmap_image_ids[image_name],
                         PosePrior(
                             position=transform.translation.reshape(3, 1),
                             position_covariance=position_covariance,
                             coordinate_system=PosePriorCoordinateSystem.CARTESIAN,
+                            corr_data_id=data_t(
+                                sensor_t(SensorType.CAMERA, colmap_camera_id),
+                                colmap_image_ids[image_name],
+                            ),
                         ),
                     )
 
@@ -151,9 +166,7 @@ def run_colmap_reconstruction(
 
     # Choose the reconstruction with the most registered images
     # TODO: Write information to metrics about this for visibility
-    best_reconstruction = reconstructions[
-        max(range(len(reconstructions)), key=lambda i: reconstructions[i].num_reg_images())
-    ]
+    best_reconstruction = max(reconstructions.values(), key=lambda r: r.num_reg_images())
 
     metrics.build_reconstruction_metrics(best_reconstruction)
 
