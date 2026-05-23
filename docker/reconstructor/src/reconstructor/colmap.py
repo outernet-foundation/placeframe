@@ -39,7 +39,7 @@ from pycolmap import (
     sensor_t,
 )
 from pycolmap import Image as pycolmapImage
-from pycolmap._core import apply_rig_config, estimate_two_view_geometry, incremental_mapping  # noqa: PLC2701 — no public API
+from pycolmap._core import apply_rig_config, bundle_adjustment, estimate_two_view_geometry, incremental_mapping  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
 
 from .metrics_builder import MetricsBuilder
@@ -110,6 +110,10 @@ def run_colmap_reconstruction(
     # Apply rig configuration to database (must be done after writing cameras and images)
     apply_rig_config([rig.colmap_rig_config for rig in rigs.values()], database)
 
+    # COLMAP assigns rig_t IDs at apply_rig_config time; harvest them so the
+    # incremental BA loop can pin every rig's sensor_from_rig transform.
+    constant_rigs = {rig.rig_id for rig in database.read_all_rigs()}
+
     # Write matches to database
     for a, b in pairs:
         (image_a_indices, image_b_indices) = match_indices[(a, b)]
@@ -155,7 +159,7 @@ def run_colmap_reconstruction(
         database_path=str(colmap_db_path),
         image_path=str(images_path),
         output_path=str(colmap_sfm_directory),
-        options=options.incremental_pipeline_options(),
+        options=options.incremental_pipeline_options(constant_rigs),
         initial_image_pair_callback=progress.on_initial_image_pair,
         next_image_callback=progress.on_next_image,
     )
@@ -167,6 +171,11 @@ def run_colmap_reconstruction(
     # Choose the reconstruction with the most registered images
     # TODO: Write information to metrics about this for visibility
     best_reconstruction = max(reconstructions.values(), key=lambda r: r.num_reg_images())
+
+    # Final standalone BA with rig refinement re-enabled. The incremental loop above ran with
+    # rig refinement off (every global BA refining rig poses scales N times); one final pass
+    # lets sensor_from_rig settle against the converged geometry.
+    bundle_adjustment(best_reconstruction, options.final_bundle_adjustment_options())
 
     metrics.build_reconstruction_metrics(best_reconstruction)
 
