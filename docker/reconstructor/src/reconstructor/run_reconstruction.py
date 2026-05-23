@@ -121,9 +121,9 @@ def run_reconstruction(
     options = OptionsBuilder(reconstruction_options)
     metrics = MetricsBuilder()
 
-    if reconstruction_options.random_seed is not None:
-        random.seed(reconstruction_options.random_seed)  # noqa: NPY002 — pycolmap reads numpy's global random state; can't use default_rng()
-        set_random_seed(reconstruction_options.random_seed)
+    if reconstruction_options.deterministic_seed is not None:
+        random.seed(reconstruction_options.deterministic_seed)  # noqa: NPY002 — pycolmap reads numpy's global random state; can't use default_rng()
+        set_random_seed(reconstruction_options.deterministic_seed)
 
     # Apply per-reconstruction keypoint cap by mutating the DKD module's threshold-mode n_limit.
     # ALIKED itself is loaded once at startup; only this cap is per-job.
