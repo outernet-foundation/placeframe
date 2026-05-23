@@ -19,6 +19,9 @@ namespace Placeframe.Client
         private static readonly IntPtr readChunkMethod =
             AndroidJNI.GetStaticMethodID(clsRaw, "readChunk", "(Ljava/io/InputStream;I)[B");
 
+        public static void RegisterEventListener(AndroidJavaObject activity, AndroidJavaProxy listener) =>
+            cls.CallStatic("registerEventListener", activity, listener);
+
         public static AndroidJavaObject Execute(
             AndroidJavaObject activity,
             string method,
