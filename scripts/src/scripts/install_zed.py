@@ -284,25 +284,7 @@ def _set_host_cable_to(method: str) -> None:
     # non-zero. List-view + membership check works.
     existing_connections = bash_output("nmcli -t -f NAME con show").strip().splitlines()
     if HOST_NM_CONNECTION not in existing_connections:
-        # Detect-by-name is more robust than detect-by-device because the
-        # device name varies per host (enp6s0, eno1, etc.).
-        devices_raw = bash_output("nmcli -t -f DEVICE,TYPE,STATE device").strip()
-        # `disconnected` is NM's state for "real NIC, no connection assigned".
-        # `unmanaged` (Docker veths, libvirt bridges) and `connected` (NIC
-        # owned by another NM connection) would both be wrong matches.
-        candidates = [
-            parts[0]
-            for line in devices_raw.splitlines()
-            if (parts := line.split(":")) and len(parts) >= 3 and parts[1] == "ethernet" and parts[2] == "disconnected"
-        ]
-        if len(candidates) != 1:
-            bail(
-                messages.NO_UNUSED_WIRED_INTERFACE,
-                connection_name=HOST_NM_CONNECTION,
-                candidates=candidates or "<none>",
-                cidr=HOST_CABLE_CIDR,
-            )
-        host_interface = candidates[0]
+        host_interface = _detect_box_interface()
         logger.info(
             "creating_host_cable_connection",
             extra={"connection": HOST_NM_CONNECTION, "interface": host_interface, "method": method},
@@ -311,29 +293,119 @@ def _set_host_cable_to(method: str) -> None:
             f"sudo nmcli con add type ethernet ifname {host_interface} con-name {HOST_NM_CONNECTION}"
             f' ipv4.method {method} ipv4.addresses {HOST_CABLE_CIDR} ipv4.gateway "" ipv4.dns ""'
         )
+        _evict_competing_connections(host_interface)
         bash(f"sudo nmcli con up {HOST_NM_CONNECTION}")
         return
 
+    # NIC names track PCIe enumeration — adding, removing, or reseating
+    # hardware can shift enp6s0 to enp5s0 and leave the saved
+    # connection.interface-name pointing at a device that no longer exists.
+    # `nmcli con up` then fails with no clear diagnostic. Rebind to whatever
+    # box-facing interface is present now.
+    saved_interface = bash_output(f"nmcli -t -g connection.interface-name con show {HOST_NM_CONNECTION}").strip()
+    if not saved_interface or not Path(f"/sys/class/net/{saved_interface}").exists():
+        new_interface = _detect_box_interface()
+        logger.info(
+            "rebinding_host_cable_interface",
+            extra={
+                "connection": HOST_NM_CONNECTION,
+                "from": saved_interface or "<unset>",
+                "to": new_interface,
+            },
+        )
+        bash(f"sudo nmcli con mod {HOST_NM_CONNECTION} connection.interface-name {new_interface}")
+        bound_interface = new_interface
+    else:
+        bound_interface = saved_interface
+
     current_method = bash_output(f"nmcli -t -g ipv4.method con show {HOST_NM_CONNECTION}").strip()
     current_addresses = bash_output(f"nmcli -t -g ipv4.addresses con show {HOST_NM_CONNECTION}").strip()
-    if current_method == method and current_addresses == HOST_CABLE_CIDR:
-        logger.info("host_cable_already_configured", extra={"method": method, "cidr": current_addresses})
-        return
+    if current_method != method or current_addresses != HOST_CABLE_CIDR:
+        logger.info(
+            "reconfiguring_host_cable",
+            extra={
+                "method": method,
+                "cidr": HOST_CABLE_CIDR,
+                "current_method": current_method,
+                "current_addresses": current_addresses,
+            },
+        )
+        bash(
+            f"sudo nmcli con mod {HOST_NM_CONNECTION} ipv4.method {method}"
+            f' ipv4.addresses {HOST_CABLE_CIDR} ipv4.gateway "" ipv4.dns ""'
+        )
 
-    logger.info(
-        "reconfiguring_host_cable",
-        extra={
-            "method": method,
-            "cidr": HOST_CABLE_CIDR,
-            "current_method": current_method,
-            "current_addresses": current_addresses,
-        },
-    )
-    bash(
-        f"sudo nmcli con mod {HOST_NM_CONNECTION} ipv4.method {method}"
-        f' ipv4.addresses {HOST_CABLE_CIDR} ipv4.gateway "" ipv4.dns ""'
-    )
+    _evict_competing_connections(bound_interface)
+
+    active_connections = bash_output("nmcli -t -f NAME con show --active").strip().splitlines()
+    if HOST_NM_CONNECTION in active_connections:
+        logger.info("host_cable_already_active", extra={"interface": bound_interface, "method": method})
+        return
     bash(f"sudo nmcli con up {HOST_NM_CONNECTION}")
+
+
+def _detect_box_interface() -> str:
+    # Ethernet device with link carrier whose current NM connection is
+    # either unbound or NM's auto-named "Wired connection N" fallback.
+    # User-named profiles are excluded as those mark the host's internet
+    # path; unmanaged devices (Docker veths, libvirt bridges) are excluded
+    # by state.
+    devices_raw = bash_output("nmcli -t -f DEVICE,TYPE,STATE,CONNECTION device").strip()
+    candidates: list[str] = []
+    for line in devices_raw.splitlines():
+        # CONNECTION (the final field) can contain colons, so cap split at 3
+        # so escaped colons in the name stay attached.
+        parts = line.split(":", 3)
+        if len(parts) < 4 or parts[1] != "ethernet" or parts[2] == "unmanaged":
+            continue
+        device, connection = parts[0], parts[3]
+        if not _has_carrier(device):
+            continue
+        if connection not in ("", "--") and not connection.startswith("Wired connection"):
+            continue
+        candidates.append(device)
+
+    if len(candidates) != 1:
+        bail(
+            messages.NO_UNUSED_WIRED_INTERFACE,
+            connection_name=HOST_NM_CONNECTION,
+            candidates=candidates or "<none>",
+            cidr=HOST_CABLE_CIDR,
+        )
+    return candidates[0]
+
+
+def _has_carrier(device: str) -> bool:
+    carrier_path = Path(f"/sys/class/net/{device}/carrier")
+    if not carrier_path.exists():
+        return False
+    # /sys/class/net/<device>/carrier raises EINVAL when the interface is
+    # administratively down. Treat that as "carrier unknown".
+    try:
+        return carrier_path.read_text().strip() == "1"
+    except OSError:
+        return False
+
+
+def _evict_competing_connections(device: str) -> None:
+    # When NM auto-binds a "Wired connection N" fallback profile to the
+    # box-facing NIC (typical on cable plug before zedbox is brought up),
+    # `nmcli con up zedbox` races against it. Bring competitors down and
+    # turn off their autoconnect so they don't grab the port again on the
+    # next replug.
+    raw = bash_output("nmcli -t -f NAME,DEVICE con show --active").strip()
+    for line in raw.splitlines():
+        # NAME may contain escaped colons; DEVICE is bare and last.
+        name_raw, _, active_device = line.rpartition(":")
+        if active_device != device:
+            continue
+        name = name_raw.replace("\\:", ":").replace("\\\\", "\\")
+        if name == HOST_NM_CONNECTION:
+            continue
+        logger.info("evicting_competing_connection", extra={"connection": name, "device": device})
+        bash(f'sudo nmcli con down "{name}"')
+        if name.startswith("Wired connection"):
+            bash(f'sudo nmcli con mod "{name}" connection.autoconnect no')
 
 
 def _wait_for_box_lease() -> str:
@@ -376,16 +448,9 @@ def _acquire_images(host_ip: str, build: bool, docker: str, service_shas: dict[s
         zed_image = f"{GHCR_BASE}/zed-capture:{service_shas['ZED_CAPTURE_SHA']}"
         bridge_image = f"{GHCR_BASE}/aoa-bridge:{service_shas['AOA_BRIDGE_SHA']}"
         gateway_image = f"{GHCR_BASE}/aoa-gateway:{service_shas['AOA_GATEWAY_SHA']}"
-        logger.info(
-            "pulling_images_from_ghcr",
-            extra={"zed": zed_image, "bridge": bridge_image, "gateway": gateway_image},
-        )
-        try:
-            _ssh(f'"{docker} pull {zed_image}"')
-            _ssh(f'"{docker} pull {bridge_image}"')
-            _ssh(f'"{docker} pull {gateway_image}"')
-        except CalledProcessError:
-            bail(messages.IMAGE_PULL_FAILED)
+        _pull_image_on_box(docker, zed_image)
+        _pull_image_on_box(docker, bridge_image)
+        _pull_image_on_box(docker, gateway_image)
         return {"zed_capture": zed_image, "aoa_bridge": bridge_image, "aoa_gateway": gateway_image}
 
     # Local registry instead of `docker save | ssh docker load`: pulls are
@@ -427,11 +492,18 @@ def _acquire_images(host_ip: str, build: bool, docker: str, service_shas: dict[s
         _ssh("sudo tee /etc/docker/daemon.json", stdin_text=json.dumps(config, indent=2))
         _ssh('"sudo systemctl restart docker"')
 
-    logger.info("pulling_images_from_local_registry", extra={"registry": f"{host_ip}:{REGISTRY_PORT}"})
-    _ssh(f'"{docker} pull {remote_zed}"')
-    _ssh(f'"{docker} pull {remote_bridge}"')
-    _ssh(f'"{docker} pull {remote_gateway}"')
+    _pull_image_on_box(docker, remote_zed)
+    _pull_image_on_box(docker, remote_bridge)
+    _pull_image_on_box(docker, remote_gateway)
     return {"zed_capture": remote_zed, "aoa_bridge": remote_bridge, "aoa_gateway": remote_gateway}
+
+
+def _pull_image_on_box(docker: str, image: str) -> None:
+    logger.info("pulling_image_on_box", extra={"image": image})
+    try:
+        _ssh(f'"{docker} pull {image}"')
+    except CalledProcessError:
+        bail(messages.IMAGE_PULL_FAILED, image=image)
 
 
 def need_ssh_key_generate() -> bool:

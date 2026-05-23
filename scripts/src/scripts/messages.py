@@ -23,9 +23,9 @@ forwarding). On Ubuntu: sudo apt install firewalld."""
 BOX_ID_UNRESOLVABLE = "Could not resolve box id: both /proc/device-tree/serial-number and /etc/machine-id are empty"
 
 IMAGE_PULL_FAILED = """\
-Image pull failed. Either the tags have not been pushed to ghcr.io yet, or the
-ZED Box is offline. Push via CI (merge/push to trigger the build workflow) or
-build locally with: uv run install-zed --build"""
+Image pull failed for {image}. Either the tag has not been pushed to ghcr.io
+yet, or the ZED Box is offline. Push via CI (merge/push to trigger the build
+workflow) or build locally with: uv run install-zed --build"""
 
 SSH_KEY_COPY_PROMPT = "will prompt for the SSH login one last time to copy the install-zed key"
 
