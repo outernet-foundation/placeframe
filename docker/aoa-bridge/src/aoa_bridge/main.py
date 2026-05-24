@@ -38,8 +38,6 @@ POLL_INTERVAL = 1.0
 POST_HANDSHAKE_TIMEOUT_S = 10.0
 POST_HANDSHAKE_POLL_S = 0.25
 
-# Multiple in-flight transfers + 256 KB envelopes keep the USB controller
-# pipelined across kernel→userspace syscalls.
 NUM_IN_TRANSFERS = 4
 IN_BUFFER_SIZE = 256 * 1024
 OUT_TIMEOUT_MS = 5000
@@ -188,6 +186,7 @@ def _run_once() -> None:
         finally:
             _shutdown_quietly(upstream)
             upstream.close()
+            _reset_device(handle)
             logger.info("accessory pipe closed")
 
 
@@ -433,3 +432,14 @@ def _shutdown_quietly(connection: socket.socket) -> None:
         connection.shutdown(socket.SHUT_RDWR)
     except OSError:
         pass
+
+
+def _reset_device(handle: usb1.USBDeviceHandle) -> None:
+    # USB port reset invalidates the phone-side accessory FD; without this
+    # OkHttp's pooled h2c session survives an upstream TCP tear-down and
+    # desyncs with the next upstream connection, causing a protocol-error
+    # feedback loop.
+    try:
+        handle.resetDevice()
+    except usb1.USBError as exception:
+        logger.info("device reset failed: %s", exception)

@@ -27,6 +27,14 @@ using UnityEngine;
 using DeviceType = PlaceframeApiClient.Model.DeviceType;
 #endif
 
+// Pairs with AoaSocketFactory's socketIssued guard: that stops a concurrent socket from
+// corrupting the wire, this stops a concurrent request from being initiated at all.
+public sealed class ZedNotReachableException : Exception
+{
+    public ZedNotReachableException()
+        : base("Zed box is not reachable; refused to dispatch the call to the AOA pipe") {}
+}
+
 public static class ZedCaptureController
 {
 #if UNITY_EDITOR || !UNITY_ANDROID
@@ -59,9 +67,6 @@ public static class ZedCaptureController
         throw new PlatformNotSupportedException(unsupportedMessage);
 
     public static UniTask DeleteCapture(Guid captureId, CancellationToken cancellationToken = default) =>
-        throw new PlatformNotSupportedException(unsupportedMessage);
-
-    public static UniTask<ZedStatusModel> GetStatus(CancellationToken cancellationToken = default) =>
         throw new PlatformNotSupportedException(unsupportedMessage);
 
 #else
@@ -176,12 +181,14 @@ public static class ZedCaptureController
 
     public static async UniTask StartCapture(float captureInterval, CancellationToken cancellationToken = default)
     {
+        EnsureReachable();
         await capturesApi.StartCaptureAsync(captureInterval, cancellationToken);
         App.state.zedStatus.value = ZedStatusKind.Recording;
     }
 
     public static async UniTask StopCapture(CancellationToken cancellationToken = default)
     {
+        EnsureReachable();
         await capturesApi.StopCaptureAsync(cancellationToken);
         App.state.zedStatus.value = ZedStatusKind.Ready;
     }
@@ -192,20 +199,31 @@ public static class ZedCaptureController
 
     public static async UniTask<IEnumerable<LocalCapture>> EnumerateCaptures()
     {
+        EnsureReachable();
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             using var cts = new CancellationTokenSource(enumerateTimeout);
             var captures = await capturesApi.GetCapturesAsync(cts.Token);
-            return captures.Select(c => new LocalCapture(c.Id, c.RecordedAt, DeviceType.Zed));
+            var result = captures
+                .Select(c => new LocalCapture(c.Id, c.RecordedAt, DeviceType.Zed, c.SizeBytes))
+                .ToList();
+            Log.Info(LogGroup.Zed, "EnumerateCaptures success count={Count} durationMs={DurationMs}",
+                result.Count, stopwatch.ElapsedMilliseconds);
+            return result;
         }
-        catch
+        catch (Exception exception)
         {
+            Log.Info(LogGroup.Zed, exception,
+                "EnumerateCaptures failed durationMs={DurationMs} timeoutMs={TimeoutMs}",
+                stopwatch.ElapsedMilliseconds, (int)enumerateTimeout.TotalMilliseconds);
             return Enumerable.Empty<LocalCapture>();
         }
     }
 
     public static async UniTask<FileParameter> GetCapture(Guid captureId, CancellationToken cancellationToken = default)
     {
+        EnsureReachable();
         var response = await capturesApi.DownloadCaptureTarWithHttpInfoAsync(captureId, cancellationToken: cancellationToken);
         return new FileParameter(
             $"{captureId}.tar",
@@ -213,11 +231,17 @@ public static class ZedCaptureController
             new LengthOnlyStream(response.Data.Content, long.Parse(response.Headers["Content-Length"][0])));
     }
 
-    public static async UniTask DeleteCapture(Guid captureId, CancellationToken cancellationToken = default) =>
+    public static async UniTask DeleteCapture(Guid captureId, CancellationToken cancellationToken = default)
+    {
+        EnsureReachable();
         await capturesApi.DeleteCaptureAsync(captureId, cancellationToken);
+    }
 
-    public static async UniTask<ZedStatusModel> GetStatus(CancellationToken cancellationToken = default) =>
-        await capturesApi.GetStatusAsync(cancellationToken);
+    private static void EnsureReachable()
+    {
+        if (!App.state.zedReachable.value)
+            throw new ZedNotReachableException();
+    }
 
     private static void OnAccessoryAttached()
     {
@@ -268,7 +292,7 @@ public static class ZedCaptureController
 
                 try
                 {
-                    response = await GetStatus(requestCts.Token);
+                    response = await capturesApi.GetStatusAsync(requestCts.Token);
                 }
                 catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
                 {
