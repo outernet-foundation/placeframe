@@ -26,16 +26,12 @@ def main(
     direction: Annotated[
         str, typer.Option("--direction", "-d", help="forward (oldest first) or backward (newest first)")
     ] = "backward",
-    since: Annotated[
-        str, typer.Option("--since", "-s", help="Time range, e.g. 5m, 30m, 1h, 24h")
-    ] = "30m",
+    since: Annotated[str, typer.Option("--since", "-s", help="Time range, e.g. 5m, 30m, 1h, 24h")] = "30m",
     raw: Annotated[
         bool, typer.Option("--raw", help="Print the raw Loki JSON response instead of formatted summaries")
     ] = False,
 ) -> None:
-    parameters = urllib.parse.urlencode(
-        {"query": query, "limit": str(limit), "direction": direction, "since": since}
-    )
+    parameters = urllib.parse.urlencode({"query": query, "limit": str(limit), "direction": direction, "since": since})
     url = f"http://localhost:3100/loki/api/v1/query_range?{parameters}"
     response = bash_output(f"docker exec {LOKI_CONTAINER} wget -qO- {shlex.quote(url)}")
 
@@ -51,10 +47,7 @@ def main(
     streams = data.get("data", {}).get("result", [])
     total = sum(len(stream["values"]) for stream in streams)
     if total == 0:
-        print(
-            f"0 entries in last {since}. LokiSink batches every ~2s; if you just emitted, "
-            "wait a moment and retry."
-        )
+        print(f"0 entries in last {since}. LokiSink batches every ~2s; if you just emitted, wait a moment and retry.")
         return
 
     entries: list[tuple[int, str]] = []
@@ -75,9 +68,6 @@ def main(
             print(f"{timestamp} {level:5s} [{group}] {message}")
             if isinstance(raw_exception, dict):
                 exception = cast(dict[str, object], raw_exception)
-                print(
-                    f"            exception: {exception.get('type')}: "
-                    f"{exception.get('message')}"
-                )
+                print(f"            exception: {exception.get('type')}: {exception.get('message')}")
         except json.JSONDecodeError:
             print(f"{timestamp} {line}")
