@@ -28,4 +28,8 @@ RUN uv pip check
 
 COPY --chmod=0755 docker/reconstructor/entrypoint.sh /usr/local/bin/entrypoint.sh
 
+# RECONSTRUCTOR_SHA is the content-addressed hash of this image's build context (computed by build_scripts.placeframe.context_sha.compute_service_shas) and is stamped onto every ReconstructionMetrics by run_reconstruction so each reconstruction's manifest records which reconstructor build produced it.
+ARG RECONSTRUCTOR_SHA
+ENV RECONSTRUCTOR_SHA=${RECONSTRUCTOR_SHA}
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
