@@ -160,7 +160,7 @@ class ReconstructionOptions(BaseModel):
         default=20, description="Number of training iterations for OPQ compression."
     )
     pose_prior_position_sigma_m: float = Field(
-        default=0.25,
+        default=0.05,
         description=(
             "Standard deviation (meters) for position priors when writing PosePrior to the database. "
             "Smaller values = stronger priors."

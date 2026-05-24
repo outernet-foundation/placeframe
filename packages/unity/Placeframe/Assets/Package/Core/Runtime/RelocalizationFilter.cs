@@ -31,6 +31,19 @@ namespace Placeframe.Core
         InnovationGate,
     }
 
+    public struct ApplyMeasurementOptions
+    {
+        public bool BypassInnovationGate;
+        public bool BypassKalman;
+    }
+
+    public struct Measurement
+    {
+        public double3x3 RotationUnityFromEcef;
+        public double3 Translation;
+        public double TiltRadians;
+    }
+
     public struct StepResult
     {
         public FilterState NewState;
@@ -40,6 +53,8 @@ namespace Placeframe.Core
         public Vector<double> InnovationResidual;
         public Matrix<double> SigmaPredicted;
         public bool HadAcceptedMeasurementBeforeStep;
+        public Measurement Measurement;
+        public bool Snapped;
     }
 
     public static class RelocalizationFilter
@@ -56,12 +71,9 @@ namespace Placeframe.Core
         public const double DriftPerMeter = 0.01;
 
         // Base process noise added per measurement regardless of VIO motion, so σ_posterior
-        // cannot shrink unboundedly during stationary observation. Without this, ~30 stationary
+        // cannot shrink unboundedly during stationary observation. Without this, repeated stationary
         // measurements drive σ_posterior below σ_meas/√N and the innovation gate locks the filter
-        // onto its first cluster, rejecting all further measurements. Sized to keep steady-state
-        // σ_posterior at roughly σ_meas/3 given a 1Hz query cadence and the current bootstrapped
-        // σ_meas (translation ≈ 10cm, rotation tight from PnP Hessian). Re-tuned in Phase 3 once
-        // σ_meas is fit from real data.
+        // onto its first cluster, rejecting all further measurements.
         public const double BaseProcessNoiseTranslationVariancePerTick = 1e-4;
         public const double BaseProcessNoiseRotationVariancePerTick = 1e-6;
 
@@ -96,25 +108,26 @@ namespace Placeframe.Core
                 MostRecentMetrics = null,
             };
 
-        // Bayesian update on the SE(3) alignment posterior. VIO motion only inflates Σ (not the mean).
-        // Returns NewState plus a flag indicating whether the visible transform changed (snap).
         public static StepResult ApplyMeasurement(
             FilterState state,
             MapLocalization localizationResult,
-            CameraFrame frame
+            CameraFrame frame,
+            ApplyMeasurementOptions options = default
         )
         {
             var metrics = localizationResult.Metrics;
-            var measurementMean = ComputeAlignmentFromResult(localizationResult, frame);
+            var measurement = ComputeAlignmentFromResult(localizationResult, frame);
+            var measurementMean = Double4x4.FromTranslationRotation(measurement.Translation, measurement.RotationUnityFromEcef);
             var sigmaMeas = BuildCovarianceMatrix(metrics.MeasurementCovariance);
             var currentVioPosition = (double3)(float3)frame.CameraTranslationUnityWorldFromCamera;
-            var sigmaPredicted =
-                state.AlignmentCovariance + ProcessNoise(currentVioPosition, state.LastAcceptedVioPosition);
+            var sigmaPredicted = state.AlignmentCovariance + ProcessNoise(currentVioPosition, state.LastAcceptedVioPosition);
             var innovation = ComputeInnovation(state.AlignmentMean, sigmaPredicted, measurementMean, sigmaMeas);
 
-            if (innovation.MahalanobisSquared > Chi2_99_6dof)
+            if (!options.BypassInnovationGate && innovation.MahalanobisSquared > Chi2_99_6dof)
             {
-                // Cap at bootstrap so eventual unlock doesn't admit outliers as eagerly as a good measurement.
+                // Write sigmaPredicted back so process noise accumulates across rejections,
+                // letting the gate eventually reopen. Cap each diagonal at bootstrap so growth
+                // can't admit outliers as eagerly as a good measurement.
                 var bootstrap = BootstrapCovariance();
                 for (var i = 0; i < 6; i++)
                     sigmaPredicted[i, i] = math.min(sigmaPredicted[i, i], bootstrap[i, i]);
@@ -131,30 +144,31 @@ namespace Placeframe.Core
                     InnovationResidual = innovation.Residual,
                     SigmaPredicted = sigmaPredicted,
                     HadAcceptedMeasurementBeforeStep = state.HasAcceptedMeasurement,
+                    Measurement = measurement,
                 };
             }
 
-            var posterior = KalmanUpdate(
-                state.AlignmentMean,
-                sigmaPredicted,
-                innovation.Residual,
-                innovation.Covariance
-            );
+            PosteriorUpdate posterior;
+            if (options.BypassKalman)
+            {
+                posterior = new PosteriorUpdate { NewMean = measurementMean, NewCovariance = BootstrapCovariance() };
+            }
+            else
+            {
+                posterior = KalmanUpdate(state.AlignmentMean, sigmaPredicted, innovation.Residual, innovation.Covariance);
+            }
 
             var newState = state;
             newState.AlignmentMean = posterior.NewMean;
             newState.AlignmentCovariance = posterior.NewCovariance;
 
-            // First accept always snaps — bootstrap covariance is intentionally large and the snap-vs-slew
-            // shift_mag would be ill-conditioned against a near-singular Σ_new on the first update.
-            var shouldSnap = !state.HasAcceptedMeasurement;
+            // First accept (or a forced BypassKalman snap) always snaps — bootstrap covariance is
+            // intentionally large and the snap-vs-slew shift_mag would be ill-conditioned against a
+            // near-singular Σ_new on the first update.
+            var shouldSnap = !state.HasAcceptedMeasurement || options.BypassKalman;
             if (!shouldSnap)
             {
-                var shiftMagSquared = ShiftMagnitudeSquared(
-                    state.AlignmentCurrent,
-                    posterior.NewMean,
-                    posterior.NewCovariance
-                );
+                var shiftMagSquared = ShiftMagnitudeSquared(state.AlignmentCurrent, posterior.NewMean, posterior.NewCovariance);
                 shouldSnap = shiftMagSquared > SnapThresholdSigmasSquared;
             }
 
@@ -178,10 +192,19 @@ namespace Placeframe.Core
             newState.ConsecutiveRejections = 0;
             newState.MostRecentMetrics = metrics;
 
-            return new StepResult { NewState = newState, TransformChanged = transformChanged };
+            return new StepResult
+            {
+                NewState = newState,
+                TransformChanged = transformChanged,
+                InnovationMahalanobisSquared = innovation.MahalanobisSquared,
+                InnovationResidual = innovation.Residual,
+                SigmaPredicted = sigmaPredicted,
+                HadAcceptedMeasurementBeforeStep = state.HasAcceptedMeasurement,
+                Measurement = measurement,
+                Snapped = shouldSnap,
+            };
         }
 
-        // Advances the slew toward AlignmentMean by deltaSeconds. No-op when slew is settled.
         public static StepResult TickSlew(FilterState state, float deltaSeconds)
         {
             if (state.SlewProgress >= 1f)
@@ -198,7 +221,6 @@ namespace Placeframe.Core
             return new StepResult { NewState = newState, TransformChanged = true };
         }
 
-        // Externally-driven reset to a known alignment. Clears filter history and re-bootstraps Σ.
         public static StepResult Reset(FilterState state, double4x4 newAlignment)
         {
             var newState = new FilterState
@@ -222,13 +244,10 @@ namespace Placeframe.Core
         {
             var rotVar = BootstrapSigmaRotationRadians * BootstrapSigmaRotationRadians;
             var transVar = BootstrapSigmaTranslationMeters * BootstrapSigmaTranslationMeters;
-            return Matrix<double>.Build.DenseOfDiagonalArray(
-                new[] { rotVar, rotVar, rotVar, transVar, transVar, transVar }
-            );
+            return Matrix<double>.Build.DenseOfDiagonalArray(new[] { rotVar, rotVar, rotVar, transVar, transVar, transVar });
         }
 
-        public static Matrix<double> BuildCovarianceMatrix(List<List<double>> covariance) =>
-            Matrix<double>.Build.Dense(6, 6, (r, c) => covariance[r][c]);
+        public static Matrix<double> BuildCovarianceMatrix(List<List<double>> covariance) => Matrix<double>.Build.Dense(6, 6, (r, c) => covariance[r][c]);
 
         public static Matrix<double> ProcessNoise(double3 currentVioPosition, double3? lastAcceptedVioPosition)
         {
@@ -247,10 +266,9 @@ namespace Placeframe.Core
             if (lastAcceptedVioPosition == null)
                 return noise;
 
-            // VIO drift is modeled as proportional to translated distance and applied uniformly to all 6
-            // tangent dimensions: σ_translation in meters, σ_rotation in radians. Rotation-only motion
-            // contributes zero noise here — a known simplification; rotational VIO drift is a smaller
-            // effect than translational and harder to attribute without an IMU bias model.
+            // VIO drift is modeled as proportional to translated distance and applied uniformly
+            // to all six tangent dimensions: σ_translation in meters, σ_rotation in radians.
+            // Rotation-only motion contributes zero noise — a known simplification.
             var deltaTranslation = math.length(currentVioPosition - lastAcceptedVioPosition.Value);
             var sigma = DriftPerMeter * deltaTranslation;
             var motionVariance = sigma * sigma;
@@ -277,60 +295,52 @@ namespace Placeframe.Core
             };
         }
 
-        public static double4x4 ComputeAlignmentFromResult(MapLocalization localizationResult, CameraFrame frame)
+        public static Measurement ComputeAlignmentFromResult(MapLocalization localizationResult, CameraFrame frame)
         {
             // Get the transform from the map to the camera (The inverse of the camera's pose in the map)
             var translationCameraFromMap = localizationResult.CameraFromMapTransform.Translation.ToDouble3();
-            var rotationCameraFromMap = localizationResult
-                .CameraFromMapTransform.Rotation.ToMathematicsQuaternion()
-                .ToDouble3x3();
+            var rotationCameraFromMap = localizationResult.CameraFromMapTransform.Rotation.ToMathematicsQuaternion().ToDouble3x3();
 
             // Get the transform from the map to the ECEF reference frame (the map's ECEF pose)
             var translationEcefFromMap = localizationResult.MapTransform.Translation.ToDouble3();
             var rotationEcefFromMap = localizationResult.MapTransform.Rotation.ToMathematicsQuaternion().ToDouble3x3();
 
             // Change the basis of the map's pose to Unity's conventions
-            (translationEcefFromMap, rotationEcefFromMap) = LocationUtilities.ChangeBasisUnityFromEcef(
-                translationEcefFromMap,
-                rotationEcefFromMap
-            );
+            (translationEcefFromMap, rotationEcefFromMap) = LocationUtilities.ChangeBasisUnityFromEcef(translationEcefFromMap, rotationEcefFromMap);
 
             // Get the transform from the camera to Unity world (the camera's pose in the Unity world)
-            var translationUnityWorldFromCamera = (float3)frame.CameraTranslationUnityWorldFromCamera;
-            // TODO: Adjust unity rotation to account for phone orientation (portrait vs landscape).
-            var rotationUnityWorldFromCamera = math.mul(
-                ((quaternion)frame.CameraRotationUnityWorldFromCamera).ToDouble3x3(),
-                quaternion.AxisAngle(new float3(0f, 0f, 1f), math.radians(0f)).ToDouble3x3()
-            );
+            var translationUnityWorldFromCamera = (double3)(float3)frame.CameraTranslationUnityWorldFromCamera;
+            var rotationUnityWorldFromCamera = ((quaternion)frame.CameraRotationUnityWorldFromCamera).ToDouble3x3();
 
-            // Compute the transform from the map to Unity world
+            // Camera position in ECEF (Unity basis), via the map.
+            var rotationMapFromCamera = math.transpose(rotationCameraFromMap);
+            var translationMapFromCamera = math.mul(-rotationMapFromCamera, translationCameraFromMap);
+            var translationEcefFromCamera = math.mul(rotationEcefFromMap, translationMapFromCamera) + translationEcefFromMap;
+
+            // Composed rotation Unity ← ECEF. MapTransform carries R_ecefFromMap, so composition
+            // into R_unityFromEcef needs R_mapFromEcef = transpose(R_ecefFromMap).
             var rotationUnityFromMap = math.mul(rotationUnityWorldFromCamera, rotationCameraFromMap);
+            var rotationUnityFromEcef = math.mul(rotationUnityFromMap, math.transpose(rotationEcefFromMap));
 
-            // Align matrix up with unity world up
-            var right = math.rotate(rotationUnityFromMap.ToQuaternion(), new float3(1, 0, 0));
-            var forward = math.cross(right, new float3(0, 1, 0));
-            rotationUnityFromMap = quaternion.LookRotation(forward, new float3(0, 1, 0)).ToDouble3x3();
+            // Translation: anchored on the camera. The published alignment places the camera at its
+            // VIO-reported Unity-world position regardless of rotation noise, so rotation errors
+            // cannot lever-arm the rendered camera away from its true position.
+            var translationMeas = translationUnityWorldFromCamera - math.mul(rotationUnityFromEcef, translationEcefFromCamera);
 
-            var translationUnityFromMap =
-                math.mul(rotationUnityWorldFromCamera, translationCameraFromMap) + translationUnityWorldFromCamera;
+            // Angle between the rotated +Y axis and world +Y. Diagnostic summary of how much
+            // pitch+roll the rotation carries away from a gravity-aligned alignment.
+            var rotatedUp = math.mul(rotationUnityFromEcef, new double3(0, 1, 0));
+            var tiltRadians = math.acos(math.clamp(rotatedUp.y, -1.0, 1.0));
 
-            var transformUnityFromMap = Double4x4.FromTranslationRotation(
-                translationUnityFromMap,
-                rotationUnityFromMap
-            );
-
-            return math.mul(
-                transformUnityFromMap,
-                math.inverse(Double4x4.FromTranslationRotation(translationEcefFromMap, rotationEcefFromMap))
-            );
+            return new Measurement
+            {
+                RotationUnityFromEcef = rotationUnityFromEcef,
+                Translation = translationMeas,
+                TiltRadians = tiltRadians,
+            };
         }
 
-        public static Innovation ComputeInnovation(
-            double4x4 currentMean,
-            Matrix<double> sigmaPredicted,
-            double4x4 measurementMean,
-            Matrix<double> sigmaMeas
-        )
+        public static Innovation ComputeInnovation(double4x4 currentMean, Matrix<double> sigmaPredicted, double4x4 measurementMean, Matrix<double> sigmaMeas)
         {
             var residual = Se3.Log(math.mul(math.inverse(currentMean), measurementMean));
             var innovationCov = sigmaPredicted + sigmaMeas;

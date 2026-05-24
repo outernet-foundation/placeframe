@@ -179,31 +179,24 @@ def run_colmap_reconstruction(
 
     metrics.build_reconstruction_metrics(best_reconstruction)
 
-    # Use the first frame that is registered in the best reconstruction to determine the similarity transform
-    anchor = next(_registered_frames(rigs, colmap_image_ids, best_reconstruction), None)
-    if anchor is None:
+    # Pose priors spread over the trajectory already pin the COLMAP world frame's rotation to
+    # VIO's during bundle adjustment, so only the origin translation remains: shift it onto the
+    # first registered frame. Sort by integer frame_id for timestamp order across rigs.
+    registered = sorted(_registered_frames(rigs, colmap_image_ids, best_reconstruction), key=lambda entry: entry[0])
+    if not registered:
         raise RuntimeError("Could not find anchor frame in best reconstruction")
-    anchor_frame_prior_pose, anchor_rig_from_world_transform = anchor
 
-    # Transform the reconstruction to align with the rig coordinate system
+    _first_frame_id, _first_transform, first_rig_from_world = registered[0]
+    first_camera_position = -first_rig_from_world.rotation.matrix().T @ first_rig_from_world.translation
     best_reconstruction.transform(
-        Sim3d(
-            concatenate(
-                [
-                    anchor_frame_prior_pose.rotation @ anchor_rig_from_world_transform.rotation.matrix(),
-                    anchor_frame_prior_pose.rotation @ anchor_rig_from_world_transform.translation.reshape(3, 1)
-                    + anchor_frame_prior_pose.translation.reshape(3, 1),
-                ],
-                axis=1,
-            )
-        )
+        Sim3d(concatenate([eye(3, dtype=float64), -first_camera_position.reshape(3, 1)], axis=1))
     )
 
     # Rigid Umeyama best-fit of map centers to truth — fit not applied; only the residual is
     # kept as the VIO-quality signal that filters unreliable captures from the calibration corpus.
     truth_centers_list: list[NDArray[float64]] = []
     map_centers_list: list[NDArray[float64]] = []
-    for transform, rig_from_world in _registered_frames(rigs, colmap_image_ids, best_reconstruction):
+    for _frame_id, transform, rig_from_world in registered:
         truth_centers_list.append(transform.translation.astype(float64))
         map_centers_list.append(-rig_from_world.rotation.matrix().T @ rig_from_world.translation)
 
@@ -261,7 +254,7 @@ def _registered_frames(
     rigs: dict[str, Rig],
     colmap_image_ids: dict[str, int],
     reconstruction: Reconstruction,
-) -> Iterator[tuple[Transform, Rigid3d]]:
+) -> Iterator[tuple[int, Transform, Rigid3d]]:
     # Multi-camera rigs (e.g. ZED stereo) share one Frame per rig+frame, so any registered
     # image of any camera in that frame yields the Frame's rig_from_world.
     for rig_id, rig in rigs.items():
@@ -270,7 +263,7 @@ def _registered_frames(
                 image_id = colmap_image_ids[f"{rig_id}/{camera_id}/{frame_id}.jpg"]
                 if image_id in reconstruction.images:
                     rig_from_world = cast(Rigid3d, cast(Frame, reconstruction.images[image_id].frame).rig_from_world)  # type: ignore
-                    yield transform, rig_from_world
+                    yield int(frame_id), transform, rig_from_world
                     break
 
 
