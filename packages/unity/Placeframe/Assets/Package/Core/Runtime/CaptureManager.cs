@@ -95,7 +95,13 @@ namespace Placeframe.Core
             return new DirectoryInfo(_recordingsRoot)
                 .GetDirectories()
                 .Select(d => Guid.Parse(d.Name))
-                .Select(id => new LocalCapture(id, GetCaptureRecordedAtUtc(id), DeviceType.ARFoundation));
+                .Select(id => new LocalCapture(id, GetCaptureRecordedAtUtc(id), DeviceType.ARFoundation, ComputeSessionSizeBytes(id)));
+        }
+
+        private static long ComputeSessionSizeBytes(Guid captureId)
+        {
+            var directory = new DirectoryInfo(SessionDir(captureId.ToString()));
+            return directory.EnumerateFiles("*", SearchOption.AllDirectories).Sum(f => f.Length);
         }
 
         private static DateTime GetCaptureRecordedAtUtc(Guid captureId)
