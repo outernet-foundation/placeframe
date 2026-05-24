@@ -99,7 +99,7 @@ Both consumers boot at `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]` with s
 
 The gateway (`docker/SPEC.md` "Authentication") fronts `/loki/` and forwards to Loki using the client's existing Keycloak token -- there is no separate Loki ingress and no Loki-specific credential. The Loki `service_name` label is auto-derived from the `app` label, so a query like `{service_name="capture-tool"}` works.
 
-## Rationale
+## Constraints
 
 The non-obvious pieces of this package fall out of three constraints: (a) Unity is a single-process world where third-party plugins, native code, and async exceptions all need to land in the same log pipeline, (b) Loki labels are a hard cardinality budget, (c) the consumer can't authenticate Loki pushes until *after* it has done its own login dance.
 
@@ -116,20 +116,6 @@ The non-obvious pieces of this package fall out of three constraints: (a) Unity 
 **Sort order in the JSON line.** `level`, `logGroup`, `messageTemplate`, `message`, then everything else, then `stackTrace`, `exception` last. Pure UX for the Grafana viewer -- these become the visible columns of a log row. Fatal becomes `critical` because Grafana has no native `fatal`.
 
 **`new StackTrace(true)` + `InnerFramesHiddenFromStackTrace` trimming over Unity's `StackTraceLogType.ScriptOnly`.** Unity's built-in capture is per-LogType and produces unstructured text; the Enricher's structured frame list survives JSON serialization, supports `[InnerFramesHiddenFromStackTrace]` to trim the logging shim itself out of every captured stack, and reads `mJavaStackTrace` out of `AndroidJavaException` so JNI exceptions surface their Java side. `Application.SetStackTraceLogType(..., None)` is set for every Unity LogType to suppress the duplicate built-in capture.
-
-## Known gaps
-
-The package works in production but has thin edges worth knowing about.
-
-- **No queue cap, no disk persistence.** `_pending` grows for the lifetime of the process if `EnableLoki` is never called (e.g. the user never logs in). High-volume pre-login emission is an unbounded memory leak. (`Runtime/LokiSink.cs:36`.)
-- **`Initialize` is implicitly single-shot.** A second call leaks the previous `LokiSink` and its drain task, and re-replaces `Debug.unityLogger.logHandler` -- saving the *current* one (the previous `SerilogLogHandler`) as `defaultUnityLogHandler`, which wires a self-loop. No guard. Production calls it once via `[RuntimeInitializeOnLoadMethod]`. (`Runtime/Logger.cs:25-76`.)
-- **`Terminate` does not unhook `Debug.unityLogger.logHandler`.** After Terminate, the saved `defaultUnityLogHandler` is never restored -- the `SerilogLogHandler` remains installed but its target Serilog logger is disposed. Unity logs hit a disposed logger. No consumer calls Terminate. (`Runtime/Logger.cs:83-89`.)
-- **`Application.logMessageReceived` maps `LogType.Log` and `LogType.Warning` both to `Log<>.Warn`** (`Runtime/Logger.cs:153-156`). The `SerilogLogHandler.LogFormat` path correctly maps `LogType.Log -> Info` (`Runtime/Logger.cs:179-181`). The two paths are inconsistent. The `logMessageReceived` path catches messages that bypass `logHandler` -- typically Unity-internal or native -- so collapsing them all to `Warn` may be deliberate noise reduction, but it isn't commented.
-- **`Log<TLogGroup>.enabledLogGroups = (TLogGroup)(object)~0`** in the static ctor (`Runtime/Log.cs:18`) clips for an `enum : byte`. No consumer uses anything but `int`-backed enums today.
-- **`Microsoft.Extensions.Logging.Abstractions` is used by `Log.cs`'s `LoggerFactory` adapter** (`Runtime/Log.cs:240-291`) but the `Outernet.Logging.asmdef` does not list it as a precompiled reference and `package.json` does not document the NuGet dep. It works because Unity's asmdef auto-references DLLs dropped under `Assets/Packages/...` by NuGetForUnity. A new consumer adopting this package gets compile errors until it manually adds `Serilog`, `Newtonsoft.Json`, and `Microsoft.Extensions.Logging.Abstractions` to its own `packages.config`.
-- **`apps/MapRegistrationTool` ships a forked copy of the legacy logging code** at `Assets/Logging/Log.cs` instead of taking the file-pathed UPM dep. Drifts on every change to the shared package.
-- **No tests.** No JSON-layout round-trip, no drain-loop test, no timeout test, no pre-Enable queue-accumulation test.
-- **`package.json` version is `"0.0.0-local"`.** File-pathed UPM dep, never published. Fine, but worth knowing if a consumer tries to pin a real version.
 
 ## See also
 
