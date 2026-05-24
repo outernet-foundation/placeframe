@@ -23,6 +23,11 @@ OPENAPI_GENERATOR_CLI_VERSION = json.loads((REPO_ROOT / "openapitools.json").rea
 # Suppress verbose OpenAPI Generator logging
 environ["JAVA_OPTS"] = "-Dlog.level=warn"
 
+# Set in the environment so it reaches each `uv run ... python -m src.dump_openapi`
+# subprocess before the interpreter starts. Each service's package __init__ gates heavy
+# imports on CODEGEN (torch/pycolmap, ZED_BOX_ID) and runs before dump_openapi could set it.
+environ["CODEGEN"] = "1"
+
 
 def cli(
     config: str = Option(...),
