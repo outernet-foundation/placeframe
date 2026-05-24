@@ -38,6 +38,9 @@ namespace Placeframe.Client
                 ("platform", "android-mobile"),
 #endif
             });
+#if !UNITY_EDITOR && UNITY_ANDROID
+            LogcatRelay.Start();
+#endif
             sceneReferences.Initialize();
 
             Application.targetFrameRate = 120;
