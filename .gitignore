@@ -25,3 +25,4 @@ tidy-commits.json
 artifacts/
 .pnpm-store/
 .placeframe/
+.claude/scheduled_tasks.lock
