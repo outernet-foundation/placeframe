@@ -23,6 +23,16 @@ OPENAPI_GENERATOR_CLI_VERSION = json.loads((REPO_ROOT / "openapitools.json").rea
 # Suppress verbose OpenAPI Generator logging
 environ["JAVA_OPTS"] = "-Dlog.level=warn"
 
+# Each service's dump_openapi.py imports its own `src` package, which runs
+# `src/__init__.py` and pulls in modules that need to know they're being
+# imported under codegen (e.g. zed-capture's logging_config skips ZED_BOX_ID
+# resolution, localizer's main.py skips torch / pycolmap imports). Setting
+# CODEGEN here propagates to every `uv run --project . python -m src.dump_openapi`
+# subprocess via the environment, before the Python interpreter starts — which
+# is the only point where the dump_openapi script's own `os.environ[...]=...`
+# line cannot reach (the package's __init__ runs first).
+environ["CODEGEN"] = "1"
+
 
 def cli(
     config: str = Option(...),
