@@ -12,3 +12,10 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/55/a838a4278fac4ee49bf670ddc59d621999a1cb2a3188fb13a23609ea4f06/libusb1-3.4.0-py3-none-win32.whl", upload-time = 2026-05-16T20:59:15Z, size = 129704, hashes = { sha256 = "0a1aa1416034690eb9dc9a895eda0fef44d853bca1053eb1de50a5906684846d" } },
     { url = "https://files.pythonhosted.org/packages/5f/08/02aecf6dad627534a5835244ece14d7f187ef430354d9b8551199934d059/libusb1-3.4.0-py3-none-win_amd64.whl", upload-time = 2026-05-16T20:59:17Z, size = 141212, hashes = { sha256 = "b7dcc1f324a895af6aac708bc5513a17373f97349cc2ab8a277519c788bd18ca" } },
 ]
+
+[[packages]]
+name = "python-json-logger"
+version = "4.1.0"
+index = "https://pypi.org/simple"
+sdist = { url = "https://files.pythonhosted.org/packages/f7/ff/3cc9165fd44106973cd7ac9facb674a65ed853494592541d339bdc9a30eb/python_json_logger-4.1.0.tar.gz", upload-time = 2026-03-29T04:39:56Z, size = 17573, hashes = { sha256 = "b396b9e3ed782b09ff9d6e4f1683d46c83ad0d35d2e407c09a9ebbf038f88195" } }
+wheels = [{ url = "https://files.pythonhosted.org/packages/27/be/0631a861af4d1c875f096c07d34e9a63639560a717130e7a87cbc82b7e3f/python_json_logger-4.1.0-py3-none-any.whl", upload-time = 2026-03-29T04:39:55Z, size = 15021, hashes = { sha256 = "132994765cf75bf44554be9aa49b06ef2345d23661a96720262716438141b6b2" } }]

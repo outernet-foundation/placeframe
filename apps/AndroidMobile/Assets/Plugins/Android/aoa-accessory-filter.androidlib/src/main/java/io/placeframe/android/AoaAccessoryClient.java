@@ -10,12 +10,18 @@ import android.hardware.usb.UsbManager;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
 
+import android.util.Log;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import okhttp3.ConnectionPool;
 import okhttp3.Headers;
@@ -41,6 +47,26 @@ public final class AoaAccessoryClient {
 
     private static volatile AccessoryEventListener eventListener;
     private static volatile BroadcastReceiver eventReceiver;
+
+    // OkHttp HTTP/2 frame logger emits one line per frame sent or received at
+    // FINE level. The handler below redirects those records to Android's
+    // logcat under tag OkHttpH2, which LogcatRelay then forwards to Loki as
+    // logGroup=Android lines. This is the only path that surfaces whether a
+    // peer-sent GOAWAY or RST_STREAM frame was observed before OkHttp threw
+    // its library-internal exception types — without it, ConnectionShutdown
+    // and StreamReset look identical from the C# side.
+    static {
+        Logger h2Logger = Logger.getLogger("okhttp3.internal.http2.Http2");
+        h2Logger.setLevel(Level.FINE);
+        h2Logger.setUseParentHandlers(false);
+        h2Logger.addHandler(new Handler() {
+            @Override public void publish(LogRecord record) {
+                Log.i("OkHttpH2", record.getMessage());
+            }
+            @Override public void flush() {}
+            @Override public void close() {}
+        });
+    }
 
     public interface AccessoryEventListener {
         void onAttached();

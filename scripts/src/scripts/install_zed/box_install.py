@@ -9,6 +9,8 @@ from common.bash import bash, bash_check, bash_output
 from common.ui import bail, note
 
 from .constants import (
+    AOA_ALLOY_CONFIG_SOURCE,
+    AOA_LOKI_CONFIG_SOURCE,
     BAKE_FILE,
     BOX_IP,
     BOX_SSH_TARGET,
@@ -16,10 +18,13 @@ from .constants import (
     DHCP_LEASE_WAIT_SECONDS,
     DOCKER_DEB_BASE,
     DOCKER_DEBS,
+    ENV_LOCK_FILE,
     GHCR_BASE,
     L4T_USB_DEVICE_MODE_UNIT,
     REGISTRY_IMAGE,
     REGISTRY_PORT,
+    REMOTE_AOA_ALLOY_DIR,
+    REMOTE_AOA_LOKI_DIR,
     REMOTE_COMPOSE,
     REMOTE_DIR,
     SSH_KEY,
@@ -28,6 +33,7 @@ from .constants import (
     SUDOERS_RULE,
     SYSTEMD_UNIT_SOURCE,
     ZED_SERVICES,
+    ZED_UPSTREAM_IMAGE_KEYS,
 )
 from .host_setup import set_host_link_method
 from .messages import (
@@ -144,18 +150,23 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
         # Acquire container images (pull from ghcr.io, or cross-compile via local registry).
         images = _acquire_images(host_ip, build, service_shas)
 
-        # Ship the compose file.
+        # Ship the compose file and bind-mounted configs (aoa-loki, aoa-alloy).
         logger.info("transferring_compose_file", extra={"source": str(COMPOSE_SOURCE)})
-        ssh_run(f"mkdir -p {REMOTE_DIR}")
+        ssh_run(f"mkdir -p {REMOTE_DIR} {REMOTE_AOA_LOKI_DIR} {REMOTE_AOA_ALLOY_DIR}")
         bash(f"scp {SSH_MUX} {COMPOSE_SOURCE!s} {BOX_SSH_TARGET}:{REMOTE_COMPOSE}")
+        bash(f"scp {SSH_MUX} {AOA_LOKI_CONFIG_SOURCE!s} {BOX_SSH_TARGET}:{REMOTE_AOA_LOKI_DIR}/config.yaml")
+        bash(f"scp {SSH_MUX} {AOA_ALLOY_CONFIG_SOURCE!s} {BOX_SSH_TARGET}:{REMOTE_AOA_ALLOY_DIR}/config.alloy")
 
         # Jetson hardware-burned serial survives OS reflashes.
         box_id = ssh_output("tr -d '\\0\\n' < /proc/device-tree/serial-number").strip()
         if not box_id:
             bail(BOX_ID_UNRESOLVABLE)
 
-        # Write the .env that compose reads (image refs + box hardware id for log tagging).
-        env_lines = "".join(f"{key}={value}\n" for key, value in images.items())
+        # Write the .env that compose reads: built-image refs + upstream-image
+        # refs lifted from the host's .env.lock + box hardware id for log
+        # tagging.
+        upstream = _read_upstream_image_entries()
+        env_lines = "".join(f"{key}={value}\n" for key, value in {**images, **upstream}.items())
         ssh_run(f"tee {REMOTE_DIR}/.env", stdin_text=env_lines + f"ZED_BOX_ID={box_id}\n")
 
         # Install the systemd unit so the stack auto-starts on boot.
@@ -339,3 +350,17 @@ def _pull_image_on_box(image: str) -> None:
         ssh_run(f"sudo docker pull {image}")
     except CalledProcessError:
         bail(IMAGE_PULL_FAILED, image=image)
+
+
+def _read_upstream_image_entries() -> dict[str, str]:
+    entries: dict[str, str] = {}
+    for line in ENV_LOCK_FILE.read_text().splitlines():
+        if "=" not in line or line.startswith("#"):
+            continue
+        key, _, value = line.partition("=")
+        if key in ZED_UPSTREAM_IMAGE_KEYS:
+            entries[key] = value
+    missing = [key for key in ZED_UPSTREAM_IMAGE_KEYS if key not in entries]
+    if missing:
+        raise RuntimeError(f"Missing upstream image entries in {ENV_LOCK_FILE}: {missing}")
+    return entries

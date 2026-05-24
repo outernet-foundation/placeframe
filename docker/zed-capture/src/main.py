@@ -17,7 +17,6 @@ from litestar.openapi.plugins import ScalarRenderPlugin
 
 from .middleware import RequestIdMiddleware
 from .routers.captures import router as captures_router
-from .routers.logs import router as logs_router
 from .routers.status import router as status_router
 
 openapi_config = OpenAPIConfig("Zed API", "0.1.0", render_plugins=[ScalarRenderPlugin()])
@@ -26,7 +25,7 @@ openapi_config = OpenAPIConfig("Zed API", "0.1.0", render_plugins=[ScalarRenderP
 # call dictConfig with its own QueueHandler-based setup and clobber the handlers
 # installed by src/__init__.py importing src.logging_config.
 app = create_litestar_app(
-    [captures_router, status_router, logs_router],
+    [captures_router, status_router],
     openapi_config,
     logging_config=None,
     middleware=[RequestIdMiddleware()],
