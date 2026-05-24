@@ -38,3 +38,10 @@ with `accessory_filter.xml` matching the strings above. Intent-launch carries im
 ## Reading bridge logs
 
 `docker logs -f $(docker ps -q --filter name=aoa-bridge)` on the box shows handshake + pipe lifecycle.
+
+## Debugging gotchas
+
+- **Do not unbind/rebind the `tegra-xusb` driver.** `echo 3610000.usb | sudo tee /sys/bus/platform/drivers/tegra-xusb/unbind` (and its rebind) crashes the xHCI controller with `Falcon state: 0xffffffff, failed to load firmware: -5` and requires a physical reboot of the box to recover. Use `journalctl -k` + a physical cable reseat to observe enumeration events instead.
+- **Ignore FUSB301 / `usb-role-switch` / OTG diagnostics on the box.** The phone is wired into the box's USB-A 3.0 port, which is always-host (no role switching). FUSB301 probe failures and `usb2-0-role-switch role=none` log lines come from the unused Micro-USB-B OTG port and are irrelevant to this pipeline.
+- **Kernel traces over SSH: non-sudo `journalctl -k` works.** Run `ssh user@100.64.0.1 'journalctl -kf -n 0 --since now' | grep -iE "usb|xhci|hub |port|connect|enum|tegra"` (or pipe through the Monitor tool) to stream plug events live. `sudo journalctl` over SSH needs a TTY/password and fails silently inside non-interactive commands.
+- **Handshake cycles every ~20 s when something is wrong.** Sampling `lsusb` once can land in the disconnected window of the cycle and look like "phone isn't enumerating" when it is. Use the streaming `journalctl` command above instead.
