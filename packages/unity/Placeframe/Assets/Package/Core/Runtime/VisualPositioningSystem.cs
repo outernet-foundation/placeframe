@@ -19,6 +19,25 @@ using Vector3 = UnityEngine.Vector3;
 
 namespace Placeframe.Core
 {
+    public struct FilterHealth
+    {
+        public bool LocalizationLost;
+        public int ConsecutiveRejections;
+        public float SecondsSinceLastAccept;
+        public MeasurementRejection LastRejectionReason;
+        public double LastInnovationMahalanobisSquared;
+
+        public static FilterHealth Snapshot() =>
+            new FilterHealth
+            {
+                LocalizationLost = VisualPositioningSystem.IsLocalizationLost,
+                ConsecutiveRejections = VisualPositioningSystem.ConsecutiveRejections,
+                SecondsSinceLastAccept = VisualPositioningSystem.SecondsSinceLastAccept,
+                LastRejectionReason = VisualPositioningSystem.LastRejectionReason,
+                LastInnovationMahalanobisSquared = VisualPositioningSystem.LastInnovationMahalanobisSquared,
+            };
+    }
+
     public static class VisualPositioningSystem
     {
         private static Action<string> _logCallback;
@@ -34,6 +53,11 @@ namespace Placeframe.Core
 
         private static FilterState _state = RelocalizationFilter.InitialState();
 
+        private const int LockupRejectionThreshold = 5;
+        private const float LockupSecondsThreshold = 5f;
+
+        private static float _lastAcceptedTime = -1f;
+
         public static DefaultApi Api { get; private set; }
         public static LocalizationMetrics MostRecentMetrics => _state.MostRecentMetrics;
         public static LocalizationMetrics LastReceivedMetrics { get; private set; }
@@ -45,6 +69,15 @@ namespace Placeframe.Core
         public static event Action OnMetricsReceived;
         public static AlignmentUncertainty CurrentUncertainty =>
             RelocalizationFilter.SummariseCovariance(_state.AlignmentCovariance);
+
+        public static int ConsecutiveRejections => _state.ConsecutiveRejections;
+        public static MeasurementRejection LastRejectionReason { get; private set; }
+        public static double LastInnovationMahalanobisSquared { get; private set; }
+        public static float SecondsSinceLastAccept =>
+            _lastAcceptedTime < 0f ? float.PositiveInfinity : Time.realtimeSinceStartup - _lastAcceptedTime;
+        public static bool IsLocalizationLost =>
+            Localizing
+            && (ConsecutiveRejections > LockupRejectionThreshold || SecondsSinceLastAccept > LockupSecondsThreshold);
 
         public static void SetMapVisualizationsVisible(bool visible)
         {
@@ -169,6 +202,12 @@ namespace Placeframe.Core
             if (_maps.Count == 0)
                 throw new InvalidOperationException("VisualPositioningSystem has no maps loaded; call SetLocalizationMaps or AddLocalizationMap first");
 
+            // Re-bootstrap filter history so a Stop→Start cycle is a real recovery, not a no-op against a locked posterior.
+            ApplyStepResult(RelocalizationFilter.Reset(_state, _state.AlignmentCurrent));
+            _lastAcceptedTime = -1f;
+            LastRejectionReason = MeasurementRejection.None;
+            LastInnovationMahalanobisSquared = 0.0;
+
             _localizationSubscription = _cameraProvider
                 // Get camera configuration asynchronously
                 .CameraConfig()
@@ -256,6 +295,11 @@ namespace Placeframe.Core
             OnMetricsReceived?.Invoke();
 
             var result = RelocalizationFilter.ApplyMeasurement(_state, localizationResult, frame);
+
+            LastRejectionReason = result.Rejection;
+            LastInnovationMahalanobisSquared = result.InnovationMahalanobisSquared;
+            if (result.Rejection == MeasurementRejection.None)
+                _lastAcceptedTime = Time.realtimeSinceStartup;
 
             switch (result.Rejection)
             {
