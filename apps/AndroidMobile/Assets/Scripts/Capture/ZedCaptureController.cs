@@ -12,11 +12,8 @@ using ZedStatusModel = PlaceframeZedCaptureClient.Model.ZedStatus;
 
 #if !UNITY_EDITOR && UNITY_ANDROID
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
 using FofX;
 using FofX.Stateful;
-using Newtonsoft.Json;
 using ObserveThing;
 using Placeframe.Client;
 using Placeframe.Core;
@@ -94,36 +91,9 @@ public static class ZedCaptureController
     private const long healthDiskLowBytes = 1L * 1024L * 1024L * 1024L;
     private static TaskHandle healthPollTask = TaskHandle.Complete;
 
-    private const int logDrainBatchLimit = 500;
-    private const float logDrainIdlePollIntervalSeconds = 5f;
-
-    // LogQL matcher selecting every stream box-Alloy writes to box-Loki. Alloy
-    // assigns `service` from each container's compose-service label, so this
-    // matches all box containers without an explicit allowlist.
-    private const string boxLokiQuery = "{service=~\".+\"}";
-    private const string boxLokiQueryPath = "/loki/api/v1/query_range";
-    private const string hostLokiPushPath = "/loki/api/v1/push";
-
     private static HttpClient capturesHttpClient;
-    private static HttpClient hostLokiHttpClient;
-    private static long logDrainCursorNs;
-    private static TaskHandle logDrainTask = TaskHandle.Complete;
 
-    private sealed class LokiQueryResponse
-    {
-        [JsonProperty("data")] public LokiQueryData Data { get; set; }
-    }
-
-    private sealed class LokiQueryData
-    {
-        [JsonProperty("result")] public List<LokiStream> Result { get; set; }
-    }
-
-    private sealed class LokiStream
-    {
-        [JsonProperty("stream")] public Dictionary<string, string> Stream { get; set; }
-        [JsonProperty("values")] public List<List<string>> Values { get; set; }
-    }
+    public static HttpClient AoaHttpClient => capturesHttpClient;
 
     public static void Initialize()
     {
@@ -139,7 +109,6 @@ public static class ZedCaptureController
             capturesHttpClient,
             new Configuration { BasePath = baseUrl, Timeout = requestTimeout }
         );
-        hostLokiHttpClient = new HttpClient(new HttpClientHandler());
 
         accessoryEvents = new AccessoryEventBridge(
             onAttached: OnAccessoryAttached,
@@ -152,31 +121,24 @@ public static class ZedCaptureController
             AoaJni.RegisterEventListener(activity, accessoryEvents);
         }
 
-        // TODO(ObserveThing): explicit lambda parameter types are a workaround for
-        // an overload-resolution gap. StateValue<T> implements both IValueObservable<T>
+        // TODO(ObserveThing): explicit lambda parameter type is a workaround for an
+        // overload-resolution gap. StateValue<T> implements both IValueObservable<T>
         // and IObservable<IStateOperation> (via IStateNode), so Observables.Subscribe
-        // matches two extension overloads. When the lambda body doesn't constrain the
-        // parameter type (here it's discarded with `_`), the call is ambiguous (CS0121).
-        // The fix belongs upstream in ObserveThing — either by collapsing the dual
-        // interface or by adding a Subscribe overload on IStateNode that wins resolution.
-        subscriptions = new ComposedDisposable(
-            App.state.loggedIn.Subscribe((bool _) => EvaluateHealthPollState()),
-            App.state.zedStatus.Subscribe((ZedStatusKind _) => EvaluateLogDrainState()),
-            App.state.loggedIn.Subscribe((bool _) => EvaluateLogDrainState())
-        );
+        // matches two extension overloads. When the lambda body discards the value
+        // with `_`, the call is ambiguous (CS0121). The fix belongs upstream in
+        // ObserveThing — either by collapsing the dual interface or by adding a
+        // Subscribe overload on IStateNode that wins resolution.
+        subscriptions = App.state.loggedIn.Subscribe((bool _) => EvaluateHealthPollState());
     }
 
     public static void Shutdown()
     {
         healthPollTask.Cancel();
-        logDrainTask.Cancel();
         subscriptions?.Dispose();
         subscriptions = null;
         capturesApi = null;
         capturesHttpClient?.Dispose();
         capturesHttpClient = null;
-        hostLokiHttpClient?.Dispose();
-        hostLokiHttpClient = null;
     }
 
     public static async UniTask StartCapture(float captureInterval, CancellationToken cancellationToken = default)
@@ -341,108 +303,5 @@ public static class ZedCaptureController
 
         App.state.zedStatus.value = ZedStatusKind.Ready;
     }
-
-    private static void EvaluateLogDrainState()
-    {
-        logDrainTask.Cancel();
-
-        if (!App.state.loggedIn.value || !App.state.zedReachable.value)
-            return;
-
-        // Start at "now" so we don't replay history accumulated on the box
-        // before this session.
-        logDrainCursorNs = ToUnixNanos(DateTime.UtcNow);
-        logDrainTask = TaskHandle.Execute(LogDrainLoop);
-    }
-
-    private static async UniTask LogDrainLoop(CancellationToken cancellationToken)
-    {
-        try
-        {
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                bool hasMore = false;
-                try
-                {
-                    hasMore = await LogDrainOnce(cancellationToken);
-                }
-                catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
-                {
-                    Log.Info(LogGroup.Zed, exception, "log drain tick failed");
-                }
-
-                if (!hasMore)
-                    await UniTask.WaitForSeconds(logDrainIdlePollIntervalSeconds, cancellationToken: cancellationToken);
-            }
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
-    }
-
-    private static async UniTask<bool> LogDrainOnce(CancellationToken cancellationToken)
-    {
-        long startNs = logDrainCursorNs;
-        long endNs = ToUnixNanos(DateTime.UtcNow);
-        if (endNs <= startNs)
-            return false;
-
-        // Query box-Loki via box-Caddy over the AOA pipe.
-        string queryUrl = $"{baseUrl}{boxLokiQueryPath}"
-            + $"?query={Uri.EscapeDataString(boxLokiQuery)}"
-            + $"&start={startNs}&end={endNs}&limit={logDrainBatchLimit}&direction=forward";
-
-        LokiQueryResponse parsed;
-        using (var queryRequest = new HttpRequestMessage(HttpMethod.Get, queryUrl))
-        using (var queryResponse = await capturesHttpClient.SendAsync(queryRequest, cancellationToken))
-        {
-            queryResponse.EnsureSuccessStatusCode();
-            string queryBody = await queryResponse.Content.ReadAsStringAsync();
-            parsed = JsonConvert.DeserializeObject<LokiQueryResponse>(queryBody);
-        }
-
-        var streams = parsed?.Data?.Result;
-        if (streams == null || streams.Count == 0)
-            return false;
-
-        long maxNs = startNs;
-        int entryCount = 0;
-        foreach (var stream in streams)
-        {
-            if (stream.Values == null)
-                continue;
-            foreach (var pair in stream.Values)
-            {
-                if (pair.Count < 2)
-                    continue;
-                if (long.TryParse(pair[0], out long timestampNs) && timestampNs > maxNs)
-                    maxNs = timestampNs;
-                entryCount++;
-            }
-        }
-
-        if (entryCount == 0)
-            return false;
-
-        // Push Loki-shaped streams verbatim to host-Loki through host-Caddy.
-        string domain = App.state.settings.domain.value;
-        string pushUrl = $"https://{domain}{hostLokiPushPath}";
-        string pushBody = JsonConvert.SerializeObject(new { streams });
-        string token = await Auth.GetOrRefreshToken();
-
-        using (var pushRequest = new HttpRequestMessage(HttpMethod.Post, pushUrl))
-        {
-            pushRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            pushRequest.Content = new StringContent(pushBody, Encoding.UTF8, "application/json");
-            using var pushResponse = await hostLokiHttpClient.SendAsync(pushRequest, cancellationToken);
-            pushResponse.EnsureSuccessStatusCode();
-        }
-
-        // +1 so the next query starts strictly after the latest entry we saw.
-        logDrainCursorNs = maxNs + 1;
-        return entryCount >= logDrainBatchLimit;
-    }
-
-    private static readonly long unixEpochTicks = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
-
-    private static long ToUnixNanos(DateTime utc) => (utc.Ticks - unixEpochTicks) * 100;
 #endif
 }

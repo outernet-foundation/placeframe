@@ -30,6 +30,7 @@ namespace Placeframe.Client
         public static void Initialize()
         {
             ZedCaptureController.Initialize();
+            LogDrainController.Initialize();
 
             localCaptureNamePath = $"{Application.persistentDataPath}/LocalCaptureNames.json";
 
@@ -105,6 +106,7 @@ namespace Placeframe.Client
             _subscription?.Dispose();
             _subscription = null;
             _pollSubscriptions.Dispose();
+            LogDrainController.Shutdown();
             ZedCaptureController.Shutdown();
         }
 
