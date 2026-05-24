@@ -158,11 +158,18 @@ public final class AoaAccessoryClient {
         try {
             response = client.newCall(request).execute();
         } catch (IOException e) {
-            // Pipe error poisons the FD; reopen on next execute. The
+            // A pipe error poisons the FD; reopen on next execute. The
             // equality check debounces concurrent requests that all hit the
             // same dead connection so they don't race to close it twice.
-            synchronized (lock) {
-                if (currentClient == client) closeCurrentLocked();
+            //
+            // AoaConcurrentConnectionException is the SocketFactory rejecting
+            // a redundant connection while the existing one is healthy — the
+            // pipe is fine, only this one call failed. Surface the error to
+            // the caller without tearing down the live client.
+            if (!isCausedByConcurrentConnection(e)) {
+                synchronized (lock) {
+                    if (currentClient == client) closeCurrentLocked();
+                }
             }
             throw e;
         }
@@ -181,6 +188,16 @@ public final class AoaAccessoryClient {
             response,
             response.body() != null ? response.body().byteStream() : null
         );
+    }
+
+    // OkHttp wraps SocketFactory failures in RouteException; walk the cause
+    // chain to find our marker exception.
+    private static boolean isCausedByConcurrentConnection(Throwable throwable) {
+        for (Throwable cursor = throwable; cursor != null; cursor = cursor.getCause()) {
+            if (cursor instanceof AoaConcurrentConnectionException) return true;
+            if (cursor.getCause() == cursor) return false;
+        }
+        return false;
     }
 
     private static void closeCurrentLocked() {
