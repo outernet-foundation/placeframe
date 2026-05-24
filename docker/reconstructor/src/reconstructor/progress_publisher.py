@@ -7,6 +7,7 @@ from time import perf_counter
 from typing import Any
 from uuid import UUID
 
+from core.reconstruction_metrics import PhaseTiming
 from placeframe_api_client import DefaultApi, ProgressUpdate, ReconstructionStatus
 
 
@@ -20,15 +21,33 @@ class ReconstructionPublisher:
         self._progress_current: int | None = None
         self._progress_attempt: int | None = None
         self._last_emit = 0.0
+        self._phase_start: float | None = None
+        self._phase_timings: list[PhaseTiming] = []
+
+    @property
+    def phase_timings(self) -> list[PhaseTiming]:
+        return self._phase_timings
 
     def set_phase(self, status: ReconstructionStatus, total: int | None = None) -> None:
+        now = perf_counter()
+        self._close_active_phase(now)
+        self._phase_start = now
         self._status = status
         self._progress_total = total
         self._progress_current = 0 if total is not None else None
         self._progress_attempt = 1 if total is not None else None
         self._flush()
-        self._last_emit = perf_counter()
+        self._last_emit = now
         print(f"[{status.value}]" + (f" 0/{total}" if total is not None else ""))
+
+    def finalize_timings(self) -> None:
+        self._close_active_phase(perf_counter())
+        self._phase_start = None
+
+    def _close_active_phase(self, now: float) -> None:
+        if self._status is None or self._phase_start is None:
+            return
+        self._phase_timings.append(PhaseTiming(phase=self._status.value, duration_seconds=now - self._phase_start))
 
     def on_progress(self, current: int, attempt: int = 1) -> None:
         if self._progress_total is None or self._status is None:
