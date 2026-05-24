@@ -930,6 +930,7 @@ paths:
         name: position_x
         required: false
         schema:
+          format: double
           nullable: true
           type: number
         style: form
@@ -941,6 +942,7 @@ paths:
         name: position_y
         required: false
         schema:
+          format: double
           nullable: true
           type: number
         style: form
@@ -952,6 +954,7 @@ paths:
         name: position_z
         required: false
         schema:
+          format: double
           nullable: true
           type: number
         style: form
@@ -963,6 +966,7 @@ paths:
         name: radius
         required: false
         schema:
+          format: double
           nullable: true
           type: number
         style: form
@@ -1648,6 +1652,7 @@ paths:
         name: position_x
         required: false
         schema:
+          format: double
           nullable: true
           type: number
         style: form
@@ -1659,6 +1664,7 @@ paths:
         name: position_y
         required: false
         schema:
+          format: double
           nullable: true
           type: number
         style: form
@@ -1670,6 +1676,7 @@ paths:
         name: position_z
         required: false
         schema:
+          format: double
           nullable: true
           type: number
         style: form
@@ -1681,6 +1688,7 @@ paths:
         name: radius
         required: false
         schema:
+          format: double
           nullable: true
           type: number
         style: form
@@ -1822,28 +1830,6 @@ paths:
                 $ref: "#/components/schemas/get_capture_sessions_400_response"
           description: Bad request syntax or unsupported method
       summary: CreateGraph
-      tags:
-      - Default
-  /zed-boxes/logs:
-    post:
-      deprecated: false
-      operationId: push_zed_box_logs
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/LogRelayBatch"
-        required: true
-      responses:
-        "201":
-          description: "Document created, URL follows"
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/get_capture_sessions_400_response"
-          description: Bad request syntax or unsupported method
-      summary: PushZedBoxLogs
       tags:
       - Default
 components:
@@ -2005,6 +1991,7 @@ components:
             $ref: "#/components/schemas/RigConfig"
           type: array
         capture_interval_seconds:
+          format: double
           nullable: true
           type: number
       required:
@@ -2421,10 +2408,13 @@ components:
         z: 7.061401241503109
       properties:
         x:
+          format: double
           type: number
         "y":
+          format: double
           type: number
         z:
+          format: double
           type: number
       required:
       - x
@@ -2440,12 +2430,16 @@ components:
         z: 1.4658129805029452
       properties:
         x:
+          format: double
           type: number
         "y":
+          format: double
           type: number
         z:
+          format: double
           type: number
         w:
+          format: double
           type: number
       required:
       - w
@@ -2640,30 +2634,33 @@ components:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         options:
-          random_seed: 0
           ransac_max_error: 5.637376656633329
-          triangulation_merge_max_reprojection_error: 3.616076749251911
-          ransac_min_inlier_ratio: 2.3021358869347655
           held_out_frame_timestamps:
-          - 6
-          - 6
-          bundle_adjustment_refine_sensor_from_rig: true
-          bundle_adjustment_refine_principal_point: true
-          compression_opq_number_of_subvectors: 4
-          rotation_threshold: 1.4658129805029452
-          compression_opq_number_of_bits_per_subvector: 7
-          use_prior_position: true
-          pose_prior_position_sigma_m: 1.0246457001441578
-          lightglue_batch_size: 5
-          compression_opq_number_of_training_iterations: 1
+          - 4
+          - 4
+          bundle_adjustment_global_function_tolerance: 1.2315135367772556
+          bundle_adjustment_refine_sensor_from_rig: false
+          compression_opq_number_of_subvectors: 1
+          compression_opq_number_of_bits_per_subvector: 1
+          compression_opq_number_of_training_iterations: 6
           max_keypoints_per_image: 1
-          neighbors_count: 6
-          triangulation_complete_max_reprojection_error: 9.301444243932576
           mapper_filter_max_reprojection_error: 2.027123023002322
           triangulation_minimum_angle: 7.061401241503109
-          bundle_adjustment_refine_additional_params: true
+          bundle_adjustment_global_frames_ratio: 4.145608029883936
           bundle_adjustment_refine_focal_length: true
-          single_threaded: true
+          triangulation_merge_max_reprojection_error: 3.616076749251911
+          ransac_min_inlier_ratio: 2.3021358869347655
+          bundle_adjustment_global_max_refinements: 7
+          bundle_adjustment_refine_principal_point: false
+          rotation_threshold: 1.4658129805029452
+          use_prior_position: true
+          pose_prior_position_sigma_m: 7.457744773683766
+          bundle_adjustment_ignore_redundant_points3D: true
+          deterministic_seed: 0
+          lightglue_batch_size: 5
+          neighbors_count: 6
+          triangulation_complete_max_reprojection_error: 9.301444243932576
+          bundle_adjustment_refine_additional_params: true
           rig_verification: true
         reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
@@ -2724,21 +2721,26 @@ components:
           title: Id
           type: string
         ransac_threshold:
+          format: double
           title: Ransac Threshold
           type: number
         frame_timestamp:
           title: Frame Timestamp
           type: integer
         inlier_coverage:
+          format: double
           title: Inlier Coverage
           type: number
         query_image_diagonal_px:
+          format: double
           title: Query Image Diagonal Px
           type: number
         reproj_error_median:
+          format: double
           title: Reproj Error Median
           type: number
         inlier_ratio:
+          format: double
           title: Inlier Ratio
           type: number
         retrieval_top_k:
@@ -2760,10 +2762,12 @@ components:
           title: Pipeline Version
           type: string
         err_r_deg:
+          format: double
           nullable: true
           title: Err R Deg
           type: number
         err_t_m:
+          format: double
           nullable: true
           title: Err T M
           type: number
@@ -2829,6 +2833,7 @@ components:
           title: Id
           type: string
         ransac_threshold:
+          format: double
           title: Ransac Threshold
           type: number
         frame_timestamp:
@@ -2841,6 +2846,7 @@ components:
           title: Created At
           type: string
         inlier_coverage:
+          format: double
           title: Inlier Coverage
           type: number
         created_at:
@@ -2850,12 +2856,15 @@ components:
           title: Created At
           type: string
         query_image_diagonal_px:
+          format: double
           title: Query Image Diagonal Px
           type: number
         reproj_error_median:
+          format: double
           title: Reproj Error Median
           type: number
         inlier_ratio:
+          format: double
           title: Inlier Ratio
           type: number
         retrieval_top_k:
@@ -2877,10 +2886,12 @@ components:
           title: Pipeline Version
           type: string
         err_r_deg:
+          format: double
           nullable: true
           title: Err R Deg
           type: number
         err_t_m:
+          format: double
           nullable: true
           title: Err T M
           type: number
@@ -2939,30 +2950,37 @@ components:
           title: Id
           type: string
         rotation_y:
+          format: double
           nullable: true
           title: Rotation Y
           type: number
         position_x:
+          format: double
           nullable: true
           title: Position X
           type: number
         position_y:
+          format: double
           nullable: true
           title: Position Y
           type: number
         position_z:
+          format: double
           nullable: true
           title: Position Z
           type: number
         rotation_x:
+          format: double
           nullable: true
           title: Rotation X
           type: number
         rotation_z:
+          format: double
           nullable: true
           title: Rotation Z
           type: number
         rotation_w:
+          format: double
           nullable: true
           title: Rotation W
           type: number
@@ -3012,24 +3030,31 @@ components:
           title: Id
           type: string
         rotation_y:
+          format: double
           title: Rotation Y
           type: number
         position_x:
+          format: double
           title: Position X
           type: number
         position_y:
+          format: double
           title: Position Y
           type: number
         position_z:
+          format: double
           title: Position Z
           type: number
         rotation_x:
+          format: double
           title: Rotation X
           type: number
         rotation_z:
+          format: double
           title: Rotation Z
           type: number
         rotation_w:
+          format: double
           title: Rotation W
           type: number
         color:
@@ -3086,18 +3111,23 @@ components:
           title: Id
           type: string
         rotation_y:
+          format: double
           title: Rotation Y
           type: number
         position_x:
+          format: double
           title: Position X
           type: number
         position_y:
+          format: double
           title: Position Y
           type: number
         position_z:
+          format: double
           title: Position Z
           type: number
         rotation_x:
+          format: double
           title: Rotation X
           type: number
         updated_at:
@@ -3107,9 +3137,11 @@ components:
           title: Created At
           type: string
         rotation_z:
+          format: double
           title: Rotation Z
           type: number
         rotation_w:
+          format: double
           title: Rotation W
           type: number
         color:
@@ -3169,30 +3201,37 @@ components:
           title: Reconstruction Id
           type: string
         rotation_y:
+          format: double
           nullable: true
           title: Rotation Y
           type: number
         position_x:
+          format: double
           nullable: true
           title: Position X
           type: number
         position_y:
+          format: double
           nullable: true
           title: Position Y
           type: number
         position_z:
+          format: double
           nullable: true
           title: Position Z
           type: number
         rotation_x:
+          format: double
           nullable: true
           title: Rotation X
           type: number
         rotation_z:
+          format: double
           nullable: true
           title: Rotation Z
           type: number
         rotation_w:
+          format: double
           nullable: true
           title: Rotation W
           type: number
@@ -3238,8 +3277,10 @@ components:
         confidence_is_calibrated: true
       properties:
         inlier_ratio:
+          format: double
           type: number
         reprojection_error_median:
+          format: double
           type: number
         num_inliers:
           type: integer
@@ -3248,22 +3289,27 @@ components:
         num_matches:
           type: integer
         inlier_coverage:
+          format: double
           type: number
         confidence_tight:
+          format: double
           type: number
         confidence_loose:
+          format: double
           type: number
         confidence_is_calibrated:
           type: boolean
         measurement_covariance:
           items:
             items:
+              format: double
               type: number
             type: array
           type: array
         pnp_covariance:
           items:
             items:
+              format: double
               type: number
             type: array
           type: array
@@ -3299,6 +3345,7 @@ components:
           nullable: true
           type: integer
         ransac_threshold:
+          format: double
           nullable: true
           type: number
         image:
@@ -3310,21 +3357,6 @@ components:
       - image
       - map_ids
       title: LocalizationRequest
-      type: object
-    LogRelayBatch:
-      example:
-        entries:
-        - entries
-        - entries
-      properties:
-        entries:
-          items:
-            type: string
-          minItems: 1
-          type: array
-      required:
-      - entries
-      title: LogRelayBatch
       type: object
     MapLocalization:
       example:
@@ -3414,24 +3446,31 @@ components:
           title: Id
           type: string
         rotation_z:
+          format: double
           title: Rotation Z
           type: number
         position_y:
+          format: double
           title: Position Y
           type: number
         position_z:
+          format: double
           title: Position Z
           type: number
         rotation_x:
+          format: double
           title: Rotation X
           type: number
         rotation_y:
+          format: double
           title: Rotation Y
           type: number
         rotation_w:
+          format: double
           title: Rotation W
           type: number
         position_x:
+          format: double
           title: Position X
           type: number
         link_type:
@@ -3453,14 +3492,17 @@ components:
           title: Parent Id
           type: string
         label_width:
+          format: double
           nullable: true
           title: Label Width
           type: number
         label_height:
+          format: double
           nullable: true
           title: Label Height
           type: number
         label_scale:
+          format: double
           nullable: true
           title: Label Scale
           type: number
@@ -3516,30 +3558,37 @@ components:
           title: Id
           type: string
         rotation_z:
+          format: double
           nullable: true
           title: Rotation Z
           type: number
         position_y:
+          format: double
           nullable: true
           title: Position Y
           type: number
         position_z:
+          format: double
           nullable: true
           title: Position Z
           type: number
         rotation_x:
+          format: double
           nullable: true
           title: Rotation X
           type: number
         rotation_y:
+          format: double
           nullable: true
           title: Rotation Y
           type: number
         rotation_w:
+          format: double
           nullable: true
           title: Rotation W
           type: number
         position_x:
+          format: double
           nullable: true
           title: Position X
           type: number
@@ -3562,14 +3611,17 @@ components:
           title: Parent Id
           type: string
         label_width:
+          format: double
           nullable: true
           title: Label Width
           type: number
         label_height:
+          format: double
           nullable: true
           title: Label Height
           type: number
         label_scale:
+          format: double
           nullable: true
           title: Label Scale
           type: number
@@ -3617,24 +3669,31 @@ components:
           title: Id
           type: string
         rotation_z:
+          format: double
           title: Rotation Z
           type: number
         position_y:
+          format: double
           title: Position Y
           type: number
         position_z:
+          format: double
           title: Position Z
           type: number
         rotation_x:
+          format: double
           title: Rotation X
           type: number
         rotation_y:
+          format: double
           title: Rotation Y
           type: number
         rotation_w:
+          format: double
           title: Rotation W
           type: number
         position_x:
+          format: double
           title: Position X
           type: number
         link_type:
@@ -3656,14 +3715,17 @@ components:
           title: Parent Id
           type: string
         label_width:
+          format: double
           nullable: true
           title: Label Width
           type: number
         label_height:
+          format: double
           nullable: true
           title: Label Height
           type: number
         label_scale:
+          format: double
           nullable: true
           title: Label Scale
           type: number
@@ -3720,18 +3782,23 @@ components:
           title: Id
           type: string
         rotation_z:
+          format: double
           title: Rotation Z
           type: number
         position_y:
+          format: double
           title: Position Y
           type: number
         position_z:
+          format: double
           title: Position Z
           type: number
         rotation_x:
+          format: double
           title: Rotation X
           type: number
         rotation_y:
+          format: double
           title: Rotation Y
           type: number
         created_at:
@@ -3741,6 +3808,7 @@ components:
           title: Created At
           type: string
         rotation_w:
+          format: double
           title: Rotation W
           type: number
         updated_at:
@@ -3750,6 +3818,7 @@ components:
           title: Created At
           type: string
         position_x:
+          format: double
           title: Position X
           type: number
         link_type:
@@ -3770,14 +3839,17 @@ components:
           title: Parent Id
           type: string
         label_width:
+          format: double
           nullable: true
           title: Label Width
           type: number
         label_height:
+          format: double
           nullable: true
           title: Label Height
           type: number
         label_scale:
+          format: double
           nullable: true
           title: Label Scale
           type: number
@@ -3809,6 +3881,24 @@ components:
       - updated_at
       title: NodeRead
       type: object
+    PhaseTiming:
+      example:
+        phase: phase
+        duration_seconds: 5.944895607614016
+      properties:
+        phase:
+          description: "ReconstructionStatus value of the phase, e.g. 'extracting_features'."
+          type: string
+        duration_seconds:
+          description: "Wall-clock seconds the phase spent in-flight, measured between\
+            \ the publisher's set_phase boundaries."
+          format: double
+          type: number
+      required:
+      - duration_seconds
+      - phase
+      title: PhaseTiming
+      type: object
     PinholeCameraConfig:
       example:
         orientation: TOP_LEFT
@@ -3835,12 +3925,16 @@ components:
           - LEFT_BOTTOM
           type: string
         fx:
+          format: double
           type: number
         fy:
+          format: double
           type: number
         cx:
+          format: double
           type: number
         cy:
+          format: double
           type: number
       required:
       - cx
@@ -3899,30 +3993,33 @@ components:
     ReconstructionCreateWithOptions:
       example:
         options:
-          random_seed: 0
           ransac_max_error: 5.637376656633329
-          triangulation_merge_max_reprojection_error: 3.616076749251911
-          ransac_min_inlier_ratio: 2.3021358869347655
           held_out_frame_timestamps:
-          - 6
-          - 6
-          bundle_adjustment_refine_sensor_from_rig: true
-          bundle_adjustment_refine_principal_point: true
-          compression_opq_number_of_subvectors: 4
-          rotation_threshold: 1.4658129805029452
-          compression_opq_number_of_bits_per_subvector: 7
-          use_prior_position: true
-          pose_prior_position_sigma_m: 1.0246457001441578
-          lightglue_batch_size: 5
-          compression_opq_number_of_training_iterations: 1
+          - 4
+          - 4
+          bundle_adjustment_global_function_tolerance: 1.2315135367772556
+          bundle_adjustment_refine_sensor_from_rig: false
+          compression_opq_number_of_subvectors: 1
+          compression_opq_number_of_bits_per_subvector: 1
+          compression_opq_number_of_training_iterations: 6
           max_keypoints_per_image: 1
-          neighbors_count: 6
-          triangulation_complete_max_reprojection_error: 9.301444243932576
           mapper_filter_max_reprojection_error: 2.027123023002322
           triangulation_minimum_angle: 7.061401241503109
-          bundle_adjustment_refine_additional_params: true
+          bundle_adjustment_global_frames_ratio: 4.145608029883936
           bundle_adjustment_refine_focal_length: true
-          single_threaded: true
+          triangulation_merge_max_reprojection_error: 3.616076749251911
+          ransac_min_inlier_ratio: 2.3021358869347655
+          bundle_adjustment_global_max_refinements: 7
+          bundle_adjustment_refine_principal_point: false
+          rotation_threshold: 1.4658129805029452
+          use_prior_position: true
+          pose_prior_position_sigma_m: 7.457744773683766
+          bundle_adjustment_ignore_redundant_points3D: true
+          deterministic_seed: 0
+          lightglue_batch_size: 5
+          neighbors_count: 6
+          triangulation_complete_max_reprojection_error: 9.301444243932576
+          bundle_adjustment_refine_additional_params: true
           rig_verification: true
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -3939,6 +4036,11 @@ components:
     ReconstructionMetrics:
       example:
         truth_alignment_max_residual_m: 6.878052220127876
+        phase_timings:
+        - phase: phase
+          duration_seconds: 5.944895607614016
+        - phase: phase
+          duration_seconds: 5.944895607614016
         all_verified_match_inliers_median: 1.2315135367772556
         cross_sensor_verified_matches: 9
         reprojection_pixel_error_50th_percentile: 2.3021358869347655
@@ -3953,6 +4055,7 @@ components:
         all_verified_matches: 2
         average_keypoints_per_image: 5.637376656633329
         map_viewpoint_diversity: 2.8841621266687802
+        pipeline_version: pipeline_version
         cross_sensor_verified_match_rate: 6.683562403749608
         registration_rate: 1.4658129805029452
         map_bounding_volume_m3: 1.284659006116532
@@ -3983,6 +4086,7 @@ components:
         registration_rate:
           description: "Registration rate in percent: 100 × (registered_images / total_images).\
             \ Computed after selecting the best reconstruction (max registered images)."
+          format: double
           nullable: true
           type: number
         num_3d_points:
@@ -3992,28 +4096,33 @@ components:
         average_keypoints_per_image:
           description: "Average number of detected keypoints per image (after ALIKED\
             \ extraction), computed across all images."
+          format: double
           nullable: true
           type: number
         reprojection_pixel_error_50th_percentile:
           description: "Median (50th percentile) reprojection error in pixels across\
             \ all valid 2D observations in registered images, measured using image.project_point(point3D.xyz)\
             \ vs. observed 2D keypoint."
+          format: double
           nullable: true
           type: number
         reprojection_pixel_error_90th_percentile:
           description: "90th percentile reprojection error in pixels across all valid\
             \ 2D observations, computed the same way as the median."
+          format: double
           nullable: true
           type: number
         track_length_50th_percentile:
           description: Median (50th percentile) track length across 3D points in the
             selected model. Track length = number of distinct images observing the
             point.
+          format: double
           nullable: true
           type: number
         percent_tracks_with_length_greater_than_or_equal_to_3:
           description: "Percentage of 3D points whose track length is ≥ 3 (a common\
             \ robustness threshold). Computed as 100 × (#points with length≥3 / #points)."
+          format: double
           nullable: true
           type: number
         all_verified_matches:
@@ -4022,14 +4131,17 @@ components:
           type: integer
         all_verified_match_rate:
           description: Percentage of verified matches across all image pairs.
+          format: double
           nullable: true
           type: number
         all_verified_match_inliers_mean:
           description: Mean number of inliers for all verified matches.
+          format: double
           nullable: true
           type: number
         all_verified_match_inliers_median:
           description: Median number of inliers for all verified matches.
+          format: double
           nullable: true
           type: number
         stereo_verified_matches:
@@ -4039,14 +4151,17 @@ components:
           type: integer
         stereo_verified_match_rate:
           description: Percentage of verified matches for stereo pairs.
+          format: double
           nullable: true
           type: number
         stereo_verified_match_inliers_mean:
           description: Mean number of inliers for verified matches for stereo pairs.
+          format: double
           nullable: true
           type: number
         stereo_verified_match_inliers_median:
           description: Median number of inliers for verified matches for stereo pairs.
+          format: double
           nullable: true
           type: number
         same_sensor_verified_matches:
@@ -4055,16 +4170,19 @@ components:
           type: integer
         same_sensor_verified_match_rate:
           description: Percentage of verified matches for same-sensor pairs.
+          format: double
           nullable: true
           type: number
         same_sensor_verified_match_inliers_mean:
           description: Mean number of inliers for verified matches for same-sensor
             pairs.
+          format: double
           nullable: true
           type: number
         same_sensor_verified_match_inliers_median:
           description: Median number of inliers for verified matches for same-sensor
             pairs.
+          format: double
           nullable: true
           type: number
         cross_sensor_verified_matches:
@@ -4073,16 +4191,19 @@ components:
           type: integer
         cross_sensor_verified_match_rate:
           description: Percentage of verified matches for cross-sensor pairs.
+          format: double
           nullable: true
           type: number
         cross_sensor_verified_match_inliers_mean:
           description: Mean number of inliers for verified matches for cross-sensor
             pairs.
+          format: double
           nullable: true
           type: number
         cross_sensor_verified_match_inliers_median:
           description: Median number of inliers for verified matches for cross-sensor
             pairs.
+          format: double
           nullable: true
           type: number
         map_image_count:
@@ -4096,12 +4217,14 @@ components:
         map_avg_track_length:
           description: Mean number of image observations per 3D point. Coarse density-of-evidence
             proxy.
+          format: double
           nullable: true
           type: number
         map_bounding_volume_m3:
           description: "Convex-hull volume of registered camera centers, in cubic\
             \ meters. Captures spatial extent; complements image_count which only\
             \ captures coverage density."
+          format: double
           nullable: true
           type: number
         map_viewpoint_diversity:
@@ -4109,6 +4232,7 @@ components:
             Zero when all cameras face the same way; approaches one as viewing directions
             spread uniformly. Discriminates panoramic sweeps from single-viewpoint
             maps even when the rest of the metrics agree.
+          format: double
           nullable: true
           type: number
         truth_alignment_rms_residual_m:
@@ -4118,157 +4242,214 @@ components:
             \ the truth poses are internally consistent with the COLMAP geometry;\
             \ large values indicate VIO drift, scale errors, or other capture-time\
             \ pose noise that disqualifies the capture from calibration."
+          format: double
           nullable: true
           type: number
         truth_alignment_max_residual_m:
           description: Maximum over registered cameras of ||T·c_map - c_truth|| in
             meters. Companion to the RMS field; surfaces single-frame outliers that
             the RMS would smooth over.
+          format: double
           nullable: true
           type: number
+        phase_timings:
+          description: "Per-phase wall-clock durations in execution order, captured\
+            \ at each ReconstructionPublisher set_phase boundary. Useful for after-the-fact\
+            \ attribution of total reconstruction time across feature extraction,\
+            \ OPQ/PQ training, matching, geometric verification, and incremental mapping."
+          items:
+            $ref: "#/components/schemas/PhaseTiming"
+          nullable: true
+          type: array
+        pipeline_version:
+          description: "Content-addressed hash of the reconstructor image's build\
+            \ context (RECONSTRUCTOR_SHA, computed by build_scripts.placeframe.context_sha.compute_service_shas)\
+            \ that produced this reconstruction. None on rows whose manifest was created\
+            \ before the lease succeeded. Mirrors the localizer's LocalizationMetrics.pipeline_version\
+            \ contract."
+          nullable: true
+          type: string
       title: ReconstructionMetrics
       type: object
     ReconstructionOptions:
       example:
-        random_seed: 0
         ransac_max_error: 5.637376656633329
-        triangulation_merge_max_reprojection_error: 3.616076749251911
-        ransac_min_inlier_ratio: 2.3021358869347655
         held_out_frame_timestamps:
-        - 6
-        - 6
-        bundle_adjustment_refine_sensor_from_rig: true
-        bundle_adjustment_refine_principal_point: true
-        compression_opq_number_of_subvectors: 4
-        rotation_threshold: 1.4658129805029452
-        compression_opq_number_of_bits_per_subvector: 7
-        use_prior_position: true
-        pose_prior_position_sigma_m: 1.0246457001441578
-        lightglue_batch_size: 5
-        compression_opq_number_of_training_iterations: 1
+        - 4
+        - 4
+        bundle_adjustment_global_function_tolerance: 1.2315135367772556
+        bundle_adjustment_refine_sensor_from_rig: false
+        compression_opq_number_of_subvectors: 1
+        compression_opq_number_of_bits_per_subvector: 1
+        compression_opq_number_of_training_iterations: 6
         max_keypoints_per_image: 1
-        neighbors_count: 6
-        triangulation_complete_max_reprojection_error: 9.301444243932576
         mapper_filter_max_reprojection_error: 2.027123023002322
         triangulation_minimum_angle: 7.061401241503109
-        bundle_adjustment_refine_additional_params: true
+        bundle_adjustment_global_frames_ratio: 4.145608029883936
         bundle_adjustment_refine_focal_length: true
-        single_threaded: true
+        triangulation_merge_max_reprojection_error: 3.616076749251911
+        ransac_min_inlier_ratio: 2.3021358869347655
+        bundle_adjustment_global_max_refinements: 7
+        bundle_adjustment_refine_principal_point: false
+        rotation_threshold: 1.4658129805029452
+        use_prior_position: true
+        pose_prior_position_sigma_m: 7.457744773683766
+        bundle_adjustment_ignore_redundant_points3D: true
+        deterministic_seed: 0
+        lightglue_batch_size: 5
+        neighbors_count: 6
+        triangulation_complete_max_reprojection_error: 9.301444243932576
+        bundle_adjustment_refine_additional_params: true
         rig_verification: true
       properties:
-        random_seed:
-          description: Random seed to use (for deterministic behavior).
+        deterministic_seed:
+          description: "If set, run the reconstruction deterministically: this value\
+            \ is the PRNG seed AND the pipeline runs single-threaded so thread-scheduling\
+            \ does not introduce non-determinism between reruns. If None, the reconstruction\
+            \ is non-deterministic (seed unpinned, threading enabled)."
           nullable: true
           type: integer
-        single_threaded:
-          description: "If true, run reconstruction in single-threaded mode (for deterministic\
-            \ behavior)."
-          nullable: true
-          type: boolean
         neighbors_count:
-          description: "How many pose-nearest neighbors to consider when generating\
-            \ image pairs. Use -1 for exhaustive matching (all pairs). If None, a\
-            \ sensible default is used (currently 12). Smaller values reduce weak\
-            \ overlaps and speed up matching at the cost of some coverage."
-          nullable: true
+          default: 12
+          description: How many pose-nearest neighbors to consider when generating
+            image pairs. Use -1 for exhaustive matching (all pairs). Smaller values
+            reduce weak overlaps and speed up matching at the cost of some coverage.
           type: integer
         rotation_threshold:
+          default: 30.0
           description: Rotation angle threshold (degrees) for considering two images
             as neighbors when generating image pairs. Smaller values reduce weak overlaps
             and speed up matching at the cost of some coverage.
-          nullable: true
+          format: double
           type: number
         lightglue_batch_size:
+          default: 16
           description: Batch size to use when running LightGlue for feature matching.
             Larger batch sizes can improve GPU utilization but require more memory.
-          nullable: true
           type: integer
         ransac_max_error:
+          default: 2.0
           description: Two-view RANSAC inlier threshold (pixels) used by verify_matches().
             Lower = stricter inlier test; removes borderline correspondences before
             SfM.
-          nullable: true
+          format: double
           type: number
         ransac_min_inlier_ratio:
+          default: 0.15
           description: Two-view RANSAC minimum inlier ratio to accept the model. Higher
             = reject more weak pairs; typically 0.10–0.20 for stricter matching.
-          nullable: true
+          format: double
           type: number
         use_prior_position:
+          default: true
           description: "If true, use position priors during registration. This leverages\
             \ PosePrior(position=...) written into the database to guide image registration."
-          nullable: true
           type: boolean
         rig_verification:
+          default: true
           description: "If true, perform rig-based verification during feature matching\
             \ and two-view geometry verification. Requires images to be tagged with\
             \ rig/camera IDs."
-          nullable: true
           type: boolean
         triangulation_minimum_angle:
+          default: 3.0
           description: Minimum triangulation angle (degrees). Applied at creation
             time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle).
             Raising it removes low-parallax points.
-          nullable: true
+          format: double
           type: number
         triangulation_complete_max_reprojection_error:
+          default: 2.0
           description: Triangulation-time gate (pixels) for COMPLETING tracks into
             new 3D points (triangulation.complete_max_reproj_error). Lower → fewer
             borderline new points.
-          nullable: true
+          format: double
           type: number
         triangulation_merge_max_reprojection_error:
+          default: 4.0
           description: Triangulation-time gate (pixels) for MERGING near-duplicate
             3D points (triangulation.merge_max_reproj_error). Lower → fewer merges;
             higher → more aggressive deduplication.
-          nullable: true
+          format: double
           type: number
         mapper_filter_max_reprojection_error:
+          default: 2.0
           description: Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error).
             Points exceeding this after local/global BA are culled. This is NOT a
             triangulation accept threshold.
-          nullable: true
+          format: double
           type: number
         bundle_adjustment_refine_sensor_from_rig:
+          default: false
           description: "If true, refine per-camera extrinsics within the rig during\
-            \ BA (ba_refine_sensor_from_rig). Useful when rig calibration is approximate."
-          nullable: true
+            \ the incremental BA loop (ba_refine_sensor_from_rig). The shipped pattern\
+            \ leaves this False, pins rigs via constant_rigs, and re-enables rig refinement\
+            \ only on the final standalone BA pass. See docker/reconstructor/SPEC.md\
+            \ for rationale."
           type: boolean
         bundle_adjustment_refine_focal_length:
+          default: true
           description: "If true, refine the camera focal length during BA (ba_refine_focal_length)."
-          nullable: true
           type: boolean
         bundle_adjustment_refine_principal_point:
+          default: false
           description: "If true, refine the camera principal point during BA (ba_refine_principal_point)."
-          nullable: true
           type: boolean
         bundle_adjustment_refine_additional_params:
+          default: true
           description: "If true, refine model-specific additional parameters during\
             \ BA (ba_refine_extra_params), e.g., radial/tangential distortion where\
             \ applicable."
-          nullable: true
+          type: boolean
+        bundle_adjustment_global_frames_ratio:
+          default: 1.5
+          description: "Growth ratio of registered frames after which to trigger a\
+            \ global bundle adjustment (ba_global_frames_ratio). Larger = fewer global\
+            \ BA events, less wall time, longer between cleanup passes."
+          format: double
+          type: number
+        bundle_adjustment_global_max_refinements:
+          default: 1
+          description: Maximum BA refinement passes per global-BA event (ba_global_max_refinements).
+            Dev default 1; production-quality maps should override to 3 (or higher).
+            See docker/reconstructor/SPEC.md.
+          type: integer
+        bundle_adjustment_global_function_tolerance:
+          default: 0.001
+          description: Ceres solver function tolerance for global bundle adjustment
+            (ba_global_function_tolerance). Larger = earlier exit when residual delta
+            becomes insignificant.
+          format: double
+          type: number
+        bundle_adjustment_ignore_redundant_points3D:
+          default: true
+          description: "If true, solve global BA without redundant 3D points first,\
+            \ then refine pruned points in a second pass with everything else fixed\
+            \ (mapper.ba_global_ignore_redundant_points3D). Same final geometry, smaller\
+            \ main problem. Activates only when ≥10 frames are registered."
           type: boolean
         compression_opq_number_of_subvectors:
+          default: 16
           description: Number of subvectors for OPQ compression.
-          nullable: true
           type: integer
         compression_opq_number_of_bits_per_subvector:
+          default: 8
           description: Number of bits per subvector for OPQ compression.
-          nullable: true
           type: integer
         compression_opq_number_of_training_iterations:
+          default: 20
           description: Number of training iterations for OPQ compression.
-          nullable: true
           type: integer
         pose_prior_position_sigma_m:
+          default: 0.05
           description: Standard deviation (meters) for position priors when writing
             PosePrior to the database. Smaller values = stronger priors.
-          nullable: true
+          format: double
           type: number
         max_keypoints_per_image:
-          description: "Maximum number of ALIKED keypoints to retain per image (acts\
-            \ as a safety cap in threshold mode). If None, a sensible default is used."
-          nullable: true
+          default: 2500
+          description: Maximum number of ALIKED keypoints to retain per image (acts
+            as a safety cap in threshold mode).
           type: integer
         held_out_frame_timestamps:
           description: "Frame timestamps (Unix milliseconds, matching the first column\

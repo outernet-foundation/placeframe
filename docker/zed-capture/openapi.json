@@ -23,7 +23,8 @@
             "in": "query",
             "schema": {
               "nullable": true,
-              "type": "number"
+              "type": "number",
+              "format": "double"
             },
             "required": false,
             "deprecated": false,
@@ -323,136 +324,10 @@
         },
         "deprecated": false
       }
-    },
-    "/logs": {
-      "get": {
-        "tags": [
-          "logs"
-        ],
-        "summary": "GetLogs",
-        "operationId": "get_logs",
-        "parameters": [
-          {
-            "name": "ack",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "description": "Token from previous response; ack-on-next-fetch advances the box's persistent cursor",
-              "default": ""
-            },
-            "description": "Token from previous response; ack-on-next-fetch advances the box's persistent cursor",
-            "required": false,
-            "deprecated": false,
-            "allowEmptyValue": false,
-            "allowReserved": false
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "maximum": 10000.0,
-              "minimum": 1.0,
-              "default": 1000
-            },
-            "required": false,
-            "deprecated": false,
-            "allowEmptyValue": false,
-            "allowReserved": false
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Request fulfilled, document follows",
-            "headers": {},
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LogBatch"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request syntax or unsupported method",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "status_code": {
-                      "type": "integer"
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "extra": {
-                      "additionalProperties": {},
-                      "anyOf": [
-                        {
-                          "type": "object"
-                        },
-                        {
-                          "type": "array",
-                          "items": {}
-                        }
-                      ],
-                      "nullable": true
-                    }
-                  },
-                  "type": "object",
-                  "required": [
-                    "detail",
-                    "status_code"
-                  ],
-                  "description": "Validation Exception",
-                  "example": {
-                    "status_code": 400,
-                    "detail": "Bad Request",
-                    "extra": {}
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
-      }
     }
   },
   "components": {
     "schemas": {
-      "LogBatch": {
-        "properties": {
-          "entries": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "next_cursor": {
-            "type": "string"
-          },
-          "has_more": {
-            "type": "boolean"
-          },
-          "dropped_before": {
-            "type": "boolean"
-          },
-          "bytes_returned": {
-            "type": "integer",
-            "format": "int64"
-          }
-        },
-        "type": "object",
-        "required": [
-          "bytes_returned",
-          "dropped_before",
-          "entries",
-          "has_more",
-          "next_cursor"
-        ],
-        "title": "LogBatch"
-      },
       "ZedCapture": {
         "properties": {
           "id": {
@@ -463,12 +338,17 @@
             "type": "string",
             "format": "date-time",
             "description": "datetime with the constraint that the value must have timezone info"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "format": "int64"
           }
         },
         "type": "object",
         "required": [
           "id",
-          "recorded_at"
+          "recorded_at",
+          "size_bytes"
         ],
         "title": "ZedCapture"
       },
@@ -488,19 +368,16 @@
             "format": "int64"
           },
           "uptime_s": {
-            "type": "number"
+            "type": "number",
+            "format": "double"
           },
           "version": {
-            "type": "string"
-          },
-          "log_cursor": {
             "type": "string"
           }
         },
         "type": "object",
         "required": [
           "disk_free_bytes",
-          "log_cursor",
           "uptime_s",
           "version"
         ],
