@@ -88,7 +88,7 @@ Both consumer services declare:
 
 ...and `[tool.deptry.per_rule_ignores] DEP003 = ["torch"]` + `DEP004 = ["neural_networks"]`. The reason (per the comment in the localizer pyproject): the consumer services import `torch` directly but cannot declare it directly, because torch is split across the three platform-conflicting extras in `neural-networks` and declaring bare `torch` would create resolution conflicts. The dependency-group + deptry overrides are the workaround.
 
-## Rationale
+## Constraints
 
 ### Why a separate package at all
 
@@ -124,22 +124,6 @@ Cold weight downloads at service-startup time would add tens of seconds of laten
 ### Why the numpy round-trip in `DIR.forward`
 
 `dirtorch.utils.common.whiten_features` is a numpy implementation that operates on `(N, D)` arrays via sklearn's PCA internals. There is no torch-native version in dirtorch. `DIR.forward` extracts features on the device, hauls them to host memory for whitening, and pushes the result back. Per-call cost is a 128-or-N-element host transfer round-trip. It hasn't shown up in profiles; if it did, porting the whitening matmul to torch is straightforward (the whitening matrix is small and constant per checkpoint).
-
-## Known gaps
-
-- `main.py` at the package root is the unmodified `uv init` template ("Hello from nn!"). Not wired into any entry point.
-- `README.md` is 0 bytes.
-- `load_DIR` patches `torch.load` to force `weights_only=False`, calls `DIR().to(device).eval()`, then restores `torch.load`. The restore is not in a `try`/`finally`, so if model construction raises, `torch.load` is left patched globally for the rest of the process. Low-impact because failure here is service-startup-aborts territory.
-- `from sklearn.decomposition import _pca` uses private sklearn API (explicit `noqa: PLC2701`). If sklearn renames or removes `_pca`, DIR checkpoint loading breaks. Recovery would require re-pickling the DIR checkpoint against modern sklearn.
-- `environ["DB_ROOT"] = ""` at `models.py:15` mutates global process env unconditionally at import time. Dirtorch crashes without it set; the empty string satisfies the read without pointing at a real dataset path.
-- `DIR.forward` round-trips through numpy for whitening (see "Rationale"). Per-call host-device transfer cost on every retrieval query.
-- No tests in this package. `pytest` collects nothing under `packages/python/neural-networks/`. The vendored `dirtorch/test_dir.py` is upstream's evaluation harness, not a pytest module  -  name collision only.
-- `load_DIR` and the others take a `device` argument with no validation. Non-`"cuda"`/`"cpu"` strings will fail somewhere downstream rather than at the loader boundary.
-- `load_aliked`'s three optional configuration parameters fall back to ALIKED's library defaults if omitted. The defaults aren't documented at the call site  -  readers have to read the lightglue package to learn them.
-- No license file at the package root; the vendored dirtorch carries its own LICENSE, and lightglue/ALIKED wheels carry theirs. Matters only if `neural-networks` itself is ever published.
-- DIR (2019) is dated relative to modern retrieval models (EigenPlaces, SALAD, DINOv2+GeM). Replacement is opportunistic; retrieval quality isn't the current bottleneck. Documented in `README.md`'s license-posture context.
-- Two lockfile paradigms coexist: the workspace `uv.lock` and the three `docker/neural-networks-base/pylock.neural-networks-*.toml` files. `uv run lock-python` regenerates the per-service locks but is a separate step from `uv sync`; out-of-step generation produces drift.
-- Most of the vendored dirtorch tree (datasets, training, kapture, R-MAC nets) is structurally dead in this codebase. Kept intact to minimize re-vendor diff cost.
 
 ## See also
 

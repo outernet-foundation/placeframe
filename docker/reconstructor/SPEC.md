@@ -17,7 +17,7 @@ docker/reconstructor/
 |   |-- main.py            worker_loop -- lease poll + dispatch + succeed/fail
 |   |-- run_reconstruction.py   model load + pipeline orchestrator
 |   |-- colmap.py          COLMAP DB build, two-view verification, incremental SfM,
-|   |                      single-anchor Sim3d alignment, Umeyama diagnostic, npz writers
+|   |                      pose-prior write, translation-only Sim3d, Umeyama diagnostic, npz writers
 |   |-- rig.py             Parses frames.csv, applies axis conventions, builds ColmapRigConfig
 |   |-- pairs.py           Pose-proximity pair generation + intra-frame stereo pairs
 |   |-- options_builder.py ReconstructionOptions -> pycolmap option structs
@@ -56,7 +56,7 @@ SIGTERM is wired through `signal(SIGTERM, handle_sigterm)` to raise `CancelledEr
 6. **`MATCHING_FEATURES`** -- LightGlue matches each pair with the per-job `lightglue_batch_size`. Progress callback fires per pair; this is the first phase with per-step progress emitted from inside the pipeline. `cuda.empty_cache()` releases LightGlue's working memory before pycolmap allocates.
 7. **`VERIFYING_GEOMETRY`** -- COLMAP database is opened. Cameras, images, keypoints, and per-ref-sensor `PosePrior`s are written. `apply_rig_config` ties images to rig constraints. Matches go in. Then a `ThreadPoolExecutor` fans out `estimate_two_view_geometry` per pair; results return to the main thread which serializes the writes (sqlite is thread-affine -- see `colmap.py:107`). Progress callback fires per completed pair. `MetricsBuilder.build_verified_matches_metrics` runs after close; it bucketizes per pair-type (stereo / same-sensor / cross-sensor) by string-parsing `<rig>/<camera>/<frame>.jpg` image names.
 8. **`RECONSTRUCTING`** -- `pycolmap._core.incremental_mapping` is called with two callbacks: `initial_image_pair_callback` and `next_image_callback`. `_IncrementalMappingProgress` (`colmap.py:255`) tracks per-attempt registered count and bumps `_attempt` when a new model attempt starts after a previous attempt registered anything. COLMAP returns a list of models when it cannot fit everything into one; the reconstructor picks the model with the most registered images. The phase total `len(colmap_image_ids)` is an upper bound -- COLMAP may drop or filter-out images.
-9. **(post-SfM, in `RECONSTRUCTING`)** Single-anchor `Sim3d` alignment applied to the chosen reconstruction (`colmap.py:166`). Procrustes residual computed and recorded (not applied). `points3D.npz`, `frame_poses.npz`, and the COLMAP plaintext model are written to disk in `WORK_DIR/sfm_output/`. The `sfm_model/` tree then uploads via `sfm_output_path.rglob("*")` + one synchronous `put_object` per file. No phase change; status stays at `RECONSTRUCTING` through the upload.
+9. **(post-SfM, in `RECONSTRUCTING`)** Translation-only `Sim3d` applied to the chosen reconstruction so the first registered frame (sorted by integer `frame_id`) lands at the origin (`colmap.py:192-200`). Rotation was already anchored to VIO world during BA via the pose priors written at phase 7. Procrustes residual computed and recorded (not applied). `points3D.npz`, `frame_poses.npz`, and the COLMAP plaintext model are written to disk in `WORK_DIR/sfm_output/`. The `sfm_model/` tree then uploads via `sfm_output_path.rglob("*")` + one synchronous `put_object` per file. No phase change; status stays at `RECONSTRUCTING` through the upload.
 
 The publisher (`src/reconstructor/progress_publisher.py`) uses `asyncio.run_coroutine_threadsafe` to dispatch `update_progress` calls from the executor thread back to the main event loop. `on_progress` is throttled to ~2 Hz; `set_phase` always flushes. Failures are logged via a done-callback but never raised back into the pipeline -- a long stretch of API failures during progress writes is silently swallowed.
 
@@ -77,9 +77,40 @@ Presence of a complete `sfm_model/` is the strongest signal a reconstruction's o
 
 ### Truth-frame alignment and the Procrustes diagnostic
 
-The first registered frame's COLMAP pose is pinned to its `frames.csv` truth pose via a single-anchor `pycolmap.Sim3d`. This is the load-bearing geometry contract: downstream consumers (the localizer in particular) rely on "first registered frame == map origin in truth coordinates", which makes the localizer's `camera_from_map` doubles as `camera_from_world` for queries from the same capture.
+The map's relationship to the capture's VIO truth frame is established in two stages:
 
-Separately, the reconstructor solves rigid (no-scale) Umeyama Procrustes over all registered frames against their truth poses and records the residual as `truth_alignment_rms_residual_m` and `truth_alignment_max_residual_m`. **The Procrustes transform is not applied** -- only the residual surfaces, as a per-capture VIO-quality diagnostic that the calibration pipeline uses to filter unreliable captures. Requires >=3 registered frames; otherwise the reconstruction fails with a `RuntimeError` from `colmap.py:189`.
+1. **Rotation: pose priors during BA.** Each registered ref-sensor image gets a `PosePrior` carrying its `frames.csv` translation (expressed in the gravity-aligned VIO world frame) with a per-call sigma (`colmap.py:96-108`). Bundle adjustment with N priors spread over the trajectory pins COLMAP world rotation to VIO world rotation to within sub-degree by construction -- the only rotation that lets all N camera positions match their priors is the one that aligns COLMAP world to VIO world. No explicit rotation correction is applied; introducing one (e.g. snapping a chosen frame's pose to its VIO pose) would force one frame to fit exactly at the cost of pulling every other frame off its prior.
+2. **Translation: translation-only `Sim3d` post-BA.** After BA converges, `best_reconstruction.transform` is called with a `Sim3d` whose rotation is identity and whose translation places the first registered frame (sorted by integer `frame_id` so multi-rig captures interleave by timestamp) at the origin (`colmap.py:192-200`). The map origin lands where capture started -- natural reference for manual Cesium georegistration. This preserves the load-bearing downstream contract "first registered frame == map origin in truth coordinates", which makes the localizer's `camera_from_map` double as `camera_from_world` for queries from the same capture.
+
+Separately, the reconstructor solves rigid (no-scale) Umeyama Procrustes over all registered frames against their truth poses and records the residual as `truth_alignment_rms_residual_m` and `truth_alignment_max_residual_m`. **The Procrustes transform is not applied** -- only the residual surfaces, as a per-capture VIO-quality diagnostic that the calibration pipeline uses to filter unreliable captures. Requires >=3 registered frames; otherwise the reconstruction fails with a `RuntimeError` from `colmap.py:210-211`.
+
+`frames.csv` is recorded live (each row appended at frame-capture time, not regenerated post-hoc) -- verified at `docker/zed-capture/src/zed/zed.py:309-322` (`update_pose` + immediate `csv_writer.writerow`) and `packages/unity/Placeframe/Assets/Package/Core/Runtime/CaptureManager.cs:43` (`AutoFlush=true`). Frame 0's row reflects the SDK's world-Y as of T_0 (cold-start), and frame N's row reflects the SDK's world-Y as of T_N (converged). Pose-prior anchoring weights every registered frame in BA, so cold-start error on early frames is averaged across the trajectory rather than baked into the origin.
+
+### Map gravity accuracy
+
+End-to-end angular error between the map's Y axis and true local vertical, after the pose-prior BA anchor, at typical capture conditions:
+
+| Source                                                                                | Typical end-to-end gravity error                  |
+|---|---|
+| ARFoundation (ARCore / ARKit)                                                         | 0.5--1° after warm-up, worse for first few seconds |
+| ZED X with `enable_imu_fusion=True` (`docker/zed-capture/src/zed/zed.py:217-222`)      | <0.5°                                              |
+
+Leverage table -- visible vertical overlay error at horizontal distance D from map origin for a given tilt:
+
+| Distance | 1°     | 0.5°   | 0.3°   |
+|---|---|---|---|
+| 1 m      | 1.7 cm | 0.9 cm | 0.5 cm |
+| 5 m      | 8.7 cm | 4.4 cm | 2.6 cm |
+| 20 m     | 35 cm  | 17 cm  | 10 cm  |
+| 50 m     | 87 cm  | 44 cm  | 26 cm  |
+
+For room and building scales (up to ~20 m) the pose-prior anchor delivers single-digit-cm typical and ~17 cm worst-case multi-room overlay error -- acceptable for the AR use cases Placeframe targets.
+
+To measure attitude error for real (no published benchmark exists for ARCore/ARKit/ZED X), the cheapest proxy is to capture the same scene twice and fit floor planes in both reconstructions: the angle between them is a lower bound on between-session random+systematic error. More rigorous: capture against a precision inclinometer or a known plumb-line reference.
+
+### OS-fused gravity sensor (considered and rejected)
+
+Sampling `Sensor.TYPE_GRAVITY` (Android) / `CMMotionManager.deviceMotion.gravity` (iOS) / `SensorsData.get_imu_data()` (ZED) as a separate per-frame capture-format column was considered as a way to tighten map gravity below 0.5°. Rejected because: at rest, OS gravity and the AR SDK's world-Y agree (both ultimately derive from the same accelerometer reading); during motion they can differ transiently, but that difference vanishes the moment the device is stationary. AR SDKs already run continuous gravity refinement internally, so a warmed-up SDK's reported camera rotation at a stable frame is at least as good as a separately-sampled OS sensor would be. Reopen only if measurements show pose-prior gravity is materially insufficient at our target scales.
 
 ### Held-out frames protocol
 
@@ -93,7 +124,7 @@ The full lease state machine lives in `docker/api/src/routers/leases.py`. Worth 
 - `LEASE_TIMEOUT = 30 minutes` runs at the start of every `request_lease`: any non-terminal, non-QUEUED row whose `updated_at` is older than 30 minutes flips to `FAILED` with error `"Lease timed out"`. `updated_at` is touched by a Postgres trigger on every progress write, so 2 Hz publisher heartbeats keep the lease alive indefinitely.
 - `succeed_lease` merges new `metrics` into the existing `manifest.options` to produce `Manifest(options=existing.options, metrics=data)` and writes it back to the JSONB column. `fail_lease` does not touch the manifest.
 
-## Rationale
+## Constraints
 
 **Worker-loop-over-Postgres lease, not a message queue.** Reconstruction is long, restart-survivable, and at-most-once-execution semantics matter (running twice wastes GPU minutes and re-uploads identical artifacts). A Postgres row with `FOR UPDATE SKIP LOCKED` selection gives all three properties without standing up a separate queue. The row also doubles as the user-facing status, which removes a sync.
 
@@ -105,54 +136,43 @@ The full lease state machine lives in `docker/api/src/routers/leases.py`. Worth 
 
 **Manifest as single source of truth for `ReconstructionOptions`.** Options are written into `manifest.options` at create-time by the API and read at run-time by the reconstructor. No SQL columns mirror them. Reasoning: options are a per-job request envelope, not an indexable property of the row. The same logic extends to `held_out_frame_timestamps`, `is_indoor`, and (post-run) `ReconstructionMetrics`.
 
-**Single-anchor `Sim3d` alignment instead of Procrustes.** Downstream consumers rely on "first registered frame == map origin". Applying Procrustes would average the truth-vs-map residual across all frames, which slightly improves the global fit but breaks the per-capture origin contract that the localizer depends on. Procrustes is therefore only a diagnostic.
+**First-frame origin instead of Procrustes mean.** Downstream consumers rely on "first registered frame == map origin". Applying Procrustes would average the truth-vs-map residual across all frames, which slightly improves the global fit but breaks the per-capture origin contract that the localizer depends on. Procrustes is therefore only a diagnostic. The origin anchor itself is a translation-only `Sim3d`; rotation alignment to VIO world is handled separately by pose priors during BA.
 
 **One bundle of artifacts per reconstruction id, S3 prefix-keyed.** All outputs live under `<id>/`, so DELETE cascades and retry-cleanup can operate on a single prefix without a manifest of keys. The cost: there is no explicit "I am done" sentinel inside the prefix; completion is inferred from the presence of `sfm_model/`.
 
-## Known gaps
+**The incremental-pipeline controller drops Ceres linear-solver knobs.** `IncrementalPipelineOptions::GlobalBundleAdjustment()` (`colmap/controllers/incremental_pipeline.cc:159-233`, verified at COLMAP SHA `dec2ec4b4daa53f51cbe0d25edb28bcd2c164718`) returns a fresh `BundleAdjustmentOptions` populated from `IncrementalPipelineOptions` fields. The set of fields it copies includes the refine_* booleans, the per-call iter caps, the function tolerances, and `ba_use_gpu`. It does **not** copy `linear_solver_type`, `preconditioner_type`, or `auto_select_solver_type` -- those defaults stay as constructed (`auto_select_solver_type = true`, which at our scale resolves to `SUITE_SPARSE`). There is no Python-side path through `pycolmap.incremental_mapping()` to override the linear-solver choice for global BA. The `OptionManager` indirection that the COLMAP CLI uses to inject these is not exposed in the pybind11 surface for `incremental_mapping`.
 
-- **No reconciliation between MinIO and DB status.** If `succeed_lease` fails after `sfm_model/` has fully uploaded, the row stays at `RECONSTRUCTING` until the API-side reaper marks it `FAILED` 30 minutes later, even though the artifacts are complete. Nothing scans MinIO to recover. `docker/SPEC.md` flags this; the worker code path is `src/reconstructor/main.py:74-82` (succeed/fail both inside the outer try, no retry on the lease finalization itself).
-- **`fail_lease` failure cascades to "lease never marked terminal".** When `await api.fail_lease(...)` raises (transient API outage), the exception escapes to the outer critical-error handler. The lease then dangles until the 30-minute reaper.
-- **SIGTERM does not stop in-flight reconstruction.** The executor thread is uncancellable; a SIGTERM cancels the event loop's wait but the pipeline keeps running until it returns naturally. A graceful shutdown that lets the current job finish is the practical behavior; an aborted-job-with-clean-state shutdown is not implemented.
-- **Retry does not purge prior MinIO outputs.** `POST /reconstructions/{id}/retry` (`docker/api/src/routers/reconstructions.py:192`) flips a FAILED/CANCELLED row back to QUEUED without deleting the `<id>/` prefix. The next reconstruction overwrites by key, so duplicate keys are clean, but artifacts written under prefixes the new run doesn't visit (e.g. an old `sfm_model/extra_model_N/`) survive.
-- **Capture tar held entirely in RAM.** `run_reconstruction.py:96` reads the whole `.tar` into `bytes` before extracting. For multi-GB captures this is a hard RAM ceiling; streaming extract would suffice.
-- **`CAPTURE_SESSION_DIRECTORY` is not cleaned between jobs.** `/tmp/reconstruction/capture_session` is the extraction target; `tarfile.extractall` overlays on top of any existing tree. Stale files from a previous job that aren't overwritten by the new tar persist.
-- **`_aliked_model.dkd.n_limit` is mutated on a module-global singleton** (`run_reconstruction.py:131`) per job. Safe only because the worker is single-job-per-process; a second concurrent job in the same process would race.
-- **`options.single_threaded` is silently ignored.** The field exists in `ReconstructionOptions`; the matching `incremental_pipeline_options.num_threads = 1` lines in `options_builder.py:72-73` are commented out. "Deterministic mode" is not actually wired up.
-- **`options.bundle_adjustment_refine_additional_params` is silently ignored.** Declared in `reconstruction_options.py:105`; `OptionsBuilder.incremental_pipeline_options` has no corresponding `ba_refine_extra_params` assignment.
-- **`OptionsBuilder.feature_matching_options` is dead.** LightGlue replaced COLMAP feature matching; the function builds a `FeatureMatchingOptions` that nobody reads.
-- **`pairs.pairs_from_retrieval` is dead.** Defined in `pairs.py:79` but unreferenced; appears to be a vestige of an earlier retrieval-based pair-gen path.
-- **Multi-model situations are not surfaced in metrics.** `colmap.py:153` has a `# TODO: Write information to metrics about this for visibility`. When `incremental_mapping` returns multiple models the worker picks the largest and discards the rest; the existence of multiple models is invisible to the API.
-- **`EXTRACTING_FEATURES` is overloaded.** The lease handler sets `EXTRACTING_FEATURES` at lease-grant time, so the row sits at `EXTRACTING_FEATURES` (no progress) during the tar download, extract, manifest parse, rig build, and pair generation -- none of which extract features. The phase only becomes honest once the per-image loop emits a real `(current, total)`. Splitting these into their own phases was rejected because they're all sub-second to sub-minute and the user-visible distinction wasn't worth the enum surface.
-- **`OPQ_MATRIX_FILE` / `PQ_QUANTIZER_FILE` phases publish no per-step progress** (single FAISS call each). UI sees a phase change with no in-phase movement until the next phase.
-- **No integration test.** `tests/test_rig.py` only covers the held-out filter on `Rig`. The pipeline as a whole has no end-to-end test; `tests/__init__.py` is empty.
-- **`template.Dockerfile` is empty** (one blank line); `README.md` is empty. Both are vestigial.
-- **`# noqa: TID251 -- Phase T piece 3 follow-up migration`** markers in `run_reconstruction.py`, `colmap.py`, `pairs.py`, `metrics_builder.py`, `rig.py`. Temporal language plus an external-context pointer; both violate the project conventions on comments.
+**cuDSS / GPU BA is equivalent to SuiteSparse at our problem size.** A custom pycolmap wheel built against Ceres+cuDSS was measured on capture `68cd9dfd` (n=318 cameras, RTX 4080) and produced no measurable wall-clock improvement vs. SuiteSparse. The custom-wheel infrastructure has been removed; not worth re-pursuing unless problem size grows by an order of magnitude.
 
-## Decisions
+**GLOMAP cannot replace incremental SfM for our use case.** `pycolmap.global_mapping()` (the GLOMAP entry point) does not apply pose-prior position residuals during its bundle-adjustment stage. Priors are only fed into rotation averaging (`colmap/sfm/global_mapper.cc:113-122`); the BA stage calls plain `RunBundleAdjustment` without prior residuals (`global_mapper.cc:324-325, 360-361` contain TODOs explicitly noting this is unimplemented). For ARFoundation mono captures, priors are the only thing pinning scale and absolute pose, so a GLOMAP run would float the entire reconstruction during BA. Incremental SfM is the only viable path while GLOMAP lacks priors-in-BA support.
 
-### D1 -- Single-anchor Sim3d alignment over Procrustes (2025-09)
+**Rig refinement at the end, not throughout.** The reconstructor runs `pycolmap.incremental_mapping` with rig refinement disabled (`ba_refine_sensor_from_rig=False`, `constant_rigs` populated with the rig ids), then runs one final standalone `pycolmap.bundle_adjustment(reconstruction, opts)` with rig refinement re-enabled. Rig refinement on every one of ~33 global-BA events during a typical incremental run scales N times; doing it once at the end against the final geometry is structurally cheaper, and the standalone BA gets an uncapped solve to let the rig parameters settle.
 
-**Status:** accepted
+**`mapper.ba_global_ignore_redundant_points3D = True`.** Two-stage solve: BA without redundant 3D points first, then refine pruned points with everything else fixed. Same final geometry, smaller main problem. Activates only when the reconstruction has at least 10 registered frames (COLMAP-side gate).
 
-**Context:** Reconstructions produce maps that the localizer queries at runtime. The localizer treats `camera_from_map` as `camera_from_world` for queries served from the same capture. This only works if "map origin" has a defined relationship to "world origin". Two candidates: pin the first registered frame, or fit all registered frames to truth via Procrustes.
+**`bundle_adjustment_global_max_refinements` defaults to 1, dev-biased.** Well below COLMAP's default of `5`. Each refinement is one full BA solve plus `CompleteAndMergeTracks` plus outlier filter; cutting from 3 to 1 saves roughly 3x of the pose-prior BA block at the cost of fewer outlier-cleanup passes per global-BA event. For production-quality map builds, callers should override to `3` (or higher) and accept the wall-time cost. The final standalone BA pass partially backstops the lower default, but it cannot recover all the outlier-discovery a multi-refinement schedule provides during the incremental phase. Repo policy, not a defect: iteration speed during pipeline development outweighs marginal map-quality improvements; production map builds explicitly opt back into the higher quality.
 
-**Decision:** Pin the first registered frame's COLMAP pose to its `frames.csv` truth pose via a single-anchor `pycolmap.Sim3d`. Compute Procrustes residual separately as a per-capture diagnostic; do not apply it.
+**`deterministic_seed` is the single reproducibility knob.** `ReconstructionOptions.deterministic_seed: int | None` is the only way to request a reproducible reconstruction. When set, the value pins the PRNG seed for the pipeline / triangulation / RANSAC AND forces single-threaded BA (`num_threads = 1` on both `IncrementalPipelineOptions` and the inner `mapper`). When `None`, the reconstruction is non-deterministic. The two older fields this replaces (`random_seed` and `single_threaded`) were footguns. `random_seed` alone was a lie: BA thread scheduling still varied between runs, so reruns drifted despite a pinned seed. `single_threaded` alone was a lie: each run drew a fresh PRNG seed, so reruns drifted despite pinned threading. Every "interesting" state of the original pair was the paired state; collapsing eliminates the broken-but-plausible combinations.
 
-**Consequences:** Localizer code is simpler (no per-query alignment). Procrustes residual surfaces as `truth_alignment_rms_residual_m` and `truth_alignment_max_residual_m`, which the calibration pipeline uses to filter unreliable captures from the corpus. The Procrustes fit itself is computed once at map-build time; runtime impact is none. Trade-off: maps from captures with poor VIO inherit the poor truth pose of their first registered frame as their origin; the diagnostic surfaces this but doesn't correct it.
+### Manifest in MinIO as the round-trip for `ReconstructionOptions`
 
-### D2 -- Manifest in MinIO as the round-trip for `ReconstructionOptions` (2025-09)
+**Context:** `ReconstructionOptions` is a per-job request envelope with ~20 nullable fields. It needs to travel from the API (request-time) to the reconstructor (run-time) and survive in storage for later inspection. The two candidates were: mirror as SQL columns, or write into MinIO alongside the artifacts.
 
-**Status:** accepted
+**Constraint:** Store the full options structure in the row's `manifest` JSONB column under `Manifest.options`. The reconstructor reads it from the lease response; the API writes it at create-time. `held_out_frame_timestamps`, `is_indoor`, and post-run `ReconstructionMetrics` follow the same pattern.
 
-**Context:** `ReconstructionOptions` is a per-job request envelope with ~20 nullable fields. It needs to travel from the API (request-time) to the reconstructor (run-time) and survive in storage for later inspection. Options: mirror as SQL columns, or write into MinIO alongside the artifacts.
+**Consequences:** No schema migration for new option fields. The manifest is the single source of truth for "what was requested." Trade-off: options cannot be indexed in SQL; queries like "find reconstructions with random_seed=42" require a JSONB scan. Acceptable because options are inspected per-row, not filtered at scale.
 
-**Decision:** Store the full options structure in the row's `manifest` JSONB column under `Manifest.options`. The reconstructor reads it from the lease response; the API writes it at create-time. `held_out_frame_timestamps`, `is_indoor`, and post-run `ReconstructionMetrics` follow the same pattern.
+### Pose priors anchor rotation; translation-only Sim3d anchors first-frame origin
 
-**Consequences:** No schema migration for new option fields. The manifest is the single source of truth for "what was requested." Trade-off: options cannot be indexed in SQL; queries like "find reconstructions with random_seed=42" require a JSONB scan. This is acceptable because options are inspected per-row, not filtered at scale.
+**Context:** An earlier approach pinned the first registered frame's full COLMAP pose to its `frames.csv` truth pose via a single-anchor `pycolmap.Sim3d`. Cold-start gravity error on that first frame -- VIO's world-Y not yet refined when capture began -- leaked directly into the map's gravity axis, where it leveraged into vertical overlay error scaling with distance from origin (~1 cm per meter at 0.5° tilt). The alternative of fitting all registered frames to truth via Procrustes was rejected because averaging the truth-vs-map residual across all frames breaks the per-capture "first registered frame == map origin" contract that the localizer's `camera_from_map`-as-`camera_from_world` shortcut depends on.
+
+**Constraint:** Write a translation-only `PosePrior` (with per-call sigma) into the COLMAP database for every registered ref-sensor image. Bundle adjustment with N priors spread across the trajectory pins COLMAP world rotation to VIO world rotation to within sub-degree by construction -- the only rotation that lets all N priors fit their image centers is the one that aligns COLMAP world to VIO world. After BA, apply a translation-only `Sim3d` (rotation = identity, translation = -first_camera_position) so the first registered frame's center lands at the origin. Procrustes Umeyama is computed but not applied; it surfaces as `truth_alignment_rms_residual_m` and `truth_alignment_max_residual_m` per-capture diagnostics that the calibration pipeline uses to filter unreliable captures from the corpus.
+
+**Consequences:** Cold-start gravity error is averaged across all priors instead of being baked into the origin's rotation, lowering typical map gravity error from ~1° to ~0.3--0.5° (ARFoundation) and to <0.5° (ZED X with IMU fusion). The downstream contract "first registered frame == map origin in truth coordinates" still holds for translation. Trade-off: the pose-prior sigma (`options.pose_prior_position_sigma_m()`) is a tunable that affects how strongly BA is pulled toward VIO truth vs. visual reprojection -- too tight forces VIO drift into the map, too loose lets the reconstruction float.
 
 ## See also
 
-- `docker/SPEC.md` -- stack-level data flow, MinIO bucket layout, lease lifecycle from the operational-debugging angle. Includes the "sfm_model/ presence means SfM completed regardless of DB status" recovery hazard documented from the operator's perspective.
+- `docker/SPEC.md` -- stack-level data flow, MinIO bucket layout, and the multi-service relationships this reconstructor sits inside.
+- `.pulsar/debugging.md` -- operator runbook including the "`sfm_model/` presence means SfM completed regardless of DB status" recovery hazard.
 - `docker/api/src/routers/leases.py` -- the API-side lease state machine (request, progress, succeed, fail, reaper). Read this when reasoning about timeout or recovery behavior.
 - `packages/python/core/src/core/reconstruction_options.py` and `reconstruction_metrics.py` -- the shared option / metric schema. The reconstructor reads options, writes metrics; both flow through the row's `manifest` column.

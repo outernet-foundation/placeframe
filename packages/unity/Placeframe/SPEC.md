@@ -53,6 +53,7 @@ Public API surface:
 - **State**: `Localizing`, `EcefToUnityWorldTransform`, `UnityWorldToEcefTransform`, `CurrentUncertainty`, `MostRecentMetrics`, `LastReceivedMetrics`, `Api` (the underlying generated client, for advanced use).
 - **Events**: `OnEcefToUnityWorldTransformUpdated` (fired whenever the visible transform changes -- snap or slew tick), `OnMetricsReceived` (per-localization metrics).
 - **Coord conversion**: `EcefToUnityWorld(double3, quaternion) -> (Vector3, Quaternion)`, `UnityWorldToEcef(Vector3, Quaternion) -> (double3, quaternion)`.
+- **Diagnostic bypass switches**: `BypassInnovationGate` and `BypassKalman` are `public static bool` flags surfaced as toggles in the metrics dialog. Setting `BypassInnovationGate=true` skips the chi-squared outlier reject; `BypassKalman=true` snaps the posterior to each accepted measurement instead of merging it with the prior. Used to A/B individual pipeline stages against the same camera feed without a rebuild.
 - **Manual reset**: `SetEcefToUnityTransform(double4x4)` calls `RelocalizationFilter.Reset` -- wipes filter history, re-bootstraps the covariance.
 - **Reconstruction download**: `GetReconstructionPoints(Guid)`, `GetReconstructionFramePoses(Guid)` -- used by editor tooling (e.g. MakeItSing's `ReconstructionDownloadHelperWindow`).
 - **Map visualization**: `SetMapVisualizationsVisible(bool)`, `LocalizationMapManager.AddMap/RemoveMap` -- spawn ParticleSystem-based point-cloud renderers from the downloaded reconstruction points.
@@ -72,12 +73,12 @@ The Keycloak realm path `placeframe-dev` is hardcoded at `Assets/Package/Core/Ru
 - `AlignmentMean: double4x4` -- Bayesian posterior mean (ECEF to Unity), in Unity basis.
 - `AlignmentCovariance: Matrix<double>` (6x6) -- posterior covariance in se(3) tangent (rotation first, translation second -- matches pycolmap PnP ordering).
 - `AlignmentCurrent`, `AlignmentCurrentInverse` -- the actively-published transform (lags `AlignmentMean` during slew).
-- `SlewStart`, `SlewProgress`, `LastAcceptedVioPosition`, `HasAcceptedMeasurement`, `MostRecentMetrics`.
+- `SlewStart`, `SlewProgress`, `LastAcceptedVioPosition`, `HasAcceptedMeasurement`, `ConsecutiveRejections`, `MostRecentMetrics`.
 
 The Bayesian update for each measurement (`ApplyMeasurement`):
 
-1. Compute `measurementMean` from the localizer response: `CameraFromMapTransform`, `MapTransform`, and the VIO `CameraFromUnityWorld` are combined and the result has its up-vector projected to Unity-up (an empirical tilt-drift correction at lines 287-291). The ECEF-to-Unity basis change (`diag(1, -1, 1)`) is applied inline.
-2. Inflate the predicted covariance by a base diagonal (`1e-6` rad squared, `1e-4` m squared per tick) plus VIO drift proportional to translated distance (0.01 m sigma per meter of motion, squared). Rotation-only motion contributes no extra noise -- a known simplification.
+1. Compute `measurementMean` from the localizer response. `CameraFromMapTransform`, `MapTransform`, and the VIO `CameraFromUnityWorld` compose to the raw 6 DOF `R_unityFromEcef`. The translation is anchored on the camera: `tMeas = t_unityWorldCamera - R_unityFromEcef * t_ecefFromCamera`, so the camera's reported Unity-world position determines the alignment translation regardless of how the rotation noise lever-arms around the map origin. The ECEF-to-Unity basis change (`diag(1, -1, 1)`) is applied inline.
+2. Inflate the predicted covariance by a base diagonal (`1e-6` rad squared on rotation, `1e-4` m squared per tick on translation) plus VIO drift proportional to translated distance (0.01 sigma per meter of motion, squared, applied uniformly to all six tangent dimensions). Rotation-only motion contributes no extra noise -- a known simplification.
 3. Innovation: `residual = Se3.Log(currentMean^-1 * measurementMean)`, Mahalanobis squared `= residual . (Sigma_pred + Sigma_meas)^-1 . residual`.
 4. Gate at chi-squared 99% with 6 DOF = 16.81 (`Chi2_99_6dof`). Reject and log if exceeded.
 5. Kalman update in se(3) tangent: `K = Sigma_pred (Sigma_pred + Sigma_meas)^-1`, `mu_new = mu * Se3.Exp(K residual)`, `Sigma_new = (I - K) Sigma_pred`.
@@ -121,7 +122,7 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 ### Tests
 
-`Assets/Package/Core/Tests/Editor/` holds five NUnit edit-mode test files (about 650 lines): `Double4x4Tests` (decompose, interpolate), `LocationUtilitiesTests` (basis-change involutions), `Se3Tests` (Exp/Log round-trip including small-angle branch), `WGS84Tests` (cartographic to/from ECEF round-trip at known sites), `RelocalizationFilterTests` (bootstrap, slew, snap-vs-slew, gate, posterior, VIO drift inflation). These are the only Unity-side regression net; there is no integration test against a running localizer.
+`Assets/Package/Core/Tests/Editor/` holds five NUnit edit-mode test files: `Double4x4Tests` (decompose, interpolate), `LocationUtilitiesTests` (basis-change involutions), `Se3Tests` (Exp/Log round-trip including small-angle branch), `WGS84Tests` (cartographic to/from ECEF round-trip at known sites), `RelocalizationFilterTests` (bootstrap, slew, snap-vs-slew, gate, posterior, VIO drift inflation, camera-anchored translation regression for a pitched input, repeated-rejection consecutive counter, bypass-flag plumbing). These are the only Unity-side regression net; there is no integration test against a running localizer.
 
 ### Editor utilities
 
@@ -129,7 +130,7 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 `GeoPoseInspector` is a 21-line custom inspector that surfaces the read-only ECEF coordinates of a `GeoPose` component for copy-paste.
 
-## Rationale
+## Constraints
 
 **Static API for a single-session assumption.** Placeframe is one localization session per process -- one set of maps, one filter, one set of camera frames. The static facade avoids `[SerializeField] VisualPositioningSystem _vps;` plumbing in every consumer scene at the cost of testability and runtime provider-swap. The filter is a pure-functional static class so the state can be tested in isolation despite the surrounding singleton.
 
@@ -137,27 +138,17 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 **Bayesian filter in tangent space with chi-squared gate.** A naive moving average over the measurement transform is wrong on SE(3) -- averaging rotation matrices isn't a rotation. Working in se(3) tangent (the Lie algebra) makes the Kalman update linear-to-first-order around the current mean, and lets the innovation gate use a standard Mahalanobis distance against the analytic measurement covariance the server returns (`MeasurementCovariance = alpha * PnP + beta * I`, see `docker/localizer/SPEC.md`). The trade-off: tangent-space accuracy degrades for large innovations, which is why large posterior shifts snap rather than slew.
 
+**Camera-anchored measurement translation.** The earlier "compose `tMap` directly" formulation pivoted the alignment around the ECEF origin: any rotation noise produced a position offset that scaled linearly with `|t_ecefFromCamera|`, so a 0.5-degree rotation error displaced the rendered camera by ~50cm at 50m from origin. Anchoring the measurement translation on the camera (`tMeas = t_unityWorldCamera - R_unityFromEcef * t_ecefFromCamera`) makes the camera position correct by construction at the moment of measurement, and lets the Kalman update propagate rotation refinements through the camera anchor instead of the ECEF origin. A briefly-explored 4 DOF filter parameterisation (`d1e15fbb`..`a7f6336c`) was reverted in favor of keeping the full SO(3) state with camera anchoring.
+
 **Snap-or-slew with smoothstep.** Visual continuity matters more than mathematical pristineness -- a 30cm position jump on a successful first localize is shocking on-headset. The 0.5s smoothstep slew hides small refinements; the 6-sigma snap threshold catches cases where slewing would be longer-than-correct-tracking (e.g. recovering from an outlier-rejected sequence). The first accept always snaps because the bootstrap covariance (pi squared rad squared, 100 squared m squared) is degenerate and the snap-magnitude calculation isn't meaningful.
+
+**Diagnostic bypass switches over per-build feature flags.** `BypassInnovationGate` and `BypassKalman` are `public static bool` flags toggleable at runtime through the metrics dialog. Flipping them in the field lets a tester A/B individual pipeline stages against the same camera feed without an APK rebuild and a re-walk of the space. The cost is two always-checked branches in the hot path, which are predictable enough that the cost is negligible.
 
 **Server-computed measurement covariance.** Earlier versions of the filter applied a client-side confidence gate; commit `06bff440` dropped it in favor of consuming the calibrated `MeasurementCovariance` directly. The localizer's `fit_calibration` pipeline now solves for the alpha/beta formula at build time, and the client filter stays calibration-agnostic -- see `docker/localizer/SPEC.md` Calibration runtime.
 
 **Keycloak ROPC over OAuth code flow.** Resource Owner Password Credentials is deprecated by OAuth 2.1 but is what Placeframe ships, because XR clients typing a username and password into a Unity-rendered text box is the lowest-friction path. A browser-redirect code flow would require an external WebView or platform browser handoff, which is awkward on Magic Leap and inappropriate for headless Capture Tool runs. The cost is the static `Password` property holding the plaintext for the process lifetime.
 
 **`GeoPose` round-trips ECEF on `Awake` in edit mode.** Authors place objects in Unity world coordinates via the editor; the alignment is identity at that point (no localization in the editor), so the basis-changed Unity coordinates are equivalent to ECEF-from-world-origin. The serialized ECEF survives a play-mode re-localization that shifts the alignment, anchoring the object to its real-world place rather than its scene-authored Unity coordinate.
-
-## Known gaps
-
-- **`placeframe-dev` realm is hardcoded** at `Assets/Package/Core/Runtime/VisualPositioningSystem.cs:90`. A non-dev deployment requires editing the package or naming its Keycloak realm `placeframe-dev`. The OAuth `client_id` is parameterised (`authAudience` argument); the realm is not. The `-dev` suffix suggests "we'll rename later" debt.
-- **`MagicLeapCameraCapture` static pixel buffer race** (`Assets/Package/MagicLeap/Runtime/MagicLeapCameraCapture.cs:182-188`). The native video callback writes to a single static `pixelBuffer` byte array, and the same backing buffer is handed to the JPG encoder running on a thread pool. `SelectAwait` defaults to Sequential semantics so encodes don't pile up in parallel, but the next native frame can mutate the buffer while the previous encode is still reading.
-- **`MagicLeapCamera.Start` hangs on permission denial** (`Assets/Package/MagicLeap/Runtime/MagicLeapCameraCapture.cs:128`). `await UniTask.WaitUntil(() => permissionGranted)` has no timeout or error path; if the user denies camera, `CameraConfig()` never resolves and `StartLocalizing` is stuck in `SelectMany`.
-- **`LocalizationMap.OnDestroy` NRE** (`Assets/Package/Core/Runtime/LocalizationMap.cs:36`). Unconditionally calls `_loadCancellationTokenSource.Cancel()`, but the CTS is only created inside `Load`. A `LocalizationMap` destroyed before any `Load` call NREs.
-- **`CaptureManager` hardcodes `DeviceType.ARFoundation`** for all captures (`Assets/Package/Core/Runtime/CaptureManager.cs:97`). Magic Leap captures are labelled ARFoundation server-side.
-- **Asmdef names lag the namespace rename**. `Plerion.VPS`, `Plerion.VPS.ARFoundation`, `Plerion.VPS.MagicLeap`, `Plerion.VPS.Editor` still carry the legacy name despite `c93e7df8 Rename Plerion to Placeframe`. The test asmdef is up to date; the runtime ones are not.
-- **`R3Extensions.cs` declares `WhereNotNull<T>` at the global namespace** (no `namespace` block). Visible everywhere without an explicit `using` -- surprising for a package extension.
-- **`BuildUtility.cs` carries about 50 lines of commented-out git-dirtiness scaffolding**. Either delete or restore behind a flag.
-- **`Localize`'s "no maps loaded" setup failure is routed through `LogDebug`** via the `onErrorResume: exception => LogDebug(exception.Message)` handler at `Assets/Package/Core/Runtime/VisualPositioningSystem.cs:172`, indistinguishable from per-frame transient skips. The comment at lines 170-171 documents the choice; promoting setup failures to `LogError` would help.
-- **`Auth` falls back to `Console.WriteLine`** when log callbacks are null (`Assets/Package/Core/Runtime/Auth.cs:54-58`). On Android that's effectively `/dev/null`. Either require non-null log callbacks or surface via `UnityEngine.Debug.Log`.
-- **`SampleScene.unity` is empty** -- the default Unity-created camera and light. There is no sample exercising the package; commit `6612c1d9 samples, new localization validation approach` suggests samples once existed.
 
 ## See also
 

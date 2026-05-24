@@ -16,6 +16,7 @@ Registered in `scripts/pyproject.toml`:
 | `list-debug-targets` | `list_debug_targets.py` | Enumerates Docker containers with a `service` label that publishes `5678/tcp`. Prints `{host_port}|{service} | {name} {job} {task}` lines for VS Code's attach picker. |
 | `install` | `install.py` | Downloads the latest GitHub Actions Unity build artifact for `(project, target)` on the current branch (overridable), caches it under `~/.placeframe/builds/{run_id}/`, and `adb install`s the APK or `bash_handoff`s the linux64 executable. |
 | `install-zed` | `install_zed.py` | End-to-end SSH deploy of the `zed-capture` container onto a Jetson over the box's wired-ethernet link: SSH bootstrap, Docker install, NVIDIA runtime, disable of NVIDIA's USB device-mode service (frees the USB-C port for AOA host duty), image acquisition (ghcr pull or local cross-compile + `docker save \| ssh docker load`), compose+systemd unit install, `docker compose up`. |
+| `loki-query` | `loki_query.py` | Run a LogQL query against the local Loki via `docker exec placeframe-loki-1 wget`, formatting each entry as `HH:MM:SS LEVEL [logGroup] message` (plus exception chain when present). Flags: `--limit`, `--direction`, `--since`, `--raw`. Use this instead of hand-rolling URL-encoded `wget` invocations — the URL encoding is fragile (`+`/`%7C`/quote-escapes) and easy to get subtly wrong. |
 | `tune-reconstruction` | `tune_reconstruction.py` | Plackett-Burman sweep over `ReconstructionOptions` per capture. One reconstruction per cell. Aggregates map-quality metrics into a JSON report. |
 | `fit-calibration` | `fit_calibration.py` | Algorithm 1: pick held-out frames, build/reuse reconstructions, localize each held-out frame, fit logistic+isotonic for tight/loose success probability, fit Σ_meas `(α, β)`, write `config/calibration/global.json`. |
 
@@ -126,7 +127,7 @@ The full-blob match is the strictest possible. Anything looser admits silent con
 
 Deterministic, scales to capture length, gives even temporal spacing → roughly even spatial spacing on smooth capture paths.
 
-## Rationale
+## Constraints
 
 **Two packages for "Python scripts registered as `uv run` commands."** `scripts/` and `build/` (the `build-scripts` package) both ship `[project.scripts]` entries. The split is by topic, not by mechanism: `build-scripts` orchestrates the Docker stack lifecycle and the code-generation pipeline (lives next to `compose.*.yml` and `openapi-generator/` it operates on); `scripts/` is everything else (operator/dev utilities and the calibration pipeline). `scripts/` imports from `build-scripts`, not vice versa. The rationale is one of co-location: the lifecycle commands live next to the configs they read; the operator-CLI bucket lives separately so its dependency surface (numpy/scipy/sklearn/pytransform3d for fit-calibration, plus typer/httpx for the utilities) does not bleed into the lighter codegen-and-compose tooling.
 
@@ -151,25 +152,6 @@ Deterministic, scales to capture length, gives even temporal spacing → roughly
 **`install-zed` owns the host-side networking the box depends on.** Beyond box-side configuration, the script also (a) creates or updates the host's `zedbox` NetworkManager connection at `100.64.0.2/24` on an auto-detected unused wired interface, before the SSH probe so a fresh host bootstraps in one invocation; (b) writes `/etc/sysctl.d/99-zedbox.conf` to enable `net.ipv4.ip_forward=1` persistently (without relying on Docker as a side-effect); (c) adds `100.64.0.0/24` to firewalld's trusted zone and enables masquerade on the public zone, so the box can reach the public internet through the host. A fresh-Ubuntu host with no other tooling can run `install-zed` and get a fully working box→internet path.
 
 **`install-zed` uses an SSH control-master multiplexer.** A single TCP connection is established once and reused for every subsequent SSH/scp invocation (`-o ControlMaster=auto -o ControlPath=/tmp/install-zed-ssh-%C -o ControlPersist=120`). Without this, each of the ~20 SSH calls in the deploy would pay the TCP+TLS handshake cost; with it, the deploy completes in roughly one round-trip per command. The control socket is torn down at exit via `stack.callback`.
-
-## Known gaps
-
-The calibration pipeline is end-to-end functional against the dev stack but carries placeholder values and a few comment-language compliance issues. The operational utilities have low-stakes drift.
-
-- **`STARTER_LOOSE_MIN = 0.25`, `STARTER_TIGHT_MIN = 0.0`** (`src/scripts/fit_calibration.py:76`) are hand-set gate thresholds written into every emitted artifact. The corpus-derived versions (from the success-cluster distribution) are not yet wired in. The starter's tight model is degenerate (no positive class to fit on), so `tight_min = 0.0` no-ops the tight gate; `loose_min = 0.25` sits in the empirical gap between the starter fit's loose=0 and loose=0.5 clusters.
-- **Localization-map placeholder pose** (`src/scripts/fit_calibration.py:303`): `_populate_evaluations` creates the map at `(0,0,0)` ECEF with identity rotation. Works because the reconstructor's single-anchor alignment puts the rebuilt map in the capture's truth frame, so the saved ECEF pose is immaterial to the fit. Would break silently if reconstructions ever began placing maps at non-identity ECEF poses without updating this script.
-- **`StrideHeldOutSelector` with target_count >= len(timestamps)** holds out every frame. `stride = max(1, len // count) = 1` and `timestamps[0::1] = timestamps`. Downstream, the reconstructor receives a `held_out_frame_timestamps` set equal to all timestamps and builds an empty map. No guard in either `held_out_selection.py` or `fit_calibration.py`. The test `test_target_count_exceeds_available_falls_back_to_stride_one` codifies the current behavior as intentional.
-- **`tune_reconstruction.py` has no reuse path** (contrast `fit_calibration.match_or_create_reconstruction`) and no polling timeout. Re-running the sweep doubles the number of reconstructions in the database and can hang on a stuck cell.
-- **`tune_reconstruction.py` PB factor/seed coupling.** `PB_FACTORS` is derived from `ReconstructionOptions.model_fields` filtered by what's non-None on `PB_LOW`; `PB_SEED` is a fixed-length 10-element list. The two lengths must match by hand; adding an 11th option silently truncates because `zip(PB_FACTORS, row)` is unchecked.
-- **`list_debug_targets.py:62` violates `common.bash`.** Calls `subprocess.check_output("docker", "ps", ...)` directly. The repo CLAUDE.md is explicit: "Use `common.bash` for shell calls, not `subprocess`." Single-line fix.
-- **Style drift in `forward_unity_android_debug_port.py` and `list_debug_targets.py`.** Both use Python 3.9 `List`, `Set`, `Optional`, `Mapping` typing imports; the rest of the package uses 3.13-native generics. Several functions in both files lack return-type annotations.
-- **`forward_unity_android_debug_port.py:25`** raises `RuntimeError` from `main()`, but the `__main__` block does `raise SystemExit(main())` — the SystemExit value path is unreachable on raise. Inconsistent with the typer-based scripts elsewhere in the directory.
-- **`fit_calibration.py:24`** carries `from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration` — temporal language and unscoped external reference. The noqa itself is not to be modified without explicit instruction.
-- **`tune_reconstruction.py` module header** has a `DEFERRED — localization-quality eval per cell` block referencing "plan.md Phase 3" — temporal language and external-doc reference, both contrary to repo comment conventions.
-- **Hardcoded dev credentials** in `api_auth.py` (`client_id="placeframe-api"`, `username="user"`, `password="password"`, realm `placeframe-dev`). No env-var override. Rotating any of these breaks every script in this directory.
-- **`Configuration(access_token=...)`** in `placeframe_api_client` is dead-code (`_auth_settings: List[str] = []` is emitted by the generator on every method); `api_auth.py` papers over it via default-header injection. This is a generator-config gap with repo-wide implications, not unique to `scripts/`.
-- **`README.md` is empty (0 bytes).** Either intentional placeholder or oversight.
-- **No integration tests.** `tests/test_fit_calibration.py` covers the fit math (logistic+isotonic, separability, single-class collapse, artifact disk round-trip, stride selector edge cases). The orchestration path (`match_or_create_reconstruction`, `_populate_evaluations`, `_localize_and_persist`) is entirely untested.
 
 ## See also
 
