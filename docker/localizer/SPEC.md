@@ -175,7 +175,7 @@ No healthcheck. No `restart` policy. No `depends_on`. The API service treats the
 
 The Dockerfile bakes `LOCALIZER_SHA` in the *last* `ENV` layer, so only that layer invalidates when the build-context hash changes. `PYTORCH_ALLOC_CONF=expandable_segments:True` is set in the image — PyTorch's default caching allocator fragments under varying per-request peaks (query images of different sizes, varying top-K, varying keypoint counts) and eventually OOMs despite ample free memory. Expandable segments use CUDA virtual memory to grow segments on demand.
 
-## Rationale
+## Constraints
 
 **Models, calibration, and S3 client load at module import — no async startup hook.** Litestar's lifespan hooks would let the loader run async, but the loads are CPU/GPU-blocking and run exactly once, so async buys nothing. Module import is the simplest correct shape.
 
@@ -194,23 +194,6 @@ The Dockerfile bakes `LOCALIZER_SHA` in the *last* `ENV` layer, so only that lay
 **The localizer talks reconstructions; the API talks maps.** The `map_id -> reconstruction_id` indirection lives in the API, which also composes the final world-space pose by combining the localizer's `cam_from_reconstruction` transform with the map row's anchor `Transform`. The localizer never sees the world-space anchor; it operates purely in reconstruction-local coordinates. Decoupling means a reconstruction can back multiple maps (different anchors of the same scan) without re-uploading artifacts.
 
 **`async def localize_image` with synchronous body.** The async signature is required by Litestar's route handler protocol; the body is synchronous because every heavy step is. With one uvicorn worker, requests serialize on the event loop. Concurrent throughput would require either offloading to `_executor` (declared but unused) or running multiple workers — but the GPU is the bottleneck either way and they'd serialize on it. The current shape acknowledges this.
-
-## Known gaps
-
-- `src/main.py:81` — `if environ.get("CODEGEN"): raise` is a bare `raise` with no active exception. Reaches `RuntimeError: No active exception to re-raise` if CODEGEN=1 leaks into a running container. Should be `raise NotImplementedError(...)` or removed in favor of the existing `assert calibration is not None`.
-- `src/main.py:40-43` — `_executor`, `_load_lock`, `_load_state`, `_load_error` are declared but never read. Vestigial from an earlier async-load design.
-- `src/schemas.py` — `LoadState` enum and `LoadStateResponse` are imported in `main.py` but never used. The only reference is the dead `_load_state` annotation. Companion to the dead executor scaffolding.
-- `pyproject.toml` — `[tool.hatch.build.targets.wheel] packages = ["src/localize"]` and `[project.scripts] localize = "localize.main:main"` reference a non-existent `localize/` subdirectory. The wheel installs no Python modules; the runtime works only because `entrypoint.sh` cd's into `/app/docker/localizer` and uvicorn resolves `src.main:app` from the working directory.
-- `_maps: dict[UUID, Map]` (`src/main.py:44`) has no eviction. Memory grows linearly with the number of distinct reconstruction IDs the process has localized against.
-- `/tmp/reconstructions/` grows unboundedly on disk. Every artifact downloaded from MinIO stays there for the container's lifetime.
-- `load_map` re-downloads every file every call — no `if local_path.exists(): continue` check. The on-disk cache is unused.
-- `load_map` is not reentrant. Two concurrent requests for the same un-cached id race on `s3.download_file` and both insert into `_maps`. `_load_lock` exists but isn't used.
-- `build_metrics._compute_inlier_coverage` (`src/build_metrics.py:26`) catches bare `Exception` from `ConvexHull`. Tighter `except QhullError` would avoid masking unrelated numerical bugs.
-- The success response (`list[Localization]`) silently omits failed reconstruction IDs. A caller can detect that fewer entries came back than were requested but cannot recover the per-id error reason; that information is only surfaced in the 422 detail when *every* id fails.
-- No healthcheck in `compose.cuda.yml` / `compose.rocm.yml`. A startup wedge (calibration mismatch, GPU OOM at model load, missing `LOCALIZER_SHA`) is observed only by the API getting connection refused, which it returns as a 502.
-- `Dockerfile` ENV `LOCALIZER_SHA=${LOCALIZER_SHA}` writes the empty string when the build arg is unset. The resulting empty `pipeline_version` mismatches any real calibration's `pipeline_version` and the container fails startup with `CalibrationLoadError` — loud, but the underlying "build forgot to pass --build-arg" is the original mistake. Worth a Dockerfile-time `RUN test -n "$LOCALIZER_SHA"` guard.
-- `Features` has no `is_indoor` field. The prior SPEC mentioned one; it never landed and no calibration row ever consumed it.
-- Per-map calibrations have no loader. The prior SPEC sketched a lazy MinIO-fetch + in-memory cache keyed by map ID; no code path implements it. Only the global calibration is loaded.
 
 ## See also
 

@@ -75,7 +75,7 @@ The reason this package is the hub of the stack: every artifact the reconstructo
 
 Flipping `LOCAL_FEATURE_RESIZE_SHORTER_SIDE`, `RETRIEVAL_TILE_OVERLAP_FRACTION`, an HDF5 dataset name, or an OPQ file name in core without rebuilding every existing map silently degrades retrieval quality without raising.
 
-## Rationale
+## Constraints
 
 **One flat package, no `__init__.py` re-exports.** Every consumer reaches into a leaf module, which makes the dependency graph immediately legible from import lines alone: `from core.opq import decode_descriptors` says exactly what the consumer touches. The cost is verbose import blocks at the call site (the localizer's `localize.py` imports from `core.model_wrappers` on two separate lines); the benefit is no parallel public-surface drift between `__init__.py` and the leaves.
 
@@ -94,19 +94,6 @@ Flipping `LOCAL_FEATURE_RESIZE_SHORTER_SIDE`, `RETRIEVAL_TILE_OVERLAP_FRACTION`,
 **The torch / lightglue dependency lives in core but is not declared in `pyproject.toml`.** A `DEP003` deptry exemption documents the asymmetry. The canonical PyTorch dep lives in `neural-networks` behind conflicting `cpu` / `cuda` / `rocm` extras, so declaring bare `torch` here would conflict. Consumers that touch the torch-aware modules (`lightglue`, `model_wrappers`, `tensor_types`) must also depend on `neural-networks` with the matching extra; the API does not depend on `neural-networks` and never imports those modules.
 
 **Calibration is the only place with a real algorithm and the only place with a real version check.** `load_global_calibration` raises loudly on schema or pipeline mismatch. Every other versioned thing in core (notably `MANIFEST_VERSION`) trusts the caller. The asymmetry is deliberate where the calibration artifact is concerned — a wrong-version calibration silently miscalibrates every confidence in production — but is a known gap for the manifest path.
-
-## Known gaps
-
-- `Manifest.model_validate` does not check `MANIFEST_VERSION` against the row's `manifest_version` column. `docker/api/src/routers/leases.py:77, 107` and `reconstructions.py` parse blindly. Bumping the version is a silent contract change for older rows. `load_global_calibration` does the equivalent check and raises; the manifest path does not.
-- `apply_global_calibration` returns a hard-coded `True` as its third tuple element (`calibration.py:142`). `LocalizationMetrics.confidence_is_calibrated` is therefore never `False` by any current code path. The optionality dates to commit `06bff440 Drop client confidence gate and seed sigma_meas placeholders` and is dead-weight kept to preserve the response shape.
-- `main.py` is `uv init` scaffolding (`print("Hello from core!")`); not registered as a script. `README.md` is empty.
-- Inline `print()` calls at `lightglue.py:60` and `opq.py:43`, plus `verbose=True` on the FAISS trainers at `opq.py:23, 33`. Core library code writes directly to stdout, bypassing Loki structured logging.
-- `# noqa: TID251 -- Phase T piece 3 follow-up migration` comments at `axis_convention.py:4`, `h5.py:6`, and `opq.py:14`. The "Phase T piece 3" wording violates the root `CLAUDE.md` "no temporal language in comments" rule.
-- Variable name typo: `basic_change_unity_from_opencv` at `axis_convention.py:15` should be `basis_change_unity_from_opencv`. Used twice in the file.
-- `fit_at: str` and `fit_by: str` on `CalibrationArtifact` are unvalidated strings.
-- `Manifest` is written at reconstruction creation with `metrics=ReconstructionMetrics()` -- 32 explicit `null` fields in JSONB until the leases route replaces the whole metrics blob on completion.
-- No local tests for `core` itself. Calibration math (`Features.compute`, `_apply_tolerance`) and `canonicalize_intrinsics`'s 8-branch orientation match would benefit from unit tests rather than end-to-end coverage from consumers.
-- No `__init__.py` re-exports, so `docker/localizer/src/localize.py` imports from `core.model_wrappers` on two separate import lines (13 and 21). Cosmetic, but a symptom of no canonical public surface.
 
 ## See also
 
