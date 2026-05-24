@@ -3,7 +3,7 @@ from asyncio import to_thread
 from datetime import UTC, datetime
 from os import environ
 from shutil import rmtree
-from typing import List, cast
+from typing import Annotated, List, cast
 from uuid import UUID
 
 from common.stream_tar import compute_tar_size, stream_tar
@@ -11,7 +11,7 @@ from litestar import Router, delete, get, post
 from litestar.exceptions import ClientException, NotFoundException
 from litestar.response import Stream
 from litestar.status_codes import HTTP_409_CONFLICT
-from pydantic import AwareDatetime, BaseModel
+from pydantic import AwareDatetime, BaseModel, Field
 
 CAPTURES_DIRECTORY = pathlib.Path.home() / "captures"
 
@@ -52,6 +52,12 @@ async def stop_capture() -> None:
 class ZedCapture(BaseModel):
     id: UUID
     recorded_at: AwareDatetime
+    size_bytes: Annotated[int, Field(json_schema_extra={"format": "int64"})]
+
+
+# Matches the default exclude_suffixes for download_capture_tar so size_bytes
+# is the byte count the phone will actually upload.
+_DEFAULT_UPLOAD_EXCLUDES: tuple[str, ...] = (".svo2",)
 
 
 @get("")
@@ -66,6 +72,7 @@ async def get_captures() -> List[ZedCapture]:
             # for the rest of the session — close enough to "when recording
             # began" to display in the UI without writing a sidecar timestamp.
             recorded_at=datetime.fromtimestamp(capture.stat().st_ctime, tz=UTC),
+            size_bytes=await to_thread(compute_tar_size, capture, _DEFAULT_UPLOAD_EXCLUDES),
         )
         for capture in CAPTURES_DIRECTORY.glob("*")
         if capture.is_dir()
