@@ -1,9 +1,3 @@
-NETWORKMANAGER_NOT_ACTIVE = """\
-NetworkManager is not active on the box. install-zed assumes NM manages the
-box's RJ-45 (the L4T default) so the persistent gateway + DNS land in
-/etc/NetworkManager/system-connections/. If the box is on systemd-networkd
-or another stack, persistence needs a different approach."""
-
 BOX_INTERFACE_UNPARSEABLE = "Could not parse box-facing interface from `ip route get {host_ip}`: {route_out}"
 
 NO_ACTIVE_NM_CONNECTION = (
@@ -13,14 +7,14 @@ NO_ACTIVE_NM_CONNECTION = (
 NO_UNUSED_WIRED_INTERFACE = """\
 Could not auto-detect an unused wired interface for the {connection_name!r} NM connection.
 Candidates: {candidates}.
-Configure manually: sudo nmcli con add type ethernet ifname <iface> con-name {connection_name} \
-ipv4.method manual ipv4.addresses {cidr}"""
+Configure manually: sudo nmcli con add type ethernet con-name {connection_name} \
+ethernet.mac-address <mac> ipv4.method manual ipv4.addresses {cidr}"""
 
 FIREWALLD_REQUIRED = """\
 firewalld is required on the host for the box→internet path (NAT + trusted-zone
 forwarding). On Ubuntu: sudo apt install firewalld."""
 
-BOX_ID_UNRESOLVABLE = "Could not resolve box id: both /proc/device-tree/serial-number and /etc/machine-id are empty"
+BOX_ID_UNRESOLVABLE = "Could not resolve box id: /proc/device-tree/serial-number is empty or missing"
 
 IMAGE_PULL_FAILED = """\
 Image pull failed for {image}. Either the tag has not been pushed to ghcr.io
@@ -39,6 +33,6 @@ default). If the box already has a static IP, install-zed expects it to be
 {box_ip} — anything else won't be reached without bootstrap."""
 
 NO_BOX_WIRED_CONNECTION = """\
-Could not find a wired (802-3-ethernet) NetworkManager connection on the box
-during bootstrap. Active-connection output from the box:
+Could not find a wired (802-3-ethernet) NetworkManager device on the box
+during bootstrap. nmcli device list:
 {raw}"""

@@ -9,6 +9,7 @@ class UnityProjectConfig(BaseModel, extra="forbid"):
     package: str | None = None
     builds: list[str] | None = None
     execute_methods: dict[str, str] | None = None
+    grant_permissions: list[str] = []
 
 
 class UnityProjectsFile(BaseModel, extra="forbid"):
