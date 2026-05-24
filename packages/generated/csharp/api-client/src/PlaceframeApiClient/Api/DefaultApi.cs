@@ -799,24 +799,6 @@ namespace PlaceframeApiClient.Api
         /// <returns>ApiResponse of List&lt;MapLocalization&gt;</returns>
         ApiResponse<List<MapLocalization>> LocalizeImageWithHttpInfo(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default);
         /// <summary>
-        /// PushZedBoxLogs
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="logRelayBatch"></param>
-        /// <returns></returns>
-        void PushZedBoxLogs(LogRelayBatch logRelayBatch);
-
-        /// <summary>
-        /// PushZedBoxLogs
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="logRelayBatch"></param>
-        /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> PushZedBoxLogsWithHttpInfo(LogRelayBatch logRelayBatch);
-        /// <summary>
         /// RequestLease
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
@@ -2029,29 +2011,6 @@ namespace PlaceframeApiClient.Api
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (List&lt;MapLocalization&gt;)</returns>
         Cysharp.Threading.Tasks.UniTask<ApiResponse<List<MapLocalization>>> LocalizeImageWithHttpInfoAsync(List<Guid> mapIds, PinholeCameraConfig cameraConfig, AxisConvention axisConvention, FileParameter image, int? retrievalTopK = default, double? ransacThreshold = default, System.Threading.CancellationToken cancellationToken = default);
-        /// <summary>
-        /// PushZedBoxLogs
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="logRelayBatch"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of void</returns>
-        Cysharp.Threading.Tasks.UniTask PushZedBoxLogsAsync(LogRelayBatch logRelayBatch, System.Threading.CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// PushZedBoxLogs
-        /// </summary>
-        /// <remarks>
-        /// 
-        /// </remarks>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="logRelayBatch"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> PushZedBoxLogsWithHttpInfoAsync(LogRelayBatch logRelayBatch, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// RequestLease
         /// </summary>
@@ -7341,121 +7300,6 @@ namespace PlaceframeApiClient.Api
             if (this.ExceptionFactory != null)
             {
                 Exception _exception = this.ExceptionFactory("LocalizeImage", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// PushZedBoxLogs 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="logRelayBatch"></param>
-        /// <returns></returns>
-        public void PushZedBoxLogs(LogRelayBatch logRelayBatch)
-        {
-            PushZedBoxLogsWithHttpInfo(logRelayBatch);
-        }
-
-        /// <summary>
-        /// PushZedBoxLogs 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="logRelayBatch"></param>
-        /// <returns>ApiResponse of Object(void)</returns>
-        public PlaceframeApiClient.Client.ApiResponse<Object> PushZedBoxLogsWithHttpInfo(LogRelayBatch logRelayBatch)
-        {
-            // verify the required parameter 'logRelayBatch' is set
-            if (logRelayBatch == null)
-                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'logRelayBatch' when calling DefaultApi->PushZedBoxLogs");
-
-            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-                "application/json"
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.Data = logRelayBatch;
-
-
-            // make the HTTP request
-            var localVarResponse = this.Client.Post<Object>("/zed-boxes/logs", localVarRequestOptions, this.Configuration);
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("PushZedBoxLogs", localVarResponse);
-                if (_exception != null) throw _exception;
-            }
-
-            return localVarResponse;
-        }
-
-        /// <summary>
-        /// PushZedBoxLogs 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="logRelayBatch"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of void</returns>
-        public async Cysharp.Threading.Tasks.UniTask PushZedBoxLogsAsync(LogRelayBatch logRelayBatch, System.Threading.CancellationToken cancellationToken = default)
-        {
-            await PushZedBoxLogsWithHttpInfoAsync(logRelayBatch, cancellationToken);
-        }
-
-        /// <summary>
-        /// PushZedBoxLogs 
-        /// </summary>
-        /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="logRelayBatch"></param>
-        /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
-        /// <returns>Task of ApiResponse</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> PushZedBoxLogsWithHttpInfoAsync(LogRelayBatch logRelayBatch, System.Threading.CancellationToken cancellationToken = default)
-        {
-            // verify the required parameter 'logRelayBatch' is set
-            if (logRelayBatch == null)
-                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'logRelayBatch' when calling DefaultApi->PushZedBoxLogs");
-
-
-            PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
-
-            string[] _contentTypes = new string[] {
-                "application/json"
-            };
-
-            // to determine the Accept header
-            string[] _accepts = new string[] {
-                "application/json"
-            };
-
-
-            var localVarContentType = PlaceframeApiClient.Client.ClientUtils.SelectHeaderContentType(_contentTypes);
-            if (localVarContentType != null) localVarRequestOptions.HeaderParameters.Add("Content-Type", localVarContentType);
-
-            var localVarAccept = PlaceframeApiClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
-            if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
-
-            localVarRequestOptions.Data = logRelayBatch;
-
-
-            // make the HTTP request
-
-            var localVarResponse = await this.AsynchronousClient.PostAsync<Object>("/zed-boxes/logs", localVarRequestOptions, this.Configuration, cancellationToken).AsUniTask();
-
-            if (this.ExceptionFactory != null)
-            {
-                Exception _exception = this.ExceptionFactory("PushZedBoxLogs", localVarResponse);
                 if (_exception != null) throw _exception;
             }
 
