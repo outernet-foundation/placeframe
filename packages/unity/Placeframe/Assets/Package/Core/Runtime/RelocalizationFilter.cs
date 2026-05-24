@@ -21,6 +21,7 @@ namespace Placeframe.Core
         public float SlewProgress;
         public double3? LastAcceptedVioPosition;
         public bool HasAcceptedMeasurement;
+        public int ConsecutiveRejections;
         public LocalizationMetrics MostRecentMetrics;
     }
 
@@ -91,6 +92,7 @@ namespace Placeframe.Core
                 SlewProgress = 1f,
                 LastAcceptedVioPosition = null,
                 HasAcceptedMeasurement = false,
+                ConsecutiveRejections = 0,
                 MostRecentMetrics = null,
             };
 
@@ -111,15 +113,26 @@ namespace Placeframe.Core
             var innovation = ComputeInnovation(state.AlignmentMean, sigmaPredicted, measurementMean, sigmaMeas);
 
             if (innovation.MahalanobisSquared > Chi2_99_6dof)
+            {
+                // Cap at bootstrap so eventual unlock doesn't admit outliers as eagerly as a good measurement.
+                var bootstrap = BootstrapCovariance();
+                for (var i = 0; i < 6; i++)
+                    sigmaPredicted[i, i] = math.min(sigmaPredicted[i, i], bootstrap[i, i]);
+
+                var rejectedState = state;
+                rejectedState.AlignmentCovariance = sigmaPredicted;
+                rejectedState.ConsecutiveRejections = state.ConsecutiveRejections + 1;
+
                 return new StepResult
                 {
-                    NewState = state,
+                    NewState = rejectedState,
                     Rejection = MeasurementRejection.InnovationGate,
                     InnovationMahalanobisSquared = innovation.MahalanobisSquared,
                     InnovationResidual = innovation.Residual,
                     SigmaPredicted = sigmaPredicted,
                     HadAcceptedMeasurementBeforeStep = state.HasAcceptedMeasurement,
                 };
+            }
 
             var posterior = KalmanUpdate(
                 state.AlignmentMean,
@@ -162,6 +175,7 @@ namespace Placeframe.Core
 
             newState.HasAcceptedMeasurement = true;
             newState.LastAcceptedVioPosition = currentVioPosition;
+            newState.ConsecutiveRejections = 0;
             newState.MostRecentMetrics = metrics;
 
             return new StepResult { NewState = newState, TransformChanged = transformChanged };
@@ -197,6 +211,7 @@ namespace Placeframe.Core
                 SlewProgress = 1f,
                 LastAcceptedVioPosition = null,
                 HasAcceptedMeasurement = false,
+                ConsecutiveRejections = 0,
                 MostRecentMetrics = state.MostRecentMetrics,
             };
 
