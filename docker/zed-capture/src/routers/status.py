@@ -7,7 +7,6 @@ from uuid import UUID
 from litestar import Router, get
 from pydantic import BaseModel, Field
 
-from ..cursor_store import cursor_store
 from .captures import CAPTURES_DIRECTORY, zed
 
 _START_MONOTONIC = monotonic()
@@ -36,7 +35,6 @@ class ZedStatus(BaseModel):
     disk_free_bytes: Int64
     uptime_s: float
     version: str
-    log_cursor: str
 
 
 def compute_status() -> ZedStatus:
@@ -48,7 +46,6 @@ def compute_status() -> ZedStatus:
         disk_free_bytes=disk_usage(disk_path).free,
         uptime_s=monotonic() - _START_MONOTONIC,
         version=_VERSION,
-        log_cursor=cursor_store.committed,
     )
 
 

@@ -1,8 +1,16 @@
+import logging
+import logging.config
+import os
 import socket
+import sys
 import threading
 import time
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+from tempfile import mkdtemp
 
 import usb1
+from pythonjsonlogger.json import JsonFormatter
 
 # AOA host: handshakes a connected Android phone into accessory mode,
 # pipes its bulk endpoints to a local TCP socket.
@@ -38,6 +46,56 @@ OUT_TIMEOUT_MS = 5000
 EVENT_LOOP_TICK_S = 0.1
 DRAIN_DEADLINE_S = 2.0
 
+LOG_DIR = Path(os.environ.get("ZED_LOG_DIR", "/var/log/zed-capture"))
+LOG_FILE_NAME = "aoa-bridge.jsonl"
+LOG_MAX_BYTES = 50 * 1024 * 1024
+LOG_BACKUP_COUNT = 5
+
+
+def _resolve_log_dir(requested: Path) -> Path:
+    try:
+        requested.mkdir(parents=True, exist_ok=True)
+        return requested
+    except PermissionError:
+        return Path(mkdtemp(prefix="aoa-bridge-logs-"))
+
+
+_LOG_DIR = _resolve_log_dir(LOG_DIR)
+
+logging.config.dictConfig({
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "json": {
+            "()": JsonFormatter,
+            "format": "%(levelname)s %(name)s %(message)s",
+            "rename_fields": {"levelname": "level"},
+            "timestamp": True,
+        },
+    },
+    "handlers": {
+        "file": {
+            "()": RotatingFileHandler,
+            "formatter": "json",
+            "filename": str(_LOG_DIR / LOG_FILE_NAME),
+            "maxBytes": LOG_MAX_BYTES,
+            "backupCount": LOG_BACKUP_COUNT,
+            "encoding": "utf-8",
+        },
+        "stream": {
+            "class": "logging.StreamHandler",
+            "formatter": "json",
+            "stream": sys.stdout,
+        },
+    },
+    "root": {
+        "handlers": ["file", "stream"],
+        "level": "INFO",
+    },
+})
+
+logger = logging.getLogger(__name__)
+
 
 class ShuttleState:
     def __init__(self, upstream: socket.socket) -> None:
@@ -49,15 +107,15 @@ class ShuttleState:
         self.bytes_to_phone = 0
         self.started = time.monotonic()
 
-    def fail(self, message: str) -> None:
+    def fail(self, template: str, *args: object) -> None:
         if self.failure is None:
-            self.failure = message
-            log(message)
+            self.failure = template % args if args else template
+            logger.info(template, *args)
         self.stop.set()
 
-    def summary(self) -> str:
+    def summary_args(self) -> tuple[int, int, int]:
         elapsed = int(time.monotonic() - self.started)
-        return f"pipe done: to_phone={self.bytes_to_phone}B from_phone={self.bytes_from_phone}B uptime={elapsed}s"
+        return self.bytes_to_phone, self.bytes_from_phone, elapsed
 
     def on_in_complete(self, transfer: usb1.USBTransfer) -> None:
         if self.stop.is_set():
@@ -68,7 +126,7 @@ class ShuttleState:
             return
 
         if status != usb1.TRANSFER_COMPLETED:
-            self.fail(f"IN transfer status={status}")
+            self.fail("IN transfer status=%s", status)
             return
 
         length = transfer.getActualLength()
@@ -77,7 +135,7 @@ class ShuttleState:
                 with self.socket_lock:
                     self.upstream.sendall(bytes(transfer.getBuffer()[:length]))
             except OSError as exception:
-                self.fail(f"upstream write error: {exception}")
+                self.fail("upstream write error: %s", exception)
                 return
 
             self.bytes_from_phone += length
@@ -85,16 +143,16 @@ class ShuttleState:
         try:
             transfer.submit()
         except usb1.USBError as exception:
-            self.fail(f"resubmit IN failed: {exception}")
+            self.fail("resubmit IN failed: %s", exception)
 
 
 def main() -> None:
-    log(f"aoa-bridge starting; upstream={UPSTREAM_HOST}:{UPSTREAM_PORT}")
+    logger.info("aoa-bridge starting; upstream=%s:%s", UPSTREAM_HOST, UPSTREAM_PORT)
     while True:
         try:
             _run_once()
         except Exception as exception:
-            log(f"loop error: {type(exception).__name__}: {exception}")
+            logger.info("loop error: %s: %s", type(exception).__name__, exception)
         finally:
             time.sleep(POLL_INTERVAL)
 
@@ -106,7 +164,11 @@ def _run_once() -> None:
             return
 
         device = handle.getDevice()
-        log(f"accessory ready vid={device.getVendorID():04x} pid={device.getProductID():04x}; opening pipe")
+        logger.info(
+            "accessory ready vid=%04x pid=%04x; opening pipe",
+            device.getVendorID(),
+            device.getProductID(),
+        )
 
         endpoints = _open_bulk_endpoints(handle)
         if endpoints is None:
@@ -115,14 +177,18 @@ def _run_once() -> None:
 
         upstream = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         upstream.connect((UPSTREAM_HOST, UPSTREAM_PORT))
-        log(f"upstream connected; piping (in_ep=0x{endpoint_in:02x}, out_ep=0x{endpoint_out:02x})")
+        logger.info(
+            "upstream connected; piping (in_ep=0x%02x, out_ep=0x%02x)",
+            endpoint_in,
+            endpoint_out,
+        )
 
         try:
             _shuttle(context, handle, endpoint_in, endpoint_out, upstream)
         finally:
             _shutdown_quietly(upstream)
             upstream.close()
-            log("accessory pipe closed")
+            logger.info("accessory pipe closed")
 
 
 def _ensure_accessory(context: usb1.USBContext) -> usb1.USBDeviceHandle | None:
@@ -134,7 +200,11 @@ def _ensure_accessory(context: usb1.USBContext) -> usb1.USBDeviceHandle | None:
     if candidate is None:
         return None
 
-    log(f"handshaking candidate vid={candidate.getVendorID():04x} pid={candidate.getProductID():04x}")
+    logger.info(
+        "handshaking candidate vid=%04x pid=%04x",
+        candidate.getVendorID(),
+        candidate.getProductID(),
+    )
     candidate_handle = candidate.open()
     success = _do_handshake(candidate_handle)
     candidate_handle.close()
@@ -151,7 +221,7 @@ def _ensure_accessory(context: usb1.USBContext) -> usb1.USBDeviceHandle | None:
         if handle is not None:
             return handle
 
-    log(f"post-handshake accessory not found within {POST_HANDSHAKE_TIMEOUT_S}s")
+    logger.info("post-handshake accessory not found within %ss", POST_HANDSHAKE_TIMEOUT_S)
     return None
 
 
@@ -170,7 +240,7 @@ def _find_handshake_candidate(context: usb1.USBContext) -> usb1.USBDevice | None
             product = device.getProductID()
             device_class = device.getDeviceClass()
         except usb1.USBError as exception:
-            log(f"could not inspect device: {exception}")
+            logger.info("could not inspect device: %s", exception)
             continue
 
         if vendor == AOA_VID and product in AOA_PIDS:
@@ -193,19 +263,19 @@ def _do_handshake(handle: usb1.USBDeviceHandle) -> bool:
             timeout=1000,
         )
     except usb1.USBError as exception:
-        log(f"GET_PROTOCOL failed: {exception}")
+        logger.info("GET_PROTOCOL failed: %s", exception)
         return False
 
     if len(protocol_bytes) != 2:
-        log(f"GET_PROTOCOL returned {len(protocol_bytes)} bytes")
+        logger.info("GET_PROTOCOL returned %d bytes", len(protocol_bytes))
         return False
 
     protocol = int.from_bytes(protocol_bytes, "little")
     if protocol < 1:
-        log(f"device does not support AOA (protocol={protocol})")
+        logger.info("device does not support AOA (protocol=%s)", protocol)
         return False
 
-    log(f"device supports AOA protocol v{protocol}")
+    logger.info("device supports AOA protocol v%s", protocol)
 
     try:
         for index, value in enumerate([MANUFACTURER, MODEL, DESCRIPTION, VERSION, URI, SERIAL]):
@@ -226,7 +296,7 @@ def _do_handshake(handle: usb1.USBDeviceHandle) -> bool:
             timeout=1000,
         )
     except usb1.USBError as exception:
-        log(f"AOA setup failed: {exception}")
+        logger.info("AOA setup failed: %s", exception)
         return False
 
     return True
@@ -242,7 +312,7 @@ def _open_bulk_endpoints(handle: usb1.USBDeviceHandle) -> tuple[int, int] | None
     try:
         handle.claimInterface(0)
     except usb1.USBError as exception:
-        log(f"claimInterface(0) failed: {exception}")
+        logger.info("claimInterface(0) failed: %s", exception)
         return None
 
     device = handle.getDevice()
@@ -260,7 +330,7 @@ def _open_bulk_endpoints(handle: usb1.USBDeviceHandle) -> tuple[int, int] | None
             endpoint_out = address
 
     if endpoint_in is None or endpoint_out is None:
-        log("could not find bulk IN/OUT endpoints on accessory interface")
+        logger.info("could not find bulk IN/OUT endpoints on accessory interface")
         return None
 
     return endpoint_in, endpoint_out
@@ -289,7 +359,13 @@ def _shuttle(
         _pump_upstream_to_usb(handle, endpoint_out, state)
     finally:
         _drain_and_join(in_transfers, event_thread, state)
-        log(state.summary())
+        to_phone, from_phone, uptime = state.summary_args()
+        logger.info(
+            "pipe done: to_phone=%dB from_phone=%dB uptime=%ds",
+            to_phone,
+            from_phone,
+            uptime,
+        )
 
 
 def _event_loop(context: usb1.USBContext, state: ShuttleState) -> None:
@@ -297,7 +373,7 @@ def _event_loop(context: usb1.USBContext, state: ShuttleState) -> None:
         try:
             context.handleEventsTimeout(EVENT_LOOP_TICK_S)
         except usb1.USBError as exception:
-            state.fail(f"event loop error: {exception}")
+            state.fail("event loop error: %s", exception)
             return
 
 
@@ -311,7 +387,7 @@ def _pump_upstream_to_usb(handle: usb1.USBDeviceHandle, endpoint_out: int, state
         except TimeoutError:
             continue
         except OSError as exception:
-            state.fail(f"upstream read error: {exception}")
+            state.fail("upstream read error: %s", exception)
             return
 
         if not data:
@@ -321,7 +397,7 @@ def _pump_upstream_to_usb(handle: usb1.USBDeviceHandle, endpoint_out: int, state
         try:
             handle.bulkWrite(endpoint_out, data, timeout=OUT_TIMEOUT_MS)
         except usb1.USBError as exception:
-            state.fail(f"USB write error: {exception}")
+            state.fail("USB write error: %s", exception)
             return
 
         state.bytes_to_phone += len(data)
@@ -357,7 +433,3 @@ def _shutdown_quietly(connection: socket.socket) -> None:
         connection.shutdown(socket.SHUT_RDWR)
     except OSError:
         pass
-
-
-def log(message: str) -> None:
-    print(message, flush=True)
