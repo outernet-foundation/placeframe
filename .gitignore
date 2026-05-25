@@ -6,8 +6,10 @@
 **/*.egg-info
 **/build/
 !/build/
-**/*.sln
-**/*.slnx
+# Unity-generated IDE files (*.csproj, *.sln) are ignored by each Unity project's own
+# .gitignore (apps/*, packages/unity/*, legacy/Outernet.Client). Hand-authored library
+# solutions live under packages/csharp and packages/generated/csharp, so no blanket *.sln
+# rule belongs here — it would only block those.
 **/bin/
 **/obj/
 **/bin.meta
