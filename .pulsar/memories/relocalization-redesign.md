@@ -8,59 +8,51 @@ This is a self-contained design document for the relocalization stack's
 target end state. It describes (a) the filter that fuses VPS measurements
 with VIO on-device, (b) where that filter lives in the repo, (c) the
 offline machinery that picks every numerical threshold the filter uses,
-and (d) how all of this reconciles with the existing calibration / tuning
-infrastructure that was originally built around the current single-Gaussian
-filter.
+and (d) how all of this reconciles with the calibration / tuning
+infrastructure.
 
 It is *not* a phased plan — no ordering, no scoping into units of work, no
-sequencing decisions. The migration sequencing, the Phase-0 `scripts/`
+sequencing decisions. The migration sequencing, the `scripts/`
 reorganization, and the step-by-step tuning recipe live in
 `.pulsar/memories/relocalization-plan.md`.
 
-## Why a redesign
+## Design rationale
 
-The shipped filter has two failure modes that cannot be patched within the
-single-Gaussian Kalman shape:
+The filter must survive two failure modes a single-Gaussian Kalman shape
+cannot:
 
 1. **Perceptual-aliasing lockup.** The first few measurements after a
-   `Reset` happen to be a coherent wrong cluster (self-similar map region,
-   partial visibility, repeated interior). The Kalman posterior collapses
-   around that pose within a handful of accepts. Subsequent correct
-   measurements then arrive at multi-meter residuals the Mahalanobis
-   innovation gate cannot reopen on human-walk timescales. The filter is
-   permanently locked on the wrong answer; the only recovery is a
-   user-initiated Stop→Start.
+   `Reset` can be a coherent wrong cluster (self-similar map region,
+   partial visibility, repeated interior). A single-Gaussian posterior
+   collapses around that pose within a handful of accepts; subsequent
+   correct measurements then arrive at multi-meter residuals a Mahalanobis
+   innovation gate cannot reopen on human-walk timescales, locking the
+   filter on the wrong answer until a user-initiated Stop→Start.
 
-2. **VIO jump non-response.** There is no subscription to any
-   tracking-discontinuity signal. When the underlying VIO pose jumps (AR
-   session re-init, tracking-loss recovery, Magic Leap 2 tracking-origin
-   reset after ≥15 s of lost tracking), the filter has no signal that its
-   prior is invalid. The next measurement looks like a multi-meter
-   outlier and gets rejected indefinitely.
+2. **VIO jump non-response.** Absent a tracking-discontinuity signal, a VIO
+   pose jump (AR session re-init, tracking-loss recovery, Magic Leap 2
+   tracking-origin reset after ≥15 s of lost tracking) leaves the filter
+   with no signal that its prior is invalid; the next measurement looks
+   like a multi-meter outlier and is rejected indefinitely.
 
-Both failure modes stem from the same architectural limitation: a single
-Gaussian cannot carry information about competing alignment hypotheses,
-and a single posterior cannot be "wrong but very confident" in a way the
-filter can recover from. The robust-SLAM literature
-(Lajoie/Carlone 2019 discrete-continuous, Latif's RRR 2013, Olson's
-max-mixtures 2013, Augmented MCL 2001) converged on multi-hypothesis
-representations as the right answer for exactly this class of problem.
+Both stem from the same limitation: a single Gaussian cannot carry
+information about competing alignment hypotheses, and a single posterior
+cannot be "wrong but very confident" in a recoverable way. The robust-SLAM
+literature (Lajoie/Carlone 2019 discrete-continuous, Latif's RRR 2013,
+Olson's max-mixtures 2013, Augmented MCL 2001) converged on multi-hypothesis
+representations for exactly this class of problem.
 
-A second architectural mistake compounds the above: the filter math today
-lives inside a Unity assembly definition (`Placeframe.Core`) and depends
-on `Unity.Mathematics`, even though it has no actual need for Unity-engine
-types. That placement and that dependency block two things at once: (a)
-the single-source-of-truth pattern required to drive the filter from
-offline tuning code without a Python re-port, and (b) the plan to consume
-the same filter from Unreal and Godot apps in the future.
-`Unity.Mathematics` ships under the Unity Companion License, which
-restricts use to "applications, software, or other content under a valid
-Unity engine license" — incompatible with non-Unity consumers regardless
-of how generously the clause is read. The redesign extracts the filter
-into a portable class library with no Unity-licensed dependencies and
-replaces the `Unity.Mathematics` types with an in-house value-type shim,
-fixing the placement at the same time as the math change so we do not
-move the filter twice.
+The filter is a native C++ core (Eigen + Sophus), not engine code, for two
+reasons. First, one implementation serves every consumer: Unity links it as
+a native plugin via P/Invoke, the offline replay harness links the same
+binary, and eventual Unreal / Godot apps link it directly — so the device
+and the harness run bit-identical math *and* lifecycle, with no second port
+to drift against. Second, C++ is the one ecosystem whose off-the-shelf
+numerics already speak our conventions: Eigen is column-major and
+`Eigen::Quaterniond` stores `[x,y,z,w]` (scalar-last), matching the
+wire / reconstructor convention, and Sophus provides SE(3)
+`exp` / `log` / `Adjoint` directly — so the convention-bug-prone Lie-algebra
+and covariance code is library calls, not hand-rolled math.
 
 ## Scope guardrails
 
@@ -81,75 +73,6 @@ move the filter twice.
   enforced by the filter's API surface — it has no path to mutate VIO
   state, only to publish over it.
 
-## Current state of the world (what we have to change)
-
-### The filter today
-
-`packages/unity/Placeframe/Assets/Package/Core/Runtime/RelocalizationFilter.cs`
-(382 lines) implements a single-Gaussian Kalman update over an SE(3) mean
-and 6×6 covariance, with a Mahalanobis innovation gate (χ²_99,6 = 16.81),
-a snap-on-first-accept publish path, a 0.5 s `SmoothStep` slew, and a
-`(DriftPerMeter · |Δ_vio|)²` process-noise inflation against VIO motion.
-It does not subscribe to any tracking-discontinuity signal. Snap-on-first
-is the direct source of perceptual-aliasing lockup; the absent
-discontinuity subscription is the direct source of the VIO-jump
-non-response.
-
-The filter depends on `Unity.Mathematics`,
-`MathNet.Numerics.LinearAlgebra`, and `PlaceframeApiClient.Model` (for
-the wire-type `MapLocalization`). Its `ApplyMeasurement` signature also
-takes `CameraFrame`, a `Placeframe.Core` struct whose pose fields are
-`UnityEngine.Vector3` / `Quaternion`, so the filter's input boundary
-touches Unity-engine value types even though its body uses no
-`MonoBehaviour`, `UnityEngine.Time`, or `GameObject`. Severing that
-input coupling — replacing the `MapLocalization` + `CameraFrame`
-signature with portable pose types — is part of the extraction, not
-incidental to it. The asmdef `Placeframe.Core` at
-`packages/unity/Placeframe/Assets/Package/Core/Runtime/Plerion.VPS.asmdef`
-also references `UniTask`, `R3.Unity`, `PlaceframeApiClient`, and
-`SharpZipLib` — but those are used by neighbors of the filter, not by
-the filter itself.
-
-`packages/unity/Placeframe/Assets/Package/Core/Runtime/VisualPositioningSystem.cs`
-is the Unity-engine glue. It owns the `FilterState`, subscribes a
-per-frame slew tick, drives `Localize()` (HTTP call to the localizer),
-feeds results through `ApplyMeasurement`, and surfaces the
-`BypassInnovationGate` / `BypassKalman` diagnostic toggles plus the
-`LockupRejectionThreshold = 5` / `LockupSecondsThreshold = 5 s` lockup
-banner.
-
-### Tracking-discontinuity surface today
-
-`packages/unity/Placeframe/Assets/Package/Core/Runtime/ICameraProvider.cs`
-declares only `CameraConfig()` and `Frames(intervalSeconds, ...)`. There
-is no discontinuity event. Both implementations
-(`ARFoundation/Runtime/CameraProvider.cs` and
-`MagicLeap/Runtime/MagicLeapCameraProvider.cs` — the latter behind
-`#if MAGIC_LEAP`) build a `CameraFrame` from the active provider but
-never surface tracking-state transitions to the filter.
-
-### Calibration / tuning surface today
-
-| Artifact | Role | Status |
-|---|---|---|
-| `config/calibration/global.json` | The calibration artifact loaded by the localizer at startup. | Hand-tuned placeholder. `pipeline_version="placeholder"` bypasses the version check; `sample_count=0`; both tolerance models use a 1-feature logistic on `log1p(num_inliers)` with weight `1.2` and intercept `-5.5`. `sigma_meas_alpha=1.0`, `sigma_meas_beta=1.0e-3`. `loose_min=0.25`, `tight_min=0.0`. |
-| `packages/python/core/src/core/calibration.py` | Pydantic schema for the artifact (`SCHEMA_VERSION = 2`); `apply_global_calibration`. The `Features` model enumerates 10 features the logistic *could* use; today only `log_inliers` is non-zero. | Production-ready. |
-| `scripts/src/scripts/fit_calibration.py` | Algorithm 1: corpus → logistic + isotonic + Σ_meas (α, β). Held-out frame selection → reconstruction reuse-or-create → per-frame localize → cache rows. | Production-ready. Has never been run against a real corpus. |
-| `scripts/src/scripts/tune_reconstruction.py` | Plackett-Burman sweep over `ReconstructionOptions`. Scored by map-quality metrics only. | Production-ready *for what it does*. The top-of-file comment calls out the limitation: needs localization-quality eval per cell. |
-| `scripts/src/scripts/held_out_selection.py` | Frame-selector registry. | Production-ready. |
-| `database` `localization_evaluations` table | Corpus cache. Keyed by `(reconstruction_id, frame_timestamp, retrieval_top_k, ransac_threshold, pipeline_version)`. Stores PnP covariance + truth-residual SE(3). | Empty in production. |
-| `docker/localizer/src/build_metrics.py` | Emits `confidence_tight`, `confidence_loose`, `measurement_covariance` per localization. `measurement_covariance = α · pnp_covariance + β · I`. | Live in the pipeline. Confidences are no-ops because the placeholder thresholds leave the gate barely active. |
-| `docker/localizer/src/localize.py:232` | Server-side rejection gate: raises `LocalizationError` if `confidence_loose < loose_min` or `confidence_tight < tight_min`. | Active. Kicks in only on extreme low-inlier cases under the current placeholder thresholds. |
-| `.pulsar/bugs/fit-calibration-localization-map-placeholder-pose.md` | Latent bug: `fit_calibration` writes localization maps at identity pose. | Only matters if the reconstructor adopts non-identity ECEF placement. |
-
-`packages/csharp/` does not exist, and the repo contains no non-Unity
-.NET projects. The portable filter library is a from-scratch creation
-with no prior stubs or scaffolding to reconcile.
-
-`scripts/` is currently Python-only: `scripts/pyproject.toml`,
-`scripts/src/scripts/*.py`, `scripts/tests/`, the entry points registered
-as `uv run …` commands. There is no language-subdirectory split.
-
 ## End-state filter design
 
 ### Multi-hypothesis pool with spawn / merge / prune
@@ -157,8 +80,9 @@ as `uv run …` commands. There is no language-subdirectory split.
 The single-Gaussian `FilterState` is replaced with a dynamic pool. Each
 hypothesis is an SE(3) Gaussian carrying:
 
-- `AlignmentMean` (SE(3) mean as `double4x4`).
-- `AlignmentCovariance` (6×6 covariance, same tangent convention as today).
+- `AlignmentMean` (SE(3) mean, `Sophus::SE3d`).
+- `AlignmentCovariance` (6×6 covariance in the canonical rotation-first
+  tangent convention).
 - `LastAcceptedVioPosition` (per-hypothesis — load-bearing, see below).
 - An exponentially-decayed log-likelihood (the hypothesis's *evidence*),
   decay timescale `τ_evidence`.
@@ -213,9 +137,9 @@ reset below — that resets state rather than publishing without grounds.
 The Bayes-factor swap also handles **first publish** without a special
 case: the initial pool is one uninformative-prior hypothesis with
 bootstrap covariance; the first hypothesis to accumulate decisive Bayes-
-factor evidence against that prior wins and gets published. The current
-"snap on first accept" behavior, which is the source of perceptual-
-aliasing lockup, is gone.
+factor evidence against that prior wins and gets published. There is no
+snap-on-first-accept — first publish waits for decisive evidence, which is
+what keeps perceptual aliasing from locking in a wrong first cluster.
 
 #### Process noise — per hypothesis, mandatory
 
@@ -244,10 +168,10 @@ well-defined for the lifetime of a session.
 
 #### Slew
 
-The 0.5 s `SmoothStep` slew survives unchanged. On a successful swap (or
-an above-deadband refinement), `SlewStart` becomes the currently-rendered
-transform, `AlignmentCurrent` slews toward the new mean. The slew tick is
-unaffected by the multi-hypothesis change.
+The published transform slews to a new mean over 0.5 s via `SmoothStep`.
+On a successful swap (or an above-deadband refinement), `SlewStart` becomes
+the currently-rendered transform and `AlignmentCurrent` slews toward the
+new mean.
 
 ### Tracking-discontinuity signal — platform-aware abstraction
 
@@ -306,17 +230,15 @@ dialog — not to drive control decisions.
 **Bypass toggles.** Three orthogonal diagnostic toggles, surfaced in the
 UI metrics dialog:
 
-- `BypassInnovationGate` (existing) — every measurement folds into every
-  hypothesis regardless of Mahalanobis distance.
-- `BypassKalman` (existing) — measurement replaces incumbent mean
-  directly, no Kalman update.
-- `BypassChallengers` (new) — caps the pool at one. Restores the
-  single-Gaussian behavior for A/B comparison against the new filter
-  using the same captured session.
+- `BypassInnovationGate` — every measurement folds into every hypothesis
+  regardless of Mahalanobis distance.
+- `BypassKalman` — measurement replaces incumbent mean directly, no Kalman
+  update.
+- `BypassChallengers` — caps the pool at one, collapsing to single-Gaussian
+  behavior for A/B comparison against the multi-hypothesis filter using the
+  same captured session.
 
-**UI surfaces.** The current filter surfaces `ConsecutiveRejections`,
-`SecondsSinceLastAccept`, `IsLocalizationLost`, and the most recent
-metrics. The new filter additionally surfaces:
+**UI surfaces.** The metrics dialog surfaces:
 
 - Number of active hypotheses.
 - Incumbent log-evidence.
@@ -324,31 +246,30 @@ metrics. The new filter additionally surfaces:
 - Log Bayes factor (challenger − incumbent).
 - Seconds since last publish.
 
-The "localization lost" banner driven by `LockupRejectionThreshold` and
-`LockupSecondsThreshold` is replaced by a "challenger is winning"
-indicator — that's the actual user-relevant signal under the new
-architecture.
+A "challenger is winning" indicator surfaces the user-relevant signal that
+a swap is imminent, rather than a "localization lost" banner.
 
-### What the user observes, old vs. new
+### What the user observes
 
-| Scenario | Old behavior | New behavior |
-|---|---|---|
-| First lock after Stop→Start | Snaps to first PnP result | Builds evidence silently across several measurements, then publishes once when posterior is precise and prior is decisively beaten |
-| Aliased first lock (wrong cluster) | Permanently stuck; Stop→Start required | Challenger accumulates the correct cluster's evidence, swap happens automatically |
-| Tracking discontinuity (AR re-init, ML2 origin reset) | Filter rejects all post-jump measurements indefinitely | Filter reset on subscribed signal; recovers normally |
-| VPS dropout for 30 s while moving | Filter accumulates process noise; resumes with stale mean | Watchdog reset on prolonged silence + motion; resumes from scratch |
-| Steady-state with small VPS noise | Published transform jitters per measurement (within slew) | Internal mean updates continuously; published transform stays stable until deadband exceeded |
-| Three coherent aliased clusters | Single posterior splits the difference between all three | Pool maintains all three; one wins on accumulated evidence |
+| Scenario | Behavior |
+|---|---|
+| First lock after Stop→Start | Builds evidence silently across several measurements, then publishes once when the posterior is precise and the prior is decisively beaten |
+| Aliased first lock (wrong cluster) | A challenger accumulates the correct cluster's evidence; the swap happens automatically |
+| Tracking discontinuity (AR re-init, ML2 origin reset) | Filter reset on the subscribed signal; recovers normally |
+| VPS dropout for 30 s while moving | Watchdog reset on prolonged silence + motion; resumes from scratch |
+| Steady-state with small VPS noise | Internal mean updates continuously; published transform stays stable until the deadband is exceeded |
+| Three coherent aliased clusters | Pool maintains all three; one wins on accumulated evidence |
 
 ## End-state code structure
 
 ### Repo layout
 
 ```
-packages/csharp/
-├── Placeframe.Filter/           # portable .NET class library (filter math)
-├── Placeframe.Filter.Tests/     # xUnit tests
-└── Placeframe.Filter.sln        # ties library + tests
+packages/
+├── cpp/
+│   └── Placeframe.Native/       # native filter core (extern "C" ABI, Eigen/Sophus, lifecycle)
+└── csharp/
+    └── Placeframe.Native/       # managed UPM wrapper (P/Invoke, AxisConvention, ChangeBasis, Plugins/)
 scripts/
 ├── SPEC.md
 ├── README.md
@@ -357,7 +278,7 @@ scripts/
 │   ├── src/scripts/             # fit_calibration, tune_reconstruction, replay_filter, …
 │   └── tests/
 └── csharp/
-    └── replay-filter/           # .NET console harness binary
+    └── replay-filter/           # .NET console harness (P/Invokes the host build of the core)
 ```
 
 Three role categories applied consistently:
@@ -371,8 +292,8 @@ Three role categories applied consistently:
 - `docker/` — **deployed services**. Unchanged.
 
 The harness is an internal-tool executable, so it lives under `scripts/`.
-Its source language is .NET (required because it links the filter
-library), but that's an implementation detail of how the tool is built,
+Its source language is .NET (required because it P/Invokes the native
+filter core), but that's an implementation detail of how the tool is built,
 not a category change.
 
 The operator-facing CLI is still Python: `scripts/python/src/scripts/replay_filter.py`
@@ -382,57 +303,87 @@ binary directly. The Python CLI's subcommand structure (likely
 `score` / `sweep` / `compare`) is a harness-implementation detail and
 is not locked at design time.
 
-### Filter as a portable .NET class library
+### Filter as a native C++ core
 
-The filter math is extracted from the Unity asmdef into a portable class
-library at `packages/csharp/Placeframe.Filter/`. This library:
+The filter — per-hypothesis SE(3) Gaussian, error-state EKF update,
+innovation gate, KL divergence, moment-matching merge, evidence decay,
+Bayes-factor publish-swap, deadband, slew, **and** the multi-hypothesis
+lifecycle (spawn / fold-in / merge / prune) — is a native C++ library at
+`packages/cpp/Placeframe.Native/`. It:
 
-- Targets `netstandard2.1`. Compatible with Unity 2022 LTS Mono and with
-  every modern .NET runtime the harness might use. Single DLL, three
-  consumers, no multi-target complexity.
-- Depends only on `MathNet.Numerics.LinearAlgebra` (for 6×6 covariance
-  algebra, KL divergence, matrix inversion) and `System.Math` (for
-  transcendentals). The small-vector / small-matrix / quaternion value
-  types are an in-house shim (see "Math primitives shim" below). No
-  `UnityEngine`, no `MonoBehaviour`, no `UnityEngine.Time`, no
-  `GameObject`. The library carries no Unity-licensed dependencies, so
-  Unreal and Godot consumers can link it directly when those apps
-  materialize.
-- Contains `RelocalizationFilter`, `Se3`, the relevant parts of
-  `Double4x4` / `MathUtil` the filter consumes, all the multi-hypothesis
-  pool types (`HypothesisPool`, per-hypothesis state record,
-  `ApplyMeasurementOptions`, `StepResult`), and the lifecycle rules
-  (spawn / merge / prune / swap / watchdog).
-- Has its own xUnit test project under `dotnet test`, so filter tests no
-  longer require the Unity Editor to run. The existing
-  `RelocalizationFilterTests.cs` regressions transplant here; multi-
-  hypothesis-specific tests (aliasing recovery, spawn / merge / prune,
-  Bayes-factor swap, watchdog reset) are added alongside.
+- Is built with **CMake**, cross-compiled for the two Android ABIs via the
+  NDK toolchain file — `arm64-v8a` for the phone Capture Tool, `x86_64` for
+  the Magic Leap 2's x86_64 SoC — and natively for the host (the Editor and
+  the harness). No iOS target exists, so the plugin is dynamic libraries
+  only — no `__Internal` static-link path.
+- Vendors **Eigen and Sophus via CMake `FetchContent` pinned to exact
+  commit hashes**. Both are header-only, so this is checkout-and-include and
+  satisfies "pin everything" without submodule UX. Eigen supplies the value
+  types and 6×6 covariance algebra (`LLT` / `.inverse()` / `.solve()`);
+  Sophus supplies `SE3d::exp` / `log` / `Adjoint`. There is no hand-rolled
+  Lie algebra and no math shim.
+- Exposes a flat `extern "C"` ABI behind an **opaque typed handle**
+  (`placeframe_filter_create` / `_destroy` / `_observe` / `_publish` plus
+  diagnostics getters). Poses and covariance cross as blittable POD
+  structs — `Pose7` (`tx,ty,tz, qx,qy,qz,qw`) and `Cov6x6` (36 doubles) —
+  so the managed side marshals nothing and a mis-sized array cannot be
+  passed. The API is pull-based (managed calls native; no native→managed
+  callbacks, no `[MonoPInvokeCallback]`). Errors cross as a status code,
+  never as exceptions.
+- Speaks only the canonical OpenCV / pycolmap convention. The 6×6 covariance
+  block order is fixed to the rotation-first tangent; Sophus's
+  translation-first tangent is permuted internally and never leaks across
+  the boundary.
 
-The library is consumed three ways:
+**Package identity.** The native core is the system's engine-agnostic
+native-code foundation — C++ behind a flat P/Invoke ABI, consumed by Unity
+and the offline harness alike — so it is named for what it is:
+`Placeframe.Native`. The managed wrapper at `packages/csharp/Placeframe.Native/`
+(asmdef `Placeframe.Native`, id `org.outernet.placeframe.native`) is a UPM
+package carrying the P/Invoke surface, `AxisConvention`, `ChangeBasis`, and a
+`Plugins/` tree of staged native binaries. The Unity package that owns the VPS
+facade, camera providers, and auth glue keeps its established `Placeframe.Core`
+name and the bare `org.outernet.placeframe` id — renaming it would churn that
+id across every consuming app manifest and its C# namespace for no benefit —
+and depends on `Placeframe.Native`. Both that binding and the harness consume
+the wrapper; the dependency direction is `Placeframe.Core → Placeframe.Native`.
 
-1. **By Unity**, as a precompiled managed DLL integrated into the
-   `Plerion.VPS.asmdef` assembly's reference set. Unity surfaces
-   `MathNet.Numerics` through NuGetForUnity (`packages.config`) as an
-   auto-referenced plugin, not through an asmdef precompiled reference, so
-   the filter DLL is integrated by the mechanism Unity honors for managed
-   plugins — placement in an auto-referenced plugin location (with its
-   `.meta`) and/or an explicit `precompiledReferences` entry on the asmdef
-   — and its `MathNet.Numerics` dependency must bind to the single
-   NuGetForUnity-provided assembly rather than bundle a second copy. The
-   `VisualPositioningSystem.cs` Unity-engine glue continues to own
-   subscription wiring, the slew tick subscription, the HTTP `Localize()`
-   call, and the platform-specific `ICameraProvider` plumbing; it just
-   calls into the portable library for the actual math.
-2. **By a .NET console harness** at `scripts/csharp/replay-filter/`. The
+The rule for what belongs in the core: **geometry and numerics live here;
+neural-network inference does not.** The learned models (ALIKED local
+features, DIR retrieval, LightGlue matching) are engine-specific — on Unity
+they run through Sentis (ONNX) on the GPU/NPU — so they stay engine-native and
+feed features across the ABI into the core. The core's eventual scope is the
+localizer's whole *geometry tier* (retrieval scoring, OPQ/PQ decode, 2D-3D
+correspondence, PnP/RANSAC, pose refinement, covariance), which is already C++
+upstream (pycolmap is COLMAP/Ceres/Eigen; FAISS is C++); because it is all
+native code, the `Placeframe.Native` package accommodates that migration
+without a later rename. Map *building* (the
+reconstructor's SfM) stays server-side.
+
+The core is consumed three ways from one binary:
+
+1. **By Unity**, as a native plugin. The compiled per-ABI `.so` (and the host
+   `.so`/`.dll`/`.dylib`) are staged into the `Placeframe.Native` wrapper's
+   `Plugins/` tree, the binaries gitignored and their `.meta` files committed
+   (PluginImporter `platformData` per the legacy Immersal precedent). A
+   `[DllImport("placeframe_native")]` surface in the wrapper resolves
+   `libplaceframe_native.so` from the APK at run time (the precedent is
+   `MagicLeapCameraNative.cs`'s `[DllImport]`). On-device Unity is IL2CPP, but
+   the math runs in the native plugin, not in managed code, so it is identical
+   to the harness's by construction. `VisualPositioningSystem.cs` continues to
+   own subscription wiring, the slew tick, the HTTP `Localize()` call, and the
+   `ICameraProvider` plumbing; it calls into the wrapper for the actual math.
+2. **By a .NET console harness** at `scripts/csharp/replay-filter/`, which
+   P/Invokes the **same** C ABI against the host build of the core — same
+   header, same symbols. Because it links the identical native code, replay
+   is bit-identical to device for the whole filter, math and lifecycle. The
    harness reads a corpus JSON file (serialized `localization_evaluations`
-   rows) and a threshold-config JSON file (every filter knob and the
-   Σ_meas form), replays the corpus through the filter, and emits a
-   per-session JSON metric report. Stateless, deterministic, no
-   Postgres / MinIO / network access — pure file I/O. A Pydantic model
-   on the Python side defines the corpus row shape and serializes to
-   JSON; the harness deserializes against a matching C# record. One
-   schema, two language bindings, JSON on the wire.
+   rows) and a threshold-config JSON file (every filter knob and the Σ_meas
+   form), replays the corpus through the filter, and emits a per-session JSON
+   metric report. Stateless, deterministic, no Postgres / MinIO / network
+   access — pure file I/O. A Pydantic model on the Python side defines the
+   corpus row shape and serializes to JSON; the harness deserializes against a
+   matching C# record. One schema, two language bindings, JSON on the wire.
 3. **By Python orchestrator code** at `scripts/python/src/scripts/replay_filter.py`,
    registered as `uv run replay-filter`. The orchestrator owns all
    stateful concerns: it queries `localization_evaluations` from
@@ -445,108 +396,68 @@ The library is consumed three ways:
    venv, and means the harness binary is trivially testable in isolation
    from a hand-crafted corpus fixture.
 
-There is exactly one implementation of the filter math, in C#, consumed
-by Unity and by the offline harness via the same DLL. A Python port is
-foreclosed by construction: the drift hazard between two implementations
-of a non-trivial Kalman + Bayes-factor + spawn-merge-prune algorithm is
-structural and cannot be reliably patched with parity tests. A
+There is exactly one implementation of the filter, in native C++, linked by
+Unity (as a plugin) and by the offline harness (the host build) from the same
+source. A second port — a Python re-implementation or a hand-maintained
+managed copy — is foreclosed by construction: the drift hazard between two
+implementations of a non-trivial Kalman + Bayes-factor + spawn-merge-prune
+algorithm is structural and cannot be reliably patched with parity tests, and
+bit-identical replay is the entire reason the harness links the same binary. A
 backend-stateful-session variant is foreclosed by the loose-coupling
-constraint above and by the long-term direction of moving heavy work
-(ALIKED / LightGlue / PnP) onto the client. A shared-native C++ / Rust
-library is the correct *eventual* answer if and when the localizer
-itself migrates to native code; for ~700 lines of filter math today it
-does not justify a 5+ platform cross-compilation matrix, and at that
-later point the C# filter becomes the reference for parity-testing the
-native port.
+constraint above and by the long-term direction of moving heavy work (ALIKED /
+LightGlue / PnP) onto the client — where the native core is the natural home
+for that geometry tier as it migrates on-device.
 
-### Math primitives shim
+### Boundary conventions — managed at the engine edge
 
-`Placeframe.Filter` ships its own value-type shim for the small-vector
-and small-matrix algebra the filter uses:
+The native ABI is canonical: it accepts and returns poses in OpenCV /
+pycolmap convention, the same convention `LocalizationResult` arrives in over
+the wire and the reconstructor stores. Conversion to and from an engine's
+native convention is **managed C#**, in the `Placeframe.Native` wrapper: an
+`AxisConvention` enum (cases `OPENCV` / `UNITY`, extensible to `Unreal` /
+`Godot`) and a `ChangeBasis` static class of `change_basis_X_from_Y`
+conjugation helpers, ported from the Python `change_basis_*` helpers
+(`packages/python/core/src/core/axis_convention.py`) with identical matrix
+definitions so the conversion is verifiable by inspection. These encode our
+semantic convention, not a library's, so they stay hand-written, and they are
+shared by Unity and the harness (both .NET). Engine-specific glue
+(`VisualPositioningSystem.cs` for Unity; future Unreal / Godot equivalents)
+calls `ChangeBasis.*` at the boundary, so the native core never sees a foreign
+convention. This matches the rule in `packages/python/core/SPEC.md`:
+"AxisConvention is a tag, not a dispatch."
 
-- `Double3`, `Double4x4`, `Quaternion` — `[StructLayout(LayoutKind.Sequential)]`
-  value types covering the ~20–30 operations the filter actually
-  consumes (constructors, accessors, `mul`, `dot`, `cross`, `length`,
-  `normalize`, quaternion product, quaternion-vector rotation).
-- Transcendentals (`sin`, `cos`, `sqrt`, `tan`, `atan2`, `sincos`)
-  delegate to `System.Math` (BCL, zero dependencies).
-- The 6×6 covariance algebra (matrix inverse, KL divergence,
-  Cholesky-based numerics for the precision floor and merge tests) stays
-  on `MathNet.Numerics`. MathNet's `Matrix<double>` is the right shape
-  for the larger matrices; the in-house shim covers the value-type
-  small-matrix surface where MathNet would be ergonomically and
-  performance-inappropriate.
+The internal Lie-algebra and covariance conventions are not pinned by prose —
+Sophus and Eigen own them. The one convention the system asserts itself is the
+C ABI contract: scalar-last quaternion storage and the rotation-first 6×6
+covariance block order, locked behaviourally by the native ABI tests below.
 
-### Boundary conventions — typed at the API surface
+### Tests
 
-The filter's public API is canonical: it accepts and returns poses in
-OPENCV / pycolmap convention, the same convention `LocalizationResult`
-arrives in over the wire and the reconstructor stores. The existing
-`AxisConvention` enum (`packages/python/core/src/core/axis_convention.py`,
-cases `OPENCV` / `UNITY`) ports to a C# enum in `Placeframe.Filter`,
-extensible to `Unreal` / `Godot` as those consumers materialize. The
-existing `change_basis_X_from_Y_pose` helpers port to a `ChangeBasis`
-static class in the same library, with matrix definitions identical to
-the Python so the conversion is verifiable by inspection. Engine-specific
-glue (`VisualPositioningSystem.cs` for Unity; future Unreal / Godot
-equivalents) owns the conversion call at the filter boundary. The
-filter itself does not branch on convention. Matches the existing rule
-documented in `packages/python/core/SPEC.md`: "AxisConvention is a tag,
-not a dispatch."
+Three test surfaces, by where the code lives:
 
-Internal implementation choices (Rodrigues' variant, V matrix definition,
-quaternion product order, tangent ordering) are pinned by a two-line
-comment at the top of `Se3.cs` citing the textbook form in use (e.g.
-Solà, "A micro Lie theory for state estimation in robotics," §3.4) and
-locked behaviourally by the convention-targeted unit tests below. A
-future maintainer who reaches for a different V matrix definition fails
-the adjoint-identity test immediately — stronger guarantee than a prose
-spec they could quietly disagree with.
+- **Native ABI + convention tests** (C++, `packages/cpp/Placeframe.Native/tests/`).
+  Assert the boundary contract: scalar-last quaternion storage, the
+  rotation-first 6×6 covariance block order, canonical-only input/output, and
+  a clean `create` → `observe` → `publish` → `destroy` round-trip. The
+  Lie-algebra and covariance numerics themselves are not re-tested — Eigen and
+  Sophus own those guarantees.
+- **Native filter behaviour tests** (C++). Perfect-measurement convergence to
+  truth, aliasing-recovery via challenger swap, innovation-gate rejection of
+  outliers, KL-driven merger of converged hypotheses, evidence-based pruning,
+  tracking-discontinuity reset, watchdog reset, and `BypassChallengers`
+  collapsing to single-Gaussian behaviour for A/B comparison.
+- **`ChangeBasis` tests** (C# xUnit, alongside the managed wrapper). The
+  basis-change conjugations stay managed, so they are tested managed —
+  column-vs-row, handedness, quaternion storage order, and OpenCV↔Unity↔ECEF
+  round-trips against the Python reference values.
 
-### Convention-targeted unit tests
-
-The shim and `Se3` Lie algebra ops are TDD'd with tests designed so each
-test fails for a *specific* class of convention error rather than just
-"the math is wrong":
-
-- **Column-vs-row swap** — `Translation(t) * (0,0,0,1)ᵀ == (t.x, t.y, t.z, 1)ᵀ`.
-  Fails if matrices are built row-major or applied to row vectors.
-- **Handedness flip** — `RotateY(π/2) * (1,0,0,1)ᵀ` has a sign-specific
-  expected value that differs under a handedness swap.
-- **Quaternion storage order** — `Quaternion.Identity` asserts the `w`
-  component lives in the documented slot; fails immediately on a
-  scalar-first / scalar-last mix-up.
-- **Quaternion product order** — `(Q_x90 * Q_y90).Rotate((1, 0, 0))`
-  asserts a specific value matching the pinned right-to-left composition
-  convention.
-- **Lie algebra round-trip** — `Se3.Log(Se3.Exp(xi)) ≈ xi` across
-  translations spanning sub-mm to Earth-scale magnitudes and rotations
-  spanning sub-degree to near-π. Tolerance `1e-12`.
-- **Compose-inverse identity** — `Se3.Compose(Se3.Inverse(T), T) ≈ Identity`
-  for random `T`.
-- **Adjoint identity** — `Se3.Adjoint(T) * xi ≈ Se3.Log(T * Se3.Exp(xi) * Se3.Inverse(T))`.
-  Catches transposed adjoint formulas, sign errors in the V matrix.
-- **Small-angle singularities** — `Se3.Exp(xi)` for `|xi| ∈ {1e-12, 1e-9,
-  1e-6, 1e-3, 1.0, π − 1e-3}`. Catches the "blew up at small angles
-  because we divided by θ without the series expansion" failure mode.
-- **Matrix-multiplication associativity** — `(A * B) * C ≈ A * (B * C)`
-  to `1e-12`. Catches multiplication-kernel axis errors.
-
-Filter-level behavioural tests sit on top of the primitive tests:
-perfect-measurement convergence to truth, aliasing-recovery via
-challenger swap, innovation-gate rejection of outliers, KL-driven merger
-of converged hypotheses, evidence-based pruning, tracking-discontinuity
-reset, watchdog reset, and `BypassChallengers` collapsing to single-
-Gaussian behaviour for A/B comparison.
-
-The convention-targeted tests are designed so a CI failure localizes the
-bug class structurally: primitive tests red ⇒ shim or Lie-algebra bug;
-primitives green and behavioural tests red ⇒ multi-hypothesis math bug.
-Git-history bisection is not the localization mechanism. There is no
-shadow-deployment, no oracle-capture against the existing filter, and no
-bit-equal parity comparison: the filter is being rewritten end-to-end
-(single-Gaussian → multi-hypothesis), pre-alpha, with no production
-traffic worth preserving compatibility against.
+Filter behaviour is additionally validated end-to-end through the replay
+harness against the evaluation corpus. A failure localizes the bug class
+structurally: native ABI tests red ⇒ boundary contract; native behaviour
+tests red ⇒ multi-hypothesis math; `ChangeBasis` tests red ⇒ convention
+conversion. There is no shadow-deployment, no oracle-capture against any prior
+filter, and no bit-equal parity comparison against engine code — device and
+harness run the same native binary, so they cannot disagree.
 
 ### Tracking-discontinuity in the provider boundary
 
@@ -568,8 +479,8 @@ merges the OpenXR Localization Map callbacks,
 `XRInputSubsystem.trackingOriginUpdated`, and the same pose-delta
 heuristic.
 
-`VisualPositioningSystem.cs` subscribes to the event and calls `Reset`
-on the hypothesis pool.
+`VisualPositioningSystem.cs` subscribes to the event and calls `Reset` on the
+pool through the P/Invoke wrapper.
 
 ## End-state offline tuning machinery
 
@@ -702,7 +613,7 @@ and got rejected — was that right?"), but it drives no control decisions.
 
 #### Reconstruction tuning — expanded objective
 
-`scripts/src/scripts/tune_reconstruction.py` survives with one
+`scripts/python/src/scripts/tune_reconstruction.py` survives with one
 substantial change: the PB-sweep cell objective expands from "map-
 quality metrics only" (point count, track length, viewpoint diversity,
 bounding volume, image count, plus `truth_alignment_*` residuals) to an
@@ -773,9 +684,9 @@ not locked here — they require field data to calibrate against.
 
 ### Filter-replay harness
 
-The harness — a new .NET console executable consuming the portable
-`Placeframe.Filter` library — is the single piece of new infrastructure
-that ties the rest together. It does not exist today.
+The harness — a .NET console executable that P/Invokes the host build of the
+native `Placeframe.Native` library — is the single piece of new infrastructure
+that ties the rest together.
 
 Inputs:
 
@@ -843,8 +754,8 @@ the configs. An opt-in `--archive-cells` flag uploads the per-cell blobs
 when investigating a specific anomalous cell justifies the storage.
 
 **CI coverage is deferred.** The initial harness build ships with no
-preflight regression test; filter math is covered by
-`Placeframe.Filter.Tests`, orchestrator plumbing by pytest, and the
+preflight regression test; filter math is covered by the native
+`Placeframe.Native` tests, orchestrator plumbing by pytest, and the
 orchestrator ↔ harness integration boundary is the genuinely-untested
 surface. The right test for that boundary is a deterministic multi-cell
 mini-sweep against a synthetic perfect-measurement fixture corpus, and
@@ -903,7 +814,7 @@ fundamentally different corpora.
 **Phase A — bootstrap corpus (ZED capture held-out frames).** The only
 labeled corpus that exists today. Held-out frames from ZED captures are
 localized against their own reconstructions via the Algorithm 1
-machinery (`scripts/src/scripts/fit_calibration.py`, documented in
+machinery (`scripts/python/src/scripts/fit_calibration.py`, documented in
 `scripts/SPEC.md`); per row the corpus carries a PnP measurement, a
 truth label
 (BA-refined `frame_poses.npz`), a VIO sample (rig-grade VIO from
@@ -981,53 +892,61 @@ logging against the already-stable schema, narrowing the
 bootstrap-calibration-as-permanent failure mode without paying the
 phone-side instrumentation cost up front.
 
-## Key files (current state — start of the redesign)
+## Key files
 
-Filter math + Unity glue:
+Native filter core:
 
-- `packages/unity/Placeframe/Assets/Package/Core/Runtime/RelocalizationFilter.cs`
-  — single-Gaussian filter; moves into the portable library and
-  rewrites to multi-hypothesis.
-- `packages/unity/Placeframe/Assets/Package/Core/Runtime/Se3.cs` — SE(3)
-  Lie algebra; moves with the filter.
-- `packages/unity/Placeframe/Assets/Package/Core/Runtime/MathUtil.cs`
-  and the `Double4x4` helpers — partial move (only the parts the filter
-  uses).
+- `packages/cpp/Placeframe.Native/` — the native filter: `extern "C"` ABI
+  header, the multi-hypothesis pool and lifecycle, Eigen/Sophus numerics, the
+  CMake build, and native ABI + behaviour tests.
+
+Managed wrapper — UPM package, asmdef `Placeframe.Native`, id `org.outernet.placeframe.native`:
+
+- `packages/csharp/Placeframe.Native/` — the `[DllImport]` P/Invoke surface,
+  `package.json`, and the `Plugins/` tree holding the staged per-ABI native
+  binaries and their committed `.meta` files.
+- `packages/csharp/Placeframe.Native/AxisConvention.cs`, `ChangeBasis.cs` — C#
+  ports of the Python `AxisConvention` enum and `change_basis_X_from_Y_pose`
+  helpers; identical matrix definitions, verifiable against the Python by
+  inspection.
+
+Unity engine binding — UPM package `Placeframe.Core`, id `org.outernet.placeframe`, depends on `Placeframe.Native`:
+
 - `packages/unity/Placeframe/Assets/Package/Core/Runtime/VisualPositioningSystem.cs`
-  — Unity-engine glue; stays in the Unity asmdef but rewires to consume
-  the portable library, drops `LockupRejectionThreshold` /
-  `LockupSecondsThreshold` (replaced by challenger-winning indicator),
-  subscribes to `OnTrackingDiscontinuity`, and adds the watchdog timer.
-- `packages/unity/Placeframe/Assets/Package/Core/Runtime/ICameraProvider.cs`
-  — adds `OnTrackingDiscontinuity`.
-- `packages/unity/Placeframe/Assets/Package/ARFoundation/Runtime/CameraProvider.cs`
-  — implements `OnTrackingDiscontinuity` via `ARSession.stateChanged` +
-  `ARTrackingState` transitions + pose-delta heuristic.
-- `packages/unity/Placeframe/Assets/Package/MagicLeap/Runtime/MagicLeapCameraProvider.cs`
-  — implements `OnTrackingDiscontinuity` via OpenXR Localization Map +
-  `XRInputSubsystem.trackingOriginUpdated` + the same pose-delta
-  heuristic backstop.
-- `packages/unity/Placeframe/Assets/Package/Core/Runtime/Plerion.VPS.asmdef`
-  — integrates `Placeframe.Filter.dll` (auto-referenced managed plugin
-  and/or `precompiledReferences` entry).
-- `packages/unity/Placeframe/Assets/Package/Core/Tests/Editor/RelocalizationFilterTests.cs`
-  — existing tests; either move to the new `dotnet test` project
-  wholesale, or duplicate scenarios there and leave a minimal smoke test
-  in the Unity Editor harness.
-- `apps/AndroidMobile/Assets/Scripts/Capture/AppUI.cs` — UI surfaces for
-  the new filter-state (hypothesis count, evidence, Bayes factor,
-  seconds since publish; drops the lockup banner).
-- `packages/unity/Placeframe/SPEC.md` — update to describe the multi-
-  hypothesis architecture and the portable-library boundary.
+  — Unity-engine glue: owns subscription wiring, the slew tick, the HTTP
+  `Localize()` call, `ChangeBasis` conversion at the boundary, the watchdog
+  timer, and the `OnTrackingDiscontinuity` subscription that resets the pool.
+- `.../Core/Runtime/ICameraProvider.cs` — declares `OnTrackingDiscontinuity`.
+- `.../ARFoundation/Runtime/CameraProvider.cs` — implements it via
+  `ARSession.stateChanged` + `ARTrackingState` transitions + pose-delta
+  heuristic.
+- `.../MagicLeap/Runtime/MagicLeapCameraProvider.cs` — implements it via OpenXR
+  Localization Map + `XRInputSubsystem.trackingOriginUpdated` + the same
+  pose-delta backstop.
+- `.../Core/Runtime/Plerion.VPS.asmdef` — the `Placeframe.Core` asmdef;
+  references the managed `Placeframe.Native` wrapper.
+- `apps/AndroidMobile/Assets/Scripts/Capture/AppUI.cs` — UI surfaces for the
+  filter state (hypothesis count, evidence, Bayes factor, seconds since
+  publish; the "challenger is winning" indicator).
+- `packages/unity/Placeframe/SPEC.md` — the multi-hypothesis architecture and
+  the native-core boundary.
+
+Harness:
+
+- `scripts/csharp/replay-filter/` — .NET console harness; P/Invokes the host
+  build of the native core.
+- `scripts/python/src/scripts/replay_filter.py` — Python orchestrator
+  (`uv run replay-filter`); pulls corpus rows from Postgres, enumerates sweep
+  cells, shells out to the harness via `common.bash`, aggregates per-cell JSON.
 
 Calibration / tuning machinery:
 
-- `scripts/src/scripts/fit_calibration.py` — Algorithm 1 corpus
+- `scripts/python/src/scripts/fit_calibration.py` — Algorithm 1 corpus
   pipeline; the Σ_meas fit extends to feature-conditional `β(features)`.
-- `scripts/src/scripts/tune_reconstruction.py` — PB sweep; cell-
+- `scripts/python/src/scripts/tune_reconstruction.py` — PB sweep; cell-
   objective changes to "end-to-end filter performance on held-out
   frames".
-- `scripts/src/scripts/held_out_selection.py` — selector registry;
+- `scripts/python/src/scripts/held_out_selection.py` — selector registry;
   unchanged.
 - `packages/python/core/src/core/calibration.py` — schema bump;
   remove `loose_min` / `tight_min`; expand `sigma_meas_alpha` / `sigma_meas_beta`
@@ -1046,30 +965,6 @@ Calibration / tuning machinery:
   the `α · pnp_covariance + β · I` formula; update to reflect the
   feature-conditional expansion and the removal of the server-side
   gate.
-
-New surface (does not exist today, post-Phase-0-reorg paths):
-
-- `packages/csharp/Placeframe.Filter/` — portable .NET class library
-  with the filter math. Contains the in-house `Double3`, `Double4x4`,
-  `Quaternion` value-type shim; the `Se3` Lie algebra; the multi-
-  hypothesis pool and lifecycle rules; and `MathNet.Numerics` consumers
-  for the 6×6 covariance algebra.
-- `packages/csharp/Placeframe.Filter/AxisConvention.cs` and
-  `packages/csharp/Placeframe.Filter/ChangeBasis.cs` — C# ports of the
-  existing Python `AxisConvention` enum and `change_basis_X_from_Y_pose`
-  helpers. Same matrix definitions; verifiable against the Python by
-  inspection. Engine-specific glue calls these at the filter boundary.
-- `packages/csharp/Placeframe.Filter.Tests/` — xUnit test project
-  running under `dotnet test`. Convention-targeted primitive tests plus
-  filter-level behavioural tests.
-- `packages/csharp/Placeframe.Filter.sln` — solution file tying
-  library and tests.
-- `scripts/csharp/replay-filter/` — .NET console harness binary
-  consuming the portable filter library.
-- `scripts/python/src/scripts/replay_filter.py` — Python orchestrator
-  entry point registered as `uv run replay-filter`. Pulls corpus rows
-  from Postgres, enumerates sweep cells, shells out to the harness via
-  `common.bash`, and aggregates per-cell JSON into a sweep summary.
 
 ## References
 

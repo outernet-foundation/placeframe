@@ -27,9 +27,9 @@ this file is the sequence of work.
 
 | # | Phase | Depends on |
 |---|---|---|
-| 1 | Capture Tool demo bypass workaround | — |
-| 2 | `scripts/` reorganization | — |
-| 3 | Filter library + multi-hypothesis rewrite + Unity integration | 2 |
+| 1 | Capture Tool demo bypass workaround ✅ done | — |
+| 2 | `scripts/` reorganization ✅ done | — |
+| 3 | Native filter core + multi-hypothesis filter + Unity integration | 2 |
 | 4 | Filter-replay harness + orchestrator + aliasing fixtures | 2, 3 |
 | 5 | Calibration & tuning rebuild | 3, 4 (recon objective only) |
 | 6 | Bootstrap tuning loop → shippable calibration | 4, 5 |
@@ -37,11 +37,21 @@ this file is the sequence of work.
 | — | Deferred: phone dogfooding + Phase B field loop | 7 |
 
 Phase 2 gates only Phase 4 (the harness lives under `scripts/csharp/`), not
-Phase 3 (`packages/csharp/`); it may land anywhere before Phase 4.
+Phase 3 (`packages/cpp/` + `packages/csharp/`); it may land anywhere before
+Phase 4.
 
 ---
 
-## Phase 1 — Capture Tool demo bypass workaround
+## Phase 1 — Capture Tool demo bypass workaround ✅ done
+
+**Status:** done on `feature/relocalization-redesign`. The two bypass toggles are
+consolidated into one "Disable filtration (raw localization)" toggle that sets
+both flags, with the underlying toggles retained under a "Diagnostics" header; a
+"Lock in"/"Localize" label now surfaces the localize start/stop control in the
+Validation UI. Compiles via
+`uv run compile-unity --project CaptureTool --build android-mobile`. The on-device
+confirmation below (raw-track → stop → frozen) remains an operator step — no phone
+was attached when the work landed.
 
 Both capabilities already exist: filtration-off = `BypassInnovationGate` +
 `BypassKalman` together (separate toggle rows at
@@ -62,7 +72,19 @@ rebuild.
 
 ---
 
-## Phase 2 — `scripts/` reorganization
+## Phase 2 — `scripts/` reorganization ✅ done
+
+**Status:** done on `feature/relocalization-redesign`. `scripts/{pyproject.toml,src,tests}`
+moved under `scripts/python/` (pure git renames); `scripts/SPEC.md` and
+`scripts/README.md` stayed at the root. Root `pyproject.toml` workspace member
+(`scripts` → `scripts/python`) and pytest `testpaths` repointed; the `scripts/**/src/**`
+basedpyright globs and the path-less `scripts = { workspace = true }` source needed no
+change. `uv.lock` regenerated (`scripts` now `editable = "scripts/python"`).
+`uv run preflight` green and all `uv run` entry points resolve. Prose updated in
+`scripts/SPEC.md`, `packages/python/core/SPEC.md`, and `docker/localizer/SPEC.md`.
+Committed to this branch rather than a standalone PR since the whole redesign rides one
+branch. Stale `scripts/src/...` references in `.pulsar/bugs/` and `.pulsar/memories/`
+were left as-is (work-tracking artifacts, some describing the pre-move baseline).
 
 - Move `scripts/pyproject.toml`, `scripts/src/scripts/*.py`, and
   `scripts/tests/` under `scripts/python/`.
@@ -82,58 +104,58 @@ entry points resolve. Lands as its own PR.
 
 ---
 
-## Phase 3 — Filter library + multi-hypothesis rewrite + Unity integration
+## Phase 3 — Native filter core + multi-hypothesis filter + Unity integration
 
-One PR, three commits in order. F1 must land green before any multi-hypothesis
-math is written.
+One PR of three commits in order. F1 must land green before any
+multi-hypothesis math is written.
 
-### F1 — stand up the library + prove Unity integration
+### F1 — native scaffold + prove the plugin loads on every target
 
-- Create `packages/csharp/Placeframe.Filter/` (netstandard2.1),
-  `Placeframe.Filter.Tests/` (xUnit), and `Placeframe.Filter.sln`.
-- Write the in-house math shim: `Double3`, `Double4x4`, `Quaternion`
-  (`[StructLayout(LayoutKind.Sequential)]`), covering the ~20-30 ops the filter
-  uses (including `inverse(double4x4)` and quaternion `slerp`). Transcendentals
-  delegate to `System.Math`; 6×6 covariance algebra stays on
-  `MathNet.Numerics`.
-- Port `Se3` (Lie algebra), the `AxisConvention` enum, and `ChangeBasis` (from
-  the Python `change_basis_*` helpers and `MathUtil.LocationUtilities`) with
-  identical matrix definitions. Pin internal conventions (Rodrigues variant, V
-  matrix, quaternion product order, tangent ordering) in a two-line citation
-  comment atop `Se3.cs`.
-- Add a `RelocalizationFilter` stub that throws `NotImplementedException`.
-- Land the convention-targeted primitive tests (column-vs-row, handedness,
-  quaternion storage/product order, Lie round-trip, compose-inverse, adjoint,
-  small-angle singularities, matmul associativity); confirm green under
-  `dotnet test`.
-- Resolve the DLL-into-Unity mechanism: build the DLL, place it where Unity
-  auto-references it (Plugins folder + `.meta`, and/or a `precompiledReferences`
-  entry on `Plerion.VPS.asmdef`, currently empty `[]`), and confirm Unity
-  compiles, the stub loads, and the DLL's MathNet dependency binds to
-  NuGetForUnity's MathNet 5.0.0 without a second copy.
+Stand up the toolchain and interop with no real math, to de-risk them in
+isolation.
 
-### F2 — implement the multi-hypothesis filter
+- Create `packages/cpp/Placeframe.Native/`: `CMakeLists.txt`, the `extern "C"`
+  ABI header (`placeframe_filter_create` / `_destroy` / `_observe` /
+  `_publish` / diagnostics; `Pose7` and `Cov6x6` POD structs), a trivial
+  identity-round-trip implementation, and a native test target. Vendor Eigen
+  and Sophus via CMake `FetchContent` pinned to exact commit hashes.
+- Create the managed UPM wrapper `packages/csharp/Placeframe.Native/` (asmdef
+  `Placeframe.Native`, id `org.outernet.placeframe.native`): the
+  `[DllImport("placeframe_native")]` P/Invoke surface over the ABI, the
+  `AxisConvention` enum, the `ChangeBasis` static class, `package.json`, and a
+  `Plugins/` tree with committed `.meta` files (PluginImporter `platformData`
+  per the legacy Immersal precedent). Port `AxisConvention` / `ChangeBasis`
+  from the Python `change_basis_*` helpers with identical matrix definitions.
+- Add the `uv run build-native` driver (a Python orchestrator around CMake)
+  that builds the target's ABI(s) — `arm64-v8a`, Android `x86_64`, and host —
+  and stages the binaries into `Plugins/Android/{arm64-v8a,x86_64}/` and the
+  host plugin folder, with the `.so`/`.dll`/`.dylib` gitignored. Wire it into
+  `prepare_unity_project()` ahead of the Unity batchmode invocation.
+- Reference the managed `Placeframe.Native` wrapper from the `Placeframe.Core`
+  asmdef and both app manifests.
+- Prove it **builds, loads, and round-trips a call** on arm64-v8a (CaptureTool),
+  Android-x86_64 (Magic Leap), and host — and that the .NET harness links the
+  same host binary. No filter math yet.
 
-- Set the portable input boundary: the public API takes shim/pose types, not
-  `MapLocalization`/`CameraFrame`. Decide whether the
-  `ComputeAlignmentFromResult` wire-type/Unity-type unpacking moves into the
-  library (operating on portable inputs) or stays in `VisualPositioningSystem`;
-  move it accordingly.
-- Implement the dynamic hypothesis pool: per-hypothesis SE(3) Gaussian +
-  `LastAcceptedVioPosition` + exponentially-decayed log-evidence; incumbent +
-  challengers; lifecycle rules (spawn on gate-fail-against-all, fold-in on
-  accept, KL-merge, evidence-ratio prune); Bayes-factor publish-swap
-  (`log K ≥ 4.6`) gated by the precision floor (σ_t < 30 cm, σ_r < 1°);
-  per-hypothesis process noise; publish deadband; the surviving 0.5 s
-  `SmoothStep` slew; `BypassChallengers` (caps the pool at 1).
-- Land filter-level behavioural tests: perfect-measurement convergence,
-  aliasing-recovery via challenger swap, innovation-gate outlier rejection,
-  KL-driven merger, evidence-based pruning, watchdog reset, `BypassChallengers`
-  collapsing to single-Gaussian.
-- Transplant the moving Unity tests into xUnit: `Se3Tests` (87),
-  `Double4x4Tests` (120), `LocationUtilitiesTests` (81), and the relevant
-  `RelocalizationFilterTests` (458, largely rewritten for multi-hypothesis)
-  regressions. `WGS84Tests` (81) stays in Unity.
+### F2 — implement the multi-hypothesis filter in C++
+
+- Implement the dynamic hypothesis pool in C++: per-hypothesis SE(3) Gaussian
+  (`Sophus::SE3d` mean + 6×6 covariance) + `LastAcceptedVioPosition` +
+  exponentially-decayed log-evidence; incumbent + challengers; lifecycle rules
+  (spawn on gate-fail-against-all, fold-in on accept, KL-merge, evidence-ratio
+  prune); Bayes-factor publish-swap (`log K ≥ 4.6`) gated by the precision
+  floor (σ_t < 30 cm, σ_r < 1°); per-hypothesis process noise; publish
+  deadband; the 0.5 s `SmoothStep` slew; `BypassChallengers` (caps the pool at
+  1). The whole lifecycle lives in C++ so device and harness run identical
+  decisions. Covariance algebra is Eigen (`LLT` / `.inverse()` / `.solve()`);
+  the Lie algebra is Sophus; the ABI's rotation-first 6×6 block order is
+  permuted to Sophus's translation-first tangent internally.
+- Land native behaviour tests: perfect-measurement convergence, aliasing-
+  recovery via challenger swap, innovation-gate outlier rejection, KL-driven
+  merger, evidence-based pruning, watchdog reset, `BypassChallengers`
+  collapsing to single-Gaussian. Land native ABI tests: covariance block order,
+  scalar-last quaternion storage, canonical-only I/O, and a
+  create/observe/publish/destroy round-trip.
 - Define and lock the corpus / dogfooding-logger row schema: a Pydantic model +
   matching C# record carrying the measurement payload and the per-query
   filter-state diagnostics (active hypothesis count, per-hypothesis evidence,
@@ -142,9 +164,10 @@ math is written.
 
 ### F3 — rewire Unity glue
 
-- Rewrite `VisualPositioningSystem.cs` to call the portable library; it owns
-  subscription wiring, the slew tick, the HTTP `Localize()` call, and convention
-  conversion at the filter boundary.
+- Rewrite `VisualPositioningSystem.cs` to drive the filter through the P/Invoke
+  wrapper; it owns subscription wiring, the slew tick, the HTTP `Localize()`
+  call, unpacking `LocalizationResult` / `CameraFrame` into canonical poses, and
+  the `ChangeBasis` conversion at the boundary.
 - Add `OnTrackingDiscontinuity` (`Observable<Unit>`) to `ICameraProvider`.
   Implement in `CameraProvider.cs` (ARFoundation: `ARSession.stateChanged` +
   `ARTrackingState` transitions + pose-delta heuristic) and
@@ -158,19 +181,22 @@ math is written.
   Reconcile the Phase 1 affordance into the
   `BypassChallengers`/`BypassInnovationGate`/`BypassKalman` toggle set.
 - Update `packages/unity/Placeframe/SPEC.md` (separate prose commit) for the
-  multi-hypothesis architecture and the portable-library boundary.
+  multi-hypothesis architecture and the native-core boundary.
 
-**Exit:** `dotnet test` green for `Placeframe.Filter.Tests`;
-`uv run compile-unity --project CaptureTool --build android-mobile` green; the
-filter runs on-device against the current placeholder calibration. Not shipped
-to demos (Phase 7).
+**Exit:** native tests green for `Placeframe.Native`; `uv run build-native`
+produces and stages the plugin for all three targets;
+`uv run compile-unity --project CaptureTool --build android-mobile` green with
+the plugin loading on-device; the .NET harness links the host build. The filter
+runs on-device against the current placeholder calibration. Not shipped to
+demos (Phase 7).
 
 ---
 
 ## Phase 4 — Filter-replay harness + orchestrator + aliasing fixtures
 
-- Build `scripts/csharp/replay-filter/` — a .NET console binary linking
-  `Placeframe.Filter`. It reads a corpus JSON file + a threshold-config JSON
+- Build `scripts/csharp/replay-filter/` — a .NET console binary that P/Invokes
+  the host build of the native `Placeframe.Native` (produced by `uv run
+  build-native`). It reads a corpus JSON file + a threshold-config JSON
   (every filter knob + the Σ_meas form), replays the
   `(state, measurement, VIO_pose) → state'` loop with a per-step
   `score(published, truth)`, and emits a per-session JSON report (truth-error
@@ -192,8 +218,9 @@ to demos (Phase 7).
   orchestrator↔harness boundary. Before the first future change to the harness,
   orchestrator, or filter, first write a deterministic multi-cell mini-sweep
   against a synthetic perfect-measurement fixture corpus.
-- Decide whether `dotnet test` for `Placeframe.Filter.Tests` joins
-  `uv run preflight` or runs as a separate CI job.
+- Decide whether the native-core tests (and the `ChangeBasis` C# xUnit tests)
+  join `uv run preflight` or run as a separate CI job. Either way CI must run
+  `uv run build-native` (NDK + CMake) before any Unity build or harness link.
 
 **Exit:** `uv run replay-filter` runs a trivial sweep end-to-end against a
 hand-crafted fixture corpus and produces an aggregated summary.
@@ -268,7 +295,7 @@ when Phase B field data arrives.
 
 **Exit:** Capture Tool builds and runs the new filter against the Phase 6
 calibration on-device; the demo workaround is still reachable. MakeItSing adopts
-the same library on the colleague's schedule.
+the same native core on the colleague's schedule.
 
 ---
 
