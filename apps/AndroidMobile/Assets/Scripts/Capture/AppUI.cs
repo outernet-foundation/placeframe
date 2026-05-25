@@ -342,15 +342,43 @@ namespace Placeframe.Client
                         }
                     }),
                     Text(new() { value = lastAcceptObservable }),
-                    BypassToggleRow(
+                    FilterToggleRow(
+                        "Disable filtration (raw localization)",
+                        Observables.ObservableCombineValues(
+                            bypassInnovationGate,
+                            bypassKalman,
+                            (gate, kalman) => gate && kalman
+                        ),
+                        isOn =>
+                        {
+                            VisualPositioningSystem.BypassInnovationGate = isOn;
+                            VisualPositioningSystem.BypassKalman = isOn;
+                            bypassInnovationGate.value = isOn;
+                            bypassKalman.value = isOn;
+                        }
+                    ),
+                    Text(new()
+                    {
+                        value = Props.Value("Diagnostics"),
+                        style = new() { outlineWidth = Props.Value(.1f) }
+                    }),
+                    FilterToggleRow(
                         "Bypass innovation gate",
                         bypassInnovationGate,
-                        isOn => VisualPositioningSystem.BypassInnovationGate = isOn
+                        isOn =>
+                        {
+                            VisualPositioningSystem.BypassInnovationGate = isOn;
+                            bypassInnovationGate.value = isOn;
+                        }
                     ),
-                    BypassToggleRow(
+                    FilterToggleRow(
                         "Bypass Kalman update",
                         bypassKalman,
-                        isOn => VisualPositioningSystem.BypassKalman = isOn
+                        isOn =>
+                        {
+                            VisualPositioningSystem.BypassKalman = isOn;
+                            bypassKalman.value = isOn;
+                        }
                     )
                 )
             });
@@ -360,7 +388,7 @@ namespace Placeframe.Client
             return control;
         }
 
-        private static IControl BypassToggleRow(string label, ObservableValue<bool> state, Action<bool> setStatic)
+        private static IControl FilterToggleRow(string label, IValueObservable<bool> value, UnityAction<bool> onValueChanged)
         {
             return HorizontalLayout(new()
             {
@@ -382,12 +410,8 @@ namespace Placeframe.Client
                     }),
                     Toggle(new ToggleProps()
                     {
-                        value = state,
-                        onValueChanged = isOn =>
-                        {
-                            setStatic(isOn);
-                            state.value = isOn;
-                        }
+                        value = value,
+                        onValueChanged = onValueChanged
                     })
                 )
             });
@@ -480,6 +504,24 @@ namespace Placeframe.Client
                                     anchorMin = Props.Value(new Vector2(0, 0.5f)),
                                     anchorMax = Props.Value(new Vector2(0, 0.5f)),
                                     anchoredPosition = Props.Value(new Vector2(0, 0))
+                                }
+                            }),
+                            Text(new TextProps()
+                            {
+                                value = App.state.localizing.ObservableSelect(x => x ? "Lock in" : "Localize"),
+                                style = new TextStyleProps()
+                                {
+                                    horizontalAlignment = Props.Value(TMPro.HorizontalAlignmentOptions.Center),
+                                    verticalAlignment = Props.Value(TMPro.VerticalAlignmentOptions.Capline),
+                                    outlineWidth = Props.Value(.15f)
+                                },
+                                layout = new()
+                                {
+                                    sizeDelta = Props.Value(new Vector2(255, 40)),
+                                    pivot = Props.Value(new Vector2(0.5f, 0)),
+                                    anchorMin = Props.Value(new Vector2(0.5f, 0.5f)),
+                                    anchorMax = Props.Value(new Vector2(0.5f, 0.5f)),
+                                    anchoredPosition = Props.Value(new Vector2(0, 60))
                                 }
                             }),
                             Toggle(prefab: elements.playButton, props: new ToggleProps()
