@@ -8,7 +8,7 @@
 
 ### Entry points
 
-Registered in `scripts/pyproject.toml`:
+Registered in `scripts/python/pyproject.toml`:
 
 | `uv run` command | Module | What it does |
 |---|---|---|

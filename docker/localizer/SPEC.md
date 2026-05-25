@@ -199,6 +199,6 @@ The Dockerfile bakes `LOCALIZER_SHA` in the *last* `ENV` layer, so only that lay
 
 - `docker/SPEC.md` — stack-level data flow, log query patterns, MinIO bucket layout, reconstructor lease lifecycle. The localizer is one consumer of `dev-reconstructions/`; this file does not restate the bucket schema.
 - `packages/python/core/` — `calibration.py` (Features / CalibrationArtifact / apply_global_calibration), `h5.py`, `opq.py`, `image_preprocess.py`, `model_wrappers.py`, `localization_metrics.py` carry the shared domain types and the canonical hyperparameter defaults the localizer reads.
-- `scripts/src/scripts/fit_calibration.py` — produces `config/calibration/global.json` from a labeled corpus. The localizer is strictly a consumer; refits land as commits to that file plus a paired image rebuild at the same `LOCALIZER_SHA`.
+- `scripts/python/src/scripts/fit_calibration.py` — produces `config/calibration/global.json` from a labeled corpus. The localizer is strictly a consumer; refits land as commits to that file plus a paired image rebuild at the same `LOCALIZER_SHA`.
 - `build/src/build_scripts/placeframe/context_sha.py` — defines `compute_service_shas`, which derives `LOCALIZER_SHA` (and one such SHA per service) from the localizer image's build context per the `.dockerignore` allowlist convention described in the repo `CLAUDE.md`.
 - `docker/api/src/routers/localization.py` — the only caller. Performs the `map_id -> reconstruction_id` indirection and composes the world-space pose from the map row's anchor `Transform`.

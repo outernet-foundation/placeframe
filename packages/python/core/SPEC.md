@@ -6,7 +6,7 @@
 
 ## Shape
 
-The package is flat: 16 leaf modules under `src/core/`, no `__init__.py` re-exports, every consumer imports from a leaf. There are no tests inside `core/`; behaviour is exercised end-to-end from the consumer test suites (`docker/localizer/tests/test_build_metrics.py`, `docker/reconstructor/tests/test_rig.py`, `scripts/tests/test_fit_calibration.py`).
+The package is flat: 16 leaf modules under `src/core/`, no `__init__.py` re-exports, every consumer imports from a leaf. There are no tests inside `core/`; behaviour is exercised end-to-end from the consumer test suites (`docker/localizer/tests/test_build_metrics.py`, `docker/reconstructor/tests/test_rig.py`, `scripts/python/tests/test_fit_calibration.py`).
 
 ### Modules by role
 
@@ -98,5 +98,5 @@ Flipping `LOCAL_FEATURE_RESIZE_SHORTER_SIDE`, `RETRIEVAL_TILE_OVERLAP_FRACTION`,
 ## See also
 
 - `docker/SPEC.md` -- the service mesh that consumes these types. Core is the vocabulary on the arrows between services; that SPEC describes the arrows.
-- `scripts/src/scripts/fit_calibration.py` -- the producer of `config/calibration/global.json`. Reads `core.calibration`, `core.capture_session_manifest`, and `core.localization_metrics`'s defaults.
+- `scripts/python/src/scripts/fit_calibration.py` -- the producer of `config/calibration/global.json`. Reads `core.calibration`, `core.capture_session_manifest`, and `core.localization_metrics`'s defaults.
 - `packages/generated/` -- the OpenAPI client packages (Python and C#) generated from API routes that respond with `core` schemas. A schema change here requires running `generate-clients`.
