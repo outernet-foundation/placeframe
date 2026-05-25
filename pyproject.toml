@@ -26,7 +26,7 @@ members = [
     "packages/generated/python/api-client",
     "packages/generated/python/localizer-client",
     "build",
-    "scripts",
+    "scripts/python",
 ]
 
 
@@ -63,4 +63,4 @@ include = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["build/tests", "packages/python/common/tests", "scripts/tests"]
+testpaths = ["build/tests", "packages/python/common/tests", "scripts/python/tests"]

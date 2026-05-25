@@ -1611,7 +1611,7 @@ dev = [
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "ruff", specifier = ">=0.14.11" },
-    { name = "scripts", editable = "scripts" },
+    { name = "scripts", editable = "scripts/python" },
 ]
 
 [[package]]
@@ -2304,7 +2304,7 @@ wheels = [
 [[package]]
 name = "scripts"
 version = "0.1.0"
-source = { editable = "scripts" }
+source = { editable = "scripts/python" }
 dependencies = [
     { name = "build-scripts" },
     { name = "common" },
