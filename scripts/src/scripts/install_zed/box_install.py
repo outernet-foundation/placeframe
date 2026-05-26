@@ -1,5 +1,6 @@
 import json
 import shlex
+import subprocess
 import tempfile
 import time
 from logging import getLogger
@@ -20,6 +21,13 @@ from .constants import (
     DOCKER_DEBS,
     ENV_LOCK_FILE,
     GHCR_BASE,
+    H2_FRAME_CAPTURE_LOG_DIR,
+    H2_FRAME_CAPTURE_UNIT_CONTENT,
+    H2_FRAME_CAPTURE_UNIT_NAME,
+    H2_FRAME_CAPTURE_UNIT_PATH,
+    JOURNALD_DROPIN_CONTENT,
+    JOURNALD_DROPIN_DIR,
+    JOURNALD_DROPIN_PATH,
     L4T_USB_DEVICE_MODE_UNIT,
     REGISTRY_IMAGE,
     REGISTRY_PORT,
@@ -53,7 +61,7 @@ logger = getLogger(__name__)
 
 def install_box(build: bool, service_shas: dict[str, str]) -> None:
     # If the box isn't reachable at its known static IP, bootstrap first-contact.
-    if not bash_check(f"ssh -o BatchMode=yes -o ConnectTimeout=5 {BOX_SSH_TARGET} true"):
+    if not _probe_box_reachable():
         _claim_box_via_dhcp()
 
     # Open one SSH connection and reuse it for every command below.
@@ -75,11 +83,34 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
                 sudoers_file.write(SUDOERS_RULE + "\n")
                 sudoers_file.flush()
                 bash(f"scp {SSH_MUX} {sudoers_file.name} {BOX_SSH_TARGET}:/tmp/install-zed.sudoers")
+                # Mode 0444 (not 0440) so the box user can read the file
+                # without sudo. The next install-zed run needs to compare
+                # current contents against SUDOERS_RULE to decide whether to
+                # reinstall; reading the file via sudo requires bootstrapping
+                # cat into NOPASSWD which is broader than reading a non-secret
+                # rule list. The contents enumerate which commands `user`
+                # already has NOPASSWD for, which `sudo -ln` exposes anyway.
                 bash(
                     f"ssh -t {SSH_MUX} {BOX_SSH_TARGET}"
-                    ' "sudo install -m 0440 -o root -g root /tmp/install-zed.sudoers /etc/sudoers.d/install-zed"'
+                    ' "sudo install -m 0444 -o root -g root /tmp/install-zed.sudoers /etc/sudoers.d/install-zed"'
                 )
                 ssh_run("rm /tmp/install-zed.sudoers")
+
+        # Make journald write to disk every second so a hard power-cycle (the
+        # only known recovery from the box's AOA-triggered wedge) doesn't lose
+        # the seconds-before-cycle kernel and service logs that diagnose the
+        # wedge. Without this, journald's 5-minute default sync interval
+        # buffers everything in memory and the power-off drops it.
+        journald_matches = ssh_check(f"test -f {JOURNALD_DROPIN_PATH}") and (
+            ssh_output(f"cat {JOURNALD_DROPIN_PATH}") == JOURNALD_DROPIN_CONTENT
+        )
+        if journald_matches:
+            logger.info("journald_persistence_already_configured")
+        else:
+            logger.info("configuring_journald_persistence", extra={"path": JOURNALD_DROPIN_PATH})
+            ssh_run(f"sudo mkdir -p {JOURNALD_DROPIN_DIR}")
+            ssh_run(f"sudo tee {JOURNALD_DROPIN_PATH} > /dev/null", stdin_text=JOURNALD_DROPIN_CONTENT)
+            ssh_run("sudo systemctl restart systemd-journald")
 
         # Install Docker from pinned .deb URLs (Ubuntu's repo is a moving target).
         if ssh_check("which docker"):
@@ -147,6 +178,33 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
         )
         ssh_run(f'sudo nmcli con up "{box_connection}"')
 
+        # Always-on tcpdump capturing every byte of the aoa-bridge <-> aoa-gateway
+        # HTTP/2 wire to a rolling pcap ring on persistent disk. Caddy's framer
+        # rejects HTTP/2 size violations before the offending frame is logged,
+        # so without an on-the-wire capture the bytes are gone the moment the
+        # subsequent wedge forces a power-cycle. Reading the ring after the
+        # cycle yields the rejected frame's type, stream id, and declared
+        # length via Wireshark's HTTP/2 dissector.
+        if ssh_check("which tcpdump"):
+            logger.info("tcpdump_already_installed")
+        else:
+            logger.info("installing_tcpdump")
+            ssh_run("sudo apt-get update")
+            ssh_run("sudo apt-get install -y tcpdump")
+        ssh_run(f"sudo mkdir -p {H2_FRAME_CAPTURE_LOG_DIR}")
+        h2_unit_matches = ssh_check(f"test -f {H2_FRAME_CAPTURE_UNIT_PATH}") and (
+            ssh_output(f"cat {H2_FRAME_CAPTURE_UNIT_PATH}") == H2_FRAME_CAPTURE_UNIT_CONTENT
+        )
+        if h2_unit_matches:
+            logger.info("h2_frame_capture_unit_already_installed")
+            ssh_run(f"sudo systemctl enable --now {H2_FRAME_CAPTURE_UNIT_NAME}")
+        else:
+            logger.info("installing_h2_frame_capture_unit", extra={"path": H2_FRAME_CAPTURE_UNIT_PATH})
+            ssh_run(f"sudo tee {H2_FRAME_CAPTURE_UNIT_PATH} > /dev/null", stdin_text=H2_FRAME_CAPTURE_UNIT_CONTENT)
+            ssh_run("sudo systemctl daemon-reload")
+            ssh_run(f"sudo systemctl enable --now {H2_FRAME_CAPTURE_UNIT_NAME}")
+            ssh_run(f"sudo systemctl restart {H2_FRAME_CAPTURE_UNIT_NAME}")
+
         # Acquire container images (pull from ghcr.io, or cross-compile via local registry).
         images = _acquire_images(host_ip, build, service_shas)
 
@@ -203,6 +261,47 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
         bash_check(f"ssh -o ControlPath={SSH_SOCKET} -O exit {BOX_SSH_TARGET}")
 
 
+# Probe with retries: set_host_link_method("manual") returns when NetworkManager
+# reports the connection as activated, but the kernel ARP cache and route table
+# can still be a beat behind. A single BatchMode ssh fired immediately after
+# can land in that window and return non-zero for transient reasons, which
+# would falsely send install-zed into the bootstrap path (and then into shared
+# mode that's expensive to back out of). A few retries with a short backoff
+# absorbs the settle window. The full ssh stderr is logged on each failed
+# attempt so a genuine auth/known_hosts/wrong-IP failure is diagnosable
+# instead of swallowed by bash_check.
+_PROBE_ATTEMPTS = 3
+_PROBE_BACKOFF_S = 1.0
+
+
+def _probe_box_reachable() -> bool:
+    command = ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=5", BOX_SSH_TARGET, "true"]
+    for attempt in range(1, _PROBE_ATTEMPTS + 1):
+        result = subprocess.run(command, capture_output=True, text=True)
+        if result.returncode == 0:
+            return True
+        logger.info(
+            "box_ssh_probe_failed",
+            extra={
+                "attempt": attempt,
+                "of": _PROBE_ATTEMPTS,
+                "target": BOX_SSH_TARGET,
+                "returncode": result.returncode,
+                "stderr": result.stderr.strip(),
+            },
+        )
+        if attempt < _PROBE_ATTEMPTS:
+            time.sleep(_PROBE_BACKOFF_S)
+    return False
+
+
+# The host's `zedbox` NM connection must end in manual mode whenever
+# install-zed is not actively renumbering the box, otherwise the box at the
+# static BOX_IP becomes unreachable on the next run (shared mode reroutes the
+# subnet for dnsmasq's DHCP pool). Wrap the shared-mode window in try/finally
+# so bail(), exceptions, and KeyboardInterrupt all restore manual mode on the
+# way out. set_host_link_method is idempotent — a no-op when already manual,
+# which covers the happy path that already reached the in-body reset.
 def _claim_box_via_dhcp() -> None:
     logger.info("claiming_box_via_dhcp")
     # NM's dnsmasq re-reads the lease file on startup, so a prior bootstrap's
@@ -211,7 +310,13 @@ def _claim_box_via_dhcp() -> None:
     # empty.
     bash_check("sudo find /var/lib/NetworkManager -maxdepth 1 -name 'dnsmasq-*.leases' -delete")
     set_host_link_method("shared")
+    try:
+        _claim_box_via_dhcp_body()
+    finally:
+        set_host_link_method("manual")
 
+
+def _claim_box_via_dhcp_body() -> None:
     logger.info("waiting_for_box_dhcp_lease", extra={"timeout_seconds": DHCP_LEASE_WAIT_SECONDS})
     deadline = time.monotonic() + DHCP_LEASE_WAIT_SECONDS
     leased_ip = ""
@@ -280,8 +385,6 @@ def _claim_box_via_dhcp() -> None:
             "sudo systemd-run --on-active=3 /bin/sh /tmp/zedbox-renumber.sh\n"
         ),
     )
-
-    set_host_link_method("manual")
 
 
 def _acquire_images(host_ip: str, build: bool, service_shas: dict[str, str]) -> dict[str, str]:

@@ -69,11 +69,47 @@ REGISTRY_PORT = 5000
 DHCP_LEASE_WAIT_SECONDS = 60
 
 SUDOERS_RULE = (
-    "user ALL=(ALL) NOPASSWD: /usr/bin/dpkg, /usr/sbin/usermod, /usr/bin/nvidia-ctk,"
-    " /usr/bin/systemctl, /usr/bin/docker, /usr/bin/tee, /usr/bin/nmcli"
+    "user ALL=(ALL) NOPASSWD: /usr/bin/dpkg, /usr/bin/apt-get, /usr/sbin/usermod, /usr/bin/nvidia-ctk,"
+    " /usr/bin/systemctl, /usr/bin/docker, /usr/bin/tee, /usr/bin/nmcli, /usr/bin/mkdir"
 )
 
 # Pins the Jetson's USB-C port as a USB gadget, which is incompatible with
 # the box acting as USB host for the phone-as-accessory link. Disabling
 # frees the port for host duty.
 L4T_USB_DEVICE_MODE_UNIT = "nv-l4t-usb-device-mode.service"
+
+# Forces journald to write to /var/log/journal/ (persistent) and fsync every
+# second (default is 5 minutes). The box wedges in a way that requires a
+# power-cycle to recover; without aggressive sync, the seconds-before-cycle
+# events that diagnose the wedge are lost. RateLimitBurst=0 disables per-unit
+# log rate limiting so the failure-moment flood isn't dropped.
+JOURNALD_DROPIN_DIR = "/etc/systemd/journald.conf.d"
+JOURNALD_DROPIN_PATH = f"{JOURNALD_DROPIN_DIR}/placeframe.conf"
+JOURNALD_DROPIN_CONTENT = "[Journal]\nStorage=persistent\nSyncIntervalSec=1s\nRateLimitBurst=0\n"
+
+# Always-on tcpdump on lo:9000 capturing the aoa-bridge <-> aoa-gateway HTTP/2
+# wire to a rolling ring of pcap files on persistent disk. Caddy's Go net/http2
+# framer rejects frames at the 9-byte header read with ErrCode=FRAME_SIZE_ERROR
+# and never logs the offending bytes; without an on-the-wire capture there is
+# no way to identify the bad frame after the wedge that follows. -C 10 -W 20
+# gives a 200 MB ring (20 files of 10 MB), cycling oldest-first. -U flushes
+# each packet so a power-cycle keeps the last seconds. -Z root pins the user
+# so tcpdump can write to /var/log/postmortem (which is root-owned) rather
+# than auto-dropping to the `tcpdump` system user.
+H2_FRAME_CAPTURE_LOG_DIR = "/var/log/postmortem/h2-frame"
+H2_FRAME_CAPTURE_UNIT_NAME = "h2-frame-capture.service"
+H2_FRAME_CAPTURE_UNIT_PATH = f"/etc/systemd/system/{H2_FRAME_CAPTURE_UNIT_NAME}"
+H2_FRAME_CAPTURE_UNIT_CONTENT = (
+    "[Unit]\n"
+    "Description=Persistent HTTP/2 frame capture on lo:9000 (aoa-bridge <-> aoa-gateway)\n"
+    "\n"
+    "[Service]\n"
+    "Type=exec\n"
+    "ExecStart=/usr/bin/tcpdump -i lo -s 0 -U -C 10 -W 20 -Z root"
+    f" -w {H2_FRAME_CAPTURE_LOG_DIR}/lo-9000.pcap tcp port 9000\n"
+    "Restart=always\n"
+    "RestartSec=2\n"
+    "\n"
+    "[Install]\n"
+    "WantedBy=multi-user.target\n"
+)
