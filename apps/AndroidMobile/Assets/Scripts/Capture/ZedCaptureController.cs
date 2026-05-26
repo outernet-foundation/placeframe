@@ -8,7 +8,6 @@ using Placeframe.Client;
 using Placeframe.Core;
 using PlaceframeApiClient.Model;
 using FileParameter = PlaceframeApiClient.Client.FileParameter;
-using LogBatchModel = PlaceframeZedCaptureClient.Model.LogBatch;
 using ZedStatusModel = PlaceframeZedCaptureClient.Model.ZedStatus;
 
 #if !UNITY_EDITOR && UNITY_ANDROID
@@ -21,8 +20,17 @@ using Placeframe.Core;
 using PlaceframeApiClient.Model;
 using PlaceframeZedCaptureClient.Api;
 using PlaceframeZedCaptureClient.Client;
+using UnityEngine;
 using DeviceType = PlaceframeApiClient.Model.DeviceType;
 #endif
+
+// Pairs with AoaSocketFactory's socketIssued guard: that stops a concurrent socket from
+// corrupting the wire, this stops a concurrent request from being initiated at all.
+public sealed class ZedNotReachableException : Exception
+{
+    public ZedNotReachableException()
+        : base("Zed box is not reachable; refused to dispatch the call to the AOA pipe") {}
+}
 
 public static class ZedCaptureController
 {
@@ -58,12 +66,6 @@ public static class ZedCaptureController
     public static UniTask DeleteCapture(Guid captureId, CancellationToken cancellationToken = default) =>
         throw new PlatformNotSupportedException(unsupportedMessage);
 
-    public static UniTask<ZedStatusModel> GetStatus(CancellationToken cancellationToken = default) =>
-        throw new PlatformNotSupportedException(unsupportedMessage);
-
-    public static UniTask<LogBatchModel> GetLogs(string since, int limit, CancellationToken cancellationToken = default) =>
-        throw new PlatformNotSupportedException(unsupportedMessage);
-
 #else
 
     // The ZED is the USB host; the phone is a USB accessory speaking the
@@ -81,6 +83,7 @@ public static class ZedCaptureController
 
     private static DefaultApi capturesApi;
     private static IDisposable subscriptions;
+    private static AccessoryEventBridge accessoryEvents;
 
     private const float healthPollIntervalSeconds = 0.5f;
     private const float healthRequestTimeoutSeconds = 2f;
@@ -88,56 +91,66 @@ public static class ZedCaptureController
     private const long healthDiskLowBytes = 1L * 1024L * 1024L * 1024L;
     private static TaskHandle healthPollTask = TaskHandle.Complete;
 
-    private const int logDrainBatchLimit = 500;
-    private const float logDrainIdlePollIntervalSeconds = 5f;
-    private static string logDrainPendingAck = "";
-    private static TaskHandle logDrainTask = TaskHandle.Complete;
+    private static HttpClient capturesHttpClient;
+
+    public static HttpClient AoaHttpClient => capturesHttpClient;
 
     public static void Initialize()
     {
         if (capturesApi != null)
             throw new InvalidOperationException("ZedCaptureController.Initialize already called");
 
+        capturesHttpClient = new HttpClient(new ProgressTrackingHandler { InnerHandler = new AndroidAoaHttpHandler() })
+        {
+            BaseAddress = new Uri(baseUrl),
+            Timeout = requestTimeout,
+        };
         capturesApi = new DefaultApi(
-            new HttpClient(new ProgressTrackingHandler { InnerHandler = new AndroidAoaHttpHandler() })
-            {
-                BaseAddress = new Uri(baseUrl),
-                Timeout = requestTimeout,
-            },
+            capturesHttpClient,
             new Configuration { BasePath = baseUrl, Timeout = requestTimeout }
         );
 
-        // TODO(ObserveThing): explicit lambda parameter types are a workaround for
-        // an overload-resolution gap. StateValue<T> implements both IValueObservable<T>
-        // and IObservable<IStateOperation> (via IStateNode), so Observables.Subscribe
-        // matches two extension overloads. When the lambda body doesn't constrain the
-        // parameter type (here it's discarded with `_`), the call is ambiguous (CS0121).
-        // The fix belongs upstream in ObserveThing — either by collapsing the dual
-        // interface or by adding a Subscribe overload on IStateNode that wins resolution.
-        subscriptions = new ComposedDisposable(
-            App.state.loggedIn.Subscribe((bool _) => EvaluateHealthPollState()),
-            App.state.zedStatus.Subscribe((ZedStatusKind _) => EvaluateLogDrainState()),
-            App.state.loggedIn.Subscribe((bool _) => EvaluateLogDrainState())
+        accessoryEvents = new AccessoryEventBridge(
+            onAttached: OnAccessoryAttached,
+            onDetached: OnAccessoryDetached,
+            onPermissionResult: OnAccessoryPermissionResult
         );
+        using (var activity = new AndroidJavaClass("com.unity3d.player.UnityPlayer")
+            .GetStatic<AndroidJavaObject>("currentActivity"))
+        {
+            AoaJni.RegisterEventListener(activity, accessoryEvents);
+        }
+
+        // TODO(ObserveThing): explicit lambda parameter type is a workaround for an
+        // overload-resolution gap. StateValue<T> implements both IValueObservable<T>
+        // and IObservable<IStateOperation> (via IStateNode), so Observables.Subscribe
+        // matches two extension overloads. When the lambda body discards the value
+        // with `_`, the call is ambiguous (CS0121). The fix belongs upstream in
+        // ObserveThing — either by collapsing the dual interface or by adding a
+        // Subscribe overload on IStateNode that wins resolution.
+        subscriptions = App.state.loggedIn.Subscribe((bool _) => EvaluateHealthPollState());
     }
 
     public static void Shutdown()
     {
         healthPollTask.Cancel();
-        logDrainTask.Cancel();
         subscriptions?.Dispose();
         subscriptions = null;
         capturesApi = null;
+        capturesHttpClient?.Dispose();
+        capturesHttpClient = null;
     }
 
     public static async UniTask StartCapture(float captureInterval, CancellationToken cancellationToken = default)
     {
+        EnsureReachable();
         await capturesApi.StartCaptureAsync(captureInterval, cancellationToken);
         App.state.zedStatus.value = ZedStatusKind.Recording;
     }
 
     public static async UniTask StopCapture(CancellationToken cancellationToken = default)
     {
+        EnsureReachable();
         await capturesApi.StopCaptureAsync(cancellationToken);
         App.state.zedStatus.value = ZedStatusKind.Ready;
     }
@@ -148,20 +161,31 @@ public static class ZedCaptureController
 
     public static async UniTask<IEnumerable<LocalCapture>> EnumerateCaptures()
     {
+        EnsureReachable();
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             using var cts = new CancellationTokenSource(enumerateTimeout);
             var captures = await capturesApi.GetCapturesAsync(cts.Token);
-            return captures.Select(c => new LocalCapture(c.Id, c.RecordedAt, DeviceType.Zed));
+            var result = captures
+                .Select(c => new LocalCapture(c.Id, c.RecordedAt, DeviceType.Zed, c.SizeBytes))
+                .ToList();
+            Log.Info(LogGroup.Zed, "EnumerateCaptures success count={Count} durationMs={DurationMs}",
+                result.Count, stopwatch.ElapsedMilliseconds);
+            return result;
         }
-        catch
+        catch (Exception exception)
         {
+            Log.Info(LogGroup.Zed, exception,
+                "EnumerateCaptures failed durationMs={DurationMs} timeoutMs={TimeoutMs}",
+                stopwatch.ElapsedMilliseconds, (int)enumerateTimeout.TotalMilliseconds);
             return Enumerable.Empty<LocalCapture>();
         }
     }
 
     public static async UniTask<FileParameter> GetCapture(Guid captureId, CancellationToken cancellationToken = default)
     {
+        EnsureReachable();
         var response = await capturesApi.DownloadCaptureTarWithHttpInfoAsync(captureId, cancellationToken: cancellationToken);
         return new FileParameter(
             $"{captureId}.tar",
@@ -169,17 +193,37 @@ public static class ZedCaptureController
             new LengthOnlyStream(response.Data.Content, long.Parse(response.Headers["Content-Length"][0])));
     }
 
-    public static async UniTask DeleteCapture(Guid captureId, CancellationToken cancellationToken = default) =>
+    public static async UniTask DeleteCapture(Guid captureId, CancellationToken cancellationToken = default)
+    {
+        EnsureReachable();
         await capturesApi.DeleteCaptureAsync(captureId, cancellationToken);
+    }
 
-    public static async UniTask<ZedStatusModel> GetStatus(CancellationToken cancellationToken = default) =>
-        await capturesApi.GetStatusAsync(cancellationToken);
+    private static void EnsureReachable()
+    {
+        if (!App.state.zedReachable.value)
+            throw new ZedNotReachableException();
+    }
 
-    public static async UniTask<LogBatchModel> GetLogs(
-        string since,
-        int limit,
-        CancellationToken cancellationToken = default
-    ) => await capturesApi.GetLogsAsync(since, limit, cancellationToken);
+    private static void OnAccessoryAttached()
+    {
+        Log.Info(LogGroup.Zed, "AOA accessory attached");
+        if (App.state.loggedIn.value)
+            App.state.zedStatus.value = ZedStatusKind.Connecting;
+    }
+
+    private static void OnAccessoryDetached()
+    {
+        Log.Info(LogGroup.Zed, "AOA accessory detached");
+        ZedStatusKind previous = App.state.zedStatus.value;
+        App.state.zedStatus.value =
+            previous == ZedStatusKind.Recording || previous == ZedStatusKind.LostMidCapture
+                ? ZedStatusKind.LostMidCapture
+                : ZedStatusKind.Unreachable;
+    }
+
+    private static void OnAccessoryPermissionResult(bool granted) =>
+        Log.Info(LogGroup.Zed, "AOA accessory permission result granted={Granted}", granted);
 
     private static void EvaluateHealthPollState()
     {
@@ -210,7 +254,7 @@ public static class ZedCaptureController
 
                 try
                 {
-                    response = await GetStatus(requestCts.Token);
+                    response = await capturesApi.GetStatusAsync(requestCts.Token);
                 }
                 catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
                 {
@@ -258,68 +302,6 @@ public static class ZedCaptureController
         }
 
         App.state.zedStatus.value = ZedStatusKind.Ready;
-    }
-
-    private static void EvaluateLogDrainState()
-    {
-        logDrainTask.Cancel();
-        if (App.state.loggedIn.value && App.state.zedReachable.value)
-        {
-            logDrainTask = TaskHandle.Execute(LogDrainLoop);
-        }
-    }
-
-    private static async UniTask LogDrainLoop(CancellationToken cancellationToken)
-    {
-        try
-        {
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                bool hasMore = false;
-                try
-                {
-                    hasMore = await LogDrainOnce(cancellationToken);
-                }
-                catch (Exception e) when (!cancellationToken.IsCancellationRequested)
-                {
-                    Log.Info(LogGroup.Zed, e, "log drain tick failed");
-                }
-
-                if (!hasMore)
-                {
-                    await UniTask.WaitForSeconds(logDrainIdlePollIntervalSeconds, cancellationToken: cancellationToken);
-                }
-            }
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
-    }
-
-    private static async UniTask<bool> LogDrainOnce(CancellationToken cancellationToken)
-    {
-        var batch = await GetLogs(logDrainPendingAck, logDrainBatchLimit, cancellationToken);
-
-        if (batch.DroppedBefore)
-            Log.Info(LogGroup.Zed, "prior box logs rotated off before ack {Ack}", logDrainPendingAck);
-
-        // Defensive null check despite Entries being marked required in the
-        // schema. Codegen gap: the C# httpclient template emits a protected
-        // parameterless constructor with [JsonConstructorAttribute], so
-        // Newtonsoft deserializes via property setters and ignores the
-        // [DataMember(IsRequired = true)] annotation — a malformed server
-        // response with no "entries" field leaves Entries null. Fix belongs
-        // in build/openapi-generator/templates-patches/csharp/ as a new
-        // patch that adds [JsonProperty(Required = Required.Always)] to
-        // required ref-type fields; once that lands this guard can go.
-        if (batch.Entries != null && batch.Entries.Count > 0)
-        {
-            await VisualPositioningSystem.Api
-                .PushZedBoxLogsAsync(new LogRelayBatch(batch.Entries), cancellationToken);
-        }
-
-        // Update logDrainPendingAck only after a successful round trip (fetch + forward).
-        // Any throw above leaves it unchanged so the box re-serves on retry.
-        logDrainPendingAck = batch.NextCursor;
-        return batch.HasMore;
     }
 #endif
 }

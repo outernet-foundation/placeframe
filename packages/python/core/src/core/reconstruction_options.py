@@ -6,130 +6,170 @@ from pydantic import BaseModel, Field
 
 
 class ReconstructionOptions(BaseModel):
-    random_seed: Optional[int] = Field(default=None, description="Random seed to use (for deterministic behavior).")
-    single_threaded: Optional[bool] = Field(
-        default=None, description="If true, run reconstruction in single-threaded mode (for deterministic behavior)."
-    )
-    neighbors_count: Optional[int] = Field(
+    deterministic_seed: Optional[int] = Field(
         default=None,
         description=(
+            "If set, run the reconstruction deterministically: this value is the PRNG seed AND the "
+            "pipeline runs single-threaded so thread-scheduling does not introduce non-determinism "
+            "between reruns. If None, the reconstruction is non-deterministic (seed unpinned, "
+            "threading enabled)."
+        ),
+    )
+    neighbors_count: int = Field(
+        default=12,
+        description=(
             "How many pose-nearest neighbors to consider when generating image pairs. "
-            "Use -1 for exhaustive matching (all pairs). If None, a sensible default is used (currently 12). "
+            "Use -1 for exhaustive matching (all pairs). "
             "Smaller values reduce weak overlaps and speed up matching at the cost of some coverage."
         ),
     )
-    rotation_threshold: Optional[float] = Field(
-        default=None,
+    rotation_threshold: float = Field(
+        default=30.0,
         description=(
             "Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. "
             "Smaller values reduce weak overlaps and speed up matching at the cost of some coverage."
         ),
     )
-    lightglue_batch_size: Optional[int] = Field(
-        default=None,
+    lightglue_batch_size: int = Field(
+        default=16,
         description=(
             "Batch size to use when running LightGlue for feature matching. "
             "Larger batch sizes can improve GPU utilization but require more memory."
         ),
     )
-    ransac_max_error: Optional[float] = Field(
-        default=None,
+    ransac_max_error: float = Field(
+        default=2.0,
         description=(
             "Two-view RANSAC inlier threshold (pixels) used by verify_matches(). "
             "Lower = stricter inlier test; removes borderline correspondences before SfM."
         ),
     )
-    ransac_min_inlier_ratio: Optional[float] = Field(
-        default=None,
+    ransac_min_inlier_ratio: float = Field(
+        default=0.15,
         description=(
             "Two-view RANSAC minimum inlier ratio to accept the model. "
             "Higher = reject more weak pairs; typically 0.10–0.20 for stricter matching."
         ),
     )
-    use_prior_position: Optional[bool] = Field(
-        default=None,
+    use_prior_position: bool = Field(
+        default=True,
         description=(
             "If true, use position priors during registration. "
             "This leverages PosePrior(position=...) written into the database to guide image registration."
         ),
     )
-    rig_verification: Optional[bool] = Field(
-        default=None,
+    rig_verification: bool = Field(
+        default=True,
         description=(
             "If true, perform rig-based verification during feature matching and two-view geometry verification. "
             "Requires images to be tagged with rig/camera IDs."
         ),
     )
-    triangulation_minimum_angle: Optional[float] = Field(
-        default=None,
+    triangulation_minimum_angle: float = Field(
+        default=3.0,
         description=(
             "Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and "
             "again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points."
         ),
     )
-    triangulation_complete_max_reprojection_error: Optional[float] = Field(
-        default=None,
+    triangulation_complete_max_reprojection_error: float = Field(
+        default=2.0,
         description=(
             "Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points "
             "(triangulation.complete_max_reproj_error). Lower → fewer borderline new points."
         ),
     )
-    triangulation_merge_max_reprojection_error: Optional[float] = Field(
-        default=None,
+    triangulation_merge_max_reprojection_error: float = Field(
+        default=4.0,
         description=(
             "Triangulation-time gate (pixels) for MERGING near-duplicate 3D points "
             "(triangulation.merge_max_reproj_error). Lower → fewer merges; higher → more aggressive deduplication."
         ),
     )
-    mapper_filter_max_reprojection_error: Optional[float] = Field(
-        default=None,
+    mapper_filter_max_reprojection_error: float = Field(
+        default=2.0,
         description=(
             "Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). "
             "Points exceeding this after local/global BA are culled. "
             "This is NOT a triangulation accept threshold."
         ),
     )
-    bundle_adjustment_refine_sensor_from_rig: Optional[bool] = Field(
-        default=None,
+    bundle_adjustment_refine_sensor_from_rig: bool = Field(
+        default=False,
         description=(
-            "If true, refine per-camera extrinsics within the rig during BA "
-            "(ba_refine_sensor_from_rig). Useful when rig calibration is approximate."
+            "If true, refine per-camera extrinsics within the rig during the incremental "
+            "BA loop (ba_refine_sensor_from_rig). The shipped pattern leaves this False, "
+            "pins rigs via constant_rigs, and re-enables rig refinement only on the final "
+            "standalone BA pass. See docker/reconstructor/SPEC.md for rationale."
         ),
     )
-    bundle_adjustment_refine_focal_length: Optional[bool] = Field(
-        default=None, description="If true, refine the camera focal length during BA (ba_refine_focal_length)."
+    bundle_adjustment_refine_focal_length: bool = Field(
+        default=True,
+        description="If true, refine the camera focal length during BA (ba_refine_focal_length).",
     )
-    bundle_adjustment_refine_principal_point: Optional[bool] = Field(
-        default=None, description="If true, refine the camera principal point during BA (ba_refine_principal_point)."
+    bundle_adjustment_refine_principal_point: bool = Field(
+        default=False,
+        description="If true, refine the camera principal point during BA (ba_refine_principal_point).",
     )
-    bundle_adjustment_refine_additional_params: Optional[bool] = Field(
-        default=None,
+    bundle_adjustment_refine_additional_params: bool = Field(
+        default=True,
         description=(
             "If true, refine model-specific additional parameters during BA (ba_refine_extra_params), "
             "e.g., radial/tangential distortion where applicable."
         ),
     )
-    compression_opq_number_of_subvectors: Optional[int] = Field(
-        default=None, description="Number of subvectors for OPQ compression."
+    bundle_adjustment_global_frames_ratio: float = Field(
+        default=1.5,
+        description=(
+            "Growth ratio of registered frames after which to trigger a global bundle adjustment "
+            "(ba_global_frames_ratio). Larger = fewer global BA events, less wall time, "
+            "longer between cleanup passes."
+        ),
     )
-    compression_opq_number_of_bits_per_subvector: Optional[int] = Field(
-        default=None, description="Number of bits per subvector for OPQ compression."
+    bundle_adjustment_global_max_refinements: int = Field(
+        default=1,
+        description=(
+            "Maximum BA refinement passes per global-BA event (ba_global_max_refinements). "
+            "Dev default 1; production-quality maps should override to 3 (or higher). See "
+            "docker/reconstructor/SPEC.md."
+        ),
     )
-    compression_opq_number_of_training_iterations: Optional[int] = Field(
-        default=None, description="Number of training iterations for OPQ compression."
+    bundle_adjustment_global_function_tolerance: float = Field(
+        default=1e-3,
+        description=(
+            "Ceres solver function tolerance for global bundle adjustment "
+            "(ba_global_function_tolerance). Larger = earlier exit when residual delta becomes "
+            "insignificant."
+        ),
     )
-    pose_prior_position_sigma_m: Optional[float] = Field(
-        default=None,
+    bundle_adjustment_ignore_redundant_points3D: bool = Field(
+        default=True,
+        description=(
+            "If true, solve global BA without redundant 3D points first, then refine pruned points "
+            "in a second pass with everything else fixed (mapper.ba_global_ignore_redundant_points3D). "
+            "Same final geometry, smaller main problem. Activates only when ≥10 frames are registered."
+        ),
+    )
+    compression_opq_number_of_subvectors: int = Field(
+        default=16, description="Number of subvectors for OPQ compression."
+    )
+    compression_opq_number_of_bits_per_subvector: int = Field(
+        default=8, description="Number of bits per subvector for OPQ compression."
+    )
+    compression_opq_number_of_training_iterations: int = Field(
+        default=20, description="Number of training iterations for OPQ compression."
+    )
+    pose_prior_position_sigma_m: float = Field(
+        default=0.05,
         description=(
             "Standard deviation (meters) for position priors when writing PosePrior to the database. "
             "Smaller values = stronger priors."
         ),
     )
-    max_keypoints_per_image: Optional[int] = Field(
-        default=None,
+    max_keypoints_per_image: int = Field(
+        default=2500,
         description=(
-            "Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode). "
-            "If None, a sensible default is used."
+            "Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode)."
         ),
     )
     held_out_frame_timestamps: Optional[list[int]] = Field(

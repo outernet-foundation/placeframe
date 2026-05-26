@@ -28,5 +28,6 @@ forward-unity-android-debug-port = "scripts.forward_unity_android_debug_port:mai
 list-debug-targets = "scripts.list_debug_targets:main"
 install = "scripts.install:app"
 install-zed = "scripts.install_zed:app"
+loki-query = "scripts.loki_query:app"
 tune-reconstruction = "scripts.tune_reconstruction:app"
 fit-calibration = "scripts.fit_calibration:app"

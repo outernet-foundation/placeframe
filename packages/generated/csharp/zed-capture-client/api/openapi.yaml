@@ -18,6 +18,7 @@ paths:
         name: capture_interval
         required: false
         schema:
+          format: double
           nullable: true
           type: number
         style: form
@@ -154,91 +155,12 @@ paths:
       summary: GetStatus
       tags:
       - Default
-  /logs:
-    get:
-      deprecated: false
-      operationId: get_logs
-      parameters:
-      - allowEmptyValue: false
-        allowReserved: false
-        deprecated: false
-        description: Token from previous response; ack-on-next-fetch advances the
-          box's persistent cursor
-        explode: true
-        in: query
-        name: ack
-        required: false
-        schema:
-          default: ""
-          description: Token from previous response; ack-on-next-fetch advances the
-            box's persistent cursor
-          type: string
-        style: form
-      - allowEmptyValue: false
-        allowReserved: false
-        deprecated: false
-        explode: true
-        in: query
-        name: limit
-        required: false
-        schema:
-          default: 1000
-          maximum: 10000.0
-          minimum: 1.0
-          type: integer
-        style: form
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LogBatch"
-          description: "Request fulfilled, document follows"
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/start_capture_400_response"
-          description: Bad request syntax or unsupported method
-      summary: GetLogs
-      tags:
-      - Default
 components:
   schemas:
-    LogBatch:
-      example:
-        entries:
-        - entries
-        - entries
-        next_cursor: next_cursor
-        bytes_returned: 0
-        has_more: true
-        dropped_before: true
-      properties:
-        entries:
-          items:
-            type: string
-          type: array
-        next_cursor:
-          type: string
-        has_more:
-          type: boolean
-        dropped_before:
-          type: boolean
-        bytes_returned:
-          format: int64
-          type: integer
-      required:
-      - bytes_returned
-      - dropped_before
-      - entries
-      - has_more
-      - next_cursor
-      title: LogBatch
-      type: object
     ZedCapture:
       example:
         recorded_at: 2000-01-23T04:56:07.000+00:00
+        size_bytes: 0
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         id:
@@ -249,9 +171,13 @@ components:
             info
           format: date-time
           type: string
+        size_bytes:
+          format: int64
+          type: integer
       required:
       - id
       - recorded_at
+      - size_bytes
       title: ZedCapture
       type: object
     ZedStatus:
@@ -259,7 +185,6 @@ components:
         disk_free_bytes: 0
         current_capture_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         last_exception: last_exception
-        log_cursor: log_cursor
         uptime_s: 6.027456183070403
         version: version
       properties:
@@ -274,14 +199,12 @@ components:
           format: int64
           type: integer
         uptime_s:
+          format: double
           type: number
         version:
           type: string
-        log_cursor:
-          type: string
       required:
       - disk_free_bytes
-      - log_cursor
       - uptime_s
       - version
       title: ZedStatus

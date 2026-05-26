@@ -1,12 +1,16 @@
 package io.placeframe.android;
 
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
 import android.os.Build;
 import android.os.ParcelFileDescriptor;
+
+import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,6 +18,10 @@ import java.net.InetAddress;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import okhttp3.ConnectionPool;
 import okhttp3.Headers;
@@ -35,6 +43,80 @@ public final class AoaAccessoryClient {
     private static volatile ParcelFileDescriptor currentPfd;
     private static volatile OkHttpClient currentClient;
     private static long lastPermissionRequestMs;
+    private static volatile boolean permissionDenied;
+
+    private static volatile AccessoryEventListener eventListener;
+    private static volatile BroadcastReceiver eventReceiver;
+
+    // OkHttp HTTP/2 frame logger emits one line per frame sent or received at
+    // FINE level. The handler below redirects those records to Android's
+    // logcat under tag OkHttpH2, which LogcatRelay then forwards to Loki as
+    // logGroup=Android lines. This is the only path that surfaces whether a
+    // peer-sent GOAWAY or RST_STREAM frame was observed before OkHttp threw
+    // its library-internal exception types — without it, ConnectionShutdown
+    // and StreamReset look identical from the C# side.
+    static {
+        Logger h2Logger = Logger.getLogger("okhttp3.internal.http2.Http2");
+        h2Logger.setLevel(Level.FINE);
+        h2Logger.setUseParentHandlers(false);
+        h2Logger.addHandler(new Handler() {
+            @Override public void publish(LogRecord record) {
+                Log.i("OkHttpH2", record.getMessage());
+            }
+            @Override public void flush() {}
+            @Override public void close() {}
+        });
+    }
+
+    public interface AccessoryEventListener {
+        void onAttached();
+        void onDetached();
+        void onPermissionResult(boolean granted);
+    }
+
+    // Application context so the registration spans the app lifetime
+    // regardless of which activity calls in.
+    public static void registerEventListener(Context context, AccessoryEventListener listener) {
+        synchronized (lock) {
+            eventListener = listener;
+            if (eventReceiver != null) return;
+            eventReceiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    String action = intent.getAction();
+                    if (action == null) return;
+                    AccessoryEventListener current = eventListener;
+                    if (current == null) return;
+                    if (UsbManager.ACTION_USB_ACCESSORY_ATTACHED.equals(action)) {
+                        // Clear so the next open attempt re-prompts after a prior denial.
+                        permissionDenied = false;
+                        current.onAttached();
+                    } else if (UsbManager.ACTION_USB_ACCESSORY_DETACHED.equals(action)) {
+                        synchronized (lock) { closeCurrentLocked(); }
+                        current.onDetached();
+                    } else if (PERMISSION_ACTION.equals(action)) {
+                        boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
+                        permissionDenied = !granted;
+                        current.onPermissionResult(granted);
+                    }
+                }
+            };
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(UsbManager.ACTION_USB_ACCESSORY_ATTACHED);
+            filter.addAction(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
+            filter.addAction(PERMISSION_ACTION);
+            Context application = context.getApplicationContext();
+            // Android 13+ requires explicit export flags. The system-fired
+            // accessory actions reach us as exported broadcasts; our own
+            // PERMISSION_ACTION fires from a same-package PendingIntent so
+            // RECEIVER_EXPORTED accepts both without opening external entry.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                application.registerReceiver(eventReceiver, filter, Context.RECEIVER_EXPORTED);
+            } else {
+                application.registerReceiver(eventReceiver, filter);
+            }
+        }
+    }
 
     private AoaAccessoryClient() {}
 
@@ -47,13 +129,14 @@ public final class AoaAccessoryClient {
         byte[] body,
         String contentType
     ) throws IOException {
+        OkHttpClient client;
+        Request request;
         synchronized (lock) {
             String openError = tryOpenLocked(context);
             if (openError != null) {
                 throw new IOException("AOA accessory not ready (" + openError + ")");
             }
-
-            OkHttpClient client = currentClient;
+            client = currentClient;
             Request.Builder builder = new Request.Builder().url(url);
             for (int i = 0; i < headerNames.length; i++) {
                 builder.addHeader(headerNames[i], headerValues[i]);
@@ -68,40 +151,66 @@ public final class AoaAccessoryClient {
                 requestBody = null;
             }
             builder.method(method, requestBody);
+            request = builder.build();
+        }
 
-            Response response;
-            try {
-                response = client.newCall(builder.build()).execute();
-            } catch (IOException e) {
-                // Pipe error poisons the FD; reopen on next execute.
-                OkHttpClient oldClient = currentClient;
-                ParcelFileDescriptor oldPfd = currentPfd;
-                currentClient = null;
-                currentPfd = null;
-                if (oldClient != null) {
-                    oldClient.dispatcher().executorService().shutdown();
-                    oldClient.connectionPool().evictAll();
+        Response response;
+        try {
+            response = client.newCall(request).execute();
+        } catch (IOException e) {
+            // A pipe error poisons the FD; reopen on next execute. The
+            // equality check debounces concurrent requests that all hit the
+            // same dead connection so they don't race to close it twice.
+            //
+            // AoaConcurrentConnectionException is the SocketFactory rejecting
+            // a redundant connection while the existing one is healthy — the
+            // pipe is fine, only this one call failed. Surface the error to
+            // the caller without tearing down the live client.
+            if (!isCausedByConcurrentConnection(e)) {
+                synchronized (lock) {
+                    if (currentClient == client) closeCurrentLocked();
                 }
-                if (oldPfd != null) {
-                    try { oldPfd.close(); } catch (IOException ignored) {}
-                }
-                throw e;
             }
+            throw e;
+        }
 
-            Headers responseHeaders = response.headers();
-            String[] respNames = new String[responseHeaders.size()];
-            String[] respValues = new String[responseHeaders.size()];
-            for (int i = 0; i < responseHeaders.size(); i++) {
-                respNames[i] = responseHeaders.name(i);
-                respValues[i] = responseHeaders.value(i);
-            }
-            return new HttpResult(
-                response.code(),
-                respNames,
-                respValues,
-                response,
-                response.body() != null ? response.body().byteStream() : null
-            );
+        Headers responseHeaders = response.headers();
+        String[] respNames = new String[responseHeaders.size()];
+        String[] respValues = new String[responseHeaders.size()];
+        for (int i = 0; i < responseHeaders.size(); i++) {
+            respNames[i] = responseHeaders.name(i);
+            respValues[i] = responseHeaders.value(i);
+        }
+        return new HttpResult(
+            response.code(),
+            respNames,
+            respValues,
+            response,
+            response.body() != null ? response.body().byteStream() : null
+        );
+    }
+
+    // OkHttp wraps SocketFactory failures in RouteException; walk the cause
+    // chain to find our marker exception.
+    private static boolean isCausedByConcurrentConnection(Throwable throwable) {
+        for (Throwable cursor = throwable; cursor != null; cursor = cursor.getCause()) {
+            if (cursor instanceof AoaConcurrentConnectionException) return true;
+            if (cursor.getCause() == cursor) return false;
+        }
+        return false;
+    }
+
+    private static void closeCurrentLocked() {
+        OkHttpClient client = currentClient;
+        ParcelFileDescriptor pfd = currentPfd;
+        currentClient = null;
+        currentPfd = null;
+        if (client != null) {
+            client.dispatcher().executorService().shutdown();
+            client.connectionPool().evictAll();
+        }
+        if (pfd != null) {
+            try { pfd.close(); } catch (IOException ignored) {}
         }
     }
 
@@ -130,6 +239,9 @@ public final class AoaAccessoryClient {
         if (!manager.hasPermission(accessory)) {
             String error = "accessory=" + accessory.getManufacturer() + "/" + accessory.getModel()
                 + "/" + accessory.getVersion() + " hasPermission=false";
+            // User already denied for this attachment; suppress further prompts
+            // until USB_ACCESSORY_ATTACHED clears the flag.
+            if (permissionDenied) return error + " deniedByUser=true";
             long now = System.currentTimeMillis();
             if (now - lastPermissionRequestMs < PERMISSION_REQUEST_COOLDOWN_MS) return error;
             lastPermissionRequestMs = now;

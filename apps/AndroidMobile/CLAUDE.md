@@ -27,16 +27,36 @@ The Pixel has one USB-C port. In end-to-end testing the ZED cable occupies it, w
 - **wifi-adb**. `adb tcpip 5555` + `adb connect <pixel-wifi-ip>:5555` before the swap. Only works when the host and Pixel are on the same wifi without AP client isolation. Office and guest networks often have client isolation — verify by attempting `adb connect` while the debug cable is still plugged; if it returns `No route to host`, don't rely on it.
 - **USB-C hub does not work.** The Pixel can't simultaneously be a USB device (to the debug host) and a USB host (to the ZED gadget). These roles are mutually exclusive on a single USB-C port, regardless of what hub is in between. Don't buy one for this.
 
+## Granting READ_LOGS for the logcat -> Loki relay
+
+`LogcatRelay` (`Assets/Scripts/LogcatRelay.cs`) tails Android's logcat in a background thread and forwards filtered lines (USB / accessory framework tags) through Serilog into the existing Loki sink, so phone-side diagnosis of `UsbHostManager` / `UsbDeviceManager` decisions does not require swapping the debug cable. The reader runs unconditionally, but the kernel only exposes other processes' lines to apps holding `android.permission.READ_LOGS`. That permission is `signature|privileged|development`, so install-time grant is impossible; the `development` flag is what lets `pm grant` satisfy it at runtime.
+
+After every fresh install of the Capture Tool, the grant has to be re-applied — it persists across reboots and app launches but is lost on uninstall. `uv run install --project CaptureTool` does this automatically: the project's `grant_permissions: ["android.permission.READ_LOGS"]` entry in `build/unity-projects.json` drives a post-install `adb shell pm grant` call. Pass `--no-grant-permissions` to opt out for a specific install (rare; the grant is harmless when LogcatRelay isn't actively used).
+
+For a hand-built APK from `uv run compile-unity` + `adb install`, the grant has to be applied manually:
+
+```
+adb shell pm grant com.outernet.captureapp android.permission.READ_LOGS
+``` Without it, the relay still runs but its Loki output is limited to this app's own log lines (which Serilog already captures by other means, so the practical signal is zero). To verify after a session, query Loki for `{app="capture-tool"} | json | logGroup="Android"` — non-empty (and showing `Pid` values that aren't the app's own) means the grant is in place and framework events are flowing through.
+
+The tag whitelist lives in `LogcatRelay.TagFilters`; extend it (or relax to `*:V`) only when a specific debugging session needs more — raw `*:V` is much chattier than Loki's per-tenant ingestion burst comfortably handles.
+
 ## Reading phone-side logs from Loki
 
 Capture Tool pushes Unity logs directly to Loki via the gateway (`/loki/api/v1/push`, see `docker/gateway/entrypoint.sh`) with client-side label `app=capture-tool` set in `AuthManager.cs:EnableLoki(...)`. Loki auto-derives `service_name=capture-tool` from the `app` label, so either label works for queries. Quicker than swapping to the debug cable when the phone is plugged into the ZED.
 
+Use `uv run loki-query` from the slot — it handles URL encoding and prints one-line summaries (timestamp, level, log group, message, exception chain). Single-quote the LogQL so the shell doesn't expand `{}` or `|`:
+
 ```
-docker exec placeframe-loki-1 wget -qO- \
-  'http://localhost:3100/loki/api/v1/query_range?query=%7Bservice_name%3D%22capture-tool%22%7D&limit=200&direction=backward'
+uv run loki-query '{app="capture-tool"} | json | logGroup="Android"'
+uv run loki-query '{app="capture-tool"} | json | logGroup="Zed"' --since 5m
+uv run loki-query '{app="capture-tool"} | json | logGroup="Android" | Tag="UsbHostManager"' --limit 200
+uv run loki-query '{app="capture-tool"}' --raw       # full Loki JSON, for ad-hoc jq
 ```
 
-The relay only works while the backend is up (`uv run up`) and the phone has wifi (the relay POST goes over wifi, not USB-ethernet). For ZED-box-side logs see `docker/zed-capture/CLAUDE.md`.
+Default range is 30m, default limit 50, newest first. Pass `--raw` when you need the full JSON instead of the formatted summaries.
+
+Prefer the structured `| json | <field>="<value>"` form over `|= "<substring>"` substring filters — fewer escape-quoting traps. If a fresh query returns zero entries, wait ~3s and retry: `LokiSink` batches every ~2s when idle, so very recent emissions may not be flushed yet. The relay only works while the backend is up (`uv run up`) and the phone has wifi (the relay POST goes over wifi, not USB-ethernet). For ZED-box-side logs see `docker/zed-capture/CLAUDE.md`.
 
 ## Slot preconditions for on-device work
 

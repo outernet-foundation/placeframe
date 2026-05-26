@@ -32,16 +32,8 @@
       "builds": ["android-mobile"],
       "execute_methods": {
         "android-mobile": "Placeframe.Client.Build.BuildForAndroidMobile"
-      }
-    },
-    "MakeItSing": {
-      "path": "apps/MakeItSing",
-      "package": "com.plerion.makeitsing",
-      "builds": ["android-mobile", "magicleap"],
-      "execute_methods": {
-        "android-mobile": "Plerion.Build.BuildForAndroidMobile",
-        "magicleap": "Plerion.Build.BuildForMagicLeap"
-      }
+      },
+      "grant_permissions": ["android.permission.READ_LOGS"]
     },
     "Placeframe": {
       "path": "packages/unity/Placeframe"

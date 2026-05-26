@@ -136,14 +136,6 @@ jobs:
           restore-keys: |
             unity-upm-
 
-      - name: Inject UnityEnv (MakeItSing only)
-        if: matrix.project-name == 'MakeItSing'
-        env:
-          SUPABASE_PROJECT_ID: ${{ secrets.MAKEITSING_SUPABASE_PROJECT_ID }}
-          SUPABASE_API_KEY: ${{ secrets.MAKEITSING_SUPABASE_API_KEY }}
-          PHOTON_PROJECT_ID: ${{ secrets.MAKEITSING_PHOTON_PROJECT_ID }}
-        run: uv run --no-sync inject-unity-env
-
       - name: Build
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -202,7 +194,7 @@ jobs:
           echo "$GITHUB_TOKEN" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build
-        run: uv run --no-sync build --mode ci --gpu none --bake-file compose.zed.bake.yml --targets zed-capture --targets aoa-bridge
+        run: uv run --no-sync build --mode ci --gpu none --bake-file compose.zed.bake.yml --targets zed-capture --targets aoa-bridge --targets aoa-gateway
 
       - name: Upload .env.lock
         uses: actions/upload-artifact@v6

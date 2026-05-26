@@ -25,9 +25,21 @@ from numpy import (
 from numpy.linalg import det, norm, svd
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from pycolmap import Camera as ColmapCamera
-from pycolmap import Database, Frame, Point3D, PosePrior, PosePriorCoordinateSystem, Reconstruction, Rigid3d, Sim3d
+from pycolmap import (
+    Database,
+    Frame,
+    Point3D,
+    PosePrior,
+    PosePriorCoordinateSystem,
+    Reconstruction,
+    Rigid3d,
+    SensorType,
+    Sim3d,
+    data_t,
+    sensor_t,
+)
 from pycolmap import Image as pycolmapImage
-from pycolmap._core import apply_rig_config, estimate_two_view_geometry, incremental_mapping  # noqa: PLC2701 — no public API
+from pycolmap._core import apply_rig_config, bundle_adjustment, estimate_two_view_geometry, incremental_mapping  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
 
 from .metrics_builder import MetricsBuilder
@@ -84,16 +96,23 @@ def run_colmap_reconstruction(
                 # Only write pose prior for images from reference sensors (all others are implied by rig)
                 if camera[0].ref_sensor:
                     database.write_pose_prior(
-                        colmap_image_ids[image_name],
                         PosePrior(
                             position=transform.translation.reshape(3, 1),
                             position_covariance=position_covariance,
                             coordinate_system=PosePriorCoordinateSystem.CARTESIAN,
+                            corr_data_id=data_t(
+                                sensor_t(SensorType.CAMERA, colmap_camera_id),
+                                colmap_image_ids[image_name],
+                            ),
                         ),
                     )
 
     # Apply rig configuration to database (must be done after writing cameras and images)
     apply_rig_config([rig.colmap_rig_config for rig in rigs.values()], database)
+
+    # COLMAP assigns rig_t IDs at apply_rig_config time; harvest them so the
+    # incremental BA loop can pin every rig's sensor_from_rig transform.
+    constant_rigs = {rig.rig_id for rig in database.read_all_rigs()}
 
     # Write matches to database
     for a, b in pairs:
@@ -140,7 +159,7 @@ def run_colmap_reconstruction(
         database_path=str(colmap_db_path),
         image_path=str(images_path),
         output_path=str(colmap_sfm_directory),
-        options=options.incremental_pipeline_options(),
+        options=options.incremental_pipeline_options(constant_rigs),
         initial_image_pair_callback=progress.on_initial_image_pair,
         next_image_callback=progress.on_next_image,
     )
@@ -151,37 +170,33 @@ def run_colmap_reconstruction(
 
     # Choose the reconstruction with the most registered images
     # TODO: Write information to metrics about this for visibility
-    best_reconstruction = reconstructions[
-        max(range(len(reconstructions)), key=lambda i: reconstructions[i].num_reg_images())
-    ]
+    best_reconstruction = max(reconstructions.values(), key=lambda r: r.num_reg_images())
+
+    # Final standalone BA with rig refinement re-enabled. The incremental loop above ran with
+    # rig refinement off (every global BA refining rig poses scales N times); one final pass
+    # lets sensor_from_rig settle against the converged geometry.
+    bundle_adjustment(best_reconstruction, options.final_bundle_adjustment_options())
 
     metrics.build_reconstruction_metrics(best_reconstruction)
 
-    # Use the first frame that is registered in the best reconstruction to determine the similarity transform
-    anchor = next(_registered_frames(rigs, colmap_image_ids, best_reconstruction), None)
-    if anchor is None:
+    # Pose priors spread over the trajectory already pin the COLMAP world frame's rotation to
+    # VIO's during bundle adjustment, so only the origin translation remains: shift it onto the
+    # first registered frame. Sort by integer frame_id for timestamp order across rigs.
+    registered = sorted(_registered_frames(rigs, colmap_image_ids, best_reconstruction), key=lambda entry: entry[0])
+    if not registered:
         raise RuntimeError("Could not find anchor frame in best reconstruction")
-    anchor_frame_prior_pose, anchor_rig_from_world_transform = anchor
 
-    # Transform the reconstruction to align with the rig coordinate system
+    _first_frame_id, _first_transform, first_rig_from_world = registered[0]
+    first_camera_position = -first_rig_from_world.rotation.matrix().T @ first_rig_from_world.translation
     best_reconstruction.transform(
-        Sim3d(
-            concatenate(
-                [
-                    anchor_frame_prior_pose.rotation @ anchor_rig_from_world_transform.rotation.matrix(),
-                    anchor_frame_prior_pose.rotation @ anchor_rig_from_world_transform.translation.reshape(3, 1)
-                    + anchor_frame_prior_pose.translation.reshape(3, 1),
-                ],
-                axis=1,
-            )
-        )
+        Sim3d(concatenate([eye(3, dtype=float64), -first_camera_position.reshape(3, 1)], axis=1))
     )
 
     # Rigid Umeyama best-fit of map centers to truth — fit not applied; only the residual is
     # kept as the VIO-quality signal that filters unreliable captures from the calibration corpus.
     truth_centers_list: list[NDArray[float64]] = []
     map_centers_list: list[NDArray[float64]] = []
-    for transform, rig_from_world in _registered_frames(rigs, colmap_image_ids, best_reconstruction):
+    for _frame_id, transform, rig_from_world in registered:
         truth_centers_list.append(transform.translation.astype(float64))
         map_centers_list.append(-rig_from_world.rotation.matrix().T @ rig_from_world.translation)
 
@@ -239,7 +254,7 @@ def _registered_frames(
     rigs: dict[str, Rig],
     colmap_image_ids: dict[str, int],
     reconstruction: Reconstruction,
-) -> Iterator[tuple[Transform, Rigid3d]]:
+) -> Iterator[tuple[int, Transform, Rigid3d]]:
     # Multi-camera rigs (e.g. ZED stereo) share one Frame per rig+frame, so any registered
     # image of any camera in that frame yields the Frame's rig_from_world.
     for rig_id, rig in rigs.items():
@@ -248,7 +263,7 @@ def _registered_frames(
                 image_id = colmap_image_ids[f"{rig_id}/{camera_id}/{frame_id}.jpg"]
                 if image_id in reconstruction.images:
                     rig_from_world = cast(Rigid3d, cast(Frame, reconstruction.images[image_id].frame).rig_from_world)  # type: ignore
-                    yield transform, rig_from_world
+                    yield int(frame_id), transform, rig_from_world
                     break
 
 

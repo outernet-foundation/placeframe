@@ -1,0 +1,13 @@
+# Initialize each non-required, non-enum backing field to the OpenAPI default value when one is declared, so `new T()` carries the schema-declared defaults instead of `default(T)`. No cast needed: `float` fields are tagged `format: double` in the spec via `common.litestar.FloatFormatPlugin`, so `toDefaultValue` emits a `D`-suffixed literal that C# accepts as `double` directly; `int` and `bool` defaults are already type-correct.
+diff --git a/build/openapi-generator/templates-generated/csharp/modelGeneric.mustache b/build/openapi-generator/templates-generated/csharp/modelGeneric.mustache
+--- a/build/openapi-generator/templates-generated/csharp/modelGeneric.mustache
++++ b/build/openapi-generator/templates-generated/csharp/modelGeneric.mustache
+@@ -243,7 +243,7 @@
+                 _flag{{name}} = true;
+             }
+         }
+-        private {{{dataType}}} _{{name}};
++        private {{{dataType}}} _{{name}}{{#defaultValue}} = {{{defaultValue}}}{{/defaultValue}};
+         private bool _flag{{name}};
+
+         /// <summary>

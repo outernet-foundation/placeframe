@@ -44,8 +44,7 @@ namespace PlaceframeZedCaptureClient.Model
         /// <param name="diskFreeBytes">diskFreeBytes (required).</param>
         /// <param name="uptimeS">uptimeS (required).</param>
         /// <param name="varVersion">varVersion (required).</param>
-        /// <param name="logCursor">logCursor (required).</param>
-        public ZedStatus(long diskFreeBytes, double uptimeS, string varVersion, string logCursor)
+        public ZedStatus(long diskFreeBytes, double uptimeS, string varVersion)
         {
             this.DiskFreeBytes = diskFreeBytes;
             this.UptimeS = uptimeS;
@@ -55,12 +54,6 @@ namespace PlaceframeZedCaptureClient.Model
                 throw new ArgumentNullException("varVersion is a required property for ZedStatus and cannot be null");
             }
             this.VarVersion = varVersion;
-            // to ensure "logCursor" is required (not null)
-            if (logCursor == null)
-            {
-                throw new ArgumentNullException("logCursor is a required property for ZedStatus and cannot be null");
-            }
-            this.LogCursor = logCursor;
         }
 
         /// <summary>
@@ -136,30 +129,6 @@ namespace PlaceframeZedCaptureClient.Model
             return _flagVarVersion;
         }
         /// <summary>
-        /// Gets or Sets LogCursor
-        /// </summary>
-        [DataMember(Name = "log_cursor", IsRequired = true, EmitDefaultValue = true)]
-        public string LogCursor
-        {
-            get{ return _LogCursor;}
-            set
-            {
-                _LogCursor = value;
-                _flagLogCursor = true;
-            }
-        }
-        private string _LogCursor;
-        private bool _flagLogCursor;
-
-        /// <summary>
-        /// Returns false as LogCursor should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeLogCursor()
-        {
-            return _flagLogCursor;
-        }
-        /// <summary>
         /// Gets or Sets CurrentCaptureId
         /// </summary>
         [DataMember(Name = "current_capture_id", EmitDefaultValue = true)]
@@ -218,7 +187,6 @@ namespace PlaceframeZedCaptureClient.Model
             sb.Append("  DiskFreeBytes: ").Append(DiskFreeBytes).Append("\n");
             sb.Append("  UptimeS: ").Append(UptimeS).Append("\n");
             sb.Append("  VarVersion: ").Append(VarVersion).Append("\n");
-            sb.Append("  LogCursor: ").Append(LogCursor).Append("\n");
             sb.Append("  CurrentCaptureId: ").Append(CurrentCaptureId).Append("\n");
             sb.Append("  LastException: ").Append(LastException).Append("\n");
             sb.Append("}\n");

@@ -91,6 +91,16 @@ def main(
     ] = None,
     run: Annotated[int | None, typer.Option("--run", "-r", help="Specific GitHub Actions run ID")] = None,
     serial: Annotated[str | None, typer.Option("--serial", "-s", help="adb device serial")] = None,
+    no_grant_permissions: Annotated[
+        bool,
+        typer.Option(
+            "--no-grant-permissions",
+            help=(
+                "Skip the post-install `adb shell pm grant` calls listed under `grant_permissions` "
+                "for the project in unity-projects.json. Permissions are granted by default."
+            ),
+        ),
+    ] = False,
 ) -> None:
     projects = load_unity_projects().projects
     project_name = _resolve_project(projects, project)
@@ -119,6 +129,15 @@ def main(
         if package:
             bash_check(f"{adb_prefix} uninstall {package}")
         bash(f"{adb_prefix} install {apks[0]}")
+        permissions = projects[project_name].grant_permissions
+        if permissions and not no_grant_permissions:
+            if not package:
+                raise typer.BadParameter(
+                    f"{project_name} has grant_permissions but no 'package' field in unity-projects.json"
+                )
+            for permission in permissions:
+                print(f"Granting {permission} to {package}")
+                bash(f"{adb_prefix} shell pm grant {package} {permission}")
         print("Done.")
     else:
         executable = _find_linux_executable(download_path)

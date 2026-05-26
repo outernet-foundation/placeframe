@@ -4,11 +4,6 @@ services:
     network_mode: host
     privileged: true
     runtime: nvidia
-    environment:
-      # Box hardware identity. The phone-relayed log stream uses this to label
-      # entries in Loki. Set by install-zed from /proc/device-tree/serial-number
-      # (Jetson) or /etc/machine-id (fallback). Fails compose-up if unset.
-      ZED_BOX_ID: ${ZED_BOX_ID:?err}
     devices:
       - /dev/bus/usb:/dev/bus/usb
     volumes:
@@ -20,7 +15,7 @@ services:
       - /tmp/argus_socket:/tmp/argus_socket
       - /tmp/nvscsock:/tmp/nvscsock
       - /tmp/camsock:/tmp/camsock
-    restart: no
+    restart: unless-stopped
 
   # Caddy sidecar terminating h2c (HTTP/2 cleartext, prior-knowledge) on 9000
   # and reverse-proxying HTTP/1.1 to uvicorn on 127.0.0.1:9001. Required so the
@@ -29,6 +24,11 @@ services:
   aoa-gateway:
     image: ${AOA_GATEWAY_IMAGE:-ghcr.io/outernet-foundation/placeframe/aoa-gateway:${AOA_GATEWAY_SHA:?err}}
     network_mode: host
+    environment:
+      # Go HTTP/2 frame-level trace. Logs every SETTINGS/HEADERS/RST_STREAM/GOAWAY
+      # frame sent or received on stderr; Alloy scrapes stderr via docker.sock
+      # and forwards to local box-Loki.
+      GODEBUG: http2debug=2
     restart: unless-stopped
 
   # privileged + bind-mounted /dev/bus/usb for pyusb. network_mode: host so
@@ -43,9 +43,38 @@ services:
     privileged: true
     volumes:
       - /dev/bus/usb:/dev/bus/usb:rslave
+      - zed-logs:/var/log/zed-capture
+    restart: unless-stopped
+
+  # Box-side Loki: monolithic mode, filesystem storage, 72h retention. Buffer
+  # between Alloy (writes) and the phone-relay (reads through box-Caddy's
+  # /loki/* handle). Bound to 127.0.0.1:3100 so the wired ethernet doesn't
+  # expose the HTTP API.
+  aoa-loki:
+    image: ${LOKI_IMAGE:?err}
+    network_mode: host
+    volumes:
+      - aoa-loki:/loki
+      - ./aoa-loki/config.yaml:/etc/loki/config.yaml:ro
+    command: -config.file=/etc/loki/config.yaml
+    restart: unless-stopped
+
+  # Box-side Alloy: scrapes container stdout/stderr via docker.sock and writes
+  # to aoa-loki on 127.0.0.1:3100. ZED_BOX_ID is injected as a Loki external
+  # label so every entry carries the box's hardware identity.
+  aoa-alloy:
+    image: ${ALLOY_IMAGE:?err}
+    network_mode: host
+    environment:
+      ZED_BOX_ID: ${ZED_BOX_ID:?err}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./aoa-alloy/config.alloy:/etc/alloy/config.alloy:ro
+    command: run /etc/alloy/config.alloy --server.http.listen-addr=127.0.0.1:12345
     restart: unless-stopped
 
 volumes:
   captures:
   zed-logs:
   zed-state:
+  aoa-loki:

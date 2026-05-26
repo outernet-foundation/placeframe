@@ -66,6 +66,8 @@ namespace PlaceframeApiClient.Model
         /// <param name="mapViewpointDiversity">1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps from single-viewpoint maps even when the rest of the metrics agree..</param>
         /// <param name="truthAlignmentRmsResidualM">RMS over registered cameras of ||T·c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration..</param>
         /// <param name="truthAlignmentMaxResidualM">Maximum over registered cameras of ||T·c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over..</param>
+        /// <param name="phaseTimings">Per-phase wall-clock durations in execution order, captured at each ReconstructionPublisher set_phase boundary. Useful for after-the-fact attribution of total reconstruction time across feature extraction, OPQ/PQ training, matching, geometric verification, and incremental mapping..</param>
+        /// <param name="pipelineVersion">Content-addressed hash of the reconstructor image&#39;s build context (RECONSTRUCTOR_SHA, computed by build_scripts.placeframe.context_sha.compute_service_shas) that produced this reconstruction. None on rows whose manifest was created before the lease succeeded. Mirrors the localizer&#39;s LocalizationMetrics.pipeline_version contract..</param>
         public ReconstructionMetrics()
         {
         }
@@ -871,6 +873,56 @@ namespace PlaceframeApiClient.Model
             return _flagTruthAlignmentMaxResidualM;
         }
         /// <summary>
+        /// Per-phase wall-clock durations in execution order, captured at each ReconstructionPublisher set_phase boundary. Useful for after-the-fact attribution of total reconstruction time across feature extraction, OPQ/PQ training, matching, geometric verification, and incremental mapping.
+        /// </summary>
+        /// <value>Per-phase wall-clock durations in execution order, captured at each ReconstructionPublisher set_phase boundary. Useful for after-the-fact attribution of total reconstruction time across feature extraction, OPQ/PQ training, matching, geometric verification, and incremental mapping.</value>
+        [DataMember(Name = "phase_timings", EmitDefaultValue = true)]
+        public List<PhaseTiming> PhaseTimings
+        {
+            get{ return _PhaseTimings;}
+            set
+            {
+                _PhaseTimings = value;
+                _flagPhaseTimings = true;
+            }
+        }
+        private List<PhaseTiming> _PhaseTimings;
+        private bool _flagPhaseTimings;
+
+        /// <summary>
+        /// Returns false as PhaseTimings should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePhaseTimings()
+        {
+            return _flagPhaseTimings;
+        }
+        /// <summary>
+        /// Content-addressed hash of the reconstructor image&#39;s build context (RECONSTRUCTOR_SHA, computed by build_scripts.placeframe.context_sha.compute_service_shas) that produced this reconstruction. None on rows whose manifest was created before the lease succeeded. Mirrors the localizer&#39;s LocalizationMetrics.pipeline_version contract.
+        /// </summary>
+        /// <value>Content-addressed hash of the reconstructor image&#39;s build context (RECONSTRUCTOR_SHA, computed by build_scripts.placeframe.context_sha.compute_service_shas) that produced this reconstruction. None on rows whose manifest was created before the lease succeeded. Mirrors the localizer&#39;s LocalizationMetrics.pipeline_version contract.</value>
+        [DataMember(Name = "pipeline_version", EmitDefaultValue = true)]
+        public string PipelineVersion
+        {
+            get{ return _PipelineVersion;}
+            set
+            {
+                _PipelineVersion = value;
+                _flagPipelineVersion = true;
+            }
+        }
+        private string _PipelineVersion;
+        private bool _flagPipelineVersion;
+
+        /// <summary>
+        /// Returns false as PipelineVersion should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePipelineVersion()
+        {
+            return _flagPipelineVersion;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -910,6 +962,8 @@ namespace PlaceframeApiClient.Model
             sb.Append("  MapViewpointDiversity: ").Append(MapViewpointDiversity).Append("\n");
             sb.Append("  TruthAlignmentRmsResidualM: ").Append(TruthAlignmentRmsResidualM).Append("\n");
             sb.Append("  TruthAlignmentMaxResidualM: ").Append(TruthAlignmentMaxResidualM).Append("\n");
+            sb.Append("  PhaseTimings: ").Append(PhaseTimings).Append("\n");
+            sb.Append("  PipelineVersion: ").Append(PipelineVersion).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

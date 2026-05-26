@@ -1,14 +1,17 @@
 import os
+from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
-from common.bash import bash_handoff
+from common.bash import bash, bash_handoff
 from common.detect_gpu import Gpu, detect_gpu
 
+from .build_docker import run_build
 from .context_sha import compute_service_shas
 
 ENV_FILE = Path(".env")
 LOCK_FILE = Path(".env.lock")
+LOG_DIRECTORY = Path(".placeframe") / "logs"
 
 
 def _resolve_service_shas() -> None:
@@ -21,7 +24,15 @@ app = typer.Typer(add_completion=False)
 @app.command()
 def up(
     attached: bool = typer.Option(False, "--attached", "-a", help="Run in foreground (not detached)"),
-    quiet_pull: bool = typer.Option(False, "--quiet-pull", "-q", help="Suppress docker compose pull progress output"),
+    quiet_pull: bool = typer.Option(
+        False,
+        "--quiet-pull",
+        "-q",
+        help="Send pull progress to a log file under .placeframe/logs/ instead of the console",
+    ),
+    build: bool = typer.Option(
+        False, "--build", help="Build all images locally before bringing the stack up; skips pulling"
+    ),
     gpu: Gpu = typer.Option("auto", "--gpu", help="auto|cuda|rocm|none"),
 ) -> None:
     if not LOCK_FILE.exists():
@@ -33,23 +44,28 @@ def up(
     if gpu == "auto":
         gpu = detect_gpu()
 
+    if build:
+        run_build(gpu=gpu)
+
     _resolve_service_shas()
 
-    command = (
-        "docker compose "
-        "-f compose.yml "
-        f"{f'-f compose.{gpu}.yml ' if gpu != 'none' else ''}"
-        "--env-file .env "
-        f"--env-file {LOCK_FILE} "
-        "up"
-    )
+    gpu_file = f"-f compose.{gpu}.yml " if gpu != "none" else ""
+    compose_args = f"-f compose.yml {gpu_file}--env-file .env --env-file {LOCK_FILE}"
 
-    if quiet_pull:
-        command += " --quiet-pull"
+    if not build:
+        if quiet_pull:
+            timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+            log_path = LOG_DIRECTORY / f"up-pull-{timestamp}.log"
+            print(f"Pulling images → {log_path}")
+            bash(f"docker compose --progress plain {compose_args} pull", log_path=log_path)
+        else:
+            bash(f"docker compose {compose_args} pull")
+
+    up_command = f"docker compose {compose_args} up"
     if not attached:
-        command += " -d"
+        up_command += " -d"
 
-    bash_handoff(command)
+    bash_handoff(up_command)
 
 
 def main():

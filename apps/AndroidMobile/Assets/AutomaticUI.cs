@@ -36,11 +36,12 @@ namespace Placeframe.Client
             return Foldout(props.foldout);
         }
 
-        public static IEnumerable<IControl> ObjectFieldInspectors(object target, IValueObservable<bool> interactable = default)
+        public static IEnumerable<IControl> ObjectFieldInspectors(object target, IValueObservable<bool> interactable = default, Predicate<string> includeField = null)
         {
             return target.GetType()
                 .GetMembers(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public)
                 .Where(x => x is FieldInfo || x is PropertyInfo)
+                .Where(x => includeField == null || includeField(x.Name))
                 .Select(memberInfo =>
                 {
                     string name = default;
@@ -284,7 +285,7 @@ namespace Placeframe.Client
                     }),
                     PrimitiveControl(new()
                     {
-                        type = nullableUnderlyingType,
+                        type = type,
                         value = value,
                         onValueChanged = onValueChanged,
                         interactable = interactable,

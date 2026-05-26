@@ -8,6 +8,8 @@ Type=oneshot
 RemainAfterExit=true
 ExecStart=/usr/bin/docker compose -f COMPOSE_PATH up -d --force-recreate
 ExecStop=/usr/bin/docker compose -f COMPOSE_PATH down
+Restart=on-failure
+RestartSec=10s
 
 [Install]
 WantedBy=multi-user.target

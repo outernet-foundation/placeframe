@@ -20,16 +20,19 @@ namespace Placeframe.Client
     public static class CaptureController
     {
         private static float captureIntervalSeconds = 0.5f;
+        private static readonly TimeSpan idleRefreshInterval = TimeSpan.FromSeconds(5);
 
         private static bool capturesLoaded;
         private static string localCaptureNamePath;
         private static Dictionary<Guid, string> _localCaptureNames = new();
         private static IDisposable _subscription;
+        private static IDisposable _idleRefreshTimerSubscription;
         private static CompositeDisposable _pollSubscriptions = new();
 
         public static void Initialize()
         {
             ZedCaptureController.Initialize();
+            LogDrainController.Initialize();
 
             localCaptureNamePath = $"{Application.persistentDataPath}/LocalCaptureNames.json";
 
@@ -44,8 +47,20 @@ namespace Placeframe.Client
                     (loggedIn, captureStatus) => loggedIn && captureStatus == CaptureStatus.Idle)
                     .Subscribe(isIdleAndLoggedIn =>
                     {
-                        if (isIdleAndLoggedIn) UpdateCaptureList().Forget();
+                        if (isIdleAndLoggedIn)
+                        {
+                            Log.Info(LogGroup.Capture, "UpdateCaptureList trigger=one-shot");
+                            UpdateCaptureList().Forget();
+                        }
                     }),
+                App.state.zedReachable.Subscribe((bool _) =>
+                {
+                    if (App.state.loggedIn.value && App.state.captureStatus.value == CaptureStatus.Idle)
+                    {
+                        Log.Info(LogGroup.Capture, "UpdateCaptureList trigger=zedReachable-changed");
+                        UpdateCaptureList().Forget();
+                    }
+                }),
                 ObservableCombineValues(
                     App.state.loggedIn,
                     App.state.captureStatus,
@@ -62,13 +77,30 @@ namespace Placeframe.Client
                     {
                         if (isStoppingAndLoggedIn) StopCaptureForCurrentDevice().Forget();
                     }),
-                App.state.zedReachable.Subscribe(isReachable =>
-                {
-                    if (isReachable
-                        && App.state.loggedIn.value
-                        && App.state.captureStatus.value == CaptureStatus.Idle)
-                        UpdateCaptureList().Forget();
-                }),
+                ObservableCombineValues(
+                    App.state.loggedIn,
+                    App.state.captureStatus,
+                    App.state.zedReachable,
+                    (loggedIn, captureStatus, zedReachable) =>
+                        loggedIn && captureStatus == CaptureStatus.Idle && zedReachable)
+                    .Subscribe(shouldRefresh =>
+                    {
+                        if (shouldRefresh && _idleRefreshTimerSubscription == null)
+                        {
+                            Log.Info(LogGroup.Capture,
+                                "captures polling timer started intervalSeconds={IntervalSeconds}",
+                                idleRefreshInterval.TotalSeconds);
+                            _idleRefreshTimerSubscription = Observable
+                                .Timer(TimeSpan.Zero, idleRefreshInterval)
+                                .Subscribe(_ => UpdateCaptureList().Forget());
+                        }
+                        else if (!shouldRefresh && _idleRefreshTimerSubscription != null)
+                        {
+                            Log.Info(LogGroup.Capture, "captures polling timer stopped");
+                            _idleRefreshTimerSubscription.Dispose();
+                            _idleRefreshTimerSubscription = null;
+                        }
+                    }),
                 App.state.captures.SubscribeOperations(HandleCapturesChanged),
                 App.state.captures
                     .ObservableSelect(entry => entry.Value)
@@ -104,7 +136,10 @@ namespace Placeframe.Client
         {
             _subscription?.Dispose();
             _subscription = null;
+            _idleRefreshTimerSubscription?.Dispose();
+            _idleRefreshTimerSubscription = null;
             _pollSubscriptions.Dispose();
+            LogDrainController.Shutdown();
             ZedCaptureController.Shutdown();
         }
 
@@ -175,10 +210,41 @@ namespace Placeframe.Client
 
         private static async UniTask UpdateCaptureList()
         {
-            var zedCaptures = await ZedCaptureController.EnumerateCaptures();
-            var locals = CaptureManager.GetCaptures().Concat(zedCaptures).ToDictionary(c => c.Id);
-            var remotes = (await VisualPositioningSystem.Api.GetCaptureSessionsExpandedAsync())
-                .CaptureSessions.ToDictionary(c => c.CaptureSession.Id);
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            Log.Info(LogGroup.Capture, "UpdateCaptureList start");
+
+            List<LocalCapture> zedCaptures;
+            try
+            {
+                zedCaptures = (await ZedCaptureController.EnumerateCaptures()).ToList();
+            }
+            catch (ZedNotReachableException)
+            {
+                zedCaptures = new List<LocalCapture>();
+            }
+            var arCaptures = CaptureManager.GetCaptures().ToList();
+            var locals = arCaptures.Concat(zedCaptures).ToDictionary(c => c.Id);
+            var localsDurationMs = stopwatch.ElapsedMilliseconds;
+
+            var serverStartMs = stopwatch.ElapsedMilliseconds;
+            Dictionary<Guid, ExpandedCaptureSession> remotes;
+            try
+            {
+                remotes = (await VisualPositioningSystem.Api.GetCaptureSessionsExpandedAsync())
+                    .CaptureSessions.ToDictionary(c => c.CaptureSession.Id);
+            }
+            catch (Exception exception)
+            {
+                Log.Info(LogGroup.Capture, exception,
+                    "UpdateCaptureList GetCaptureSessionsExpanded failed durationMs={DurationMs}",
+                    stopwatch.ElapsedMilliseconds - serverStartMs);
+                throw;
+            }
+            var serverDurationMs = stopwatch.ElapsedMilliseconds - serverStartMs;
+
+            Log.Info(LogGroup.Capture,
+                "UpdateCaptureList counts zedCount={ZedCount} arCount={ArCount} remoteCount={RemoteCount} localsDurationMs={LocalsDurationMs} serverDurationMs={ServerDurationMs}",
+                zedCaptures.Count, arCaptures.Count, remotes.Count, localsDurationMs, serverDurationMs);
 
             await UniTask.SwitchToMainThread();
 
@@ -196,6 +262,7 @@ namespace Placeframe.Client
                         state.hasLocalFiles.value = hasLocal;
                         state.recordedAt.value = remote?.CaptureSession.RecordedAt ?? local.RecordedAt;
                         state.type.value = remote?.CaptureSession.DeviceType ?? local.Type;
+                        state.sessionSizeBytes.value = hasLocal ? local.SizeBytes : null;
                         state.serverCaptureExists.value = remote != null;
                         state.reconstruction.value = primary?.Reconstruction;
                         state.localizationMapId.value = primary?.LocalizationMapId ?? Guid.Empty;
@@ -203,6 +270,9 @@ namespace Placeframe.Client
             });
 
             capturesLoaded = true;
+            Log.Info(LogGroup.Capture,
+                "UpdateCaptureList done durationMs={DurationMs} resultCount={ResultCount}",
+                stopwatch.ElapsedMilliseconds, App.state.captures.Count);
         }
     }
 }
