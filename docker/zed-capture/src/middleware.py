@@ -22,6 +22,17 @@ class RequestIdMiddleware(ASGIMiddleware):
         start = time.monotonic()
         response_status = 0
 
+        # Entry log lets us tell a request that never reached uvicorn (e.g.
+        # stuck somewhere between Caddy and the ASGI app) from one that
+        # reached uvicorn but hung in the handler — without it, a stalled
+        # request emits no log line at all until it completes or errors.
+        logger.info(
+            "req id=%s %s %s started",
+            request_id,
+            http_scope["method"],
+            http_scope["path"],
+        )
+
         async def send_with_header(message: Message) -> None:
             nonlocal response_status
             if message["type"] == "http.response.start":
@@ -36,7 +47,7 @@ class RequestIdMiddleware(ASGIMiddleware):
         finally:
             elapsed_ms = int((time.monotonic() - start) * 1000)
             logger.info(
-                "req id=%s %s %s status=%d %dms",
+                "req id=%s %s %s completed status=%d %dms",
                 request_id,
                 http_scope["method"],
                 http_scope["path"],
