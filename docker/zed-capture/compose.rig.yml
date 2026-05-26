@@ -29,6 +29,10 @@ services:
       # frame sent or received on stderr; Alloy scrapes stderr via docker.sock
       # and forwards to local box-Loki.
       GODEBUG: http2debug=2
+    volumes:
+      # Shared with zed-capture and aoa-bridge. Caddy writes a per-request
+      # access log here as a durable backup to the alloy → aoa-loki pipeline.
+      - zed-logs:/var/log/zed-capture
     restart: unless-stopped
 
   # privileged + bind-mounted /dev/bus/usb for pyusb. network_mode: host so

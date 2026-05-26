@@ -17,8 +17,20 @@ http://:9000 {
 	# reaches us through.
 	bind 127.0.0.1
 
+	# Dual-output access log. stdout feeds the alloy → aoa-loki pipeline for
+	# the phone-side log relay. The file on /var/log/zed-capture (shared
+	# zed-logs volume with zed-capture and aoa-bridge) is the durable copy
+	# that survives an AOA-wedge-induced power-cycle, since the alloy
+	# in-memory buffer is lost when the failure cascade drops the pipeline.
 	log {
 		output stdout
+		format json
+	}
+	log {
+		output file /var/log/zed-capture/aoa-gateway.jsonl {
+			roll_size 50mb
+			roll_keep 5
+		}
 		format json
 	}
 

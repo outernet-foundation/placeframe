@@ -29,6 +29,12 @@ loki.source.docker "containers" {
 loki.write "default" {
   endpoint {
     url = "http://127.0.0.1:3100/loki/api/v1/push"
+    // Push every 100ms instead of the default 1s so live debugging during a
+    // box-side failure cascade loses at most ~100ms of in-flight log lines
+    // before the alloy in-memory buffer is dropped. The durable per-service
+    // file logs on the zed-logs volume are the post-recovery source of
+    // truth; this just narrows the live-relay gap.
+    batch_wait = "100ms"
   }
   external_labels = {
     box_id = sys.env("ZED_BOX_ID"),
