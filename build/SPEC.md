@@ -40,7 +40,7 @@ Defined in `build/pyproject.toml`'s `[project.scripts]`. All commands accept `--
 
 ### CI-only
 
-`build-docker`, `build-unity`, `create-release`, `ensure-release-pr`, `fetch-ci-artifacts`, `inject-unity-env`, `protect-branches`, `publish-packages`, `unity-license-tag`, `unity-matrix` live under `placeframe/ci/` and `shared/` and are wired up from `.github/workflows/`. They assume the CI environment (OCI cache registry, restored licenses, GitHub token) and are not intended to be invoked from a developer slot. Operator-facing equivalents (`build`, `compile-unity`) cover the local-use cases.
+`build-docker`, `build-unity`, `create-release`, `ensure-release-pr`, `fetch-ci-artifacts`, `protect-branches`, `publish-packages`, `unity-license-tag`, `unity-matrix` live under `placeframe/ci/` and `shared/` and are wired up from `.github/workflows/`. They assume the CI environment (OCI cache registry, restored licenses, GitHub token) and are not intended to be invoked from a developer slot. Operator-facing equivalents (`build`, `compile-unity`) cover the local-use cases.
 
 ### Layout
 
@@ -59,7 +59,7 @@ Defined in `build/pyproject.toml`'s `[project.scripts]`. All commands accept `--
           ci/
             preflight.py / build_docker.py / build_unity.py
             create_release.py / ensure_release_pr.py / fetch_ci_artifacts.py
-            inject_unity_env.py / matrix.py / publish_packages.py
+            matrix.py / publish_packages.py
         cesium/
           build.py / codegen.py / combine.py
         shared/
