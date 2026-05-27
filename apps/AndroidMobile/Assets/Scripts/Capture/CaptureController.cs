@@ -101,7 +101,12 @@ namespace Placeframe.Client
                             _idleRefreshTimerSubscription = null;
                         }
                     }),
-                App.state.captures.SubscribeOperations(HandleCapturesChanged),
+                App.state.captures.SubscribeOperations(_ => PersistLocalCaptureNames()),
+                App.state.captures
+                    .ObservableSelect(entry => entry.Value)
+                    .SubscribeEach(capture => new ComposedDisposable(
+                        capture.name.Subscribe((string _) => PersistLocalCaptureNames()),
+                        capture.status.Subscribe((CaptureUploadStatus _) => PersistLocalCaptureNames()))),
                 App.state.captures
                     .ObservableSelect(entry => entry.Value)
                     .ObservableWhere(capture => capture.status
@@ -191,7 +196,7 @@ namespace Placeframe.Client
             App.state.captureStatus.value = CaptureStatus.Idle;
         }
 
-        private static void HandleCapturesChanged(IReadOnlyList<IStateOperation> ops)
+        private static void PersistLocalCaptureNames()
         {
             if (!capturesLoaded)
                 return;
