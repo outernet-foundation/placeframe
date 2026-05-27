@@ -65,10 +65,12 @@ namespace Placeframe.Client
             AuthManager.Initialize();
             SettingsManager.Initialize();
             CaptureController.Initialize();
+            CameraSessionController.Initialize();
         }
 
         void OnDestroy()
         {
+            CameraSessionController.Shutdown();
             CaptureController.Shutdown();
             LocalizationManager.Shutdown();
             SettingsManager.Shutdown();

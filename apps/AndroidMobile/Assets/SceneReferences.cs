@@ -7,6 +7,7 @@ namespace Placeframe.Client
     {
         public static ARCameraManager ARCameraManager => _instance._arCameraManager;
         public static ARAnchorManager ARAnchorManager => _instance._arAnchorManager;
+        public static ARSession ARSession => _instance._arSession;
 
         private static SceneReferences _instance;
 
@@ -15,6 +16,8 @@ namespace Placeframe.Client
 
         [SerializeField]
         private ARAnchorManager _arAnchorManager;
+
+        private ARSession _arSession;
 
         private void Awake()
         {
@@ -38,6 +41,7 @@ namespace Placeframe.Client
             }
 
             _instance = this;
+            _arSession = FindAnyObjectByType<ARSession>();
         }
     }
 }
