@@ -169,6 +169,7 @@ services:
     depends_on:
       - keycloak
       - api
+      - livekit-token
     ports:
       - "${GATEWAY_PORT:?err}:8443"
     volumes:
@@ -272,6 +273,29 @@ services:
       AUTH_TOKEN_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
       AUTH_CLIENT_ID: "${AUTH_WORKER_CLIENT_ID:?err}"
       PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
+
+  livekit:
+    x-image-ref: livekit/livekit-server:v1.8.4
+    image: "${LIVEKIT_IMAGE:?err}"
+    network_mode: host
+    command:
+      - --bind
+      - 0.0.0.0
+    environment:
+      LIVEKIT_KEYS: "${LIVEKIT_API_KEY:?err}: ${LIVEKIT_API_SECRET:?err}"
+
+  livekit-token:
+    image: "ghcr.io/outernet-foundation/placeframe/livekit-token:${LIVEKIT_TOKEN_SHA:?err}"
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
+      interval: 5s
+      start_period: 5s
+      timeout: 5s
+      retries: 3
+    environment:
+      LIVEKIT_API_KEY: "${LIVEKIT_API_KEY:?err}"
+      LIVEKIT_API_SECRET: "${LIVEKIT_API_SECRET:?err}"
+      LIVEKIT_SERVER_URL: "${LIVEKIT_SERVER_URL:?err}"
 
   loki:
     x-image-ref: grafana/loki:3.5.0

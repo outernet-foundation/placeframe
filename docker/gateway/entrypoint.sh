@@ -57,6 +57,11 @@ cat > /etc/caddy/Caddyfile <<EOF
         reverse_proxy cloudbeaver:8978
     }
 
+    # LiveKit Token Issuer
+    handle_path /livekit-token/* {
+        reverse_proxy livekit-token:8000
+    }
+
     # API Service
     handle {
         reverse_proxy api:8000

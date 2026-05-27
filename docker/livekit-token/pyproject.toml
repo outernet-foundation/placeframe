@@ -1,0 +1,15 @@
+[project]
+name = "placeframe-livekit-token"
+version = "0.1.0"
+description = "LiveKit token issuer sidecar"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "litestar>=2.19.0",
+    "livekit-api>=1.0.4",
+    "pydantic>=2.12.5",
+    "uvicorn[standard]>=0.35.0",
+]
+
+[tool.deptry.per_rule_ignores]
+DEP002 = ["uvicorn"]

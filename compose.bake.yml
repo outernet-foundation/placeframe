@@ -83,6 +83,16 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/state-sync:latest"
         - "ghcr.io/outernet-foundation/placeframe/state-sync:${STATE_SYNC_SHA}"
 
+  livekit-token:
+    build:
+      context: .
+      dockerfile: docker/livekit-token/Dockerfile
+      target: dev
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/livekit-token:latest"
+        - "ghcr.io/outernet-foundation/placeframe/livekit-token:${LIVEKIT_TOKEN_SHA}"
+
   neural-networks-base-cuda:
     build:
       context: .
