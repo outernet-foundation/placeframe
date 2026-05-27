@@ -1,21 +1,40 @@
 #!/bin/sh
 set -eu
 
-# 1. Extract the hostname (remove the port) from PUBLIC_DOMAIN
-#    Input: "localhost:58080" -> Output: "localhost"
+# Extract the hostname (strip any :port) from PUBLIC_DOMAIN.
 DOMAIN_NAME=${PUBLIC_DOMAIN%:*}
 
-# 2. Generate Caddyfile with shell variables injected
+# GATEWAY_TLS_MODE controls how Caddy handles TLS:
+#   internal — Caddy terminates HTTPS itself using an internal CA. Used for
+#              LAN / air-gapped deployments where clients hit Caddy directly.
+#              The site listener is :8443 (HTTPS).
+#   plain    — Caddy serves plain HTTP, TLS is terminated upstream by the
+#              tunnel relay (e.g. Localtonet's HTTP tunnel). The site listener
+#              is :8443 (cleartext), and the relay rewrites the public URL to
+#              HTTPS at the edge.
+case "${GATEWAY_TLS_MODE}" in
+    internal)
+        SITE_ADDRESS="${DOMAIN_NAME}:8443"
+        TLS_DIRECTIVE="tls internal"
+        ;;
+    plain)
+        SITE_ADDRESS="http://:8443"
+        TLS_DIRECTIVE=""
+        ;;
+    *)
+        echo "GATEWAY_TLS_MODE must be 'internal' or 'plain', got: ${GATEWAY_TLS_MODE}" >&2
+        exit 1
+        ;;
+esac
+
 cat > /etc/caddy/Caddyfile <<EOF
 {
     debug
-    # Global option: Allow Cleartext HTTP/2 (h2c) on port 8080 for Ngrok
-    servers :8080 {
-        protocols h1 h2c
-    }
 }
 
-(backend_routes) {
+${SITE_ADDRESS} {
+    ${TLS_DIRECTIVE}
+
     # gRPC Service
     @grpc {
         header Content-Type application/grpc*
@@ -33,7 +52,6 @@ cat > /etc/caddy/Caddyfile <<EOF
     handle_path /auth/* {
         reverse_proxy keycloak:8080 {
             header_up X-Forwarded-Proto https
-            # Shell expands this to "58080" (or whatever you set)
             header_up X-Forwarded-Port ${PUBLIC_PORT}
         }
     }
@@ -66,19 +84,6 @@ cat > /etc/caddy/Caddyfile <<EOF
     handle {
         reverse_proxy api:8000
     }
-}
-
-# Listener A: Tunnel Mode (Ngrok) - Explicitly HTTP
-http://:8080 {
-    import backend_routes
-}
-
-# Listener B: Local Mode
-# We explicitly list the domain so Caddy generates the correct cert.
-# e.g., "localhost:8443"
-${DOMAIN_NAME}:8443 {
-    tls internal
-    import backend_routes
 }
 EOF
 

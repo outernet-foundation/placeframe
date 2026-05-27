@@ -177,25 +177,18 @@ services:
     environment:
       PUBLIC_PORT: "${GATEWAY_PORT:?err}"
       PUBLIC_DOMAIN: "${PUBLIC_DOMAIN:?err}"
+      GATEWAY_TLS_MODE: "${GATEWAY_TLS_MODE:?err}"
 
-  ngrok:
+  localtonet-agent:
     profiles:
-      - ngrok
-    x-image-ref: ngrok/ngrok:alpine
-    image: "${NGROK_IMAGE:?err}"
-    depends_on:
-      - gateway
+      - localtonet
+    x-image-ref: localtonet/localtonet:latest
+    image: "${LOCALTONET_AGENT_IMAGE:?err}"
+    network_mode: host
     restart: unless-stopped
-    ports:
-      - "4040:4040"
     command:
-      - "http"
-      - "--domain=${PUBLIC_DOMAIN:?err}"
-      - "--upstream-protocol=http2"
-      - "--log=stdout"
-      - "http://gateway:8080"
-    environment:
-      NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN:?err}"
+      - --authtoken
+      - "${LOCALTONET_AUTHTOKEN:?err}"
 
   migrate-database:
     image: "ghcr.io/outernet-foundation/placeframe/database-migrator:${DATABASE_MIGRATOR_SHA:?err}"
@@ -281,6 +274,8 @@ services:
     command:
       - --bind
       - 0.0.0.0
+      - --node-ip
+      - "${LIVEKIT_RTC_DOMAIN:?err}"
     environment:
       LIVEKIT_KEYS: "${LIVEKIT_API_KEY:?err}: ${LIVEKIT_API_SECRET:?err}"
 
@@ -295,7 +290,7 @@ services:
     environment:
       LIVEKIT_API_KEY: "${LIVEKIT_API_KEY:?err}"
       LIVEKIT_API_SECRET: "${LIVEKIT_API_SECRET:?err}"
-      LIVEKIT_SERVER_URL: "${LIVEKIT_SERVER_URL:?err}"
+      LIVEKIT_SERVER_URL: "ws://${LIVEKIT_SIGNALING_DOMAIN:?err}:${LIVEKIT_SIGNALING_PORT:?err}"
 
   loki:
     x-image-ref: grafana/loki:3.5.0

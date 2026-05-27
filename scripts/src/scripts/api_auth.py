@@ -33,7 +33,7 @@ def _read_public_domain() -> str:
 
 
 async def _fetch_keycloak_token(public_domain: str) -> str:
-    async with AsyncClient(verify=False) as http:  # noqa: S501
+    async with AsyncClient() as http:
         response = await http.post(
             f"https://{public_domain}/auth/realms/placeframe-dev/protocol/openid-connect/token",
             data={
