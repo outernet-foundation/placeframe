@@ -120,13 +120,6 @@ class ReconstructionMetrics(BaseModel):
     map_avg_track_length: Optional[float] = Field(
         default=None, description="Mean number of image observations per 3D point. Coarse density-of-evidence proxy."
     )
-    map_bounding_volume_m3: Optional[float] = Field(
-        default=None,
-        description=(
-            "Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; "
-            "complements image_count which only captures coverage density."
-        ),
-    )
     map_viewpoint_diversity: Optional[float] = Field(
         default=None,
         description=(

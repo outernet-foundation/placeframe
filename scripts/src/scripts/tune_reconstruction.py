@@ -140,7 +140,6 @@ async def _run_cell(
         "map_image_count": metrics.map_image_count,
         "map_point_count": metrics.map_point_count,
         "map_avg_track_length": metrics.map_avg_track_length,
-        "map_bounding_volume_m3": metrics.map_bounding_volume_m3,
         "map_viewpoint_diversity": metrics.map_viewpoint_diversity,
         "truth_alignment_rms_residual_m": metrics.truth_alignment_rms_residual_m,
         "truth_alignment_max_residual_m": metrics.truth_alignment_max_residual_m,

@@ -25,7 +25,6 @@ _FIXED_MAP_METRICS = RawMapMetrics(
     map_image_count=95,
     map_point_count=20000,
     map_avg_track_length=4.5,
-    map_bounding_volume_m3=12.3,
     map_viewpoint_diversity=0.6,
 )
 

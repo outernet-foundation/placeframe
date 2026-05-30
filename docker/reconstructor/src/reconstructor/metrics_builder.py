@@ -10,7 +10,6 @@ from numpy.linalg import norm
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from pycolmap import Database, Frame, ImageMap, Point3D, Point3DMap, Reconstruction, Rigid3d
 from pycolmap import Image as ColmapImage
-from scipy.spatial import ConvexHull, QhullError
 
 UINT64_MAX = 18446744073709551615  # sentinel used by Point2D.point3D_id default
 
@@ -140,32 +139,19 @@ class MetricsBuilder:
         self.metrics.reprojection_pixel_error_50th_percentile = q(_percentile(reproject_errors, 50.0))
         self.metrics.reprojection_pixel_error_90th_percentile = q(_percentile(reproject_errors, 90.0))
 
-        # Camera centers and forward axes in the world frame, derived from each frame's rig_from_world.
         # COLMAP's camera convention is +Z forward, so the world-frame viewing direction is the third
         # column of world_from_rig = rig_from_world.rotation.matrix().T.
-        centers: List[NDArray[float64]] = []
         view_dirs: List[NDArray[float64]] = []
         for frame in cast(Iterable[Frame], best.frames.values()):  # type: ignore
             rig_from_world = cast(Rigid3d, frame.rig_from_world)
-            world_from_rig = rig_from_world.rotation.matrix().T
-            centers.append(-world_from_rig @ rig_from_world.translation)
-            view_dirs.append(world_from_rig[:, 2])
-        centers_arr = asarray(centers, dtype=float64)
+            view_dirs.append(rig_from_world.rotation.matrix().T[:, 2])
         view_dirs_arr = asarray(view_dirs, dtype=float64)
-
-        # ConvexHull needs ≥4 non-coplanar points for a 3D volume; ground-level captures and tiny
-        # maps land on a degenerate hull, in which case spatial extent is effectively zero.
-        try:
-            volume = float(ConvexHull(centers_arr).volume) if len(centers_arr) >= 4 else 0.0
-        except QhullError:
-            volume = 0.0
 
         mean_dir: NDArray[float64] = view_dirs_arr.mean(axis=0)
 
         self.metrics.map_image_count = int(best.num_reg_images())
         self.metrics.map_point_count = point_count
         self.metrics.map_avg_track_length = float(sum(track_lengths) / point_count) if point_count else 0.0
-        self.metrics.map_bounding_volume_m3 = volume
         self.metrics.map_viewpoint_diversity = float(1.0 - norm(mean_dir)) if len(view_dirs_arr) else 0.0
 
 
