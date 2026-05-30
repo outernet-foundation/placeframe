@@ -86,7 +86,7 @@ def test_no_held_out_argument_preserves_all_frames(manifest: CaptureSessionManif
     assert len(rig.frame_poses) == expected_count
 
 
-def test_gravity_only_schema_parses_without_translation_or_rotation(
+def test_gravity_only_schema_parses_without_translation(
     manifest: CaptureSessionManifest, gravity_only_frames_csv: str
 ):
     rig_config = manifest.rigs[0]
@@ -95,12 +95,11 @@ def test_gravity_only_schema_parses_without_translation_or_rotation(
     assert len(rig.frame_poses) == 3
     for pose in rig.frame_poses.values():
         assert pose.translation is None
-        assert pose.rotation is None
         assert pose.gravity_in_rig_local is not None
         assert pose.gravity_in_rig_local.tolist() == [0.0, 1.0, 0.0]
 
 
-def test_legacy_priors_schema_populates_translation_and_rotation(
+def test_legacy_priors_schema_populates_translation(
     manifest: CaptureSessionManifest, legacy_priors_frames_csv: str
 ):
     rig_config = manifest.rigs[0]
@@ -108,5 +107,4 @@ def test_legacy_priors_schema_populates_translation_and_rotation(
 
     for pose in rig.frame_poses.values():
         assert pose.translation is not None
-        assert pose.rotation is not None
         assert pose.gravity_in_rig_local is None

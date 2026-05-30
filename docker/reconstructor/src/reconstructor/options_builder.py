@@ -25,6 +25,9 @@ class OptionsBuilder:
         feature_matching_options.skip_image_pairs_in_same_frame = False
         return feature_matching_options
 
+    def keyframe_parallax_threshold_px(self):
+        return self.options.keyframe_parallax_threshold_px
+
     def sequential_window(self):
         return self.options.sequential_window
 

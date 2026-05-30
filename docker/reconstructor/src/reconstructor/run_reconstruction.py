@@ -33,6 +33,7 @@ from pycolmap._core import set_random_seed  # noqa: PLC2701 — no public API
 from torch import Tensor, cuda, from_numpy, inference_mode  # type: ignore
 
 from .colmap import run_colmap_reconstruction
+from .keyframes import select_keyframes_by_parallax
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
 from .pairs import generate_image_pairs, write_pairs
@@ -120,6 +121,22 @@ def run_reconstruction(
         )
         for rig in capture_session_manifest.rigs
     }
+
+    # Subsample each rig's frames to keyframes via offline Lucas-Kanade optical flow on the
+    # reference camera's images. Replaces the VIO-distance / VIO-rotation gates that depend on
+    # signals the calibrated multi-rig pipeline no longer trusts for downstream BA.
+    for rig in rigs.values():
+        ordered_frame_ids = sorted(rig.frame_poses.keys(), key=int)
+        ref_camera_image_paths = [
+            CAPTURE_SESSION_DIRECTORY / f"{rig.id}/{rig.ref_camera_id}/{frame_id}.jpg" for frame_id in ordered_frame_ids
+        ]
+        kept_indices = select_keyframes_by_parallax(
+            ref_camera_image_paths,
+            accumulated_parallax_threshold_px=options.keyframe_parallax_threshold_px(),
+        )
+        kept_frame_ids = {ordered_frame_ids[index] for index in kept_indices}
+        rig.frame_poses = {frame_id: pose for frame_id, pose in rig.frame_poses.items() if frame_id in kept_frame_ids}
+        print(f"Rig {rig.id}: kept {len(rig.frame_poses)} of {len(ordered_frame_ids)} frames as keyframes (LK-parallax)")
 
     if reconstruction_options.deterministic_seed is not None:
         random.seed(reconstruction_options.deterministic_seed)  # noqa: NPY002 — pycolmap reads numpy's global random state; can't use default_rng()

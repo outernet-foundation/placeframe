@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from core.axis_convention import AxisConvention, basis_change_opencv_from_unity, change_basis_opencv_from_unity_pose
+from core.axis_convention import AxisConvention, basis_change_opencv_from_unity
 from core.capture_session_manifest import RigCameraConfig, RigConfig
 from core.image_preprocess import canonicalize_intrinsics
 from core.transform import Float3, Float4
@@ -16,7 +16,6 @@ from scipy.spatial.transform import Rotation
 @dataclass(frozen=True)
 class FramePose:
     translation: NDArray[float64] | None
-    rotation: NDArray[float64] | None
     gravity_in_rig_local: NDArray[float64] | None
 
 
@@ -40,6 +39,8 @@ class Rig:
         if len(rig_config.cameras) > 1 and axis_convention != AxisConvention.OPENCV:
             raise ValueError("Rigs with multiple cameras only support OPENCV axis convention")
 
+        self.id = rig_config.id
+        self.ref_camera_id = ref_sensor.id
         self.cameras: dict[str, tuple[RigCameraConfig, ColmapCamera]] = {}
         rig_camera_configs: list[ColmapRigConfigCamera] = []
         for camera in rig_config.cameras:
@@ -83,23 +84,23 @@ def _parse_frame_pose(values: list[str], axis_convention: AxisConvention) -> Fra
         gravity = array([float(values[0]), float(values[1]), float(values[2])], dtype=float64)
         if axis_convention == AxisConvention.UNITY:
             gravity = basis_change_opencv_from_unity @ gravity
-        return FramePose(translation=None, rotation=None, gravity_in_rig_local=gravity)
+        return FramePose(translation=None, gravity_in_rig_local=gravity)
 
     if len(values) == 6:
-        # tx, ty, tz, gx, gy, gz — single-camera (ARFoundation) once Unity-side gravity is wired.
+        # tx, ty, tz, gx, gy, gz — single-camera (ARFoundation) with gravity samples.
         translation = array([float(values[0]), float(values[1]), float(values[2])], dtype=float64)
         gravity = array([float(values[3]), float(values[4]), float(values[5])], dtype=float64)
         if axis_convention == AxisConvention.UNITY:
             translation = basis_change_opencv_from_unity @ translation
             gravity = basis_change_opencv_from_unity @ gravity
-        return FramePose(translation=translation, rotation=None, gravity_in_rig_local=gravity)
+        return FramePose(translation=translation, gravity_in_rig_local=gravity)
 
     if len(values) == 7:
-        # tx, ty, tz, qx, qy, qz, qw — single-camera (ARFoundation), legacy schema before gravity wiring.
+        # tx, ty, tz, qx, qy, qz, qw — single-camera (ARFoundation) without gravity samples.
+        # Rotation discarded; only position feeds the priors path.
         translation = array([float(values[0]), float(values[1]), float(values[2])], dtype=float64)
-        rotation = Rotation.from_quat([float(values[3]), float(values[4]), float(values[5]), float(values[6])]).as_matrix()
         if axis_convention == AxisConvention.UNITY:
-            translation, rotation = change_basis_opencv_from_unity_pose(translation, rotation)
-        return FramePose(translation=translation, rotation=rotation, gravity_in_rig_local=None)
+            translation = basis_change_opencv_from_unity @ translation
+        return FramePose(translation=translation, gravity_in_rig_local=None)
 
     raise ValueError(f"Unrecognized frames.csv row width: {len(values) + 1} columns")

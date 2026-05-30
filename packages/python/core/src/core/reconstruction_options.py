@@ -15,6 +15,13 @@ class ReconstructionOptions(BaseModel):
             "threading enabled)."
         ),
     )
+    keyframe_parallax_threshold_px: float = Field(
+        default=50.0,
+        description=(
+            "Accumulated median Lucas-Kanade pixel displacement (at 320×240 working resolution) between "
+            "successive kept keyframes."
+        ),
+    )
     sequential_window: int = Field(
         default=10,
         description=(
