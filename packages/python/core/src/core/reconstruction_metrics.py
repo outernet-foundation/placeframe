@@ -128,6 +128,17 @@ class ReconstructionMetrics(BaseModel):
             "from single-viewpoint maps even when the rest of the metrics agree."
         ),
     )
+    gravity_aligned_in_map_frame: Optional[bool] = Field(
+        default=None,
+        description=(
+            "True when the map frame's vertical axis was aligned to gravity using per-frame gravity "
+            "samples; False when no samples were available and only origin-shift was applied."
+        ),
+    )
+    gravity_sample_count: Optional[int] = Field(
+        default=None,
+        description="Number of registered frames that contributed gravity samples to the map-frame alignment.",
+    )
     truth_alignment_rms_residual_m: Optional[float] = Field(
         default=None,
         description=(

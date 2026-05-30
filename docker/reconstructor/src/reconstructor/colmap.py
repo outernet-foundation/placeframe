@@ -16,6 +16,7 @@ from numpy import (
     float32,
     float64,
     intp,
+    median,
     savez_compressed,
     sign,
     stack,
@@ -183,17 +184,40 @@ def run_colmap_reconstruction(
 
     metrics.build_reconstruction_metrics(best_reconstruction)
 
-    # Pose priors spread over the trajectory already pin the COLMAP world frame's rotation to
-    # VIO's during bundle adjustment, so only the origin translation remains: shift it onto the
-    # first registered frame. Sort by integer frame_id for timestamp order across rigs.
+    # Sort registered frames by integer timestamp across rigs so "first registered" is the
+    # earliest-captured frame the recon kept, regardless of rig.
     registered = sorted(_registered_frames(rigs, colmap_image_ids, best_reconstruction), key=lambda entry: entry[0])
     if not registered:
         raise RuntimeError("Could not find anchor frame in best reconstruction")
 
+    # Align the map frame to gravity via per-frame samples: each frame's gravity-in-rig-local is
+    # projected into recon-world by the recon's own rig-rotation for that frame, then aggregated
+    # via per-component median and renormalised. Robust to per-frame IMU noise and to VIO tilt
+    # drift over the capture. Falls back to identity rotation when no samples are available.
+    gravity_samples_in_recon_world = [
+        rig_from_world.rotation.matrix().T @ transform.gravity_in_rig_local
+        for _frame_id, transform, rig_from_world in registered
+        if transform.gravity_in_rig_local is not None
+    ]
+    if gravity_samples_in_recon_world:
+        gravity_stack = stack(gravity_samples_in_recon_world)
+        gravity_in_recon_world_estimate = median(gravity_stack, axis=0)
+        gravity_in_recon_world_estimate /= norm(gravity_in_recon_world_estimate)
+        # OPENCV convention: +Y is the world's "down" axis, so map-frame down is also [0, 1, 0].
+        alignment_rotation, _ = Rotation.align_vectors([[0.0, 1.0, 0.0]], [gravity_in_recon_world_estimate])
+        rotation_align = alignment_rotation.as_matrix()
+        metrics.metrics.gravity_aligned_in_map_frame = True
+        metrics.metrics.gravity_sample_count = len(gravity_samples_in_recon_world)
+    else:
+        rotation_align = eye(3, dtype=float64)
+        metrics.metrics.gravity_aligned_in_map_frame = False
+        metrics.metrics.gravity_sample_count = 0
+
     _first_frame_id, _first_transform, first_rig_from_world = registered[0]
     first_camera_position = -first_rig_from_world.rotation.matrix().T @ first_rig_from_world.translation
+    translation_align = -rotation_align @ first_camera_position
     best_reconstruction.transform(
-        Sim3d(concatenate([eye(3, dtype=float64), -first_camera_position.reshape(3, 1)], axis=1))
+        Sim3d(concatenate([rotation_align, translation_align.reshape(3, 1)], axis=1))
     )
 
     # Rigid Umeyama best-fit of map centers to truth — fit not applied; only the residual is
