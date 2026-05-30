@@ -38,7 +38,7 @@ def manifest() -> CaptureSessionManifest:
 
 
 @pytest.fixture
-def frames_csv() -> str:
+def legacy_priors_frames_csv() -> str:
     header = "timestamp,tx,ty,tz,qx,qy,qz,qw"
     rows = [
         "1700000000001,0.0,0.0,0.0,0.0,0.0,0.0,1.0",
@@ -48,18 +48,29 @@ def frames_csv() -> str:
     return "\n".join([header, *rows])
 
 
-def test_held_out_timestamp_excluded_from_frame_poses(manifest: CaptureSessionManifest, frames_csv: str):
+@pytest.fixture
+def gravity_only_frames_csv() -> str:
+    header = "timestamp_ms,gx,gy,gz"
+    rows = [
+        "1700000000001,0.0,1.0,0.0",
+        "1700000000002,0.0,1.0,0.0",
+        "1700000000003,0.0,1.0,0.0",
+    ]
+    return "\n".join([header, *rows])
+
+
+def test_held_out_timestamp_excluded_from_frame_poses(manifest: CaptureSessionManifest, legacy_priors_frames_csv: str):
     rig_config = manifest.rigs[0]
-    timestamps = [int(line.split(",")[0]) for line in frames_csv.splitlines()[1:]]
+    timestamps = [int(line.split(",")[0]) for line in legacy_priors_frames_csv.splitlines()[1:]]
     held_out_timestamp = timestamps[0]
 
     rig_with_filter = Rig(
         rig_config,
         manifest.axis_convention,
-        frames_csv,
+        legacy_priors_frames_csv,
         held_out_frame_timestamps={held_out_timestamp},
     )
-    rig_without_filter = Rig(rig_config, manifest.axis_convention, frames_csv)
+    rig_without_filter = Rig(rig_config, manifest.axis_convention, legacy_priors_frames_csv)
 
     assert str(held_out_timestamp) not in rig_with_filter.frame_poses
     assert str(held_out_timestamp) in rig_without_filter.frame_poses
@@ -68,8 +79,34 @@ def test_held_out_timestamp_excluded_from_frame_poses(manifest: CaptureSessionMa
         assert str(ts) in rig_with_filter.frame_poses
 
 
-def test_no_held_out_argument_preserves_all_frames(manifest: CaptureSessionManifest, frames_csv: str):
+def test_no_held_out_argument_preserves_all_frames(manifest: CaptureSessionManifest, legacy_priors_frames_csv: str):
     rig_config = manifest.rigs[0]
-    rig = Rig(rig_config, manifest.axis_convention, frames_csv)
-    expected_count = len(frames_csv.splitlines()) - 1
+    rig = Rig(rig_config, manifest.axis_convention, legacy_priors_frames_csv)
+    expected_count = len(legacy_priors_frames_csv.splitlines()) - 1
     assert len(rig.frame_poses) == expected_count
+
+
+def test_gravity_only_schema_parses_without_translation_or_rotation(
+    manifest: CaptureSessionManifest, gravity_only_frames_csv: str
+):
+    rig_config = manifest.rigs[0]
+    rig = Rig(rig_config, manifest.axis_convention, gravity_only_frames_csv)
+
+    assert len(rig.frame_poses) == 3
+    for pose in rig.frame_poses.values():
+        assert pose.translation is None
+        assert pose.rotation is None
+        assert pose.gravity_in_rig_local is not None
+        assert pose.gravity_in_rig_local.tolist() == [0.0, 1.0, 0.0]
+
+
+def test_legacy_priors_schema_populates_translation_and_rotation(
+    manifest: CaptureSessionManifest, legacy_priors_frames_csv: str
+):
+    rig_config = manifest.rigs[0]
+    rig = Rig(rig_config, manifest.axis_convention, legacy_priors_frames_csv)
+
+    for pose in rig.frame_poses.values():
+        assert pose.translation is not None
+        assert pose.rotation is not None
+        assert pose.gravity_in_rig_local is None

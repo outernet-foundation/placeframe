@@ -1,4 +1,6 @@
-from core.axis_convention import AxisConvention, change_basis_opencv_from_unity_pose
+from dataclasses import dataclass
+
+from core.axis_convention import AxisConvention, basis_change_opencv_from_unity, change_basis_opencv_from_unity_pose
 from core.capture_session_manifest import RigCameraConfig, RigConfig
 from core.image_preprocess import canonicalize_intrinsics
 from core.transform import Float3, Float4
@@ -11,10 +13,11 @@ from pycolmap import Rigid3d, Rotation3d
 from scipy.spatial.transform import Rotation
 
 
-class Transform:
-    def __init__(self, rotation: NDArray[float64], translation: NDArray[float64]):
-        self.rotation = rotation
-        self.translation = translation
+@dataclass(frozen=True)
+class FramePose:
+    translation: NDArray[float64] | None
+    rotation: NDArray[float64] | None
+    gravity_in_rig_local: NDArray[float64] | None
 
 
 class Rig:
@@ -34,7 +37,6 @@ class Rig:
         if ref_sensor.translation != Float3(x=0.0, y=0.0, z=0.0):
             raise ValueError(f"Reference sensor {ref_sensor.id} in rig {rig_config.id} must have zero translation")
 
-        # We should support this case, but it is not currently used anywhere, so I am punting on implementing it, and rasising an error instead.
         if len(rig_config.cameras) > 1 and axis_convention != AxisConvention.OPENCV:
             raise ValueError("Rigs with multiple cameras only support OPENCV axis convention")
 
@@ -66,19 +68,38 @@ class Rig:
 
         self.colmap_rig_config = ColmapRigConfig(cameras=rig_camera_configs)
 
-        self.frame_poses: dict[str, Transform] = {}
-        for frame in frames_csv.splitlines()[1:]:  # Skip header
-            frame_id, tx, ty, tz, qx, qy, qz, qw = frame.strip().split(",")
+        self.frame_poses: dict[str, FramePose] = {}
+        for frame in frames_csv.splitlines()[1:]:
+            fields = frame.strip().split(",")
+            frame_id = fields[0]
             if held_out_frame_timestamps is not None and int(frame_id) in held_out_frame_timestamps:
                 continue
-            rotation_world_from_rig = Rotation.from_quat([float(qx), float(qy), float(qz), float(qw)]).as_matrix()
-            translation_world_from_rig = array([float(tx), float(ty), float(tz)], dtype=float)
+            self.frame_poses[frame_id] = _parse_frame_pose(fields[1:], axis_convention)
 
-            if axis_convention == AxisConvention.UNITY:
-                (translation_world_from_rig, rotation_world_from_rig) = change_basis_opencv_from_unity_pose(
-                    translation_world_from_rig, rotation_world_from_rig
-                )
 
-            self.frame_poses[frame_id] = Transform(
-                rotation=rotation_world_from_rig, translation=translation_world_from_rig
-            )
+def _parse_frame_pose(values: list[str], axis_convention: AxisConvention) -> FramePose:
+    if len(values) == 3:
+        # gx, gy, gz — multi-rig (ZED), priors-off, per-frame gravity only.
+        gravity = array([float(values[0]), float(values[1]), float(values[2])], dtype=float64)
+        if axis_convention == AxisConvention.UNITY:
+            gravity = basis_change_opencv_from_unity @ gravity
+        return FramePose(translation=None, rotation=None, gravity_in_rig_local=gravity)
+
+    if len(values) == 6:
+        # tx, ty, tz, gx, gy, gz — single-camera (ARFoundation) once Unity-side gravity is wired.
+        translation = array([float(values[0]), float(values[1]), float(values[2])], dtype=float64)
+        gravity = array([float(values[3]), float(values[4]), float(values[5])], dtype=float64)
+        if axis_convention == AxisConvention.UNITY:
+            translation = basis_change_opencv_from_unity @ translation
+            gravity = basis_change_opencv_from_unity @ gravity
+        return FramePose(translation=translation, rotation=None, gravity_in_rig_local=gravity)
+
+    if len(values) == 7:
+        # tx, ty, tz, qx, qy, qz, qw — single-camera (ARFoundation), legacy schema before gravity wiring.
+        translation = array([float(values[0]), float(values[1]), float(values[2])], dtype=float64)
+        rotation = Rotation.from_quat([float(values[3]), float(values[4]), float(values[5]), float(values[6])]).as_matrix()
+        if axis_convention == AxisConvention.UNITY:
+            translation, rotation = change_basis_opencv_from_unity_pose(translation, rotation)
+        return FramePose(translation=translation, rotation=rotation, gravity_in_rig_local=None)
+
+    raise ValueError(f"Unrecognized frames.csv row width: {len(values) + 1} columns")

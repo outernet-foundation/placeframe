@@ -56,16 +56,23 @@ def generate_image_pairs(
         image_descriptors = torch.nn.functional.normalize(pooled, dim=1)
         similarity = image_descriptors @ image_descriptors.t()
 
-        image_positions = stack([
-            rigs[name.split("/", 2)[0]].frame_poses[name.split("/", 2)[2].rsplit(".", 1)[0]].translation
-            for name in image_names
-        ]).astype(float64, copy=False)
-        image_distances = norm(image_positions[:, None, :] - image_positions[None, :, :], axis=-1)
-        too_close = from_numpy(image_distances < retrieval_min_distance_m).to(similarity.device)
-
         # Drop retrieval matches the VIO prior places closer than retrieval_min_distance_m —
-        # sequential and spatial pairing already cover those.
-        scores = similarity.masked_fill(too_close, float("-inf"))
+        # sequential pairing already covers those. Skipped when positions are unavailable
+        # (multi-rig captures without VIO translations); sequential dedup covers the same job.
+        image_positions_list: list[NDArray[float64]] = []
+        for name in image_names:
+            translation = rigs[name.split("/", 2)[0]].frame_poses[name.split("/", 2)[2].rsplit(".", 1)[0]].translation
+            if translation is None:
+                image_positions_list = []
+                break
+            image_positions_list.append(translation)
+        if image_positions_list:
+            image_positions = stack(image_positions_list).astype(float64, copy=False)
+            image_distances = norm(image_positions[:, None, :] - image_positions[None, :, :], axis=-1)
+            too_close = from_numpy(image_distances < retrieval_min_distance_m).to(similarity.device)
+            scores = similarity.masked_fill(too_close, float("-inf"))
+        else:
+            scores = similarity
         scores = scores.masked_fill(scores < retrieval_min_score, float("-inf"))
         scores = scores.masked_fill(torch.eye(len(image_names), dtype=torch.bool, device=scores.device), float("-inf"))
 

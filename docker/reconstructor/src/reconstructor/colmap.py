@@ -47,7 +47,7 @@ from scipy.spatial.transform import Rotation
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
 from .progress_publisher import ReconstructionPublisher
-from .rig import Rig, Transform
+from .rig import FramePose, Rig
 
 COLMAP_DB_FILE = "database.db"
 COLMAP_SFM_DIRECTORY = "sfm_model"
@@ -95,8 +95,9 @@ def run_colmap_reconstruction(
                 image_cameras[image_name] = camera[1]
                 database.write_keypoints(colmap_image_ids[image_name], keypoints[image_name])
 
-                # Only write pose prior for images from reference sensors (all others are implied by rig)
-                if camera[0].ref_sensor:
+                # Pose priors only carry position; write only when the capture supplies a position
+                # (ARFoundation does, multi-rig ZED captures don't).
+                if camera[0].ref_sensor and transform.translation is not None:
                     database.write_pose_prior(
                         PosePrior(
                             position=transform.translation.reshape(3, 1),
@@ -197,24 +198,26 @@ def run_colmap_reconstruction(
 
     # Rigid Umeyama best-fit of map centers to truth — fit not applied; only the residual is
     # kept as the VIO-quality signal that filters unreliable captures from the calibration corpus.
-    truth_centers_list: list[NDArray[float64]] = []
-    map_centers_list: list[NDArray[float64]] = []
-    for _frame_id, transform, rig_from_world in registered:
-        truth_centers_list.append(transform.translation.astype(float64))
-        map_centers_list.append(-rig_from_world.rotation.matrix().T @ rig_from_world.translation)
+    # Requires VIO positions, so captures without translations (multi-rig priors-off) skip it.
+    truth_centers_list: list[NDArray[float64]] = [
+        transform.translation.astype(float64) for _frame_id, transform, _ in registered if transform.translation is not None
+    ]
+    map_centers_list: list[NDArray[float64]] = [
+        -rig_from_world.rotation.matrix().T @ rig_from_world.translation
+        for _frame_id, transform, rig_from_world in registered
+        if transform.translation is not None
+    ]
 
-    if len(truth_centers_list) < 3:
-        raise RuntimeError(f"Need ≥3 registered frames for alignment diagnostic (got {len(truth_centers_list)})")
-
-    truth_centers = asarray(truth_centers_list, dtype=float64)
-    map_centers = asarray(map_centers_list, dtype=float64)
-    truth_mean, map_mean = truth_centers.mean(axis=0), map_centers.mean(axis=0)
-    u, _, vt = svd((map_centers - map_mean).T @ (truth_centers - truth_mean))
-    fit_rotation = vt.T @ diag([1.0, 1.0, sign(det(vt.T @ u.T))]) @ u.T
-    fit_translation = truth_mean - fit_rotation @ map_mean
-    residuals = norm((fit_rotation @ map_centers.T).T + fit_translation - truth_centers, axis=1)
-    metrics.metrics.truth_alignment_rms_residual_m = float((residuals**2).mean() ** 0.5)
-    metrics.metrics.truth_alignment_max_residual_m = float(residuals.max())
+    if len(truth_centers_list) >= 3:
+        truth_centers = asarray(truth_centers_list, dtype=float64)
+        map_centers = asarray(map_centers_list, dtype=float64)
+        truth_mean, map_mean = truth_centers.mean(axis=0), map_centers.mean(axis=0)
+        u, _, vt = svd((map_centers - map_mean).T @ (truth_centers - truth_mean))
+        fit_rotation = vt.T @ diag([1.0, 1.0, sign(det(vt.T @ u.T))]) @ u.T
+        fit_translation = truth_mean - fit_rotation @ map_mean
+        residuals = norm((fit_rotation @ map_centers.T).T + fit_translation - truth_centers, axis=1)
+        metrics.metrics.truth_alignment_rms_residual_m = float((residuals**2).mean() ** 0.5)
+        metrics.metrics.truth_alignment_max_residual_m = float(residuals.max())
 
     # Write the best reconstruction to disk in COLMAP format
     best_reconstruction.write_text(str(output_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
@@ -257,7 +260,7 @@ def _registered_frames(
     rigs: dict[str, Rig],
     colmap_image_ids: dict[str, int],
     reconstruction: Reconstruction,
-) -> Iterator[tuple[int, Transform, Rigid3d]]:
+) -> Iterator[tuple[int, FramePose, Rigid3d]]:
     # Multi-camera rigs (e.g. ZED stereo) share one Frame per rig+frame, so any registered
     # image of any camera in that frame yields the Frame's rig_from_world.
     for rig_id, rig in rigs.items():
