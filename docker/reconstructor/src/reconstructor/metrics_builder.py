@@ -20,7 +20,7 @@ class MetricsBuilder:
         self.metrics = ReconstructionMetrics()
 
     def build_verified_matches_metrics(self, db_path: Path, pairs: list[tuple[str, ...]]) -> None:
-        database = Database.open(str(db_path))
+        database = Database.open(str(db_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
         # Map image name -> image_id (help Pyright with explicit types)
         all_images: list[ColmapImage] = database.read_all_images()
         name_to_id: dict[str, int] = {img.name: img.image_id for img in all_images}

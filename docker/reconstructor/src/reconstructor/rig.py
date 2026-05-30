@@ -50,7 +50,7 @@ class Rig:
                     ref_sensor=camera.ref_sensor or False,
                     cam_from_rig=Rigid3d(
                         rotation=Rotation3d(
-                            Rotation.from_quat([
+                            matrix=Rotation.from_quat([
                                 camera.rotation.x,
                                 camera.rotation.y,
                                 camera.rotation.z,
