@@ -18,6 +18,8 @@ from core.transform import Float3, Float4
 from numpy import asarray, float64
 from PIL import Image
 from pyzed.sl import (
+    DEPTH_MODE,
+    POSITIONAL_TRACKING_MODE,
     REFERENCE_FRAME,
     RESOLUTION,
     SVO_COMPRESSION_MODE,
@@ -208,6 +210,9 @@ class Zed(Thread):
         init.camera_fps = 30
         init.enable_image_enhancement = True
         init.sdk_verbose = True
+        init.depth_mode = DEPTH_MODE.NONE
+        # Without this the SDK keeps running depth in the background to stabilize tracking, even when depth_mode is NONE.
+        init.depth_stabilization = 0
         open_camera(self._camera, init)
 
         if get_camera_settings(self._camera, VIDEO_SETTINGS.SHARPNESS) != 4:
@@ -224,11 +229,16 @@ class Zed(Thread):
         # with open(self._output_directory() / "metered_values.json", "w") as config_file:
         #     dump({"exposure": exposure, "gain": gain, "white_balance": white_balance}, config_file, indent=4)
 
-        logger.info("Enabling positional tracking")
-
         positionTrackingParameters = PositionalTrackingParameters()
         positionTrackingParameters.enable_imu_fusion = True
         positionTrackingParameters.set_floor_as_origin = False
+        positionTrackingParameters.mode = POSITIONAL_TRACKING_MODE.GEN_3
+        logger.info(
+            "Enabling positional tracking mode=%s depth_mode=%s depth_stabilization=%d",
+            positionTrackingParameters.mode.name,
+            init.depth_mode.name,
+            init.depth_stabilization,
+        )
         enable_positional_tracking(self._camera, positionTrackingParameters)
 
         logger.info("Writing manifest.json")
