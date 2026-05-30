@@ -40,12 +40,6 @@ class MetricsBuilder:
         st_total = st_verified = 0  # stereo: same frame, different sensors
         st_inliers: List[int] = []
 
-        ss_total = ss_verified = 0  # same sensor across frames
-        ss_inliers: List[int] = []
-
-        cs_total = cs_verified = 0  # cross sensor across frames
-        cs_inliers: List[int] = []
-
         for a, b in pairs:
             total += 1
             ida: int = name_to_id[a]
@@ -61,22 +55,11 @@ class MetricsBuilder:
 
             ra, ca, fa = _parse_name(a)
             rb, cb, fb = _parse_name(b)
-            if None not in (ra, ca, fa, rb, cb, fb) and ra == rb:
-                if fa == fb and ca != cb:
-                    st_total += 1
-                    if ok:
-                        st_verified += 1
-                        st_inliers.append(ninl)
-                elif ca == cb and fa != fb:
-                    ss_total += 1
-                    if ok:
-                        ss_verified += 1
-                        ss_inliers.append(ninl)
-                elif ca != cb and fa != fb:
-                    cs_total += 1
-                    if ok:
-                        cs_verified += 1
-                        cs_inliers.append(ninl)
+            if None not in (ra, ca, fa, rb, cb, fb) and ra == rb and fa == fb and ca != cb:
+                st_total += 1
+                if ok:
+                    st_verified += 1
+                    st_inliers.append(ninl)
 
         self.metrics.all_verified_matches = verified
         self.metrics.all_verified_match_rate = (100.0 * verified / total) if total else 0.0
@@ -86,14 +69,6 @@ class MetricsBuilder:
         self.metrics.stereo_verified_match_rate = (100.0 * st_verified / st_total) if st_total else 0.0
         self.metrics.stereo_verified_match_inliers_mean = mean(st_inliers) if st_inliers else 0.0
         self.metrics.stereo_verified_match_inliers_median = median(st_inliers) if st_inliers else 0.0
-        self.metrics.same_sensor_verified_matches = ss_verified
-        self.metrics.same_sensor_verified_match_rate = (100.0 * ss_verified / ss_total) if ss_total else 0.0
-        self.metrics.same_sensor_verified_match_inliers_mean = mean(ss_inliers) if ss_inliers else 0.0
-        self.metrics.same_sensor_verified_match_inliers_median = median(ss_inliers) if ss_inliers else 0.0
-        self.metrics.cross_sensor_verified_matches = cs_verified
-        self.metrics.cross_sensor_verified_match_rate = (100.0 * cs_verified / cs_total) if cs_total else 0.0
-        self.metrics.cross_sensor_verified_match_inliers_mean = mean(cs_inliers) if cs_inliers else 0.0
-        self.metrics.cross_sensor_verified_match_inliers_median = median(cs_inliers) if cs_inliers else 0.0
 
         database.close()
 
@@ -124,14 +99,7 @@ class MetricsBuilder:
                     )
                 )
 
-        self.metrics.total_images = len(reconstruction_images)
-        self.metrics.registered_images = best.num_reg_images()
-        self.metrics.registration_rate = float(best.num_reg_images() / len(reconstruction_images) * 100.0)
-        self.metrics.num_3d_points = point_count
         self.metrics.track_length_50th_percentile = _percentile([float(L) for L in track_lengths], 50.0)
-        self.metrics.percent_tracks_with_length_greater_than_or_equal_to_3 = float(
-            sum(1 for L in track_lengths if L >= 3) / float(len(track_lengths)) * 100.0
-        )
 
         def q(x: float, eps: float = 1e-9) -> float:
             return float(round(x / eps) * eps)

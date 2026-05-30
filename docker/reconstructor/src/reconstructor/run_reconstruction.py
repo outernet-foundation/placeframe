@@ -46,6 +46,12 @@ DEVICE = "cuda" if cuda.is_available() else "cpu"
 WORK_DIR = Path("/tmp/reconstruction")
 CAPTURE_SESSION_DIRECTORY = WORK_DIR / "capture_session"
 
+# Hardcoded knobs the ReconstructionOptions surface used to expose; no caller ever varied them.
+COMPRESSION_OPQ_NUMBER_OF_SUBVECTORS = 16
+COMPRESSION_OPQ_NUMBER_OF_BITS_PER_SUBVECTOR = 8
+COMPRESSION_OPQ_NUMBER_OF_TRAINING_ITERATIONS = 20
+LIGHTGLUE_BATCH_SIZE = 16
+
 global_descriptor_extractor: Callable[[Tensor], TT[RetrievalDim]]
 local_feature_extractor: Callable[[Tensor], LocalFeatureOutput]
 local_feature_matcher: Callable[
@@ -109,8 +115,6 @@ def run_reconstruction(
         else None
     )
 
-    options = OptionsBuilder(reconstruction_options)
-
     # Load rigs (applying axis convention transformations as needed)
     rigs = {
         rig.id: Rig(
@@ -121,6 +125,11 @@ def run_reconstruction(
         )
         for rig in capture_session_manifest.rigs
     }
+
+    # A capture is priors-off when any rig has more than one camera — the stereo baseline anchors
+    # metric scale and the per-frame position priors are dropped at parse time.
+    is_multi_camera_capture = any(rig.is_multi_camera for rig in rigs.values())
+    options = OptionsBuilder(reconstruction_options, is_multi_camera_capture=is_multi_camera_capture)
 
     # Subsample each rig's frames to keyframes via offline Lucas-Kanade optical flow on the
     # reference camera's images. Replaces the VIO-distance / VIO-rotation gates that depend on
@@ -136,7 +145,9 @@ def run_reconstruction(
         )
         kept_frame_ids = {ordered_frame_ids[index] for index in kept_indices}
         rig.frame_poses = {frame_id: pose for frame_id, pose in rig.frame_poses.items() if frame_id in kept_frame_ids}
-        print(f"Rig {rig.id}: kept {len(rig.frame_poses)} of {len(ordered_frame_ids)} frames as keyframes (LK-parallax)")
+        print(
+            f"Rig {rig.id}: kept {len(rig.frame_poses)} of {len(ordered_frame_ids)} frames as keyframes (LK-parallax)"
+        )
 
     if reconstruction_options.deterministic_seed is not None:
         random.seed(reconstruction_options.deterministic_seed)  # noqa: NPY002 — pycolmap reads numpy's global random state; can't use default_rng()
@@ -197,19 +208,14 @@ def run_reconstruction(
     file_name, file_bytes = write_pairs(pairs, WORK_DIR)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
-    # Update metrics
-    metrics.metrics.average_keypoints_per_image = float(
-        sum(len(keypoints[name]) for name in keypoints.keys()) / len(keypoints)
-    )
-
     # Combine all descriptors into a single array for training OPQ and PQ
     descriptor_array = ascontiguousarray(vstack([descriptor for descriptor in descriptors.values()]), dtype=float32)
 
     # Train OPQ matrix
     publisher.set_phase(ReconstructionStatus.TRAINING_OPQ_MATRIX)
     opq_matrix = train_opq_matrix(
-        options.compression_opq_number_of_subvectors(),
-        options.compression_opq_number_of_training_iterations(),
+        COMPRESSION_OPQ_NUMBER_OF_SUBVECTORS,
+        COMPRESSION_OPQ_NUMBER_OF_TRAINING_ITERATIONS,
         descriptor_array,
     )
     file_name, file_bytes = write_opq_matrix(opq_matrix, WORK_DIR)
@@ -218,8 +224,8 @@ def run_reconstruction(
     # Train PQ quantizer
     publisher.set_phase(ReconstructionStatus.TRAINING_PRODUCT_QUANTIZER)
     product_quantizer = train_pq_quantizer(
-        options.compression_opq_number_of_subvectors(),
-        options.compression_opq_number_of_bits_per_subvector(),
+        COMPRESSION_OPQ_NUMBER_OF_SUBVECTORS,
+        COMPRESSION_OPQ_NUMBER_OF_BITS_PER_SUBVECTOR,
         opq_matrix,
         descriptor_array,
     )
@@ -238,7 +244,7 @@ def run_reconstruction(
         keypoints,
         descriptors,
         sizes,
-        options.lightglue_batch_size(),
+        LIGHTGLUE_BATCH_SIZE,
         publisher.on_progress,
     )
     if cuda.is_available():

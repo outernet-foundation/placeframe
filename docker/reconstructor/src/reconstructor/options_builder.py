@@ -1,12 +1,25 @@
 from __future__ import annotations
 
 from core.reconstruction_options import ReconstructionOptions
-from pycolmap import BundleAdjustmentOptions, FeatureMatchingOptions, IncrementalPipelineOptions, TwoViewGeometryOptions
+from pycolmap import BundleAdjustmentOptions, IncrementalPipelineOptions, TwoViewGeometryOptions
+
+# Hardcoded pipeline knobs. Kept out of ReconstructionOptions because either there is one
+# correct answer or the option was never exercised by any caller.
+BUNDLE_ADJUSTMENT_INCREMENTAL_REFINE_SENSOR_FROM_RIG = False
+BUNDLE_ADJUSTMENT_REFINE_FOCAL_LENGTH = True
+BUNDLE_ADJUSTMENT_REFINE_PRINCIPAL_POINT = False
+BUNDLE_ADJUSTMENT_REFINE_ADDITIONAL_PARAMS = True
+BUNDLE_ADJUSTMENT_GLOBAL_MAX_REFINEMENTS = 3
+BUNDLE_ADJUSTMENT_IGNORE_REDUNDANT_POINTS_3D = True
 
 
 class OptionsBuilder:
-    def __init__(self, options: ReconstructionOptions):
+    def __init__(self, options: ReconstructionOptions, is_multi_camera_capture: bool):
         self.options = options
+        # Multi-camera captures run priors-off everywhere: PosePrior loss disabled in BA and the
+        # final standalone BA pass keeps sensor_from_rig pinned so the stereo baseline (the only
+        # remaining metric-scale anchor) survives the 7-DOF gauge freedom of the unconstrained pass.
+        self.is_multi_camera_capture = is_multi_camera_capture
 
     def two_view_geometry_options(self):
         two_view_geometry_options = TwoViewGeometryOptions()
@@ -18,12 +31,6 @@ class OptionsBuilder:
         two_view_geometry_options.filter_stationary_matches = True
         two_view_geometry_options.stationary_matches_max_error = 4.0
         return two_view_geometry_options
-
-    def feature_matching_options(self):
-        feature_matching_options = FeatureMatchingOptions()
-        feature_matching_options.rig_verification = self.options.rig_verification
-        feature_matching_options.skip_image_pairs_in_same_frame = False
-        return feature_matching_options
 
     def keyframe_parallax_threshold_px(self):
         return self.options.keyframe_parallax_threshold_px
@@ -40,20 +47,8 @@ class OptionsBuilder:
     def retrieval_min_score(self):
         return self.options.retrieval_min_score
 
-    def compression_opq_number_of_subvectors(self):
-        return self.options.compression_opq_number_of_subvectors
-
-    def compression_opq_number_of_bits_per_subvector(self):
-        return self.options.compression_opq_number_of_bits_per_subvector
-
-    def compression_opq_number_of_training_iterations(self):
-        return self.options.compression_opq_number_of_training_iterations
-
     def pose_prior_position_sigma_m(self):
         return self.options.pose_prior_position_sigma_m
-
-    def lightglue_batch_size(self):
-        return self.options.lightglue_batch_size
 
     def max_keypoints_per_image(self):
         return self.options.max_keypoints_per_image
@@ -67,29 +62,23 @@ class OptionsBuilder:
             incremental_pipeline_options.num_threads = 1
             incremental_pipeline_options.mapper.num_threads = 1
 
-        incremental_pipeline_options.use_prior_position = self.options.use_prior_position
-        incremental_pipeline_options.ba_refine_sensor_from_rig = self.options.bundle_adjustment_refine_sensor_from_rig
-        incremental_pipeline_options.ba_refine_focal_length = self.options.bundle_adjustment_refine_focal_length
-        incremental_pipeline_options.ba_refine_principal_point = self.options.bundle_adjustment_refine_principal_point
-        incremental_pipeline_options.ba_refine_extra_params = self.options.bundle_adjustment_refine_additional_params
+        incremental_pipeline_options.use_prior_position = not self.is_multi_camera_capture
+        incremental_pipeline_options.ba_refine_sensor_from_rig = BUNDLE_ADJUSTMENT_INCREMENTAL_REFINE_SENSOR_FROM_RIG
+        incremental_pipeline_options.ba_refine_focal_length = BUNDLE_ADJUSTMENT_REFINE_FOCAL_LENGTH
+        incremental_pipeline_options.ba_refine_principal_point = BUNDLE_ADJUSTMENT_REFINE_PRINCIPAL_POINT
+        incremental_pipeline_options.ba_refine_extra_params = BUNDLE_ADJUSTMENT_REFINE_ADDITIONAL_PARAMS
         incremental_pipeline_options.ba_global_frames_ratio = self.options.bundle_adjustment_global_frames_ratio
-        incremental_pipeline_options.ba_global_max_refinements = self.options.bundle_adjustment_global_max_refinements
+        incremental_pipeline_options.ba_global_max_refinements = BUNDLE_ADJUSTMENT_GLOBAL_MAX_REFINEMENTS
         incremental_pipeline_options.ba_global_function_tolerance = (
             self.options.bundle_adjustment_global_function_tolerance
         )
         incremental_pipeline_options.mapper.ba_global_ignore_redundant_points3D = (
-            self.options.bundle_adjustment_ignore_redundant_points3D
+            BUNDLE_ADJUSTMENT_IGNORE_REDUNDANT_POINTS_3D
         )
         if constant_rigs:
             incremental_pipeline_options.constant_rigs = constant_rigs
 
         incremental_pipeline_options.triangulation.min_angle = self.options.triangulation_minimum_angle
-        incremental_pipeline_options.triangulation.complete_max_reproj_error = (
-            self.options.triangulation_complete_max_reprojection_error
-        )
-        incremental_pipeline_options.triangulation.merge_max_reproj_error = (
-            self.options.triangulation_merge_max_reprojection_error
-        )
         incremental_pipeline_options.mapper.filter_min_tri_angle = self.options.triangulation_minimum_angle
         incremental_pipeline_options.mapper.filter_max_reproj_error = self.options.mapper_filter_max_reprojection_error
 
@@ -97,10 +86,10 @@ class OptionsBuilder:
 
     def final_bundle_adjustment_options(self):
         bundle_adjustment_options = BundleAdjustmentOptions()
-        bundle_adjustment_options.refine_sensor_from_rig = True
-        bundle_adjustment_options.refine_focal_length = self.options.bundle_adjustment_refine_focal_length
-        bundle_adjustment_options.refine_principal_point = self.options.bundle_adjustment_refine_principal_point
-        bundle_adjustment_options.refine_extra_params = self.options.bundle_adjustment_refine_additional_params
+        bundle_adjustment_options.refine_sensor_from_rig = not self.is_multi_camera_capture
+        bundle_adjustment_options.refine_focal_length = BUNDLE_ADJUSTMENT_REFINE_FOCAL_LENGTH
+        bundle_adjustment_options.refine_principal_point = BUNDLE_ADJUSTMENT_REFINE_PRINCIPAL_POINT
+        bundle_adjustment_options.refine_extra_params = BUNDLE_ADJUSTMENT_REFINE_ADDITIONAL_PARAMS
         if self.options.deterministic_seed is not None:
             bundle_adjustment_options.ceres.solver_options.num_threads = 1
         return bundle_adjustment_options

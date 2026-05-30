@@ -8,29 +8,44 @@ from core.transform import Float3, Float4
 from reconstructor.rig import Rig
 
 
+def _camera(camera_id: str, ref_sensor: bool, translation: Float3) -> RigCameraConfig:
+    return RigCameraConfig(
+        id=camera_id,
+        ref_sensor=ref_sensor,
+        rotation=Float4(w=1.0, x=0.0, y=0.0, z=0.0),
+        translation=translation,
+        camera_config=PinholeCameraConfig(
+            width=640,
+            height=480,
+            orientation="TOP_LEFT",
+            fx=500.0,
+            fy=500.0,
+            cx=320.0,
+            cy=240.0,
+        ),
+    )
+
+
 @pytest.fixture
 def manifest() -> CaptureSessionManifest:
+    return CaptureSessionManifest(
+        axis_convention=AxisConvention.OPENCV,
+        rigs=[
+            RigConfig(id="rig0", cameras=[_camera("camera0", ref_sensor=True, translation=Float3(x=0.0, y=0.0, z=0.0))])
+        ],
+    )
+
+
+@pytest.fixture
+def multi_camera_manifest() -> CaptureSessionManifest:
     return CaptureSessionManifest(
         axis_convention=AxisConvention.OPENCV,
         rigs=[
             RigConfig(
                 id="rig0",
                 cameras=[
-                    RigCameraConfig(
-                        id="camera0",
-                        ref_sensor=True,
-                        rotation=Float4(w=1.0, x=0.0, y=0.0, z=0.0),
-                        translation=Float3(x=0.0, y=0.0, z=0.0),
-                        camera_config=PinholeCameraConfig(
-                            width=640,
-                            height=480,
-                            orientation="TOP_LEFT",
-                            fx=500.0,
-                            fy=500.0,
-                            cx=320.0,
-                            cy=240.0,
-                        ),
-                    )
+                    _camera("camera0", ref_sensor=True, translation=Float3(x=0.0, y=0.0, z=0.0)),
+                    _camera("camera1", ref_sensor=False, translation=Float3(x=0.12, y=0.0, z=0.0)),
                 ],
             )
         ],
@@ -86,12 +101,13 @@ def test_no_held_out_argument_preserves_all_frames(manifest: CaptureSessionManif
     assert len(rig.frame_poses) == expected_count
 
 
-def test_gravity_only_schema_parses_without_translation(
-    manifest: CaptureSessionManifest, gravity_only_frames_csv: str
+def test_multi_camera_gravity_only_parses_without_translation(
+    multi_camera_manifest: CaptureSessionManifest, gravity_only_frames_csv: str
 ):
-    rig_config = manifest.rigs[0]
-    rig = Rig(rig_config, manifest.axis_convention, gravity_only_frames_csv)
+    rig_config = multi_camera_manifest.rigs[0]
+    rig = Rig(rig_config, multi_camera_manifest.axis_convention, gravity_only_frames_csv)
 
+    assert rig.is_multi_camera
     assert len(rig.frame_poses) == 3
     for pose in rig.frame_poses.values():
         assert pose.translation is None
@@ -99,12 +115,30 @@ def test_gravity_only_schema_parses_without_translation(
         assert pose.gravity_in_rig_local.tolist() == [0.0, 1.0, 0.0]
 
 
-def test_legacy_priors_schema_populates_translation(
+def test_multi_camera_drops_translation_from_legacy_priors_csv(
+    multi_camera_manifest: CaptureSessionManifest, legacy_priors_frames_csv: str
+):
+    rig_config = multi_camera_manifest.rigs[0]
+    rig = Rig(rig_config, multi_camera_manifest.axis_convention, legacy_priors_frames_csv)
+
+    assert rig.is_multi_camera
+    for pose in rig.frame_poses.values():
+        assert pose.translation is None
+
+
+def test_monocular_legacy_priors_schema_populates_translation(
     manifest: CaptureSessionManifest, legacy_priors_frames_csv: str
 ):
     rig_config = manifest.rigs[0]
     rig = Rig(rig_config, manifest.axis_convention, legacy_priors_frames_csv)
 
+    assert not rig.is_multi_camera
     for pose in rig.frame_poses.values():
         assert pose.translation is not None
         assert pose.gravity_in_rig_local is None
+
+
+def test_monocular_gravity_only_csv_is_rejected(manifest: CaptureSessionManifest, gravity_only_frames_csv: str):
+    rig_config = manifest.rigs[0]
+    with pytest.raises(ValueError, match="requires per-frame position priors"):
+        Rig(rig_config, manifest.axis_convention, gravity_only_frames_csv)

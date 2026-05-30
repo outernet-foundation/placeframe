@@ -216,32 +216,33 @@ def run_colmap_reconstruction(
     _first_frame_id, _first_transform, first_rig_from_world = registered[0]
     first_camera_position = -first_rig_from_world.rotation.matrix().T @ first_rig_from_world.translation
     translation_align = -rotation_align @ first_camera_position
-    best_reconstruction.transform(
-        Sim3d(concatenate([rotation_align, translation_align.reshape(3, 1)], axis=1))
-    )
+    best_reconstruction.transform(Sim3d(concatenate([rotation_align, translation_align.reshape(3, 1)], axis=1)))
 
-    # Rigid Umeyama best-fit of map centers to truth — fit not applied; only the residual is
-    # kept as the VIO-quality signal that filters unreliable captures from the calibration corpus.
-    # Requires VIO positions, so captures without translations (multi-rig priors-off) skip it.
-    truth_centers_list: list[NDArray[float64]] = [
-        transform.translation.astype(float64) for _frame_id, transform, _ in registered if transform.translation is not None
-    ]
-    map_centers_list: list[NDArray[float64]] = [
-        -rig_from_world.rotation.matrix().T @ rig_from_world.translation
-        for _frame_id, transform, rig_from_world in registered
-        if transform.translation is not None
-    ]
-
-    if len(truth_centers_list) >= 3:
-        truth_centers = asarray(truth_centers_list, dtype=float64)
-        map_centers = asarray(map_centers_list, dtype=float64)
-        truth_mean, map_mean = truth_centers.mean(axis=0), map_centers.mean(axis=0)
-        u, _, vt = svd((map_centers - map_mean).T @ (truth_centers - truth_mean))
-        fit_rotation = vt.T @ diag([1.0, 1.0, sign(det(vt.T @ u.T))]) @ u.T
-        fit_translation = truth_mean - fit_rotation @ map_mean
-        residuals = norm((fit_rotation @ map_centers.T).T + fit_translation - truth_centers, axis=1)
-        metrics.metrics.truth_alignment_rms_residual_m = float((residuals**2).mean() ** 0.5)
-        metrics.metrics.truth_alignment_max_residual_m = float(residuals.max())
+    # Rigid Umeyama best-fit of map centers to VIO position priors. Fit is not applied — the
+    # residual is the prior-drift diagnostic surfaced for calibration-corpus filtering. No signal
+    # without position priors, so this skips for multi-camera captures (which carry no per-frame
+    # translations by contract).
+    if not options.is_multi_camera_capture:
+        truth_centers_list: list[NDArray[float64]] = [
+            transform.translation.astype(float64)
+            for _frame_id, transform, _ in registered
+            if transform.translation is not None
+        ]
+        map_centers_list: list[NDArray[float64]] = [
+            -rig_from_world.rotation.matrix().T @ rig_from_world.translation
+            for _frame_id, transform, rig_from_world in registered
+            if transform.translation is not None
+        ]
+        if len(truth_centers_list) >= 3:
+            truth_centers = asarray(truth_centers_list, dtype=float64)
+            map_centers = asarray(map_centers_list, dtype=float64)
+            truth_mean, map_mean = truth_centers.mean(axis=0), map_centers.mean(axis=0)
+            u, _, vt = svd((map_centers - map_mean).T @ (truth_centers - truth_mean))
+            fit_rotation = vt.T @ diag([1.0, 1.0, sign(det(vt.T @ u.T))]) @ u.T
+            fit_translation = truth_mean - fit_rotation @ map_mean
+            residuals = norm((fit_rotation @ map_centers.T).T + fit_translation - truth_centers, axis=1)
+            metrics.metrics.prior_drift_residual_rms_m = float((residuals**2).mean() ** 0.5)
+            metrics.metrics.prior_drift_residual_max_m = float(residuals.max())
 
     # Write the best reconstruction to disk in COLMAP format
     best_reconstruction.write_text(str(output_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike

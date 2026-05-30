@@ -41,6 +41,7 @@ class Rig:
 
         self.id = rig_config.id
         self.ref_camera_id = ref_sensor.id
+        self.is_multi_camera = len(rig_config.cameras) > 1
         self.cameras: dict[str, tuple[RigCameraConfig, ColmapCamera]] = {}
         rig_camera_configs: list[ColmapRigConfigCamera] = []
         for camera in rig_config.cameras:
@@ -75,19 +76,31 @@ class Rig:
             frame_id = fields[0]
             if held_out_frame_timestamps is not None and int(frame_id) in held_out_frame_timestamps:
                 continue
-            self.frame_poses[frame_id] = _parse_frame_pose(fields[1:], axis_convention)
+            pose = _parse_frame_pose(fields[1:], axis_convention)
+            if self.is_multi_camera:
+                # Multi-camera rigs run priors-off — the stereo baseline anchors metric scale and the
+                # PosePrior loss is disabled at BA. Drop any translation the capture happens to ship
+                # so legacy 7-field frames.csv files (predating the gravity-only schema) can't leak
+                # drifted VIO positions into pair-generation's retrieval-distance gate.
+                pose = FramePose(translation=None, gravity_in_rig_local=pose.gravity_in_rig_local)
+            elif pose.translation is None:
+                raise ValueError(
+                    f"Monocular rig {rig_config.id} requires per-frame position priors in frames.csv "
+                    f"(frame {frame_id} has only gravity columns)"
+                )
+            self.frame_poses[frame_id] = pose
 
 
 def _parse_frame_pose(values: list[str], axis_convention: AxisConvention) -> FramePose:
     if len(values) == 3:
-        # gx, gy, gz — multi-rig (ZED), priors-off, per-frame gravity only.
+        # gx, gy, gz — gravity samples only, no position prior.
         gravity = array([float(values[0]), float(values[1]), float(values[2])], dtype=float64)
         if axis_convention == AxisConvention.UNITY:
             gravity = basis_change_opencv_from_unity @ gravity
         return FramePose(translation=None, gravity_in_rig_local=gravity)
 
     if len(values) == 6:
-        # tx, ty, tz, gx, gy, gz — single-camera (ARFoundation) with gravity samples.
+        # tx, ty, tz, gx, gy, gz — VIO position plus gravity samples.
         translation = array([float(values[0]), float(values[1]), float(values[2])], dtype=float64)
         gravity = array([float(values[3]), float(values[4]), float(values[5])], dtype=float64)
         if axis_convention == AxisConvention.UNITY:
@@ -96,8 +109,8 @@ def _parse_frame_pose(values: list[str], axis_convention: AxisConvention) -> Fra
         return FramePose(translation=translation, gravity_in_rig_local=gravity)
 
     if len(values) == 7:
-        # tx, ty, tz, qx, qy, qz, qw — single-camera (ARFoundation) without gravity samples.
-        # Rotation discarded; only position feeds the priors path.
+        # tx, ty, tz, qx, qy, qz, qw — VIO position with quaternion; rotation discarded, only the
+        # position is consumed downstream when the rig is monocular.
         translation = array([float(values[0]), float(values[1]), float(values[2])], dtype=float64)
         if axis_convention == AxisConvention.UNITY:
             translation = basis_change_opencv_from_unity @ translation
