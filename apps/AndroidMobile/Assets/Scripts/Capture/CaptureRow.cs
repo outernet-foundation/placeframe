@@ -99,6 +99,13 @@ namespace Placeframe.Client
                     capture.clientProgress.value = p.Percent;
                     capture.uploadBytesPerSecond.value = p.BytesPerSecond;
                     lastProgress = p;
+                    Log.Info(
+                        LogGroup.Capture,
+                        "Upload tick capture={CaptureId} sent={BytesSent}B total={BytesTotal}B percent={Percent}",
+                        id,
+                        p.BytesSent,
+                        p.BytesTotal,
+                        p.Percent ?? -1f);
                     var now = DateTime.UtcNow;
                     if (now - lastCheckpoint >= UploadCheckpointInterval)
                     {
