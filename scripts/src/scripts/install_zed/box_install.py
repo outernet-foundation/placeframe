@@ -32,11 +32,13 @@ from .constants import (
     REMOTE_AOA_LOKI_DIR,
     REMOTE_COMPOSE,
     REMOTE_DIR,
+    REMOTE_WAIT_FOR_ARGUS,
     SSH_KEY,
     SSH_MUX,
     SSH_SOCKET,
     SUDOERS_RULE,
     SYSTEMD_UNIT_SOURCE,
+    WAIT_FOR_ARGUS_SOURCE,
     ZED_SERVICES,
     ZED_UPSTREAM_IMAGE_KEYS,
 )
@@ -162,6 +164,7 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
         bash(f"scp {SSH_MUX} {COMPOSE_SOURCE!s} {BOX_SSH_TARGET}:{REMOTE_COMPOSE}")
         bash(f"scp {SSH_MUX} {AOA_LOKI_CONFIG_SOURCE!s} {BOX_SSH_TARGET}:{REMOTE_AOA_LOKI_DIR}/config.yaml")
         bash(f"scp {SSH_MUX} {AOA_ALLOY_CONFIG_SOURCE!s} {BOX_SSH_TARGET}:{REMOTE_AOA_ALLOY_DIR}/config.alloy")
+        bash(f"scp {SSH_MUX} {WAIT_FOR_ARGUS_SOURCE!s} {BOX_SSH_TARGET}:{REMOTE_WAIT_FOR_ARGUS}")
 
         # Jetson hardware-burned serial survives OS reflashes.
         box_id = ssh_output("tr -d '\\0\\n' < /proc/device-tree/serial-number").strip()
@@ -179,7 +182,13 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
         logger.info("installing_systemd_unit", extra={"unit": "placeframe-zed.service"})
         remote_home = ssh_output("echo $HOME").strip()
         remote_compose_abs = f"{remote_home}/.placeframe/compose.rig.yml"
-        unit_content = SYSTEMD_UNIT_SOURCE.read_text().replace("COMPOSE_PATH", remote_compose_abs)
+        remote_wait_for_argus_abs = f"{remote_home}/.placeframe/wait_for_argus_socket.py"
+        unit_content = (
+            SYSTEMD_UNIT_SOURCE
+            .read_text()
+            .replace("COMPOSE_PATH", remote_compose_abs)
+            .replace("WAIT_FOR_ARGUS_PATH", remote_wait_for_argus_abs)
+        )
         ssh_run("sudo tee /etc/systemd/system/placeframe-zed.service > /dev/null", stdin_text=unit_content)
         ssh_run("sudo systemctl daemon-reload")
         ssh_run("sudo systemctl enable placeframe-zed.service")
