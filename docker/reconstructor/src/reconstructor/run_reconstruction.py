@@ -108,6 +108,8 @@ def run_reconstruction(
         else None
     )
 
+    options = OptionsBuilder(reconstruction_options)
+
     # Load rigs (applying axis convention transformations as needed)
     rigs = {
         rig.id: Rig(
@@ -119,8 +121,6 @@ def run_reconstruction(
         for rig in capture_session_manifest.rigs
     }
 
-    options = OptionsBuilder(reconstruction_options)
-
     if reconstruction_options.deterministic_seed is not None:
         random.seed(reconstruction_options.deterministic_seed)  # noqa: NPY002 — pycolmap reads numpy's global random state; can't use default_rng()
         set_random_seed(reconstruction_options.deterministic_seed)
@@ -128,11 +128,6 @@ def run_reconstruction(
     # Apply per-reconstruction keypoint cap by mutating the DKD module's threshold-mode n_limit.
     # ALIKED itself is loaded once at startup; only this cap is per-job.
     _aliked_model.dkd.n_limit = options.max_keypoints_per_image()
-
-    # Generate image pairs
-    pairs = generate_image_pairs(rigs, options.neighbors_count(), options.rotation_threshold_deg())
-    file_name, file_bytes = write_pairs(pairs, WORK_DIR)
-    _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
     # Extract features
     global_descriptors: dict[str, NDArray[float32]] = {}  # noqa: TID251 — Phase T piece 3 follow-up migration
@@ -172,6 +167,17 @@ def run_reconstruction(
 
     # Write global descriptors to storage
     file_name, file_bytes = write_global_descriptors(WORK_DIR, global_descriptors)
+    _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
+
+    pairs = generate_image_pairs(
+        rigs,
+        global_descriptors,
+        options.sequential_window(),
+        options.retrieval_neighbors(),
+        options.retrieval_min_distance_m(),
+        options.retrieval_min_score(),
+    )
+    file_name, file_bytes = write_pairs(pairs, WORK_DIR)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
     # Update metrics

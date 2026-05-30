@@ -2,47 +2,83 @@ from __future__ import annotations
 
 from itertools import combinations
 from pathlib import Path
-from typing import Dict, Optional
 
 import torch
-from numpy import arccos, clip, degrees, fill_diagonal, stack, where
+from numpy import float32, float64, stack, where
 from numpy.linalg import norm
+from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from torch import from_numpy, topk  # type: ignore
 
-from .rig import Rig, Transform
+from .rig import Rig
 
 PAIRS_FILE = "pairs.txt"
 
 
-def generate_image_pairs(rigs: Dict[str, Rig], neighbors_count: int, rotation_thresh_deg: float):
-    proximal_frame_pairs = pairs_from_poses(
-        {
-            (rig_id, frame_id): transform
-            for rig_id, rig in rigs.items()
-            for frame_id, transform in rig.frame_poses.items()
-        },
-        neighbors_count,
-        rotation_thresh_deg,
-    )
+def generate_image_pairs(
+    rigs: dict[str, Rig],
+    global_descriptors: dict[str, NDArray[float32]],
+    sequential_window: int,
+    retrieval_neighbors: int,
+    retrieval_min_distance_m: float,
+    retrieval_min_score: float,
+) -> list[tuple[str, str]]:
+    sequential_frame_pairs: list[tuple[tuple[str, str], tuple[str, str]]] = []
+    for rig_id, rig in rigs.items():
+        frame_ids = sorted(rig.frame_poses.keys(), key=int)
+        for i in range(len(frame_ids)):
+            for j in range(i + 1, min(i + 1 + sequential_window, len(frame_ids))):
+                sequential_frame_pairs.append(((rig_id, frame_ids[i]), (rig_id, frame_ids[j])))
 
-    cross_frame_image_pairs_by_frame_proximity = [
-        (f"{rig_id_a}/{camera_a[0].id}/{frame_id_a}.jpg", f"{rig_id_b}/{camera_b[0].id}/{frame_id_b}.jpg")
-        for (rig_id_a, frame_id_a), (rig_id_b, frame_id_b) in proximal_frame_pairs
+    cross_frame_image_pairs = [
+        (
+            f"{rig_id_a}/{camera_a[0].id}/{frame_id_a}.jpg",
+            f"{rig_id_b}/{camera_b[0].id}/{frame_id_b}.jpg",
+        )
+        for (rig_id_a, frame_id_a), (rig_id_b, frame_id_b) in sequential_frame_pairs
         for camera_a in rigs[rig_id_a].cameras.values()
         for camera_b in rigs[rig_id_b].cameras.values()
     ]
 
     intra_frame_image_pairs = [
-        (f"{rig_id}/{camera_a[0].id}/{frame_id}.jpg", f"{rig_id}/{camera_b[0].id}/{frame_id}.jpg")
+        (
+            f"{rig_id}/{camera_a[0].id}/{frame_id}.jpg",
+            f"{rig_id}/{camera_b[0].id}/{frame_id}.jpg",
+        )
         for rig_id, rig in rigs.items()
         for frame_id in rig.frame_poses.keys()
-        for camera_a, camera_b in combinations(list(rig.cameras.values()), 2)
+        for camera_a, camera_b in combinations(rig.cameras.values(), 2)
     ]
 
-    # Canonicalize and deduplicate
+    retrieval_image_pairs: list[tuple[str, str]] = []
+    if retrieval_neighbors > 0 and global_descriptors:
+        image_names = list(global_descriptors.keys())
+        pooled = torch.stack([from_numpy(global_descriptors[name].max(axis=0)) for name in image_names])
+        image_descriptors = torch.nn.functional.normalize(pooled, dim=1)
+        similarity = image_descriptors @ image_descriptors.t()
+
+        image_positions = stack([
+            rigs[name.split("/", 2)[0]].frame_poses[name.split("/", 2)[2].rsplit(".", 1)[0]].translation
+            for name in image_names
+        ]).astype(float64, copy=False)
+        image_distances = norm(image_positions[:, None, :] - image_positions[None, :, :], axis=-1)
+        too_close = from_numpy(image_distances < retrieval_min_distance_m).to(similarity.device)
+
+        # Drop retrieval matches the VIO prior places closer than retrieval_min_distance_m —
+        # sequential and spatial pairing already cover those.
+        scores = similarity.masked_fill(too_close, float("-inf"))
+        scores = scores.masked_fill(scores < retrieval_min_score, float("-inf"))
+        scores = scores.masked_fill(torch.eye(len(image_names), dtype=torch.bool, device=scores.device), float("-inf"))
+
+        top_k = topk(scores, min(retrieval_neighbors, len(image_names)), dim=1)
+        retrieval_indices = top_k.indices.cpu().numpy()
+        retrieval_valid = top_k.values.isfinite().cpu().numpy()
+        retrieval_image_pairs = [
+            (image_names[int(i)], image_names[int(retrieval_indices[i, j])]) for i, j in zip(*where(retrieval_valid))
+        ]
+
     return sorted({
         (a, b) if a <= b else (b, a)
-        for a, b in cross_frame_image_pairs_by_frame_proximity + intra_frame_image_pairs
+        for a, b in cross_frame_image_pairs + intra_frame_image_pairs + retrieval_image_pairs
         if a != b
     })
 
@@ -51,48 +87,3 @@ def write_pairs(pairs: list[tuple[str, ...]], root_path: Path):
     path = root_path / PAIRS_FILE
     path.write_text("\n".join([" ".join(pair) for pair in pairs]))
     return PAIRS_FILE, path.read_bytes()
-
-
-def pairs_from_poses(images: dict[tuple[str, str], Transform], num_neighbors: int, rotation_thresh_deg: float):
-    names = list(images.keys())
-    R_w_c = stack([images[name].rotation for name in names], axis=0)  # noqa: N806 — rotation matrix notation
-    centers = stack([images[name].translation for name in names], axis=0)  # (N, 3)
-
-    # Euclidean distances of camera centres
-    diff = centers[:, None, :] - centers[None, :, :]
-    dists = norm(diff, axis=-1)
-
-    # Principal optical axis (Z direction) in world frame
-    optical_axes = R_w_c[:, :, 2]
-    cosines = clip(optical_axes @ optical_axes.T, -1.0, 1.0)
-    ang_deg = degrees(arccos(cosines))
-
-    scores = -from_numpy(dists)
-    invalid = ang_deg >= rotation_thresh_deg
-    fill_diagonal(invalid, True)
-    invalid = from_numpy(invalid).to(scores.device)  # NEW: convert mask to torch bool tensor
-    selected = pairs_from_score_matrix(scores, invalid, num_neighbors)
-
-    return [(names[i], names[j]) for i, j in selected]
-
-
-def pairs_from_retrieval(descriptors: Dict[str, torch.Tensor], num_neighbors: int, min_score: Optional[float] = None):
-    names = list(descriptors.keys())
-    tensor = torch.stack([descriptors[n] for n in names], dim=0)
-    similarity = tensor @ tensor.t()
-
-    invalid = torch.eye(len(names), dtype=torch.bool)
-    if min_score is not None:
-        invalid |= similarity < min_score
-
-    selected = pairs_from_score_matrix(similarity, invalid, num_neighbors)
-    return [(names[i], names[j]) for i, j in selected]
-
-
-def pairs_from_score_matrix(scores: torch.Tensor, invalid: torch.Tensor, num_select: int):
-    scores.masked_fill_(invalid, float("-inf"))
-    top_k = topk(scores, min(num_select, scores.size(1)), dim=1)
-    indices = top_k.indices.cpu().numpy()
-    valid = top_k.values.isfinite().cpu().numpy()
-
-    return [(int(i), int(indices[i, j])) for i, j in zip(*where(valid))]

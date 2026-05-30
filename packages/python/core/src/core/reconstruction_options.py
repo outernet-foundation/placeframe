@@ -15,19 +15,36 @@ class ReconstructionOptions(BaseModel):
             "threading enabled)."
         ),
     )
-    neighbors_count: int = Field(
-        default=12,
+    sequential_window: int = Field(
+        default=10,
         description=(
-            "How many pose-nearest neighbors to consider when generating image pairs. "
-            "Use -1 for exhaustive matching (all pairs). "
-            "Smaller values reduce weak overlaps and speed up matching at the cost of some coverage."
+            "Number of temporally-adjacent frames each side of every frame to pair within a rig. "
+            "Generates the temporal backbone of the match graph. Window 10 means each frame pairs "
+            "with the next 10 frames in its rig's timestamp order."
         ),
     )
-    rotation_threshold: float = Field(
-        default=30.0,
+    retrieval_neighbors: int = Field(
+        default=20,
         description=(
-            "Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. "
-            "Smaller values reduce weak overlaps and speed up matching at the cost of some coverage."
+            "Number of most-similar images (by global descriptor cosine similarity) to pair with "
+            "each image after pose-distance and similarity gating. Generates loop-closure pairs "
+            "between visually-similar but pose-distant frames. Set to 0 to disable retrieval."
+        ),
+    )
+    retrieval_min_distance_m: float = Field(
+        default=1.0,
+        description=(
+            "Minimum pose-center distance (meters) for retrieval pair candidates. Drops retrieval "
+            "matches between frames the VIO prior already places close together — those are covered "
+            "by sequential or spatial pairing. Scopes retrieval to genuine loop closures."
+        ),
+    )
+    retrieval_min_score: float = Field(
+        default=0.5,
+        description=(
+            "Minimum cosine similarity (in the L2-normalized DIR descriptor space) for retrieval "
+            "pair candidates. Drops the long tail of visually-weak matches that would otherwise "
+            "feed BA descriptor-similar-but-non-overlapping correspondences."
         ),
     )
     lightglue_batch_size: int = Field(

@@ -37,7 +37,7 @@ app = Typer()
 POLL_INTERVAL_S = 10
 
 PB_LOW = ReconstructionOptions(
-    neighbors_count=8,
+    retrieval_neighbors=8,
     ransac_max_error=1.0,
     ransac_min_inlier_ratio=0.08,
     triangulation_minimum_angle=1.5,
@@ -49,7 +49,7 @@ PB_LOW = ReconstructionOptions(
     triangulation_complete_max_reprojection_error=2.0,
 )
 PB_HIGH = ReconstructionOptions(
-    neighbors_count=20,
+    retrieval_neighbors=20,
     ransac_max_error=4.0,
     ransac_min_inlier_ratio=0.25,
     triangulation_minimum_angle=5.0,

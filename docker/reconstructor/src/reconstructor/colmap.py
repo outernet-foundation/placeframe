@@ -35,6 +35,7 @@ from pycolmap import (
     Rigid3d,
     SensorType,
     Sim3d,
+    TwoViewGeometry,
     data_t,
     sensor_t,
 )
@@ -142,7 +143,8 @@ def run_colmap_reconstruction(
         }
         for completed, future in enumerate(as_completed(future_to_pair), start=1):
             a, b = future_to_pair[future]
-            database.write_two_view_geometry(colmap_image_ids[a], colmap_image_ids[b], future.result())
+            two_view_geometry: TwoViewGeometry = future.result()
+            database.write_two_view_geometry(colmap_image_ids[a], colmap_image_ids[b], two_view_geometry)
             publisher.on_progress(completed)
 
     # Close database

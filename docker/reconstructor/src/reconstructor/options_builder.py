@@ -25,11 +25,17 @@ class OptionsBuilder:
         feature_matching_options.skip_image_pairs_in_same_frame = False
         return feature_matching_options
 
-    def neighbors_count(self):
-        return self.options.neighbors_count
+    def sequential_window(self):
+        return self.options.sequential_window
 
-    def rotation_threshold_deg(self):
-        return self.options.rotation_threshold
+    def retrieval_neighbors(self):
+        return self.options.retrieval_neighbors
+
+    def retrieval_min_distance_m(self):
+        return self.options.retrieval_min_distance_m
+
+    def retrieval_min_score(self):
+        return self.options.retrieval_min_score
 
     def compression_opq_number_of_subvectors(self):
         return self.options.compression_opq_number_of_subvectors
