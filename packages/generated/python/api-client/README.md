@@ -157,6 +157,7 @@ Class | Method | HTTP request | Description
  - [DeviceType](docs/DeviceType.md)
  - [ExpandedCaptureSession](docs/ExpandedCaptureSession.md)
  - [ExpandedReconstruction](docs/ExpandedReconstruction.md)
+ - [FailLeaseRequest](docs/FailLeaseRequest.md)
  - [Float3](docs/Float3.md)
  - [Float4](docs/Float4.md)
  - [GetCaptureSessions400Response](docs/GetCaptureSessions400Response.md)

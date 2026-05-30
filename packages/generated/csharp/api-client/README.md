@@ -198,6 +198,7 @@ Class | Method | HTTP request | Description
  - [Model.DeviceType](docs/DeviceType.md)
  - [Model.ExpandedCaptureSession](docs/ExpandedCaptureSession.md)
  - [Model.ExpandedReconstruction](docs/ExpandedReconstruction.md)
+ - [Model.FailLeaseRequest](docs/FailLeaseRequest.md)
  - [Model.Float3](docs/Float3.md)
  - [Model.Float4](docs/Float4.md)
  - [Model.GetCaptureSessions400Response](docs/GetCaptureSessions400Response.md)

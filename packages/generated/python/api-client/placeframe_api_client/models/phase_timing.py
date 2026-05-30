@@ -28,7 +28,7 @@ class PhaseTiming(BaseModel):
     PhaseTiming
     """ # noqa: E501
     phase: StrictStr = Field(description="ReconstructionStatus value of the phase, e.g. 'extracting_features'.")
-    duration_seconds: Union[StrictFloat, StrictInt] = Field(description="Wall-clock seconds the phase spent in-flight, measured between the publisher's set_phase boundaries.")
+    duration_seconds: Union[StrictFloat, StrictInt] = Field(description="Wall-clock seconds the phase spent in-flight.")
     additional_properties: Dict[str, Any] = {}
     __properties: ClassVar[List[str]] = ["phase", "duration_seconds"]
 

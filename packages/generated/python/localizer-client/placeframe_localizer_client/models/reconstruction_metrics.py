@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from placeframe_localizer_client.models.phase_timing import PhaseTiming
 from typing import Optional, Set
@@ -28,42 +28,29 @@ class ReconstructionMetrics(BaseModel):
     """
     ReconstructionMetrics
     """ # noqa: E501
-    total_images: Optional[StrictInt] = Field(default=None, description="Total number of input images considered for this reconstruction run.")
-    registered_images: Optional[StrictInt] = Field(default=None, description="Number of images successfully registered into the final model.")
-    registration_rate: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Registration rate in percent: 100 × (registered_images / total_images). Computed after selecting the best reconstruction (max registered images).")
-    num_3d_points: Optional[StrictInt] = Field(default=None, description="Count of 3D points in the selected 'best' reconstruction.")
-    average_keypoints_per_image: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Average number of detected keypoints per image (after ALIKED extraction), computed across all images.")
-    reprojection_pixel_error_50th_percentile: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Median (50th percentile) reprojection error in pixels across all valid 2D observations in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint.")
-    reprojection_pixel_error_90th_percentile: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="90th percentile reprojection error in pixels across all valid 2D observations, computed the same way as the median.")
-    track_length_50th_percentile: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Median (50th percentile) track length across 3D points in the selected model. Track length = number of distinct images observing the point.")
-    percent_tracks_with_length_greater_than_or_equal_to_3: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Percentage of 3D points whose track length is ≥ 3 (a common robustness threshold). Computed as 100 × (#points with length≥3 / #points).")
+    reprojection_pixel_error_50th_percentile: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Median reprojection error in pixels across all valid 2D observations in registered images.")
+    reprojection_pixel_error_90th_percentile: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="90th percentile reprojection error in pixels across all valid 2D observations.")
+    track_length_50th_percentile: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Median number of distinct images observing each 3D point.")
     all_verified_matches: Optional[StrictInt] = Field(default=None, description="Total number of verified matches across all image pairs.")
-    all_verified_match_rate: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Percentage of verified matches across all image pairs.")
-    all_verified_match_inliers_mean: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Mean number of inliers for all verified matches.")
-    all_verified_match_inliers_median: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Median number of inliers for all verified matches.")
-    stereo_verified_matches: Optional[StrictInt] = Field(default=None, description="Number of verified matches for stereo pairs (same frame, different sensors).")
-    stereo_verified_match_rate: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Percentage of verified matches for stereo pairs.")
-    stereo_verified_match_inliers_mean: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Mean number of inliers for verified matches for stereo pairs.")
-    stereo_verified_match_inliers_median: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Median number of inliers for verified matches for stereo pairs.")
-    same_sensor_verified_matches: Optional[StrictInt] = Field(default=None, description="Number of verified matches for same-sensor pairs (across frames).")
-    same_sensor_verified_match_rate: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Percentage of verified matches for same-sensor pairs.")
-    same_sensor_verified_match_inliers_mean: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Mean number of inliers for verified matches for same-sensor pairs.")
-    same_sensor_verified_match_inliers_median: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Median number of inliers for verified matches for same-sensor pairs.")
-    cross_sensor_verified_matches: Optional[StrictInt] = Field(default=None, description="Number of verified matches for cross-sensor pairs (across frames).")
-    cross_sensor_verified_match_rate: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Percentage of verified matches for cross-sensor pairs.")
-    cross_sensor_verified_match_inliers_mean: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Mean number of inliers for verified matches for cross-sensor pairs.")
-    cross_sensor_verified_match_inliers_median: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Median number of inliers for verified matches for cross-sensor pairs.")
+    all_verified_match_rate: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Percentage of image pairs that passed two-view geometry verification.")
+    all_verified_match_inliers_mean: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Mean inlier count among verified image pairs.")
+    all_verified_match_inliers_median: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Median inlier count among verified image pairs.")
+    stereo_verified_matches: Optional[StrictInt] = Field(default=None, description="Number of verified stereo pairs (same frame, different sensors).")
+    stereo_verified_match_rate: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Percentage of stereo pairs that passed verification.")
+    stereo_verified_match_inliers_mean: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Mean inlier count among verified stereo pairs.")
+    stereo_verified_match_inliers_median: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Median inlier count among verified stereo pairs.")
     map_image_count: Optional[StrictInt] = Field(default=None, description="Number of registered images in the reconstruction.")
     map_point_count: Optional[StrictInt] = Field(default=None, description="Number of triangulated 3D points in the reconstruction.")
-    map_avg_track_length: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Mean number of image observations per 3D point. Coarse density-of-evidence proxy.")
-    map_bounding_volume_m3: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; complements image_count which only captures coverage density.")
-    map_viewpoint_diversity: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps from single-viewpoint maps even when the rest of the metrics agree.")
-    truth_alignment_rms_residual_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="RMS over registered cameras of ||T·c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration.")
-    truth_alignment_max_residual_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Maximum over registered cameras of ||T·c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over.")
-    phase_timings: Optional[List[PhaseTiming]] = Field(default=None, description="Per-phase wall-clock durations in execution order, captured at each ReconstructionPublisher set_phase boundary. Useful for after-the-fact attribution of total reconstruction time across feature extraction, OPQ/PQ training, matching, geometric verification, and incremental mapping.")
-    pipeline_version: Optional[StrictStr] = Field(default=None, description="Content-addressed hash of the reconstructor image's build context (RECONSTRUCTOR_SHA, computed by build_scripts.placeframe.context_sha.compute_service_shas) that produced this reconstruction. None on rows whose manifest was created before the lease succeeded. Mirrors the localizer's LocalizationMetrics.pipeline_version contract.")
+    map_avg_track_length: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Mean number of image observations per 3D point.")
+    map_viewpoint_diversity: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="1 minus the magnitude of the mean unit viewing direction across registered cameras; 0 means uniform direction, approaches 1 as viewpoints spread.")
+    gravity_aligned_in_map_frame: Optional[StrictBool] = Field(default=None, description="True when per-frame gravity samples aligned the map's vertical axis; False when no samples were available and only origin-shift was applied.")
+    gravity_sample_count: Optional[StrictInt] = Field(default=None, description="Number of registered frames that contributed gravity samples to the map-frame alignment.")
+    prior_drift_residual_rms_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="RMS residual in meters of a rigid Umeyama fit from map camera centers to VIO position priors; None when the capture has no priors or runs with use_prior_position off.")
+    prior_drift_residual_max_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Maximum residual in meters of the same Umeyama fit; surfaces single-frame outliers the RMS smooths over.")
+    phase_timings: Optional[List[PhaseTiming]] = Field(default=None, description="Per-phase wall-clock durations in execution order, captured at each set_phase boundary.")
+    pipeline_version: Optional[StrictStr] = Field(default=None, description="RECONSTRUCTOR_SHA of the image that produced this reconstruction.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["total_images", "registered_images", "registration_rate", "num_3d_points", "average_keypoints_per_image", "reprojection_pixel_error_50th_percentile", "reprojection_pixel_error_90th_percentile", "track_length_50th_percentile", "percent_tracks_with_length_greater_than_or_equal_to_3", "all_verified_matches", "all_verified_match_rate", "all_verified_match_inliers_mean", "all_verified_match_inliers_median", "stereo_verified_matches", "stereo_verified_match_rate", "stereo_verified_match_inliers_mean", "stereo_verified_match_inliers_median", "same_sensor_verified_matches", "same_sensor_verified_match_rate", "same_sensor_verified_match_inliers_mean", "same_sensor_verified_match_inliers_median", "cross_sensor_verified_matches", "cross_sensor_verified_match_rate", "cross_sensor_verified_match_inliers_mean", "cross_sensor_verified_match_inliers_median", "map_image_count", "map_point_count", "map_avg_track_length", "map_bounding_volume_m3", "map_viewpoint_diversity", "truth_alignment_rms_residual_m", "truth_alignment_max_residual_m", "phase_timings", "pipeline_version"]
+    __properties: ClassVar[List[str]] = ["reprojection_pixel_error_50th_percentile", "reprojection_pixel_error_90th_percentile", "track_length_50th_percentile", "all_verified_matches", "all_verified_match_rate", "all_verified_match_inliers_mean", "all_verified_match_inliers_median", "stereo_verified_matches", "stereo_verified_match_rate", "stereo_verified_match_inliers_mean", "stereo_verified_match_inliers_median", "map_image_count", "map_point_count", "map_avg_track_length", "map_viewpoint_diversity", "gravity_aligned_in_map_frame", "gravity_sample_count", "prior_drift_residual_rms_m", "prior_drift_residual_max_m", "phase_timings", "pipeline_version"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -118,31 +105,6 @@ class ReconstructionMetrics(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
-        # set to None if total_images (nullable) is None
-        # and model_fields_set contains the field
-        if self.total_images is None and "total_images" in self.model_fields_set:
-            _dict['total_images'] = None
-
-        # set to None if registered_images (nullable) is None
-        # and model_fields_set contains the field
-        if self.registered_images is None and "registered_images" in self.model_fields_set:
-            _dict['registered_images'] = None
-
-        # set to None if registration_rate (nullable) is None
-        # and model_fields_set contains the field
-        if self.registration_rate is None and "registration_rate" in self.model_fields_set:
-            _dict['registration_rate'] = None
-
-        # set to None if num_3d_points (nullable) is None
-        # and model_fields_set contains the field
-        if self.num_3d_points is None and "num_3d_points" in self.model_fields_set:
-            _dict['num_3d_points'] = None
-
-        # set to None if average_keypoints_per_image (nullable) is None
-        # and model_fields_set contains the field
-        if self.average_keypoints_per_image is None and "average_keypoints_per_image" in self.model_fields_set:
-            _dict['average_keypoints_per_image'] = None
-
         # set to None if reprojection_pixel_error_50th_percentile (nullable) is None
         # and model_fields_set contains the field
         if self.reprojection_pixel_error_50th_percentile is None and "reprojection_pixel_error_50th_percentile" in self.model_fields_set:
@@ -157,11 +119,6 @@ class ReconstructionMetrics(BaseModel):
         # and model_fields_set contains the field
         if self.track_length_50th_percentile is None and "track_length_50th_percentile" in self.model_fields_set:
             _dict['track_length_50th_percentile'] = None
-
-        # set to None if percent_tracks_with_length_greater_than_or_equal_to_3 (nullable) is None
-        # and model_fields_set contains the field
-        if self.percent_tracks_with_length_greater_than_or_equal_to_3 is None and "percent_tracks_with_length_greater_than_or_equal_to_3" in self.model_fields_set:
-            _dict['percent_tracks_with_length_greater_than_or_equal_to_3'] = None
 
         # set to None if all_verified_matches (nullable) is None
         # and model_fields_set contains the field
@@ -203,46 +160,6 @@ class ReconstructionMetrics(BaseModel):
         if self.stereo_verified_match_inliers_median is None and "stereo_verified_match_inliers_median" in self.model_fields_set:
             _dict['stereo_verified_match_inliers_median'] = None
 
-        # set to None if same_sensor_verified_matches (nullable) is None
-        # and model_fields_set contains the field
-        if self.same_sensor_verified_matches is None and "same_sensor_verified_matches" in self.model_fields_set:
-            _dict['same_sensor_verified_matches'] = None
-
-        # set to None if same_sensor_verified_match_rate (nullable) is None
-        # and model_fields_set contains the field
-        if self.same_sensor_verified_match_rate is None and "same_sensor_verified_match_rate" in self.model_fields_set:
-            _dict['same_sensor_verified_match_rate'] = None
-
-        # set to None if same_sensor_verified_match_inliers_mean (nullable) is None
-        # and model_fields_set contains the field
-        if self.same_sensor_verified_match_inliers_mean is None and "same_sensor_verified_match_inliers_mean" in self.model_fields_set:
-            _dict['same_sensor_verified_match_inliers_mean'] = None
-
-        # set to None if same_sensor_verified_match_inliers_median (nullable) is None
-        # and model_fields_set contains the field
-        if self.same_sensor_verified_match_inliers_median is None and "same_sensor_verified_match_inliers_median" in self.model_fields_set:
-            _dict['same_sensor_verified_match_inliers_median'] = None
-
-        # set to None if cross_sensor_verified_matches (nullable) is None
-        # and model_fields_set contains the field
-        if self.cross_sensor_verified_matches is None and "cross_sensor_verified_matches" in self.model_fields_set:
-            _dict['cross_sensor_verified_matches'] = None
-
-        # set to None if cross_sensor_verified_match_rate (nullable) is None
-        # and model_fields_set contains the field
-        if self.cross_sensor_verified_match_rate is None and "cross_sensor_verified_match_rate" in self.model_fields_set:
-            _dict['cross_sensor_verified_match_rate'] = None
-
-        # set to None if cross_sensor_verified_match_inliers_mean (nullable) is None
-        # and model_fields_set contains the field
-        if self.cross_sensor_verified_match_inliers_mean is None and "cross_sensor_verified_match_inliers_mean" in self.model_fields_set:
-            _dict['cross_sensor_verified_match_inliers_mean'] = None
-
-        # set to None if cross_sensor_verified_match_inliers_median (nullable) is None
-        # and model_fields_set contains the field
-        if self.cross_sensor_verified_match_inliers_median is None and "cross_sensor_verified_match_inliers_median" in self.model_fields_set:
-            _dict['cross_sensor_verified_match_inliers_median'] = None
-
         # set to None if map_image_count (nullable) is None
         # and model_fields_set contains the field
         if self.map_image_count is None and "map_image_count" in self.model_fields_set:
@@ -258,25 +175,30 @@ class ReconstructionMetrics(BaseModel):
         if self.map_avg_track_length is None and "map_avg_track_length" in self.model_fields_set:
             _dict['map_avg_track_length'] = None
 
-        # set to None if map_bounding_volume_m3 (nullable) is None
-        # and model_fields_set contains the field
-        if self.map_bounding_volume_m3 is None and "map_bounding_volume_m3" in self.model_fields_set:
-            _dict['map_bounding_volume_m3'] = None
-
         # set to None if map_viewpoint_diversity (nullable) is None
         # and model_fields_set contains the field
         if self.map_viewpoint_diversity is None and "map_viewpoint_diversity" in self.model_fields_set:
             _dict['map_viewpoint_diversity'] = None
 
-        # set to None if truth_alignment_rms_residual_m (nullable) is None
+        # set to None if gravity_aligned_in_map_frame (nullable) is None
         # and model_fields_set contains the field
-        if self.truth_alignment_rms_residual_m is None and "truth_alignment_rms_residual_m" in self.model_fields_set:
-            _dict['truth_alignment_rms_residual_m'] = None
+        if self.gravity_aligned_in_map_frame is None and "gravity_aligned_in_map_frame" in self.model_fields_set:
+            _dict['gravity_aligned_in_map_frame'] = None
 
-        # set to None if truth_alignment_max_residual_m (nullable) is None
+        # set to None if gravity_sample_count (nullable) is None
         # and model_fields_set contains the field
-        if self.truth_alignment_max_residual_m is None and "truth_alignment_max_residual_m" in self.model_fields_set:
-            _dict['truth_alignment_max_residual_m'] = None
+        if self.gravity_sample_count is None and "gravity_sample_count" in self.model_fields_set:
+            _dict['gravity_sample_count'] = None
+
+        # set to None if prior_drift_residual_rms_m (nullable) is None
+        # and model_fields_set contains the field
+        if self.prior_drift_residual_rms_m is None and "prior_drift_residual_rms_m" in self.model_fields_set:
+            _dict['prior_drift_residual_rms_m'] = None
+
+        # set to None if prior_drift_residual_max_m (nullable) is None
+        # and model_fields_set contains the field
+        if self.prior_drift_residual_max_m is None and "prior_drift_residual_max_m" in self.model_fields_set:
+            _dict['prior_drift_residual_max_m'] = None
 
         # set to None if phase_timings (nullable) is None
         # and model_fields_set contains the field
@@ -300,15 +222,9 @@ class ReconstructionMetrics(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "total_images": obj.get("total_images"),
-            "registered_images": obj.get("registered_images"),
-            "registration_rate": obj.get("registration_rate"),
-            "num_3d_points": obj.get("num_3d_points"),
-            "average_keypoints_per_image": obj.get("average_keypoints_per_image"),
             "reprojection_pixel_error_50th_percentile": obj.get("reprojection_pixel_error_50th_percentile"),
             "reprojection_pixel_error_90th_percentile": obj.get("reprojection_pixel_error_90th_percentile"),
             "track_length_50th_percentile": obj.get("track_length_50th_percentile"),
-            "percent_tracks_with_length_greater_than_or_equal_to_3": obj.get("percent_tracks_with_length_greater_than_or_equal_to_3"),
             "all_verified_matches": obj.get("all_verified_matches"),
             "all_verified_match_rate": obj.get("all_verified_match_rate"),
             "all_verified_match_inliers_mean": obj.get("all_verified_match_inliers_mean"),
@@ -317,21 +233,14 @@ class ReconstructionMetrics(BaseModel):
             "stereo_verified_match_rate": obj.get("stereo_verified_match_rate"),
             "stereo_verified_match_inliers_mean": obj.get("stereo_verified_match_inliers_mean"),
             "stereo_verified_match_inliers_median": obj.get("stereo_verified_match_inliers_median"),
-            "same_sensor_verified_matches": obj.get("same_sensor_verified_matches"),
-            "same_sensor_verified_match_rate": obj.get("same_sensor_verified_match_rate"),
-            "same_sensor_verified_match_inliers_mean": obj.get("same_sensor_verified_match_inliers_mean"),
-            "same_sensor_verified_match_inliers_median": obj.get("same_sensor_verified_match_inliers_median"),
-            "cross_sensor_verified_matches": obj.get("cross_sensor_verified_matches"),
-            "cross_sensor_verified_match_rate": obj.get("cross_sensor_verified_match_rate"),
-            "cross_sensor_verified_match_inliers_mean": obj.get("cross_sensor_verified_match_inliers_mean"),
-            "cross_sensor_verified_match_inliers_median": obj.get("cross_sensor_verified_match_inliers_median"),
             "map_image_count": obj.get("map_image_count"),
             "map_point_count": obj.get("map_point_count"),
             "map_avg_track_length": obj.get("map_avg_track_length"),
-            "map_bounding_volume_m3": obj.get("map_bounding_volume_m3"),
             "map_viewpoint_diversity": obj.get("map_viewpoint_diversity"),
-            "truth_alignment_rms_residual_m": obj.get("truth_alignment_rms_residual_m"),
-            "truth_alignment_max_residual_m": obj.get("truth_alignment_max_residual_m"),
+            "gravity_aligned_in_map_frame": obj.get("gravity_aligned_in_map_frame"),
+            "gravity_sample_count": obj.get("gravity_sample_count"),
+            "prior_drift_residual_rms_m": obj.get("prior_drift_residual_rms_m"),
+            "prior_drift_residual_max_m": obj.get("prior_drift_residual_max_m"),
             "phase_timings": [PhaseTiming.from_dict(_item) for _item in obj["phase_timings"]] if obj.get("phase_timings") is not None else None,
             "pipeline_version": obj.get("pipeline_version")
         })

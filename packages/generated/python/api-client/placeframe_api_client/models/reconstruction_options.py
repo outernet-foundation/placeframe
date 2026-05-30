@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, StrictInt
+from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from typing import Optional, Set
 from typing_extensions import Self
@@ -27,34 +27,23 @@ class ReconstructionOptions(BaseModel):
     """
     ReconstructionOptions
     """ # noqa: E501
-    deterministic_seed: Optional[StrictInt] = Field(default=None, description="If set, run the reconstruction deterministically: this value is the PRNG seed AND the pipeline runs single-threaded so thread-scheduling does not introduce non-determinism between reruns. If None, the reconstruction is non-deterministic (seed unpinned, threading enabled).")
-    neighbors_count: Optional[StrictInt] = Field(default=12, description="How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.")
-    rotation_threshold: Optional[Union[StrictFloat, StrictInt]] = Field(default=30.0, description="Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.")
-    lightglue_batch_size: Optional[StrictInt] = Field(default=16, description="Batch size to use when running LightGlue for feature matching. Larger batch sizes can improve GPU utilization but require more memory.")
-    ransac_max_error: Optional[Union[StrictFloat, StrictInt]] = Field(default=2.0, description="Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower = stricter inlier test; removes borderline correspondences before SfM.")
-    ransac_min_inlier_ratio: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.15, description="Two-view RANSAC minimum inlier ratio to accept the model. Higher = reject more weak pairs; typically 0.10–0.20 for stricter matching.")
-    use_prior_position: Optional[StrictBool] = Field(default=True, description="If true, use position priors during registration. This leverages PosePrior(position=...) written into the database to guide image registration.")
-    rig_verification: Optional[StrictBool] = Field(default=True, description="If true, perform rig-based verification during feature matching and two-view geometry verification. Requires images to be tagged with rig/camera IDs.")
-    triangulation_minimum_angle: Optional[Union[StrictFloat, StrictInt]] = Field(default=3.0, description="Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points.")
-    triangulation_complete_max_reprojection_error: Optional[Union[StrictFloat, StrictInt]] = Field(default=2.0, description="Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points (triangulation.complete_max_reproj_error). Lower → fewer borderline new points.")
-    triangulation_merge_max_reprojection_error: Optional[Union[StrictFloat, StrictInt]] = Field(default=4.0, description="Triangulation-time gate (pixels) for MERGING near-duplicate 3D points (triangulation.merge_max_reproj_error). Lower → fewer merges; higher → more aggressive deduplication.")
-    mapper_filter_max_reprojection_error: Optional[Union[StrictFloat, StrictInt]] = Field(default=2.0, description="Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). Points exceeding this after local/global BA are culled. This is NOT a triangulation accept threshold.")
-    bundle_adjustment_refine_sensor_from_rig: Optional[StrictBool] = Field(default=False, description="If true, refine per-camera extrinsics within the rig during the incremental BA loop (ba_refine_sensor_from_rig). The shipped pattern leaves this False, pins rigs via constant_rigs, and re-enables rig refinement only on the final standalone BA pass. See docker/reconstructor/SPEC.md for rationale.")
-    bundle_adjustment_refine_focal_length: Optional[StrictBool] = Field(default=True, description="If true, refine the camera focal length during BA (ba_refine_focal_length).")
-    bundle_adjustment_refine_principal_point: Optional[StrictBool] = Field(default=False, description="If true, refine the camera principal point during BA (ba_refine_principal_point).")
-    bundle_adjustment_refine_additional_params: Optional[StrictBool] = Field(default=True, description="If true, refine model-specific additional parameters during BA (ba_refine_extra_params), e.g., radial/tangential distortion where applicable.")
-    bundle_adjustment_global_frames_ratio: Optional[Union[StrictFloat, StrictInt]] = Field(default=1.5, description="Growth ratio of registered frames after which to trigger a global bundle adjustment (ba_global_frames_ratio). Larger = fewer global BA events, less wall time, longer between cleanup passes.")
-    bundle_adjustment_global_max_refinements: Optional[StrictInt] = Field(default=1, description="Maximum BA refinement passes per global-BA event (ba_global_max_refinements). Dev default 1; production-quality maps should override to 3 (or higher). See docker/reconstructor/SPEC.md.")
-    bundle_adjustment_global_function_tolerance: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.001, description="Ceres solver function tolerance for global bundle adjustment (ba_global_function_tolerance). Larger = earlier exit when residual delta becomes insignificant.")
-    bundle_adjustment_ignore_redundant_points3_d: Optional[StrictBool] = Field(default=True, description="If true, solve global BA without redundant 3D points first, then refine pruned points in a second pass with everything else fixed (mapper.ba_global_ignore_redundant_points3D). Same final geometry, smaller main problem. Activates only when ≥10 frames are registered.", alias="bundle_adjustment_ignore_redundant_points3D")
-    compression_opq_number_of_subvectors: Optional[StrictInt] = Field(default=16, description="Number of subvectors for OPQ compression.")
-    compression_opq_number_of_bits_per_subvector: Optional[StrictInt] = Field(default=8, description="Number of bits per subvector for OPQ compression.")
-    compression_opq_number_of_training_iterations: Optional[StrictInt] = Field(default=20, description="Number of training iterations for OPQ compression.")
-    pose_prior_position_sigma_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.05, description="Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values = stronger priors.")
-    max_keypoints_per_image: Optional[StrictInt] = Field(default=2500, description="Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode).")
-    held_out_frame_timestamps: Optional[List[StrictInt]] = Field(default=None, description="Frame timestamps (Unix milliseconds, matching the first column of each rig's frames.csv) to exclude from this reconstruction. Held-out frames never enter the rig's frame_poses, so their images are skipped during feature extraction, pair generation, and SfM. Used by calibration to build a map without specific frames so those frames can later be localized as held-out queries.")
+    deterministic_seed: Optional[StrictInt] = Field(default=None, description="PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic.")
+    keyframe_parallax_threshold_px: Optional[Union[StrictFloat, StrictInt]] = Field(default=50.0, description="Accumulated median LK pixel displacement (at 320×240) between successive kept keyframes.")
+    sequential_window: Optional[StrictInt] = Field(default=10, description="Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.")
+    retrieval_neighbors: Optional[StrictInt] = Field(default=20, description="Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.")
+    retrieval_min_distance_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=1.0, description="Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent.")
+    retrieval_min_score: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.5, description="Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.")
+    ransac_max_error: Optional[Union[StrictFloat, StrictInt]] = Field(default=2.0, description="Two-view RANSAC inlier threshold in pixels; lower is stricter.")
+    ransac_min_inlier_ratio: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.15, description="Two-view RANSAC minimum inlier ratio to accept a pair's geometry.")
+    triangulation_minimum_angle: Optional[Union[StrictFloat, StrictInt]] = Field(default=3.0, description="Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering.")
+    mapper_filter_max_reprojection_error: Optional[Union[StrictFloat, StrictInt]] = Field(default=2.0, description="Post-BA outlier reprojection threshold in pixels; points exceeding it are culled.")
+    bundle_adjustment_global_frames_ratio: Optional[Union[StrictFloat, StrictInt]] = Field(default=1.5, description="Frame-count growth ratio that triggers a global BA event; larger = fewer events.")
+    bundle_adjustment_global_function_tolerance: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.001, description="Ceres function tolerance for global BA exit; larger = earlier exit on residual plateaus.")
+    pose_prior_position_sigma_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.05, description="Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off).")
+    max_keypoints_per_image: Optional[StrictInt] = Field(default=2500, description="Maximum ALIKED keypoints retained per image.")
+    held_out_frame_timestamps: Optional[List[StrictInt]] = Field(default=None, description="Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["deterministic_seed", "neighbors_count", "rotation_threshold", "lightglue_batch_size", "ransac_max_error", "ransac_min_inlier_ratio", "use_prior_position", "rig_verification", "triangulation_minimum_angle", "triangulation_complete_max_reprojection_error", "triangulation_merge_max_reprojection_error", "mapper_filter_max_reprojection_error", "bundle_adjustment_refine_sensor_from_rig", "bundle_adjustment_refine_focal_length", "bundle_adjustment_refine_principal_point", "bundle_adjustment_refine_additional_params", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_max_refinements", "bundle_adjustment_global_function_tolerance", "bundle_adjustment_ignore_redundant_points3D", "compression_opq_number_of_subvectors", "compression_opq_number_of_bits_per_subvector", "compression_opq_number_of_training_iterations", "pose_prior_position_sigma_m", "max_keypoints_per_image", "held_out_frame_timestamps"]
+    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_parallax_threshold_px", "sequential_window", "retrieval_neighbors", "retrieval_min_distance_m", "retrieval_min_score", "ransac_max_error", "ransac_min_inlier_ratio", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "max_keypoints_per_image", "held_out_frame_timestamps"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -125,28 +114,17 @@ class ReconstructionOptions(BaseModel):
 
         _obj = cls.model_validate({
             "deterministic_seed": obj.get("deterministic_seed"),
-            "neighbors_count": obj.get("neighbors_count") if obj.get("neighbors_count") is not None else 12,
-            "rotation_threshold": obj.get("rotation_threshold") if obj.get("rotation_threshold") is not None else 30.0,
-            "lightglue_batch_size": obj.get("lightglue_batch_size") if obj.get("lightglue_batch_size") is not None else 16,
+            "keyframe_parallax_threshold_px": obj.get("keyframe_parallax_threshold_px") if obj.get("keyframe_parallax_threshold_px") is not None else 50.0,
+            "sequential_window": obj.get("sequential_window") if obj.get("sequential_window") is not None else 10,
+            "retrieval_neighbors": obj.get("retrieval_neighbors") if obj.get("retrieval_neighbors") is not None else 20,
+            "retrieval_min_distance_m": obj.get("retrieval_min_distance_m") if obj.get("retrieval_min_distance_m") is not None else 1.0,
+            "retrieval_min_score": obj.get("retrieval_min_score") if obj.get("retrieval_min_score") is not None else 0.5,
             "ransac_max_error": obj.get("ransac_max_error") if obj.get("ransac_max_error") is not None else 2.0,
             "ransac_min_inlier_ratio": obj.get("ransac_min_inlier_ratio") if obj.get("ransac_min_inlier_ratio") is not None else 0.15,
-            "use_prior_position": obj.get("use_prior_position") if obj.get("use_prior_position") is not None else True,
-            "rig_verification": obj.get("rig_verification") if obj.get("rig_verification") is not None else True,
             "triangulation_minimum_angle": obj.get("triangulation_minimum_angle") if obj.get("triangulation_minimum_angle") is not None else 3.0,
-            "triangulation_complete_max_reprojection_error": obj.get("triangulation_complete_max_reprojection_error") if obj.get("triangulation_complete_max_reprojection_error") is not None else 2.0,
-            "triangulation_merge_max_reprojection_error": obj.get("triangulation_merge_max_reprojection_error") if obj.get("triangulation_merge_max_reprojection_error") is not None else 4.0,
             "mapper_filter_max_reprojection_error": obj.get("mapper_filter_max_reprojection_error") if obj.get("mapper_filter_max_reprojection_error") is not None else 2.0,
-            "bundle_adjustment_refine_sensor_from_rig": obj.get("bundle_adjustment_refine_sensor_from_rig") if obj.get("bundle_adjustment_refine_sensor_from_rig") is not None else False,
-            "bundle_adjustment_refine_focal_length": obj.get("bundle_adjustment_refine_focal_length") if obj.get("bundle_adjustment_refine_focal_length") is not None else True,
-            "bundle_adjustment_refine_principal_point": obj.get("bundle_adjustment_refine_principal_point") if obj.get("bundle_adjustment_refine_principal_point") is not None else False,
-            "bundle_adjustment_refine_additional_params": obj.get("bundle_adjustment_refine_additional_params") if obj.get("bundle_adjustment_refine_additional_params") is not None else True,
             "bundle_adjustment_global_frames_ratio": obj.get("bundle_adjustment_global_frames_ratio") if obj.get("bundle_adjustment_global_frames_ratio") is not None else 1.5,
-            "bundle_adjustment_global_max_refinements": obj.get("bundle_adjustment_global_max_refinements") if obj.get("bundle_adjustment_global_max_refinements") is not None else 1,
             "bundle_adjustment_global_function_tolerance": obj.get("bundle_adjustment_global_function_tolerance") if obj.get("bundle_adjustment_global_function_tolerance") is not None else 0.001,
-            "bundle_adjustment_ignore_redundant_points3D": obj.get("bundle_adjustment_ignore_redundant_points3D") if obj.get("bundle_adjustment_ignore_redundant_points3D") is not None else True,
-            "compression_opq_number_of_subvectors": obj.get("compression_opq_number_of_subvectors") if obj.get("compression_opq_number_of_subvectors") is not None else 16,
-            "compression_opq_number_of_bits_per_subvector": obj.get("compression_opq_number_of_bits_per_subvector") if obj.get("compression_opq_number_of_bits_per_subvector") is not None else 8,
-            "compression_opq_number_of_training_iterations": obj.get("compression_opq_number_of_training_iterations") if obj.get("compression_opq_number_of_training_iterations") is not None else 20,
             "pose_prior_position_sigma_m": obj.get("pose_prior_position_sigma_m") if obj.get("pose_prior_position_sigma_m") is not None else 0.05,
             "max_keypoints_per_image": obj.get("max_keypoints_per_image") if obj.get("max_keypoints_per_image") is not None else 2500,
             "held_out_frame_timestamps": obj.get("held_out_frame_timestamps")

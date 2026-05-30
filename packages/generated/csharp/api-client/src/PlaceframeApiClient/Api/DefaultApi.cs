@@ -369,9 +369,9 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <returns></returns>
-        void FailLease(Guid id, string body);
+        void FailLease(Guid id, FailLeaseRequest failLeaseRequest);
 
         /// <summary>
         /// FailLease
@@ -381,9 +381,9 @@ namespace PlaceframeApiClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> FailLeaseWithHttpInfo(Guid id, string body);
+        ApiResponse<Object> FailLeaseWithHttpInfo(Guid id, FailLeaseRequest failLeaseRequest);
         /// <summary>
         /// GetCaptureSession
         /// </summary>
@@ -1475,10 +1475,10 @@ namespace PlaceframeApiClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        Cysharp.Threading.Tasks.UniTask FailLeaseAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask FailLeaseAsync(Guid id, FailLeaseRequest failLeaseRequest, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// FailLease
@@ -1488,10 +1488,10 @@ namespace PlaceframeApiClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> FailLeaseWithHttpInfoAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> FailLeaseWithHttpInfoAsync(Guid id, FailLeaseRequest failLeaseRequest, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetCaptureSession
         /// </summary>
@@ -4643,11 +4643,11 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <returns></returns>
-        public void FailLease(Guid id, string body)
+        public void FailLease(Guid id, FailLeaseRequest failLeaseRequest)
         {
-            FailLeaseWithHttpInfo(id, body);
+            FailLeaseWithHttpInfo(id, failLeaseRequest);
         }
 
         /// <summary>
@@ -4655,13 +4655,13 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <returns>ApiResponse of Object(void)</returns>
-        public PlaceframeApiClient.Client.ApiResponse<Object> FailLeaseWithHttpInfo(Guid id, string body)
+        public PlaceframeApiClient.Client.ApiResponse<Object> FailLeaseWithHttpInfo(Guid id, FailLeaseRequest failLeaseRequest)
         {
-            // verify the required parameter 'body' is set
-            if (body == null)
-                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'body' when calling DefaultApi->FailLease");
+            // verify the required parameter 'failLeaseRequest' is set
+            if (failLeaseRequest == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'failLeaseRequest' when calling DefaultApi->FailLease");
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
 
@@ -4681,7 +4681,7 @@ namespace PlaceframeApiClient.Api
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
             localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-            localVarRequestOptions.Data = body;
+            localVarRequestOptions.Data = failLeaseRequest;
 
 
             // make the HTTP request
@@ -4701,12 +4701,12 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async Cysharp.Threading.Tasks.UniTask FailLeaseAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask FailLeaseAsync(Guid id, FailLeaseRequest failLeaseRequest, System.Threading.CancellationToken cancellationToken = default)
         {
-            await FailLeaseWithHttpInfoAsync(id, body, cancellationToken);
+            await FailLeaseWithHttpInfoAsync(id, failLeaseRequest, cancellationToken);
         }
 
         /// <summary>
@@ -4714,14 +4714,14 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> FailLeaseWithHttpInfoAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> FailLeaseWithHttpInfoAsync(Guid id, FailLeaseRequest failLeaseRequest, System.Threading.CancellationToken cancellationToken = default)
         {
-            // verify the required parameter 'body' is set
-            if (body == null)
-                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'body' when calling DefaultApi->FailLease");
+            // verify the required parameter 'failLeaseRequest' is set
+            if (failLeaseRequest == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'failLeaseRequest' when calling DefaultApi->FailLease");
 
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -4743,7 +4743,7 @@ namespace PlaceframeApiClient.Api
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
             localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-            localVarRequestOptions.Data = body;
+            localVarRequestOptions.Data = failLeaseRequest;
 
 
             // make the HTTP request

@@ -34,40 +34,29 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionOptions" /> class.
         /// </summary>
-        /// <param name="deterministicSeed">If set, run the reconstruction deterministically: this value is the PRNG seed AND the pipeline runs single-threaded so thread-scheduling does not introduce non-determinism between reruns. If None, the reconstruction is non-deterministic (seed unpinned, threading enabled)..</param>
-        /// <param name="neighborsCount">How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage. (default to 12).</param>
-        /// <param name="rotationThreshold">Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. Smaller values reduce weak overlaps and speed up matching at the cost of some coverage. (default to 30.0D).</param>
-        /// <param name="lightglueBatchSize">Batch size to use when running LightGlue for feature matching. Larger batch sizes can improve GPU utilization but require more memory. (default to 16).</param>
-        /// <param name="ransacMaxError">Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower &#x3D; stricter inlier test; removes borderline correspondences before SfM. (default to 2.0D).</param>
-        /// <param name="ransacMinInlierRatio">Two-view RANSAC minimum inlier ratio to accept the model. Higher &#x3D; reject more weak pairs; typically 0.10–0.20 for stricter matching. (default to 0.15D).</param>
-        /// <param name="usePriorPosition">If true, use position priors during registration. This leverages PosePrior(position&#x3D;...) written into the database to guide image registration. (default to true).</param>
-        /// <param name="rigVerification">If true, perform rig-based verification during feature matching and two-view geometry verification. Requires images to be tagged with rig/camera IDs. (default to true).</param>
-        /// <param name="triangulationMinimumAngle">Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points. (default to 3.0D).</param>
-        /// <param name="triangulationCompleteMaxReprojectionError">Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points (triangulation.complete_max_reproj_error). Lower → fewer borderline new points. (default to 2.0D).</param>
-        /// <param name="triangulationMergeMaxReprojectionError">Triangulation-time gate (pixels) for MERGING near-duplicate 3D points (triangulation.merge_max_reproj_error). Lower → fewer merges; higher → more aggressive deduplication. (default to 4.0D).</param>
-        /// <param name="mapperFilterMaxReprojectionError">Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). Points exceeding this after local/global BA are culled. This is NOT a triangulation accept threshold. (default to 2.0D).</param>
-        /// <param name="bundleAdjustmentRefineSensorFromRig">If true, refine per-camera extrinsics within the rig during the incremental BA loop (ba_refine_sensor_from_rig). The shipped pattern leaves this False, pins rigs via constant_rigs, and re-enables rig refinement only on the final standalone BA pass. See docker/reconstructor/SPEC.md for rationale. (default to false).</param>
-        /// <param name="bundleAdjustmentRefineFocalLength">If true, refine the camera focal length during BA (ba_refine_focal_length). (default to true).</param>
-        /// <param name="bundleAdjustmentRefinePrincipalPoint">If true, refine the camera principal point during BA (ba_refine_principal_point). (default to false).</param>
-        /// <param name="bundleAdjustmentRefineAdditionalParams">If true, refine model-specific additional parameters during BA (ba_refine_extra_params), e.g., radial/tangential distortion where applicable. (default to true).</param>
-        /// <param name="bundleAdjustmentGlobalFramesRatio">Growth ratio of registered frames after which to trigger a global bundle adjustment (ba_global_frames_ratio). Larger &#x3D; fewer global BA events, less wall time, longer between cleanup passes. (default to 1.5D).</param>
-        /// <param name="bundleAdjustmentGlobalMaxRefinements">Maximum BA refinement passes per global-BA event (ba_global_max_refinements). Dev default 1; production-quality maps should override to 3 (or higher). See docker/reconstructor/SPEC.md. (default to 1).</param>
-        /// <param name="bundleAdjustmentGlobalFunctionTolerance">Ceres solver function tolerance for global bundle adjustment (ba_global_function_tolerance). Larger &#x3D; earlier exit when residual delta becomes insignificant. (default to 0.001D).</param>
-        /// <param name="bundleAdjustmentIgnoreRedundantPoints3D">If true, solve global BA without redundant 3D points first, then refine pruned points in a second pass with everything else fixed (mapper.ba_global_ignore_redundant_points3D). Same final geometry, smaller main problem. Activates only when ≥10 frames are registered. (default to true).</param>
-        /// <param name="compressionOpqNumberOfSubvectors">Number of subvectors for OPQ compression. (default to 16).</param>
-        /// <param name="compressionOpqNumberOfBitsPerSubvector">Number of bits per subvector for OPQ compression. (default to 8).</param>
-        /// <param name="compressionOpqNumberOfTrainingIterations">Number of training iterations for OPQ compression. (default to 20).</param>
-        /// <param name="posePriorPositionSigmaM">Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values &#x3D; stronger priors. (default to 0.05D).</param>
-        /// <param name="maxKeypointsPerImage">Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode). (default to 2500).</param>
-        /// <param name="heldOutFrameTimestamps">Frame timestamps (Unix milliseconds, matching the first column of each rig&#39;s frames.csv) to exclude from this reconstruction. Held-out frames never enter the rig&#39;s frame_poses, so their images are skipped during feature extraction, pair generation, and SfM. Used by calibration to build a map without specific frames so those frames can later be localized as held-out queries..</param>
+        /// <param name="deterministicSeed">PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic..</param>
+        /// <param name="keyframeParallaxThresholdPx">Accumulated median LK pixel displacement (at 320×240) between successive kept keyframes. (default to 50.0D).</param>
+        /// <param name="sequentialWindow">Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone. (default to 10).</param>
+        /// <param name="retrievalNeighbors">Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval. (default to 20).</param>
+        /// <param name="retrievalMinDistanceM">Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent. (default to 1.0D).</param>
+        /// <param name="retrievalMinScore">Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA. (default to 0.5D).</param>
+        /// <param name="ransacMaxError">Two-view RANSAC inlier threshold in pixels; lower is stricter. (default to 2.0D).</param>
+        /// <param name="ransacMinInlierRatio">Two-view RANSAC minimum inlier ratio to accept a pair&#39;s geometry. (default to 0.15D).</param>
+        /// <param name="triangulationMinimumAngle">Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering. (default to 3.0D).</param>
+        /// <param name="mapperFilterMaxReprojectionError">Post-BA outlier reprojection threshold in pixels; points exceeding it are culled. (default to 2.0D).</param>
+        /// <param name="bundleAdjustmentGlobalFramesRatio">Frame-count growth ratio that triggers a global BA event; larger &#x3D; fewer events. (default to 1.5D).</param>
+        /// <param name="bundleAdjustmentGlobalFunctionTolerance">Ceres function tolerance for global BA exit; larger &#x3D; earlier exit on residual plateaus. (default to 0.001D).</param>
+        /// <param name="posePriorPositionSigmaM">Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off). (default to 0.05D).</param>
+        /// <param name="maxKeypointsPerImage">Maximum ALIKED keypoints retained per image. (default to 2500).</param>
+        /// <param name="heldOutFrameTimestamps">Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries..</param>
         public ReconstructionOptions()
         {
         }
 
         /// <summary>
-        /// If set, run the reconstruction deterministically: this value is the PRNG seed AND the pipeline runs single-threaded so thread-scheduling does not introduce non-determinism between reruns. If None, the reconstruction is non-deterministic (seed unpinned, threading enabled).
+        /// PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic.
         /// </summary>
-        /// <value>If set, run the reconstruction deterministically: this value is the PRNG seed AND the pipeline runs single-threaded so thread-scheduling does not introduce non-determinism between reruns. If None, the reconstruction is non-deterministic (seed unpinned, threading enabled).</value>
+        /// <value>PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic.</value>
         [DataMember(Name = "deterministic_seed", EmitDefaultValue = true)]
         public int? DeterministicSeed
         {
@@ -90,84 +79,134 @@ namespace PlaceframeApiClient.Model
             return _flagDeterministicSeed;
         }
         /// <summary>
-        /// How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.
+        /// Accumulated median LK pixel displacement (at 320×240) between successive kept keyframes.
         /// </summary>
-        /// <value>How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.</value>
-        [DataMember(Name = "neighbors_count", EmitDefaultValue = false)]
-        public int NeighborsCount
+        /// <value>Accumulated median LK pixel displacement (at 320×240) between successive kept keyframes.</value>
+        [DataMember(Name = "keyframe_parallax_threshold_px", EmitDefaultValue = false)]
+        public double KeyframeParallaxThresholdPx
         {
-            get{ return _NeighborsCount;}
+            get{ return _KeyframeParallaxThresholdPx;}
             set
             {
-                _NeighborsCount = value;
-                _flagNeighborsCount = true;
+                _KeyframeParallaxThresholdPx = value;
+                _flagKeyframeParallaxThresholdPx = true;
             }
         }
-        private int _NeighborsCount = 12;
-        private bool _flagNeighborsCount;
+        private double _KeyframeParallaxThresholdPx = 50.0D;
+        private bool _flagKeyframeParallaxThresholdPx;
 
         /// <summary>
-        /// Returns false as NeighborsCount should not be serialized given that it's read-only.
+        /// Returns false as KeyframeParallaxThresholdPx should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeNeighborsCount()
+        public bool ShouldSerializeKeyframeParallaxThresholdPx()
         {
-            return _flagNeighborsCount;
+            return _flagKeyframeParallaxThresholdPx;
         }
         /// <summary>
-        /// Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.
+        /// Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.
         /// </summary>
-        /// <value>Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.</value>
-        [DataMember(Name = "rotation_threshold", EmitDefaultValue = false)]
-        public double RotationThreshold
+        /// <value>Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.</value>
+        [DataMember(Name = "sequential_window", EmitDefaultValue = false)]
+        public int SequentialWindow
         {
-            get{ return _RotationThreshold;}
+            get{ return _SequentialWindow;}
             set
             {
-                _RotationThreshold = value;
-                _flagRotationThreshold = true;
+                _SequentialWindow = value;
+                _flagSequentialWindow = true;
             }
         }
-        private double _RotationThreshold = 30.0D;
-        private bool _flagRotationThreshold;
+        private int _SequentialWindow = 10;
+        private bool _flagSequentialWindow;
 
         /// <summary>
-        /// Returns false as RotationThreshold should not be serialized given that it's read-only.
+        /// Returns false as SequentialWindow should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRotationThreshold()
+        public bool ShouldSerializeSequentialWindow()
         {
-            return _flagRotationThreshold;
+            return _flagSequentialWindow;
         }
         /// <summary>
-        /// Batch size to use when running LightGlue for feature matching. Larger batch sizes can improve GPU utilization but require more memory.
+        /// Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.
         /// </summary>
-        /// <value>Batch size to use when running LightGlue for feature matching. Larger batch sizes can improve GPU utilization but require more memory.</value>
-        [DataMember(Name = "lightglue_batch_size", EmitDefaultValue = false)]
-        public int LightglueBatchSize
+        /// <value>Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.</value>
+        [DataMember(Name = "retrieval_neighbors", EmitDefaultValue = false)]
+        public int RetrievalNeighbors
         {
-            get{ return _LightglueBatchSize;}
+            get{ return _RetrievalNeighbors;}
             set
             {
-                _LightglueBatchSize = value;
-                _flagLightglueBatchSize = true;
+                _RetrievalNeighbors = value;
+                _flagRetrievalNeighbors = true;
             }
         }
-        private int _LightglueBatchSize = 16;
-        private bool _flagLightglueBatchSize;
+        private int _RetrievalNeighbors = 20;
+        private bool _flagRetrievalNeighbors;
 
         /// <summary>
-        /// Returns false as LightglueBatchSize should not be serialized given that it's read-only.
+        /// Returns false as RetrievalNeighbors should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeLightglueBatchSize()
+        public bool ShouldSerializeRetrievalNeighbors()
         {
-            return _flagLightglueBatchSize;
+            return _flagRetrievalNeighbors;
         }
         /// <summary>
-        /// Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower &#x3D; stricter inlier test; removes borderline correspondences before SfM.
+        /// Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent.
         /// </summary>
-        /// <value>Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower &#x3D; stricter inlier test; removes borderline correspondences before SfM.</value>
+        /// <value>Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent.</value>
+        [DataMember(Name = "retrieval_min_distance_m", EmitDefaultValue = false)]
+        public double RetrievalMinDistanceM
+        {
+            get{ return _RetrievalMinDistanceM;}
+            set
+            {
+                _RetrievalMinDistanceM = value;
+                _flagRetrievalMinDistanceM = true;
+            }
+        }
+        private double _RetrievalMinDistanceM = 1.0D;
+        private bool _flagRetrievalMinDistanceM;
+
+        /// <summary>
+        /// Returns false as RetrievalMinDistanceM should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeRetrievalMinDistanceM()
+        {
+            return _flagRetrievalMinDistanceM;
+        }
+        /// <summary>
+        /// Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.
+        /// </summary>
+        /// <value>Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.</value>
+        [DataMember(Name = "retrieval_min_score", EmitDefaultValue = false)]
+        public double RetrievalMinScore
+        {
+            get{ return _RetrievalMinScore;}
+            set
+            {
+                _RetrievalMinScore = value;
+                _flagRetrievalMinScore = true;
+            }
+        }
+        private double _RetrievalMinScore = 0.5D;
+        private bool _flagRetrievalMinScore;
+
+        /// <summary>
+        /// Returns false as RetrievalMinScore should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeRetrievalMinScore()
+        {
+            return _flagRetrievalMinScore;
+        }
+        /// <summary>
+        /// Two-view RANSAC inlier threshold in pixels; lower is stricter.
+        /// </summary>
+        /// <value>Two-view RANSAC inlier threshold in pixels; lower is stricter.</value>
         [DataMember(Name = "ransac_max_error", EmitDefaultValue = false)]
         public double RansacMaxError
         {
@@ -190,9 +229,9 @@ namespace PlaceframeApiClient.Model
             return _flagRansacMaxError;
         }
         /// <summary>
-        /// Two-view RANSAC minimum inlier ratio to accept the model. Higher &#x3D; reject more weak pairs; typically 0.10–0.20 for stricter matching.
+        /// Two-view RANSAC minimum inlier ratio to accept a pair&#39;s geometry.
         /// </summary>
-        /// <value>Two-view RANSAC minimum inlier ratio to accept the model. Higher &#x3D; reject more weak pairs; typically 0.10–0.20 for stricter matching.</value>
+        /// <value>Two-view RANSAC minimum inlier ratio to accept a pair&#39;s geometry.</value>
         [DataMember(Name = "ransac_min_inlier_ratio", EmitDefaultValue = false)]
         public double RansacMinInlierRatio
         {
@@ -215,59 +254,9 @@ namespace PlaceframeApiClient.Model
             return _flagRansacMinInlierRatio;
         }
         /// <summary>
-        /// If true, use position priors during registration. This leverages PosePrior(position&#x3D;...) written into the database to guide image registration.
+        /// Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering.
         /// </summary>
-        /// <value>If true, use position priors during registration. This leverages PosePrior(position&#x3D;...) written into the database to guide image registration.</value>
-        [DataMember(Name = "use_prior_position", EmitDefaultValue = true)]
-        public bool UsePriorPosition
-        {
-            get{ return _UsePriorPosition;}
-            set
-            {
-                _UsePriorPosition = value;
-                _flagUsePriorPosition = true;
-            }
-        }
-        private bool _UsePriorPosition = true;
-        private bool _flagUsePriorPosition;
-
-        /// <summary>
-        /// Returns false as UsePriorPosition should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeUsePriorPosition()
-        {
-            return _flagUsePriorPosition;
-        }
-        /// <summary>
-        /// If true, perform rig-based verification during feature matching and two-view geometry verification. Requires images to be tagged with rig/camera IDs.
-        /// </summary>
-        /// <value>If true, perform rig-based verification during feature matching and two-view geometry verification. Requires images to be tagged with rig/camera IDs.</value>
-        [DataMember(Name = "rig_verification", EmitDefaultValue = true)]
-        public bool RigVerification
-        {
-            get{ return _RigVerification;}
-            set
-            {
-                _RigVerification = value;
-                _flagRigVerification = true;
-            }
-        }
-        private bool _RigVerification = true;
-        private bool _flagRigVerification;
-
-        /// <summary>
-        /// Returns false as RigVerification should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRigVerification()
-        {
-            return _flagRigVerification;
-        }
-        /// <summary>
-        /// Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points.
-        /// </summary>
-        /// <value>Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points.</value>
+        /// <value>Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering.</value>
         [DataMember(Name = "triangulation_minimum_angle", EmitDefaultValue = false)]
         public double TriangulationMinimumAngle
         {
@@ -290,59 +279,9 @@ namespace PlaceframeApiClient.Model
             return _flagTriangulationMinimumAngle;
         }
         /// <summary>
-        /// Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points (triangulation.complete_max_reproj_error). Lower → fewer borderline new points.
+        /// Post-BA outlier reprojection threshold in pixels; points exceeding it are culled.
         /// </summary>
-        /// <value>Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points (triangulation.complete_max_reproj_error). Lower → fewer borderline new points.</value>
-        [DataMember(Name = "triangulation_complete_max_reprojection_error", EmitDefaultValue = false)]
-        public double TriangulationCompleteMaxReprojectionError
-        {
-            get{ return _TriangulationCompleteMaxReprojectionError;}
-            set
-            {
-                _TriangulationCompleteMaxReprojectionError = value;
-                _flagTriangulationCompleteMaxReprojectionError = true;
-            }
-        }
-        private double _TriangulationCompleteMaxReprojectionError = 2.0D;
-        private bool _flagTriangulationCompleteMaxReprojectionError;
-
-        /// <summary>
-        /// Returns false as TriangulationCompleteMaxReprojectionError should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeTriangulationCompleteMaxReprojectionError()
-        {
-            return _flagTriangulationCompleteMaxReprojectionError;
-        }
-        /// <summary>
-        /// Triangulation-time gate (pixels) for MERGING near-duplicate 3D points (triangulation.merge_max_reproj_error). Lower → fewer merges; higher → more aggressive deduplication.
-        /// </summary>
-        /// <value>Triangulation-time gate (pixels) for MERGING near-duplicate 3D points (triangulation.merge_max_reproj_error). Lower → fewer merges; higher → more aggressive deduplication.</value>
-        [DataMember(Name = "triangulation_merge_max_reprojection_error", EmitDefaultValue = false)]
-        public double TriangulationMergeMaxReprojectionError
-        {
-            get{ return _TriangulationMergeMaxReprojectionError;}
-            set
-            {
-                _TriangulationMergeMaxReprojectionError = value;
-                _flagTriangulationMergeMaxReprojectionError = true;
-            }
-        }
-        private double _TriangulationMergeMaxReprojectionError = 4.0D;
-        private bool _flagTriangulationMergeMaxReprojectionError;
-
-        /// <summary>
-        /// Returns false as TriangulationMergeMaxReprojectionError should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeTriangulationMergeMaxReprojectionError()
-        {
-            return _flagTriangulationMergeMaxReprojectionError;
-        }
-        /// <summary>
-        /// Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). Points exceeding this after local/global BA are culled. This is NOT a triangulation accept threshold.
-        /// </summary>
-        /// <value>Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). Points exceeding this after local/global BA are culled. This is NOT a triangulation accept threshold.</value>
+        /// <value>Post-BA outlier reprojection threshold in pixels; points exceeding it are culled.</value>
         [DataMember(Name = "mapper_filter_max_reprojection_error", EmitDefaultValue = false)]
         public double MapperFilterMaxReprojectionError
         {
@@ -365,109 +304,9 @@ namespace PlaceframeApiClient.Model
             return _flagMapperFilterMaxReprojectionError;
         }
         /// <summary>
-        /// If true, refine per-camera extrinsics within the rig during the incremental BA loop (ba_refine_sensor_from_rig). The shipped pattern leaves this False, pins rigs via constant_rigs, and re-enables rig refinement only on the final standalone BA pass. See docker/reconstructor/SPEC.md for rationale.
+        /// Frame-count growth ratio that triggers a global BA event; larger &#x3D; fewer events.
         /// </summary>
-        /// <value>If true, refine per-camera extrinsics within the rig during the incremental BA loop (ba_refine_sensor_from_rig). The shipped pattern leaves this False, pins rigs via constant_rigs, and re-enables rig refinement only on the final standalone BA pass. See docker/reconstructor/SPEC.md for rationale.</value>
-        [DataMember(Name = "bundle_adjustment_refine_sensor_from_rig", EmitDefaultValue = true)]
-        public bool BundleAdjustmentRefineSensorFromRig
-        {
-            get{ return _BundleAdjustmentRefineSensorFromRig;}
-            set
-            {
-                _BundleAdjustmentRefineSensorFromRig = value;
-                _flagBundleAdjustmentRefineSensorFromRig = true;
-            }
-        }
-        private bool _BundleAdjustmentRefineSensorFromRig = false;
-        private bool _flagBundleAdjustmentRefineSensorFromRig;
-
-        /// <summary>
-        /// Returns false as BundleAdjustmentRefineSensorFromRig should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeBundleAdjustmentRefineSensorFromRig()
-        {
-            return _flagBundleAdjustmentRefineSensorFromRig;
-        }
-        /// <summary>
-        /// If true, refine the camera focal length during BA (ba_refine_focal_length).
-        /// </summary>
-        /// <value>If true, refine the camera focal length during BA (ba_refine_focal_length).</value>
-        [DataMember(Name = "bundle_adjustment_refine_focal_length", EmitDefaultValue = true)]
-        public bool BundleAdjustmentRefineFocalLength
-        {
-            get{ return _BundleAdjustmentRefineFocalLength;}
-            set
-            {
-                _BundleAdjustmentRefineFocalLength = value;
-                _flagBundleAdjustmentRefineFocalLength = true;
-            }
-        }
-        private bool _BundleAdjustmentRefineFocalLength = true;
-        private bool _flagBundleAdjustmentRefineFocalLength;
-
-        /// <summary>
-        /// Returns false as BundleAdjustmentRefineFocalLength should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeBundleAdjustmentRefineFocalLength()
-        {
-            return _flagBundleAdjustmentRefineFocalLength;
-        }
-        /// <summary>
-        /// If true, refine the camera principal point during BA (ba_refine_principal_point).
-        /// </summary>
-        /// <value>If true, refine the camera principal point during BA (ba_refine_principal_point).</value>
-        [DataMember(Name = "bundle_adjustment_refine_principal_point", EmitDefaultValue = true)]
-        public bool BundleAdjustmentRefinePrincipalPoint
-        {
-            get{ return _BundleAdjustmentRefinePrincipalPoint;}
-            set
-            {
-                _BundleAdjustmentRefinePrincipalPoint = value;
-                _flagBundleAdjustmentRefinePrincipalPoint = true;
-            }
-        }
-        private bool _BundleAdjustmentRefinePrincipalPoint = false;
-        private bool _flagBundleAdjustmentRefinePrincipalPoint;
-
-        /// <summary>
-        /// Returns false as BundleAdjustmentRefinePrincipalPoint should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeBundleAdjustmentRefinePrincipalPoint()
-        {
-            return _flagBundleAdjustmentRefinePrincipalPoint;
-        }
-        /// <summary>
-        /// If true, refine model-specific additional parameters during BA (ba_refine_extra_params), e.g., radial/tangential distortion where applicable.
-        /// </summary>
-        /// <value>If true, refine model-specific additional parameters during BA (ba_refine_extra_params), e.g., radial/tangential distortion where applicable.</value>
-        [DataMember(Name = "bundle_adjustment_refine_additional_params", EmitDefaultValue = true)]
-        public bool BundleAdjustmentRefineAdditionalParams
-        {
-            get{ return _BundleAdjustmentRefineAdditionalParams;}
-            set
-            {
-                _BundleAdjustmentRefineAdditionalParams = value;
-                _flagBundleAdjustmentRefineAdditionalParams = true;
-            }
-        }
-        private bool _BundleAdjustmentRefineAdditionalParams = true;
-        private bool _flagBundleAdjustmentRefineAdditionalParams;
-
-        /// <summary>
-        /// Returns false as BundleAdjustmentRefineAdditionalParams should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeBundleAdjustmentRefineAdditionalParams()
-        {
-            return _flagBundleAdjustmentRefineAdditionalParams;
-        }
-        /// <summary>
-        /// Growth ratio of registered frames after which to trigger a global bundle adjustment (ba_global_frames_ratio). Larger &#x3D; fewer global BA events, less wall time, longer between cleanup passes.
-        /// </summary>
-        /// <value>Growth ratio of registered frames after which to trigger a global bundle adjustment (ba_global_frames_ratio). Larger &#x3D; fewer global BA events, less wall time, longer between cleanup passes.</value>
+        /// <value>Frame-count growth ratio that triggers a global BA event; larger &#x3D; fewer events.</value>
         [DataMember(Name = "bundle_adjustment_global_frames_ratio", EmitDefaultValue = false)]
         public double BundleAdjustmentGlobalFramesRatio
         {
@@ -490,34 +329,9 @@ namespace PlaceframeApiClient.Model
             return _flagBundleAdjustmentGlobalFramesRatio;
         }
         /// <summary>
-        /// Maximum BA refinement passes per global-BA event (ba_global_max_refinements). Dev default 1; production-quality maps should override to 3 (or higher). See docker/reconstructor/SPEC.md.
+        /// Ceres function tolerance for global BA exit; larger &#x3D; earlier exit on residual plateaus.
         /// </summary>
-        /// <value>Maximum BA refinement passes per global-BA event (ba_global_max_refinements). Dev default 1; production-quality maps should override to 3 (or higher). See docker/reconstructor/SPEC.md.</value>
-        [DataMember(Name = "bundle_adjustment_global_max_refinements", EmitDefaultValue = false)]
-        public int BundleAdjustmentGlobalMaxRefinements
-        {
-            get{ return _BundleAdjustmentGlobalMaxRefinements;}
-            set
-            {
-                _BundleAdjustmentGlobalMaxRefinements = value;
-                _flagBundleAdjustmentGlobalMaxRefinements = true;
-            }
-        }
-        private int _BundleAdjustmentGlobalMaxRefinements = 1;
-        private bool _flagBundleAdjustmentGlobalMaxRefinements;
-
-        /// <summary>
-        /// Returns false as BundleAdjustmentGlobalMaxRefinements should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeBundleAdjustmentGlobalMaxRefinements()
-        {
-            return _flagBundleAdjustmentGlobalMaxRefinements;
-        }
-        /// <summary>
-        /// Ceres solver function tolerance for global bundle adjustment (ba_global_function_tolerance). Larger &#x3D; earlier exit when residual delta becomes insignificant.
-        /// </summary>
-        /// <value>Ceres solver function tolerance for global bundle adjustment (ba_global_function_tolerance). Larger &#x3D; earlier exit when residual delta becomes insignificant.</value>
+        /// <value>Ceres function tolerance for global BA exit; larger &#x3D; earlier exit on residual plateaus.</value>
         [DataMember(Name = "bundle_adjustment_global_function_tolerance", EmitDefaultValue = false)]
         public double BundleAdjustmentGlobalFunctionTolerance
         {
@@ -540,109 +354,9 @@ namespace PlaceframeApiClient.Model
             return _flagBundleAdjustmentGlobalFunctionTolerance;
         }
         /// <summary>
-        /// If true, solve global BA without redundant 3D points first, then refine pruned points in a second pass with everything else fixed (mapper.ba_global_ignore_redundant_points3D). Same final geometry, smaller main problem. Activates only when ≥10 frames are registered.
+        /// Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off).
         /// </summary>
-        /// <value>If true, solve global BA without redundant 3D points first, then refine pruned points in a second pass with everything else fixed (mapper.ba_global_ignore_redundant_points3D). Same final geometry, smaller main problem. Activates only when ≥10 frames are registered.</value>
-        [DataMember(Name = "bundle_adjustment_ignore_redundant_points3D", EmitDefaultValue = true)]
-        public bool BundleAdjustmentIgnoreRedundantPoints3D
-        {
-            get{ return _BundleAdjustmentIgnoreRedundantPoints3D;}
-            set
-            {
-                _BundleAdjustmentIgnoreRedundantPoints3D = value;
-                _flagBundleAdjustmentIgnoreRedundantPoints3D = true;
-            }
-        }
-        private bool _BundleAdjustmentIgnoreRedundantPoints3D = true;
-        private bool _flagBundleAdjustmentIgnoreRedundantPoints3D;
-
-        /// <summary>
-        /// Returns false as BundleAdjustmentIgnoreRedundantPoints3D should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeBundleAdjustmentIgnoreRedundantPoints3D()
-        {
-            return _flagBundleAdjustmentIgnoreRedundantPoints3D;
-        }
-        /// <summary>
-        /// Number of subvectors for OPQ compression.
-        /// </summary>
-        /// <value>Number of subvectors for OPQ compression.</value>
-        [DataMember(Name = "compression_opq_number_of_subvectors", EmitDefaultValue = false)]
-        public int CompressionOpqNumberOfSubvectors
-        {
-            get{ return _CompressionOpqNumberOfSubvectors;}
-            set
-            {
-                _CompressionOpqNumberOfSubvectors = value;
-                _flagCompressionOpqNumberOfSubvectors = true;
-            }
-        }
-        private int _CompressionOpqNumberOfSubvectors = 16;
-        private bool _flagCompressionOpqNumberOfSubvectors;
-
-        /// <summary>
-        /// Returns false as CompressionOpqNumberOfSubvectors should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeCompressionOpqNumberOfSubvectors()
-        {
-            return _flagCompressionOpqNumberOfSubvectors;
-        }
-        /// <summary>
-        /// Number of bits per subvector for OPQ compression.
-        /// </summary>
-        /// <value>Number of bits per subvector for OPQ compression.</value>
-        [DataMember(Name = "compression_opq_number_of_bits_per_subvector", EmitDefaultValue = false)]
-        public int CompressionOpqNumberOfBitsPerSubvector
-        {
-            get{ return _CompressionOpqNumberOfBitsPerSubvector;}
-            set
-            {
-                _CompressionOpqNumberOfBitsPerSubvector = value;
-                _flagCompressionOpqNumberOfBitsPerSubvector = true;
-            }
-        }
-        private int _CompressionOpqNumberOfBitsPerSubvector = 8;
-        private bool _flagCompressionOpqNumberOfBitsPerSubvector;
-
-        /// <summary>
-        /// Returns false as CompressionOpqNumberOfBitsPerSubvector should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeCompressionOpqNumberOfBitsPerSubvector()
-        {
-            return _flagCompressionOpqNumberOfBitsPerSubvector;
-        }
-        /// <summary>
-        /// Number of training iterations for OPQ compression.
-        /// </summary>
-        /// <value>Number of training iterations for OPQ compression.</value>
-        [DataMember(Name = "compression_opq_number_of_training_iterations", EmitDefaultValue = false)]
-        public int CompressionOpqNumberOfTrainingIterations
-        {
-            get{ return _CompressionOpqNumberOfTrainingIterations;}
-            set
-            {
-                _CompressionOpqNumberOfTrainingIterations = value;
-                _flagCompressionOpqNumberOfTrainingIterations = true;
-            }
-        }
-        private int _CompressionOpqNumberOfTrainingIterations = 20;
-        private bool _flagCompressionOpqNumberOfTrainingIterations;
-
-        /// <summary>
-        /// Returns false as CompressionOpqNumberOfTrainingIterations should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeCompressionOpqNumberOfTrainingIterations()
-        {
-            return _flagCompressionOpqNumberOfTrainingIterations;
-        }
-        /// <summary>
-        /// Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values &#x3D; stronger priors.
-        /// </summary>
-        /// <value>Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values &#x3D; stronger priors.</value>
+        /// <value>Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off).</value>
         [DataMember(Name = "pose_prior_position_sigma_m", EmitDefaultValue = false)]
         public double PosePriorPositionSigmaM
         {
@@ -665,9 +379,9 @@ namespace PlaceframeApiClient.Model
             return _flagPosePriorPositionSigmaM;
         }
         /// <summary>
-        /// Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode).
+        /// Maximum ALIKED keypoints retained per image.
         /// </summary>
-        /// <value>Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode).</value>
+        /// <value>Maximum ALIKED keypoints retained per image.</value>
         [DataMember(Name = "max_keypoints_per_image", EmitDefaultValue = false)]
         public int MaxKeypointsPerImage
         {
@@ -690,9 +404,9 @@ namespace PlaceframeApiClient.Model
             return _flagMaxKeypointsPerImage;
         }
         /// <summary>
-        /// Frame timestamps (Unix milliseconds, matching the first column of each rig&#39;s frames.csv) to exclude from this reconstruction. Held-out frames never enter the rig&#39;s frame_poses, so their images are skipped during feature extraction, pair generation, and SfM. Used by calibration to build a map without specific frames so those frames can later be localized as held-out queries.
+        /// Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.
         /// </summary>
-        /// <value>Frame timestamps (Unix milliseconds, matching the first column of each rig&#39;s frames.csv) to exclude from this reconstruction. Held-out frames never enter the rig&#39;s frame_poses, so their images are skipped during feature extraction, pair generation, and SfM. Used by calibration to build a map without specific frames so those frames can later be localized as held-out queries.</value>
+        /// <value>Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.</value>
         [DataMember(Name = "held_out_frame_timestamps", EmitDefaultValue = true)]
         public List<int> HeldOutFrameTimestamps
         {
@@ -723,28 +437,17 @@ namespace PlaceframeApiClient.Model
             StringBuilder sb = new StringBuilder();
             sb.Append("class ReconstructionOptions {\n");
             sb.Append("  DeterministicSeed: ").Append(DeterministicSeed).Append("\n");
-            sb.Append("  NeighborsCount: ").Append(NeighborsCount).Append("\n");
-            sb.Append("  RotationThreshold: ").Append(RotationThreshold).Append("\n");
-            sb.Append("  LightglueBatchSize: ").Append(LightglueBatchSize).Append("\n");
+            sb.Append("  KeyframeParallaxThresholdPx: ").Append(KeyframeParallaxThresholdPx).Append("\n");
+            sb.Append("  SequentialWindow: ").Append(SequentialWindow).Append("\n");
+            sb.Append("  RetrievalNeighbors: ").Append(RetrievalNeighbors).Append("\n");
+            sb.Append("  RetrievalMinDistanceM: ").Append(RetrievalMinDistanceM).Append("\n");
+            sb.Append("  RetrievalMinScore: ").Append(RetrievalMinScore).Append("\n");
             sb.Append("  RansacMaxError: ").Append(RansacMaxError).Append("\n");
             sb.Append("  RansacMinInlierRatio: ").Append(RansacMinInlierRatio).Append("\n");
-            sb.Append("  UsePriorPosition: ").Append(UsePriorPosition).Append("\n");
-            sb.Append("  RigVerification: ").Append(RigVerification).Append("\n");
             sb.Append("  TriangulationMinimumAngle: ").Append(TriangulationMinimumAngle).Append("\n");
-            sb.Append("  TriangulationCompleteMaxReprojectionError: ").Append(TriangulationCompleteMaxReprojectionError).Append("\n");
-            sb.Append("  TriangulationMergeMaxReprojectionError: ").Append(TriangulationMergeMaxReprojectionError).Append("\n");
             sb.Append("  MapperFilterMaxReprojectionError: ").Append(MapperFilterMaxReprojectionError).Append("\n");
-            sb.Append("  BundleAdjustmentRefineSensorFromRig: ").Append(BundleAdjustmentRefineSensorFromRig).Append("\n");
-            sb.Append("  BundleAdjustmentRefineFocalLength: ").Append(BundleAdjustmentRefineFocalLength).Append("\n");
-            sb.Append("  BundleAdjustmentRefinePrincipalPoint: ").Append(BundleAdjustmentRefinePrincipalPoint).Append("\n");
-            sb.Append("  BundleAdjustmentRefineAdditionalParams: ").Append(BundleAdjustmentRefineAdditionalParams).Append("\n");
             sb.Append("  BundleAdjustmentGlobalFramesRatio: ").Append(BundleAdjustmentGlobalFramesRatio).Append("\n");
-            sb.Append("  BundleAdjustmentGlobalMaxRefinements: ").Append(BundleAdjustmentGlobalMaxRefinements).Append("\n");
             sb.Append("  BundleAdjustmentGlobalFunctionTolerance: ").Append(BundleAdjustmentGlobalFunctionTolerance).Append("\n");
-            sb.Append("  BundleAdjustmentIgnoreRedundantPoints3D: ").Append(BundleAdjustmentIgnoreRedundantPoints3D).Append("\n");
-            sb.Append("  CompressionOpqNumberOfSubvectors: ").Append(CompressionOpqNumberOfSubvectors).Append("\n");
-            sb.Append("  CompressionOpqNumberOfBitsPerSubvector: ").Append(CompressionOpqNumberOfBitsPerSubvector).Append("\n");
-            sb.Append("  CompressionOpqNumberOfTrainingIterations: ").Append(CompressionOpqNumberOfTrainingIterations).Append("\n");
             sb.Append("  PosePriorPositionSigmaM: ").Append(PosePriorPositionSigmaM).Append("\n");
             sb.Append("  MaxKeypointsPerImage: ").Append(MaxKeypointsPerImage).Append("\n");
             sb.Append("  HeldOutFrameTimestamps: ").Append(HeldOutFrameTimestamps).Append("\n");

@@ -40,6 +40,7 @@ __all__ = [
     "DeviceType",
     "ExpandedCaptureSession",
     "ExpandedReconstruction",
+    "FailLeaseRequest",
     "Float3",
     "Float4",
     "GetCaptureSessions400Response",
@@ -107,6 +108,7 @@ from placeframe_api_client.models.create_graph_response import CreateGraphRespon
 from placeframe_api_client.models.device_type import DeviceType as DeviceType
 from placeframe_api_client.models.expanded_capture_session import ExpandedCaptureSession as ExpandedCaptureSession
 from placeframe_api_client.models.expanded_reconstruction import ExpandedReconstruction as ExpandedReconstruction
+from placeframe_api_client.models.fail_lease_request import FailLeaseRequest as FailLeaseRequest
 from placeframe_api_client.models.float3 import Float3 as Float3
 from placeframe_api_client.models.float4 import Float4 as Float4
 from placeframe_api_client.models.get_capture_sessions400_response import GetCaptureSessions400Response as GetCaptureSessions400Response

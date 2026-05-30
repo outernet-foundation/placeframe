@@ -333,7 +333,7 @@
           "duration_seconds": {
             "type": "number",
             "format": "double",
-            "description": "Wall-clock seconds the phase spent in-flight, measured between the publisher's set_phase boundaries."
+            "description": "Wall-clock seconds the phase spent in-flight."
           }
         },
         "type": "object",
@@ -395,53 +395,20 @@
       },
       "ReconstructionMetrics": {
         "properties": {
-          "total_images": {
-            "description": "Total number of input images considered for this reconstruction run.",
-            "nullable": true,
-            "type": "integer"
-          },
-          "registered_images": {
-            "description": "Number of images successfully registered into the final model.",
-            "nullable": true,
-            "type": "integer"
-          },
-          "registration_rate": {
-            "description": "Registration rate in percent: 100 \u00d7 (registered_images / total_images). Computed after selecting the best reconstruction (max registered images).",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "num_3d_points": {
-            "description": "Count of 3D points in the selected 'best' reconstruction.",
-            "nullable": true,
-            "type": "integer"
-          },
-          "average_keypoints_per_image": {
-            "description": "Average number of detected keypoints per image (after ALIKED extraction), computed across all images.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
           "reprojection_pixel_error_50th_percentile": {
-            "description": "Median (50th percentile) reprojection error in pixels across all valid 2D observations in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint.",
+            "description": "Median reprojection error in pixels across all valid 2D observations in registered images.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "reprojection_pixel_error_90th_percentile": {
-            "description": "90th percentile reprojection error in pixels across all valid 2D observations, computed the same way as the median.",
+            "description": "90th percentile reprojection error in pixels across all valid 2D observations.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "track_length_50th_percentile": {
-            "description": "Median (50th percentile) track length across 3D points in the selected model. Track length = number of distinct images observing the point.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "percent_tracks_with_length_greater_than_or_equal_to_3": {
-            "description": "Percentage of 3D points whose track length is \u2265 3 (a common robustness threshold). Computed as 100 \u00d7 (#points with length\u22653 / #points).",
+            "description": "Median number of distinct images observing each 3D point.",
             "nullable": true,
             "type": "number",
             "format": "double"
@@ -452,88 +419,42 @@
             "type": "integer"
           },
           "all_verified_match_rate": {
-            "description": "Percentage of verified matches across all image pairs.",
+            "description": "Percentage of image pairs that passed two-view geometry verification.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "all_verified_match_inliers_mean": {
-            "description": "Mean number of inliers for all verified matches.",
+            "description": "Mean inlier count among verified image pairs.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "all_verified_match_inliers_median": {
-            "description": "Median number of inliers for all verified matches.",
+            "description": "Median inlier count among verified image pairs.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "stereo_verified_matches": {
-            "description": "Number of verified matches for stereo pairs (same frame, different sensors).",
+            "description": "Number of verified stereo pairs (same frame, different sensors).",
             "nullable": true,
             "type": "integer"
           },
           "stereo_verified_match_rate": {
-            "description": "Percentage of verified matches for stereo pairs.",
+            "description": "Percentage of stereo pairs that passed verification.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "stereo_verified_match_inliers_mean": {
-            "description": "Mean number of inliers for verified matches for stereo pairs.",
+            "description": "Mean inlier count among verified stereo pairs.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "stereo_verified_match_inliers_median": {
-            "description": "Median number of inliers for verified matches for stereo pairs.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "same_sensor_verified_matches": {
-            "description": "Number of verified matches for same-sensor pairs (across frames).",
-            "nullable": true,
-            "type": "integer"
-          },
-          "same_sensor_verified_match_rate": {
-            "description": "Percentage of verified matches for same-sensor pairs.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "same_sensor_verified_match_inliers_mean": {
-            "description": "Mean number of inliers for verified matches for same-sensor pairs.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "same_sensor_verified_match_inliers_median": {
-            "description": "Median number of inliers for verified matches for same-sensor pairs.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "cross_sensor_verified_matches": {
-            "description": "Number of verified matches for cross-sensor pairs (across frames).",
-            "nullable": true,
-            "type": "integer"
-          },
-          "cross_sensor_verified_match_rate": {
-            "description": "Percentage of verified matches for cross-sensor pairs.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "cross_sensor_verified_match_inliers_mean": {
-            "description": "Mean number of inliers for verified matches for cross-sensor pairs.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "cross_sensor_verified_match_inliers_median": {
-            "description": "Median number of inliers for verified matches for cross-sensor pairs.",
+            "description": "Median inlier count among verified stereo pairs.",
             "nullable": true,
             "type": "number",
             "format": "double"
@@ -549,37 +470,41 @@
             "type": "integer"
           },
           "map_avg_track_length": {
-            "description": "Mean number of image observations per 3D point. Coarse density-of-evidence proxy.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "map_bounding_volume_m3": {
-            "description": "Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; complements image_count which only captures coverage density.",
+            "description": "Mean number of image observations per 3D point.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "map_viewpoint_diversity": {
-            "description": "1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps from single-viewpoint maps even when the rest of the metrics agree.",
+            "description": "1 minus the magnitude of the mean unit viewing direction across registered cameras; 0 means uniform direction, approaches 1 as viewpoints spread.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
-          "truth_alignment_rms_residual_m": {
-            "description": "RMS over registered cameras of ||T\u00b7c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration.",
+          "gravity_aligned_in_map_frame": {
+            "description": "True when per-frame gravity samples aligned the map's vertical axis; False when no samples were available and only origin-shift was applied.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "gravity_sample_count": {
+            "description": "Number of registered frames that contributed gravity samples to the map-frame alignment.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "prior_drift_residual_rms_m": {
+            "description": "RMS residual in meters of a rigid Umeyama fit from map camera centers to VIO position priors; None when the capture has no priors or runs with use_prior_position off.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
-          "truth_alignment_max_residual_m": {
-            "description": "Maximum over registered cameras of ||T\u00b7c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over.",
+          "prior_drift_residual_max_m": {
+            "description": "Maximum residual in meters of the same Umeyama fit; surfaces single-frame outliers the RMS smooths over.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "phase_timings": {
-            "description": "Per-phase wall-clock durations in execution order, captured at each ReconstructionPublisher set_phase boundary. Useful for after-the-fact attribution of total reconstruction time across feature extraction, OPQ/PQ training, matching, geometric verification, and incremental mapping.",
+            "description": "Per-phase wall-clock durations in execution order, captured at each set_phase boundary.",
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/PhaseTiming"
@@ -587,7 +512,7 @@
             "type": "array"
           },
           "pipeline_version": {
-            "description": "Content-addressed hash of the reconstructor image's build context (RECONSTRUCTOR_SHA, computed by build_scripts.placeframe.context_sha.compute_service_shas) that produced this reconstruction. None on rows whose manifest was created before the lease succeeded. Mirrors the localizer's LocalizationMetrics.pipeline_version contract.",
+            "description": "RECONSTRUCTOR_SHA of the image that produced this reconstruction.",
             "nullable": true,
             "type": "string"
           }
