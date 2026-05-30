@@ -23,8 +23,6 @@ workflow) or build locally with: uv run install-zed --build"""
 
 SSH_KEY_COPY_PROMPT = "will prompt for the SSH login one last time to copy the install-zed key"
 
-SUDOERS_INSTALL_PROMPT = "will prompt for sudo once to install the passwordless-sudo rule"
-
 NO_DHCP_LEASE_RECEIVED = """\
 Box did not request a DHCP lease within {timeout_seconds}s during bootstrap.
 Check that the ethernet cable is connected to the box and the box's wired

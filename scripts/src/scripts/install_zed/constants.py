@@ -70,7 +70,7 @@ DHCP_LEASE_WAIT_SECONDS = 60
 
 SUDOERS_RULE = (
     "user ALL=(ALL) NOPASSWD: /usr/bin/dpkg, /usr/sbin/usermod, /usr/bin/nvidia-ctk,"
-    " /usr/bin/systemctl, /usr/bin/docker, /usr/bin/tee, /usr/bin/nmcli"
+    " /usr/bin/systemctl, /usr/bin/docker, /usr/bin/tee, /usr/bin/nmcli, /usr/bin/install"
 )
 
 # Pins the Jetson's USB-C port as a USB gadget, which is incompatible with
