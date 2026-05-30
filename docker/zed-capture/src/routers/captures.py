@@ -6,7 +6,7 @@ from shutil import rmtree
 from typing import Annotated, List, cast
 from uuid import UUID
 
-from common.stream_tar import compute_tar_size, stream_tar
+from common.stream_tar import compute_tar_size, compute_tar_size_cached, stream_tar
 from litestar import Router, delete, get, post
 from litestar.exceptions import ClientException, NotFoundException
 from litestar.response import Stream
@@ -62,6 +62,7 @@ _DEFAULT_UPLOAD_EXCLUDES: tuple[str, ...] = (".svo2",)
 
 @get("")
 async def get_captures() -> List[ZedCapture]:
+    active_capture_id = zed.state().capture_id
     captures = [
         ZedCapture(
             id=cast(UUID, capture.name),
@@ -72,12 +73,23 @@ async def get_captures() -> List[ZedCapture]:
             # for the rest of the session — close enough to "when recording
             # began" to display in the UI without writing a sidecar timestamp.
             recorded_at=datetime.fromtimestamp(capture.stat().st_ctime, tz=UTC),
-            size_bytes=await to_thread(compute_tar_size, capture, _DEFAULT_UPLOAD_EXCLUDES),
+            size_bytes=await to_thread(_capture_upload_size, capture, _DEFAULT_UPLOAD_EXCLUDES, active_capture_id),
         )
         for capture in CAPTURES_DIRECTORY.glob("*")
         if capture.is_dir()
     ]
     return sorted(captures, key=lambda c: c.id)
+
+
+# Active recording grows mid-session, so its size cannot be cached.
+def _capture_upload_size(
+    capture_directory: pathlib.Path,
+    exclude_suffixes: tuple[str, ...],
+    active_capture_id: UUID | None,
+) -> int:
+    if active_capture_id is not None and capture_directory.name == str(active_capture_id):
+        return compute_tar_size(capture_directory, exclude_suffixes)
+    return compute_tar_size_cached(capture_directory, exclude_suffixes)
 
 
 @get(
@@ -92,7 +104,7 @@ async def download_capture_tar(id: UUID, include_svo: bool = False) -> Stream:
         raise NotFoundException(f"Capture with id {id} not found")
 
     exclude_suffixes = () if include_svo else (".svo2",)
-    total_bytes = await to_thread(compute_tar_size, capture_directory, exclude_suffixes)
+    total_bytes = await to_thread(_capture_upload_size, capture_directory, exclude_suffixes, zed.state().capture_id)
     return Stream(
         stream_tar(capture_directory, exclude_suffixes=exclude_suffixes),
         media_type="application/x-tar",

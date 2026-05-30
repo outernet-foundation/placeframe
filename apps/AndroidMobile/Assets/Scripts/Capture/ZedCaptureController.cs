@@ -139,6 +139,7 @@ public static class ZedCaptureController
         capturesApi = null;
         capturesHttpClient?.Dispose();
         capturesHttpClient = null;
+        _lastEnumeration = Array.Empty<LocalCapture>();
     }
 
     public static async UniTask StartCapture(float captureInterval, CancellationToken cancellationToken = default)
@@ -157,7 +158,10 @@ public static class ZedCaptureController
 
     // Bound enumerate so refreshes don't stall on a long socket timeout when the
     // ZED box is unreachable. An absent box is indistinguishable from an empty one.
-    private static readonly TimeSpan enumerateTimeout = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan enumerateTimeout = TimeSpan.FromSeconds(5);
+
+    // Returned on enumerate failure so a transient blip doesn't blank the menu.
+    private static IReadOnlyList<LocalCapture> _lastEnumeration = Array.Empty<LocalCapture>();
 
     public static async UniTask<IEnumerable<LocalCapture>> EnumerateCaptures()
     {
@@ -172,14 +176,15 @@ public static class ZedCaptureController
                 .ToList();
             Log.Info(LogGroup.Zed, "EnumerateCaptures success count={Count} durationMs={DurationMs}",
                 result.Count, stopwatch.ElapsedMilliseconds);
+            _lastEnumeration = result;
             return result;
         }
         catch (Exception exception)
         {
             Log.Info(LogGroup.Zed, exception,
-                "EnumerateCaptures failed durationMs={DurationMs} timeoutMs={TimeoutMs}",
-                stopwatch.ElapsedMilliseconds, (int)enumerateTimeout.TotalMilliseconds);
-            return Enumerable.Empty<LocalCapture>();
+                "EnumerateCaptures failed durationMs={DurationMs} timeoutMs={TimeoutMs} retainedCount={RetainedCount}",
+                stopwatch.ElapsedMilliseconds, (int)enumerateTimeout.TotalMilliseconds, _lastEnumeration.Count);
+            return _lastEnumeration;
         }
     }
 
