@@ -22,9 +22,9 @@ namespace Placeframe.Client
         private static float captureIntervalSeconds = 0.5f;
         private static readonly TimeSpan idleRefreshInterval = TimeSpan.FromSeconds(5);
 
-        private static bool capturesLoaded;
         private static string localCaptureNamePath;
         private static Dictionary<Guid, string> _localCaptureNames = new();
+        private static Dictionary<uint, IDisposable> _nameSubscriptions = new();
         private static IDisposable _subscription;
         private static IDisposable _idleRefreshTimerSubscription;
         private static CompositeDisposable _pollSubscriptions = new();
@@ -101,7 +101,29 @@ namespace Placeframe.Client
                             _idleRefreshTimerSubscription = null;
                         }
                     }),
-                App.state.captures.SubscribeOperations(HandleCapturesChanged),
+                App.state.captures
+                    .ObservableSelect(entry => entry.Value)
+                    .SubscribeWithId(
+                        onAdd: (subscriptionId, capture) =>
+                            _nameSubscriptions[subscriptionId] = capture.name.Subscribe(
+                                name => OnCaptureNameChanged(capture.id, name)),
+                        onRemove: (subscriptionId, capture) =>
+                        {
+                            if (_nameSubscriptions.TryGetValue(subscriptionId, out var sub))
+                            {
+                                sub.Dispose();
+                                _nameSubscriptions.Remove(subscriptionId);
+                            }
+                            if (_localCaptureNames.Remove(capture.id))
+                                SaveLocalCaptureNames();
+                        },
+                        onDispose: () =>
+                        {
+                            foreach (var sub in _nameSubscriptions.Values)
+                                sub.Dispose();
+                            _nameSubscriptions.Clear();
+                        }
+                    ),
                 App.state.captures
                     .ObservableSelect(entry => entry.Value)
                     .ObservableWhere(capture => capture.status
@@ -191,20 +213,25 @@ namespace Placeframe.Client
             App.state.captureStatus.value = CaptureStatus.Idle;
         }
 
-        private static void HandleCapturesChanged(IReadOnlyList<IStateOperation> ops)
+        private static void OnCaptureNameChanged(Guid captureId, string name)
         {
-            if (!capturesLoaded)
-                return;
-
-            _localCaptureNames.Clear();
-            var json = new SimpleJSON.JSONObject();
-            foreach (var kvp in App.state.captures.Where(x => x.Value.status.value == CaptureUploadStatus.NotUploaded))
+            if (string.IsNullOrEmpty(name))
             {
-                var name = kvp.Value.name.value;
-                _localCaptureNames[kvp.Key] = name;
-                json[kvp.Key.ToString()] = name;
+                if (_localCaptureNames.Remove(captureId))
+                    SaveLocalCaptureNames();
+                return;
             }
+            if (_localCaptureNames.TryGetValue(captureId, out var existing) && existing == name)
+                return;
+            _localCaptureNames[captureId] = name;
+            SaveLocalCaptureNames();
+        }
 
+        private static void SaveLocalCaptureNames()
+        {
+            var json = new SimpleJSON.JSONObject();
+            foreach (var kvp in _localCaptureNames)
+                json[kvp.Key.ToString()] = kvp.Value;
             File.WriteAllText(localCaptureNamePath, json.ToString());
         }
 
@@ -269,7 +296,6 @@ namespace Placeframe.Client
                     });
             });
 
-            capturesLoaded = true;
             Log.Info(LogGroup.Capture,
                 "UpdateCaptureList done durationMs={DurationMs} resultCount={ResultCount}",
                 stopwatch.ElapsedMilliseconds, App.state.captures.Count);
