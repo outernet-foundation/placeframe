@@ -35,6 +35,11 @@ class ProgressUpdate(BaseModel):
     error: Optional[str] = None
 
 
+class FailLeaseRequest(BaseModel):
+    error: str
+    metrics: Optional[ReconstructionMetrics] = None
+
+
 @post("/request")
 async def request_lease(session: AsyncSession) -> LeaseResponse:
     # Reap stale leases — a worker crash skips complete_lease and would otherwise stall the queue.
@@ -67,6 +72,11 @@ async def request_lease(session: AsyncSession) -> LeaseResponse:
     if not row:
         raise NotFoundException("No pending jobs")
 
+    # Validate the manifest BEFORE flipping status. If validation throws after the commit,
+    # the row is already out of QUEUED but no worker has it, leaving it stuck in
+    # EXTRACTING_FEATURES until LEASE_TIMEOUT reaps it 30 minutes later.
+    manifest = Manifest.model_validate(row.manifest)
+
     # Flip out of QUEUED so subsequent request_lease polls skip this row. The reconstructor's
     # pre-extraction setup (tar download, manifest parse, rig build, pair gen) runs under
     # EXTRACTING_FEATURES with no progress until the per-image loop sets the real total.
@@ -75,7 +85,6 @@ async def request_lease(session: AsyncSession) -> LeaseResponse:
     await session.flush()
     await session.commit()
 
-    manifest = Manifest.model_validate(row.manifest)
     return LeaseResponse(
         reconstruction_id=row.id,
         capture_session_id=row.capture_session_id,
@@ -115,9 +124,15 @@ async def succeed_lease(session: AsyncSession, id: UUID, data: ReconstructionMet
 
 
 @put("/{id:uuid}/fail")
-async def fail_lease(session: AsyncSession, id: UUID, data: str) -> None:
+async def fail_lease(session: AsyncSession, id: UUID, data: FailLeaseRequest) -> None:
     row = await _finalize_lease(session, id, ReconstructionStatus.FAILED)
-    row.error = data
+    row.error = data.error
+
+    if data.metrics is not None:
+        existing = Manifest.model_validate(row.manifest)
+        merged = Manifest(options=existing.options, metrics=data.metrics)
+        row.manifest = merged.model_dump(mode="json")
+        row.manifest_version = MANIFEST_VERSION
 
     await session.flush()
     await session.commit()

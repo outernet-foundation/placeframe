@@ -45,6 +45,47 @@ BUCKET = "dev-captures"
 MIN_TEMPORAL_COVERAGE = 0.5
 
 
+def _validate_monocular_rigs_have_position_priors(tf: tarfile.TarFile, manifest: CaptureSessionManifest) -> None:
+    for rig in manifest.rigs:
+        if len(rig.cameras) > 1:
+            continue
+        try:
+            frames_member = tf.getmember(f"{rig.id}/frames.csv")
+        except KeyError:
+            raise HTTPException(
+                status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Monocular rig {rig.id} is missing {rig.id}/frames.csv",
+            )
+        frames_file = tf.extractfile(frames_member)
+        if frames_file is None:
+            raise HTTPException(
+                status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Could not read {rig.id}/frames.csv from tar",
+            )
+
+        reader = csv.reader(io.TextIOWrapper(frames_file, encoding="utf-8"))
+        next(reader, None)
+        first_row = next(reader, None)
+        if first_row is None:
+            raise HTTPException(
+                status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Monocular rig {rig.id} has no frames in {rig.id}/frames.csv",
+            )
+
+        # Schemas per _parse_frame_pose in reconstructor/rig.py: timestamp + (tx,ty,tz,gx,gy,gz) is
+        # 7 cols, timestamp + (tx,ty,tz,qx,qy,qz,qw) is 8 cols. Anything narrower (e.g. a 4-col
+        # gravity-only row) lacks the per-frame position a monocular capture's metric scale needs.
+        if len(first_row) < 7:
+            raise HTTPException(
+                status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    f"Monocular rig {rig.id} requires per-frame position priors in {rig.id}/frames.csv;"
+                    f" first data row has {len(first_row)} columns, expected at least 7"
+                    f" (timestamp + tx + ty + tz + 3 gravity or 4 quaternion)"
+                ),
+            )
+
+
 def _validate_temporal_coverage(tf: tarfile.TarFile, capture_interval_seconds: float) -> None:
     try:
         frames_member = tf.getmember("rig0/frames.csv")
@@ -307,6 +348,8 @@ def _validate_capture_session_tar(fileobj: IO[bytes]) -> None:
                 raise HTTPException(
                     status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Capture session manifest.json is invalid: {e}"
                 ) from e
+
+            _validate_monocular_rigs_have_position_priors(tf, manifest)
 
             if manifest.capture_interval_seconds is not None:
                 _validate_temporal_coverage(tf, manifest.capture_interval_seconds)

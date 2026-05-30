@@ -80,6 +80,7 @@ def run_reconstruction(
     capture_id: UUID,
     reconstruction_options: ReconstructionOptions,
     publisher: ReconstructionPublisher,
+    metrics: MetricsBuilder,
 ) -> ReconstructionMetrics:
 
     settings = get_settings()
@@ -119,7 +120,6 @@ def run_reconstruction(
     }
 
     options = OptionsBuilder(reconstruction_options)
-    metrics = MetricsBuilder()
 
     if reconstruction_options.deterministic_seed is not None:
         random.seed(reconstruction_options.deterministic_seed)  # noqa: NPY002 — pycolmap reads numpy's global random state; can't use default_rng()
