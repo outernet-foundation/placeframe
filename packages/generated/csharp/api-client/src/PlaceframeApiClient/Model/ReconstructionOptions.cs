@@ -35,8 +35,10 @@ namespace PlaceframeApiClient.Model
         /// Initializes a new instance of the <see cref="ReconstructionOptions" /> class.
         /// </summary>
         /// <param name="deterministicSeed">PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic..</param>
-        /// <param name="keyframeParallaxThresholdPx">Accumulated median LK pixel displacement (at 320×240) between successive kept keyframes. (default to 50.0D).</param>
+        /// <param name="keyframeMinDistanceM">Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction. (default to 0.3D).</param>
         /// <param name="sequentialWindow">Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone. (default to 10).</param>
+        /// <param name="spatialNeighbors">Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time. (default to 25).</param>
+        /// <param name="spatialMaxDistanceM">Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent. (default to 6.0D).</param>
         /// <param name="retrievalNeighbors">Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval. (default to 20).</param>
         /// <param name="retrievalMinDistanceM">Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent. (default to 1.0D).</param>
         /// <param name="retrievalMinScore">Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA. (default to 0.5D).</param>
@@ -79,29 +81,29 @@ namespace PlaceframeApiClient.Model
             return _flagDeterministicSeed;
         }
         /// <summary>
-        /// Accumulated median LK pixel displacement (at 320×240) between successive kept keyframes.
+        /// Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.
         /// </summary>
-        /// <value>Accumulated median LK pixel displacement (at 320×240) between successive kept keyframes.</value>
-        [DataMember(Name = "keyframe_parallax_threshold_px", EmitDefaultValue = false)]
-        public double KeyframeParallaxThresholdPx
+        /// <value>Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.</value>
+        [DataMember(Name = "keyframe_min_distance_m", EmitDefaultValue = false)]
+        public double KeyframeMinDistanceM
         {
-            get{ return _KeyframeParallaxThresholdPx;}
+            get{ return _KeyframeMinDistanceM;}
             set
             {
-                _KeyframeParallaxThresholdPx = value;
-                _flagKeyframeParallaxThresholdPx = true;
+                _KeyframeMinDistanceM = value;
+                _flagKeyframeMinDistanceM = true;
             }
         }
-        private double _KeyframeParallaxThresholdPx = 50.0D;
-        private bool _flagKeyframeParallaxThresholdPx;
+        private double _KeyframeMinDistanceM = 0.3D;
+        private bool _flagKeyframeMinDistanceM;
 
         /// <summary>
-        /// Returns false as KeyframeParallaxThresholdPx should not be serialized given that it's read-only.
+        /// Returns false as KeyframeMinDistanceM should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeKeyframeParallaxThresholdPx()
+        public bool ShouldSerializeKeyframeMinDistanceM()
         {
-            return _flagKeyframeParallaxThresholdPx;
+            return _flagKeyframeMinDistanceM;
         }
         /// <summary>
         /// Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.
@@ -127,6 +129,56 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeSequentialWindow()
         {
             return _flagSequentialWindow;
+        }
+        /// <summary>
+        /// Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time.
+        /// </summary>
+        /// <value>Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time.</value>
+        [DataMember(Name = "spatial_neighbors", EmitDefaultValue = false)]
+        public int SpatialNeighbors
+        {
+            get{ return _SpatialNeighbors;}
+            set
+            {
+                _SpatialNeighbors = value;
+                _flagSpatialNeighbors = true;
+            }
+        }
+        private int _SpatialNeighbors = 25;
+        private bool _flagSpatialNeighbors;
+
+        /// <summary>
+        /// Returns false as SpatialNeighbors should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeSpatialNeighbors()
+        {
+            return _flagSpatialNeighbors;
+        }
+        /// <summary>
+        /// Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent.
+        /// </summary>
+        /// <value>Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent.</value>
+        [DataMember(Name = "spatial_max_distance_m", EmitDefaultValue = false)]
+        public double SpatialMaxDistanceM
+        {
+            get{ return _SpatialMaxDistanceM;}
+            set
+            {
+                _SpatialMaxDistanceM = value;
+                _flagSpatialMaxDistanceM = true;
+            }
+        }
+        private double _SpatialMaxDistanceM = 6.0D;
+        private bool _flagSpatialMaxDistanceM;
+
+        /// <summary>
+        /// Returns false as SpatialMaxDistanceM should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeSpatialMaxDistanceM()
+        {
+            return _flagSpatialMaxDistanceM;
         }
         /// <summary>
         /// Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.
@@ -437,8 +489,10 @@ namespace PlaceframeApiClient.Model
             StringBuilder sb = new StringBuilder();
             sb.Append("class ReconstructionOptions {\n");
             sb.Append("  DeterministicSeed: ").Append(DeterministicSeed).Append("\n");
-            sb.Append("  KeyframeParallaxThresholdPx: ").Append(KeyframeParallaxThresholdPx).Append("\n");
+            sb.Append("  KeyframeMinDistanceM: ").Append(KeyframeMinDistanceM).Append("\n");
             sb.Append("  SequentialWindow: ").Append(SequentialWindow).Append("\n");
+            sb.Append("  SpatialNeighbors: ").Append(SpatialNeighbors).Append("\n");
+            sb.Append("  SpatialMaxDistanceM: ").Append(SpatialMaxDistanceM).Append("\n");
             sb.Append("  RetrievalNeighbors: ").Append(RetrievalNeighbors).Append("\n");
             sb.Append("  RetrievalMinDistanceM: ").Append(RetrievalMinDistanceM).Append("\n");
             sb.Append("  RetrievalMinScore: ").Append(RetrievalMinScore).Append("\n");

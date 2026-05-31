@@ -2672,23 +2672,25 @@ components:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         options:
-          ransac_max_error: 7.061401241503109
-          ransac_min_inlier_ratio: 9.301444243932576
+          ransac_max_error: 3.616076749251911
+          spatial_neighbors: 5
+          ransac_min_inlier_ratio: 2.027123023002322
           held_out_frame_timestamps:
-          - 1
-          - 1
-          bundle_adjustment_global_function_tolerance: 7.386281948385884
-          keyframe_parallax_threshold_px: 6.027456183070403
-          retrieval_min_score: 2.3021358869347655
-          pose_prior_position_sigma_m: 1.2315135367772556
+          - 7
+          - 7
+          bundle_adjustment_global_function_tolerance: 1.0246457001441578
+          retrieval_min_score: 9.301444243932576
+          pose_prior_position_sigma_m: 1.4894159098541704
           sequential_window: 1
           deterministic_seed: 0
-          retrieval_neighbors: 5
-          max_keypoints_per_image: 1
-          mapper_filter_max_reprojection_error: 2.027123023002322
-          triangulation_minimum_angle: 3.616076749251911
-          bundle_adjustment_global_frames_ratio: 4.145608029883936
-          retrieval_min_distance_m: 5.637376656633329
+          retrieval_neighbors: 2
+          max_keypoints_per_image: 6
+          mapper_filter_max_reprojection_error: 7.386281948385884
+          keyframe_min_distance_m: 6.027456183070403
+          triangulation_minimum_angle: 4.145608029883936
+          bundle_adjustment_global_frames_ratio: 1.2315135367772556
+          retrieval_min_distance_m: 7.061401241503109
+          spatial_max_distance_m: 5.637376656633329
         reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         reconstruction_id:
@@ -4019,23 +4021,25 @@ components:
     ReconstructionCreateWithOptions:
       example:
         options:
-          ransac_max_error: 7.061401241503109
-          ransac_min_inlier_ratio: 9.301444243932576
+          ransac_max_error: 3.616076749251911
+          spatial_neighbors: 5
+          ransac_min_inlier_ratio: 2.027123023002322
           held_out_frame_timestamps:
-          - 1
-          - 1
-          bundle_adjustment_global_function_tolerance: 7.386281948385884
-          keyframe_parallax_threshold_px: 6.027456183070403
-          retrieval_min_score: 2.3021358869347655
-          pose_prior_position_sigma_m: 1.2315135367772556
+          - 7
+          - 7
+          bundle_adjustment_global_function_tolerance: 1.0246457001441578
+          retrieval_min_score: 9.301444243932576
+          pose_prior_position_sigma_m: 1.4894159098541704
           sequential_window: 1
           deterministic_seed: 0
-          retrieval_neighbors: 5
-          max_keypoints_per_image: 1
-          mapper_filter_max_reprojection_error: 2.027123023002322
-          triangulation_minimum_angle: 3.616076749251911
-          bundle_adjustment_global_frames_ratio: 4.145608029883936
-          retrieval_min_distance_m: 5.637376656633329
+          retrieval_neighbors: 2
+          max_keypoints_per_image: 6
+          mapper_filter_max_reprojection_error: 7.386281948385884
+          keyframe_min_distance_m: 6.027456183070403
+          triangulation_minimum_angle: 4.145608029883936
+          bundle_adjustment_global_frames_ratio: 1.2315135367772556
+          retrieval_min_distance_m: 7.061401241503109
+          spatial_max_distance_m: 5.637376656633329
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -4189,33 +4193,36 @@ components:
       type: object
     ReconstructionOptions:
       example:
-        ransac_max_error: 7.061401241503109
-        ransac_min_inlier_ratio: 9.301444243932576
+        ransac_max_error: 3.616076749251911
+        spatial_neighbors: 5
+        ransac_min_inlier_ratio: 2.027123023002322
         held_out_frame_timestamps:
-        - 1
-        - 1
-        bundle_adjustment_global_function_tolerance: 7.386281948385884
-        keyframe_parallax_threshold_px: 6.027456183070403
-        retrieval_min_score: 2.3021358869347655
-        pose_prior_position_sigma_m: 1.2315135367772556
+        - 7
+        - 7
+        bundle_adjustment_global_function_tolerance: 1.0246457001441578
+        retrieval_min_score: 9.301444243932576
+        pose_prior_position_sigma_m: 1.4894159098541704
         sequential_window: 1
         deterministic_seed: 0
-        retrieval_neighbors: 5
-        max_keypoints_per_image: 1
-        mapper_filter_max_reprojection_error: 2.027123023002322
-        triangulation_minimum_angle: 3.616076749251911
-        bundle_adjustment_global_frames_ratio: 4.145608029883936
-        retrieval_min_distance_m: 5.637376656633329
+        retrieval_neighbors: 2
+        max_keypoints_per_image: 6
+        mapper_filter_max_reprojection_error: 7.386281948385884
+        keyframe_min_distance_m: 6.027456183070403
+        triangulation_minimum_angle: 4.145608029883936
+        bundle_adjustment_global_frames_ratio: 1.2315135367772556
+        retrieval_min_distance_m: 7.061401241503109
+        spatial_max_distance_m: 5.637376656633329
       properties:
         deterministic_seed:
           description: PRNG seed and single-threaded gate for reproducible reconstructions;
             None means non-deterministic.
           nullable: true
           type: integer
-        keyframe_parallax_threshold_px:
-          default: 50.0
-          description: Accumulated median LK pixel displacement (at 320×240) between
-            successive kept keyframes.
+        keyframe_min_distance_m:
+          default: 0.3
+          description: Minimum VIO-translation distance (meters) between successive
+            kept keyframes; frames closer to the last kept frame than this are dropped
+            before feature extraction.
           format: double
           type: number
         sequential_window:
@@ -4223,6 +4230,19 @@ components:
           description: Per-frame count of temporally-adjacent neighbours (each side)
             paired within a rig for the temporal match-graph backbone.
           type: integer
+        spatial_neighbors:
+          default: 25
+          description: Top-K closest in-range neighbours by VIO-position paired with
+            each frame; 0 disables spatial pairing. Adjacent frames already covered
+            by sequential pairing are deduped at union time.
+          type: integer
+        spatial_max_distance_m:
+          default: 6.0
+          description: Maximum VIO-position distance (meters) for spatial pairs; in-range
+            neighbours are then capped at spatial_neighbors closest. No-op when positions
+            are absent.
+          format: double
+          type: number
         retrieval_neighbors:
           default: 20
           description: Top-K most-similar images (DIR cosine) paired with each image

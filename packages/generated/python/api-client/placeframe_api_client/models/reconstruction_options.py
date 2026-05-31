@@ -28,8 +28,10 @@ class ReconstructionOptions(BaseModel):
     ReconstructionOptions
     """ # noqa: E501
     deterministic_seed: Optional[StrictInt] = Field(default=None, description="PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic.")
-    keyframe_parallax_threshold_px: Optional[Union[StrictFloat, StrictInt]] = Field(default=50.0, description="Accumulated median LK pixel displacement (at 320×240) between successive kept keyframes.")
+    keyframe_min_distance_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.3, description="Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.")
     sequential_window: Optional[StrictInt] = Field(default=10, description="Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.")
+    spatial_neighbors: Optional[StrictInt] = Field(default=25, description="Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time.")
+    spatial_max_distance_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=6.0, description="Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent.")
     retrieval_neighbors: Optional[StrictInt] = Field(default=20, description="Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.")
     retrieval_min_distance_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=1.0, description="Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent.")
     retrieval_min_score: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.5, description="Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.")
@@ -43,7 +45,7 @@ class ReconstructionOptions(BaseModel):
     max_keypoints_per_image: Optional[StrictInt] = Field(default=2500, description="Maximum ALIKED keypoints retained per image.")
     held_out_frame_timestamps: Optional[List[StrictInt]] = Field(default=None, description="Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_parallax_threshold_px", "sequential_window", "retrieval_neighbors", "retrieval_min_distance_m", "retrieval_min_score", "ransac_max_error", "ransac_min_inlier_ratio", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "max_keypoints_per_image", "held_out_frame_timestamps"]
+    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_min_distance_m", "sequential_window", "spatial_neighbors", "spatial_max_distance_m", "retrieval_neighbors", "retrieval_min_distance_m", "retrieval_min_score", "ransac_max_error", "ransac_min_inlier_ratio", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "max_keypoints_per_image", "held_out_frame_timestamps"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -114,8 +116,10 @@ class ReconstructionOptions(BaseModel):
 
         _obj = cls.model_validate({
             "deterministic_seed": obj.get("deterministic_seed"),
-            "keyframe_parallax_threshold_px": obj.get("keyframe_parallax_threshold_px") if obj.get("keyframe_parallax_threshold_px") is not None else 50.0,
+            "keyframe_min_distance_m": obj.get("keyframe_min_distance_m") if obj.get("keyframe_min_distance_m") is not None else 0.3,
             "sequential_window": obj.get("sequential_window") if obj.get("sequential_window") is not None else 10,
+            "spatial_neighbors": obj.get("spatial_neighbors") if obj.get("spatial_neighbors") is not None else 25,
+            "spatial_max_distance_m": obj.get("spatial_max_distance_m") if obj.get("spatial_max_distance_m") is not None else 6.0,
             "retrieval_neighbors": obj.get("retrieval_neighbors") if obj.get("retrieval_neighbors") is not None else 20,
             "retrieval_min_distance_m": obj.get("retrieval_min_distance_m") if obj.get("retrieval_min_distance_m") is not None else 1.0,
             "retrieval_min_score": obj.get("retrieval_min_score") if obj.get("retrieval_min_score") is not None else 0.5,

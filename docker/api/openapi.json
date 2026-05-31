@@ -6226,16 +6226,27 @@
             "nullable": true,
             "type": "integer"
           },
-          "keyframe_parallax_threshold_px": {
+          "keyframe_min_distance_m": {
             "type": "number",
             "format": "double",
-            "description": "Accumulated median LK pixel displacement (at 320\u00d7240) between successive kept keyframes.",
-            "default": 50.0
+            "description": "Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.",
+            "default": 0.3
           },
           "sequential_window": {
             "type": "integer",
             "description": "Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.",
             "default": 10
+          },
+          "spatial_neighbors": {
+            "type": "integer",
+            "description": "Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time.",
+            "default": 25
+          },
+          "spatial_max_distance_m": {
+            "type": "number",
+            "format": "double",
+            "description": "Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent.",
+            "default": 6.0
           },
           "retrieval_neighbors": {
             "type": "integer",
