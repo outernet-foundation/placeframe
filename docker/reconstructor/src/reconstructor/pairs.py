@@ -44,6 +44,8 @@ def generate_image_pairs(
     retrieval_neighbors: int,
     retrieval_min_distance_m: float,
     retrieval_min_score: float,
+    retrieval_covisibility_window: int,
+    retrieval_covisibility_min_support: int,
 ) -> dict[PairSource, list[tuple[str, str]]]:
     sequential_frame_pairs: list[tuple[tuple[str, str], tuple[str, str]]] = []
     for rig_id, rig in rigs.items():
@@ -149,6 +151,71 @@ def generate_image_pairs(
         retrieval_image_pairs = [
             (image_names[int(i)], image_names[int(retrieval_indices[i, j])]) for i, j in zip(*where(retrieval_valid))
         ]
+
+    # Covisibility filter: an aliased retrieval pair (e.g. two paintings with similar composition in
+    # different rooms) appears as a singleton — frame A retrieval-matches frame B but A's temporal
+    # neighbours do not retrieval-match B's temporal neighbours. A true loop closure produces a band
+    # because the whole stretch of trajectory re-matches when you genuinely revisit a place. For each
+    # candidate frame-pair (A, B) we count supporting frame-pairs (A', B') where each endpoint is
+    # within retrieval_covisibility_window keyframe steps of the corresponding original and the rigs
+    # match; pairs with fewer than retrieval_covisibility_min_support supporters are dropped. Both
+    # forward (A'≈A, B'≈B) and backward (A'≈B, B'≈A) orderings count, since a real revisit can
+    # traverse the loop in either direction.
+    if retrieval_image_pairs and retrieval_covisibility_min_support > 0:
+        cross_rig_temporal_index: dict[tuple[str, str], int] = {}
+        for rig_id, rig in rigs.items():
+            for index, frame_id in enumerate(sorted(rig.frame_poses.keys(), key=int)):
+                cross_rig_temporal_index[(rig_id, frame_id)] = index
+
+        candidate_frame_pairs: set[tuple[tuple[str, str], tuple[str, str]]] = set()
+        for image_a, image_b in retrieval_image_pairs:
+            rig_a, _, rest_a = image_a.split("/", 2)
+            frame_a = (rig_a, rest_a.rsplit(".", 1)[0])
+            rig_b, _, rest_b = image_b.split("/", 2)
+            frame_b = (rig_b, rest_b.rsplit(".", 1)[0])
+            if frame_a == frame_b:
+                continue
+            canonical = (frame_a, frame_b) if frame_a <= frame_b else (frame_b, frame_a)
+            candidate_frame_pairs.add(canonical)
+
+        candidate_list = list(candidate_frame_pairs)
+        accepted_frame_pairs: set[tuple[tuple[str, str], tuple[str, str]]] = set()
+        for i, (target_a, target_b) in enumerate(candidate_list):
+            support = 0
+            target_a_index = cross_rig_temporal_index[target_a]
+            target_b_index = cross_rig_temporal_index[target_b]
+            for j, (other_a, other_b) in enumerate(candidate_list):
+                if i == j:
+                    continue
+                forward_match = (
+                    other_a[0] == target_a[0]
+                    and other_b[0] == target_b[0]
+                    and abs(cross_rig_temporal_index[other_a] - target_a_index) <= retrieval_covisibility_window
+                    and abs(cross_rig_temporal_index[other_b] - target_b_index) <= retrieval_covisibility_window
+                )
+                backward_match = (
+                    other_a[0] == target_b[0]
+                    and other_b[0] == target_a[0]
+                    and abs(cross_rig_temporal_index[other_a] - target_b_index) <= retrieval_covisibility_window
+                    and abs(cross_rig_temporal_index[other_b] - target_a_index) <= retrieval_covisibility_window
+                )
+                if forward_match or backward_match:
+                    support += 1
+                    if support >= retrieval_covisibility_min_support:
+                        break
+            if support >= retrieval_covisibility_min_support:
+                accepted_frame_pairs.add((target_a, target_b))
+
+        filtered_retrieval_image_pairs: list[tuple[str, str]] = []
+        for image_a, image_b in retrieval_image_pairs:
+            rig_a, _, rest_a = image_a.split("/", 2)
+            frame_a = (rig_a, rest_a.rsplit(".", 1)[0])
+            rig_b, _, rest_b = image_b.split("/", 2)
+            frame_b = (rig_b, rest_b.rsplit(".", 1)[0])
+            canonical = (frame_a, frame_b) if frame_a <= frame_b else (frame_b, frame_a)
+            if canonical in accepted_frame_pairs:
+                filtered_retrieval_image_pairs.append((image_a, image_b))
+        retrieval_image_pairs = filtered_retrieval_image_pairs
 
     pairs_by_source: dict[PairSource, list[tuple[str, str]]] = {source: [] for source in PairSource}
     seen: dict[tuple[str, str], PairSource] = {}

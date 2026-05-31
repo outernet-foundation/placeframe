@@ -211,6 +211,8 @@ def run_reconstruction(
         options.retrieval_neighbors(),
         options.retrieval_min_distance_m(),
         options.retrieval_min_score(),
+        options.retrieval_covisibility_window(),
+        options.retrieval_covisibility_min_support(),
     )
     pairs = flatten_pairs(pairs_by_source)
     file_name, file_bytes = write_pairs(pairs, WORK_DIR)

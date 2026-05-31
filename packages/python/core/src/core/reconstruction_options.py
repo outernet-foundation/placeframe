@@ -38,6 +38,14 @@ class ReconstructionOptions(BaseModel):
         default=0.35,
         description="Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.",
     )
+    retrieval_covisibility_window: int = Field(
+        default=3,
+        description="Half-width (in temporal keyframe indices) of the neighborhood used to validate retrieval pairs against perceptual aliasing. A pair (A,B) is supported by another retrieval pair (A',B') iff both endpoints fall within this window of the original pair on their respective trajectories.",
+    )
+    retrieval_covisibility_min_support: int = Field(
+        default=2,
+        description="Minimum count of supporting retrieval pairs within retrieval_covisibility_window required for a retrieval candidate to be kept; aliased pairs (e.g. two similar paintings in different rooms) appear as singletons and get dropped, while true loop closures appear as bands and survive. 0 disables the filter.",
+    )
     ransac_max_error: float = Field(
         default=2.0,
         description="Two-view RANSAC inlier threshold in pixels; lower is stricter.",

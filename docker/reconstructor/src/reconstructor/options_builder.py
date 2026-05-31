@@ -61,6 +61,12 @@ class OptionsBuilder:
     def retrieval_min_score(self):
         return self.options.retrieval_min_score
 
+    def retrieval_covisibility_window(self):
+        return self.options.retrieval_covisibility_window
+
+    def retrieval_covisibility_min_support(self):
+        return self.options.retrieval_covisibility_min_support
+
     def pose_prior_position_sigma_m(self):
         return self.options.pose_prior_position_sigma_m
 
