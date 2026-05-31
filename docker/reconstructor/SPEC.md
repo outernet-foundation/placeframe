@@ -70,11 +70,13 @@ Per reconstruction id under `dev-reconstructions/<id>/`:
 | Key | Phase that produced it | Notes |
 |---|---|---|
 | `pairs.txt` | pair generation | Each line `image_a image_b`. |
+| `pairs_with_source.csv` | pair generation | Header `image_a,image_b,source`. `source` ∈ {`intra_frame_stereo`, `sequential`, `spatial`, `retrieval`}, assigned by `SOURCE_PRECEDENCE` in `pairs.py`. Companion to `pairs.txt`; lets post-hoc diagnostics classify each candidate pair without reconstructing the source from the option grid. |
 | `global_descriptors.h5` | EXTRACTING_FEATURES | Per-image (per-tile) DIR retrieval vectors. |
 | `opq_matrix.tf` | TRAINING_OPQ_MATRIX | FAISS-serialized OPQ rotation. |
 | `pq_quantizer.pq` | TRAINING_PRODUCT_QUANTIZER | FAISS-serialized PQ. |
 | `features.h5` | TRAINING_PRODUCT_QUANTIZER | Keypoints + PQ codes. |
 | `sfm_model/` | RECONSTRUCTING (post-SfM) | COLMAP text dump (cameras.txt, images.txt, points3D.txt, frames.txt) + `points3D.npz` + `frame_poses.npz`. |
+| `database.db` | RECONSTRUCTING (post-SfM) | SQLite COLMAP database in its final post-incremental-mapping state. Carries cameras, images, keypoints, raw matches, and two-view geometries; the verified-pair subset is recoverable from the `two_view_geometries` table. Uploaded last so its presence implies SfM ran to completion. |
 
 Presence of a complete `sfm_model/` is the strongest signal a reconstruction's outputs are final; nothing in the bucket carries an explicit completion sentinel.
 
