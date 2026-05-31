@@ -77,13 +77,7 @@ class Rig:
             if held_out_frame_timestamps is not None and int(frame_id) in held_out_frame_timestamps:
                 continue
             pose = _parse_frame_pose(fields[1:], axis_convention)
-            if self.is_multi_camera:
-                # Multi-camera rigs run priors-off — the stereo baseline anchors metric scale and the
-                # PosePrior loss is disabled at BA. Drop any translation the capture happens to ship
-                # so legacy 7-field frames.csv files (predating the gravity-only schema) can't leak
-                # drifted VIO positions into pair-generation's retrieval-distance gate.
-                pose = FramePose(translation=None, gravity_in_rig_local=pose.gravity_in_rig_local)
-            elif pose.translation is None:
+            if not self.is_multi_camera and pose.translation is None:
                 raise ValueError(
                     f"Monocular rig {rig_config.id} requires per-frame position priors in frames.csv "
                     f"(frame {frame_id} has only gravity columns)"

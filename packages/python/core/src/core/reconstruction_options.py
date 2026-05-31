@@ -10,13 +10,21 @@ class ReconstructionOptions(BaseModel):
         default=None,
         description="PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic.",
     )
-    keyframe_parallax_threshold_px: float = Field(
-        default=50.0,
-        description="Accumulated median LK pixel displacement (at 320×240) between successive kept keyframes.",
+    keyframe_min_distance_m: float = Field(
+        default=0.3,
+        description="Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.",
     )
     sequential_window: int = Field(
         default=10,
         description="Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.",
+    )
+    spatial_neighbors: int = Field(
+        default=25,
+        description="Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time.",
+    )
+    spatial_max_distance_m: float = Field(
+        default=6.0,
+        description="Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent.",
     )
     retrieval_neighbors: int = Field(
         default=20,

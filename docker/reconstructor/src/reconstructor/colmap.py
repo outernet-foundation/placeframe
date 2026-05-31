@@ -96,9 +96,12 @@ def run_colmap_reconstruction(
                 image_cameras[image_name] = camera[1]
                 database.write_keypoints(colmap_image_ids[image_name], keypoints[image_name])
 
-                # Pose priors only carry position; write only when the capture supplies a position
-                # (ARFoundation does, multi-rig ZED captures don't).
-                if camera[0].ref_sensor and transform.translation is not None:
+                # PosePrior is the BA-side consumer of per-frame VIO positions. Multi-camera captures
+                # carry positions in frames.csv so pair-generation can use them as a spatial signal,
+                # but BA must not see them: VIO drift baked into a quadratic loss tears global
+                # geometry apart on revisits (the original priors-off motivation). Stereo baseline
+                # anchors metric scale instead.
+                if camera[0].ref_sensor and not options.is_multi_camera_capture and transform.translation is not None:
                     database.write_pose_prior(
                         PosePrior(
                             position=transform.translation.reshape(3, 1),

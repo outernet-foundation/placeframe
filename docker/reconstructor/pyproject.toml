@@ -9,7 +9,6 @@ dependencies = [
     "common",
     "placeframe-api-client",
     "numpy>=2.0",
-    "opencv-python-headless>=4.10.0",
     "scipy>=1.7",
     "pycolmap>=4.0.4",
     "pydantic-settings>=2.12.0",

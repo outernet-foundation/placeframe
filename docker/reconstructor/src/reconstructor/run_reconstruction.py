@@ -26,14 +26,14 @@ from core.reconstruction_options import ReconstructionOptions
 from core.model_wrappers import RetrievalDim
 from core.tensor_types import TT
 from neural_networks.models import load_aliked, load_DIR, load_lightglue
-from numpy import asarray, ascontiguousarray, float32, random, stack, vstack
+from numpy import asarray, ascontiguousarray, float32, float64, random, stack, vstack
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from placeframe_api_client import ReconstructionStatus
 from pycolmap._core import set_random_seed  # noqa: PLC2701 — no public API
 from torch import Tensor, cuda, from_numpy, inference_mode  # type: ignore
 
 from .colmap import run_colmap_reconstruction
-from .keyframes import select_keyframes_by_parallax
+from .keyframes import select_keyframes_by_distance
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
 from .pairs import generate_image_pairs, write_pairs
@@ -126,28 +126,34 @@ def run_reconstruction(
         for rig in capture_session_manifest.rigs
     }
 
-    # A capture is priors-off when any rig has more than one camera — the stereo baseline anchors
-    # metric scale and the per-frame position priors are dropped at parse time.
+    # A capture is priors-off-in-BA when any rig has more than one camera — the stereo baseline
+    # anchors metric scale and BA must not see drifted VIO positions as a quadratic loss. Position
+    # priors stay on rig.frame_poses for pair generation and keyframe selection regardless.
     is_multi_camera_capture = any(rig.is_multi_camera for rig in rigs.values())
     options = OptionsBuilder(reconstruction_options, is_multi_camera_capture=is_multi_camera_capture)
 
-    # Subsample each rig's frames to keyframes via offline Lucas-Kanade optical flow on the
-    # reference camera's images. Replaces the VIO-distance / VIO-rotation gates that depend on
-    # signals the calibrated multi-rig pipeline no longer trusts for downstream BA.
+    # Subsample each rig's frames to keyframes by VIO translation distance. Frame F is kept iff its
+    # device-reported position is at least keyframe_min_distance_m from the last kept keyframe.
     for rig in rigs.values():
         ordered_frame_ids = sorted(rig.frame_poses.keys(), key=int)
-        ref_camera_image_paths = [
-            CAPTURE_SESSION_DIRECTORY / f"{rig.id}/{rig.ref_camera_id}/{frame_id}.jpg" for frame_id in ordered_frame_ids
-        ]
-        kept_indices = select_keyframes_by_parallax(
-            ref_camera_image_paths,
-            accumulated_parallax_threshold_px=options.keyframe_parallax_threshold_px(),
+        translations_by_frame_id: dict[str, NDArray[float64]] = {}
+        for frame_id in ordered_frame_ids:
+            translation = rig.frame_poses[frame_id].translation
+            if translation is None:
+                raise ValueError(
+                    f"Rig {rig.id}: keyframe subsampling requires per-frame translations; "
+                    f"frame {frame_id} has none"
+                )
+            translations_by_frame_id[frame_id] = translation
+        kept_frame_ids = set(
+            select_keyframes_by_distance(
+                ordered_frame_ids,
+                translations_by_frame_id,
+                min_distance_m=options.keyframe_min_distance_m(),
+            )
         )
-        kept_frame_ids = {ordered_frame_ids[index] for index in kept_indices}
         rig.frame_poses = {frame_id: pose for frame_id, pose in rig.frame_poses.items() if frame_id in kept_frame_ids}
-        print(
-            f"Rig {rig.id}: kept {len(rig.frame_poses)} of {len(ordered_frame_ids)} frames as keyframes (LK-parallax)"
-        )
+        print(f"Rig {rig.id}: kept {len(rig.frame_poses)} of {len(ordered_frame_ids)} frames as keyframes (distance)")
 
     if reconstruction_options.deterministic_seed is not None:
         random.seed(reconstruction_options.deterministic_seed)  # noqa: NPY002 — pycolmap reads numpy's global random state; can't use default_rng()
@@ -201,6 +207,8 @@ def run_reconstruction(
         rigs,
         global_descriptors,
         options.sequential_window(),
+        options.spatial_neighbors(),
+        options.spatial_max_distance_m(),
         options.retrieval_neighbors(),
         options.retrieval_min_distance_m(),
         options.retrieval_min_score(),

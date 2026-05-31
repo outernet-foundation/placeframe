@@ -74,6 +74,17 @@ def gravity_only_frames_csv() -> str:
     return "\n".join([header, *rows])
 
 
+@pytest.fixture
+def position_and_gravity_frames_csv() -> str:
+    header = "timestamp_ms,tx,ty,tz,gx,gy,gz"
+    rows = [
+        "1700000000001,0.0,0.0,0.0,0.0,1.0,0.0",
+        "1700000000002,1.0,0.0,0.0,0.0,1.0,0.0",
+        "1700000000003,2.0,0.0,0.0,0.0,1.0,0.0",
+    ]
+    return "\n".join([header, *rows])
+
+
 def test_held_out_timestamp_excluded_from_frame_poses(manifest: CaptureSessionManifest, legacy_priors_frames_csv: str):
     rig_config = manifest.rigs[0]
     timestamps = [int(line.split(",")[0]) for line in legacy_priors_frames_csv.splitlines()[1:]]
@@ -115,7 +126,7 @@ def test_multi_camera_gravity_only_parses_without_translation(
         assert pose.gravity_in_rig_local.tolist() == [0.0, 1.0, 0.0]
 
 
-def test_multi_camera_drops_translation_from_legacy_priors_csv(
+def test_multi_camera_keeps_translation_from_legacy_priors_csv(
     multi_camera_manifest: CaptureSessionManifest, legacy_priors_frames_csv: str
 ):
     rig_config = multi_camera_manifest.rigs[0]
@@ -123,7 +134,7 @@ def test_multi_camera_drops_translation_from_legacy_priors_csv(
 
     assert rig.is_multi_camera
     for pose in rig.frame_poses.values():
-        assert pose.translation is None
+        assert pose.translation is not None
 
 
 def test_monocular_legacy_priors_schema_populates_translation(
@@ -142,3 +153,17 @@ def test_monocular_gravity_only_csv_is_rejected(manifest: CaptureSessionManifest
     rig_config = manifest.rigs[0]
     with pytest.raises(ValueError, match="requires per-frame position priors"):
         Rig(rig_config, manifest.axis_convention, gravity_only_frames_csv)
+
+
+def test_multi_camera_position_and_gravity_csv_populates_both(
+    multi_camera_manifest: CaptureSessionManifest, position_and_gravity_frames_csv: str
+):
+    rig_config = multi_camera_manifest.rigs[0]
+    rig = Rig(rig_config, multi_camera_manifest.axis_convention, position_and_gravity_frames_csv)
+
+    assert rig.is_multi_camera
+    assert len(rig.frame_poses) == 3
+    for pose in rig.frame_poses.values():
+        assert pose.translation is not None
+        assert pose.gravity_in_rig_local is not None
+        assert pose.gravity_in_rig_local.tolist() == [0.0, 1.0, 0.0]

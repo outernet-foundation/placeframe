@@ -16,9 +16,10 @@ BUNDLE_ADJUSTMENT_IGNORE_REDUNDANT_POINTS_3D = True
 class OptionsBuilder:
     def __init__(self, options: ReconstructionOptions, is_multi_camera_capture: bool):
         self.options = options
-        # Multi-camera captures run priors-off everywhere: PosePrior loss disabled in BA and the
-        # final standalone BA pass keeps sensor_from_rig pinned so the stereo baseline (the only
-        # remaining metric-scale anchor) survives the 7-DOF gauge freedom of the unconstrained pass.
+        # Multi-camera captures run priors-off in BA (PosePrior loss disabled, sensor_from_rig pinned
+        # so the stereo baseline survives the final standalone BA's 7-DOF gauge freedom) but
+        # priors-on in pair generation and keyframe selection. See SPEC.md "Priors-on in pair gen,
+        # priors-off in BA for multi-camera rigs".
         self.is_multi_camera_capture = is_multi_camera_capture
 
     def two_view_geometry_options(self):
@@ -32,11 +33,17 @@ class OptionsBuilder:
         two_view_geometry_options.stationary_matches_max_error = 4.0
         return two_view_geometry_options
 
-    def keyframe_parallax_threshold_px(self):
-        return self.options.keyframe_parallax_threshold_px
+    def keyframe_min_distance_m(self):
+        return self.options.keyframe_min_distance_m
 
     def sequential_window(self):
         return self.options.sequential_window
+
+    def spatial_neighbors(self):
+        return self.options.spatial_neighbors
+
+    def spatial_max_distance_m(self):
+        return self.options.spatial_max_distance_m
 
     def retrieval_neighbors(self):
         return self.options.retrieval_neighbors
