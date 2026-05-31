@@ -271,7 +271,7 @@ def run_reconstruction(
         metrics,
         rigs,
         keypoints,
-        pairs,
+        pairs_by_source,
         match_indices,
         publisher,
     )

@@ -25,8 +25,8 @@ class PairSource(str, Enum):
 # Precedence: the most-trusted source wins when a pair would be claimed by several. Intra-frame
 # stereo (same-frame, different sensor) is the strongest geometric constraint we have; sequential
 # is next-strongest (small VIO step between adjacent keyframes); spatial third; retrieval last
-# because visual similarity is the weakest spatial cue. Used for dedup attribution only; all
-# sources share a single two-view verification threshold profile.
+# because visual similarity is the weakest spatial cue. A pair landing under a stronger source
+# inherits its (more permissive) verification threshold profile downstream.
 SOURCE_PRECEDENCE: tuple[PairSource, ...] = (
     PairSource.INTRA_FRAME_STEREO,
     PairSource.SEQUENTIAL,

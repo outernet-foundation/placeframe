@@ -58,6 +58,14 @@ class ReconstructionOptions(BaseModel):
         default=30,
         description="Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap's SIFT-era default of 15 to reject small false-positive clusters on repetitive structure.",
     )
+    retrieval_min_inlier_ratio: float = Field(
+        default=0.40,
+        description="Two-view RANSAC minimum inlier ratio for retrieval-sourced pairs only; stricter than the sequential/spatial/intra-frame floor because visually-similar-but-spatially-distant indoor regions can fabricate plausible-looking essential matrices.",
+    )
+    retrieval_min_num_inliers: int = Field(
+        default=50,
+        description="Absolute minimum inlier count for retrieval-sourced pair geometries; stricter than the global two_view_min_num_inliers because retrieval is the lone pair source where visual similarity does not imply spatial proximity.",
+    )
     triangulation_minimum_angle: float = Field(
         default=3.0,
         description="Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering.",
