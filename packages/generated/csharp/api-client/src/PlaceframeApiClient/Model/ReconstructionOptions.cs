@@ -43,7 +43,8 @@ namespace PlaceframeApiClient.Model
         /// <param name="retrievalMinDistanceM">Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent. (default to 1.0D).</param>
         /// <param name="retrievalMinScore">Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA. (default to 0.35D).</param>
         /// <param name="ransacMaxError">Two-view RANSAC inlier threshold in pixels; lower is stricter. (default to 2.0D).</param>
-        /// <param name="ransacMinInlierRatio">Two-view RANSAC minimum inlier ratio to accept a pair&#39;s geometry. (default to 0.15D).</param>
+        /// <param name="ransacMinInlierRatio">Two-view RANSAC minimum inlier ratio to accept a pair&#39;s geometry. (default to 0.25D).</param>
+        /// <param name="twoViewMinNumInliers">Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap&#39;s SIFT-era default of 15 to reject small false-positive clusters on repetitive structure. (default to 30).</param>
         /// <param name="triangulationMinimumAngle">Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering. (default to 3.0D).</param>
         /// <param name="mapperFilterMaxReprojectionError">Post-BA outlier reprojection threshold in pixels; points exceeding it are culled. (default to 2.0D).</param>
         /// <param name="bundleAdjustmentGlobalFramesRatio">Frame-count growth ratio that triggers a global BA event; larger &#x3D; fewer events. (default to 1.5D).</param>
@@ -294,7 +295,7 @@ namespace PlaceframeApiClient.Model
                 _flagRansacMinInlierRatio = true;
             }
         }
-        private double _RansacMinInlierRatio = 0.15D;
+        private double _RansacMinInlierRatio = 0.25D;
         private bool _flagRansacMinInlierRatio;
 
         /// <summary>
@@ -304,6 +305,31 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeRansacMinInlierRatio()
         {
             return _flagRansacMinInlierRatio;
+        }
+        /// <summary>
+        /// Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap&#39;s SIFT-era default of 15 to reject small false-positive clusters on repetitive structure.
+        /// </summary>
+        /// <value>Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap&#39;s SIFT-era default of 15 to reject small false-positive clusters on repetitive structure.</value>
+        [DataMember(Name = "two_view_min_num_inliers", EmitDefaultValue = false)]
+        public int TwoViewMinNumInliers
+        {
+            get{ return _TwoViewMinNumInliers;}
+            set
+            {
+                _TwoViewMinNumInliers = value;
+                _flagTwoViewMinNumInliers = true;
+            }
+        }
+        private int _TwoViewMinNumInliers = 30;
+        private bool _flagTwoViewMinNumInliers;
+
+        /// <summary>
+        /// Returns false as TwoViewMinNumInliers should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeTwoViewMinNumInliers()
+        {
+            return _flagTwoViewMinNumInliers;
         }
         /// <summary>
         /// Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering.
@@ -498,6 +524,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  RetrievalMinScore: ").Append(RetrievalMinScore).Append("\n");
             sb.Append("  RansacMaxError: ").Append(RansacMaxError).Append("\n");
             sb.Append("  RansacMinInlierRatio: ").Append(RansacMinInlierRatio).Append("\n");
+            sb.Append("  TwoViewMinNumInliers: ").Append(TwoViewMinNumInliers).Append("\n");
             sb.Append("  TriangulationMinimumAngle: ").Append(TriangulationMinimumAngle).Append("\n");
             sb.Append("  MapperFilterMaxReprojectionError: ").Append(MapperFilterMaxReprojectionError).Append("\n");
             sb.Append("  BundleAdjustmentGlobalFramesRatio: ").Append(BundleAdjustmentGlobalFramesRatio).Append("\n");
