@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from enum import Enum
 from itertools import combinations
 from pathlib import Path
 
@@ -14,6 +15,26 @@ from .rig import Rig
 PAIRS_FILE = "pairs.txt"
 
 
+class PairSource(str, Enum):
+    INTRA_FRAME_STEREO = "intra_frame_stereo"
+    SEQUENTIAL = "sequential"
+    SPATIAL = "spatial"
+    RETRIEVAL = "retrieval"
+
+
+# Precedence: the most-trusted source wins when a pair would be claimed by several. Intra-frame
+# stereo (same-frame, different sensor) is the strongest geometric constraint we have; sequential
+# is next-strongest (small VIO step between adjacent keyframes); spatial third; retrieval last
+# because visual similarity is the weakest spatial cue. A pair landing under a stronger source
+# inherits its (more permissive) verification threshold profile downstream.
+SOURCE_PRECEDENCE: tuple[PairSource, ...] = (
+    PairSource.INTRA_FRAME_STEREO,
+    PairSource.SEQUENTIAL,
+    PairSource.SPATIAL,
+    PairSource.RETRIEVAL,
+)
+
+
 def generate_image_pairs(
     rigs: dict[str, Rig],
     global_descriptors: dict[str, NDArray[float32]],
@@ -23,7 +44,7 @@ def generate_image_pairs(
     retrieval_neighbors: int,
     retrieval_min_distance_m: float,
     retrieval_min_score: float,
-) -> list[tuple[str, str]]:
+) -> dict[PairSource, list[tuple[str, str]]]:
     sequential_frame_pairs: list[tuple[tuple[str, str], tuple[str, str]]] = []
     for rig_id, rig in rigs.items():
         frame_ids = sorted(rig.frame_poses.keys(), key=int)
@@ -55,12 +76,22 @@ def generate_image_pairs(
                 for j in in_range:
                     spatial_frame_pairs.append(((rig_id, frame_id_a), (rig_id, frame_ids_with_translation[int(j)])))
 
-    cross_frame_image_pairs = [
+    sequential_image_pairs = [
         (
             f"{rig_id_a}/{camera_a[0].id}/{frame_id_a}.jpg",
             f"{rig_id_b}/{camera_b[0].id}/{frame_id_b}.jpg",
         )
-        for (rig_id_a, frame_id_a), (rig_id_b, frame_id_b) in sequential_frame_pairs + spatial_frame_pairs
+        for (rig_id_a, frame_id_a), (rig_id_b, frame_id_b) in sequential_frame_pairs
+        for camera_a in rigs[rig_id_a].cameras.values()
+        for camera_b in rigs[rig_id_b].cameras.values()
+    ]
+
+    spatial_image_pairs = [
+        (
+            f"{rig_id_a}/{camera_a[0].id}/{frame_id_a}.jpg",
+            f"{rig_id_b}/{camera_b[0].id}/{frame_id_b}.jpg",
+        )
+        for (rig_id_a, frame_id_a), (rig_id_b, frame_id_b) in spatial_frame_pairs
         for camera_a in rigs[rig_id_a].cameras.values()
         for camera_b in rigs[rig_id_b].cameras.values()
     ]
@@ -108,11 +139,31 @@ def generate_image_pairs(
             (image_names[int(i)], image_names[int(retrieval_indices[i, j])]) for i, j in zip(*where(retrieval_valid))
         ]
 
-    return sorted({
-        (a, b) if a <= b else (b, a)
-        for a, b in cross_frame_image_pairs + intra_frame_image_pairs + retrieval_image_pairs
-        if a != b
-    })
+    pairs_by_source: dict[PairSource, list[tuple[str, str]]] = {source: [] for source in PairSource}
+    seen: dict[tuple[str, str], PairSource] = {}
+    for source, candidate_pairs in [
+        (PairSource.INTRA_FRAME_STEREO, intra_frame_image_pairs),
+        (PairSource.SEQUENTIAL, sequential_image_pairs),
+        (PairSource.SPATIAL, spatial_image_pairs),
+        (PairSource.RETRIEVAL, retrieval_image_pairs),
+    ]:
+        for a, b in candidate_pairs:
+            if a == b:
+                continue
+            normalized = (a, b) if a <= b else (b, a)
+            if normalized in seen:
+                continue
+            seen[normalized] = source
+            pairs_by_source[source].append(normalized)
+
+    for source_pairs in pairs_by_source.values():
+        source_pairs.sort()
+
+    return pairs_by_source
+
+
+def flatten_pairs(pairs_by_source: dict[PairSource, list[tuple[str, str]]]) -> list[tuple[str, str]]:
+    return sorted(pair for pairs in pairs_by_source.values() for pair in pairs)
 
 
 def write_pairs(pairs: list[tuple[str, ...]], root_path: Path):

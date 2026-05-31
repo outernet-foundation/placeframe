@@ -36,7 +36,7 @@ from .colmap import run_colmap_reconstruction
 from .keyframes import select_keyframes_by_distance
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
-from .pairs import generate_image_pairs, write_pairs
+from .pairs import flatten_pairs, generate_image_pairs, write_pairs
 from .progress_publisher import ReconstructionPublisher
 from .rig import Rig
 from .settings import get_settings
@@ -141,8 +141,7 @@ def run_reconstruction(
             translation = rig.frame_poses[frame_id].translation
             if translation is None:
                 raise ValueError(
-                    f"Rig {rig.id}: keyframe subsampling requires per-frame translations; "
-                    f"frame {frame_id} has none"
+                    f"Rig {rig.id}: keyframe subsampling requires per-frame translations; frame {frame_id} has none"
                 )
             translations_by_frame_id[frame_id] = translation
         kept_frame_ids = set(
@@ -203,7 +202,7 @@ def run_reconstruction(
     file_name, file_bytes = write_global_descriptors(WORK_DIR, global_descriptors)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
-    pairs = generate_image_pairs(
+    pairs_by_source = generate_image_pairs(
         rigs,
         global_descriptors,
         options.sequential_window(),
@@ -213,6 +212,7 @@ def run_reconstruction(
         options.retrieval_min_distance_m(),
         options.retrieval_min_score(),
     )
+    pairs = flatten_pairs(pairs_by_source)
     file_name, file_bytes = write_pairs(pairs, WORK_DIR)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
@@ -269,7 +269,7 @@ def run_reconstruction(
         metrics,
         rigs,
         keypoints,
-        pairs,
+        pairs_by_source,
         match_indices,
         publisher,
     )
