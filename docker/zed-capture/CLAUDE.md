@@ -18,7 +18,7 @@ NVIDIA's stock `nv-l4t-usb-device-mode.service` is disabled by `install-zed` bec
 
 ## `frames.csv` schema
 
-ZED captures write `timestamp_ms,gx,gy,gz` — no position or rotation columns. `(gx, gy, gz)` is the unit down vector in the frame's rig-local coordinates, derived from the SDK's `world_from_rig` rotation and the IMAGE/OpenCV world's `+Y` down convention. Camera0 is the ref sensor with identity rig↔camera0, so it's also gravity-in-camera0. Reconstructor consumption and rationale are in `docker/reconstructor/SPEC.md` under "Map-frame alignment via per-frame gravity".
+ZED captures write `timestamp_ms,tx,ty,tz,gx,gy,gz`. `(tx, ty, tz)` is the SDK's `world_from_rig` translation (the camera0 center in the SDK's gravity-aligned world); `(gx, gy, gz)` is the unit down vector in the frame's rig-local coordinates, derived from the SDK's `world_from_rig` rotation and the IMAGE/OpenCV world's `+Y` down convention. Camera0 is the ref sensor with identity rig↔camera0, so it's also gravity-in-camera0. The reconstructor consumes the position as a pair-generation signal (spatial-neighbor source) and the gravity as a map-frame alignment signal — see `docker/reconstructor/SPEC.md` "Map-frame alignment via per-frame gravity + first-frame origin" and "Pair generation".
 
 ## Reading box-side logs from Loki
 
