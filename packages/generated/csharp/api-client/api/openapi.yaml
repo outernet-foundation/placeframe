@@ -2673,22 +2673,24 @@ components:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         options:
           ransac_max_error: 3.616076749251911
+          retrieval_min_inlier_ratio: 7.386281948385884
           spatial_neighbors: 5
           ransac_min_inlier_ratio: 2.027123023002322
           held_out_frame_timestamps:
-          - 1
-          - 1
-          bundle_adjustment_global_function_tolerance: 1.4894159098541704
+          - 5
+          - 5
+          bundle_adjustment_global_function_tolerance: 7.457744773683766
           retrieval_min_score: 9.301444243932576
-          pose_prior_position_sigma_m: 6.84685269835264
+          retrieval_min_num_inliers: 1
+          pose_prior_position_sigma_m: 1.1730742509559433
           sequential_window: 1
           deterministic_seed: 0
           retrieval_neighbors: 2
-          max_keypoints_per_image: 7
-          mapper_filter_max_reprojection_error: 1.2315135367772556
+          max_keypoints_per_image: 4
+          mapper_filter_max_reprojection_error: 1.4894159098541704
           keyframe_min_distance_m: 6.027456183070403
-          triangulation_minimum_angle: 7.386281948385884
-          bundle_adjustment_global_frames_ratio: 1.0246457001441578
+          triangulation_minimum_angle: 1.0246457001441578
+          bundle_adjustment_global_frames_ratio: 6.84685269835264
           retrieval_min_distance_m: 7.061401241503109
           two_view_min_num_inliers: 4
           spatial_max_distance_m: 5.637376656633329
@@ -4023,22 +4025,24 @@ components:
       example:
         options:
           ransac_max_error: 3.616076749251911
+          retrieval_min_inlier_ratio: 7.386281948385884
           spatial_neighbors: 5
           ransac_min_inlier_ratio: 2.027123023002322
           held_out_frame_timestamps:
-          - 1
-          - 1
-          bundle_adjustment_global_function_tolerance: 1.4894159098541704
+          - 5
+          - 5
+          bundle_adjustment_global_function_tolerance: 7.457744773683766
           retrieval_min_score: 9.301444243932576
-          pose_prior_position_sigma_m: 6.84685269835264
+          retrieval_min_num_inliers: 1
+          pose_prior_position_sigma_m: 1.1730742509559433
           sequential_window: 1
           deterministic_seed: 0
           retrieval_neighbors: 2
-          max_keypoints_per_image: 7
-          mapper_filter_max_reprojection_error: 1.2315135367772556
+          max_keypoints_per_image: 4
+          mapper_filter_max_reprojection_error: 1.4894159098541704
           keyframe_min_distance_m: 6.027456183070403
-          triangulation_minimum_angle: 7.386281948385884
-          bundle_adjustment_global_frames_ratio: 1.0246457001441578
+          triangulation_minimum_angle: 1.0246457001441578
+          bundle_adjustment_global_frames_ratio: 6.84685269835264
           retrieval_min_distance_m: 7.061401241503109
           two_view_min_num_inliers: 4
           spatial_max_distance_m: 5.637376656633329
@@ -4196,22 +4200,24 @@ components:
     ReconstructionOptions:
       example:
         ransac_max_error: 3.616076749251911
+        retrieval_min_inlier_ratio: 7.386281948385884
         spatial_neighbors: 5
         ransac_min_inlier_ratio: 2.027123023002322
         held_out_frame_timestamps:
-        - 1
-        - 1
-        bundle_adjustment_global_function_tolerance: 1.4894159098541704
+        - 5
+        - 5
+        bundle_adjustment_global_function_tolerance: 7.457744773683766
         retrieval_min_score: 9.301444243932576
-        pose_prior_position_sigma_m: 6.84685269835264
+        retrieval_min_num_inliers: 1
+        pose_prior_position_sigma_m: 1.1730742509559433
         sequential_window: 1
         deterministic_seed: 0
         retrieval_neighbors: 2
-        max_keypoints_per_image: 7
-        mapper_filter_max_reprojection_error: 1.2315135367772556
+        max_keypoints_per_image: 4
+        mapper_filter_max_reprojection_error: 1.4894159098541704
         keyframe_min_distance_m: 6.027456183070403
-        triangulation_minimum_angle: 7.386281948385884
-        bundle_adjustment_global_frames_ratio: 1.0246457001441578
+        triangulation_minimum_angle: 1.0246457001441578
+        bundle_adjustment_global_frames_ratio: 6.84685269835264
         retrieval_min_distance_m: 7.061401241503109
         two_view_min_num_inliers: 4
         spatial_max_distance_m: 5.637376656633329
@@ -4279,6 +4285,20 @@ components:
             \ applied alongside ransac_min_inlier_ratio. Raised above pycolmap's SIFT-era\
             \ default of 15 to reject small false-positive clusters on repetitive\
             \ structure."
+          type: integer
+        retrieval_min_inlier_ratio:
+          default: 0.4
+          description: Two-view RANSAC minimum inlier ratio for retrieval-sourced
+            pairs only; stricter than the sequential/spatial/intra-frame floor because
+            visually-similar-but-spatially-distant indoor regions can fabricate plausible-looking
+            essential matrices.
+          format: double
+          type: number
+        retrieval_min_num_inliers:
+          default: 50
+          description: Absolute minimum inlier count for retrieval-sourced pair geometries;
+            stricter than the global two_view_min_num_inliers because retrieval is
+            the lone pair source where visual similarity does not imply spatial proximity.
           type: integer
         triangulation_minimum_angle:
           default: 3.0

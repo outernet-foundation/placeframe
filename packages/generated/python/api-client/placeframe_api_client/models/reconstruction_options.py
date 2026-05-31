@@ -38,6 +38,8 @@ class ReconstructionOptions(BaseModel):
     ransac_max_error: Optional[Union[StrictFloat, StrictInt]] = Field(default=2.0, description="Two-view RANSAC inlier threshold in pixels; lower is stricter.")
     ransac_min_inlier_ratio: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.25, description="Two-view RANSAC minimum inlier ratio to accept a pair's geometry.")
     two_view_min_num_inliers: Optional[StrictInt] = Field(default=30, description="Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap's SIFT-era default of 15 to reject small false-positive clusters on repetitive structure.")
+    retrieval_min_inlier_ratio: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.4, description="Two-view RANSAC minimum inlier ratio for retrieval-sourced pairs only; stricter than the sequential/spatial/intra-frame floor because visually-similar-but-spatially-distant indoor regions can fabricate plausible-looking essential matrices.")
+    retrieval_min_num_inliers: Optional[StrictInt] = Field(default=50, description="Absolute minimum inlier count for retrieval-sourced pair geometries; stricter than the global two_view_min_num_inliers because retrieval is the lone pair source where visual similarity does not imply spatial proximity.")
     triangulation_minimum_angle: Optional[Union[StrictFloat, StrictInt]] = Field(default=3.0, description="Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering.")
     mapper_filter_max_reprojection_error: Optional[Union[StrictFloat, StrictInt]] = Field(default=2.0, description="Post-BA outlier reprojection threshold in pixels; points exceeding it are culled.")
     bundle_adjustment_global_frames_ratio: Optional[Union[StrictFloat, StrictInt]] = Field(default=1.5, description="Frame-count growth ratio that triggers a global BA event; larger = fewer events.")
@@ -46,7 +48,7 @@ class ReconstructionOptions(BaseModel):
     max_keypoints_per_image: Optional[StrictInt] = Field(default=2500, description="Maximum ALIKED keypoints retained per image.")
     held_out_frame_timestamps: Optional[List[StrictInt]] = Field(default=None, description="Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_min_distance_m", "sequential_window", "spatial_neighbors", "spatial_max_distance_m", "retrieval_neighbors", "retrieval_min_distance_m", "retrieval_min_score", "ransac_max_error", "ransac_min_inlier_ratio", "two_view_min_num_inliers", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "max_keypoints_per_image", "held_out_frame_timestamps"]
+    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_min_distance_m", "sequential_window", "spatial_neighbors", "spatial_max_distance_m", "retrieval_neighbors", "retrieval_min_distance_m", "retrieval_min_score", "ransac_max_error", "ransac_min_inlier_ratio", "two_view_min_num_inliers", "retrieval_min_inlier_ratio", "retrieval_min_num_inliers", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "max_keypoints_per_image", "held_out_frame_timestamps"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -127,6 +129,8 @@ class ReconstructionOptions(BaseModel):
             "ransac_max_error": obj.get("ransac_max_error") if obj.get("ransac_max_error") is not None else 2.0,
             "ransac_min_inlier_ratio": obj.get("ransac_min_inlier_ratio") if obj.get("ransac_min_inlier_ratio") is not None else 0.25,
             "two_view_min_num_inliers": obj.get("two_view_min_num_inliers") if obj.get("two_view_min_num_inliers") is not None else 30,
+            "retrieval_min_inlier_ratio": obj.get("retrieval_min_inlier_ratio") if obj.get("retrieval_min_inlier_ratio") is not None else 0.4,
+            "retrieval_min_num_inliers": obj.get("retrieval_min_num_inliers") if obj.get("retrieval_min_num_inliers") is not None else 50,
             "triangulation_minimum_angle": obj.get("triangulation_minimum_angle") if obj.get("triangulation_minimum_angle") is not None else 3.0,
             "mapper_filter_max_reprojection_error": obj.get("mapper_filter_max_reprojection_error") if obj.get("mapper_filter_max_reprojection_error") is not None else 2.0,
             "bundle_adjustment_global_frames_ratio": obj.get("bundle_adjustment_global_frames_ratio") if obj.get("bundle_adjustment_global_frames_ratio") is not None else 1.5,
