@@ -35,6 +35,8 @@ class ReconstructionOptions(BaseModel):
     retrieval_neighbors: Optional[StrictInt] = Field(default=20, description="Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.")
     retrieval_min_distance_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=1.0, description="Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent.")
     retrieval_min_score: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.35, description="Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.")
+    retrieval_covisibility_window: Optional[StrictInt] = Field(default=3, description="Half-width (in temporal keyframe indices) of the neighborhood used to validate retrieval pairs against perceptual aliasing. A pair (A,B) is supported by another retrieval pair (A',B') iff both endpoints fall within this window of the original pair on their respective trajectories.")
+    retrieval_covisibility_min_support: Optional[StrictInt] = Field(default=2, description="Minimum count of supporting retrieval pairs within retrieval_covisibility_window required for a retrieval candidate to be kept; aliased pairs (e.g. two similar paintings in different rooms) appear as singletons and get dropped, while true loop closures appear as bands and survive. 0 disables the filter.")
     ransac_max_error: Optional[Union[StrictFloat, StrictInt]] = Field(default=2.0, description="Two-view RANSAC inlier threshold in pixels; lower is stricter.")
     ransac_min_inlier_ratio: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.25, description="Two-view RANSAC minimum inlier ratio to accept a pair's geometry.")
     two_view_min_num_inliers: Optional[StrictInt] = Field(default=30, description="Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap's SIFT-era default of 15 to reject small false-positive clusters on repetitive structure.")
@@ -48,7 +50,7 @@ class ReconstructionOptions(BaseModel):
     max_keypoints_per_image: Optional[StrictInt] = Field(default=2500, description="Maximum ALIKED keypoints retained per image.")
     held_out_frame_timestamps: Optional[List[StrictInt]] = Field(default=None, description="Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_min_distance_m", "sequential_window", "spatial_neighbors", "spatial_max_distance_m", "retrieval_neighbors", "retrieval_min_distance_m", "retrieval_min_score", "ransac_max_error", "ransac_min_inlier_ratio", "two_view_min_num_inliers", "retrieval_min_inlier_ratio", "retrieval_min_num_inliers", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "max_keypoints_per_image", "held_out_frame_timestamps"]
+    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_min_distance_m", "sequential_window", "spatial_neighbors", "spatial_max_distance_m", "retrieval_neighbors", "retrieval_min_distance_m", "retrieval_min_score", "retrieval_covisibility_window", "retrieval_covisibility_min_support", "ransac_max_error", "ransac_min_inlier_ratio", "two_view_min_num_inliers", "retrieval_min_inlier_ratio", "retrieval_min_num_inliers", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "max_keypoints_per_image", "held_out_frame_timestamps"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -126,6 +128,8 @@ class ReconstructionOptions(BaseModel):
             "retrieval_neighbors": obj.get("retrieval_neighbors") if obj.get("retrieval_neighbors") is not None else 20,
             "retrieval_min_distance_m": obj.get("retrieval_min_distance_m") if obj.get("retrieval_min_distance_m") is not None else 1.0,
             "retrieval_min_score": obj.get("retrieval_min_score") if obj.get("retrieval_min_score") is not None else 0.35,
+            "retrieval_covisibility_window": obj.get("retrieval_covisibility_window") if obj.get("retrieval_covisibility_window") is not None else 3,
+            "retrieval_covisibility_min_support": obj.get("retrieval_covisibility_min_support") if obj.get("retrieval_covisibility_min_support") is not None else 2,
             "ransac_max_error": obj.get("ransac_max_error") if obj.get("ransac_max_error") is not None else 2.0,
             "ransac_min_inlier_ratio": obj.get("ransac_min_inlier_ratio") if obj.get("ransac_min_inlier_ratio") is not None else 0.25,
             "two_view_min_num_inliers": obj.get("two_view_min_num_inliers") if obj.get("two_view_min_num_inliers") is not None else 30,

@@ -42,6 +42,8 @@ namespace PlaceframeApiClient.Model
         /// <param name="retrievalNeighbors">Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval. (default to 20).</param>
         /// <param name="retrievalMinDistanceM">Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent. (default to 1.0D).</param>
         /// <param name="retrievalMinScore">Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA. (default to 0.35D).</param>
+        /// <param name="retrievalCovisibilityWindow">Half-width (in temporal keyframe indices) of the neighborhood used to validate retrieval pairs against perceptual aliasing. A pair (A,B) is supported by another retrieval pair (A&#39;,B&#39;) iff both endpoints fall within this window of the original pair on their respective trajectories. (default to 3).</param>
+        /// <param name="retrievalCovisibilityMinSupport">Minimum count of supporting retrieval pairs within retrieval_covisibility_window required for a retrieval candidate to be kept; aliased pairs (e.g. two similar paintings in different rooms) appear as singletons and get dropped, while true loop closures appear as bands and survive. 0 disables the filter. (default to 2).</param>
         /// <param name="ransacMaxError">Two-view RANSAC inlier threshold in pixels; lower is stricter. (default to 2.0D).</param>
         /// <param name="ransacMinInlierRatio">Two-view RANSAC minimum inlier ratio to accept a pair&#39;s geometry. (default to 0.25D).</param>
         /// <param name="twoViewMinNumInliers">Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap&#39;s SIFT-era default of 15 to reject small false-positive clusters on repetitive structure. (default to 30).</param>
@@ -257,6 +259,56 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeRetrievalMinScore()
         {
             return _flagRetrievalMinScore;
+        }
+        /// <summary>
+        /// Half-width (in temporal keyframe indices) of the neighborhood used to validate retrieval pairs against perceptual aliasing. A pair (A,B) is supported by another retrieval pair (A&#39;,B&#39;) iff both endpoints fall within this window of the original pair on their respective trajectories.
+        /// </summary>
+        /// <value>Half-width (in temporal keyframe indices) of the neighborhood used to validate retrieval pairs against perceptual aliasing. A pair (A,B) is supported by another retrieval pair (A&#39;,B&#39;) iff both endpoints fall within this window of the original pair on their respective trajectories.</value>
+        [DataMember(Name = "retrieval_covisibility_window", EmitDefaultValue = false)]
+        public int RetrievalCovisibilityWindow
+        {
+            get{ return _RetrievalCovisibilityWindow;}
+            set
+            {
+                _RetrievalCovisibilityWindow = value;
+                _flagRetrievalCovisibilityWindow = true;
+            }
+        }
+        private int _RetrievalCovisibilityWindow = 3;
+        private bool _flagRetrievalCovisibilityWindow;
+
+        /// <summary>
+        /// Returns false as RetrievalCovisibilityWindow should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeRetrievalCovisibilityWindow()
+        {
+            return _flagRetrievalCovisibilityWindow;
+        }
+        /// <summary>
+        /// Minimum count of supporting retrieval pairs within retrieval_covisibility_window required for a retrieval candidate to be kept; aliased pairs (e.g. two similar paintings in different rooms) appear as singletons and get dropped, while true loop closures appear as bands and survive. 0 disables the filter.
+        /// </summary>
+        /// <value>Minimum count of supporting retrieval pairs within retrieval_covisibility_window required for a retrieval candidate to be kept; aliased pairs (e.g. two similar paintings in different rooms) appear as singletons and get dropped, while true loop closures appear as bands and survive. 0 disables the filter.</value>
+        [DataMember(Name = "retrieval_covisibility_min_support", EmitDefaultValue = false)]
+        public int RetrievalCovisibilityMinSupport
+        {
+            get{ return _RetrievalCovisibilityMinSupport;}
+            set
+            {
+                _RetrievalCovisibilityMinSupport = value;
+                _flagRetrievalCovisibilityMinSupport = true;
+            }
+        }
+        private int _RetrievalCovisibilityMinSupport = 2;
+        private bool _flagRetrievalCovisibilityMinSupport;
+
+        /// <summary>
+        /// Returns false as RetrievalCovisibilityMinSupport should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeRetrievalCovisibilityMinSupport()
+        {
+            return _flagRetrievalCovisibilityMinSupport;
         }
         /// <summary>
         /// Two-view RANSAC inlier threshold in pixels; lower is stricter.
@@ -574,6 +626,8 @@ namespace PlaceframeApiClient.Model
             sb.Append("  RetrievalNeighbors: ").Append(RetrievalNeighbors).Append("\n");
             sb.Append("  RetrievalMinDistanceM: ").Append(RetrievalMinDistanceM).Append("\n");
             sb.Append("  RetrievalMinScore: ").Append(RetrievalMinScore).Append("\n");
+            sb.Append("  RetrievalCovisibilityWindow: ").Append(RetrievalCovisibilityWindow).Append("\n");
+            sb.Append("  RetrievalCovisibilityMinSupport: ").Append(RetrievalCovisibilityMinSupport).Append("\n");
             sb.Append("  RansacMaxError: ").Append(RansacMaxError).Append("\n");
             sb.Append("  RansacMinInlierRatio: ").Append(RansacMinInlierRatio).Append("\n");
             sb.Append("  TwoViewMinNumInliers: ").Append(TwoViewMinNumInliers).Append("\n");

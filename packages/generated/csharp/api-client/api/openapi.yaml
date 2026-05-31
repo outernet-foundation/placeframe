@@ -2672,27 +2672,29 @@ components:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         options:
-          ransac_max_error: 3.616076749251911
-          retrieval_min_inlier_ratio: 7.386281948385884
+          ransac_max_error: 4.145608029883936
+          retrieval_min_inlier_ratio: 1.0246457001441578
+          retrieval_covisibility_min_support: 2
           spatial_neighbors: 5
-          ransac_min_inlier_ratio: 2.027123023002322
+          ransac_min_inlier_ratio: 7.386281948385884
           held_out_frame_timestamps:
-          - 5
-          - 5
-          bundle_adjustment_global_function_tolerance: 7.457744773683766
+          - 9
+          - 9
+          bundle_adjustment_global_function_tolerance: 4.965218492984954
           retrieval_min_score: 9.301444243932576
           retrieval_min_num_inliers: 1
-          pose_prior_position_sigma_m: 1.1730742509559433
+          pose_prior_position_sigma_m: 5.025004791520295
           sequential_window: 1
           deterministic_seed: 0
           retrieval_neighbors: 2
-          max_keypoints_per_image: 4
-          mapper_filter_max_reprojection_error: 1.4894159098541704
+          retrieval_covisibility_window: 3
+          max_keypoints_per_image: 9
+          mapper_filter_max_reprojection_error: 7.457744773683766
           keyframe_min_distance_m: 6.027456183070403
-          triangulation_minimum_angle: 1.0246457001441578
-          bundle_adjustment_global_frames_ratio: 6.84685269835264
+          triangulation_minimum_angle: 6.84685269835264
+          bundle_adjustment_global_frames_ratio: 1.1730742509559433
           retrieval_min_distance_m: 7.061401241503109
-          two_view_min_num_inliers: 4
+          two_view_min_num_inliers: 1
           spatial_max_distance_m: 5.637376656633329
         reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
@@ -4024,27 +4026,29 @@ components:
     ReconstructionCreateWithOptions:
       example:
         options:
-          ransac_max_error: 3.616076749251911
-          retrieval_min_inlier_ratio: 7.386281948385884
+          ransac_max_error: 4.145608029883936
+          retrieval_min_inlier_ratio: 1.0246457001441578
+          retrieval_covisibility_min_support: 2
           spatial_neighbors: 5
-          ransac_min_inlier_ratio: 2.027123023002322
+          ransac_min_inlier_ratio: 7.386281948385884
           held_out_frame_timestamps:
-          - 5
-          - 5
-          bundle_adjustment_global_function_tolerance: 7.457744773683766
+          - 9
+          - 9
+          bundle_adjustment_global_function_tolerance: 4.965218492984954
           retrieval_min_score: 9.301444243932576
           retrieval_min_num_inliers: 1
-          pose_prior_position_sigma_m: 1.1730742509559433
+          pose_prior_position_sigma_m: 5.025004791520295
           sequential_window: 1
           deterministic_seed: 0
           retrieval_neighbors: 2
-          max_keypoints_per_image: 4
-          mapper_filter_max_reprojection_error: 1.4894159098541704
+          retrieval_covisibility_window: 3
+          max_keypoints_per_image: 9
+          mapper_filter_max_reprojection_error: 7.457744773683766
           keyframe_min_distance_m: 6.027456183070403
-          triangulation_minimum_angle: 1.0246457001441578
-          bundle_adjustment_global_frames_ratio: 6.84685269835264
+          triangulation_minimum_angle: 6.84685269835264
+          bundle_adjustment_global_frames_ratio: 1.1730742509559433
           retrieval_min_distance_m: 7.061401241503109
-          two_view_min_num_inliers: 4
+          two_view_min_num_inliers: 1
           spatial_max_distance_m: 5.637376656633329
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -4199,27 +4203,29 @@ components:
       type: object
     ReconstructionOptions:
       example:
-        ransac_max_error: 3.616076749251911
-        retrieval_min_inlier_ratio: 7.386281948385884
+        ransac_max_error: 4.145608029883936
+        retrieval_min_inlier_ratio: 1.0246457001441578
+        retrieval_covisibility_min_support: 2
         spatial_neighbors: 5
-        ransac_min_inlier_ratio: 2.027123023002322
+        ransac_min_inlier_ratio: 7.386281948385884
         held_out_frame_timestamps:
-        - 5
-        - 5
-        bundle_adjustment_global_function_tolerance: 7.457744773683766
+        - 9
+        - 9
+        bundle_adjustment_global_function_tolerance: 4.965218492984954
         retrieval_min_score: 9.301444243932576
         retrieval_min_num_inliers: 1
-        pose_prior_position_sigma_m: 1.1730742509559433
+        pose_prior_position_sigma_m: 5.025004791520295
         sequential_window: 1
         deterministic_seed: 0
         retrieval_neighbors: 2
-        max_keypoints_per_image: 4
-        mapper_filter_max_reprojection_error: 1.4894159098541704
+        retrieval_covisibility_window: 3
+        max_keypoints_per_image: 9
+        mapper_filter_max_reprojection_error: 7.457744773683766
         keyframe_min_distance_m: 6.027456183070403
-        triangulation_minimum_angle: 1.0246457001441578
-        bundle_adjustment_global_frames_ratio: 6.84685269835264
+        triangulation_minimum_angle: 6.84685269835264
+        bundle_adjustment_global_frames_ratio: 1.1730742509559433
         retrieval_min_distance_m: 7.061401241503109
-        two_view_min_num_inliers: 4
+        two_view_min_num_inliers: 1
         spatial_max_distance_m: 5.637376656633329
       properties:
         deterministic_seed:
@@ -4269,6 +4275,21 @@ components:
             matches before BA.
           format: double
           type: number
+        retrieval_covisibility_window:
+          default: 3
+          description: "Half-width (in temporal keyframe indices) of the neighborhood\
+            \ used to validate retrieval pairs against perceptual aliasing. A pair\
+            \ (A,B) is supported by another retrieval pair (A',B') iff both endpoints\
+            \ fall within this window of the original pair on their respective trajectories."
+          type: integer
+        retrieval_covisibility_min_support:
+          default: 2
+          description: "Minimum count of supporting retrieval pairs within retrieval_covisibility_window\
+            \ required for a retrieval candidate to be kept; aliased pairs (e.g. two\
+            \ similar paintings in different rooms) appear as singletons and get dropped,\
+            \ while true loop closures appear as bands and survive. 0 disables the\
+            \ filter."
+          type: integer
         ransac_max_error:
           default: 2.0
           description: Two-view RANSAC inlier threshold in pixels; lower is stricter.

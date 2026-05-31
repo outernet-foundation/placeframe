@@ -6265,6 +6265,16 @@
             "description": "Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.",
             "default": 0.35
           },
+          "retrieval_covisibility_window": {
+            "type": "integer",
+            "description": "Half-width (in temporal keyframe indices) of the neighborhood used to validate retrieval pairs against perceptual aliasing. A pair (A,B) is supported by another retrieval pair (A',B') iff both endpoints fall within this window of the original pair on their respective trajectories.",
+            "default": 3
+          },
+          "retrieval_covisibility_min_support": {
+            "type": "integer",
+            "description": "Minimum count of supporting retrieval pairs within retrieval_covisibility_window required for a retrieval candidate to be kept; aliased pairs (e.g. two similar paintings in different rooms) appear as singletons and get dropped, while true loop closures appear as bands and survive. 0 disables the filter.",
+            "default": 2
+          },
           "ransac_max_error": {
             "type": "number",
             "format": "double",
