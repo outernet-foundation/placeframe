@@ -6292,17 +6292,6 @@
             "description": "Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap's SIFT-era default of 15 to reject small false-positive clusters on repetitive structure.",
             "default": 30
           },
-          "retrieval_min_inlier_ratio": {
-            "type": "number",
-            "format": "double",
-            "description": "Two-view RANSAC minimum inlier ratio for retrieval-sourced pairs only; stricter than the sequential/spatial/intra-frame floor because visually-similar-but-spatially-distant indoor regions can fabricate plausible-looking essential matrices.",
-            "default": 0.4
-          },
-          "retrieval_min_num_inliers": {
-            "type": "integer",
-            "description": "Absolute minimum inlier count for retrieval-sourced pair geometries; stricter than the global two_view_min_num_inliers because retrieval is the lone pair source where visual similarity does not imply spatial proximity.",
-            "default": 50
-          },
           "triangulation_minimum_angle": {
             "type": "number",
             "format": "double",

@@ -47,8 +47,6 @@ namespace PlaceframeApiClient.Model
         /// <param name="ransacMaxError">Two-view RANSAC inlier threshold in pixels; lower is stricter. (default to 2.0D).</param>
         /// <param name="ransacMinInlierRatio">Two-view RANSAC minimum inlier ratio to accept a pair&#39;s geometry. (default to 0.25D).</param>
         /// <param name="twoViewMinNumInliers">Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap&#39;s SIFT-era default of 15 to reject small false-positive clusters on repetitive structure. (default to 30).</param>
-        /// <param name="retrievalMinInlierRatio">Two-view RANSAC minimum inlier ratio for retrieval-sourced pairs only; stricter than the sequential/spatial/intra-frame floor because visually-similar-but-spatially-distant indoor regions can fabricate plausible-looking essential matrices. (default to 0.4D).</param>
-        /// <param name="retrievalMinNumInliers">Absolute minimum inlier count for retrieval-sourced pair geometries; stricter than the global two_view_min_num_inliers because retrieval is the lone pair source where visual similarity does not imply spatial proximity. (default to 50).</param>
         /// <param name="triangulationMinimumAngle">Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering. (default to 3.0D).</param>
         /// <param name="mapperFilterMaxReprojectionError">Post-BA outlier reprojection threshold in pixels; points exceeding it are culled. (default to 2.0D).</param>
         /// <param name="bundleAdjustmentGlobalFramesRatio">Frame-count growth ratio that triggers a global BA event; larger &#x3D; fewer events. (default to 1.5D).</param>
@@ -386,56 +384,6 @@ namespace PlaceframeApiClient.Model
             return _flagTwoViewMinNumInliers;
         }
         /// <summary>
-        /// Two-view RANSAC minimum inlier ratio for retrieval-sourced pairs only; stricter than the sequential/spatial/intra-frame floor because visually-similar-but-spatially-distant indoor regions can fabricate plausible-looking essential matrices.
-        /// </summary>
-        /// <value>Two-view RANSAC minimum inlier ratio for retrieval-sourced pairs only; stricter than the sequential/spatial/intra-frame floor because visually-similar-but-spatially-distant indoor regions can fabricate plausible-looking essential matrices.</value>
-        [DataMember(Name = "retrieval_min_inlier_ratio", EmitDefaultValue = false)]
-        public double RetrievalMinInlierRatio
-        {
-            get{ return _RetrievalMinInlierRatio;}
-            set
-            {
-                _RetrievalMinInlierRatio = value;
-                _flagRetrievalMinInlierRatio = true;
-            }
-        }
-        private double _RetrievalMinInlierRatio = 0.4D;
-        private bool _flagRetrievalMinInlierRatio;
-
-        /// <summary>
-        /// Returns false as RetrievalMinInlierRatio should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRetrievalMinInlierRatio()
-        {
-            return _flagRetrievalMinInlierRatio;
-        }
-        /// <summary>
-        /// Absolute minimum inlier count for retrieval-sourced pair geometries; stricter than the global two_view_min_num_inliers because retrieval is the lone pair source where visual similarity does not imply spatial proximity.
-        /// </summary>
-        /// <value>Absolute minimum inlier count for retrieval-sourced pair geometries; stricter than the global two_view_min_num_inliers because retrieval is the lone pair source where visual similarity does not imply spatial proximity.</value>
-        [DataMember(Name = "retrieval_min_num_inliers", EmitDefaultValue = false)]
-        public int RetrievalMinNumInliers
-        {
-            get{ return _RetrievalMinNumInliers;}
-            set
-            {
-                _RetrievalMinNumInliers = value;
-                _flagRetrievalMinNumInliers = true;
-            }
-        }
-        private int _RetrievalMinNumInliers = 50;
-        private bool _flagRetrievalMinNumInliers;
-
-        /// <summary>
-        /// Returns false as RetrievalMinNumInliers should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRetrievalMinNumInliers()
-        {
-            return _flagRetrievalMinNumInliers;
-        }
-        /// <summary>
         /// Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering.
         /// </summary>
         /// <value>Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering.</value>
@@ -631,8 +579,6 @@ namespace PlaceframeApiClient.Model
             sb.Append("  RansacMaxError: ").Append(RansacMaxError).Append("\n");
             sb.Append("  RansacMinInlierRatio: ").Append(RansacMinInlierRatio).Append("\n");
             sb.Append("  TwoViewMinNumInliers: ").Append(TwoViewMinNumInliers).Append("\n");
-            sb.Append("  RetrievalMinInlierRatio: ").Append(RetrievalMinInlierRatio).Append("\n");
-            sb.Append("  RetrievalMinNumInliers: ").Append(RetrievalMinNumInliers).Append("\n");
             sb.Append("  TriangulationMinimumAngle: ").Append(TriangulationMinimumAngle).Append("\n");
             sb.Append("  MapperFilterMaxReprojectionError: ").Append(MapperFilterMaxReprojectionError).Append("\n");
             sb.Append("  BundleAdjustmentGlobalFramesRatio: ").Append(BundleAdjustmentGlobalFramesRatio).Append("\n");
