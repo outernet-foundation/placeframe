@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from shutil import rmtree
 from typing import Any, Iterator, ValuesView, cast
-
-from placeframe_api_client import ReconstructionStatus
 
 from numpy import (
     asarray,
@@ -21,35 +18,19 @@ from numpy import (
     sign,
     stack,
     uint8,
-    uint32,
 )
 from numpy.linalg import det, norm, svd
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
-from pycolmap import Camera as ColmapCamera
-from pycolmap import (
-    Database,
-    Frame,
-    Point3D,
-    PosePrior,
-    PosePriorCoordinateSystem,
-    Reconstruction,
-    Rigid3d,
-    SensorType,
-    Sim3d,
-    TwoViewGeometry,
-    data_t,
-    sensor_t,
-)
-from pycolmap import Image as pycolmapImage
-from pycolmap._core import apply_rig_config, bundle_adjustment, estimate_two_view_geometry  # noqa: PLC2701 — no public API
-from pycolmap._core import incremental_mapping  # noqa: PLC2701 — no public API  # pyright: ignore[reportUnknownVariableType] — upstream stub uses unparameterized os.PathLike
+from pycolmap import Frame, Point3D, Reconstruction, Rigid3d, Sim3d
+from pycolmap._core import bundle_adjustment  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
 
+from .colmap_pipeline import run_colmap_pipeline_with_vio_check
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
-from .pairs import PairSource, flatten_pairs
+from .pairs import PairSource
 from .progress_publisher import ReconstructionPublisher
-from .rig import FramePose, Rig
+from .rig import FramePose, Rig, image_name
 
 COLMAP_DB_FILE = "database.db"
 COLMAP_SFM_DIRECTORY = "sfm_model"
@@ -67,7 +48,6 @@ def run_colmap_reconstruction(
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
     publisher: ReconstructionPublisher,
 ):
-    pairs = flatten_pairs(pairs_by_source)
     colmap_db_path = root_path / COLMAP_DB_FILE
     if colmap_db_path.exists():
         colmap_db_path.unlink()
@@ -75,113 +55,21 @@ def run_colmap_reconstruction(
     colmap_sfm_directory = root_path / COLMAP_SFM_DIRECTORY
     if colmap_sfm_directory.exists():
         rmtree(colmap_sfm_directory)
-
     colmap_sfm_directory.mkdir(parents=True)
 
-    position_covariance = (options.pose_prior_position_sigma_m() ** 2) * eye(3, dtype=float64)
-
-    # Create COLMAP database
-    database = Database.open(str(colmap_db_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
-    # Write cameras, images, keypoints, and pose priors to database
-    colmap_image_ids: dict[str, int] = {}
-    image_cameras: dict[str, ColmapCamera] = {}
-    for rig_id, rig in rigs.items():
-        for camera_id, camera in rig.cameras.items():
-            colmap_camera_id = database.write_camera(camera[1])
-
-            for frame_id, transform in rig.frame_poses.items():
-                image_name = f"{rig_id}/{camera_id}/{frame_id}.jpg"
-
-                colmap_image_ids[image_name] = database.write_image(
-                    pycolmapImage(name=image_name, camera_id=colmap_camera_id)
-                )
-                image_cameras[image_name] = camera[1]
-                database.write_keypoints(colmap_image_ids[image_name], keypoints[image_name])
-
-                # PosePrior is the BA-side consumer of per-frame VIO positions. Multi-camera captures
-                # carry positions in frames.csv so pair-generation can use them as a spatial signal,
-                # but BA must not see them: VIO drift baked into a quadratic loss tears global
-                # geometry apart on revisits (the original priors-off motivation). Stereo baseline
-                # anchors metric scale instead.
-                if camera[0].ref_sensor and not options.is_multi_camera_capture and transform.translation is not None:
-                    database.write_pose_prior(
-                        PosePrior(
-                            position=transform.translation.reshape(3, 1),
-                            position_covariance=position_covariance,
-                            coordinate_system=PosePriorCoordinateSystem.CARTESIAN,
-                            corr_data_id=data_t(
-                                sensor_t(SensorType.CAMERA, colmap_camera_id),
-                                colmap_image_ids[image_name],
-                            ),
-                        ),
-                    )
-
-    # Apply rig configuration to database (must be done after writing cameras and images)
-    apply_rig_config([rig.colmap_rig_config for rig in rigs.values()], database)
-
-    # COLMAP assigns rig_t IDs at apply_rig_config time; harvest them so the
-    # incremental BA loop can pin every rig's sensor_from_rig transform.
-    constant_rigs = {rig.rig_id for rig in database.read_all_rigs()}
-
-    # Write matches to database
-    for a, b in pairs:
-        (image_a_indices, image_b_indices) = match_indices[(a, b)]
-        database.write_matches(
-            colmap_image_ids[a],
-            colmap_image_ids[b],
-            stack((image_a_indices, image_b_indices), axis=1).astype(uint32, copy=False),
-        )
-
-    # Per-pair so each completion ticks progress; sqlite writes stay on the main thread.
-    publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, len(pairs))
-    default_verification_options = options.two_view_geometry_options()
-    retrieval_verification_options = options.retrieval_two_view_geometry_options()
-    verification_options_by_source: dict[PairSource, Any] = {
-        source: retrieval_verification_options if source == PairSource.RETRIEVAL else default_verification_options
-        for source in PairSource
-    }
-    with ThreadPoolExecutor() as pool:
-        future_to_pair: dict[Any, tuple[str, str]] = {}
-        for source, source_pairs in pairs_by_source.items():
-            verification_options = verification_options_by_source[source]
-            for a, b in source_pairs:
-                future = pool.submit(
-                    estimate_two_view_geometry,
-                    image_cameras[a],
-                    keypoints[a],
-                    image_cameras[b],
-                    keypoints[b],
-                    stack(match_indices[(a, b)], axis=1).astype(uint32, copy=False),
-                    verification_options,
-                )
-                future_to_pair[future] = (a, b)
-        for completed, future in enumerate(as_completed(future_to_pair), start=1):
-            a, b = future_to_pair[future]
-            two_view_geometry: TwoViewGeometry = future.result()
-            database.write_two_view_geometry(colmap_image_ids[a], colmap_image_ids[b], two_view_geometry)
-            publisher.on_progress(completed)
-
-    # Close database
-    database.close()
-
-    # Compute and store verified matches metrics
-    metrics.build_verified_matches_metrics(colmap_db_path, pairs)
-
-    progress = _IncrementalMappingProgress(publisher)
-
-    # Phase total is the candidate image count — an upper bound, since COLMAP may drop images that
-    # fail to register or get filtered after bundle adjustment.
-    publisher.set_phase(ReconstructionStatus.RECONSTRUCTING, len(colmap_image_ids))
-    reconstructions = incremental_mapping(
-        database_path=str(colmap_db_path),
-        image_path=str(images_path),
-        output_path=str(colmap_sfm_directory),
-        options=options.incremental_pipeline_options(constant_rigs),
-        initial_image_pair_callback=progress.on_initial_image_pair,
-        next_image_callback=progress.on_next_image,
+    reconstructions = run_colmap_pipeline_with_vio_check(
+        database_path=colmap_db_path,
+        image_path=images_path,
+        sfm_output_path=colmap_sfm_directory,
+        options=options,
+        metrics=metrics,
+        rigs=rigs,
+        keypoints=keypoints,
+        pairs_by_source=pairs_by_source,
+        match_indices=match_indices,
+        publisher=publisher,
     )
 
-    # Check that at least one reconstruction was created
     if len(reconstructions) == 0:
         return None
 
@@ -198,7 +86,7 @@ def run_colmap_reconstruction(
 
     # Sort registered frames by integer timestamp across rigs so "first registered" is the
     # earliest-captured frame the recon kept, regardless of rig.
-    registered = sorted(_registered_frames(rigs, colmap_image_ids, best_reconstruction), key=lambda entry: entry[0])
+    registered = sorted(_registered_frames(rigs, best_reconstruction), key=lambda entry: entry[0])
     if not registered:
         raise RuntimeError("Could not find anchor frame in best reconstruction")
 
@@ -295,37 +183,20 @@ def run_colmap_reconstruction(
 
 def _registered_frames(
     rigs: dict[str, Rig],
-    colmap_image_ids: dict[str, int],
     reconstruction: Reconstruction,
 ) -> Iterator[tuple[int, FramePose, Rigid3d]]:
     # Multi-camera rigs (e.g. ZED stereo) share one Frame per rig+frame, so any registered
-    # image of any camera in that frame yields the Frame's rig_from_world.
+    # image of any camera in that frame yields the Frame's rig_from_world. The
+    # reconstruction's image map already contains only the registered images keyed by the
+    # DB-assigned id, so the inverse name→id map is the registered-only subset of the
+    # original colmap_image_ids dict — no need to thread it back from the pipeline.
+    image_ids_by_name = {reconstruction.images[image_id].name: image_id for image_id in reconstruction.images}
     for rig_id, rig in rigs.items():
         for frame_id, transform in rig.frame_poses.items():
             for camera_id in rig.cameras.keys():
-                image_id = colmap_image_ids[f"{rig_id}/{camera_id}/{frame_id}.jpg"]
-                if image_id in reconstruction.images:
-                    rig_from_world = cast(Rigid3d, cast(Frame, reconstruction.images[image_id].frame).rig_from_world)  # type: ignore
-                    yield int(frame_id), transform, rig_from_world
-                    break
-
-
-class _IncrementalMappingProgress:
-    # Tracks per-image registration count across COLMAP's multi-model retries.
-    # Each new model attempt begins with the seed pair (count = 2); attempt index
-    # bumps when initial_image_pair fires after a previous attempt has registered.
-
-    def __init__(self, publisher: ReconstructionPublisher) -> None:
-        self._publisher = publisher
-        self._registered = 0
-        self._attempt = 1
-
-    def on_initial_image_pair(self) -> None:
-        if self._registered > 0:
-            self._attempt += 1
-        self._registered = 2
-        self._publisher.on_progress(self._registered, self._attempt)
-
-    def on_next_image(self) -> None:
-        self._registered += 1
-        self._publisher.on_progress(self._registered, self._attempt)
+                image_id = image_ids_by_name.get(image_name(rig_id, camera_id, frame_id))
+                if image_id is None:
+                    continue
+                rig_from_world = cast(Rigid3d, cast(Frame, reconstruction.images[image_id].frame).rig_from_world)  # type: ignore
+                yield int(frame_id), transform, rig_from_world
+                break

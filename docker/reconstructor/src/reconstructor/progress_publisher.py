@@ -61,6 +61,17 @@ class ReconstructionPublisher:
             self._flush()
             self._last_emit = now
 
+    def on_initial_pair(self) -> None:
+        if self._progress_current is None or self._progress_attempt is None:
+            return
+        attempt = self._progress_attempt + (1 if self._progress_current > 0 else 0)
+        self.on_progress(2, attempt)
+
+    def on_next_image(self) -> None:
+        if self._progress_current is None or self._progress_attempt is None:
+            return
+        self.on_progress(self._progress_current + 1, self._progress_attempt)
+
     def _flush(self) -> None:
         if self._status is None:
             return
