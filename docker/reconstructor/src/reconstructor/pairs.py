@@ -5,7 +5,7 @@ from itertools import combinations
 from pathlib import Path
 
 import torch
-from numpy import arange, argsort, float32, float64, stack, where
+from numpy import arange, argsort, asarray, float32, float64, stack, where
 from numpy.linalg import norm
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from torch import from_numpy, topk  # type: ignore
@@ -55,9 +55,11 @@ def generate_image_pairs(
     spatial_frame_pairs: list[tuple[tuple[str, str], tuple[str, str]]] = []
     if spatial_neighbors > 0:
         for rig_id, rig in rigs.items():
+            ordered_frame_ids = sorted(rig.frame_poses.keys(), key=int)
+            frame_id_to_temporal_index = {frame_id: index for index, frame_id in enumerate(ordered_frame_ids)}
             frame_ids_with_translation: list[str] = []
             translations: list[NDArray[float64]] = []
-            for frame_id in sorted(rig.frame_poses.keys(), key=int):
+            for frame_id in ordered_frame_ids:
                 translation = rig.frame_poses[frame_id].translation
                 if translation is None:
                     continue
@@ -67,9 +69,18 @@ def generate_image_pairs(
                 continue
             positions = stack(translations).astype(float64, copy=False)
             distances = norm(positions[:, None, :] - positions[None, :, :], axis=-1)
+            temporal_indices = asarray([
+                frame_id_to_temporal_index[frame_id] for frame_id in frame_ids_with_translation
+            ])
             for i, frame_id_a in enumerate(frame_ids_with_translation):
+                # Spatial source is the loop-closure-by-VIO-position complement to sequential. Pairs
+                # already proposed by sequential (temporal-index distance <= sequential_window) are
+                # excluded here so spatial_neighbors counts loop-closure candidates, not redundancy
+                # with sequential's coverage.
                 in_range = where(
-                    (distances[i] <= spatial_max_distance_m) & (arange(len(frame_ids_with_translation)) != i)
+                    (distances[i] <= spatial_max_distance_m)
+                    & (arange(len(frame_ids_with_translation)) != i)
+                    & (abs(temporal_indices - temporal_indices[i]) > sequential_window)
                 )[0]
                 if len(in_range) > spatial_neighbors:
                     in_range = in_range[argsort(distances[i, in_range])[:spatial_neighbors]]
