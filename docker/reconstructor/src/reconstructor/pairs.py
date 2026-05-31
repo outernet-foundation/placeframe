@@ -13,6 +13,7 @@ from torch import from_numpy, topk  # type: ignore
 from .rig import Rig
 
 PAIRS_FILE = "pairs.txt"
+PAIRS_WITH_SOURCE_FILE = "pairs_with_source.csv"
 
 
 class PairSource(str, Enum):
@@ -248,3 +249,15 @@ def write_pairs(pairs: list[tuple[str, ...]], root_path: Path):
     path = root_path / PAIRS_FILE
     path.write_text("\n".join([" ".join(pair) for pair in pairs]))
     return PAIRS_FILE, path.read_bytes()
+
+
+def write_pairs_with_source(
+    pairs_by_source: dict[PairSource, list[tuple[str, str]]], root_path: Path
+) -> tuple[str, bytes]:
+    lines = ["image_a,image_b,source"]
+    for source in SOURCE_PRECEDENCE:
+        for image_a, image_b in pairs_by_source.get(source, []):
+            lines.append(f"{image_a},{image_b},{source.value}")
+    path = root_path / PAIRS_WITH_SOURCE_FILE
+    path.write_text("\n".join(lines) + "\n")
+    return PAIRS_WITH_SOURCE_FILE, path.read_bytes()

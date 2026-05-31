@@ -32,11 +32,11 @@ from placeframe_api_client import ReconstructionStatus
 from pycolmap._core import set_random_seed  # noqa: PLC2701 — no public API
 from torch import Tensor, cuda, from_numpy, inference_mode  # type: ignore
 
-from .colmap import run_colmap_reconstruction
+from .colmap import COLMAP_DB_FILE, run_colmap_reconstruction
 from .keyframes import select_keyframes_by_distance
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
-from .pairs import flatten_pairs, generate_image_pairs, write_pairs
+from .pairs import flatten_pairs, generate_image_pairs, write_pairs, write_pairs_with_source
 from .progress_publisher import ReconstructionPublisher
 from .rig import Rig
 from .settings import get_settings
@@ -217,6 +217,8 @@ def run_reconstruction(
     pairs = flatten_pairs(pairs_by_source)
     file_name, file_bytes = write_pairs(pairs, WORK_DIR)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
+    file_name, file_bytes = write_pairs_with_source(pairs_by_source, WORK_DIR)
+    _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
     # Combine all descriptors into a single array for training OPQ and PQ
     descriptor_array = ascontiguousarray(vstack([descriptor for descriptor in descriptors.values()]), dtype=float32)
@@ -291,6 +293,14 @@ def run_reconstruction(
                 f"sfm_model/{file_path.relative_to(sfm_output_path)}",
                 file_path.read_bytes(),
             )
+
+    _put_artifact(
+        s3_client,
+        settings.reconstructions_bucket,
+        reconstruction_id,
+        COLMAP_DB_FILE,
+        (WORK_DIR / COLMAP_DB_FILE).read_bytes(),
+    )
 
     publisher.finalize_timings()
     metrics.metrics.phase_timings = publisher.phase_timings
