@@ -11,11 +11,11 @@ class ReconstructionOptions(BaseModel):
         description="PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic.",
     )
     keyframe_min_distance_m: float = Field(
-        default=0.3,
+        default=0.2,
         description="Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.",
     )
     sequential_window: int = Field(
-        default=10,
+        default=20,
         description="Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.",
     )
     spatial_neighbors: int = Field(
@@ -35,7 +35,7 @@ class ReconstructionOptions(BaseModel):
         description="Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent.",
     )
     retrieval_min_score: float = Field(
-        default=0.5,
+        default=0.35,
         description="Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.",
     )
     ransac_max_error: float = Field(
