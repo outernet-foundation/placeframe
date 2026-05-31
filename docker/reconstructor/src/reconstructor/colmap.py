@@ -47,7 +47,6 @@ from scipy.spatial.transform import Rotation
 
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
-from .pairs import PairSource, flatten_pairs
 from .progress_publisher import ReconstructionPublisher
 from .rig import FramePose, Rig
 
@@ -63,11 +62,10 @@ def run_colmap_reconstruction(
     metrics: MetricsBuilder,
     rigs: dict[str, Rig],
     keypoints: dict[str, Any],
-    pairs_by_source: dict[PairSource, list[tuple[str, str]]],
+    pairs: list[tuple[str, str]],
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
     publisher: ReconstructionPublisher,
 ):
-    pairs = flatten_pairs(pairs_by_source)
     colmap_db_path = root_path / COLMAP_DB_FILE
     if colmap_db_path.exists():
         colmap_db_path.unlink()
@@ -134,27 +132,20 @@ def run_colmap_reconstruction(
 
     # Per-pair so each completion ticks progress; sqlite writes stay on the main thread.
     publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, len(pairs))
-    default_verification_options = options.two_view_geometry_options()
-    retrieval_verification_options = options.retrieval_two_view_geometry_options()
-    verification_options_by_source: dict[PairSource, Any] = {
-        source: retrieval_verification_options if source == PairSource.RETRIEVAL else default_verification_options
-        for source in PairSource
-    }
+    verification_options = options.two_view_geometry_options()
     with ThreadPoolExecutor() as pool:
         future_to_pair: dict[Any, tuple[str, str]] = {}
-        for source, source_pairs in pairs_by_source.items():
-            verification_options = verification_options_by_source[source]
-            for a, b in source_pairs:
-                future = pool.submit(
-                    estimate_two_view_geometry,
-                    image_cameras[a],
-                    keypoints[a],
-                    image_cameras[b],
-                    keypoints[b],
-                    stack(match_indices[(a, b)], axis=1).astype(uint32, copy=False),
-                    verification_options,
-                )
-                future_to_pair[future] = (a, b)
+        for a, b in pairs:
+            future = pool.submit(
+                estimate_two_view_geometry,
+                image_cameras[a],
+                keypoints[a],
+                image_cameras[b],
+                keypoints[b],
+                stack(match_indices[(a, b)], axis=1).astype(uint32, copy=False),
+                verification_options,
+            )
+            future_to_pair[future] = (a, b)
         for completed, future in enumerate(as_completed(future_to_pair), start=1):
             a, b = future_to_pair[future]
             two_view_geometry: TwoViewGeometry = future.result()

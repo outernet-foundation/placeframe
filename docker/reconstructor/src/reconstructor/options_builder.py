@@ -34,12 +34,6 @@ class OptionsBuilder:
         two_view_geometry_options.stationary_matches_max_error = 4.0
         return two_view_geometry_options
 
-    def retrieval_two_view_geometry_options(self):
-        retrieval_two_view_geometry_options = self.two_view_geometry_options()
-        retrieval_two_view_geometry_options.ransac.min_inlier_ratio = self.options.retrieval_min_inlier_ratio
-        retrieval_two_view_geometry_options.min_num_inliers = self.options.retrieval_min_num_inliers
-        return retrieval_two_view_geometry_options
-
     def keyframe_min_distance_m(self):
         return self.options.keyframe_min_distance_m
 
