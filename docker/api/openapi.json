@@ -6230,12 +6230,12 @@
             "type": "number",
             "format": "double",
             "description": "Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.",
-            "default": 0.3
+            "default": 0.2
           },
           "sequential_window": {
             "type": "integer",
             "description": "Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.",
-            "default": 10
+            "default": 20
           },
           "spatial_neighbors": {
             "type": "integer",
@@ -6263,7 +6263,7 @@
             "type": "number",
             "format": "double",
             "description": "Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.",
-            "default": 0.5
+            "default": 0.35
           },
           "ransac_max_error": {
             "type": "number",

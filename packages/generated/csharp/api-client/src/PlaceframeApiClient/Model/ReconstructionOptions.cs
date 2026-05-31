@@ -35,13 +35,13 @@ namespace PlaceframeApiClient.Model
         /// Initializes a new instance of the <see cref="ReconstructionOptions" /> class.
         /// </summary>
         /// <param name="deterministicSeed">PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic..</param>
-        /// <param name="keyframeMinDistanceM">Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction. (default to 0.3D).</param>
-        /// <param name="sequentialWindow">Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone. (default to 10).</param>
+        /// <param name="keyframeMinDistanceM">Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction. (default to 0.2D).</param>
+        /// <param name="sequentialWindow">Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone. (default to 20).</param>
         /// <param name="spatialNeighbors">Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time. (default to 25).</param>
         /// <param name="spatialMaxDistanceM">Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent. (default to 6.0D).</param>
         /// <param name="retrievalNeighbors">Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval. (default to 20).</param>
         /// <param name="retrievalMinDistanceM">Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent. (default to 1.0D).</param>
-        /// <param name="retrievalMinScore">Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA. (default to 0.5D).</param>
+        /// <param name="retrievalMinScore">Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA. (default to 0.35D).</param>
         /// <param name="ransacMaxError">Two-view RANSAC inlier threshold in pixels; lower is stricter. (default to 2.0D).</param>
         /// <param name="ransacMinInlierRatio">Two-view RANSAC minimum inlier ratio to accept a pair&#39;s geometry. (default to 0.15D).</param>
         /// <param name="triangulationMinimumAngle">Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering. (default to 3.0D).</param>
@@ -94,7 +94,7 @@ namespace PlaceframeApiClient.Model
                 _flagKeyframeMinDistanceM = true;
             }
         }
-        private double _KeyframeMinDistanceM = 0.3D;
+        private double _KeyframeMinDistanceM = 0.2D;
         private bool _flagKeyframeMinDistanceM;
 
         /// <summary>
@@ -119,7 +119,7 @@ namespace PlaceframeApiClient.Model
                 _flagSequentialWindow = true;
             }
         }
-        private int _SequentialWindow = 10;
+        private int _SequentialWindow = 20;
         private bool _flagSequentialWindow;
 
         /// <summary>
@@ -244,7 +244,7 @@ namespace PlaceframeApiClient.Model
                 _flagRetrievalMinScore = true;
             }
         }
-        private double _RetrievalMinScore = 0.5D;
+        private double _RetrievalMinScore = 0.35D;
         private bool _flagRetrievalMinScore;
 
         /// <summary>

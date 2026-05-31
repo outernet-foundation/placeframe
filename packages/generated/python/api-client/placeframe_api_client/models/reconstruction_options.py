@@ -28,13 +28,13 @@ class ReconstructionOptions(BaseModel):
     ReconstructionOptions
     """ # noqa: E501
     deterministic_seed: Optional[StrictInt] = Field(default=None, description="PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic.")
-    keyframe_min_distance_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.3, description="Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.")
-    sequential_window: Optional[StrictInt] = Field(default=10, description="Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.")
+    keyframe_min_distance_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.2, description="Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.")
+    sequential_window: Optional[StrictInt] = Field(default=20, description="Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.")
     spatial_neighbors: Optional[StrictInt] = Field(default=25, description="Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time.")
     spatial_max_distance_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=6.0, description="Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent.")
     retrieval_neighbors: Optional[StrictInt] = Field(default=20, description="Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.")
     retrieval_min_distance_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=1.0, description="Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent.")
-    retrieval_min_score: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.5, description="Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.")
+    retrieval_min_score: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.35, description="Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.")
     ransac_max_error: Optional[Union[StrictFloat, StrictInt]] = Field(default=2.0, description="Two-view RANSAC inlier threshold in pixels; lower is stricter.")
     ransac_min_inlier_ratio: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.15, description="Two-view RANSAC minimum inlier ratio to accept a pair's geometry.")
     triangulation_minimum_angle: Optional[Union[StrictFloat, StrictInt]] = Field(default=3.0, description="Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering.")
@@ -116,13 +116,13 @@ class ReconstructionOptions(BaseModel):
 
         _obj = cls.model_validate({
             "deterministic_seed": obj.get("deterministic_seed"),
-            "keyframe_min_distance_m": obj.get("keyframe_min_distance_m") if obj.get("keyframe_min_distance_m") is not None else 0.3,
-            "sequential_window": obj.get("sequential_window") if obj.get("sequential_window") is not None else 10,
+            "keyframe_min_distance_m": obj.get("keyframe_min_distance_m") if obj.get("keyframe_min_distance_m") is not None else 0.2,
+            "sequential_window": obj.get("sequential_window") if obj.get("sequential_window") is not None else 20,
             "spatial_neighbors": obj.get("spatial_neighbors") if obj.get("spatial_neighbors") is not None else 25,
             "spatial_max_distance_m": obj.get("spatial_max_distance_m") if obj.get("spatial_max_distance_m") is not None else 6.0,
             "retrieval_neighbors": obj.get("retrieval_neighbors") if obj.get("retrieval_neighbors") is not None else 20,
             "retrieval_min_distance_m": obj.get("retrieval_min_distance_m") if obj.get("retrieval_min_distance_m") is not None else 1.0,
-            "retrieval_min_score": obj.get("retrieval_min_score") if obj.get("retrieval_min_score") is not None else 0.5,
+            "retrieval_min_score": obj.get("retrieval_min_score") if obj.get("retrieval_min_score") is not None else 0.35,
             "ransac_max_error": obj.get("ransac_max_error") if obj.get("ransac_max_error") is not None else 2.0,
             "ransac_min_inlier_ratio": obj.get("ransac_min_inlier_ratio") if obj.get("ransac_min_inlier_ratio") is not None else 0.15,
             "triangulation_minimum_angle": obj.get("triangulation_minimum_angle") if obj.get("triangulation_minimum_angle") is not None else 3.0,
