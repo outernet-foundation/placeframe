@@ -103,7 +103,7 @@ Capture under test: `4bd303f1-d6c4-4867-8e35-f788c810ce26` — the
 worst-aliasing of the three small ZED office captures. Spatial pairs
 were disabled throughout the sweep (`spatial_neighbors=0`), leaning
 entirely on sequential + covisibility-filtered retrieval. The matrix
-is in `sweep-matrix.md` at the repo root (4 retrieval-strictness ×
+is in `.pulsar/notes/sweep-matrix.md` (4 retrieval-strictness ×
 [1 K=0 + 9 K·W combos] × 3 replicates = 120 attempted, 117 succeeded).
 
 **Result: 0/117 cleared the bar.** The cleanest single run was
@@ -563,18 +563,19 @@ rather than a removable supplement.
   Role B needs the position signal.
 - **The displacement script lives in the repo now**
   (`scripts/src/scripts/displacement_check.py`), not in `/tmp`.
-- **The sweep evidence and matrix are committed at the repo root**
-  (`sweep-matrix.md`).
+- **The sweep evidence and matrix are committed under**
+  `.pulsar/notes/sweep-matrix.md`.
 
 ## Key files
 
-- `sweep-matrix.md` — the 120-run sweep matrix design, fixed
-  parameters, axes, and metric definitions. Read first before
+- `.pulsar/notes/sweep-matrix.md` — the 120-run sweep matrix design,
+  fixed parameters, axes, and metric definitions. Read first before
   re-running.
-- `pair-generation-plan.md` — the priors-restored pipeline that the
-  spatial source slots into. Action items are the active code change
-  list. The "what we're explicitly rejecting and why" section ends a
-  cluster of debates that should not be reopened without new evidence.
+- `.pulsar/notes/pair-generation-plan.md` — the priors-restored
+  pipeline that the spatial source slots into. Action items are the
+  active code change list. The "what we're explicitly rejecting and
+  why" section ends a cluster of debates that should not be reopened
+  without new evidence.
 - `scripts/src/scripts/displacement_check.py` — committed displacement
   metric + track-extent metric. The math passes audit. Use the Typer
   CLI; don't rebuild it under `/tmp/`.

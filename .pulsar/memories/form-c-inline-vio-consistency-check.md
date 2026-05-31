@@ -207,33 +207,22 @@ This collapsed from the earlier "best 1–2 days / medium 1–2 weeks / hard
 multi-week" estimate once the official reference implementation was
 located.
 
-## Pre-implementation state of the repo (2026-05-31)
+## Pre-implementation repo state (cleared 2026-05-31)
 
-Current branch: `misc-fixes`. There's uncommitted work that user wants
-landed before Form C implementation starts — explicit user request was
-"we need to commit some stuff and get to a relatively clean repo before
-we implement this work."
+Current branch: `misc-fixes`. Pre-implementation cleanup landed in four
+commits before Form C work begins:
 
-Uncommitted / orphaned material that needs sorting before implementation:
+- Code: reconstructor exports `pairs_with_source.csv` and `database.db`
+  per reconstruction (`pairs.py`, `run_reconstruction.py`)
+- Prose: `docker/reconstructor/SPEC.md` documents the two new artifacts
+- Code: `scripts/src/scripts/sweep_postprocess.py` (new), extended
+  `scripts/src/scripts/displacement_check.py` (track-extent report),
+  `scripts/pyproject.toml` (entry point)
+- Prose: planning docs moved to `.pulsar/notes/sweep-matrix.md` and
+  `.pulsar/notes/pair-generation-plan.md`; memory path references updated
 
-- `docker/reconstructor/src/reconstructor/pairs.py` —
-  `PAIRS_WITH_SOURCE_FILE` constant + `write_pairs_with_source()`
-- `docker/reconstructor/src/reconstructor/run_reconstruction.py` —
-  imports + two artifact-upload calls for `pairs_with_source.csv` and
-  `database.db`
-- `docker/reconstructor/SPEC.md` — two artifact-table rows (separate prose
-  commit per repo convention)
-- `scripts/src/scripts/sweep_postprocess.py` and `scripts/pyproject.toml`
-  entry-point — durable replacements for the lost /tmp/recon_audit driver
-- `sweep-output/.gitignore` and the analysis outputs under
-  `sweep-output/4bd303f1-d6c4-4867-8e35-f788c810ce26/`
-- `scripts/src/scripts/displacement_check.py` — still dirty from earlier
-  session work
-- Top-level `sweep-matrix.md`, `response.md`, `response2.md`,
-  `response3.md`, `response4.md`, `Make-it-Sing/`, `bug-aoa-permission-dialog-respawns.md`
-- `.pulsar/memories/reconstruction-aliasing-failure-modes.md` may have a
-  newer version landed by the most recent memorize subagent
-  (commit `4ad05e9d` was the version this initiative branched from).
+Still untracked and intentionally left in place: `Make-it-Sing/` and
+`name-propagation-plan.md` (separate initiative not yet addressed).
 
 Commit hygiene reminders: prose-only commits separate from code commits;
 codegen commits separate with canonical messages; no Co-Authored-By
