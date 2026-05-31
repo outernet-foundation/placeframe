@@ -43,8 +43,12 @@ class ReconstructionOptions(BaseModel):
         description="Two-view RANSAC inlier threshold in pixels; lower is stricter.",
     )
     ransac_min_inlier_ratio: float = Field(
-        default=0.15,
+        default=0.25,
         description="Two-view RANSAC minimum inlier ratio to accept a pair's geometry.",
+    )
+    two_view_min_num_inliers: int = Field(
+        default=30,
+        description="Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap's SIFT-era default of 15 to reject small false-positive clusters on repetitive structure.",
     )
     triangulation_minimum_angle: float = Field(
         default=3.0,

@@ -29,6 +29,7 @@ class OptionsBuilder:
             two_view_geometry_options.ransac.random_seed = self.options.deterministic_seed
         two_view_geometry_options.ransac.max_error = self.options.ransac_max_error
         two_view_geometry_options.ransac.min_inlier_ratio = self.options.ransac_min_inlier_ratio
+        two_view_geometry_options.min_num_inliers = self.options.two_view_min_num_inliers
         two_view_geometry_options.filter_stationary_matches = True
         two_view_geometry_options.stationary_matches_max_error = 4.0
         return two_view_geometry_options
