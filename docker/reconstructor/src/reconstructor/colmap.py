@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from shutil import rmtree
 from typing import Any, Iterator, ValuesView, cast
@@ -29,6 +28,7 @@ from pycolmap import Camera as ColmapCamera
 from pycolmap import (
     Database,
     Frame,
+    GeometricVerifierOptions,
     Point3D,
     PosePrior,
     PosePriorCoordinateSystem,
@@ -36,12 +36,11 @@ from pycolmap import (
     Rigid3d,
     SensorType,
     Sim3d,
-    TwoViewGeometry,
     data_t,
     sensor_t,
 )
 from pycolmap import Image as pycolmapImage
-from pycolmap._core import apply_rig_config, bundle_adjustment, estimate_two_view_geometry  # noqa: PLC2701 — no public API
+from pycolmap._core import apply_rig_config, bundle_adjustment, geometric_verification  # noqa: PLC2701 — no public API  # pyright: ignore[reportUnknownVariableType] — upstream stub uses unparameterized os.PathLike
 from pycolmap._core import incremental_mapping  # noqa: PLC2701 — no public API  # pyright: ignore[reportUnknownVariableType] — upstream stub uses unparameterized os.PathLike
 from scipy.spatial.transform import Rotation
 
@@ -127,30 +126,19 @@ def run_colmap_reconstruction(
             stack((image_a_indices, image_b_indices), axis=1).astype(uint32, copy=False),
         )
 
-    # Per-pair so each completion ticks progress; sqlite writes stay on the main thread.
-    publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, len(pairs))
-    verification_options = options.two_view_geometry_options()
-    with ThreadPoolExecutor() as pool:
-        future_to_pair = {
-            pool.submit(
-                estimate_two_view_geometry,
-                image_cameras[a],
-                keypoints[a],
-                image_cameras[b],
-                keypoints[b],
-                stack(match_indices[(a, b)], axis=1).astype(uint32, copy=False),
-                verification_options,
-            ): (a, b)
-            for a, b in pairs
-        }
-        for completed, future in enumerate(as_completed(future_to_pair), start=1):
-            a, b = future_to_pair[future]
-            two_view_geometry: TwoViewGeometry = future.result()
-            database.write_two_view_geometry(colmap_image_ids[a], colmap_image_ids[b], two_view_geometry)
-            publisher.on_progress(completed)
-
-    # Close database
+    # Close the database before handing off to geometric_verification — the C++ entry point opens
+    # its own connection from the path.
     database.close()
+
+    # Stock pycolmap geometric_verification with rig_verification=True. Single opaque C++ call that
+    # holds the GIL throughout, no in-Python progress signal — set the phase with no total so the
+    # UI shows it as an indeterminate step.
+    publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY)
+    geometric_verification(
+        database_path=str(colmap_db_path),
+        verifier_options=GeometricVerifierOptions(rig_verification=True),
+        two_view_geometry_options=options.two_view_geometry_options(),
+    )
 
     # Compute and store verified matches metrics
     metrics.build_verified_matches_metrics(colmap_db_path, pairs)
