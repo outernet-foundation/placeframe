@@ -17,9 +17,7 @@ from scipy.spatial.transform import Rotation
 
 
 PAIR_ID_MULTIPLIER = 2147483647
-IMAGE_LINE_PATTERN = re.compile(
-    r"^(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+\d+\s+(\S+)$"
-)
+IMAGE_LINE_PATTERN = re.compile(r"^(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+\d+\s+(\S+)$")
 NAME_PATTERN = re.compile(r"^([^/]+)/([^/]+)/(\d+)\.jpg$")
 MIN_BASELINE_FOR_DIRECTION = 1e-3
 TVG_CONFIG_LABEL = {
@@ -93,7 +91,9 @@ def angle_between_rotations_rad(rotation_a: NDArray[np.float64], rotation_b: NDA
     return acos(max(-1.0, min(1.0, float(cos_theta))))
 
 
-def angle_between_directions_rad(translation_a: NDArray[np.float64], translation_b: NDArray[np.float64]) -> float | None:
+def angle_between_directions_rad(
+    translation_a: NDArray[np.float64], translation_b: NDArray[np.float64]
+) -> float | None:
     norm_a = float(np.linalg.norm(translation_a))
     norm_b = float(np.linalg.norm(translation_b))
     if norm_a < MIN_BASELINE_FOR_DIRECTION or norm_b < MIN_BASELINE_FOR_DIRECTION:
@@ -156,9 +156,7 @@ def load_cam_from_rig(manifest_json: Path) -> dict[tuple[str, str], Rigid3]:
             translation = camera["translation"]
             result[(rig["id"], camera["id"])] = Rigid3(
                 rotation=Rotation.from_quat([rotation["x"], rotation["y"], rotation["z"], rotation["w"]]).as_matrix(),
-                translation=np.array(
-                    [translation["x"], translation["y"], translation["z"]], dtype=np.float64
-                ),
+                translation=np.array([translation["x"], translation["y"], translation["z"]], dtype=np.float64),
             )
     return result
 
@@ -333,7 +331,9 @@ def build_row(
     recon_a = recon_images.get(key_a)
     recon_b = recon_images.get(key_b)
     recon_registered = recon_a is not None and recon_b is not None
-    recon_transform = recon_cam_b_from_cam_a(recon_a[1], recon_b[1]) if recon_a is not None and recon_b is not None else None
+    recon_transform = (
+        recon_cam_b_from_cam_a(recon_a[1], recon_b[1]) if recon_a is not None and recon_b is not None else None
+    )
 
     return PairRow(
         rig_id=rig_id,
