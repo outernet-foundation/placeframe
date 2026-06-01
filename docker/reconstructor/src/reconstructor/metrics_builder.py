@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from statistics import mean, median
 from typing import Any, Iterable, List, Optional, Sequence, cast
 
@@ -10,8 +11,6 @@ from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up m
 from pycolmap import Database, Frame, ImageMap, Point3D, Point3DMap, Reconstruction, Rigid3d
 from pycolmap import Image as ColmapImage
 
-from .pairs import Pair
-
 UINT64_MAX = 18446744073709551615  # sentinel used by Point2D.point3D_id default
 
 
@@ -19,7 +18,8 @@ class MetricsBuilder:
     def __init__(self):
         self.metrics = ReconstructionMetrics()
 
-    def build_verified_matches_metrics(self, database: Database, pairs: list[Pair]) -> None:
+    def build_verified_matches_metrics(self, db_path: Path, pairs: list[tuple[str, ...]]) -> None:
+        database = Database.open(str(db_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
         # Map image name -> image_id (help Pyright with explicit types)
         all_images: list[ColmapImage] = database.read_all_images()
         name_to_id: dict[str, int] = {img.name: img.image_id for img in all_images}
@@ -40,8 +40,7 @@ class MetricsBuilder:
         st_total = st_verified = 0  # stereo: same frame, different sensors
         st_inliers: List[int] = []
 
-        for pair in pairs:
-            a, b = pair.image_a, pair.image_b
+        for a, b in pairs:
             total += 1
             ida: int = name_to_id[a]
             idb: int = name_to_id[b]
@@ -70,6 +69,8 @@ class MetricsBuilder:
         self.metrics.stereo_verified_match_rate = (100.0 * st_verified / st_total) if st_total else 0.0
         self.metrics.stereo_verified_match_inliers_mean = mean(st_inliers) if st_inliers else 0.0
         self.metrics.stereo_verified_match_inliers_median = median(st_inliers) if st_inliers else 0.0
+
+        database.close()
 
     def build_reconstruction_metrics(self, best: Reconstruction) -> None:
         points3d: Point3DMap = best.points3D

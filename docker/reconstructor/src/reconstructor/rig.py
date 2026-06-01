@@ -89,10 +89,6 @@ class Rig:
             self.frame_poses[frame_id] = pose
 
 
-def image_name(rig_id: str, camera_id: str, frame_id: str) -> str:
-    return f"{rig_id}/{camera_id}/{frame_id}.jpg"
-
-
 def _parse_frame_pose(values: list[str], axis_convention: AxisConvention) -> FramePose:
     if len(values) == 3:
         # gx, gy, gz — gravity samples only, no position prior.

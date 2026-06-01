@@ -251,10 +251,12 @@ def run_reconstruction(
     file_name, file_bytes = write_features(WORK_DIR, keypoints, image_codes)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
+    image_name_pairs: list[tuple[str, str]] = [(pair.image_a, pair.image_b) for pair in pairs]
+
     # Match features
     publisher.set_phase(ReconstructionStatus.MATCHING_FEATURES, total=len(pairs))
     match_indices = local_feature_matcher(
-        [(pair.image_a, pair.image_b) for pair in pairs],
+        image_name_pairs,
         keypoints,
         descriptors,
         sizes,
@@ -275,7 +277,7 @@ def run_reconstruction(
         metrics,
         rigs,
         keypoints,
-        pairs,
+        image_name_pairs,
         match_indices,
         publisher,
     )
