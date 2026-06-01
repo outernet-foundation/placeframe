@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import sqlite3
-import threading
+import subprocess
+import sys
 from math import acos, pi
 from pathlib import Path
 from shutil import rmtree
@@ -58,12 +59,38 @@ COLMAP_DB_FILE = "database.db"
 COLMAP_SFM_DIRECTORY = "sfm_model"
 
 
+_VERIFICATION_POLL_SCRIPT = """
+import sqlite3
+import sys
+import time
+
+database_path, total_pairs, interval_seconds = sys.argv[1], int(sys.argv[2]), float(sys.argv[3])
+last_emitted = -1
+while True:
+    connection = sqlite3.connect(database_path, isolation_level=None, timeout=1.0)
+    try:
+        connection.execute('PRAGMA query_only = 1')
+        row = connection.execute('SELECT COUNT(*) FROM two_view_geometries').fetchone()
+    finally:
+        connection.close()
+    count = int(row[0]) if row else 0
+    if count != last_emitted:
+        print(f'[verifying_geometry] {min(count, total_pairs)}/{total_pairs}', flush=True)
+        last_emitted = count
+    time.sleep(interval_seconds)
+"""
+
+
 class _VerificationProgressPoller:
     # Polls the COLMAP database's two_view_geometries row count while pycolmap's
     # geometric_verification runs as a single opaque C++ call. COLMAP inserts one row per
     # processed pair regardless of the resulting config tag, so the row count is a faithful
-    # progress measure. SQLite WAL mode lets the polling thread read concurrently with COLMAP's
-    # writes from another connection.
+    # progress measure. The poll runs in a child subprocess because the C++ call holds the GIL
+    # for its full duration — an in-process thread never gets scheduled until the call returns.
+    # The child's stdout is the parent's stdout, so [verifying_geometry] N/M lines flow through
+    # the same log relay as the main process. The API-side flush happens once at __exit__ with
+    # the final count, since the asyncio loop that drives publisher._flush is also GIL-blocked
+    # during the verification call.
 
     def __init__(
         self,
@@ -76,32 +103,38 @@ class _VerificationProgressPoller:
         self._total_pairs = total_pairs
         self._publisher = publisher
         self._poll_interval_seconds = poll_interval_seconds
-        self._stop_event = threading.Event()
-        self._thread = threading.Thread(target=self._poll, name="verification-progress", daemon=True)
+        self._process: subprocess.Popen[bytes] | None = None
 
     def __enter__(self) -> Self:
-        self._thread.start()
+        self._process = subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                _VERIFICATION_POLL_SCRIPT,
+                str(self._database_path),
+                str(self._total_pairs),
+                str(self._poll_interval_seconds),
+            ],
+        )
         return self
 
     def __exit__(self, *_: object) -> None:
-        self._stop_event.set()
-        self._thread.join(timeout=10.0)
-
-    def _poll(self) -> None:
-        last_emitted = -1
-        while not self._stop_event.is_set():
-            connection = sqlite3.connect(str(self._database_path), isolation_level=None, timeout=1.0)
-            try:
-                connection.execute("PRAGMA query_only = 1")
-                row = connection.execute("SELECT COUNT(*) FROM two_view_geometries").fetchone()
-            finally:
-                connection.close()
-            verified = int(row[0]) if row else 0
-            if verified != last_emitted:
-                self._publisher.on_progress(min(verified, self._total_pairs))
-                last_emitted = verified
-            if self._stop_event.wait(self._poll_interval_seconds):
-                return
+        if self._process is None:
+            return
+        self._process.terminate()
+        try:
+            self._process.wait(timeout=5.0)
+        except subprocess.TimeoutExpired:
+            self._process.kill()
+            self._process.wait(timeout=5.0)
+        connection = sqlite3.connect(str(self._database_path), isolation_level=None, timeout=1.0)
+        try:
+            connection.execute("PRAGMA query_only = 1")
+            row = connection.execute("SELECT COUNT(*) FROM two_view_geometries").fetchone()
+        finally:
+            connection.close()
+        final_count = int(row[0]) if row else 0
+        self._publisher.on_progress(min(final_count, self._total_pairs))
 
 
 def run_colmap_reconstruction(
