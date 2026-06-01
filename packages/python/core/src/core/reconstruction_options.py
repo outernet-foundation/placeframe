@@ -15,7 +15,7 @@ class ReconstructionOptions(BaseModel):
         description="Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.",
     )
     sequential_window: int = Field(
-        default=20,
+        default=10,
         description="Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.",
     )
     spatial_neighbors: int = Field(
@@ -27,7 +27,7 @@ class ReconstructionOptions(BaseModel):
         description="Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent.",
     )
     retrieval_neighbors: int = Field(
-        default=20,
+        default=0,
         description="Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.",
     )
     retrieval_min_distance_m: float = Field(

@@ -280,15 +280,19 @@ def _verify_two_view_geometries(
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
     colmap_image_ids: dict[str, int],
 ) -> None:
-    verification_options_by_source = {
-        source: pipeline_context.options.retrieval_two_view_geometry_options()
-        if source == PairSource.RETRIEVAL
-        else pipeline_context.options.two_view_geometry_options()
-        for source in PairSource
-    }
+    # STRIPPED-TO-STUDS: retrieval-specific stricter verification options disabled; all pair sources
+    # use the same two_view_geometry_options.
+    # verification_options_by_source = {
+    #     source: pipeline_context.options.retrieval_two_view_geometry_options()
+    #     if source == PairSource.RETRIEVAL
+    #     else pipeline_context.options.two_view_geometry_options()
+    #     for source in PairSource
+    # }
+    verification_options_by_source = dict.fromkeys(PairSource, pipeline_context.options.two_view_geometry_options())
 
     rejected_by_source: dict[PairSource, int] = dict.fromkeys(PairSource, 0)
-    pair_min_match_spread = pipeline_context.options.pair_min_match_spread()
+    # STRIPPED-TO-STUDS: match-spread filter disabled.
+    # pair_min_match_spread = pipeline_context.options.pair_min_match_spread()
 
     # Per-pair so each completion ticks progress; sqlite writes stay on the main thread.
     with ThreadPoolExecutor() as pool:
@@ -308,19 +312,23 @@ def _verify_two_view_geometries(
         for completed, future in enumerate(as_completed(future_to_pair), start=1):
             pair = future_to_pair[future]
             two_view_geometry = future.result()
-            if _pair_passes_match_spread(
-                two_view_geometry,
-                keypoints[pair.image_a],
-                keypoints[pair.image_b],
-                image_cameras[pair.image_a],
-                image_cameras[pair.image_b],
-                pair_min_match_spread,
-            ):
-                pipeline_context.database.write_two_view_geometry(
-                    colmap_image_ids[pair.image_a], colmap_image_ids[pair.image_b], two_view_geometry
-                )
-            else:
-                rejected_by_source[pair.source] += 1
+            # STRIPPED-TO-STUDS: match-spread filter disabled; write all verified geometries.
+            # if _pair_passes_match_spread(
+            #     two_view_geometry,
+            #     keypoints[pair.image_a],
+            #     keypoints[pair.image_b],
+            #     image_cameras[pair.image_a],
+            #     image_cameras[pair.image_b],
+            #     pair_min_match_spread,
+            # ):
+            #     pipeline_context.database.write_two_view_geometry(
+            #         colmap_image_ids[pair.image_a], colmap_image_ids[pair.image_b], two_view_geometry
+            #     )
+            # else:
+            #     rejected_by_source[pair.source] += 1
+            pipeline_context.database.write_two_view_geometry(
+                colmap_image_ids[pair.image_a], colmap_image_ids[pair.image_b], two_view_geometry
+            )
             pipeline_context.publisher.on_progress(completed)
 
     print(
