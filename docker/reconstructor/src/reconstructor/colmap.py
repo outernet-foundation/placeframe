@@ -376,7 +376,7 @@ def _apply_vio_em_check(
         if translation_bad:
             rejected_translation += 1
         if rotation_bad or translation_bad:
-            database.write_two_view_geometry(colmap_image_ids[a], colmap_image_ids[b], empty_tvg)
+            database.update_two_view_geometry(colmap_image_ids[a], colmap_image_ids[b], empty_tvg)
 
     database.close()
     print(
