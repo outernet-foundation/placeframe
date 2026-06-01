@@ -1369,18 +1369,25 @@ The user's stated rule: spatial off always. Do not relitigate.
 
 ### Investigate sequential aliasing (the residual teleport vector)
 
-The two residual ~4 m/s teleports at `…859015` and `…865515` survive
-every configuration tested and are not spatial- or retrieval-driven.
-By elimination they're aliased two-view geometries between temporally
-adjacent keyframes within `sequential_window=20`. User's hypothesis:
-the sequential window is simply too wide.
+Status as of 2026-06-01: confirmed by elimination. At `window=10`,
+regardless of retrieval state, the two residual teleports survive at
+`858015→858515` (densely connected zone, frame 67 misregistration)
+and `864515→865015→865515` (thin connectivity / fast motion zone,
+frame 78 the dark blurry frame either drops out or lands wrong).
+Magnitudes are ~4 m/s when retrieval is on, ~7 m/s when off. These
+are Phase-1 sequential pairs whose two-view essential matrix
+disagrees with the actual VIO-implied relative pose, but neither
+the pose-graph check (no seed model to police) nor the
+displacement-budget filter (no orientation signal) catches them.
 
-Cheapest move: re-run with `sequential_window` reduced (try 10, then 5)
-and see whether the residual teleports collapse. If they survive even
-at `window=5`, the failure is *immediate*-sequential aliasing (within
-a few keyframes) which would require a different defense — gravity
-rotation, motion-model gating, or a sequential-specific match
-verification step.
+The proposed fix is the **pair-time VIO-vs-essential-matrix
+consistency check** queued under the Queued for next session section
+above. The check is sequential-only by construction (see the
+per-source applicability table above).
+
+Tighter `sequential_window` (try 5) remains a fallback if the new
+check doesn't catch them, but coverage cost will be brutal: at
+`window=10` we already drop from 220 → ~120 mapped frames.
 
 ### Add phase-3 straggler-retrieval registration (deferred)
 
