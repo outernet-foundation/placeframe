@@ -14,13 +14,13 @@ class ReconstructionOptions(BaseModel):
         default=0.2,
         description="Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.",
     )
-    sequential_window: int = Field(
-        default=10,
-        description="Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.",
+    sequential_window_m: float = Field(
+        default=3.0,
+        description="VIO-straight-line distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe within this many metres of straight-line VIO displacement is paired with it. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc, instead of the old fixed-neighbour count over-reaching in fast zones and under-reaching in slow ones. No-op on rigs without VIO translations.",
     )
     spatial_neighbors: int = Field(
         default=0,
-        description="Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame's true neighbours.",
+        description="Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing (within sequential_window_m metres) are skipped here so spatial_neighbors counts loop-closure candidates, not redundancy. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame's true neighbours.",
     )
     spatial_max_distance_m: float = Field(
         default=6.0,
@@ -117,6 +117,18 @@ class ReconstructionOptions(BaseModel):
     pair_pose_graph_min_registered_frames: int = Field(
         default=15,
         description="Minimum number of registered frames in the partial reconstruction before pair_pose_graph_* consistency checks fire. Early in the reconstruction the pose graph is too soft to be a reliable oracle; the front-door filters (covisibility, drift budget, vio_check) carry the load until the graph stiffens.",
+    )
+    pair_vio_em_max_rotation_disagreement_deg: float = Field(
+        default=15.0,
+        description="At two-view verification time, every sequential pair whose VIO poses carry rotation has its essential-matrix relative pose compared against the VIO-implied relative pose. The pair is rejected (its two-view geometry deleted from the database) when the angle between the two rotations exceeds this threshold. Sequential-only because retrieval pairs span genuine loop closures where VIO drift can disagree with the essential matrix legitimately, and intra-frame stereo is already validated by the rig constraint. 0 disables. Applied only to pairs with 7-column VIO rows (quaternion present).",
+    )
+    pair_vio_em_max_translation_direction_deg: float = Field(
+        default=30.0,
+        description="Companion to pair_vio_em_max_rotation_disagreement_deg: bounds the angle between the essential-matrix translation direction (camera-1 origin direction in camera-2) and the VIO-implied translation direction for the same camera pair. Skipped when the essential-matrix baseline is below pair_vio_em_min_baseline_m, where translation direction is ill-conditioned. 0 disables.",
+    )
+    pair_vio_em_min_baseline_m: float = Field(
+        default=0.3,
+        description="Essential-matrix-baseline floor below which the VIO-vs-essential-matrix translation-direction component is skipped. Near-co-located camera pairs (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined essential-matrix translation direction; the rotation component still applies.",
     )
     max_keypoints_per_image: int = Field(
         default=2500,

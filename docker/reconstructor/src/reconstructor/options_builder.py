@@ -20,6 +20,13 @@ class PairPoseGraphOptions:
     min_registered_frames: int
 
 
+@dataclass(frozen=True)
+class PairVioEssentialMatrixOptions:
+    max_rotation_disagreement_deg: float
+    max_translation_direction_deg: float
+    min_baseline_m: float
+
+
 # Hardcoded pipeline knobs. Kept out of ReconstructionOptions because either there is one
 # correct answer or the option was never exercised by any caller.
 BUNDLE_ADJUSTMENT_INCREMENTAL_REFINE_SENSOR_FROM_RIG = False
@@ -51,17 +58,11 @@ class OptionsBuilder:
         two_view_geometry_options.stationary_matches_max_error = 4.0
         return two_view_geometry_options
 
-    def retrieval_two_view_geometry_options(self):
-        retrieval_two_view_geometry_options = self.two_view_geometry_options()
-        retrieval_two_view_geometry_options.ransac.min_inlier_ratio = self.options.retrieval_min_inlier_ratio
-        retrieval_two_view_geometry_options.min_num_inliers = self.options.retrieval_min_num_inliers
-        return retrieval_two_view_geometry_options
-
     def keyframe_min_distance_m(self):
         return self.options.keyframe_min_distance_m
 
-    def sequential_window(self):
-        return self.options.sequential_window
+    def sequential_window_m(self):
+        return self.options.sequential_window_m
 
     def spatial_neighbors(self):
         return self.options.spatial_neighbors
@@ -80,9 +81,6 @@ class OptionsBuilder:
             scene_m=self.options.pair_max_displacement_scene_m,
             drift_rate_m_per_s=self.options.pair_max_displacement_drift_rate_m_per_s,
         )
-
-    def pair_min_match_spread(self):
-        return self.options.pair_min_match_spread
 
     def retrieval_min_score(self):
         return self.options.retrieval_min_score
@@ -105,6 +103,13 @@ class OptionsBuilder:
             max_translation_direction_deg=self.options.pair_pose_graph_max_translation_direction_deg,
             min_baseline_m=self.options.pair_pose_graph_min_baseline_m,
             min_registered_frames=self.options.pair_pose_graph_min_registered_frames,
+        )
+
+    def pair_vio_essential_matrix_options(self):
+        return PairVioEssentialMatrixOptions(
+            max_rotation_disagreement_deg=self.options.pair_vio_em_max_rotation_disagreement_deg,
+            max_translation_direction_deg=self.options.pair_vio_em_max_translation_direction_deg,
+            min_baseline_m=self.options.pair_vio_em_min_baseline_m,
         )
 
     def max_keypoints_per_image(self):

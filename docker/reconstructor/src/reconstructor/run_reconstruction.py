@@ -206,7 +206,7 @@ def run_reconstruction(
     pairs = generate_image_pairs(
         rigs,
         global_descriptors,
-        options.sequential_window(),
+        options.sequential_window_m(),
         options.spatial_neighbors(),
         options.spatial_max_distance_m(),
         options.retrieval_neighbors(),

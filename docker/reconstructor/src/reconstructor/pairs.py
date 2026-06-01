@@ -47,7 +47,7 @@ SOURCE_PRECEDENCE: tuple[PairSource, ...] = (
 def generate_image_pairs(
     rigs: dict[str, Rig],
     global_descriptors: dict[str, NDArray[float32]],
-    sequential_window: int,
+    sequential_window_m: float,
     spatial_neighbors: int,
     spatial_max_distance_m: float,
     retrieval_neighbors: int,
@@ -59,17 +59,34 @@ def generate_image_pairs(
     pair_max_displacement_drift_rate_m_per_s: float,
 ) -> list[Pair]:
     sequential_frame_pairs: list[tuple[tuple[str, str], tuple[str, str]]] = []
+    sequentially_paired_per_rig: dict[str, dict[str, set[str]]] = {}
     for rig_id, rig in rigs.items():
         frame_ids = sorted(rig.frame_poses.keys(), key=int)
-        for i in range(len(frame_ids)):
-            for j in range(i + 1, min(i + 1 + sequential_window, len(frame_ids))):
-                sequential_frame_pairs.append(((rig_id, frame_ids[i]), (rig_id, frame_ids[j])))
+        per_frame_partners: dict[str, set[str]] = {frame_id: set() for frame_id in frame_ids}
+        translations_by_frame = {
+            frame_id: rig.frame_poses[frame_id].translation
+            for frame_id in frame_ids
+            if rig.frame_poses[frame_id].translation is not None
+        }
+        for i, frame_id_a in enumerate(frame_ids):
+            translation_a = translations_by_frame.get(frame_id_a)
+            if translation_a is None:
+                continue
+            for frame_id_b in frame_ids[i + 1 :]:
+                translation_b = translations_by_frame.get(frame_id_b)
+                if translation_b is None:
+                    continue
+                if float(norm(translation_b - translation_a)) > sequential_window_m:
+                    continue
+                sequential_frame_pairs.append(((rig_id, frame_id_a), (rig_id, frame_id_b)))
+                per_frame_partners[frame_id_a].add(frame_id_b)
+                per_frame_partners[frame_id_b].add(frame_id_a)
+        sequentially_paired_per_rig[rig_id] = per_frame_partners
 
     spatial_frame_pairs: list[tuple[tuple[str, str], tuple[str, str]]] = []
     if spatial_neighbors > 0:
         for rig_id, rig in rigs.items():
             ordered_frame_ids = sorted(rig.frame_poses.keys(), key=int)
-            frame_id_to_temporal_index = {frame_id: index for index, frame_id in enumerate(ordered_frame_ids)}
             frame_ids_with_translation: list[str] = []
             translations: list[NDArray[float64]] = []
             for frame_id in ordered_frame_ids:
@@ -82,22 +99,23 @@ def generate_image_pairs(
                 continue
             positions = stack(translations).astype(float64, copy=False)
             distances = norm(positions[:, None, :] - positions[None, :, :], axis=-1)
-            temporal_indices = asarray([
-                frame_id_to_temporal_index[frame_id] for frame_id in frame_ids_with_translation
-            ])
+            already_sequential = sequentially_paired_per_rig.get(rig_id, {})
             for i, frame_id_a in enumerate(frame_ids_with_translation):
                 # Spatial source is the loop-closure-by-VIO-position complement to sequential. Pairs
-                # already proposed by sequential (temporal-index distance <= sequential_window) are
-                # excluded here so spatial_neighbors counts loop-closure candidates, not redundancy
+                # already proposed by sequential (VIO straight-line distance <= sequential_window_m)
+                # are excluded so spatial_neighbors counts loop-closure candidates, not redundancy
                 # with sequential's coverage.
-                in_range = where(
-                    (distances[i] <= spatial_max_distance_m)
-                    & (arange(len(frame_ids_with_translation)) != i)
-                    & (abs(temporal_indices - temporal_indices[i]) > sequential_window)
+                partner_indices = where(
+                    (distances[i] <= spatial_max_distance_m) & (arange(len(frame_ids_with_translation)) != i)
                 )[0]
-                if len(in_range) > spatial_neighbors:
-                    in_range = in_range[argsort(distances[i, in_range])[:spatial_neighbors]]
-                for j in in_range:
+                sequential_partners = already_sequential.get(frame_id_a, set())
+                partner_indices = asarray(
+                    [j for j in partner_indices if frame_ids_with_translation[int(j)] not in sequential_partners],
+                    dtype=int,
+                )
+                if len(partner_indices) > spatial_neighbors:
+                    partner_indices = partner_indices[argsort(distances[i, partner_indices])[:spatial_neighbors]]
+                for j in partner_indices:
                     spatial_frame_pairs.append(((rig_id, frame_id_a), (rig_id, frame_ids_with_translation[int(j)])))
 
     sequential_image_pairs = [

@@ -16,6 +16,10 @@ from scipy.spatial.transform import Rotation
 @dataclass(frozen=True)
 class FramePose:
     translation: NDArray[float64] | None
+    # rig_from_world rotation derived from the VIO quaternion when frames.csv carries one (7-column
+    # format). None when the row only has gravity samples (ZED capture's 6-column format) — the
+    # downstream consumer that uses rotation skips the pair silently in that case.
+    rotation: Rotation3d | None
     gravity_in_rig_local: NDArray[float64] | None
 
 
@@ -95,7 +99,7 @@ def _parse_frame_pose(values: list[str], axis_convention: AxisConvention) -> Fra
         gravity = array([float(values[0]), float(values[1]), float(values[2])], dtype=float64)
         if axis_convention == AxisConvention.UNITY:
             gravity = basis_change_opencv_from_unity @ gravity
-        return FramePose(translation=None, gravity_in_rig_local=gravity)
+        return FramePose(translation=None, rotation=None, gravity_in_rig_local=gravity)
 
     if len(values) == 6:
         # tx, ty, tz, gx, gy, gz — VIO position plus gravity samples.
@@ -104,14 +108,26 @@ def _parse_frame_pose(values: list[str], axis_convention: AxisConvention) -> Fra
         if axis_convention == AxisConvention.UNITY:
             translation = basis_change_opencv_from_unity @ translation
             gravity = basis_change_opencv_from_unity @ gravity
-        return FramePose(translation=translation, gravity_in_rig_local=gravity)
+        return FramePose(translation=translation, rotation=None, gravity_in_rig_local=gravity)
 
     if len(values) == 7:
-        # tx, ty, tz, qx, qy, qz, qw — VIO position with quaternion; rotation discarded, only the
-        # position is consumed downstream when the rig is monocular.
+        # tx, ty, tz, qx, qy, qz, qw — VIO position with quaternion. The quaternion is rig_from_world
+        # in the capture's axis convention; under UNITY we conjugate by the OpenCV-from-Unity basis
+        # change so the rotation lives in the same OpenCV frame as the translation.
         translation = array([float(values[0]), float(values[1]), float(values[2])], dtype=float64)
+        rotation_matrix = Rotation.from_quat([
+            float(values[3]),
+            float(values[4]),
+            float(values[5]),
+            float(values[6]),
+        ]).as_matrix()
         if axis_convention == AxisConvention.UNITY:
             translation = basis_change_opencv_from_unity @ translation
-        return FramePose(translation=translation, gravity_in_rig_local=None)
+            rotation_matrix = basis_change_opencv_from_unity @ rotation_matrix @ basis_change_opencv_from_unity.T
+        return FramePose(
+            translation=translation,
+            rotation=Rotation3d(matrix=rotation_matrix),
+            gravity_in_rig_local=None,
+        )
 
     raise ValueError(f"Unrecognized frames.csv row width: {len(values) + 1} columns")
