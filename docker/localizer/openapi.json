@@ -492,7 +492,7 @@
             "type": "integer"
           },
           "prior_drift_residual_rms_m": {
-            "description": "RMS residual in meters of a rigid Umeyama fit from map camera centers to VIO position priors; None when the capture has no priors or runs with use_prior_position off.",
+            "description": "RMS residual in meters of a rigid Umeyama fit from map camera centers to VIO position priors; None for multi-camera captures, which run priors-off and carry no per-frame positions.",
             "nullable": true,
             "type": "number",
             "format": "double"

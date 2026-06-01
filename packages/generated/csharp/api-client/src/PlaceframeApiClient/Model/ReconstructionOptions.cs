@@ -36,34 +36,19 @@ namespace PlaceframeApiClient.Model
         /// </summary>
         /// <param name="deterministicSeed">PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic..</param>
         /// <param name="keyframeMinDistanceM">Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction. (default to 0.2D).</param>
-        /// <param name="sequentialWindowM">VIO-straight-line distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe within this many metres of straight-line VIO displacement is paired with it. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc, instead of the old fixed-neighbour count over-reaching in fast zones and under-reaching in slow ones. No-op on rigs without VIO translations. (default to 3.0D).</param>
-        /// <param name="spatialNeighbors">Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing (within sequential_window_m metres) are skipped here so spatial_neighbors counts loop-closure candidates, not redundancy. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame&#39;s true neighbours. (default to 0).</param>
-        /// <param name="spatialMaxDistanceM">Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent. (default to 6.0D).</param>
-        /// <param name="retrievalNeighbors">Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval. (default to 0).</param>
-        /// <param name="retrievalMinDistanceM">Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent. (default to 1.0D).</param>
-        /// <param name="pairMaxDisplacementSceneM">Max plausible scene-radius component of the displacement bound used to reject any candidate pair (a,b) whose VIO straight-line displacement exceeds the bound. Combined with pair_max_displacement_drift_rate_m_per_s: a pair is rejected when |vio_pos(b)−vio_pos(a)| &gt; pair_max_displacement_scene_m + pair_max_displacement_drift_rate_m_per_s · |t_b−t_a|. Applied uniformly across all pair sources; stereo and short-temporal pairs trivially satisfy any reasonable bound. No-op when positions are absent. (default to 10.0D).</param>
-        /// <param name="pairMaxDisplacementDriftRateMPerS">VIO drift-rate slack added to the displacement bound per second of time gap between the two frames of a candidate pair. Lets long-temporal-gap true loop closures survive accumulated drift while still rejecting short-temporal-gap aliased pairs (e.g. retrieval matches between physically distant frames seconds apart). Calibrate per device class against post-hoc VIO↔recon residuals. (default to 0.1D).</param>
-        /// <param name="pairMinMatchSpread">Minimum spread of inlier-match keypoint positions, expressed as geometric mean of per-axis standard deviations normalized by image dimensions, taken as the min across the two images. Pairs below the threshold are rejected at the two-view verification stage. Catches the repeated-decor aliasing pattern where matches concentrate on a small set of similar features (e.g. multiple identical artworks in an office) — both images show matches clustered in a tiny region, producing a low spread, while true wide-baseline matches spread across the image. Independent of VIO drift; works monocular. 0 disables the filter. (default to 0.08D).</param>
+        /// <param name="sequentialWindowM">VIO-path-distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe whose cumulative segment-by-segment path length along the VIO trajectory is within this many metres is paired with it. Path distance — not straight-line distance — so doubling back along the trajectory (e.g. corridor return pass) walks away from earlier frames rather than landing on them. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc. (default to 3.0D).</param>
+        /// <param name="retrievalNeighbors">Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval. (default to 20).</param>
         /// <param name="retrievalMinScore">Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA. (default to 0.35D).</param>
-        /// <param name="retrievalCovisibilityWindow">Half-width (in temporal keyframe indices) of the neighborhood used to validate retrieval pairs against perceptual aliasing. A pair (A,B) is supported by another retrieval pair (A&#39;,B&#39;) iff both endpoints fall within this window of the original pair on their respective trajectories. (default to 3).</param>
-        /// <param name="retrievalCovisibilityMinSupport">Minimum count of supporting retrieval pairs within retrieval_covisibility_window required for a retrieval candidate to be kept; aliased pairs (e.g. two similar paintings in different rooms) appear as singletons and get dropped, while true loop closures appear as bands and survive. 0 disables the filter. (default to 2).</param>
         /// <param name="ransacMaxError">Two-view RANSAC inlier threshold in pixels; lower is stricter. (default to 2.0D).</param>
         /// <param name="ransacMinInlierRatio">Two-view RANSAC minimum inlier ratio to accept a pair&#39;s geometry. (default to 0.25D).</param>
         /// <param name="twoViewMinNumInliers">Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap&#39;s SIFT-era default of 15 to reject small false-positive clusters on repetitive structure. (default to 30).</param>
-        /// <param name="retrievalMinInlierRatio">Two-view RANSAC minimum inlier ratio for retrieval-sourced pairs only; stricter than the sequential/spatial/intra-frame floor because visually-similar-but-spatially-distant indoor regions can fabricate plausible-looking essential matrices. (default to 0.4D).</param>
-        /// <param name="retrievalMinNumInliers">Absolute minimum inlier count for retrieval-sourced pair geometries; stricter than the global two_view_min_num_inliers because retrieval is the lone pair source where visual similarity does not imply spatial proximity. (default to 50).</param>
         /// <param name="triangulationMinimumAngle">Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering. (default to 3.0D).</param>
         /// <param name="mapperFilterMaxReprojectionError">Post-BA outlier reprojection threshold in pixels; points exceeding it are culled. (default to 2.0D).</param>
         /// <param name="bundleAdjustmentGlobalFramesRatio">Frame-count growth ratio that triggers a global BA event; larger &#x3D; fewer events. (default to 1.5D).</param>
         /// <param name="bundleAdjustmentGlobalFunctionTolerance">Ceres function tolerance for global BA exit; larger &#x3D; earlier exit on residual plateaus. (default to 0.001D).</param>
         /// <param name="posePriorPositionSigmaM">Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off). (default to 0.05D).</param>
-        /// <param name="vioCheckMaxDisagreementM">Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors. Disabled by default (1e9 m is effectively infinity for any real capture); the pair-level pose-graph consistency check and the two-phase retrieval ingest are the primary aliasing defenses. Set to a finite value (e.g. 1.0) to gate registrations against VIO drift bounds on captures where the device-reported trajectory is trusted to within a metre. (default to 1.0E+9D).</param>
-        /// <param name="pairPoseGraphMaxRotationDisagreementDeg">At per-frame registration time, compare the relative rotation each already-registered partner&#39;s two-view geometry implies against the relative rotation the partial reconstruction estimates between the same frames. Partners exceeding this angular threshold are flagged poisoned and their contributing matches are excised from the new frame&#39;s observations before the next BA pass. Independent of VIO; uses the pose graph itself as the consistency oracle. 0 disables. (default to 15.0D).</param>
-        /// <param name="pairPoseGraphMaxTranslationDirectionDeg">Companion to pair_pose_graph_max_rotation_disagreement_deg: bounds the angle between the unit translation direction the two-view geometry implies and the unit translation direction implied by the partial reconstruction&#39;s pose estimates of the two frames. Two-view geometry is scale-free in the monocular case so only direction is compared. Skipped when the estimated baseline is below pair_pose_graph_min_baseline_m. 0 disables. (default to 30.0D).</param>
-        /// <param name="pairPoseGraphMinBaselineM">Estimated-baseline floor below which the translation-direction component of the pose-graph consistency check is skipped. Near-co-located frames have ill-defined translation direction; the rotation component still applies. (default to 0.3D).</param>
-        /// <param name="pairPoseGraphMinRegisteredFrames">Minimum number of registered frames in the partial reconstruction before pair_pose_graph_* consistency checks fire. Early in the reconstruction the pose graph is too soft to be a reliable oracle; the front-door filters (covisibility, drift budget, vio_check) carry the load until the graph stiffens. (default to 15).</param>
-        /// <param name="pairVioEmMaxRotationDisagreementDeg">At two-view verification time, every sequential pair whose VIO poses carry rotation has its essential-matrix relative pose compared against the VIO-implied relative pose. The pair is rejected (its two-view geometry deleted from the database) when the angle between the two rotations exceeds this threshold. Sequential-only because retrieval pairs span genuine loop closures where VIO drift can disagree with the essential matrix legitimately, and intra-frame stereo is already validated by the rig constraint. 0 disables. Applied only to pairs with 7-column VIO rows (quaternion present). (default to 15.0D).</param>
-        /// <param name="pairVioEmMaxTranslationDirectionDeg">Companion to pair_vio_em_max_rotation_disagreement_deg: bounds the angle between the essential-matrix translation direction (camera-1 origin direction in camera-2) and the VIO-implied translation direction for the same camera pair. Skipped when the essential-matrix baseline is below pair_vio_em_min_baseline_m, where translation direction is ill-conditioned. 0 disables. (default to 30.0D).</param>
+        /// <param name="pairVioEmMaxRotationDisagreementDeg">At two-view verification time, every sequential pair whose VIO poses carry rotation has its essential-matrix relative pose compared against the VIO-implied relative pose. The pair is rejected (its two-view geometry deleted from the database) when the angle between the two rotations exceeds this threshold. Sequential-only because retrieval pairs span genuine loop closures where VIO drift can disagree with the essential matrix legitimately, and intra-frame stereo is already validated by the rig constraint. 0 disables. Applied only to pairs with 7-column VIO rows (quaternion present). (default to 25.0D).</param>
+        /// <param name="pairVioEmMaxTranslationDirectionDeg">Companion to pair_vio_em_max_rotation_disagreement_deg: bounds the angle between the essential-matrix translation direction (camera-1 origin direction in camera-2) and the VIO-implied translation direction for the same camera pair. Skipped when the essential-matrix baseline is below pair_vio_em_min_baseline_m, where translation direction is ill-conditioned. 0 disables. (default to 60.0D).</param>
         /// <param name="pairVioEmMinBaselineM">Essential-matrix-baseline floor below which the VIO-vs-essential-matrix translation-direction component is skipped. Near-co-located camera pairs (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined essential-matrix translation direction; the rotation component still applies. (default to 0.3D).</param>
         /// <param name="maxKeypointsPerImage">Maximum ALIKED keypoints retained per image. (default to 2500).</param>
         /// <param name="heldOutFrameTimestamps">Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries..</param>
@@ -122,9 +107,9 @@ namespace PlaceframeApiClient.Model
             return _flagKeyframeMinDistanceM;
         }
         /// <summary>
-        /// VIO-straight-line distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe within this many metres of straight-line VIO displacement is paired with it. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc, instead of the old fixed-neighbour count over-reaching in fast zones and under-reaching in slow ones. No-op on rigs without VIO translations.
+        /// VIO-path-distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe whose cumulative segment-by-segment path length along the VIO trajectory is within this many metres is paired with it. Path distance — not straight-line distance — so doubling back along the trajectory (e.g. corridor return pass) walks away from earlier frames rather than landing on them. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc.
         /// </summary>
-        /// <value>VIO-straight-line distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe within this many metres of straight-line VIO displacement is paired with it. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc, instead of the old fixed-neighbour count over-reaching in fast zones and under-reaching in slow ones. No-op on rigs without VIO translations.</value>
+        /// <value>VIO-path-distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe whose cumulative segment-by-segment path length along the VIO trajectory is within this many metres is paired with it. Path distance — not straight-line distance — so doubling back along the trajectory (e.g. corridor return pass) walks away from earlier frames rather than landing on them. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc.</value>
         [DataMember(Name = "sequential_window_m", EmitDefaultValue = false)]
         public double SequentialWindowM
         {
@@ -147,56 +132,6 @@ namespace PlaceframeApiClient.Model
             return _flagSequentialWindowM;
         }
         /// <summary>
-        /// Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing (within sequential_window_m metres) are skipped here so spatial_neighbors counts loop-closure candidates, not redundancy. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame&#39;s true neighbours.
-        /// </summary>
-        /// <value>Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing (within sequential_window_m metres) are skipped here so spatial_neighbors counts loop-closure candidates, not redundancy. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame&#39;s true neighbours.</value>
-        [DataMember(Name = "spatial_neighbors", EmitDefaultValue = false)]
-        public int SpatialNeighbors
-        {
-            get{ return _SpatialNeighbors;}
-            set
-            {
-                _SpatialNeighbors = value;
-                _flagSpatialNeighbors = true;
-            }
-        }
-        private int _SpatialNeighbors = 0;
-        private bool _flagSpatialNeighbors;
-
-        /// <summary>
-        /// Returns false as SpatialNeighbors should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeSpatialNeighbors()
-        {
-            return _flagSpatialNeighbors;
-        }
-        /// <summary>
-        /// Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent.
-        /// </summary>
-        /// <value>Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent.</value>
-        [DataMember(Name = "spatial_max_distance_m", EmitDefaultValue = false)]
-        public double SpatialMaxDistanceM
-        {
-            get{ return _SpatialMaxDistanceM;}
-            set
-            {
-                _SpatialMaxDistanceM = value;
-                _flagSpatialMaxDistanceM = true;
-            }
-        }
-        private double _SpatialMaxDistanceM = 6.0D;
-        private bool _flagSpatialMaxDistanceM;
-
-        /// <summary>
-        /// Returns false as SpatialMaxDistanceM should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeSpatialMaxDistanceM()
-        {
-            return _flagSpatialMaxDistanceM;
-        }
-        /// <summary>
         /// Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.
         /// </summary>
         /// <value>Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.</value>
@@ -210,7 +145,7 @@ namespace PlaceframeApiClient.Model
                 _flagRetrievalNeighbors = true;
             }
         }
-        private int _RetrievalNeighbors = 0;
+        private int _RetrievalNeighbors = 20;
         private bool _flagRetrievalNeighbors;
 
         /// <summary>
@@ -220,106 +155,6 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeRetrievalNeighbors()
         {
             return _flagRetrievalNeighbors;
-        }
-        /// <summary>
-        /// Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent.
-        /// </summary>
-        /// <value>Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent.</value>
-        [DataMember(Name = "retrieval_min_distance_m", EmitDefaultValue = false)]
-        public double RetrievalMinDistanceM
-        {
-            get{ return _RetrievalMinDistanceM;}
-            set
-            {
-                _RetrievalMinDistanceM = value;
-                _flagRetrievalMinDistanceM = true;
-            }
-        }
-        private double _RetrievalMinDistanceM = 1.0D;
-        private bool _flagRetrievalMinDistanceM;
-
-        /// <summary>
-        /// Returns false as RetrievalMinDistanceM should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRetrievalMinDistanceM()
-        {
-            return _flagRetrievalMinDistanceM;
-        }
-        /// <summary>
-        /// Max plausible scene-radius component of the displacement bound used to reject any candidate pair (a,b) whose VIO straight-line displacement exceeds the bound. Combined with pair_max_displacement_drift_rate_m_per_s: a pair is rejected when |vio_pos(b)−vio_pos(a)| &gt; pair_max_displacement_scene_m + pair_max_displacement_drift_rate_m_per_s · |t_b−t_a|. Applied uniformly across all pair sources; stereo and short-temporal pairs trivially satisfy any reasonable bound. No-op when positions are absent.
-        /// </summary>
-        /// <value>Max plausible scene-radius component of the displacement bound used to reject any candidate pair (a,b) whose VIO straight-line displacement exceeds the bound. Combined with pair_max_displacement_drift_rate_m_per_s: a pair is rejected when |vio_pos(b)−vio_pos(a)| &gt; pair_max_displacement_scene_m + pair_max_displacement_drift_rate_m_per_s · |t_b−t_a|. Applied uniformly across all pair sources; stereo and short-temporal pairs trivially satisfy any reasonable bound. No-op when positions are absent.</value>
-        [DataMember(Name = "pair_max_displacement_scene_m", EmitDefaultValue = false)]
-        public double PairMaxDisplacementSceneM
-        {
-            get{ return _PairMaxDisplacementSceneM;}
-            set
-            {
-                _PairMaxDisplacementSceneM = value;
-                _flagPairMaxDisplacementSceneM = true;
-            }
-        }
-        private double _PairMaxDisplacementSceneM = 10.0D;
-        private bool _flagPairMaxDisplacementSceneM;
-
-        /// <summary>
-        /// Returns false as PairMaxDisplacementSceneM should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializePairMaxDisplacementSceneM()
-        {
-            return _flagPairMaxDisplacementSceneM;
-        }
-        /// <summary>
-        /// VIO drift-rate slack added to the displacement bound per second of time gap between the two frames of a candidate pair. Lets long-temporal-gap true loop closures survive accumulated drift while still rejecting short-temporal-gap aliased pairs (e.g. retrieval matches between physically distant frames seconds apart). Calibrate per device class against post-hoc VIO↔recon residuals.
-        /// </summary>
-        /// <value>VIO drift-rate slack added to the displacement bound per second of time gap between the two frames of a candidate pair. Lets long-temporal-gap true loop closures survive accumulated drift while still rejecting short-temporal-gap aliased pairs (e.g. retrieval matches between physically distant frames seconds apart). Calibrate per device class against post-hoc VIO↔recon residuals.</value>
-        [DataMember(Name = "pair_max_displacement_drift_rate_m_per_s", EmitDefaultValue = false)]
-        public double PairMaxDisplacementDriftRateMPerS
-        {
-            get{ return _PairMaxDisplacementDriftRateMPerS;}
-            set
-            {
-                _PairMaxDisplacementDriftRateMPerS = value;
-                _flagPairMaxDisplacementDriftRateMPerS = true;
-            }
-        }
-        private double _PairMaxDisplacementDriftRateMPerS = 0.1D;
-        private bool _flagPairMaxDisplacementDriftRateMPerS;
-
-        /// <summary>
-        /// Returns false as PairMaxDisplacementDriftRateMPerS should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializePairMaxDisplacementDriftRateMPerS()
-        {
-            return _flagPairMaxDisplacementDriftRateMPerS;
-        }
-        /// <summary>
-        /// Minimum spread of inlier-match keypoint positions, expressed as geometric mean of per-axis standard deviations normalized by image dimensions, taken as the min across the two images. Pairs below the threshold are rejected at the two-view verification stage. Catches the repeated-decor aliasing pattern where matches concentrate on a small set of similar features (e.g. multiple identical artworks in an office) — both images show matches clustered in a tiny region, producing a low spread, while true wide-baseline matches spread across the image. Independent of VIO drift; works monocular. 0 disables the filter.
-        /// </summary>
-        /// <value>Minimum spread of inlier-match keypoint positions, expressed as geometric mean of per-axis standard deviations normalized by image dimensions, taken as the min across the two images. Pairs below the threshold are rejected at the two-view verification stage. Catches the repeated-decor aliasing pattern where matches concentrate on a small set of similar features (e.g. multiple identical artworks in an office) — both images show matches clustered in a tiny region, producing a low spread, while true wide-baseline matches spread across the image. Independent of VIO drift; works monocular. 0 disables the filter.</value>
-        [DataMember(Name = "pair_min_match_spread", EmitDefaultValue = false)]
-        public double PairMinMatchSpread
-        {
-            get{ return _PairMinMatchSpread;}
-            set
-            {
-                _PairMinMatchSpread = value;
-                _flagPairMinMatchSpread = true;
-            }
-        }
-        private double _PairMinMatchSpread = 0.08D;
-        private bool _flagPairMinMatchSpread;
-
-        /// <summary>
-        /// Returns false as PairMinMatchSpread should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializePairMinMatchSpread()
-        {
-            return _flagPairMinMatchSpread;
         }
         /// <summary>
         /// Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.
@@ -345,56 +180,6 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeRetrievalMinScore()
         {
             return _flagRetrievalMinScore;
-        }
-        /// <summary>
-        /// Half-width (in temporal keyframe indices) of the neighborhood used to validate retrieval pairs against perceptual aliasing. A pair (A,B) is supported by another retrieval pair (A&#39;,B&#39;) iff both endpoints fall within this window of the original pair on their respective trajectories.
-        /// </summary>
-        /// <value>Half-width (in temporal keyframe indices) of the neighborhood used to validate retrieval pairs against perceptual aliasing. A pair (A,B) is supported by another retrieval pair (A&#39;,B&#39;) iff both endpoints fall within this window of the original pair on their respective trajectories.</value>
-        [DataMember(Name = "retrieval_covisibility_window", EmitDefaultValue = false)]
-        public int RetrievalCovisibilityWindow
-        {
-            get{ return _RetrievalCovisibilityWindow;}
-            set
-            {
-                _RetrievalCovisibilityWindow = value;
-                _flagRetrievalCovisibilityWindow = true;
-            }
-        }
-        private int _RetrievalCovisibilityWindow = 3;
-        private bool _flagRetrievalCovisibilityWindow;
-
-        /// <summary>
-        /// Returns false as RetrievalCovisibilityWindow should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRetrievalCovisibilityWindow()
-        {
-            return _flagRetrievalCovisibilityWindow;
-        }
-        /// <summary>
-        /// Minimum count of supporting retrieval pairs within retrieval_covisibility_window required for a retrieval candidate to be kept; aliased pairs (e.g. two similar paintings in different rooms) appear as singletons and get dropped, while true loop closures appear as bands and survive. 0 disables the filter.
-        /// </summary>
-        /// <value>Minimum count of supporting retrieval pairs within retrieval_covisibility_window required for a retrieval candidate to be kept; aliased pairs (e.g. two similar paintings in different rooms) appear as singletons and get dropped, while true loop closures appear as bands and survive. 0 disables the filter.</value>
-        [DataMember(Name = "retrieval_covisibility_min_support", EmitDefaultValue = false)]
-        public int RetrievalCovisibilityMinSupport
-        {
-            get{ return _RetrievalCovisibilityMinSupport;}
-            set
-            {
-                _RetrievalCovisibilityMinSupport = value;
-                _flagRetrievalCovisibilityMinSupport = true;
-            }
-        }
-        private int _RetrievalCovisibilityMinSupport = 2;
-        private bool _flagRetrievalCovisibilityMinSupport;
-
-        /// <summary>
-        /// Returns false as RetrievalCovisibilityMinSupport should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRetrievalCovisibilityMinSupport()
-        {
-            return _flagRetrievalCovisibilityMinSupport;
         }
         /// <summary>
         /// Two-view RANSAC inlier threshold in pixels; lower is stricter.
@@ -470,56 +255,6 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeTwoViewMinNumInliers()
         {
             return _flagTwoViewMinNumInliers;
-        }
-        /// <summary>
-        /// Two-view RANSAC minimum inlier ratio for retrieval-sourced pairs only; stricter than the sequential/spatial/intra-frame floor because visually-similar-but-spatially-distant indoor regions can fabricate plausible-looking essential matrices.
-        /// </summary>
-        /// <value>Two-view RANSAC minimum inlier ratio for retrieval-sourced pairs only; stricter than the sequential/spatial/intra-frame floor because visually-similar-but-spatially-distant indoor regions can fabricate plausible-looking essential matrices.</value>
-        [DataMember(Name = "retrieval_min_inlier_ratio", EmitDefaultValue = false)]
-        public double RetrievalMinInlierRatio
-        {
-            get{ return _RetrievalMinInlierRatio;}
-            set
-            {
-                _RetrievalMinInlierRatio = value;
-                _flagRetrievalMinInlierRatio = true;
-            }
-        }
-        private double _RetrievalMinInlierRatio = 0.4D;
-        private bool _flagRetrievalMinInlierRatio;
-
-        /// <summary>
-        /// Returns false as RetrievalMinInlierRatio should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRetrievalMinInlierRatio()
-        {
-            return _flagRetrievalMinInlierRatio;
-        }
-        /// <summary>
-        /// Absolute minimum inlier count for retrieval-sourced pair geometries; stricter than the global two_view_min_num_inliers because retrieval is the lone pair source where visual similarity does not imply spatial proximity.
-        /// </summary>
-        /// <value>Absolute minimum inlier count for retrieval-sourced pair geometries; stricter than the global two_view_min_num_inliers because retrieval is the lone pair source where visual similarity does not imply spatial proximity.</value>
-        [DataMember(Name = "retrieval_min_num_inliers", EmitDefaultValue = false)]
-        public int RetrievalMinNumInliers
-        {
-            get{ return _RetrievalMinNumInliers;}
-            set
-            {
-                _RetrievalMinNumInliers = value;
-                _flagRetrievalMinNumInliers = true;
-            }
-        }
-        private int _RetrievalMinNumInliers = 50;
-        private bool _flagRetrievalMinNumInliers;
-
-        /// <summary>
-        /// Returns false as RetrievalMinNumInliers should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeRetrievalMinNumInliers()
-        {
-            return _flagRetrievalMinNumInliers;
         }
         /// <summary>
         /// Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering.
@@ -647,131 +382,6 @@ namespace PlaceframeApiClient.Model
             return _flagPosePriorPositionSigmaM;
         }
         /// <summary>
-        /// Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors. Disabled by default (1e9 m is effectively infinity for any real capture); the pair-level pose-graph consistency check and the two-phase retrieval ingest are the primary aliasing defenses. Set to a finite value (e.g. 1.0) to gate registrations against VIO drift bounds on captures where the device-reported trajectory is trusted to within a metre.
-        /// </summary>
-        /// <value>Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors. Disabled by default (1e9 m is effectively infinity for any real capture); the pair-level pose-graph consistency check and the two-phase retrieval ingest are the primary aliasing defenses. Set to a finite value (e.g. 1.0) to gate registrations against VIO drift bounds on captures where the device-reported trajectory is trusted to within a metre.</value>
-        [DataMember(Name = "vio_check_max_disagreement_m", EmitDefaultValue = false)]
-        public double VioCheckMaxDisagreementM
-        {
-            get{ return _VioCheckMaxDisagreementM;}
-            set
-            {
-                _VioCheckMaxDisagreementM = value;
-                _flagVioCheckMaxDisagreementM = true;
-            }
-        }
-        private double _VioCheckMaxDisagreementM = 1.0E+9D;
-        private bool _flagVioCheckMaxDisagreementM;
-
-        /// <summary>
-        /// Returns false as VioCheckMaxDisagreementM should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeVioCheckMaxDisagreementM()
-        {
-            return _flagVioCheckMaxDisagreementM;
-        }
-        /// <summary>
-        /// At per-frame registration time, compare the relative rotation each already-registered partner&#39;s two-view geometry implies against the relative rotation the partial reconstruction estimates between the same frames. Partners exceeding this angular threshold are flagged poisoned and their contributing matches are excised from the new frame&#39;s observations before the next BA pass. Independent of VIO; uses the pose graph itself as the consistency oracle. 0 disables.
-        /// </summary>
-        /// <value>At per-frame registration time, compare the relative rotation each already-registered partner&#39;s two-view geometry implies against the relative rotation the partial reconstruction estimates between the same frames. Partners exceeding this angular threshold are flagged poisoned and their contributing matches are excised from the new frame&#39;s observations before the next BA pass. Independent of VIO; uses the pose graph itself as the consistency oracle. 0 disables.</value>
-        [DataMember(Name = "pair_pose_graph_max_rotation_disagreement_deg", EmitDefaultValue = false)]
-        public double PairPoseGraphMaxRotationDisagreementDeg
-        {
-            get{ return _PairPoseGraphMaxRotationDisagreementDeg;}
-            set
-            {
-                _PairPoseGraphMaxRotationDisagreementDeg = value;
-                _flagPairPoseGraphMaxRotationDisagreementDeg = true;
-            }
-        }
-        private double _PairPoseGraphMaxRotationDisagreementDeg = 15.0D;
-        private bool _flagPairPoseGraphMaxRotationDisagreementDeg;
-
-        /// <summary>
-        /// Returns false as PairPoseGraphMaxRotationDisagreementDeg should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializePairPoseGraphMaxRotationDisagreementDeg()
-        {
-            return _flagPairPoseGraphMaxRotationDisagreementDeg;
-        }
-        /// <summary>
-        /// Companion to pair_pose_graph_max_rotation_disagreement_deg: bounds the angle between the unit translation direction the two-view geometry implies and the unit translation direction implied by the partial reconstruction&#39;s pose estimates of the two frames. Two-view geometry is scale-free in the monocular case so only direction is compared. Skipped when the estimated baseline is below pair_pose_graph_min_baseline_m. 0 disables.
-        /// </summary>
-        /// <value>Companion to pair_pose_graph_max_rotation_disagreement_deg: bounds the angle between the unit translation direction the two-view geometry implies and the unit translation direction implied by the partial reconstruction&#39;s pose estimates of the two frames. Two-view geometry is scale-free in the monocular case so only direction is compared. Skipped when the estimated baseline is below pair_pose_graph_min_baseline_m. 0 disables.</value>
-        [DataMember(Name = "pair_pose_graph_max_translation_direction_deg", EmitDefaultValue = false)]
-        public double PairPoseGraphMaxTranslationDirectionDeg
-        {
-            get{ return _PairPoseGraphMaxTranslationDirectionDeg;}
-            set
-            {
-                _PairPoseGraphMaxTranslationDirectionDeg = value;
-                _flagPairPoseGraphMaxTranslationDirectionDeg = true;
-            }
-        }
-        private double _PairPoseGraphMaxTranslationDirectionDeg = 30.0D;
-        private bool _flagPairPoseGraphMaxTranslationDirectionDeg;
-
-        /// <summary>
-        /// Returns false as PairPoseGraphMaxTranslationDirectionDeg should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializePairPoseGraphMaxTranslationDirectionDeg()
-        {
-            return _flagPairPoseGraphMaxTranslationDirectionDeg;
-        }
-        /// <summary>
-        /// Estimated-baseline floor below which the translation-direction component of the pose-graph consistency check is skipped. Near-co-located frames have ill-defined translation direction; the rotation component still applies.
-        /// </summary>
-        /// <value>Estimated-baseline floor below which the translation-direction component of the pose-graph consistency check is skipped. Near-co-located frames have ill-defined translation direction; the rotation component still applies.</value>
-        [DataMember(Name = "pair_pose_graph_min_baseline_m", EmitDefaultValue = false)]
-        public double PairPoseGraphMinBaselineM
-        {
-            get{ return _PairPoseGraphMinBaselineM;}
-            set
-            {
-                _PairPoseGraphMinBaselineM = value;
-                _flagPairPoseGraphMinBaselineM = true;
-            }
-        }
-        private double _PairPoseGraphMinBaselineM = 0.3D;
-        private bool _flagPairPoseGraphMinBaselineM;
-
-        /// <summary>
-        /// Returns false as PairPoseGraphMinBaselineM should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializePairPoseGraphMinBaselineM()
-        {
-            return _flagPairPoseGraphMinBaselineM;
-        }
-        /// <summary>
-        /// Minimum number of registered frames in the partial reconstruction before pair_pose_graph_* consistency checks fire. Early in the reconstruction the pose graph is too soft to be a reliable oracle; the front-door filters (covisibility, drift budget, vio_check) carry the load until the graph stiffens.
-        /// </summary>
-        /// <value>Minimum number of registered frames in the partial reconstruction before pair_pose_graph_* consistency checks fire. Early in the reconstruction the pose graph is too soft to be a reliable oracle; the front-door filters (covisibility, drift budget, vio_check) carry the load until the graph stiffens.</value>
-        [DataMember(Name = "pair_pose_graph_min_registered_frames", EmitDefaultValue = false)]
-        public int PairPoseGraphMinRegisteredFrames
-        {
-            get{ return _PairPoseGraphMinRegisteredFrames;}
-            set
-            {
-                _PairPoseGraphMinRegisteredFrames = value;
-                _flagPairPoseGraphMinRegisteredFrames = true;
-            }
-        }
-        private int _PairPoseGraphMinRegisteredFrames = 15;
-        private bool _flagPairPoseGraphMinRegisteredFrames;
-
-        /// <summary>
-        /// Returns false as PairPoseGraphMinRegisteredFrames should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializePairPoseGraphMinRegisteredFrames()
-        {
-            return _flagPairPoseGraphMinRegisteredFrames;
-        }
-        /// <summary>
         /// At two-view verification time, every sequential pair whose VIO poses carry rotation has its essential-matrix relative pose compared against the VIO-implied relative pose. The pair is rejected (its two-view geometry deleted from the database) when the angle between the two rotations exceeds this threshold. Sequential-only because retrieval pairs span genuine loop closures where VIO drift can disagree with the essential matrix legitimately, and intra-frame stereo is already validated by the rig constraint. 0 disables. Applied only to pairs with 7-column VIO rows (quaternion present).
         /// </summary>
         /// <value>At two-view verification time, every sequential pair whose VIO poses carry rotation has its essential-matrix relative pose compared against the VIO-implied relative pose. The pair is rejected (its two-view geometry deleted from the database) when the angle between the two rotations exceeds this threshold. Sequential-only because retrieval pairs span genuine loop closures where VIO drift can disagree with the essential matrix legitimately, and intra-frame stereo is already validated by the rig constraint. 0 disables. Applied only to pairs with 7-column VIO rows (quaternion present).</value>
@@ -785,7 +395,7 @@ namespace PlaceframeApiClient.Model
                 _flagPairVioEmMaxRotationDisagreementDeg = true;
             }
         }
-        private double _PairVioEmMaxRotationDisagreementDeg = 15.0D;
+        private double _PairVioEmMaxRotationDisagreementDeg = 25.0D;
         private bool _flagPairVioEmMaxRotationDisagreementDeg;
 
         /// <summary>
@@ -810,7 +420,7 @@ namespace PlaceframeApiClient.Model
                 _flagPairVioEmMaxTranslationDirectionDeg = true;
             }
         }
-        private double _PairVioEmMaxTranslationDirectionDeg = 30.0D;
+        private double _PairVioEmMaxTranslationDirectionDeg = 60.0D;
         private bool _flagPairVioEmMaxTranslationDirectionDeg;
 
         /// <summary>
@@ -907,31 +517,16 @@ namespace PlaceframeApiClient.Model
             sb.Append("  DeterministicSeed: ").Append(DeterministicSeed).Append("\n");
             sb.Append("  KeyframeMinDistanceM: ").Append(KeyframeMinDistanceM).Append("\n");
             sb.Append("  SequentialWindowM: ").Append(SequentialWindowM).Append("\n");
-            sb.Append("  SpatialNeighbors: ").Append(SpatialNeighbors).Append("\n");
-            sb.Append("  SpatialMaxDistanceM: ").Append(SpatialMaxDistanceM).Append("\n");
             sb.Append("  RetrievalNeighbors: ").Append(RetrievalNeighbors).Append("\n");
-            sb.Append("  RetrievalMinDistanceM: ").Append(RetrievalMinDistanceM).Append("\n");
-            sb.Append("  PairMaxDisplacementSceneM: ").Append(PairMaxDisplacementSceneM).Append("\n");
-            sb.Append("  PairMaxDisplacementDriftRateMPerS: ").Append(PairMaxDisplacementDriftRateMPerS).Append("\n");
-            sb.Append("  PairMinMatchSpread: ").Append(PairMinMatchSpread).Append("\n");
             sb.Append("  RetrievalMinScore: ").Append(RetrievalMinScore).Append("\n");
-            sb.Append("  RetrievalCovisibilityWindow: ").Append(RetrievalCovisibilityWindow).Append("\n");
-            sb.Append("  RetrievalCovisibilityMinSupport: ").Append(RetrievalCovisibilityMinSupport).Append("\n");
             sb.Append("  RansacMaxError: ").Append(RansacMaxError).Append("\n");
             sb.Append("  RansacMinInlierRatio: ").Append(RansacMinInlierRatio).Append("\n");
             sb.Append("  TwoViewMinNumInliers: ").Append(TwoViewMinNumInliers).Append("\n");
-            sb.Append("  RetrievalMinInlierRatio: ").Append(RetrievalMinInlierRatio).Append("\n");
-            sb.Append("  RetrievalMinNumInliers: ").Append(RetrievalMinNumInliers).Append("\n");
             sb.Append("  TriangulationMinimumAngle: ").Append(TriangulationMinimumAngle).Append("\n");
             sb.Append("  MapperFilterMaxReprojectionError: ").Append(MapperFilterMaxReprojectionError).Append("\n");
             sb.Append("  BundleAdjustmentGlobalFramesRatio: ").Append(BundleAdjustmentGlobalFramesRatio).Append("\n");
             sb.Append("  BundleAdjustmentGlobalFunctionTolerance: ").Append(BundleAdjustmentGlobalFunctionTolerance).Append("\n");
             sb.Append("  PosePriorPositionSigmaM: ").Append(PosePriorPositionSigmaM).Append("\n");
-            sb.Append("  VioCheckMaxDisagreementM: ").Append(VioCheckMaxDisagreementM).Append("\n");
-            sb.Append("  PairPoseGraphMaxRotationDisagreementDeg: ").Append(PairPoseGraphMaxRotationDisagreementDeg).Append("\n");
-            sb.Append("  PairPoseGraphMaxTranslationDirectionDeg: ").Append(PairPoseGraphMaxTranslationDirectionDeg).Append("\n");
-            sb.Append("  PairPoseGraphMinBaselineM: ").Append(PairPoseGraphMinBaselineM).Append("\n");
-            sb.Append("  PairPoseGraphMinRegisteredFrames: ").Append(PairPoseGraphMinRegisteredFrames).Append("\n");
             sb.Append("  PairVioEmMaxRotationDisagreementDeg: ").Append(PairVioEmMaxRotationDisagreementDeg).Append("\n");
             sb.Append("  PairVioEmMaxTranslationDirectionDeg: ").Append(PairVioEmMaxTranslationDirectionDeg).Append("\n");
             sb.Append("  PairVioEmMinBaselineM: ").Append(PairVioEmMinBaselineM).Append("\n");

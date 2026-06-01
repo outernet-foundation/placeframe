@@ -6235,64 +6235,19 @@
           "sequential_window_m": {
             "type": "number",
             "format": "double",
-            "description": "VIO-straight-line distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe within this many metres of straight-line VIO displacement is paired with it. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc, instead of the old fixed-neighbour count over-reaching in fast zones and under-reaching in slow ones. No-op on rigs without VIO translations.",
+            "description": "VIO-path-distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe whose cumulative segment-by-segment path length along the VIO trajectory is within this many metres is paired with it. Path distance \u2014 not straight-line distance \u2014 so doubling back along the trajectory (e.g. corridor return pass) walks away from earlier frames rather than landing on them. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc.",
             "default": 3.0
-          },
-          "spatial_neighbors": {
-            "type": "integer",
-            "description": "Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing (within sequential_window_m metres) are skipped here so spatial_neighbors counts loop-closure candidates, not redundancy. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame's true neighbours.",
-            "default": 0
-          },
-          "spatial_max_distance_m": {
-            "type": "number",
-            "format": "double",
-            "description": "Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent.",
-            "default": 6.0
           },
           "retrieval_neighbors": {
             "type": "integer",
             "description": "Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.",
-            "default": 0
-          },
-          "retrieval_min_distance_m": {
-            "type": "number",
-            "format": "double",
-            "description": "Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent.",
-            "default": 1.0
-          },
-          "pair_max_displacement_scene_m": {
-            "type": "number",
-            "format": "double",
-            "description": "Max plausible scene-radius component of the displacement bound used to reject any candidate pair (a,b) whose VIO straight-line displacement exceeds the bound. Combined with pair_max_displacement_drift_rate_m_per_s: a pair is rejected when |vio_pos(b)\u2212vio_pos(a)| > pair_max_displacement_scene_m + pair_max_displacement_drift_rate_m_per_s \u00b7 |t_b\u2212t_a|. Applied uniformly across all pair sources; stereo and short-temporal pairs trivially satisfy any reasonable bound. No-op when positions are absent.",
-            "default": 10.0
-          },
-          "pair_max_displacement_drift_rate_m_per_s": {
-            "type": "number",
-            "format": "double",
-            "description": "VIO drift-rate slack added to the displacement bound per second of time gap between the two frames of a candidate pair. Lets long-temporal-gap true loop closures survive accumulated drift while still rejecting short-temporal-gap aliased pairs (e.g. retrieval matches between physically distant frames seconds apart). Calibrate per device class against post-hoc VIO\u2194recon residuals.",
-            "default": 0.1
-          },
-          "pair_min_match_spread": {
-            "type": "number",
-            "format": "double",
-            "description": "Minimum spread of inlier-match keypoint positions, expressed as geometric mean of per-axis standard deviations normalized by image dimensions, taken as the min across the two images. Pairs below the threshold are rejected at the two-view verification stage. Catches the repeated-decor aliasing pattern where matches concentrate on a small set of similar features (e.g. multiple identical artworks in an office) \u2014 both images show matches clustered in a tiny region, producing a low spread, while true wide-baseline matches spread across the image. Independent of VIO drift; works monocular. 0 disables the filter.",
-            "default": 0.08
+            "default": 20
           },
           "retrieval_min_score": {
             "type": "number",
             "format": "double",
             "description": "Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.",
             "default": 0.35
-          },
-          "retrieval_covisibility_window": {
-            "type": "integer",
-            "description": "Half-width (in temporal keyframe indices) of the neighborhood used to validate retrieval pairs against perceptual aliasing. A pair (A,B) is supported by another retrieval pair (A',B') iff both endpoints fall within this window of the original pair on their respective trajectories.",
-            "default": 3
-          },
-          "retrieval_covisibility_min_support": {
-            "type": "integer",
-            "description": "Minimum count of supporting retrieval pairs within retrieval_covisibility_window required for a retrieval candidate to be kept; aliased pairs (e.g. two similar paintings in different rooms) appear as singletons and get dropped, while true loop closures appear as bands and survive. 0 disables the filter.",
-            "default": 2
           },
           "ransac_max_error": {
             "type": "number",
@@ -6310,17 +6265,6 @@
             "type": "integer",
             "description": "Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap's SIFT-era default of 15 to reject small false-positive clusters on repetitive structure.",
             "default": 30
-          },
-          "retrieval_min_inlier_ratio": {
-            "type": "number",
-            "format": "double",
-            "description": "Two-view RANSAC minimum inlier ratio for retrieval-sourced pairs only; stricter than the sequential/spatial/intra-frame floor because visually-similar-but-spatially-distant indoor regions can fabricate plausible-looking essential matrices.",
-            "default": 0.4
-          },
-          "retrieval_min_num_inliers": {
-            "type": "integer",
-            "description": "Absolute minimum inlier count for retrieval-sourced pair geometries; stricter than the global two_view_min_num_inliers because retrieval is the lone pair source where visual similarity does not imply spatial proximity.",
-            "default": 50
           },
           "triangulation_minimum_angle": {
             "type": "number",
@@ -6352,46 +6296,17 @@
             "description": "Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off).",
             "default": 0.05
           },
-          "vio_check_max_disagreement_m": {
-            "type": "number",
-            "format": "double",
-            "description": "Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors. Disabled by default (1e9 m is effectively infinity for any real capture); the pair-level pose-graph consistency check and the two-phase retrieval ingest are the primary aliasing defenses. Set to a finite value (e.g. 1.0) to gate registrations against VIO drift bounds on captures where the device-reported trajectory is trusted to within a metre.",
-            "default": 1000000000.0
-          },
-          "pair_pose_graph_max_rotation_disagreement_deg": {
-            "type": "number",
-            "format": "double",
-            "description": "At per-frame registration time, compare the relative rotation each already-registered partner's two-view geometry implies against the relative rotation the partial reconstruction estimates between the same frames. Partners exceeding this angular threshold are flagged poisoned and their contributing matches are excised from the new frame's observations before the next BA pass. Independent of VIO; uses the pose graph itself as the consistency oracle. 0 disables.",
-            "default": 15.0
-          },
-          "pair_pose_graph_max_translation_direction_deg": {
-            "type": "number",
-            "format": "double",
-            "description": "Companion to pair_pose_graph_max_rotation_disagreement_deg: bounds the angle between the unit translation direction the two-view geometry implies and the unit translation direction implied by the partial reconstruction's pose estimates of the two frames. Two-view geometry is scale-free in the monocular case so only direction is compared. Skipped when the estimated baseline is below pair_pose_graph_min_baseline_m. 0 disables.",
-            "default": 30.0
-          },
-          "pair_pose_graph_min_baseline_m": {
-            "type": "number",
-            "format": "double",
-            "description": "Estimated-baseline floor below which the translation-direction component of the pose-graph consistency check is skipped. Near-co-located frames have ill-defined translation direction; the rotation component still applies.",
-            "default": 0.3
-          },
-          "pair_pose_graph_min_registered_frames": {
-            "type": "integer",
-            "description": "Minimum number of registered frames in the partial reconstruction before pair_pose_graph_* consistency checks fire. Early in the reconstruction the pose graph is too soft to be a reliable oracle; the front-door filters (covisibility, drift budget, vio_check) carry the load until the graph stiffens.",
-            "default": 15
-          },
           "pair_vio_em_max_rotation_disagreement_deg": {
             "type": "number",
             "format": "double",
             "description": "At two-view verification time, every sequential pair whose VIO poses carry rotation has its essential-matrix relative pose compared against the VIO-implied relative pose. The pair is rejected (its two-view geometry deleted from the database) when the angle between the two rotations exceeds this threshold. Sequential-only because retrieval pairs span genuine loop closures where VIO drift can disagree with the essential matrix legitimately, and intra-frame stereo is already validated by the rig constraint. 0 disables. Applied only to pairs with 7-column VIO rows (quaternion present).",
-            "default": 15.0
+            "default": 25.0
           },
           "pair_vio_em_max_translation_direction_deg": {
             "type": "number",
             "format": "double",
             "description": "Companion to pair_vio_em_max_rotation_disagreement_deg: bounds the angle between the essential-matrix translation direction (camera-1 origin direction in camera-2) and the VIO-implied translation direction for the same camera pair. Skipped when the essential-matrix baseline is below pair_vio_em_min_baseline_m, where translation direction is ill-conditioned. 0 disables.",
-            "default": 30.0
+            "default": 60.0
           },
           "pair_vio_em_min_baseline_m": {
             "type": "number",

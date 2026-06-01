@@ -2672,40 +2672,25 @@ components:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         options:
-          ransac_max_error: 1.0246457001441578
-          pair_vio_em_max_rotation_disagreement_deg: 1.284659006116532
-          pair_pose_graph_min_baseline_m: 3.5571952270680973
+          ransac_max_error: 2.3021358869347655
+          pair_vio_em_max_rotation_disagreement_deg: 1.0246457001441578
+          ransac_min_inlier_ratio: 7.061401241503109
           held_out_frame_timestamps:
-          - 5
-          - 5
-          pair_pose_graph_max_rotation_disagreement_deg: 9.018348186070783
-          pair_max_displacement_drift_rate_m_per_s: 3.616076749251911
-          pair_min_match_spread: 2.027123023002322
-          bundle_adjustment_global_function_tolerance: 9.369310271410669
-          pair_vio_em_max_translation_direction_deg: 2.8841621266687802
-          retrieval_min_score: 4.145608029883936
-          retrieval_min_num_inliers: 1
-          retrieval_neighbors: 2
-          max_keypoints_per_image: 6
-          mapper_filter_max_reprojection_error: 5.025004791520295
-          triangulation_minimum_angle: 4.965218492984954
-          bundle_adjustment_global_frames_ratio: 9.965781217890562
-          retrieval_min_distance_m: 7.061401241503109
-          two_view_min_num_inliers: 6
-          spatial_max_distance_m: 5.637376656633329
-          retrieval_min_inlier_ratio: 7.457744773683766
-          retrieval_covisibility_min_support: 1
-          vio_check_max_disagreement_m: 8.762042012749001
-          spatial_neighbors: 5
-          pair_max_displacement_scene_m: 9.301444243932576
-          ransac_min_inlier_ratio: 1.4894159098541704
-          pair_pose_graph_min_registered_frames: 6
-          pose_prior_position_sigma_m: 6.683562403749608
-          pair_pose_graph_max_translation_direction_deg: 6.438423552598547
+          - 1
+          - 1
+          bundle_adjustment_global_function_tolerance: 7.386281948385884
+          pair_vio_em_max_translation_direction_deg: 1.4894159098541704
+          retrieval_min_score: 5.637376656633329
+          pose_prior_position_sigma_m: 1.2315135367772556
           deterministic_seed: 0
-          pair_vio_em_min_baseline_m: 6.778324963048013
-          retrieval_covisibility_window: 7
+          retrieval_neighbors: 5
+          pair_vio_em_min_baseline_m: 6.84685269835264
+          max_keypoints_per_image: 7
+          mapper_filter_max_reprojection_error: 2.027123023002322
           keyframe_min_distance_m: 6.027456183070403
+          triangulation_minimum_angle: 3.616076749251911
+          bundle_adjustment_global_frames_ratio: 4.145608029883936
+          two_view_min_num_inliers: 9
           sequential_window_m: 1.4658129805029452
         reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
@@ -4037,40 +4022,25 @@ components:
     ReconstructionCreateWithOptions:
       example:
         options:
-          ransac_max_error: 1.0246457001441578
-          pair_vio_em_max_rotation_disagreement_deg: 1.284659006116532
-          pair_pose_graph_min_baseline_m: 3.5571952270680973
+          ransac_max_error: 2.3021358869347655
+          pair_vio_em_max_rotation_disagreement_deg: 1.0246457001441578
+          ransac_min_inlier_ratio: 7.061401241503109
           held_out_frame_timestamps:
-          - 5
-          - 5
-          pair_pose_graph_max_rotation_disagreement_deg: 9.018348186070783
-          pair_max_displacement_drift_rate_m_per_s: 3.616076749251911
-          pair_min_match_spread: 2.027123023002322
-          bundle_adjustment_global_function_tolerance: 9.369310271410669
-          pair_vio_em_max_translation_direction_deg: 2.8841621266687802
-          retrieval_min_score: 4.145608029883936
-          retrieval_min_num_inliers: 1
-          retrieval_neighbors: 2
-          max_keypoints_per_image: 6
-          mapper_filter_max_reprojection_error: 5.025004791520295
-          triangulation_minimum_angle: 4.965218492984954
-          bundle_adjustment_global_frames_ratio: 9.965781217890562
-          retrieval_min_distance_m: 7.061401241503109
-          two_view_min_num_inliers: 6
-          spatial_max_distance_m: 5.637376656633329
-          retrieval_min_inlier_ratio: 7.457744773683766
-          retrieval_covisibility_min_support: 1
-          vio_check_max_disagreement_m: 8.762042012749001
-          spatial_neighbors: 5
-          pair_max_displacement_scene_m: 9.301444243932576
-          ransac_min_inlier_ratio: 1.4894159098541704
-          pair_pose_graph_min_registered_frames: 6
-          pose_prior_position_sigma_m: 6.683562403749608
-          pair_pose_graph_max_translation_direction_deg: 6.438423552598547
+          - 1
+          - 1
+          bundle_adjustment_global_function_tolerance: 7.386281948385884
+          pair_vio_em_max_translation_direction_deg: 1.4894159098541704
+          retrieval_min_score: 5.637376656633329
+          pose_prior_position_sigma_m: 1.2315135367772556
           deterministic_seed: 0
-          pair_vio_em_min_baseline_m: 6.778324963048013
-          retrieval_covisibility_window: 7
+          retrieval_neighbors: 5
+          pair_vio_em_min_baseline_m: 6.84685269835264
+          max_keypoints_per_image: 7
+          mapper_filter_max_reprojection_error: 2.027123023002322
           keyframe_min_distance_m: 6.027456183070403
+          triangulation_minimum_angle: 3.616076749251911
+          bundle_adjustment_global_frames_ratio: 4.145608029883936
+          two_view_min_num_inliers: 9
           sequential_window_m: 1.4658129805029452
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -4225,40 +4195,25 @@ components:
       type: object
     ReconstructionOptions:
       example:
-        ransac_max_error: 1.0246457001441578
-        pair_vio_em_max_rotation_disagreement_deg: 1.284659006116532
-        pair_pose_graph_min_baseline_m: 3.5571952270680973
+        ransac_max_error: 2.3021358869347655
+        pair_vio_em_max_rotation_disagreement_deg: 1.0246457001441578
+        ransac_min_inlier_ratio: 7.061401241503109
         held_out_frame_timestamps:
-        - 5
-        - 5
-        pair_pose_graph_max_rotation_disagreement_deg: 9.018348186070783
-        pair_max_displacement_drift_rate_m_per_s: 3.616076749251911
-        pair_min_match_spread: 2.027123023002322
-        bundle_adjustment_global_function_tolerance: 9.369310271410669
-        pair_vio_em_max_translation_direction_deg: 2.8841621266687802
-        retrieval_min_score: 4.145608029883936
-        retrieval_min_num_inliers: 1
-        retrieval_neighbors: 2
-        max_keypoints_per_image: 6
-        mapper_filter_max_reprojection_error: 5.025004791520295
-        triangulation_minimum_angle: 4.965218492984954
-        bundle_adjustment_global_frames_ratio: 9.965781217890562
-        retrieval_min_distance_m: 7.061401241503109
-        two_view_min_num_inliers: 6
-        spatial_max_distance_m: 5.637376656633329
-        retrieval_min_inlier_ratio: 7.457744773683766
-        retrieval_covisibility_min_support: 1
-        vio_check_max_disagreement_m: 8.762042012749001
-        spatial_neighbors: 5
-        pair_max_displacement_scene_m: 9.301444243932576
-        ransac_min_inlier_ratio: 1.4894159098541704
-        pair_pose_graph_min_registered_frames: 6
-        pose_prior_position_sigma_m: 6.683562403749608
-        pair_pose_graph_max_translation_direction_deg: 6.438423552598547
+        - 1
+        - 1
+        bundle_adjustment_global_function_tolerance: 7.386281948385884
+        pair_vio_em_max_translation_direction_deg: 1.4894159098541704
+        retrieval_min_score: 5.637376656633329
+        pose_prior_position_sigma_m: 1.2315135367772556
         deterministic_seed: 0
-        pair_vio_em_min_baseline_m: 6.778324963048013
-        retrieval_covisibility_window: 7
+        retrieval_neighbors: 5
+        pair_vio_em_min_baseline_m: 6.84685269835264
+        max_keypoints_per_image: 7
+        mapper_filter_max_reprojection_error: 2.027123023002322
         keyframe_min_distance_m: 6.027456183070403
+        triangulation_minimum_angle: 3.616076749251911
+        bundle_adjustment_global_frames_ratio: 4.145608029883936
+        two_view_min_num_inliers: 9
         sequential_window_m: 1.4658129805029452
       properties:
         deterministic_seed:
@@ -4275,101 +4230,28 @@ components:
           type: number
         sequential_window_m:
           default: 3.0
-          description: "VIO-straight-line distance window (meters) used to enumerate\
-            \ same-rig sequential pairs. For each keyframe, every later keyframe within\
-            \ this many metres of straight-line VIO displacement is paired with it.\
-            \ Scales the temporal match-graph backbone to actual device motion: stationary\
-            \ stretches shrink to almost no extra pairs, fast-motion stretches grow\
-            \ to cover the swept arc, instead of the old fixed-neighbour count over-reaching\
-            \ in fast zones and under-reaching in slow ones. No-op on rigs without\
-            \ VIO translations."
-          format: double
-          type: number
-        spatial_neighbors:
-          default: 0
-          description: "Top-K closest in-range neighbours by VIO-position paired with\
-            \ each frame; 0 disables spatial pairing. Adjacent frames already covered\
-            \ by sequential pairing (within sequential_window_m metres) are skipped\
-            \ here so spatial_neighbors counts loop-closure candidates, not redundancy.\
-            \ Disabled by default: VIO-near pairs that are also visually-aliased can\
-            \ poison the early model, and sequential pairing already covers the temporal-local\
-            \ backbone while retrieval handles loop closure under the two-phase ingest.\
-            \ Re-enable for VIO-quiet captures where neither sequential nor retrieval\
-            \ can reach a frame's true neighbours."
-          type: integer
-        spatial_max_distance_m:
-          default: 6.0
-          description: Maximum VIO-position distance (meters) for spatial pairs; in-range
-            neighbours are then capped at spatial_neighbors closest. No-op when positions
-            are absent.
+          description: "VIO-path-distance window (meters) used to enumerate same-rig\
+            \ sequential pairs. For each keyframe, every later keyframe whose cumulative\
+            \ segment-by-segment path length along the VIO trajectory is within this\
+            \ many metres is paired with it. Path distance — not straight-line distance\
+            \ — so doubling back along the trajectory (e.g. corridor return pass)\
+            \ walks away from earlier frames rather than landing on them. Scales the\
+            \ temporal match-graph backbone to actual device motion: stationary stretches\
+            \ shrink to almost no extra pairs, fast-motion stretches grow to cover\
+            \ the swept arc."
           format: double
           type: number
         retrieval_neighbors:
-          default: 0
+          default: 20
           description: Top-K most-similar images (DIR cosine) paired with each image
             for loop closures; 0 disables retrieval.
           type: integer
-        retrieval_min_distance_m:
-          default: 1.0
-          description: Minimum VIO-position distance for retrieval pairs; drops candidates
-            already covered by sequential pairing. No-op when positions are absent.
-          format: double
-          type: number
-        pair_max_displacement_scene_m:
-          default: 10.0
-          description: "Max plausible scene-radius component of the displacement bound\
-            \ used to reject any candidate pair (a,b) whose VIO straight-line displacement\
-            \ exceeds the bound. Combined with pair_max_displacement_drift_rate_m_per_s:\
-            \ a pair is rejected when |vio_pos(b)−vio_pos(a)| > pair_max_displacement_scene_m\
-            \ + pair_max_displacement_drift_rate_m_per_s · |t_b−t_a|. Applied uniformly\
-            \ across all pair sources; stereo and short-temporal pairs trivially satisfy\
-            \ any reasonable bound. No-op when positions are absent."
-          format: double
-          type: number
-        pair_max_displacement_drift_rate_m_per_s:
-          default: 0.1
-          description: VIO drift-rate slack added to the displacement bound per second
-            of time gap between the two frames of a candidate pair. Lets long-temporal-gap
-            true loop closures survive accumulated drift while still rejecting short-temporal-gap
-            aliased pairs (e.g. retrieval matches between physically distant frames
-            seconds apart). Calibrate per device class against post-hoc VIO↔recon
-            residuals.
-          format: double
-          type: number
-        pair_min_match_spread:
-          default: 0.08
-          description: "Minimum spread of inlier-match keypoint positions, expressed\
-            \ as geometric mean of per-axis standard deviations normalized by image\
-            \ dimensions, taken as the min across the two images. Pairs below the\
-            \ threshold are rejected at the two-view verification stage. Catches the\
-            \ repeated-decor aliasing pattern where matches concentrate on a small\
-            \ set of similar features (e.g. multiple identical artworks in an office)\
-            \ — both images show matches clustered in a tiny region, producing a low\
-            \ spread, while true wide-baseline matches spread across the image. Independent\
-            \ of VIO drift; works monocular. 0 disables the filter."
-          format: double
-          type: number
         retrieval_min_score:
           default: 0.35
           description: Minimum cosine similarity for retrieval candidates; drops visually-weak
             matches before BA.
           format: double
           type: number
-        retrieval_covisibility_window:
-          default: 3
-          description: "Half-width (in temporal keyframe indices) of the neighborhood\
-            \ used to validate retrieval pairs against perceptual aliasing. A pair\
-            \ (A,B) is supported by another retrieval pair (A',B') iff both endpoints\
-            \ fall within this window of the original pair on their respective trajectories."
-          type: integer
-        retrieval_covisibility_min_support:
-          default: 2
-          description: "Minimum count of supporting retrieval pairs within retrieval_covisibility_window\
-            \ required for a retrieval candidate to be kept; aliased pairs (e.g. two\
-            \ similar paintings in different rooms) appear as singletons and get dropped,\
-            \ while true loop closures appear as bands and survive. 0 disables the\
-            \ filter."
-          type: integer
         ransac_max_error:
           default: 2.0
           description: Two-view RANSAC inlier threshold in pixels; lower is stricter.
@@ -4386,20 +4268,6 @@ components:
             \ applied alongside ransac_min_inlier_ratio. Raised above pycolmap's SIFT-era\
             \ default of 15 to reject small false-positive clusters on repetitive\
             \ structure."
-          type: integer
-        retrieval_min_inlier_ratio:
-          default: 0.4
-          description: Two-view RANSAC minimum inlier ratio for retrieval-sourced
-            pairs only; stricter than the sequential/spatial/intra-frame floor because
-            visually-similar-but-spatially-distant indoor regions can fabricate plausible-looking
-            essential matrices.
-          format: double
-          type: number
-        retrieval_min_num_inliers:
-          default: 50
-          description: Absolute minimum inlier count for retrieval-sourced pair geometries;
-            stricter than the global two_view_min_num_inliers because retrieval is
-            the lone pair source where visual similarity does not imply spatial proximity.
           type: integer
         triangulation_minimum_angle:
           default: 3.0
@@ -4431,59 +4299,8 @@ components:
             consumed only by monocular captures (multi-camera captures run priors-off).
           format: double
           type: number
-        vio_check_max_disagreement_m:
-          default: 1000000000
-          description: Reject a registration when the disagreement (meters) between
-            the local-Umeyama-predicted recon position and the recon position COLMAP
-            just assigned exceeds this. Also used as the LO-RANSAC inlier threshold
-            when fitting the local Sim3 from VIO neighbors. Disabled by default (1e9
-            m is effectively infinity for any real capture); the pair-level pose-graph
-            consistency check and the two-phase retrieval ingest are the primary aliasing
-            defenses. Set to a finite value (e.g. 1.0) to gate registrations against
-            VIO drift bounds on captures where the device-reported trajectory is trusted
-            to within a metre.
-          format: double
-          type: number
-        pair_pose_graph_max_rotation_disagreement_deg:
-          default: 15.0
-          description: "At per-frame registration time, compare the relative rotation\
-            \ each already-registered partner's two-view geometry implies against\
-            \ the relative rotation the partial reconstruction estimates between the\
-            \ same frames. Partners exceeding this angular threshold are flagged poisoned\
-            \ and their contributing matches are excised from the new frame's observations\
-            \ before the next BA pass. Independent of VIO; uses the pose graph itself\
-            \ as the consistency oracle. 0 disables."
-          format: double
-          type: number
-        pair_pose_graph_max_translation_direction_deg:
-          default: 30.0
-          description: "Companion to pair_pose_graph_max_rotation_disagreement_deg:\
-            \ bounds the angle between the unit translation direction the two-view\
-            \ geometry implies and the unit translation direction implied by the partial\
-            \ reconstruction's pose estimates of the two frames. Two-view geometry\
-            \ is scale-free in the monocular case so only direction is compared. Skipped\
-            \ when the estimated baseline is below pair_pose_graph_min_baseline_m.\
-            \ 0 disables."
-          format: double
-          type: number
-        pair_pose_graph_min_baseline_m:
-          default: 0.3
-          description: Estimated-baseline floor below which the translation-direction
-            component of the pose-graph consistency check is skipped. Near-co-located
-            frames have ill-defined translation direction; the rotation component
-            still applies.
-          format: double
-          type: number
-        pair_pose_graph_min_registered_frames:
-          default: 15
-          description: "Minimum number of registered frames in the partial reconstruction\
-            \ before pair_pose_graph_* consistency checks fire. Early in the reconstruction\
-            \ the pose graph is too soft to be a reliable oracle; the front-door filters\
-            \ (covisibility, drift budget, vio_check) carry the load until the graph\
-            \ stiffens."
-          type: integer
         pair_vio_em_max_rotation_disagreement_deg:
-          default: 15.0
+          default: 25.0
           description: "At two-view verification time, every sequential pair whose\
             \ VIO poses carry rotation has its essential-matrix relative pose compared\
             \ against the VIO-implied relative pose. The pair is rejected (its two-view\
@@ -4496,7 +4313,7 @@ components:
           format: double
           type: number
         pair_vio_em_max_translation_direction_deg:
-          default: 30.0
+          default: 60.0
           description: "Companion to pair_vio_em_max_rotation_disagreement_deg: bounds\
             \ the angle between the essential-matrix translation direction (camera-1\
             \ origin direction in camera-2) and the VIO-implied translation direction\
