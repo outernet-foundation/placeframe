@@ -53,6 +53,12 @@ class OptionsBuilder:
             two_view_geometry_options.ransac.random_seed = self.options.deterministic_seed
         two_view_geometry_options.ransac.max_error = self.options.ransac_max_error
         two_view_geometry_options.ransac.min_inlier_ratio = self.options.ransac_min_inlier_ratio
+        # max_num_trials=1000 (from 10000) and confidence=0.99 (from 0.999) cut the long tail of
+        # low-inlier-ratio pairs that previously burned 10k RANSAC iterations only to fail the
+        # min_inlier_ratio check anyway. At min_inlier_ratio=0.25 with confidence=0.99, the
+        # adaptive trial count terminates around ~140 trials, well inside this budget.
+        two_view_geometry_options.ransac.max_num_trials = 1000
+        two_view_geometry_options.ransac.confidence = 0.99
         two_view_geometry_options.min_num_inliers = self.options.two_view_min_num_inliers
         two_view_geometry_options.filter_stationary_matches = True
         two_view_geometry_options.stationary_matches_max_error = 4.0
