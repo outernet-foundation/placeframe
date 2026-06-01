@@ -58,6 +58,10 @@ namespace PlaceframeApiClient.Model
         /// <param name="bundleAdjustmentGlobalFunctionTolerance">Ceres function tolerance for global BA exit; larger &#x3D; earlier exit on residual plateaus. (default to 0.001D).</param>
         /// <param name="posePriorPositionSigmaM">Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off). (default to 0.05D).</param>
         /// <param name="vioCheckMaxDisagreementM">Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors. (default to 1.0D).</param>
+        /// <param name="pairPoseGraphMaxRotationDisagreementDeg">At per-frame registration time, compare the relative rotation each already-registered partner&#39;s two-view geometry implies against the relative rotation the partial reconstruction estimates between the same frames. Partners exceeding this angular threshold are flagged poisoned and their contributing matches are excised from the new frame&#39;s observations before the next BA pass. Independent of VIO; uses the pose graph itself as the consistency oracle. 0 disables. (default to 15.0D).</param>
+        /// <param name="pairPoseGraphMaxTranslationDirectionDeg">Companion to pair_pose_graph_max_rotation_disagreement_deg: bounds the angle between the unit translation direction the two-view geometry implies and the unit translation direction implied by the partial reconstruction&#39;s pose estimates of the two frames. Two-view geometry is scale-free in the monocular case so only direction is compared. Skipped when the estimated baseline is below pair_pose_graph_min_baseline_m. 0 disables. (default to 30.0D).</param>
+        /// <param name="pairPoseGraphMinBaselineM">Estimated-baseline floor below which the translation-direction component of the pose-graph consistency check is skipped. Near-co-located frames have ill-defined translation direction; the rotation component still applies. (default to 0.3D).</param>
+        /// <param name="pairPoseGraphMinRegisteredFrames">Minimum number of registered frames in the partial reconstruction before pair_pose_graph_* consistency checks fire. Early in the reconstruction the pose graph is too soft to be a reliable oracle; the front-door filters (covisibility, drift budget, vio_check) carry the load until the graph stiffens. (default to 15).</param>
         /// <param name="maxKeypointsPerImage">Maximum ALIKED keypoints retained per image. (default to 2500).</param>
         /// <param name="heldOutFrameTimestamps">Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries..</param>
         public ReconstructionOptions()
@@ -665,6 +669,106 @@ namespace PlaceframeApiClient.Model
             return _flagVioCheckMaxDisagreementM;
         }
         /// <summary>
+        /// At per-frame registration time, compare the relative rotation each already-registered partner&#39;s two-view geometry implies against the relative rotation the partial reconstruction estimates between the same frames. Partners exceeding this angular threshold are flagged poisoned and their contributing matches are excised from the new frame&#39;s observations before the next BA pass. Independent of VIO; uses the pose graph itself as the consistency oracle. 0 disables.
+        /// </summary>
+        /// <value>At per-frame registration time, compare the relative rotation each already-registered partner&#39;s two-view geometry implies against the relative rotation the partial reconstruction estimates between the same frames. Partners exceeding this angular threshold are flagged poisoned and their contributing matches are excised from the new frame&#39;s observations before the next BA pass. Independent of VIO; uses the pose graph itself as the consistency oracle. 0 disables.</value>
+        [DataMember(Name = "pair_pose_graph_max_rotation_disagreement_deg", EmitDefaultValue = false)]
+        public double PairPoseGraphMaxRotationDisagreementDeg
+        {
+            get{ return _PairPoseGraphMaxRotationDisagreementDeg;}
+            set
+            {
+                _PairPoseGraphMaxRotationDisagreementDeg = value;
+                _flagPairPoseGraphMaxRotationDisagreementDeg = true;
+            }
+        }
+        private double _PairPoseGraphMaxRotationDisagreementDeg = 15.0D;
+        private bool _flagPairPoseGraphMaxRotationDisagreementDeg;
+
+        /// <summary>
+        /// Returns false as PairPoseGraphMaxRotationDisagreementDeg should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePairPoseGraphMaxRotationDisagreementDeg()
+        {
+            return _flagPairPoseGraphMaxRotationDisagreementDeg;
+        }
+        /// <summary>
+        /// Companion to pair_pose_graph_max_rotation_disagreement_deg: bounds the angle between the unit translation direction the two-view geometry implies and the unit translation direction implied by the partial reconstruction&#39;s pose estimates of the two frames. Two-view geometry is scale-free in the monocular case so only direction is compared. Skipped when the estimated baseline is below pair_pose_graph_min_baseline_m. 0 disables.
+        /// </summary>
+        /// <value>Companion to pair_pose_graph_max_rotation_disagreement_deg: bounds the angle between the unit translation direction the two-view geometry implies and the unit translation direction implied by the partial reconstruction&#39;s pose estimates of the two frames. Two-view geometry is scale-free in the monocular case so only direction is compared. Skipped when the estimated baseline is below pair_pose_graph_min_baseline_m. 0 disables.</value>
+        [DataMember(Name = "pair_pose_graph_max_translation_direction_deg", EmitDefaultValue = false)]
+        public double PairPoseGraphMaxTranslationDirectionDeg
+        {
+            get{ return _PairPoseGraphMaxTranslationDirectionDeg;}
+            set
+            {
+                _PairPoseGraphMaxTranslationDirectionDeg = value;
+                _flagPairPoseGraphMaxTranslationDirectionDeg = true;
+            }
+        }
+        private double _PairPoseGraphMaxTranslationDirectionDeg = 30.0D;
+        private bool _flagPairPoseGraphMaxTranslationDirectionDeg;
+
+        /// <summary>
+        /// Returns false as PairPoseGraphMaxTranslationDirectionDeg should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePairPoseGraphMaxTranslationDirectionDeg()
+        {
+            return _flagPairPoseGraphMaxTranslationDirectionDeg;
+        }
+        /// <summary>
+        /// Estimated-baseline floor below which the translation-direction component of the pose-graph consistency check is skipped. Near-co-located frames have ill-defined translation direction; the rotation component still applies.
+        /// </summary>
+        /// <value>Estimated-baseline floor below which the translation-direction component of the pose-graph consistency check is skipped. Near-co-located frames have ill-defined translation direction; the rotation component still applies.</value>
+        [DataMember(Name = "pair_pose_graph_min_baseline_m", EmitDefaultValue = false)]
+        public double PairPoseGraphMinBaselineM
+        {
+            get{ return _PairPoseGraphMinBaselineM;}
+            set
+            {
+                _PairPoseGraphMinBaselineM = value;
+                _flagPairPoseGraphMinBaselineM = true;
+            }
+        }
+        private double _PairPoseGraphMinBaselineM = 0.3D;
+        private bool _flagPairPoseGraphMinBaselineM;
+
+        /// <summary>
+        /// Returns false as PairPoseGraphMinBaselineM should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePairPoseGraphMinBaselineM()
+        {
+            return _flagPairPoseGraphMinBaselineM;
+        }
+        /// <summary>
+        /// Minimum number of registered frames in the partial reconstruction before pair_pose_graph_* consistency checks fire. Early in the reconstruction the pose graph is too soft to be a reliable oracle; the front-door filters (covisibility, drift budget, vio_check) carry the load until the graph stiffens.
+        /// </summary>
+        /// <value>Minimum number of registered frames in the partial reconstruction before pair_pose_graph_* consistency checks fire. Early in the reconstruction the pose graph is too soft to be a reliable oracle; the front-door filters (covisibility, drift budget, vio_check) carry the load until the graph stiffens.</value>
+        [DataMember(Name = "pair_pose_graph_min_registered_frames", EmitDefaultValue = false)]
+        public int PairPoseGraphMinRegisteredFrames
+        {
+            get{ return _PairPoseGraphMinRegisteredFrames;}
+            set
+            {
+                _PairPoseGraphMinRegisteredFrames = value;
+                _flagPairPoseGraphMinRegisteredFrames = true;
+            }
+        }
+        private int _PairPoseGraphMinRegisteredFrames = 15;
+        private bool _flagPairPoseGraphMinRegisteredFrames;
+
+        /// <summary>
+        /// Returns false as PairPoseGraphMinRegisteredFrames should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePairPoseGraphMinRegisteredFrames()
+        {
+            return _flagPairPoseGraphMinRegisteredFrames;
+        }
+        /// <summary>
         /// Maximum ALIKED keypoints retained per image.
         /// </summary>
         /// <value>Maximum ALIKED keypoints retained per image.</value>
@@ -746,6 +850,10 @@ namespace PlaceframeApiClient.Model
             sb.Append("  BundleAdjustmentGlobalFunctionTolerance: ").Append(BundleAdjustmentGlobalFunctionTolerance).Append("\n");
             sb.Append("  PosePriorPositionSigmaM: ").Append(PosePriorPositionSigmaM).Append("\n");
             sb.Append("  VioCheckMaxDisagreementM: ").Append(VioCheckMaxDisagreementM).Append("\n");
+            sb.Append("  PairPoseGraphMaxRotationDisagreementDeg: ").Append(PairPoseGraphMaxRotationDisagreementDeg).Append("\n");
+            sb.Append("  PairPoseGraphMaxTranslationDirectionDeg: ").Append(PairPoseGraphMaxTranslationDirectionDeg).Append("\n");
+            sb.Append("  PairPoseGraphMinBaselineM: ").Append(PairPoseGraphMinBaselineM).Append("\n");
+            sb.Append("  PairPoseGraphMinRegisteredFrames: ").Append(PairPoseGraphMinRegisteredFrames).Append("\n");
             sb.Append("  MaxKeypointsPerImage: ").Append(MaxKeypointsPerImage).Append("\n");
             sb.Append("  HeldOutFrameTimestamps: ").Append(HeldOutFrameTimestamps).Append("\n");
             sb.Append("}\n");

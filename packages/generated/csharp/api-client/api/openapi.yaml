@@ -2673,16 +2673,18 @@ components:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         options:
           ransac_max_error: 1.0246457001441578
+          pair_pose_graph_min_baseline_m: 3.5571952270680973
           held_out_frame_timestamps:
-          - 6
-          - 6
+          - 2
+          - 2
+          pair_pose_graph_max_rotation_disagreement_deg: 9.018348186070783
           pair_max_displacement_drift_rate_m_per_s: 3.616076749251911
           pair_min_match_spread: 2.027123023002322
           bundle_adjustment_global_function_tolerance: 9.369310271410669
           retrieval_min_score: 4.145608029883936
           retrieval_min_num_inliers: 1
           retrieval_neighbors: 2
-          max_keypoints_per_image: 9
+          max_keypoints_per_image: 1
           mapper_filter_max_reprojection_error: 5.025004791520295
           triangulation_minimum_angle: 4.965218492984954
           bundle_adjustment_global_frames_ratio: 9.965781217890562
@@ -2695,8 +2697,10 @@ components:
           spatial_neighbors: 5
           pair_max_displacement_scene_m: 9.301444243932576
           ransac_min_inlier_ratio: 1.4894159098541704
+          pair_pose_graph_min_registered_frames: 6
           pose_prior_position_sigma_m: 6.683562403749608
           sequential_window: 1
+          pair_pose_graph_max_translation_direction_deg: 6.438423552598547
           deterministic_seed: 0
           retrieval_covisibility_window: 7
           keyframe_min_distance_m: 6.027456183070403
@@ -4031,16 +4035,18 @@ components:
       example:
         options:
           ransac_max_error: 1.0246457001441578
+          pair_pose_graph_min_baseline_m: 3.5571952270680973
           held_out_frame_timestamps:
-          - 6
-          - 6
+          - 2
+          - 2
+          pair_pose_graph_max_rotation_disagreement_deg: 9.018348186070783
           pair_max_displacement_drift_rate_m_per_s: 3.616076749251911
           pair_min_match_spread: 2.027123023002322
           bundle_adjustment_global_function_tolerance: 9.369310271410669
           retrieval_min_score: 4.145608029883936
           retrieval_min_num_inliers: 1
           retrieval_neighbors: 2
-          max_keypoints_per_image: 9
+          max_keypoints_per_image: 1
           mapper_filter_max_reprojection_error: 5.025004791520295
           triangulation_minimum_angle: 4.965218492984954
           bundle_adjustment_global_frames_ratio: 9.965781217890562
@@ -4053,8 +4059,10 @@ components:
           spatial_neighbors: 5
           pair_max_displacement_scene_m: 9.301444243932576
           ransac_min_inlier_ratio: 1.4894159098541704
+          pair_pose_graph_min_registered_frames: 6
           pose_prior_position_sigma_m: 6.683562403749608
           sequential_window: 1
+          pair_pose_graph_max_translation_direction_deg: 6.438423552598547
           deterministic_seed: 0
           retrieval_covisibility_window: 7
           keyframe_min_distance_m: 6.027456183070403
@@ -4212,16 +4220,18 @@ components:
     ReconstructionOptions:
       example:
         ransac_max_error: 1.0246457001441578
+        pair_pose_graph_min_baseline_m: 3.5571952270680973
         held_out_frame_timestamps:
-        - 6
-        - 6
+        - 2
+        - 2
+        pair_pose_graph_max_rotation_disagreement_deg: 9.018348186070783
         pair_max_displacement_drift_rate_m_per_s: 3.616076749251911
         pair_min_match_spread: 2.027123023002322
         bundle_adjustment_global_function_tolerance: 9.369310271410669
         retrieval_min_score: 4.145608029883936
         retrieval_min_num_inliers: 1
         retrieval_neighbors: 2
-        max_keypoints_per_image: 9
+        max_keypoints_per_image: 1
         mapper_filter_max_reprojection_error: 5.025004791520295
         triangulation_minimum_angle: 4.965218492984954
         bundle_adjustment_global_frames_ratio: 9.965781217890562
@@ -4234,8 +4244,10 @@ components:
         spatial_neighbors: 5
         pair_max_displacement_scene_m: 9.301444243932576
         ransac_min_inlier_ratio: 1.4894159098541704
+        pair_pose_graph_min_registered_frames: 6
         pose_prior_position_sigma_m: 6.683562403749608
         sequential_window: 1
+        pair_pose_graph_max_translation_direction_deg: 6.438423552598547
         deterministic_seed: 0
         retrieval_covisibility_window: 7
         keyframe_min_distance_m: 6.027456183070403
@@ -4405,6 +4417,44 @@ components:
             when fitting the local Sim3 from VIO neighbors.
           format: double
           type: number
+        pair_pose_graph_max_rotation_disagreement_deg:
+          default: 15.0
+          description: "At per-frame registration time, compare the relative rotation\
+            \ each already-registered partner's two-view geometry implies against\
+            \ the relative rotation the partial reconstruction estimates between the\
+            \ same frames. Partners exceeding this angular threshold are flagged poisoned\
+            \ and their contributing matches are excised from the new frame's observations\
+            \ before the next BA pass. Independent of VIO; uses the pose graph itself\
+            \ as the consistency oracle. 0 disables."
+          format: double
+          type: number
+        pair_pose_graph_max_translation_direction_deg:
+          default: 30.0
+          description: "Companion to pair_pose_graph_max_rotation_disagreement_deg:\
+            \ bounds the angle between the unit translation direction the two-view\
+            \ geometry implies and the unit translation direction implied by the partial\
+            \ reconstruction's pose estimates of the two frames. Two-view geometry\
+            \ is scale-free in the monocular case so only direction is compared. Skipped\
+            \ when the estimated baseline is below pair_pose_graph_min_baseline_m.\
+            \ 0 disables."
+          format: double
+          type: number
+        pair_pose_graph_min_baseline_m:
+          default: 0.3
+          description: Estimated-baseline floor below which the translation-direction
+            component of the pose-graph consistency check is skipped. Near-co-located
+            frames have ill-defined translation direction; the rotation component
+            still applies.
+          format: double
+          type: number
+        pair_pose_graph_min_registered_frames:
+          default: 15
+          description: "Minimum number of registered frames in the partial reconstruction\
+            \ before pair_pose_graph_* consistency checks fire. Early in the reconstruction\
+            \ the pose graph is too soft to be a reliable oracle; the front-door filters\
+            \ (covisibility, drift budget, vio_check) carry the load until the graph\
+            \ stiffens."
+          type: integer
         max_keypoints_per_image:
           default: 2500
           description: Maximum ALIKED keypoints retained per image.
