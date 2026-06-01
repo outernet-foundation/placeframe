@@ -36,6 +36,8 @@ from pycolmap import (
     Rigid3d,
     SensorType,
     Sim3d,
+    TwoViewGeometry,
+    TwoViewGeometryConfiguration,
     data_t,
     sensor_t,
 )
@@ -126,17 +128,59 @@ def run_colmap_reconstruction(
             stack((image_a_indices, image_b_indices), axis=1).astype(uint32, copy=False),
         )
 
+    # Build the seed two_view_geometry per pair from VIO priors so geometric_verification can run
+    # with use_existing_relative_pose=True. The seed pose replaces COLMAP's per-pair EM RANSAC with
+    # an inlier-count check against the VIO-derived cam2_from_cam1, collapsing the EM stage from
+    # ~30 minutes to seconds on this hardware. The rig pass still runs (and may rewrite the pose)
+    # but starts from a near-correct model.
+    cam_from_rig_by_image_prefix: dict[str, Rigid3d] = {
+        camera.image_prefix: camera.cam_from_rig
+        for rig in rigs.values()
+        for camera in rig.colmap_rig_config.cameras
+        if camera.cam_from_rig is not None
+    }
+    rig_from_world_by_rig_and_frame: dict[tuple[str, str], Rigid3d] = {}
+    for rig_id, rig in rigs.items():
+        for frame_id, pose in rig.frame_poses.items():
+            if pose.rotation is None or pose.translation is None:
+                continue
+            rig_from_world_by_rig_and_frame[(rig_id, frame_id)] = Rigid3d(
+                rotation=pose.rotation, translation=pose.translation
+            )
+
+    seed_skipped = 0
+    for a, b in pairs:
+        rig_a, _, frame_a_dot = a.split("/", 2)
+        rig_b, _, frame_b_dot = b.split("/", 2)
+        frame_a = frame_a_dot.rsplit(".", 1)[0]
+        frame_b = frame_b_dot.rsplit(".", 1)[0]
+        cam_a_from_rig = cam_from_rig_by_image_prefix.get(a.rsplit("/", 1)[0] + "/")
+        cam_b_from_rig = cam_from_rig_by_image_prefix.get(b.rsplit("/", 1)[0] + "/")
+        rig_a_from_world = rig_from_world_by_rig_and_frame.get((rig_a, frame_a))
+        rig_b_from_world = rig_from_world_by_rig_and_frame.get((rig_b, frame_b))
+        if cam_a_from_rig is None or cam_b_from_rig is None or rig_a_from_world is None or rig_b_from_world is None:
+            seed_skipped += 1
+            continue
+        cam2_from_cam1 = cam_b_from_rig * rig_b_from_world * rig_a_from_world.inverse() * cam_a_from_rig.inverse()
+        seed = TwoViewGeometry()
+        seed.config = TwoViewGeometryConfiguration.CALIBRATED
+        seed.cam2_from_cam1 = cam2_from_cam1
+        database.write_two_view_geometry(colmap_image_ids[a], colmap_image_ids[b], seed)
+
+    print(f"[verification] seeded {len(pairs) - seed_skipped}/{len(pairs)} pairs from VIO priors")
+
     # Close the database before handing off to geometric_verification — the C++ entry point opens
     # its own connection from the path.
     database.close()
 
-    # Stock pycolmap geometric_verification with rig_verification=True. Single opaque C++ call that
-    # holds the GIL throughout, no in-Python progress signal — set the phase with no total so the
-    # UI shows it as an indeterminate step.
+    # Stock pycolmap geometric_verification with rig_verification=True and use_existing_relative_pose
+    # so the EM pass becomes an inlier-count check against the VIO seed instead of RANSAC. Single
+    # opaque C++ call that holds the GIL throughout — set the phase with no total so the UI shows
+    # it as an indeterminate step.
     publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY)
     geometric_verification(
         database_path=str(colmap_db_path),
-        verifier_options=GeometricVerifierOptions(rig_verification=True),
+        verifier_options=GeometricVerifierOptions(rig_verification=True, use_existing_relative_pose=True),
         two_view_geometry_options=options.two_view_geometry_options(),
     )
 
