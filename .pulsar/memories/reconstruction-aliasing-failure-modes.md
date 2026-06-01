@@ -8,26 +8,32 @@ updated: 2026-05-31
 
 Document what we now know about how small ZED office captures degenerate
 into BA teleports, after a 117-run parameter sweep, direct visual
-inspection of the offending frames, and a follow-up architectural
-discussion that reframes the problem. The headline conclusion has
-sharpened: the failure is **not** a pair-filter-strictness problem and
-cannot be tuned out at the filter layer. It's a *structural* problem —
-retrieval is currently running with no spatial prior, which makes
-visually-similar-but-physically-distant frames indistinguishable. The
-durable fix is architectural (spatial gating + drift-aware priors), not
-per-frame quality filtering.
+inspection of the offending frames, an architectural reframing of the
+problem, the shipping of two preventive filters (drift-aware
+displacement and match-spread), and a follow-up reconstruction on the
+bad capture that showed *both* preventive bets are inert or wrong-shape
+in isolation. The headline has sharpened again: aliasing in cubicle-style
+environments is solved by **layered weak signals**, not any single silver
+bullet — and a meaningful chunk of the "obvious" individual signals
+either fail in the data regime we care about (sub-meter VIO drift makes
+displacement filter inert on tiny captures with high drift) or attack
+the wrong shape of aliasing (match-spread assumes concentration, but
+real office aliasing is *distributed similarity* across many repeated
+features).
 
 This memory exists because the natural next move after seeing a teleport
-is to reach for covisibility / inlier-ratio / covisibility-window knobs,
-or for per-frame quality filters. We tried the former; we researched the
-latter. Neither is the right shape. Future sessions should not retry
-those branches without new information.
+is to reach for one more filter or one tighter threshold. We tried those
+branches. The actual path forward is to layer multiple weak signals into
+a strong joint decision, *and* to ship a capture-quality gate so the
+system refuses to deliver a broken map rather than ship one silently.
+Future sessions should not retry single-signal "this will solve it" bets
+without new information.
 
 ## The three pair sources have qualitatively different failure modes
 
-This framing came out of first-principles reasoning during the session
-and survived the sweep. It is the load-bearing mental model for every
-pair-gen decision downstream.
+This framing came out of first-principles reasoning during an earlier
+session and survived the sweep and two filter trials. It is the
+load-bearing mental model for every pair-gen decision downstream.
 
 - **Sequential** pairs cannot be wrong by construction. Temporal
   adjacency ≈ geometric adjacency. Even on quick turns the geometric
@@ -56,12 +62,13 @@ where the needle is also hay.
 Retrieval is the only pair source with *no spatial bound*. Sequential is
 bounded by keyframe index (±20). Stereo is bounded by same-timestamp.
 Spatial is bounded by VIO position — but we turned spatial off
-(`spatial_neighbors=0`) for the sweep, treating it as a secondary cue
-rather than load-bearing. **A descriptor-only retriever with no spatial
-prior will always be vulnerable to anything that produces high descriptor
-similarity at the wrong place** — whether the wrongness comes from
-descriptor degeneracy (Suspect A) or genuine ambiguity (Suspect B). This
-is the architectural gap, not a tuning problem.
+(`spatial_neighbors=0`) for the original sweep, treating it as a
+secondary cue rather than load-bearing. **A descriptor-only retriever
+with no spatial prior will always be vulnerable to anything that
+produces high descriptor similarity at the wrong place** — whether the
+wrongness comes from descriptor degeneracy (Suspect A) or genuine
+ambiguity (Suspect B). This is the architectural gap, not a tuning
+problem.
 
 This reframes "pose priors" into two structurally distinct roles that
 must be evaluated independently:
@@ -143,7 +150,7 @@ Structural readings:
    distinguish "good loops fired" from "aliased pairs fired" by track
    shape alone.
 
-## The two specific aliasing patterns the sweep surfaced
+## The two specific aliasing patterns the sweep surfaced (and a third found later)
 
 Across the 117 runs the worst-tear pair was concentrated on a tiny
 number of timestamps. Two suspect frames in capture `4bd303f1` are
@@ -206,10 +213,16 @@ and confirmed **two distinct aliasing mechanisms**:
   *multiple* pieces of hung black-and-white art, so the most likely
   aliased element is the artwork, not the printer (the subagent's
   initial verdict named the printer but had less ground-truth context
-  than the user). This is the environmentally-recurring case: any
-  office / hotel / museum / hospital with standardized repeated decor
-  will hit this failure mode. Not actionable by a single-frame quality
-  gate — the frame is intrinsically fine; the problem is *relational*.
+  than the user). This was originally characterized as
+  "few-feature concentration aliasing" but the match-spread filter trial
+  (below) reclassified it: **the actual office-aliasing shape is
+  *distributed similarity***. Two cubicles share many features (chairs,
+  monitors, desks, wall textures, floor patterns), not just one repeated
+  artwork. Aliased pairs in this regime have matches spread across the
+  whole image, just like real matches do. **The "single repeated object"
+  framing was too narrow.** This recharacterization matters because it
+  invalidates concentration-based defenses — see "what match-spread
+  taught us" below.
 
 ## Why this means "no filter combination wins here"
 
@@ -248,33 +261,20 @@ specific capture, but because:
 2. B has no isolation-metric fix, full stop. Any B fix is necessarily
    architectural — so it's the harder problem and worth solving first.
 3. **The right architectural B fix byproduct-fixes A.** The candidate
-   architectural fixes for B are:
-   1. VIO position prior gating retrieval (only consider candidates
-      within radius R of current frame's VIO estimate)
-   2. Trajectory-distance-weighted retrieval
-   3. Better descriptor with spatial / positional cues (gravity,
-      semantic features)
-   4. Stronger geometric verification with prior (verifier rejects
-      pose solutions disagreeing with VIO by > threshold)
-   5. Capture-level descriptor deduplication
-   Of these, **(1) and (4) would byproduct-fix A** for free, because
-   A's aliasing also relies on the retriever admitting a
-   far-temporally-distant candidate. If we constrain retrieval by VIO
-   position, A's spurious bright-frame matches from 25–30s earlier get
+   architectural fixes for B that we listed (VIO-position-gated
+   retrieval, trajectory-distance-weighted retrieval, descriptor with
+   positional cues, stronger geometric verification with prior,
+   capture-level descriptor dedup) — VIO-gated retrieval and stronger
+   geometric verification with prior would byproduct-fix A for free
+   because A's spurious bright-frame matches from 25–30s earlier get
    rejected on distance grounds before descriptor similarity matters.
-   (3) and (5) wouldn't fix A.
 
-So the architectural pivot: don't ship the per-frame luminance/entropy
-filter as the primary fix. It's a real Band-Aid for one specific failure
-mode that is downstream of the deeper problem. Solve the deeper
-problem and the Band-Aid becomes unnecessary.
-
-Caveat we're transparent about: "spatial-prior gating fixes both" is
-*plausible from one supporting datapoint*, not proven. The
-architecturally correct experiment is to re-enable spatial retrieval
-gating with a drift-aware bound, then re-run the sweep. If A and B both
-go away, the hypothesis is confirmed. If only B goes away, A needs its
-own treatment.
+Caveat we are now being honest about: "spatial-prior gating fixes both"
+was plausible from one supporting datapoint, not proven. The
+follow-up experiment (running on capture `a0015cec` with the preventive
+displacement filter on) showed displacement filter is **inert on a
+small capture with high VIO drift** — the geometric ceiling is real.
+See "what the new filters taught us" below.
 
 ## The drift-aware spatial-prior formulation
 
@@ -304,15 +304,14 @@ the meaningful work happens on retrieval. A uniform code path is
 architecturally cleaner than retrieval-only, and the redundant checks
 cost microseconds.
 
-## The reactive (post-reconstruction) consistency check
+## The reactive (post-reconstruction) consistency check — Form C, now hardened
 
 Complementary to the preventive drift-aware filter: a local-window
 VIO-consistency check on the *output* of reconstruction. Same data
-(VIO `frames.csv` + recon `frames.txt`, keyed by timestamp), local
-Umeyama transform over N≈10 neighbors, predict each frame's recon
-position from its local VIO neighbors, flag if the actual recon
-position disagrees by > threshold (~0.5–1.0m comfortably above noise,
-calibrated against a known-clean reconstruction's 99th percentile).
+(VIO + recon poses, keyed by timestamp), local Sim3 transform over
+N≈10 neighbors, predict each frame's recon position from its local
+VIO neighbors, flag if the actual recon position disagrees by >
+threshold.
 
 This works *despite* VIO drift because drift is mostly secular: over a
 ~5s window of 10 keyframes, drift is millimeter-scale even on the buggy
@@ -321,44 +320,50 @@ exists *at that point in the capture*, and the prediction becomes a
 high-confidence claim about where the frame should be *relative to its
 local context*.
 
-Three escalating implementation forms exist:
+**Form C status (current):** built, landed, and refactored. Lives in
+`docker/reconstructor/src/reconstructor/colmap_pipeline.py` as a
+custom-fork of the upstream `IncrementalPipeline.run()`. Substantive
+changes during this session:
 
-- **Form A — offline post-hoc validation pass.** ~80-line standalone
-  script. Outputs flagged-frame list. Doesn't change reconstruction;
-  just diagnoses. *The big win is it gives us a quantitative
-  "is the map broken" metric that the deprecated
-  `prior_drift_residual_rms_m` was trying to be — but local, so it
-  survives secular VIO drift.*
-- **Form B — two-pass reconstruction.** Run, run Form A, filter
-  flagged frames' retrieval pairs out (the new `pairs_with_source.csv`
-  artifact makes this a CSV filter), re-reconstruct. Wall-clock cost
-  ~1.5–1.7x a single reconstruction with feature/OPQ/PQ stage reuse,
-  closer to 2x naive. Also has the property that every reconstruction
-  pays the bad-pass-1 tax — wasteful when most reconstructions are
-  clean.
-- **Form C — inline rejection during incremental mapping.** Hook into
-  COLMAP's incremental pipeline so the consistency check fires during
-  registration and rejects bad poses before they enter BA. **Built and
-  landed**: lives in
-  `docker/reconstructor/src/reconstructor/colmap_pipeline.py` as a
-  custom-fork of `pycolmap/python/examples/custom_incremental_pipeline.py`,
-  with the VIO check inserted between successful `register_next_image`
-  and the subsequent `triangulate_image` + local-BA call. Frame
-  unwinding goes through `ObservationManager.deregister_frame` (keeps
-  correspondence graph consistent — `Reconstruction.deregister_frame`
-  alone leaves stale entries). A Python-side skip-list filters
-  `find_next_images` because manual deregistration doesn't bump
-  COLMAP's internal `reg_trials` counter. The check uses
-  `bisect_left` over a sorted-by-timestamp VIO list to grab the N=10
-  nearest already-registered neighbors, then a LO-RANSAC Sim3 fit.
-  Effort came in around the optimistic end (~3 days), well below the
-  earlier "medium / hard" estimates, because COLMAP shipped the
-  reference implementation and every primitive we needed was already
-  Python-bound in pycolmap 4.0.4.
+- `vio_check(...)` now returns `bool` directly (the structured log
+  moved inside the function; the structure_less suffix was dropped from
+  the log line since it was redundant with caller context).
+- The SVD-based local Umeyama fit was replaced with pycolmap's
+  `estimate_sim3d_robust` (LO-RANSAC Sim3 fit with `max_error` tied
+  to the same disagreement threshold). The math block went from ~14
+  lines of explicit SVD to one helper call. The robust fit absorbs
+  one or two bad-neighbor outliers that the SVD fit had no defense
+  against.
+- The neighbor lookup uses a pre-built sorted-by-timestamp index of
+  VIO entries (`IncrementalContext.sorted_vio_entries`). `bisect_left`
+  + alternating outward walk replaces the previous O(N_registered)
+  linear scan for each check. Complexity is now O(log N + K · avg_skip)
+  per call.
+- The disagreement threshold (formerly module constant
+  `VIO_CHECK_MAX_DISAGREEMENT_M`) is now plumbed through as
+  `ReconstructionOptions.vio_check_max_disagreement_m`, default
+  `1.0` m, accessible via `OptionsBuilder.vio_check_max_disagreement_m()`.
+  The constant is gone. The same value also gates the RANSAC inlier
+  threshold inside the Sim3 fit — one knob, consistent semantics.
+- `VIO_CHECK_MIN_NEIGHBORS=6` stays as a module constant (it's
+  mathematically fixed by Sim3 having 7 DOF). `VIO_CHECK_WINDOW=10`
+  stays as a constant for now (borderline tunable, deferred).
+  `VIO_CHECK_MIN_VIO_SPREAD_M2` was deleted entirely — the robust
+  Sim3 fit's RANSAC handles degenerate neighborhoods without a
+  pre-check.
+- Frame unwinding goes through `ObservationManager.deregister_frame`
+  (keeps the correspondence graph consistent; the bare
+  `Reconstruction.deregister_frame` leaves stale entries). A
+  Python-side skip-list filters `find_next_images` because manual
+  deregistration doesn't bump COLMAP's internal `reg_trials` counter.
 
-Form A only diagnoses; it does not fix anything by itself, but it's the
-primitive everything else builds on and gives us the metric
-infrastructure that's always useful.
+**Pycolmap stub bug accepted with one localized suppression:**
+`estimate_sim3d_robust` is stub-typed `-> Sim3d | None` but actually
+returns `dict | None` at runtime. The mismatch is concentrated in a
+`_robust_sim3_fit(...) -> Sim3d | None` helper with one localized
+`# type: ignore[index]` and a comment explaining the upstream stub
+bug. This is the rare "no other way" case CLAUDE.md describes —
+calling code stays honest.
 
 ## Preventive vs reactive — do we need both?
 
@@ -381,85 +386,214 @@ reactive is an output verifier ("validate the matcher's verdict against
 VIO ground truth"). Same reason you want both type checking and
 runtime tests.
 
-Build order, as it actually played out: Form C (reactive, inline) was
-built first and is now in `colmap_pipeline.py`. The preventive
-drift-aware retrieval filter is still pending. Both will run together
-initially.
-
 **The custom-fork of the COLMAP incremental pipeline loop in
-`docker/reconstructor/src/reconstructor/colmap_pipeline.py` should
-probably be ripped out later if the preventive drift-aware retrieval
-filter ends up addressing the whole problem on its own.** Forking the
-upstream pipeline is real maintenance debt — every pycolmap upgrade is
-a manual reconciliation, and the reasons not to do it (drift from
-upstream, the cost of understanding the loop body in detail) are real.
-We are deliberately leaving both reactive (Form C, the fork) and
-preventive (pending) in place initially so we can measure whether
-reactive ever fires once preventive is active. If the reactive logs
-show it never (or essentially never) deregisters a frame in real
-captures after the preventive filter is online, that is the trigger to
-revisit removing the fork — restoring `IncrementalPipeline.run()` as a
-single bound call and dropping ~600 lines of forked loop. If reactive
-keeps firing, both stay.
+`colmap_pipeline.py` should probably be ripped out later if the
+preventive layer ends up addressing the whole problem on its own.**
+Forking the upstream pipeline is real maintenance debt — every pycolmap
+upgrade is a manual reconciliation. We are deliberately leaving both
+reactive (Form C, the fork) and preventive (drift-aware displacement +
+match-spread, both shipped this session) in place initially so we can
+measure whether reactive ever fires in real captures. **The latest
+recon (`a0015cec` on capture `4bd303f1` with all three on) shows
+reactive *is* still firing heavily** (47 rejections / 71 passes on this
+specific capture) — so the fork stays for now. The trigger to revisit
+removal is "reactive stops firing across a representative capture set
+once the preventive layer is improved beyond what we have today."
 
-## What per-frame quality filters could do (and why we deprioritized them)
+## What we built this session: two preventive filters, and what they taught us
 
-For completeness, the research outcome on per-frame quality filtering.
-We deliberately are not pursuing this as the primary fix — see the
-"Suspect B should land first" argument — but the data is durable.
+Two preventive filters shipped during this session, in addition to the
+Form C refactor:
 
-**Industry state:** essentially no mature OSS pipeline (ORB-SLAM3,
-COLMAP, hloc, OpenVSLAM, pixel-perfect-sfm, kapture, DROID-SLAM) runs
-a per-frame pixel-quality filter before feature extraction. COLMAP's
-[official FAQ](https://colmap.github.io/faq.html) instructs users to
-manually delete blurry frames; the community workaround is "sort by
-JPEG file size, drop smallest 5%" — blurry frames compress smaller.
-Niantic's per-frame gate is unpublished trade secret; they paper over
-the failure mode with N redundant scans across hours instead.
+### 1. Drift-aware displacement filter (in `pairs.py`)
 
-**BRISQUE / NIQE / PIQE are the wrong tool.** They're trained on
-natural-image distortion taxonomies (compression, motion blur, noise)
-and the failure we saw — a content-collapsed frame with histogram
-crushed near zero except for a few saturated highlights — falls
-*outside* that taxonomy. They will fail to flag Suspect A *and* falsely
-flag legitimate Manhattan-at-night frames because the NSS statistics
-they're trained against don't match the night-urban distribution.
+Compares each candidate pair's relative VIO displacement against a
+distance budget. The principled drift-tolerant relative formulation
+described above. Apply uniformly across all pair sources; the real
+work happens on retrieval.
 
-**If we did build one**, the recommended stack:
+**Empirical result on `a0015cec` (rerun of `4bd303f1` with defaults):
+0 rejections.** The filter is *inert* on this capture. The mechanism is
+information-theoretic: on a ~10 m capture with ~12 m of VIO drift, the
+aliased pair's VIO-implied displacement (~25–30 s of drift between
+visits to the same physical place) is within the same order of
+magnitude as the maximum-plausible-loop-distance budget. The signal is
+**exhausted**. No threshold inside the displacement-only filter can
+distinguish aliased pairs from true loop closures on this capture.
 
-1. **Histogram content gate.** Per frame: fraction with `gray < 8`,
-   fraction with `gray > 247`, Shannon entropy of 8-bit gray histogram.
-   Reject when `(a) > 0.90 OR (b) > 0.30 OR entropy < 4.0 bits`.
-   ~200µs/frame. Critically, this *does not* falsely reject a dim
-   Manhattan street: nighttime urban scans still have entropy 6+ bits
-   because streetlights, signs, pavement, sky each occupy distinct
-   histogram bins. The dimness is *distributed*, not *collapsed*. The
-   metric is a direct physical claim ("histogram too collapsed to
-   carry signal"), not a proxy.
-2. **Laplacian variance with per-scan percentile threshold.** Reject
-   the bottom 5th percentile *if* absolute value is below a sanity floor
-   (~50.0). The percentile-of-distribution approach is what mature DL
-   dataset pipelines do — a night scan has lower absolute variance
-   everywhere, but the *worst* frames within each scan are still the
-   right ones to drop.
-3. **Retrieval-side ratio-test gate (defense-in-depth).** After global
-   descriptor retrieval, compute
-   `(top1_similarity − topK_similarity) / top1_similarity`. If small
-   (query is similar-ish to many database frames simultaneously),
-   refuse to emit pairs and log it. Conceptually identical to Lowe's
-   ratio test at the retrieval level. No published threshold — calibrate
-   from our own captures.
+**This does *not* mean the filter is useless.** On typical
+ARFoundation/ARKit/ARCore captures (sub-meter drift over a 30-second
+indoor walk), the same filter would do meaningful work — those captures
+have a working signal-to-noise ratio. The filter is correctly built;
+the bad capture is just past its information-theoretic ceiling. We
+should not conflate "inert on this capture" with "useless."
 
-**These would catch Suspect A but not Suspect B.** B's frame is
-intrinsically fine; its problem is the existence of *other* similar
-frames in the same capture. There is *zero* literature on detecting
-"this scene appears elsewhere in this same capture" from a single
-frame — by construction it can't be done.
+### 2. Match-spread filter (in `_verify_two_view_geometries`)
 
-## What the reconstructor now exports (code change, uncommitted at memorize time)
+For each pair surviving RANSAC, compute the normalized std-dev of
+inlier match positions in each image, take the worse-spread image's
+score, reject pairs below threshold (default 0.08). The intuition:
+artwork-aliased pairs concentrate matches on the few visually-similar
+features; true wide-baseline pairs spread matches across the whole
+image. Implementation operates *outside* the COLMAP fork, at the
+verification stage, hooked in right after pycolmap's
+`estimate_two_view_geometry` returns.
 
-Two new permanent artifacts per reconstruction at
-`dev-reconstructions/<id>/`:
+**Math:** for uniformly-distributed matches over a normalized region
+`w × h`, `spread ≈ sqrt(w·h) / 3.46`. Setting `spread = 0.08` and
+solving gives `w·h ≈ 7.7%` — matches concentrated in less than 7.7% of
+image area get rejected. A half-image vertical strip (`0.5 × 1.0`)
+scores 0.204 — well above threshold, kept easily. Small-overlap loop
+closures where the overlap is `0.25 × 0.25` (score ~0.072) get
+rejected. The asymmetry that saves most real loop closures: true
+partial-overlap matches typically span the full vertical extent of an
+indoor scene (floor-to-ceiling), so a thin vertical strip overlap still
+has decent vertical spread.
+
+**Empirical result on `a0015cec` (defaults: 0.08 threshold):**
+
+- Rejections: 1901 total
+  - 992 sequential (~12.3% of sequential)
+  - 884 spatial (~11.6% of spatial)
+  - 25 retrieval (~4.2% of retrieval)
+- Final reconstruction: 51 keyframe pairs (up from 29 without
+  match-spread), max speed 0.94 m/s (clean), 0 long-range tracks
+  (still no loop closures), max track extent 40 (sequential-window
+  ceiling).
+
+**The bad news.** Match-spread only caught **4.2% of retrieval pairs**.
+The aliased retrieval pairs in this capture do *not* concentrate
+matches in a small region — they have matches spread across the whole
+image, because cubicle-style aliasing shares many distributed features
+(chairs, monitors, desks, walls), not one repeated artwork. The
+filter's assumption (concentration = aliasing) is **wrong-shape** for
+the dominant failure mode. Worse, it killed sequential and spatial
+pairs at 12.3% / 11.6% rates — far more than the retrieval target.
+The asymmetry is the wrong sign: we kill legitimate close-by pairs
+more aggressively than we kill the aliasing target.
+
+**Why this happened: I underestimated cubicle aliasing.** The
+"Suspect B = artwork = single repeated object" framing in the
+original memory was too narrow. Real cubicle aliasing is
+*distributed similarity*: many shared features in both rooms produce
+matches that spread out just like true matches do. Concentration is
+not the discriminating signal.
+
+**Calibration doesn't rescue this.** Lower threshold (0.04) would
+reduce sequential/spatial rejection but catch even fewer of the
+distributed retrieval aliases. The filter's shape is wrong, not its
+threshold.
+
+### Honest reassessment after both bets shipped
+
+The two architectural bets we shipped (displacement + match-spread) are
+both inert or wrong-shape on the bad capture:
+
+- *Displacement* signal exhausted (small-capture geometric ceiling)
+- *Concentration* signal wrong-shape (distributed-similarity aliasing
+  has spread-out matches)
+
+This forces the architectural reframe: the path forward is **layered
+weak signals**, not a single silver bullet. Each individual signal will
+catch a different failure mode; the joint decision becomes strong even
+when each component is weak. The displacement filter is one weak
+signal that pays off on production-quality ARFoundation captures.
+Match-spread, as currently shaped, may not pay off anywhere — it's
+plausibly net negative because of the sequential/spatial collateral.
+*Decision pending* on whether match-spread stays in the default
+pipeline.
+
+## Monocular constraint: ARFoundation must also work
+
+A key constraint surfaced this session: the system must work for
+captures from the ARFoundation capture tool, which is **monocular**.
+This invalidates any signal that depends on stereo (so the
+stereo-depth-consistency check, which seemed strong on ZED-only, is
+off the table as a primary fix). All filters from here on need to
+work on monocular input.
+
+Implication: ARFoundation captures get the benefit of ARKit/ARCore VIO,
+which is genuinely excellent (sub-meter drift over indoor walks). That
+means the *displacement filter* will likely pay off on the bulk of
+production captures even though it's inert on this ZED-stress-test
+capture. We should not conflate the two regimes when evaluating
+filters.
+
+## Remaining monocular-compatible options (the honest short list)
+
+After two preventive filters delivered inert results, what's actually
+left in the toolbox that's monocular-compatible and addresses
+*distributed* aliasing?
+
+1. **Gravity rotation consistency at 2-view stage.** We already record
+   gravity. For pair `(a, b)`, the visual relative rotation should
+   match the relative gravity rotation between the frames (within
+   ~5°). Catches aliased pairs where the device is oriented materially
+   differently between visits. *Does not* catch aliased pairs where
+   the device happens to be at the same orientation in both rooms
+   (common in cubicles — facing forward both times). Probably partial
+   help. Cheap to implement (gravity vectors already in
+   `frames.csv`).
+
+2. **vio_check with looser threshold.** Today's 1.0 m is killing loop
+   closures wholesale (47 rejections / 71 passes on this capture). A
+   3 – 5 m threshold might preserve some loop closures while still
+   killing the worst aliases (5 – 20 m disagreements are still clearly
+   bad). This is parameter tuning, not new architecture. Cheapest move
+   on this list.
+
+3. **Refuse structure-less PnP / minimum 3D-observation gate.**
+   Defense-in-depth. Attacks the ghost-frame mechanism directly
+   without depending on what the matches look like. Two
+   implementation forms:
+   - (a) Track pair source through to registration; refuse
+     structure-less when *only* retrieval-linked matches support the
+     registration.
+   - (b) Post-registration support-count gate: after
+     `register_next_image` succeeds, count inlier 2D-3D
+     correspondences with existing Point3Ds, deregister if below a
+     threshold (e.g. 200). Memory's diagnosis says ghost frames have
+     <79 observations vs ~720 median, so a 200-observation threshold
+     would cleanly separate them.
+   Form (b) is much cleaner — single number, same shape as vio_check,
+   no need to thread pair-source metadata through COLMAP internals.
+   **Significant overlap with vio_check:** vio_check already rejects
+   most ghost frames via "your placement disagrees with VIO
+   neighbors." This filter would catch the narrow gap where the
+   ghost frame happens to be near its VIO neighbors (rare on a drifty
+   capture) or where vio_check skips due to too few registered VIO
+   neighbors. Recommended *only if* vio_check leaves a measurable gap
+   empirically. Don't build speculatively. Also: grows the fork we
+   want to shrink.
+
+4. **Capture-time descriptor deduplication.** Cluster global
+   descriptors across the capture, refuse retrieval pairs to
+   over-represented clusters. Doesn't care if matches concentrate or
+   spread — works on the descriptor itself. Has real risk of killing
+   legitimate loops to popular areas (entrances, intersections).
+   Industry move (Niantic does a variant).
+
+5. **Reframe to capture-time UX intervention.** Mature monocular SfM
+   in cubicles may genuinely require a capture-time intervention
+   (dedicated dense scan in repeating-decor areas, multi-pass) rather
+   than offline post-hoc filtering. ARKit/ARCore solve this by being
+   online and yelling at the user when tracking confidence drops.
+   We are offline and silent. Pair this with a capture-quality gate
+   that fails loudly when no filter rescues a capture, so the system
+   refuses to ship a broken map.
+
+**Ranking** (subject to revision): the cheapest immediate move is (2)
+threshold-loosen vio_check; the highest-leverage architectural move
+is (1) gravity rotation. (3) is defense-in-depth, build only if data
+shows the gap. (4) and (5) are bigger swings, both worth specifying
+formally if (1) + (2) don't move the needle.
+
+**No stereo-depth check.** Initially proposed as the highest-value
+add, retracted once the monocular ARFoundation constraint surfaced.
+
+## What the reconstructor exports (artifacts)
+
+Two artifacts per reconstruction at `dev-reconstructions/<id>/`:
 
 - **`pairs_with_source.csv`** — `image_a,image_b,source` per candidate
   pair. Source ∈ `{intra_frame_stereo, sequential, spatial, retrieval}`
@@ -472,26 +606,13 @@ Two new permanent artifacts per reconstruction at
   SfM ran to completion.
 
 With both artifacts, "which specific retrieval pair survived and
-registered the suspect frame" becomes a SQL query. New artifacts only
-appear on reconstructions run *after* the reconstructor image is
-rebuilt and redeployed; the 117 existing sweep runs have neither file.
-
-**Files touched (uncommitted at memorize time):**
-
-- `docker/reconstructor/src/reconstructor/pairs.py` (`PAIRS_WITH_SOURCE_FILE`
-  constant + `write_pairs_with_source()`)
-- `docker/reconstructor/src/reconstructor/run_reconstruction.py` (imports
-  + 2 upload calls)
-- `docker/reconstructor/SPEC.md` (two artifact-table rows; prose-only,
-  separate commit per repo convention)
+registered the suspect frame" becomes a SQL query.
 
 ## Worth knowing about the displacement test script
 
 `scripts/src/scripts/displacement_check.py` and its sibling
 `sweep_postprocess.py` are the durable forms of the script that had
-been recreated under `/tmp/recon_audit/` across multiple sessions. They
-were committed to the repo during this session and audited for math
-correctness against the rig-center → world transform.
+been recreated under `/tmp/recon_audit/` across multiple sessions.
 
 The displacement test catches the *bad-pair* failure mode (BA teleports
 manifesting as per-keyframe-pair speed > 2.5 m/s). It does **not**
@@ -501,13 +622,6 @@ drifts unconstrained because retrieval got over-filtered will look
 was added as the complementary signal but on `4bd303f1` it does not
 discriminate, and the structure-less-PnP mechanism explains why any
 track-based metric will be blind to this failure shape.
-
-VIO-prior-relative metrics (`prior_drift_residual_rms_m`, global
-Umeyama residual) cannot be used as the complementary loop-closure
-metric on the captures we're testing because VIO itself has substantial
-drift — a *correct* recon that closes loops correctly diverges from
-drifted VIO. The local-window VIO-consistency check (Form A above) is
-the durable replacement: same data, local-window, survives secular drift.
 
 ## Placeframe vs prior art
 
@@ -523,8 +637,14 @@ A map of where placeframe sits relative to standard SLAM/SfM/VPS systems:
   the Role B signal we're missing.
 - **VINS-Fusion / OKVIS / OpenVINS**: visual-inertial SLAM. SoTA for
   the robust-pair-selection problem. Tight IMU-visual coupling at
-  every stage.
+  every stage. **They expose per-frame covariance**, letting a
+  chi-squared test reject candidate loops by "is this match consistent
+  with how uncertain we *actually* are at this time gap?" We can't do
+  this — ZED VIO doesn't expose covariance, and ARFoundation's even
+  more opaque.
 - **DSO / LSD-SLAM**: direct (non-feature-based). Different paradigm.
+- **DROID-SLAM, NeRF-SLAM**: don't filter pairs; let bad matches lose
+  to good ones in joint global optimization. Different paradigm.
 - **VPS (Niantic Lightship, Google Cloud Anchors, Apple Shared World
   Anchors)**: closest commercial analogs. All proprietary, all use
   IMU/VIO heavily, all require curated capture flows (Niantic
@@ -546,57 +666,68 @@ A map of where placeframe sits relative to standard SLAM/SfM/VPS systems:
 
 **Where placeframe underweights known practice:**
 
-1. **No spatial prior on retrieval by default.** We have the knob
-   (`spatial_neighbors`); we treated it as ancillary and turned it off
-   during the sweep that surfaced the problem.
-2. **No descriptor-collapse detection on the retrieval side.** Industry
-   doesn't do this either, so this is *frontier* not *underweighted*.
+1. **No spatial prior on retrieval by default.** Now shipped as the
+   displacement filter; inert on this capture due to information-
+   theoretic exhaustion, but expected to do real work on
+   ARFoundation-quality VIO.
+2. **No per-frame VIO covariance.** Capture devices don't expose it
+   (frontier, not underweighted).
 3. **No online consistency check between VIO and reconstruction during
-   incremental mapping.** ORB-SLAM3-VI does this; we have all the data
-   to do it offline and don't.
+   incremental mapping.** ORB-SLAM3-VI does this; we now do too,
+   offline, via Form C inline VIO check in the forked
+   `colmap_pipeline.py`.
 
 **Translation to where to invest:** the 4-source pair generator is a
-strength, but it's misused — retrieval runs unconstrained while spatial
-is treated as a secondary cue or turned off entirely. The architectural
-correction is to make spatial constraints first-class for retrieval (in
-either generous-global or drift-tolerant-relative form), accept that we
-cannot run pure-visual-retrieval the way pure-SfM tools can, and align
-with how VI-SLAM systems use IMU as an inseparable companion to vision
-rather than a removable supplement.
+strength, but it's misused — retrieval runs unconstrained relative to
+the rich signals available. The architectural correction is to layer
+multiple weak signals (displacement budget + gravity rotation +
+match-spread or successor + reactive vio_check + capture-quality
+gate) rather than searching for a single silver bullet, accept that
+we cannot run pure-visual-retrieval the way pure-SfM tools can, and
+align with how VI-SLAM systems use IMU as an inseparable companion to
+vision rather than a removable supplement.
 
 ## Decisions
 
 - **Filter-side tuning is not the path forward.** Closed; do not
   relitigate without new evidence (e.g. a fundamentally different
   descriptor).
-- **Per-frame quality filtering is *not* the primary fix.** It would
-  Band-Aid Suspect A but leaves the bigger architectural problem
-  unchanged. We have the recipe (histogram + Laplacian + retrieval
-  ratio test) durably documented above if we ever want it; we are
-  deliberately not building it now.
-- **The architectural fix is spatial / drift-aware gating on retrieval
-  candidates, plus reactive VIO-consistency checking on reconstruction
-  output.** Both. Form C (reactive) has shipped; the preventive
-  drift-aware retrieval filter is pending.
-- **Form C lives in `colmap_pipeline.py` as a fork of the upstream
-  reference incremental pipeline.** Required because pycolmap exposes
-  no decision callbacks on `IncrementalPipeline.run()` — only progress
-  callbacks — so the per-image VIO check has to live inside our own
-  copy of the loop.
-- **The fork is provisional.** Once the preventive drift-aware
-  retrieval filter is online, observe whether reactive ever fires on
-  real captures. If it doesn't, rip out `colmap_pipeline.py` and
-  collapse back to a single `IncrementalPipeline.run()` call. If it
-  does, both stay. Do not pre-decide either direction before the data
-  exists.
+- **Per-frame quality filtering (BRISQUE/NIQE/PIQE, histogram, blur)
+  is *not* the primary fix.** It would Band-Aid Suspect A but leaves
+  the bigger architectural problem unchanged.
+- **The architectural fix is layered weak signals**: displacement
+  budget (preventive, shipped, inert on bad capture but useful for
+  ARFoundation-grade VIO), match-spread (preventive, shipped,
+  wrong-shape on cubicles — decision pending on whether to keep in
+  default), reactive Form C (shipped, hardened with
+  `estimate_sim3d_robust` + sorted index + options-plumbed
+  threshold). Plus future additions: gravity rotation consistency,
+  vio_check threshold loosening, possibly refuse-structure-less-PnP
+  and capture-time descriptor deduplication.
+- **Form C lives in `colmap_pipeline.py` as a fork.** It now uses
+  `estimate_sim3d_robust` instead of explicit SVD Umeyama, a pre-built
+  sorted-by-timestamp VIO index for O(log N) neighbor lookup, and a
+  plumbed-through `vio_check_max_disagreement_m` option (default
+  1.0 m).
+- **The fork is provisional.** It's still firing heavily on `4bd303f1`
+  (47 rejections / 71 passes on `a0015cec`). Stays until preventive
+  filters are strong enough to make it inert.
+- **Stereo-depth-consistency check retracted.** ARFoundation
+  monocular path must work; stereo-only signals can't be primary.
+- **Match-spread: ship-pending evaluation.** It's in the default
+  pipeline as of the `a0015cec` run; the asymmetric collateral
+  (sequential/spatial rejected at 12% vs retrieval at 4%) is a
+  red flag. May get reverted from default after broader evaluation.
+- **`vio_check_max_disagreement_m` is now a plumbed
+  `ReconstructionOptions` field** (default 1.0 m). Sweepable.
 - **Pose-prior reasoning has two roles**, evaluated independently:
-  Role A (BA cost terms — `σ_prior` tuning question, optional, was
+  Role A (BA cost terms — σ_prior tuning question, optional, was
   mis-blamed for poisoning BA) and Role B (pair gating — load-bearing
-  for robust input, currently absent, this is what we need to add).
-- **Capture-side: keep recording position priors**, not just gravity —
-  the recent gravity-only-zed-capture change is being reverted because
+  for robust input, currently weakly addressed by the displacement
+  filter, needs more layers).
+- **Capture-side: keep recording position priors**, not just gravity.
   Role B needs the position signal.
-- **The displacement script lives in the repo now**
+- **The displacement script lives in the repo**
   (`scripts/src/scripts/displacement_check.py`), not in `/tmp`.
 - **The sweep evidence and matrix are committed under**
   `.pulsar/notes/sweep-matrix.md`.
@@ -620,95 +751,149 @@ rather than a removable supplement.
   `generate_image_pairs` is where retrieval / spatial / sequential
   sources are emitted. The covisibility filter
   (`retrieval_covisibility_window`, `retrieval_covisibility_min_support`)
-  lives here, plus the new `write_pairs_with_source()` writer. The
-  pending preventive drift-aware retrieval filter slots in here.
+  lives here, plus the drift-aware displacement filter and the
+  `write_pairs_with_source()` writer.
 - `docker/reconstructor/src/reconstructor/run_reconstruction.py` —
-  where the new `pairs_with_source.csv` + `database.db` artifact
-  uploads are wired.
+  where the `pairs_with_source.csv` + `database.db` artifact uploads
+  are wired.
 - `docker/reconstructor/src/reconstructor/colmap_pipeline.py` — the
   Form C reactive VIO-consistency check lives here. Custom-fork of
-  `pycolmap/python/examples/custom_incremental_pipeline.py` (~600
-  lines). Inline VIO check between `register_next_image` and
-  `triangulate_image` / local BA, with skip-list and
-  `ObservationManager.deregister_frame` unwind. **Slated for removal
-  if the preventive filter subsumes it** — see the "Preventive vs
-  reactive" section.
+  `pycolmap/python/examples/custom_incremental_pipeline.py`. Now uses
+  `estimate_sim3d_robust` via `_robust_sim3_fit`, pre-built
+  sorted-by-timestamp VIO index in `IncrementalContext`,
+  `vio_check_max_disagreement_m` plumbed via context from
+  `ReconstructionOptions`. `vio_check` returns bool with logging
+  internalised. **Slated for removal if the preventive filters
+  subsume it** — currently still firing heavily, so it stays.
 - `docker/reconstructor/src/reconstructor/options_builder.py` — where
-  per-source RANSAC thresholds (`retrieval_min_inlier_ratio`,
-  `retrieval_min_num_inliers`) are or were dispatched. The split was
-  reverted to uniform thresholds during the sweep; restoring it is a
-  code change, not just config. Also exposes
-  `vio_check_max_disagreement_m` consumed by `colmap_pipeline.py`.
+  per-source RANSAC thresholds and the new
+  `vio_check_max_disagreement_m()` accessor live. The
+  retrieval-strictness split was reverted to uniform thresholds
+  during the sweep; restoring it is a code change, not just config.
+- `docker/reconstructor/src/reconstructor/options.py` /
+  `ReconstructionOptions` (Pydantic) — now carries
+  `vio_check_max_disagreement_m: float = 1.0` and
+  `pair_min_match_spread: float = 0.08` (the match-spread threshold).
+- The match-spread filter logic lives in `_verify_two_view_geometries`
+  in the reconstructor; threshold is `pair_min_match_spread`. The
+  helper that scores a pair is `_pair_passes_match_spread`.
 - `docker/reconstructor/SPEC.md` — being updated with the new artifact
-  rows; prose commit kept separate from code per repo convention.
+  rows and filter options; prose commit kept separate from code per
+  repo convention.
 - `.pulsar/memories/reconstruction-validation.md` — the
   consecutive-frame displacement check rationale, the list of signals
   that do NOT measure reconstruction quality, and the held-out-frame
   localization harness that remains the unblocking infrastructure
   investment.
-- `.pulsar/memories/bad-capture.md` — the original 12m-drift capture
+- `.pulsar/memories/bad-capture.md` — the original 12 m-drift capture
   that triggered everything. Now annotated with the priors-off
   finding (recon converges fine without priors when aliasing isn't
   triggered).
 
+## Captures referenced
+
+- `4bd303f1-d6c4-4867-8e35-f788c810ce26` — the original bad capture
+  (worst-aliasing small ZED office, 117-run sweep target).
+- `17af01a0-58fa-4fdb-8e5c-9ed736baab18` — the 12 m-drift capture
+  that originally motivated the priors-off investigation. See
+  `bad-capture.md`.
+- `a0015cec-9a7a-44b9-943f-bdfa5f5e0e8d` — re-run of `4bd303f1`
+  with defaults *after* both preventive filters and the hardened
+  Form C shipped (displacement budget + match-spread @0.08 +
+  vio_check @1.0 m). Showed displacement filter inert, match-spread
+  catches only 4.2% of retrieval pairs while killing 12% of
+  sequential/spatial, vio_check still firing 47/71. The "honest
+  reassessment" run.
+
 ## Pending threads
 
-### Drift-aware retrieval candidate rejection (preventive filter)
+### Decide: keep or revert match-spread in default pipeline
 
-Implement a pre-matching pair-generation filter that, for each
-candidate pair `(a, b)`, computes the relative VIO displacement
-`|vio_pos(b) − vio_pos(a)|` and rejects if it exceeds a threshold
-consistent with maximum-plausible-loop-distance. Apply uniformly
-across all pair sources (real work happens on retrieval;
-stereo/sequential are no-ops or near-no-ops). Either a generous
-global threshold (e.g., R = 15m on a capture with up to 12m drift)
-or the principled drift-tolerant relative formulation (preferred).
-This is the load-bearing architectural change still outstanding.
-Lives in `docker/reconstructor/src/reconstructor/pairs.py`.
+The match-spread filter as shipped has the wrong sign asymmetry on
+the bad capture (more aggressive on sequential/spatial than on
+retrieval). Two options:
 
-### Measure whether Form C still fires once preventive is on
+1. Lower threshold to 0.04 — preserves more sequential/spatial but
+   catches even fewer of the distributed retrieval aliases. Probably
+   doesn't fix the shape mismatch.
+2. Revert from default; keep the code but set
+   `pair_min_match_spread = 0.0` as the default (filter disabled
+   unless explicitly opted in).
 
-Once the preventive filter ships, instrument `colmap_pipeline.py` to
-log whether `vio_check` ever rejects a frame on real captures (the
-`_log_vio_check` helper already emits a structured line per call).
-Aggregate across a representative set of captures. If the rejection
-rate is effectively zero, the fork is doing nothing useful and the
-maintenance cost (manual reconciliation on every pycolmap upgrade,
-~600 lines of forked loop body to keep in sync) is paying for
-nothing. Trigger to revisit and probably delete
-`colmap_pipeline.py`, restoring a single `IncrementalPipeline.run()`
-call. If reactive keeps firing, both stay.
+Decision pending broader evaluation across multiple captures (not
+just the worst-case stress test).
 
-### Form A: VIO-consistency reactive metric (still useful even with Form C)
+### Gravity rotation consistency at 2-view stage
 
-The offline diagnostic Form A is *still* worth building. Form C
-rejects bad frames during reconstruction; Form A measures whether the
-output recon is consistent with VIO end-to-end. Useful as a
-per-reconstruction quality metric independent of any single defense
-mechanism. ~80 lines. Inputs: capture `frames.csv` + recon
-`frames.txt` keyed by timestamp. Replaces the deprecated
-`prior_drift_residual_rms_m`. Lower priority than the preventive
-filter now that Form C exists.
+The next-highest-leverage architectural add. For each candidate pair
+`(a, b)`, compare the visual relative rotation (from RANSAC essential
+matrix) against the relative gravity rotation
+(`R_relative @ gravity_a ≈ gravity_b`). Reject if disagreement > a
+few degrees. Operates outside the COLMAP fork at the verification
+stage, same as match-spread. Gravity vectors already live in
+`frames.csv`. Plumb threshold as another `ReconstructionOptions`
+field.
 
-### Form B (two-pass)
+### Cheap parameter tuning: loosen `vio_check_max_disagreement_m`
 
-Not pursued. Form C subsumed it. Documented above for completeness.
+Today's 1.0 m default is killing loop closures wholesale on
+`a0015cec` (47 rejects, 71 passes). Try 3.0 m and 5.0 m. Either:
+- Catches the obviously-bad teleports (10 – 20 m) without trampling
+  loop closures, OR
+- The reactive filter is genuinely too coarse on this capture and
+  needs companion signals
+Cheap experiment; do before any more architectural builds.
 
-### Re-run the sweep with spatial gating on
+### Refuse structure-less PnP / 3D-observation count gate (form b)
 
-The original sweep held `spatial_neighbors=0` throughout, which we
-now see was the wrong axis. The correct follow-up sweep varies the
-spatial-gating bound (off / generous-global / drift-tolerant-relative
-with varying R) and observes whether A and B both vanish, only B
-vanishes, or neither vanishes. This is the experiment that
-discriminates the "architectural fix solves both" hypothesis from
-the "B is architectural, A still needs its own treatment" fallback.
-Also the experiment whose null result on B would trigger removing
-the `colmap_pipeline.py` fork.
+Defense-in-depth. Only build if data shows vio_check leaves a
+measurable gap. Concretely: instrument vio_check to log "would
+refuse-structure-less have caught this too?" for several real
+captures. If the gap is single-digit, don't build. If it's
+double-digit, build form (b) — post-registration count of
+observations against existing Point3Ds, deregister below threshold
+(e.g. 200). Has cluster-aliasing blind spot (multiple aliased frames
+support each other and build enough mutual structure to pass).
 
-### Build the held-out-frame localization harness
+### Capture-quality gate (ship loudly-broken-or-nothing)
+
+Mature monocular-SfM-in-cubicles realistically requires a "this
+capture is unrecoverable" detector that refuses to ship a broken
+map. Form A from the earlier memory (offline VIO-consistency metric
+on the recon output) is the data primitive. Combine with: registered
+fraction, average track length, BA residual distribution, vio_check
+firing rate. Threshold tuned against a known-clean reconstruction's
+99th percentile. ~80 lines. Needs ARFoundation-side capture-time
+hooks to actually tell the user "rescan" — but the offline detector
+is buildable now.
+
+### Re-run the sweep with the new defenses on
+
+The original 117-run sweep had `spatial_neighbors=0` and no
+displacement filter, match-spread, or hardened Form C. The correct
+follow-up varies the gravity-rotation threshold and the
+`vio_check_max_disagreement_m` knob, with displacement filter on
+generous-relative mode. Goal: bound the achievable
+max_speed-per-capture under the layered-defense regime. Run on
+multiple captures (not just `4bd303f1`) so the sample includes
+ARFoundation-grade VIO inputs where the displacement filter is
+expected to be load-bearing.
+
+### Held-out-frame localization harness (still unblocked)
 
 Still the unblocking infrastructure investment named in
 `reconstruction-validation.md`. Every parameter argued about in this
-session becomes grade-able only once this exists.
+work becomes grade-able only once this exists.
 `held_out_frame_timestamps` on `ReconstructionOptions` is the hook.
+
+### Measure whether Form C still fires once preventive layer matures
+
+Same as before: instrument the `vio_check` log line, aggregate over
+a representative capture set, look at rejection rates after the
+preventive layer is improved beyond the current displacement +
+match-spread combination (i.e., after gravity rotation and possibly
+refuse-structure-less-PnP are also in). If the rejection rate goes
+to ~zero, the fork is doing nothing useful and the maintenance cost
+no longer justifies it — that's the trigger to delete
+`colmap_pipeline.py` and restore a single `IncrementalPipeline.run()`
+call. If reactive keeps firing, both stay.
