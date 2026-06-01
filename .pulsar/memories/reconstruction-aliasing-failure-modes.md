@@ -9,17 +9,21 @@ updated: 2026-05-31
 Document what we now know about how small ZED office captures degenerate
 into BA teleports, after a 117-run parameter sweep, direct visual
 inspection of the offending frames, an architectural reframing of the
-problem, the shipping of two preventive filters (drift-aware
-displacement and match-spread), and a follow-up reconstruction on the
-bad capture that showed *both* preventive bets are inert or wrong-shape
-in isolation. The headline has sharpened again: aliasing in cubicle-style
-environments is solved by **layered weak signals**, not any single silver
-bullet — and a meaningful chunk of the "obvious" individual signals
-either fail in the data regime we care about (sub-meter VIO drift makes
-displacement filter inert on tiny captures with high drift) or attack
-the wrong shape of aliasing (match-spread assumes concentration, but
-real office aliasing is *distributed similarity* across many repeated
-features).
+problem, the shipping of three filters (drift-aware displacement,
+match-spread, and a pose-graph consistency check at the model boundary),
+and a follow-up reconstruction on the bad capture that produced the
+first qualitative architectural win and *also* surfaced the next hard
+boundary: early-seed contamination. The headline has sharpened again:
+aliasing in cubicle-style environments is solved by **layered weak
+signals**, not any single silver bullet — and a meaningful chunk of the
+"obvious" individual signals either fail in the data regime we care
+about (sub-meter VIO drift makes displacement filter inert on tiny
+captures with high drift), attack the wrong shape of aliasing
+(match-spread assumes concentration, but real office aliasing is
+*distributed similarity* across many repeated features), or arrive too
+late in the reconstruction lifecycle to defend the *seed* (pose-graph
+consistency requires a model to police, so the first ~15 frames are
+structurally undefended).
 
 This memory exists because the natural next move after seeing a teleport
 is to reach for one more filter or one tighter threshold. We tried those
@@ -365,40 +369,53 @@ returns `dict | None` at runtime. The mismatch is concentrated in a
 bug. This is the rare "no other way" case CLAUDE.md describes —
 calling code stays honest.
 
-## Preventive vs reactive — do we need both?
+## Three filter timings: preventive, mid-pipeline, reactive
 
-Not strictly redundant — they catch different failures — but if forced
-to pick one, **reactive (Form C) is the correctness mechanism;
-preventive is the efficiency mechanism.**
+Filters now sit at three distinct points in the per-frame lifecycle.
+Each catches a different failure shape; together they are not redundant:
 
-- **Preventive catches:** bad pairs that would otherwise consume
-  matcher/verifier compute, *and* the "ghost frame" failure mode where
-  bad pairs poison registration so completely the frame never lands in
-  the map at all (reactive has nothing to flag for an absent frame).
-- **Reactive catches:** pairs that are individually spatially-plausible
-  but globally inconsistent — coincidental matches between frames that
-  are near each other in VIO but don't actually share scene content,
-  or pairs that pass spatial sanity but fool the 2-view verifier.
+- **Preventive (candidate-pair stage).** Drift-aware displacement
+  filter and match-spread filter run before pycolmap touches the pair
+  at all. Cheapest. Catches bad pairs before matcher/verifier compute
+  is spent, *and* prevents the "ghost frame" failure mode where bad
+  pairs poison registration so completely the frame never lands in
+  the map (later filters have nothing to flag for an absent frame).
+- **Mid-pipeline (model-boundary stage).** The new pose-graph
+  consistency check runs after `triangulate_image` but before
+  `iterative_local_refinement`. Uses the partial model as a *local
+  internal* oracle — pair-implied vs model-estimated relative pose.
+  Catches pairs that pass pre-admission filters and the 2-view
+  verifier but disagree with the rest of the pose graph. Cannot
+  defend the seed phase (no graph to police until ~15 frames are
+  registered).
+- **Reactive (post-registration stage).** Form C / vio_check runs
+  after `register_next_image`. Uses *external* VIO as the oracle —
+  predict the just-registered frame's recon position from a local
+  Sim3 fit to neighbors, reject if the actual placement disagrees by
+  > threshold. Catches frames that survive both preventive and
+  mid-pipeline checks because the contamination is internally
+  self-consistent (two aliased pairs mutually supporting each other),
+  which the model-as-oracle is structurally blind to. Coarser than
+  pose-graph in the loop-closure regime (VIO drift dominates), so
+  vio_check's threshold must be loose enough not to kill loop
+  closures.
 
-For optimal results, both. Mental model: preventive is a smart input
-filter ("don't even ask the matcher about implausible pairs");
-reactive is an output verifier ("validate the matcher's verdict against
-VIO ground truth"). Same reason you want both type checking and
-runtime tests.
+Mental model: preventive is a smart input filter ("don't even ask the
+matcher about implausible pairs"); mid-pipeline is an internal
+consistency check ("the partial model already implicitly rejects
+this — surface it before BA absorbs it"); reactive is an external
+ground-truth check ("the model can't catch what it's been fooled into
+believing — VIO can, because it's independent"). Same reason mature
+systems run all three in a defense-in-depth stack.
 
 **The custom-fork of the COLMAP incremental pipeline loop in
-`colmap_pipeline.py` should probably be ripped out later if the
-preventive layer ends up addressing the whole problem on its own.**
-Forking the upstream pipeline is real maintenance debt — every pycolmap
-upgrade is a manual reconciliation. We are deliberately leaving both
-reactive (Form C, the fork) and preventive (drift-aware displacement +
-match-spread, both shipped this session) in place initially so we can
-measure whether reactive ever fires in real captures. **The latest
-recon (`a0015cec` on capture `4bd303f1` with all three on) shows
-reactive *is* still firing heavily** (47 rejections / 71 passes on this
-specific capture) — so the fork stays for now. The trigger to revisit
-removal is "reactive stops firing across a representative capture set
-once the preventive layer is improved beyond what we have today."
+`colmap_pipeline.py` is doing more work than it was a session ago.**
+With the pose-graph check now also hosted in the fork, fork-removal
+is further off. Forking the upstream pipeline is still real
+maintenance debt — every pycolmap upgrade is a manual reconciliation
+— but the trigger to revisit removal ("reactive *and* mid-pipeline
+stop firing across a representative capture set") is materially
+harder to hit than it was when only vio_check lived in the fork.
 
 ## What we built this session: two preventive filters, and what they taught us
 
@@ -486,8 +503,8 @@ threshold.
 
 ### Honest reassessment after both bets shipped
 
-The two architectural bets we shipped (displacement + match-spread) are
-both inert or wrong-shape on the bad capture:
+The two preventive architectural bets shipped (displacement + match-spread)
+are both inert or wrong-shape on the bad capture:
 
 - *Displacement* signal exhausted (small-capture geometric ceiling)
 - *Concentration* signal wrong-shape (distributed-similarity aliasing
@@ -502,6 +519,212 @@ Match-spread, as currently shaped, may not pay off anywhere — it's
 plausibly net negative because of the sequential/spatial collateral.
 *Decision pending* on whether match-spread stays in the default
 pipeline.
+
+### 3. Pose-graph consistency check at the model boundary (the (a)-shaped fix)
+
+After the two preventive bets came up inert, the user pushed back from
+first principles: "during the actual incremental mapping step, when we
+register frames and then bundle adjust, it seems like when we get aliased
+pairs we should somehow be able to detect it, even without reference to
+pose priors, simply because the bundle adjuster suddenly finds itself
+having to bend over backwards to accommodate a pair that is
+fundamentally inconsistent with the rest of the pose graph." This is
+correct, and it identifies a different oracle entirely: **the
+already-built model itself.**
+
+Three implementation strategies were considered:
+
+- **(a)** Pre-admission check at the candidate-pair boundary: compare
+  the pair's two-view-geometry-implied relative pose against the
+  model's current estimated relative pose for the same image endpoints.
+- **(b)** Snapshot the model, admit the pair, run partial BA, rollback
+  if disagreement explodes. Pycolmap doesn't support snapshot/rollback;
+  rebuilding it would re-implement a chunk of the mapper for a noisier
+  signal than (a) gives for free.
+- **(c)** Post-BA disagreement detection. Observer-effect problem: once
+  BA has absorbed the bad pair's evidence, the "model-estimated
+  relative pose" is no longer independent of the candidate — the
+  signal you want to measure has been partially canceled by the very
+  contamination you're trying to detect. Degrades exactly in
+  proportion to badness.
+
+**(a) is architecturally correct.** Catches at the boundary closest to
+introduction. Symmetric across pair sources (one code path for
+sequential / spatial / retrieval / intra-frame-stereo). Matches what
+mature systems do (ORB-SLAM3, Kimera, HLOC all score candidate loop
+closures against the existing pose graph before merging). Composes with
+our existing python pipeline fork.
+
+**Pure-python implementable, no pycolmap C++ fork.** The required
+primitives are all exposed on the python surface:
+
+- `TwoViewGeometry.cam2_from_cam1` — pair-implied relative pose
+  (essential-matrix decomposition during two-view verification, stored
+  in the DB).
+- `Reconstruction.images[id].cam_from_world()` — model-estimated
+  absolute pose (note: method call, not property).
+- `DatabaseCache.correspondence_graph.image_pairs` /
+  `extract_two_view_geometry` — enumerate the partners a just-registered
+  frame shares verified geometry with.
+- `ObservationManager.delete_observation(point3D_id, image_id)` /
+  `delete_point3D` — surgical excision of the 2D observations a
+  poisoned pair contributed.
+
+The one structural caveat: `triangulate_image()` is per-image, not
+per-pair — it processes all of frame N's matches with already-registered
+partners in one C++ call. We can't pre-filter by partner. The workaround
+gets (a)-equivalent semantics: register, classify partners as
+poisoned/clean, triangulate, then excise the poisoned partners'
+observations from the newly-created points before BA runs. Functionally
+identical to refusing admission because BA never sees the contamination
+— wasted work is a couple of triangulation milliseconds per poisoned
+pair.
+
+The "deferred-pair queue" the (a) shape needs becomes implicit in this
+workaround. A pair (A, B) where only A is registered doesn't appear in
+`compute_poisoned_partners(A)` because B isn't a partner yet; when B
+registers later, `compute_poisoned_partners(B)` automatically considers A.
+No new bookkeeping.
+
+**The structural limit of (a), confirmed by data:** at the *very
+beginning* of the reconstruction, the model has no structure to check
+against — so the first aliased pair, if it happens to seed the
+reconstruction, slips through. Defended only by the existing front-door
+layer (two-view verification, covisibility filter, drift budget,
+vio_check, gravity-rotation when it ships). (a) becomes load-bearing
+once the graph has more than a handful of frames; it does not replace
+the front-door filters, it complements them.
+
+**Implementation shipped (uncommitted at write time):**
+
+- `_check_and_excise_poisoned_pairs` called inside
+  `_run_incremental_registration_step` after each per-frame
+  `triangulate_image`, before `iterative_local_refinement`. For each
+  already-registered partner sharing a verified two-view geometry with
+  the just-triangulated frame, compares the partner's pair-implied
+  relative pose against the model-estimated relative pose; partners
+  exceeding either rotation or translation-direction threshold get
+  their match-induced observations excised from the new frame via
+  `ObservationManager.delete_observation` before BA sees them.
+- Four new `ReconstructionOptions` plumbed through a new
+  `PairPoseGraphOptions` accessor on `OptionsBuilder`:
+  rotation-disagreement-deg, translation-direction-disagreement-deg,
+  baseline floor (skip pair if translation magnitude is below this; the
+  translation-direction check is meaningless at near-zero baseline),
+  min-registered-frames gate (skip the check until the model has at
+  least N frames; default 15). The displacement-filter accessors were
+  collapsed into a `PairDisplacementOptions` dataclass at the same time
+  to stay under the PLR0904 public-method limit.
+- Rejection counts tracked per `PairSource` and printed once at run
+  end, matching the existing match-spread / vio_check log shape.
+
+**A/B test result on capture `4bd303f1` (run `174b20f3-5af2-4203-b57f-38aff5f423f8`):**
+
+Test condition: pose-graph check on at defaults (15° rotation,
+30° translation-direction, 0.3m baseline floor, 15-frame gate), vio_check
+neutralized via `vio_check_max_disagreement_m=1e9` (the code path stays
+live but every disagreement passes). All other filters at defaults.
+
+| metric | prior `a0015cec` (vio_check@1m on) | this run (pose-graph on, vio_check off) |
+|---|---:|---:|
+| keyframe pairs | 51 | 109 |
+| max speed | 0.94 m/s | 15.56 m/s |
+| p99 speed | — | 13.43 m/s |
+| pairs > 2.5 m/s | 0 | 4 |
+| long-range tracks | **0** | **5031** |
+| p95 track extent | — | 99 keyframes |
+
+Reconstruction itself succeeded — 220/222 images mapped, 36,173 3D
+points, avg track length 4.4, reprojection median 0.72px / p90 1.49px.
+
+Pose-graph rejections by source:
+
+| source | count |
+|---|---:|
+| sequential | 358 |
+| spatial | 224 |
+| retrieval | 4 |
+| intra_frame_stereo | 4 |
+
+By reason: 92 rotation-only, 156 translation-only, 342 both. Total 594
+rejections.
+
+**Three findings, separated:**
+
+**(1) Loop closures preserved — the architectural win.** Previously,
+vio_check@1m killed every loop closure on this capture — 0 long-range
+tracks across 117 sweep runs. With the pose-graph check as the
+consistency oracle instead, 5031 long-range tracks survived, p95 reaching
+99 keyframes. The pose graph is structurally tighter than it has ever
+been on this capture. This is real and exactly the failure mode the new
+check should handle: a model-local consistency oracle is less coarse
+than a VIO-drift-bounded absolute-position oracle.
+
+**(2) Teleports still leak — the architectural limit.** Four pairs
+exceed 2.5 m/s, two of them severe (7.78m and 7.01m in 0.5s windows).
+The timestamps (~`1780106840…` and `…858515 → …859015`) match the
+*exact* aliased-pair regions identified earlier. The pose-graph check
+did not catch them. Two probable mechanisms:
+
+- **Early contamination, below the gate.** Bad pairs admitted before
+  frame ~15 contaminated the seed model. The check ignores partners by
+  design when `num_reg_images < 15` — that's exactly where the
+  contamination lives. Once the seed is bad, the "model as oracle"
+  becomes self-consistent in its wrongness and the check is structurally
+  blind. Confirmed by data.
+- **Co-misregistered pairs.** If both frames of an aliased pair are
+  placed wrongly *together* (same alias drives both), their relative
+  pose still agrees with the pair's implied geometry — both wrong in
+  the same way. The check can't fire.
+
+**(3) Sequential dominance is a red flag.** 358 sequential rejections vs
+4 retrieval is the wrong sign relative to design intent. Sequential pairs
+are temporally adjacent — they should almost never violate 15°/30°
+unless one of the two frames is itself wrong. The model is rejecting
+its *own* legitimate sequential geometry because earlier contamination
+deformed nearby poses. This is the check picking up the splatter from
+contamination that landed before it could intervene, not the check
+working as designed. The retrieval source — the one we built it for —
+barely fires because by the time those retrieval pairs are checked, the
+model has already absorbed enough alias that the retrieval pair "agrees"
+with it.
+
+**(4) Intra-frame-stereo rejecting at all (4) is suspect.** Stereo pairs
+have known calibrated geometry; the check should never fire. Either
+thresholds are slightly tight or the stereo two-view geometry diverges
+from rig calibration in a way worth investigating. Small absolute
+number, but a smell.
+
+### Two oracles, two blind spots (why vio_check is not redundant)
+
+The pose-graph check and `vio_check` are **complementary, not
+redundant** — they fail in different ways:
+
+- **vio_check** is a *frame-level absolute-pose* check using *VIO as an
+  external prior*. Rejects the whole frame when its just-assigned recon
+  position disagrees with VIO-predicted recon position by > threshold.
+  Oracle is external to the model.
+- **pose-graph check** is a *pair-level relative-pose* check using the
+  *model itself as a local prior*. Excises individual partner
+  contributions when partner's pair-implied relative pose disagrees with
+  the model's estimated relative pose. Oracle is internal.
+
+VIO drifts but doesn't get contaminated by alias propagation, so
+vio_check catches the case where the model is internally self-consistent
+in its wrongness (two aliased pairs that mutually support each other —
+the pose-graph check is structurally blind to this). The pose-graph
+check catches the case where VIO is too drifty to be a reliable absolute
+reference (the cubicle capture's exact problem — vio_check@1m killed
+loop closures because VIO drift outran the budget). Different blind
+spots.
+
+**Don't drop vio_check.** The A/B test above intentionally disabled it
+to isolate the pose-graph signal; that's a clean-test choice, not a
+final architectural decision. The natural follow-up is the
+both-checks-on configuration: pose-graph at current defaults +
+vio_check at a *loose* threshold (3m or 5m) to gate the seed phase
+while letting pose-graph carry the long tail. That tests the
+"complementary, not redundant" hypothesis directly.
 
 ## Monocular constraint: ARFoundation must also work
 
@@ -521,59 +744,52 @@ filters.
 
 ## Remaining monocular-compatible options (the honest short list)
 
-After two preventive filters delivered inert results, what's actually
-left in the toolbox that's monocular-compatible and addresses
-*distributed* aliasing?
+After three filters delivered partial results — preventive displacement
+inert, preventive match-spread wrong-shape, pose-graph consistency
+preserves loop closures but leaks seed-phase teleports — what's
+actually left in the toolbox that's monocular-compatible and addresses
+*distributed* aliasing in the seed phase?
 
-1. **Gravity rotation consistency at 2-view stage.** We already record
+1. **Both-on configuration (pose-graph + vio_check at loose threshold).**
+   The most natural next experiment. Re-enable vio_check at 3 – 5 m
+   (loose enough to preserve loop closures, tight enough to gate the
+   seed phase against the worst teleports), with the pose-graph check
+   on at current defaults. Directly tests the "complementary, not
+   redundant" hypothesis. Cheapest move. **Do this first.**
+
+2. **Gravity rotation consistency at 2-view stage.** We already record
    gravity. For pair `(a, b)`, the visual relative rotation should
    match the relative gravity rotation between the frames (within
    ~5°). Catches aliased pairs where the device is oriented materially
    differently between visits. *Does not* catch aliased pairs where
    the device happens to be at the same orientation in both rooms
-   (common in cubicles — facing forward both times). Probably partial
-   help. Cheap to implement (gravity vectors already in
-   `frames.csv`).
+   (common in cubicles — facing forward both times). Partial help.
+   Cheap. **Operates at the front door, before the seed forms — so it
+   can defend the phase the pose-graph check cannot.**
 
-2. **vio_check with looser threshold.** Today's 1.0 m is killing loop
-   closures wholesale (47 rejections / 71 passes on this capture). A
-   3 – 5 m threshold might preserve some loop closures while still
-   killing the worst aliases (5 – 20 m disagreements are still clearly
-   bad). This is parameter tuning, not new architecture. Cheapest move
-   on this list.
+3. **Tighter pose-graph thresholds during the seed phase.** Special-case
+   the first ~15 frames with much tighter rotation / translation-direction
+   thresholds against whatever model fragments exist. Trade-off: with
+   so few partners, the model itself is noisy, so the check is noisy.
+   Probably partial. Worth trying if (1) and (2) leave seed-phase
+   teleports intact.
 
-3. **Refuse structure-less PnP / minimum 3D-observation gate.**
-   Defense-in-depth. Attacks the ghost-frame mechanism directly
-   without depending on what the matches look like. Two
-   implementation forms:
-   - (a) Track pair source through to registration; refuse
-     structure-less when *only* retrieval-linked matches support the
-     registration.
-   - (b) Post-registration support-count gate: after
-     `register_next_image` succeeds, count inlier 2D-3D
-     correspondences with existing Point3Ds, deregister if below a
-     threshold (e.g. 200). Memory's diagnosis says ghost frames have
-     <79 observations vs ~720 median, so a 200-observation threshold
-     would cleanly separate them.
-   Form (b) is much cleaner — single number, same shape as vio_check,
-   no need to thread pair-source metadata through COLMAP internals.
-   **Significant overlap with vio_check:** vio_check already rejects
-   most ghost frames via "your placement disagrees with VIO
-   neighbors." This filter would catch the narrow gap where the
-   ghost frame happens to be near its VIO neighbors (rare on a drifty
-   capture) or where vio_check skips due to too few registered VIO
-   neighbors. Recommended *only if* vio_check leaves a measurable gap
-   empirically. Don't build speculatively. Also: grows the fork we
-   want to shrink.
+4. **Refuse structure-less PnP / minimum 3D-observation gate.**
+   Defense-in-depth. Originally proposed as a complement to vio_check;
+   now mostly *subsumed* by the pose-graph check (which excises the
+   match contributions that would otherwise enable structure-less
+   fallback). Build only if data shows a measurable gap that neither
+   the pose-graph check nor a re-enabled vio_check covers. Lower
+   priority than it was before option 3 of this list existed.
 
-4. **Capture-time descriptor deduplication.** Cluster global
+5. **Capture-time descriptor deduplication.** Cluster global
    descriptors across the capture, refuse retrieval pairs to
    over-represented clusters. Doesn't care if matches concentrate or
    spread — works on the descriptor itself. Has real risk of killing
    legitimate loops to popular areas (entrances, intersections).
    Industry move (Niantic does a variant).
 
-5. **Reframe to capture-time UX intervention.** Mature monocular SfM
+6. **Reframe to capture-time UX intervention.** Mature monocular SfM
    in cubicles may genuinely require a capture-time intervention
    (dedicated dense scan in repeating-decor areas, multi-pass) rather
    than offline post-hoc filtering. ARKit/ARCore solve this by being
@@ -582,11 +798,12 @@ left in the toolbox that's monocular-compatible and addresses
    that fails loudly when no filter rescues a capture, so the system
    refuses to ship a broken map.
 
-**Ranking** (subject to revision): the cheapest immediate move is (2)
-threshold-loosen vio_check; the highest-leverage architectural move
-is (1) gravity rotation. (3) is defense-in-depth, build only if data
-shows the gap. (4) and (5) are bigger swings, both worth specifying
-formally if (1) + (2) don't move the needle.
+**Ranking** (post-pose-graph-shipment): cheapest immediate move is (1)
+both-checks-on. Highest-leverage architectural front-door add that
+defends the seed phase is (2) gravity rotation. (3) is a tuning
+experiment cheap enough to fold into (1)'s follow-ups. (4) is now
+demoted — substantially overlapped by what we shipped. (5) and (6)
+are still bigger swings.
 
 **No stereo-depth check.** Initially proposed as the highest-value
 add, retracted once the monocular ARFoundation constraint surfaced.
@@ -699,19 +916,37 @@ vision rather than a removable supplement.
   budget (preventive, shipped, inert on bad capture but useful for
   ARFoundation-grade VIO), match-spread (preventive, shipped,
   wrong-shape on cubicles — decision pending on whether to keep in
-  default), reactive Form C (shipped, hardened with
+  default), reactive Form C / vio_check (shipped, hardened with
   `estimate_sim3d_robust` + sorted index + options-plumbed
-  threshold). Plus future additions: gravity rotation consistency,
-  vio_check threshold loosening, possibly refuse-structure-less-PnP
-  and capture-time descriptor deduplication.
+  threshold), **pose-graph consistency check at the model boundary**
+  (shipped, uncommitted at write time, preserves loop closures but
+  cannot defend the seed phase). Plus future additions: gravity
+  rotation consistency, both-checks-on configuration, possibly
+  capture-time descriptor deduplication.
+- **The pose-graph check is the (a)-shaped architectural fix.**
+  Pre-admission relative-pose consistency between pair-implied geometry
+  and model-estimated geometry. Implemented purely on the python side
+  via excision-of-observations (BA never sees the contamination),
+  no pycolmap C++ fork. Lives in the same python pipeline fork as
+  vio_check. Demonstrated the first qualitative win on `4bd303f1`:
+  5031 long-range tracks (up from 0), p95 extent 99 keyframes.
+- **Pose-graph check has a structural seed-phase blind spot.** The
+  first ~15 frames have no graph to police against (`min_registered_frames`
+  gate, default 15). Aliased pairs that contaminate the seed survive,
+  and downstream sequential-pair rejections become the splatter from
+  that early contamination. Confirmed empirically on the A/B run.
+- **Vio_check and pose-graph check are complementary, not redundant.**
+  Different oracles: external VIO vs internal model. Different blind
+  spots: VIO drifts but doesn't get contamination-propagated; the
+  model gets contamination-propagated but is locally less coarse than
+  VIO. Don't drop either. The both-on configuration is the next test.
 - **Form C lives in `colmap_pipeline.py` as a fork.** It now uses
   `estimate_sim3d_robust` instead of explicit SVD Umeyama, a pre-built
   sorted-by-timestamp VIO index for O(log N) neighbor lookup, and a
   plumbed-through `vio_check_max_disagreement_m` option (default
-  1.0 m).
-- **The fork is provisional.** It's still firing heavily on `4bd303f1`
-  (47 rejections / 71 passes on `a0015cec`). Stays until preventive
-  filters are strong enough to make it inert.
+  1.0 m). With the pose-graph check now also in the same fork, the
+  fork is doing *more* work, not less — the "rip out the fork" trigger
+  has moved further away.
 - **Stereo-depth-consistency check retracted.** ARFoundation
   monocular path must work; stereo-only signals can't be primary.
 - **Match-spread: ship-pending evaluation.** It's in the default
@@ -720,6 +955,14 @@ vision rather than a removable supplement.
   red flag. May get reverted from default after broader evaluation.
 - **`vio_check_max_disagreement_m` is now a plumbed
   `ReconstructionOptions` field** (default 1.0 m). Sweepable.
+  Setting it to `1e9` effectively neutralizes the check (useful for
+  A/B isolation of the pose-graph check, as in run `174b20f3`).
+- **PairPoseGraphOptions and PairDisplacementOptions accessors on
+  OptionsBuilder.** The displacement-filter accessors were collapsed
+  into a `PairDisplacementOptions` dataclass to stay under PLR0904
+  when the four new pose-graph accessors landed. Pattern of grouping
+  related accessors into dataclasses is now established for future
+  filter additions.
 - **Pose-prior reasoning has two roles**, evaluated independently:
   Role A (BA cost terms — σ_prior tuning question, optional, was
   mis-blamed for poisoning BA) and Role B (pair gating — load-bearing
@@ -757,23 +1000,38 @@ vision rather than a removable supplement.
   where the `pairs_with_source.csv` + `database.db` artifact uploads
   are wired.
 - `docker/reconstructor/src/reconstructor/colmap_pipeline.py` — the
-  Form C reactive VIO-consistency check lives here. Custom-fork of
-  `pycolmap/python/examples/custom_incremental_pipeline.py`. Now uses
-  `estimate_sim3d_robust` via `_robust_sim3_fit`, pre-built
+  Form C reactive VIO-consistency check *and* the new pose-graph
+  consistency check at the model boundary live here. Custom-fork of
+  `pycolmap/python/examples/custom_incremental_pipeline.py`. Form C
+  uses `estimate_sim3d_robust` via `_robust_sim3_fit`, pre-built
   sorted-by-timestamp VIO index in `IncrementalContext`,
   `vio_check_max_disagreement_m` plumbed via context from
-  `ReconstructionOptions`. `vio_check` returns bool with logging
-  internalised. **Slated for removal if the preventive filters
-  subsume it** — currently still firing heavily, so it stays.
+  `ReconstructionOptions`. The pose-graph check is
+  `_check_and_excise_poisoned_pairs`, called inside
+  `_run_incremental_registration_step` after `triangulate_image` and
+  before `iterative_local_refinement`. It enumerates partners via the
+  correspondence graph's `image_pairs`, pulls each pair's
+  `TwoViewGeometry.cam2_from_cam1`, compares to the model's
+  `Reconstruction.images[id].cam_from_world()` (method, not property),
+  and excises poisoned partners' contributions via
+  `ObservationManager.delete_observation`. `_log_pose_graph_check`
+  prints per-source rejection counts at run end, mirroring the
+  existing `_log_vio_check` / match-spread shapes. **Fork removal is
+  further off now** — the fork hosts more load-bearing logic than
+  before.
 - `docker/reconstructor/src/reconstructor/options_builder.py` — where
-  per-source RANSAC thresholds and the new
-  `vio_check_max_disagreement_m()` accessor live. The
-  retrieval-strictness split was reverted to uniform thresholds
-  during the sweep; restoring it is a code change, not just config.
+  per-source RANSAC thresholds, the `vio_check_max_disagreement_m()`
+  accessor, the new `PairPoseGraphOptions` accessor, and the
+  refactored `PairDisplacementOptions` accessor (collapsed from four
+  scalar accessors to one dataclass to stay under PLR0904) live.
 - `docker/reconstructor/src/reconstructor/options.py` /
   `ReconstructionOptions` (Pydantic) — now carries
-  `vio_check_max_disagreement_m: float = 1.0` and
-  `pair_min_match_spread: float = 0.08` (the match-spread threshold).
+  `vio_check_max_disagreement_m: float = 1.0`,
+  `pair_min_match_spread: float = 0.08`, and four pose-graph fields:
+  rotation-disagreement-deg, translation-direction-disagreement-deg,
+  baseline-floor-m, min-registered-frames-gate (default 15). The
+  pose-graph defaults are 15° rotation, 30° translation-direction,
+  0.3 m baseline floor.
 - The match-spread filter logic lives in `_verify_two_view_geometries`
   in the reconstructor; threshold is `pair_min_match_spread`. The
   helper that scores a pair is `_pair_passes_match_spread`.
@@ -804,8 +1062,45 @@ vision rather than a removable supplement.
   catches only 4.2% of retrieval pairs while killing 12% of
   sequential/spatial, vio_check still firing 47/71. The "honest
   reassessment" run.
+- `174b20f3-5af2-4203-b57f-38aff5f423f8` — A/B test of the new
+  pose-graph check on `4bd303f1` with vio_check neutralized
+  (`vio_check_max_disagreement_m=1e9`). Pose-graph defaults: 15° rot,
+  30° trans-direction, 0.3 m baseline, 15-frame gate. **First run on
+  this capture ever to produce loop closures** (5031 long-range
+  tracks, p95 extent 99 keyframes) but four seed-phase teleports
+  still leaked (max 15.56 m/s). Sequential-rejection dominance (358
+  vs 4 retrieval) confirmed contamination-splatter mechanism. The
+  "architectural win + seed-phase limit" run.
 
 ## Pending threads
+
+### Commit the pose-graph check
+
+The pose-graph check (`_check_and_excise_poisoned_pairs` +
+`PairPoseGraphOptions` + `PairDisplacementOptions` refactor + four new
+`ReconstructionOptions` fields + regenerated clients) is implemented
+and tested (pytest 7 passed, ruff/basedpyright clean on touched files)
+but **not yet committed** at write time. Source commit must be split
+from the `Run generate-clients` codegen commit per repo convention.
+Pre-existing preflight blockers on the branch
+(`scripts/src/scripts/sweep_postprocess.py:101` S608,
+`scripts/src/scripts/tune_reconstruction.py` basedpyright errors
+referencing removed `ReconstructionMetrics` attributes) are unrelated
+and should not be folded into this commit.
+
+### Run the both-checks-on A/B (the natural follow-up)
+
+Re-enable vio_check at a loose threshold (3 m or 5 m), keep the
+pose-graph check at defaults (15° rot, 30° trans-direction, 0.3 m
+baseline, 15-frame gate). Hypothesis: vio_check gates the seed phase
+that pose-graph is structurally blind to, pose-graph carries the long
+tail without vio_check killing loop closures. If teleports get caught
+during the seed and loop closures survive into the late phase, the
+"complementary, not redundant" framing is empirically validated and
+we have a defensible default. If teleports survive or loop closures
+die, decide whether to (a) tighten the seed-phase pose-graph
+thresholds, (b) add gravity-rotation consistency at the front door,
+or (c) reframe to a capture-quality gate.
 
 ### Decide: keep or revert match-spread in default pipeline
 
@@ -836,24 +1131,31 @@ field.
 
 ### Cheap parameter tuning: loosen `vio_check_max_disagreement_m`
 
-Today's 1.0 m default is killing loop closures wholesale on
-`a0015cec` (47 rejects, 71 passes). Try 3.0 m and 5.0 m. Either:
-- Catches the obviously-bad teleports (10 – 20 m) without trampling
-  loop closures, OR
-- The reactive filter is genuinely too coarse on this capture and
-  needs companion signals
-Cheap experiment; do before any more architectural builds.
+Folded into the both-checks-on A/B above. 1.0 m default is too tight;
+try 3.0 m and 5.0 m as part of the pose-graph + vio_check joint
+configuration. The cleaner version of this experiment is now the
+both-on test, not vio_check alone.
+
+### Investigate intra-frame-stereo rejections
+
+Run `174b20f3` showed 4 intra_frame_stereo rejections on a
+calibrated-rig capture. Stereo two-view geometry should match rig
+calibration exactly — the check should never fire on stereo. Two
+hypotheses: thresholds are slightly tighter than the noise floor of
+the essential-matrix decomposition on calibrated stereo, or the
+two-view geometry from RANSAC genuinely diverges from rig calibration
+in ways worth understanding. Cheap to instrument (log per-pair
+disagreement magnitudes for the four offending stereo pairs from
+`174b20f3`).
 
 ### Refuse structure-less PnP / 3D-observation count gate (form b)
 
-Defense-in-depth. Only build if data shows vio_check leaves a
-measurable gap. Concretely: instrument vio_check to log "would
-refuse-structure-less have caught this too?" for several real
-captures. If the gap is single-digit, don't build. If it's
-double-digit, build form (b) — post-registration count of
-observations against existing Point3Ds, deregister below threshold
-(e.g. 200). Has cluster-aliasing blind spot (multiple aliased frames
-support each other and build enough mutual structure to pass).
+**Demoted.** Originally proposed as defense-in-depth on top of
+vio_check. The pose-graph check substantially subsumes it (excising
+the match contributions that would have enabled structure-less
+fallback). Only revisit if data from the both-checks-on test shows a
+specific failure mode neither vio_check nor pose-graph catches that
+this filter would.
 
 ### Capture-quality gate (ship loudly-broken-or-nothing)
 
@@ -886,14 +1188,18 @@ Still the unblocking infrastructure investment named in
 work becomes grade-able only once this exists.
 `held_out_frame_timestamps` on `ReconstructionOptions` is the hook.
 
-### Measure whether Form C still fires once preventive layer matures
+### Measure whether Form C / pose-graph check fire once preventive layer matures
 
-Same as before: instrument the `vio_check` log line, aggregate over
-a representative capture set, look at rejection rates after the
-preventive layer is improved beyond the current displacement +
-match-spread combination (i.e., after gravity rotation and possibly
-refuse-structure-less-PnP are also in). If the rejection rate goes
+Instrument the `_log_vio_check` and `_log_pose_graph_check` summaries,
+aggregate over a representative capture set, look at rejection rates
+after the preventive layer is improved beyond the current displacement
++ match-spread combination (i.e., after gravity rotation is added at
+the front door). If the rejection rates for both reactive checks go
 to ~zero, the fork is doing nothing useful and the maintenance cost
 no longer justifies it — that's the trigger to delete
 `colmap_pipeline.py` and restore a single `IncrementalPipeline.run()`
-call. If reactive keeps firing, both stay.
+call. If either keeps firing, the fork stays. Given the new
+pose-graph check is doing genuinely load-bearing work on the bad
+capture (preserving 5031 long-range tracks where vio_check alone
+killed all of them), the fork-removal trigger is materially further
+off than it was before this session.
