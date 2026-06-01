@@ -36,10 +36,10 @@ namespace PlaceframeApiClient.Model
         /// </summary>
         /// <param name="deterministicSeed">PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic..</param>
         /// <param name="keyframeMinDistanceM">Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction. (default to 0.2D).</param>
-        /// <param name="sequentialWindow">Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone. (default to 20).</param>
+        /// <param name="sequentialWindow">Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone. (default to 10).</param>
         /// <param name="spatialNeighbors">Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame&#39;s true neighbours. (default to 0).</param>
         /// <param name="spatialMaxDistanceM">Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent. (default to 6.0D).</param>
-        /// <param name="retrievalNeighbors">Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval. (default to 20).</param>
+        /// <param name="retrievalNeighbors">Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval. (default to 0).</param>
         /// <param name="retrievalMinDistanceM">Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent. (default to 1.0D).</param>
         /// <param name="pairMaxDisplacementSceneM">Max plausible scene-radius component of the displacement bound used to reject any candidate pair (a,b) whose VIO straight-line displacement exceeds the bound. Combined with pair_max_displacement_drift_rate_m_per_s: a pair is rejected when |vio_pos(b)−vio_pos(a)| &gt; pair_max_displacement_scene_m + pair_max_displacement_drift_rate_m_per_s · |t_b−t_a|. Applied uniformly across all pair sources; stereo and short-temporal pairs trivially satisfy any reasonable bound. No-op when positions are absent. (default to 10.0D).</param>
         /// <param name="pairMaxDisplacementDriftRateMPerS">VIO drift-rate slack added to the displacement bound per second of time gap between the two frames of a candidate pair. Lets long-temporal-gap true loop closures survive accumulated drift while still rejecting short-temporal-gap aliased pairs (e.g. retrieval matches between physically distant frames seconds apart). Calibrate per device class against post-hoc VIO↔recon residuals. (default to 0.1D).</param>
@@ -132,7 +132,7 @@ namespace PlaceframeApiClient.Model
                 _flagSequentialWindow = true;
             }
         }
-        private int _SequentialWindow = 20;
+        private int _SequentialWindow = 10;
         private bool _flagSequentialWindow;
 
         /// <summary>
@@ -207,7 +207,7 @@ namespace PlaceframeApiClient.Model
                 _flagRetrievalNeighbors = true;
             }
         }
-        private int _RetrievalNeighbors = 20;
+        private int _RetrievalNeighbors = 0;
         private bool _flagRetrievalNeighbors;
 
         /// <summary>

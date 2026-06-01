@@ -29,10 +29,10 @@ class ReconstructionOptions(BaseModel):
     """ # noqa: E501
     deterministic_seed: Optional[StrictInt] = Field(default=None, description="PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic.")
     keyframe_min_distance_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.2, description="Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.")
-    sequential_window: Optional[StrictInt] = Field(default=20, description="Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.")
+    sequential_window: Optional[StrictInt] = Field(default=10, description="Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.")
     spatial_neighbors: Optional[StrictInt] = Field(default=0, description="Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame's true neighbours.")
     spatial_max_distance_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=6.0, description="Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent.")
-    retrieval_neighbors: Optional[StrictInt] = Field(default=20, description="Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.")
+    retrieval_neighbors: Optional[StrictInt] = Field(default=0, description="Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.")
     retrieval_min_distance_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=1.0, description="Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent.")
     pair_max_displacement_scene_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=10.0, description="Max plausible scene-radius component of the displacement bound used to reject any candidate pair (a,b) whose VIO straight-line displacement exceeds the bound. Combined with pair_max_displacement_drift_rate_m_per_s: a pair is rejected when |vio_pos(b)−vio_pos(a)| > pair_max_displacement_scene_m + pair_max_displacement_drift_rate_m_per_s · |t_b−t_a|. Applied uniformly across all pair sources; stereo and short-temporal pairs trivially satisfy any reasonable bound. No-op when positions are absent.")
     pair_max_displacement_drift_rate_m_per_s: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.1, description="VIO drift-rate slack added to the displacement bound per second of time gap between the two frames of a candidate pair. Lets long-temporal-gap true loop closures survive accumulated drift while still rejecting short-temporal-gap aliased pairs (e.g. retrieval matches between physically distant frames seconds apart). Calibrate per device class against post-hoc VIO↔recon residuals.")
@@ -130,10 +130,10 @@ class ReconstructionOptions(BaseModel):
         _obj = cls.model_validate({
             "deterministic_seed": obj.get("deterministic_seed"),
             "keyframe_min_distance_m": obj.get("keyframe_min_distance_m") if obj.get("keyframe_min_distance_m") is not None else 0.2,
-            "sequential_window": obj.get("sequential_window") if obj.get("sequential_window") is not None else 20,
+            "sequential_window": obj.get("sequential_window") if obj.get("sequential_window") is not None else 10,
             "spatial_neighbors": obj.get("spatial_neighbors") if obj.get("spatial_neighbors") is not None else 0,
             "spatial_max_distance_m": obj.get("spatial_max_distance_m") if obj.get("spatial_max_distance_m") is not None else 6.0,
-            "retrieval_neighbors": obj.get("retrieval_neighbors") if obj.get("retrieval_neighbors") is not None else 20,
+            "retrieval_neighbors": obj.get("retrieval_neighbors") if obj.get("retrieval_neighbors") is not None else 0,
             "retrieval_min_distance_m": obj.get("retrieval_min_distance_m") if obj.get("retrieval_min_distance_m") is not None else 1.0,
             "pair_max_displacement_scene_m": obj.get("pair_max_displacement_scene_m") if obj.get("pair_max_displacement_scene_m") is not None else 10.0,
             "pair_max_displacement_drift_rate_m_per_s": obj.get("pair_max_displacement_drift_rate_m_per_s") if obj.get("pair_max_displacement_drift_rate_m_per_s") is not None else 0.1,

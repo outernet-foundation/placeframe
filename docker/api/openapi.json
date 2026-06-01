@@ -6235,7 +6235,7 @@
           "sequential_window": {
             "type": "integer",
             "description": "Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.",
-            "default": 20
+            "default": 10
           },
           "spatial_neighbors": {
             "type": "integer",
@@ -6251,7 +6251,7 @@
           "retrieval_neighbors": {
             "type": "integer",
             "description": "Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.",
-            "default": 20
+            "default": 0
           },
           "retrieval_min_distance_m": {
             "type": "number",

@@ -4265,7 +4265,7 @@ components:
           format: double
           type: number
         sequential_window:
-          default: 20
+          default: 10
           description: Per-frame count of temporally-adjacent neighbours (each side)
             paired within a rig for the temporal match-graph backbone.
           type: integer
@@ -4288,7 +4288,7 @@ components:
           format: double
           type: number
         retrieval_neighbors:
-          default: 20
+          default: 0
           description: Top-K most-similar images (DIR cosine) paired with each image
             for loop closures; 0 disables retrieval.
           type: integer
