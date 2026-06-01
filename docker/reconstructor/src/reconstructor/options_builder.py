@@ -7,12 +7,6 @@ from pycolmap import BundleAdjustmentOptions, IncrementalPipelineOptions, TwoVie
 
 
 @dataclass(frozen=True)
-class PairDisplacementOptions:
-    scene_m: float
-    drift_rate_m_per_s: float
-
-
-@dataclass(frozen=True)
 class PairPoseGraphOptions:
     max_rotation_disagreement_deg: float
     max_translation_direction_deg: float
@@ -71,32 +65,14 @@ class OptionsBuilder:
     def sequential_window_m(self):
         return self.options.sequential_window_m
 
-    def spatial_neighbors(self):
-        return self.options.spatial_neighbors
-
-    def spatial_max_distance_m(self):
-        return self.options.spatial_max_distance_m
-
     def retrieval_neighbors(self):
         return self.options.retrieval_neighbors
 
     def retrieval_min_distance_m(self):
         return self.options.retrieval_min_distance_m
 
-    def pair_displacement_options(self):
-        return PairDisplacementOptions(
-            scene_m=self.options.pair_max_displacement_scene_m,
-            drift_rate_m_per_s=self.options.pair_max_displacement_drift_rate_m_per_s,
-        )
-
     def retrieval_min_score(self):
         return self.options.retrieval_min_score
-
-    def retrieval_covisibility_window(self):
-        return self.options.retrieval_covisibility_window
-
-    def retrieval_covisibility_min_support(self):
-        return self.options.retrieval_covisibility_min_support
 
     def pose_prior_position_sigma_m(self):
         return self.options.pose_prior_position_sigma_m

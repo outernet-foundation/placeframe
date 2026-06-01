@@ -16,15 +16,7 @@ class ReconstructionOptions(BaseModel):
     )
     sequential_window_m: float = Field(
         default=3.0,
-        description="VIO-straight-line distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe within this many metres of straight-line VIO displacement is paired with it. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc, instead of the old fixed-neighbour count over-reaching in fast zones and under-reaching in slow ones. No-op on rigs without VIO translations.",
-    )
-    spatial_neighbors: int = Field(
-        default=0,
-        description="Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing (within sequential_window_m metres) are skipped here so spatial_neighbors counts loop-closure candidates, not redundancy. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame's true neighbours.",
-    )
-    spatial_max_distance_m: float = Field(
-        default=6.0,
-        description="Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent.",
+        description="VIO-path-distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe whose cumulative segment-by-segment path length along the VIO trajectory is within this many metres is paired with it. Path distance — not straight-line distance — so doubling back along the trajectory (e.g. corridor return pass) walks away from earlier frames rather than landing on them. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc.",
     )
     retrieval_neighbors: int = Field(
         default=0,
@@ -32,15 +24,7 @@ class ReconstructionOptions(BaseModel):
     )
     retrieval_min_distance_m: float = Field(
         default=1.0,
-        description="Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent.",
-    )
-    pair_max_displacement_scene_m: float = Field(
-        default=10.0,
-        description="Max plausible scene-radius component of the displacement bound used to reject any candidate pair (a,b) whose VIO straight-line displacement exceeds the bound. Combined with pair_max_displacement_drift_rate_m_per_s: a pair is rejected when |vio_pos(b)−vio_pos(a)| > pair_max_displacement_scene_m + pair_max_displacement_drift_rate_m_per_s · |t_b−t_a|. Applied uniformly across all pair sources; stereo and short-temporal pairs trivially satisfy any reasonable bound. No-op when positions are absent.",
-    )
-    pair_max_displacement_drift_rate_m_per_s: float = Field(
-        default=0.1,
-        description="VIO drift-rate slack added to the displacement bound per second of time gap between the two frames of a candidate pair. Lets long-temporal-gap true loop closures survive accumulated drift while still rejecting short-temporal-gap aliased pairs (e.g. retrieval matches between physically distant frames seconds apart). Calibrate per device class against post-hoc VIO↔recon residuals.",
+        description="Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing.",
     )
     pair_min_match_spread: float = Field(
         default=0.08,
@@ -49,14 +33,6 @@ class ReconstructionOptions(BaseModel):
     retrieval_min_score: float = Field(
         default=0.35,
         description="Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.",
-    )
-    retrieval_covisibility_window: int = Field(
-        default=3,
-        description="Half-width (in temporal keyframe indices) of the neighborhood used to validate retrieval pairs against perceptual aliasing. A pair (A,B) is supported by another retrieval pair (A',B') iff both endpoints fall within this window of the original pair on their respective trajectories.",
-    )
-    retrieval_covisibility_min_support: int = Field(
-        default=2,
-        description="Minimum count of supporting retrieval pairs within retrieval_covisibility_window required for a retrieval candidate to be kept; aliased pairs (e.g. two similar paintings in different rooms) appear as singletons and get dropped, while true loop closures appear as bands and survive. 0 disables the filter.",
     )
     ransac_max_error: float = Field(
         default=2.0,
@@ -72,7 +48,7 @@ class ReconstructionOptions(BaseModel):
     )
     retrieval_min_inlier_ratio: float = Field(
         default=0.40,
-        description="Two-view RANSAC minimum inlier ratio for retrieval-sourced pairs only; stricter than the sequential/spatial/intra-frame floor because visually-similar-but-spatially-distant indoor regions can fabricate plausible-looking essential matrices.",
+        description="Two-view RANSAC minimum inlier ratio for retrieval-sourced pairs only; stricter than the sequential/intra-frame-stereo floor because visually-similar-but-spatially-distant indoor regions can fabricate plausible-looking essential matrices.",
     )
     retrieval_min_num_inliers: int = Field(
         default=50,

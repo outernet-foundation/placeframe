@@ -202,20 +202,13 @@ def run_reconstruction(
     file_name, file_bytes = write_global_descriptors(WORK_DIR, global_descriptors)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
-    pair_displacement_options = options.pair_displacement_options()
     pairs = generate_image_pairs(
         rigs,
         global_descriptors,
         options.sequential_window_m(),
-        options.spatial_neighbors(),
-        options.spatial_max_distance_m(),
         options.retrieval_neighbors(),
         options.retrieval_min_distance_m(),
         options.retrieval_min_score(),
-        options.retrieval_covisibility_window(),
-        options.retrieval_covisibility_min_support(),
-        pair_displacement_options.scene_m,
-        pair_displacement_options.drift_rate_m_per_s,
     )
     file_name, file_bytes = write_pairs(pairs, WORK_DIR)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
