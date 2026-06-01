@@ -1,6 +1,146 @@
 ---
-updated: 2026-05-31
+updated: 2026-06-01
 ---
+
+## What's new (2026-06-01, strip-to-bare + lost rig verification)
+
+- **Strip-to-bare runs on `4bd303f1` at `sequential_window=10`** (a tighter
+  window than the historical 20) under two-phase ingest. Two new runs:
+  - `cb6a77b1-050f-48ca-b279-28912dea2925` — window=10, retrieval ON,
+    everything else stripped. 120 / 220 frames mapped, worst teleport
+    4.28 m/s at `858015→858515`, second-worst 3.37 m/s. 2 long-range
+    tracks. Pose-graph rejections (sequential): 1,026.
+  - `6f5a03ee-f31b-41b6-8876-896606af5585` — window=10, retrieval OFF,
+    same otherwise. 122 / 220 frames, worst teleport **6.96 m/s** at
+    `864515→865015`, 2nd-worst 4.23 m/s. **0 long-range tracks.**
+    Pose-graph rejections (sequential): 398.
+- **At window=10, retrieval is marginally *defensive*, not contaminating.**
+  Worst teleport got *worse* (4.28 → 6.96 m/s) when retrieval was
+  removed. Frame 78 (`1780106865015`, the dark blurry hallway) failed
+  to register at all in `cb6a77b1` (retrieval-on filtered it out via
+  lack of supporting evidence) but in `6f5a03ee` it registered at a
+  wrong position 3.48 m off from frame 77. This is the inverse of the
+  window=20 picture, where retrieval *amplified* aliasing
+  catastrophically. The interaction is:
+  - window=20 + retrieval ON: 25.83 m/s (catastrophic)
+  - window=20 + retrieval OFF: 6.86 m/s (sequential-driven)
+  - window=10 + retrieval ON: 4.28 m/s, 120 frames
+  - window=10 + retrieval OFF: 6.96 m/s, 122 frames
+- **The window=10 residual teleports are pure Phase-1 sequential
+  failures.** Same two timestamp regions regardless of retrieval state:
+  `858015 → 858515` (densely connected, accumulated misregistration
+  around frame 67) and `864515 → 865015 → 865515` (thin connectivity,
+  fast motion, frame 78 the dark blurry frame either drops out or lands
+  wrong). These survive everything the current stack defends against.
+- **Rig-aware verification was silently lost in `ddcb5033`.** The OLD
+  pipeline (commit `bcf0ecec`) called
+  `match_spatial(database_path=..., matching_options=options.feature_matching_options(), verification_options=options.two_view_geometry_options())`
+  with `feature_matching_options().rig_verification = True` via a
+  `ReconstructionOptions.rig_verification` field (since culled in
+  `0b3a4aa0`). Commit `ddcb5033` ("Verify two-view geometry per-pair so
+  the phase reports progress") switched to a per-pair
+  `pycolmap._core.estimate_two_view_geometry(...)` threadpool to get
+  per-pair progress callbacks, and the rig flag fell on the floor —
+  `estimate_two_view_geometry` doesn't accept it. **The 10–12
+  intra-frame-stereo pose-graph rejections we've been calling a
+  "smell" are not calibration drift — they are stereo pairs whose
+  essential matrix doesn't satisfy the fixed rig baseline making it
+  through unfiltered.**
+- **The rig pass is more powerful than just stereo.** Pair generation
+  (`pairs.py:109-110`) emits all cross-camera combos: every sequential
+  (or retrieval, or spatial) frame-pair between two multi-camera
+  rig snapshots produces 4 image-pairs (c0-c0, c0-c1, c1-c0, c1-c1).
+  COLMAP's rig pass (second pass on top of normal verification) scans
+  for frame-pairs with `num_image_pairs > 1`, pools all four
+  correspondences, and jointly fits one `rig2_from_rig1` via a
+  generalized-camera RANSAC (GR6P, `EstimateGeneralizedRelativePose`).
+  For our rig-locked stereo case `rig2_from_rig1` is constrained to
+  the rig calibration and each pair's `cam2_from_cam1` is *synthesized
+  analytically* from `sensor_from_rig` rather than re-fit; inlier mask
+  comes from the joint solve; pair config is overwritten to
+  `CALIBRATED_RIG` (config 8). This **catches perceptual aliasing
+  where one camera's matches lie and the other's don't** — exactly
+  the framed-picture / cubicle surface, and it applies to retrieval
+  and spatial frame-pairs too, not just stereo.
+- **Stock entry point exists and is a strict replacement for
+  `match_spatial`.** `pycolmap.geometric_verification(database_path,
+  verifier_options=GeometricVerifierOptions(rig_verification=True),
+  pairing_options=ExistingMatchedPairingOptions(),
+  two_view_geometry_options=...)` does exactly what `match_spatial`
+  did when matches were already in the DB: short-circuits already-
+  verified pairs (`cache->ExistsInlierMatches`), then runs the rig
+  pass on top. We can keep the per-pair threadpool exactly as-is and
+  append one whole-DB call after Phase 1 to layer the rig pass on top
+  (Phase 2 retrieval pairs are all single-camera, so rig pass is a
+  no-op there).
+- **Progress callback recovery via DB-row polling.** The blocker that
+  originally drove the per-pair fork was no per-pair progress on
+  `match_spatial`. Path forward without re-forking: spawn
+  `geometric_verification` in a background thread, poll
+  `SELECT COUNT(*) FROM two_view_geometries WHERE config = 8` against
+  a pre-counted expected (number of multi-image frame-pairs in our
+  generated pair set), publish progress every ~200 ms. The rig pass
+  commits per frame-pair on COLMAP's internal threadpool so the count
+  grows in real time. SQLite concurrent reads don't block writes
+  regardless of journal mode. `ExistingMatchedPairingOptions` only
+  exposes `batch_size`, no `pair_ids` filter — partitioning externally
+  isn't doable (it would silently disable rig verification by hiding
+  multi-image frame-pairs from each partition).
+- **New check identified: pair-time VIO-vs-essential-matrix
+  consistency.** No current check compares the essential-matrix-implied
+  relative R + t-direction against the VIO-implied relative R +
+  t-direction. The drift-budget filter uses VIO but discards
+  orientation (position-distance only). The pose-graph check has the
+  right shape but uses the partial reconstruction as oracle, which
+  can confirm its own past mistakes during early-seed contamination
+  (the documented failure mode). The new check would run at the
+  two-view-geometry verification stage, compute VIO's implied
+  relative pose between the two frames, and reject the pair if the
+  essential matrix disagrees by more than (say) 15° rotation /
+  30° translation-direction. Rejects aliased pairs *before* Phase 1
+  — closes the seed-phase gap the model-as-oracle pose-graph check
+  structurally cannot. Cheap, monocular-OK (only needs direction,
+  not metric scale), independent of the seed.
+- **Per-source applicability of the new VIO-vs-essential check**
+  (load-bearing):
+  - **Sequential**: temporally adjacent (typical 0.5s, max ~5s within
+    window=10). VIO drift over that window is sub-degree /
+    sub-decimeter. Plenty of headroom below the aliasing signal
+    (~15° rotation, ~30° translation direction). **Check applies
+    cleanly.**
+  - **Stereo** (`intra_frame_stereo`): both cameras share the same
+    VIO frame at the same instant — VIO is identical for both, so
+    the VIO-implied relative pose is zero. Meaningless oracle. The
+    correct oracle for stereo is the rig's `sensor_from_rig` (which
+    is what `rig_verification=True` provides above).
+  - **Spatial** (currently disabled): VIO-position-proximate but
+    temporally distant. VIO drift over minutes can be 1°+ rotation
+    and meters of position. Defensible with looser thresholds if
+    spatial ever turns back on; skip for now.
+  - **Retrieval**: the whole *point* is to correct accumulated VIO
+    drift across long loop-closure intervals. By construction VIO
+    and the true relative pose disagree significantly here — that's
+    the signal we want retrieval to provide. **Must skip** or the
+    check kills exactly the pairs we need.
+
+## Queued for next session (post-compact)
+
+Both deferred to the next session by the user; not started this session.
+
+1. **Wire rig-aware verification back via `geometric_verification(...)`
+   with `rig_verification=True`.** Replace (or append after) the
+   per-pair threadpool. Progress via DB-row polling on `config = 8`
+   count (~30 lines, Option 1 from this session's research). Add a
+   new publisher phase `VERIFYING_RIG_GEOMETRY`. The
+   `ReconstructionOptions.rig_verification` field that existed in
+   `bcf0ecec` and got culled in `0b3a4aa0` does not need to come
+   back — just wire the flag on at the call site.
+2. **Add pair-time VIO-vs-essential-matrix consistency check at the
+   two-view verification stage, sequential pairs only.** Thresholds
+   ~15° rotation / 30° translation direction. Plumb via two new
+   `ReconstructionOptions` fields. Skip stereo (covered by
+   `rig_verification`), spatial (off, would need different
+   thresholds), and retrieval (would kill the signal we want).
 
 ## What's new (2026-05-31, late-night session)
 
@@ -110,6 +250,14 @@ updated: 2026-05-31
   off, vio_check off. The principled-but-coverage-expensive run. Severe
   teleports eliminated, residual sequential-driven teleports survive,
   long-range tracks collapse 85%.
+- `cb6a77b1-050f-48ca-b279-28912dea2925` — window=10, retrieval ON,
+  strip-to-bare. 120/220 frames mapped, worst teleport 4.28 m/s.
+  Establishes that retrieval at window=10 is mildly defensive on this
+  capture.
+- `6f5a03ee-f31b-41b6-8876-896606af5585` — window=10, retrieval OFF,
+  strip-to-bare. 122/220 frames mapped, worst teleport 6.96 m/s.
+  Surfaces that the two residual teleports are pure Phase-1 sequential
+  failures independent of retrieval.
 
 ---
 
@@ -1185,7 +1333,7 @@ vision rather than a removable supplement.
 
 ## Pending threads
 
-### Strip-to-bare A/B matrix (top priority — methodology reset)
+### Strip-to-bare A/B matrix (partly executed 2026-06-01, still open)
 
 We have nine layered aliasing patches on by default and no isolated
 measurement of which are load-bearing. Acknowledged as a methodology
@@ -1203,7 +1351,14 @@ on, everything else at pycolmap defaults. Specifically off / at default:
 - `pair_pose_graph_*` (post-triangulation consistency check)
 - `vio_check_max_disagreement_m` (already off by default at `1e9`)
 
-Run `bare` on `4bd303f1` and on at least one ARFoundation-grade capture.
+Two `bare`-flavored runs landed this session on `4bd303f1` at
+`sequential_window=10`: `cb6a77b1` (retrieval ON) and `6f5a03ee`
+(retrieval OFF). Key findings: (a) at window=10, retrieval is mildly
+defensive, not contaminating — opposite of the window=20 picture;
+(b) the residual teleports at `858015→858515` and `864515→865015→865515`
+are pure Phase-1 sequential failures, surviving every config tested.
+ARFoundation-grade capture still not run.
+
 Then add patches back one at a time, ordered by prior-belief contribution:
 pose-graph check first (it's the closest to architecturally load-bearing
 under the new defaults), then narrowing `sequential_window`, then the
@@ -1291,17 +1446,14 @@ try 3.0 m and 5.0 m as part of the pose-graph + vio_check joint
 configuration. The cleaner version of this experiment is now the
 both-on test, not vio_check alone.
 
-### Investigate intra-frame-stereo rejections
+### Investigate intra-frame-stereo rejections (RESOLVED 2026-06-01)
 
-Run `174b20f3` showed 4 intra_frame_stereo rejections on a
-calibrated-rig capture. Stereo two-view geometry should match rig
-calibration exactly — the check should never fire on stereo. Two
-hypotheses: thresholds are slightly tighter than the noise floor of
-the essential-matrix decomposition on calibrated stereo, or the
-two-view geometry from RANSAC genuinely diverges from rig calibration
-in ways worth understanding. Cheap to instrument (log per-pair
-disagreement magnitudes for the four offending stereo pairs from
-`174b20f3`).
+Resolved: the rejections are not a calibration smell. They are stereo
+pairs whose unconstrained essential matrix doesn't satisfy the fixed
+rig baseline making it through unfiltered, because commit `ddcb5033`
+silently dropped rig-aware verification when it switched from
+`match_spatial` to per-pair `estimate_two_view_geometry`. Fix is
+queued under "Wire rig-aware verification back" above.
 
 ### Refuse structure-less PnP / 3D-observation count gate (form b)
 
