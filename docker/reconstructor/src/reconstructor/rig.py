@@ -15,8 +15,11 @@ from scipy.spatial.transform import Rotation
 
 @dataclass(frozen=True)
 class FramePose:
+    # World-frame position of the rig (= camera0 center in world). This is what Unity emits as
+    # CameraTranslationUnityWorldFromCamera and what ZED writes as the SDK's world_from_rig
+    # translation. None on rows that carry only gravity samples.
     translation: NDArray[float64] | None
-    # rig_from_world rotation derived from the VIO quaternion when frames.csv carries one (7-column
+    # world_from_rig rotation derived from the VIO quaternion when frames.csv carries one (7-column
     # format). None when the row only has gravity samples (ZED capture's 6-column format) — the
     # downstream consumer that uses rotation skips the pair silently in that case.
     rotation: Rotation3d | None
@@ -107,9 +110,11 @@ def _parse_frame_pose(values: list[str], axis_convention: AxisConvention) -> Fra
         return FramePose(translation=translation, rotation=None, gravity_in_rig_local=gravity)
 
     if len(values) == 7:
-        # tx, ty, tz, qx, qy, qz, qw — VIO position with quaternion. The quaternion is rig_from_world
-        # in the capture's axis convention; under UNITY we conjugate by the OpenCV-from-Unity basis
-        # change so the rotation lives in the same OpenCV frame as the translation.
+        # tx, ty, tz, qx, qy, qz, qw — VIO position with quaternion. (tx, ty, tz) is the rig's
+        # position in world (camera0 center in world); (qx, qy, qz, qw) is the world_from_rig
+        # rotation — matching CaptureManager.cs's CameraTranslationUnityWorldFromCamera /
+        # CameraRotationUnityWorldFromCamera fields. Under UNITY we conjugate the rotation by the
+        # OpenCV-from-Unity basis change so it lives in the same OpenCV frame as the translation.
         translation = array([float(values[0]), float(values[1]), float(values[2])], dtype=float64)
         rotation_matrix = Rotation.from_quat([
             float(values[3]),

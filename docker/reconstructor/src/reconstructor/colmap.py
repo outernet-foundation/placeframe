@@ -313,12 +313,12 @@ def _apply_vio_em_check(
         for camera in rig.colmap_rig_config.cameras
         if camera.cam_from_rig is not None
     }
-    rig_from_world_by_rig_and_frame: dict[tuple[str, str], Rigid3d] = {}
+    world_from_rig_by_rig_and_frame: dict[tuple[str, str], Rigid3d] = {}
     for rig_id, rig in rigs.items():
         for frame_id, pose in rig.frame_poses.items():
             if pose.rotation is None or pose.translation is None:
                 continue
-            rig_from_world_by_rig_and_frame[(rig_id, frame_id)] = Rigid3d(
+            world_from_rig_by_rig_and_frame[(rig_id, frame_id)] = Rigid3d(
                 rotation=pose.rotation, translation=pose.translation
             )
 
@@ -342,9 +342,9 @@ def _apply_vio_em_check(
         frame_b = frame_b_dot.rsplit(".", 1)[0]
         cam_a_from_rig = cam_from_rig_by_image_prefix.get(a.rsplit("/", 1)[0] + "/")
         cam_b_from_rig = cam_from_rig_by_image_prefix.get(b.rsplit("/", 1)[0] + "/")
-        rig_a_from_world = rig_from_world_by_rig_and_frame.get((rig_a, frame_a))
-        rig_b_from_world = rig_from_world_by_rig_and_frame.get((rig_b, frame_b))
-        if cam_a_from_rig is None or cam_b_from_rig is None or rig_a_from_world is None or rig_b_from_world is None:
+        world_from_rig_a = world_from_rig_by_rig_and_frame.get((rig_a, frame_a))
+        world_from_rig_b = world_from_rig_by_rig_and_frame.get((rig_b, frame_b))
+        if cam_a_from_rig is None or cam_b_from_rig is None or world_from_rig_a is None or world_from_rig_b is None:
             skipped_no_vio += 1
             continue
 
@@ -354,7 +354,7 @@ def _apply_vio_em_check(
             skipped_short_baseline += 1
             continue
 
-        vio_cam2_from_cam1 = cam_b_from_rig * rig_b_from_world * rig_a_from_world.inverse() * cam_a_from_rig.inverse()
+        vio_cam2_from_cam1 = cam_b_from_rig * world_from_rig_b.inverse() * world_from_rig_a * cam_a_from_rig.inverse()
         checked += 1
 
         rotation_bad = (
