@@ -42,6 +42,10 @@ class ReconstructionOptions(BaseModel):
         default=0.1,
         description="VIO drift-rate slack added to the displacement bound per second of time gap between the two frames of a candidate pair. Lets long-temporal-gap true loop closures survive accumulated drift while still rejecting short-temporal-gap aliased pairs (e.g. retrieval matches between physically distant frames seconds apart). Calibrate per device class against post-hoc VIO↔recon residuals.",
     )
+    pair_min_match_spread: float = Field(
+        default=0.08,
+        description="Minimum spread of inlier-match keypoint positions, expressed as geometric mean of per-axis standard deviations normalized by image dimensions, taken as the min across the two images. Pairs below the threshold are rejected at the two-view verification stage. Catches the repeated-decor aliasing pattern where matches concentrate on a small set of similar features (e.g. multiple identical artworks in an office) — both images show matches clustered in a tiny region, producing a low spread, while true wide-baseline matches spread across the image. Independent of VIO drift; works monocular. 0 disables the filter.",
+    )
     retrieval_min_score: float = Field(
         default=0.35,
         description="Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.",

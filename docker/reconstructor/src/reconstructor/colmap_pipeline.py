@@ -229,6 +229,9 @@ def _verify_two_view_geometries(
         for source in PairSource
     }
 
+    rejected_by_source: dict[PairSource, int] = dict.fromkeys(PairSource, 0)
+    pair_min_match_spread = pipeline_context.options.pair_min_match_spread()
+
     # Per-pair so each completion ticks progress; sqlite writes stay on the main thread.
     with ThreadPoolExecutor() as pool:
         future_to_pair: dict[Future[TwoViewGeometry], Pair] = {}
@@ -246,10 +249,54 @@ def _verify_two_view_geometries(
             ] = pair
         for completed, future in enumerate(as_completed(future_to_pair), start=1):
             pair = future_to_pair[future]
-            pipeline_context.database.write_two_view_geometry(
-                colmap_image_ids[pair.image_a], colmap_image_ids[pair.image_b], future.result()
-            )
+            two_view_geometry = future.result()
+            if _pair_passes_match_spread(
+                two_view_geometry,
+                keypoints[pair.image_a],
+                keypoints[pair.image_b],
+                image_cameras[pair.image_a],
+                image_cameras[pair.image_b],
+                pair_min_match_spread,
+            ):
+                pipeline_context.database.write_two_view_geometry(
+                    colmap_image_ids[pair.image_a], colmap_image_ids[pair.image_b], two_view_geometry
+                )
+            else:
+                rejected_by_source[pair.source] += 1
             pipeline_context.publisher.on_progress(completed)
+
+    print(
+        "Match-spread filter rejections: "
+        + ", ".join(f"{source.value}={count}" for source, count in rejected_by_source.items())
+    )
+
+
+def _pair_passes_match_spread(
+    two_view_geometry: TwoViewGeometry,
+    keypoints_a: NDArray[Any],
+    keypoints_b: NDArray[Any],
+    camera_a: ColmapCamera,
+    camera_b: ColmapCamera,
+    pair_min_match_spread: float,
+) -> bool:
+    # Per-image spread = geometric mean of per-axis std of inlier-match keypoint positions,
+    # normalized by image dimensions. Pair spread = min(spread_a, spread_b). Aliased pairs
+    # that match on a small visually-similar region (the repeated-decor pattern in cubicle
+    # offices) concentrate matches in a tiny image region in BOTH images, yielding a low
+    # pair spread. True wide-baseline matches spread across the image. Threshold of 0
+    # disables; pairs with fewer than 4 inliers are also bypassed since std is too noisy.
+    if pair_min_match_spread <= 0:
+        return True
+    inlier_matches: NDArray[uint32] = two_view_geometry.inlier_matches  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType] — upstream stub uses unbound TypeVar for inlier_matches shape
+    if len(inlier_matches) < 4:
+        return True
+    positions_a = keypoints_a[inlier_matches[:, 0], :2] / asarray([camera_a.width, camera_a.height], dtype=float64)
+    positions_b = keypoints_b[inlier_matches[:, 1], :2] / asarray([camera_b.width, camera_b.height], dtype=float64)
+    std_a = positions_a.std(axis=0)
+    std_b = positions_b.std(axis=0)
+    spread_a = float((std_a[0] * std_a[1]) ** 0.5)
+    spread_b = float((std_b[0] * std_b[1]) ** 0.5)
+    return min(spread_a, spread_b) >= pair_min_match_spread
 
 
 def _run_incremental_reconstruction(

@@ -64,6 +64,9 @@ class OptionsBuilder:
     def pair_max_displacement_drift_rate_m_per_s(self):
         return self.options.pair_max_displacement_drift_rate_m_per_s
 
+    def pair_min_match_spread(self):
+        return self.options.pair_min_match_spread
+
     def retrieval_min_score(self):
         return self.options.retrieval_min_score
 
