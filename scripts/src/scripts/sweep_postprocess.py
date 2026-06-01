@@ -22,15 +22,27 @@ from .displacement_check import (
 )
 
 
-RATIO_LABELS = {0.25: "L1", 0.35: "L2", 0.45: "L3", 0.55: "L4"}
-K_LABELS_ALLOWED = {0, 2, 3, 5}
-W_LABELS_ALLOWED = {2, 3, 5}
 RESULT_FIELD_NAMES = [
-    "reconstruction_id", "ratio_label", "k_label", "w_label", "replicate",
-    "ratio", "count", "k", "w", "status", "created_at",
-    "pair_count", "max_speed", "max_distance", "p95_speed", "median_speed", "bad_pair_count",
-    "total_classified_tracks", "long_range_track_count", "cross_rig_track_count",
-    "p95_track_extent", "median_track_extent", "max_track_extent",
+    "reconstruction_id",
+    "retrieval_label",
+    "vio_em_label",
+    "replicate",
+    "retrieval_neighbors",
+    "vio_em_rotation_deg",
+    "status",
+    "created_at",
+    "pair_count",
+    "max_speed",
+    "max_distance",
+    "p95_speed",
+    "median_speed",
+    "bad_pair_count",
+    "total_classified_tracks",
+    "long_range_track_count",
+    "cross_rig_track_count",
+    "p95_track_extent",
+    "median_track_extent",
+    "max_track_extent",
 ]
 
 
@@ -38,17 +50,14 @@ class ReconstructionRecord(NamedTuple):
     reconstruction_id: UUID
     status: str
     created_at: str
-    ratio: float
-    count: int
-    k: int
-    w: int
+    retrieval_neighbors: int
+    vio_em_rotation_deg: float
 
 
 class ClassifiedReconstruction(NamedTuple):
     record: ReconstructionRecord
-    ratio_label: str
-    k_label: str
-    w_label: str
+    retrieval_label: str
+    vio_em_label: str
     replicate: int
 
 
@@ -67,14 +76,18 @@ app = typer.Typer(add_completion=False, no_args_is_help=True)
 
 @app.command()
 def sweep_postprocess(
-    capture_id: Annotated[UUID, typer.Argument(help="Capture session whose reconstructions form the sweep to analyze.")],
+    capture_id: Annotated[
+        UUID, typer.Argument(help="Capture session whose reconstructions form the sweep to analyze.")
+    ],
     output_dir: Annotated[
         Path,
         typer.Option(help="Output root. Per-capture results land under <output_dir>/<capture_id>/."),
     ] = Path("sweep-output"),
     sequential_window: Annotated[
         int,
-        typer.Option(help="Reconstruction sequential_window; passed to the track-extent metric to set the long-range threshold."),
+        typer.Option(
+            help="Frame-count window passed to the track-extent metric; long-range threshold is 2× this. Independent of reconstruction sequential_window_m (which is a metric path distance, not a frame count)."
+        ),
     ] = DEFAULT_SEQUENTIAL_WINDOW,
 ) -> None:
     capture_output_dir = output_dir / str(capture_id)
@@ -84,7 +97,7 @@ def sweep_postprocess(
     print(f"found {len(records)} reconstructions for capture {capture_id}")
 
     classified = classify_into_cells(records)
-    print(f"classified {len(classified)} reconstructions into sweep cells; {len(records) - len(classified)} discarded as off-grid")
+    print(f"classified {len(classified)} reconstructions into sweep cells")
 
     persist_mapping(classified, capture_output_dir / "mapping.json")
 
@@ -99,61 +112,53 @@ def sweep_postprocess(
 def fetch_reconstructions(capture_id: UUID) -> list[ReconstructionRecord]:
     sql = (
         "SELECT id, status, created_at::text, "
-        "manifest->'options'->>'retrieval_min_inlier_ratio', "
-        "manifest->'options'->>'retrieval_min_num_inliers', "
-        "manifest->'options'->>'retrieval_covisibility_min_support', "
-        "manifest->'options'->>'retrieval_covisibility_window' "
-        f"FROM reconstructions WHERE capture_session_id='{capture_id}' "
+        "manifest->'options'->>'retrieval_neighbors', "
+        "manifest->'options'->>'pair_vio_em_max_rotation_disagreement_deg' "
+        "FROM reconstructions WHERE capture_session_id=:'capture_id' "
         "ORDER BY created_at;"
     )
     raw = bash_output(
-        f"docker exec placeframe-postgres-1 psql -U postgres -d placeframe -t -A -F'|' -c \"{sql}\""
+        f"docker exec placeframe-postgres-1 psql -U postgres -d placeframe -t -A -F'|' "
+        f'-v capture_id={capture_id} -c "{sql}"'
     )
     records: list[ReconstructionRecord] = []
     for line in raw.strip().split("\n"):
         if not line:
             continue
         fields = line.split("|")
-        if len(fields) != 7:
+        if len(fields) != 5:
             continue
-        records.append(ReconstructionRecord(
-            reconstruction_id=UUID(fields[0]),
-            status=fields[1],
-            created_at=fields[2],
-            ratio=float(fields[3]),
-            count=int(fields[4]),
-            k=int(fields[5]),
-            w=int(fields[6]),
-        ))
+        if not fields[3] or not fields[4]:
+            continue
+        records.append(
+            ReconstructionRecord(
+                reconstruction_id=UUID(fields[0]),
+                status=fields[1],
+                created_at=fields[2],
+                retrieval_neighbors=int(fields[3]),
+                vio_em_rotation_deg=float(fields[4]),
+            )
+        )
     return records
 
 
 def classify_into_cells(records: list[ReconstructionRecord]) -> list[ClassifiedReconstruction]:
-    cell_counters: dict[tuple[str, str, str], int] = {}
+    cell_counters: dict[tuple[str, str], int] = {}
     classified: list[ClassifiedReconstruction] = []
     for record in records:
-        if record.ratio not in RATIO_LABELS:
-            continue
-        if record.k not in K_LABELS_ALLOWED:
-            continue
-        if record.k == 0:
-            w_label = "Wn/a"
-        elif record.w in W_LABELS_ALLOWED:
-            w_label = f"W{record.w}"
-        else:
-            continue
-        ratio_label = RATIO_LABELS[record.ratio]
-        k_label = f"K{record.k}"
-        cell_key = (ratio_label, k_label, w_label)
+        retrieval_label = f"R{record.retrieval_neighbors}"
+        vio_em_label = "EMon" if record.vio_em_rotation_deg > 0 else "EMoff"
+        cell_key = (retrieval_label, vio_em_label)
         replicate = cell_counters.get(cell_key, 0)
         cell_counters[cell_key] = replicate + 1
-        classified.append(ClassifiedReconstruction(
-            record=record,
-            ratio_label=ratio_label,
-            k_label=k_label,
-            w_label=w_label,
-            replicate=replicate,
-        ))
+        classified.append(
+            ClassifiedReconstruction(
+                record=record,
+                retrieval_label=retrieval_label,
+                vio_em_label=vio_em_label,
+                replicate=replicate,
+            )
+        )
     return classified
 
 
@@ -163,14 +168,11 @@ def persist_mapping(classified: list[ClassifiedReconstruction], mapping_path: Pa
             "reconstruction_id": str(c.record.reconstruction_id),
             "status": c.record.status,
             "created_at": c.record.created_at,
-            "ratio_label": c.ratio_label,
-            "k_label": c.k_label,
-            "w_label": c.w_label,
+            "retrieval_label": c.retrieval_label,
+            "vio_em_label": c.vio_em_label,
             "replicate": c.replicate,
-            "ratio": c.record.ratio,
-            "count": c.record.count,
-            "k": c.record.k,
-            "w": c.record.w,
+            "retrieval_neighbors": c.record.retrieval_neighbors,
+            "vio_em_rotation_deg": c.record.vio_em_rotation_deg,
         }
         for c in classified
     ]
@@ -220,7 +222,7 @@ def analyze_all(
     enriched: list[dict] = []
     for index, item in enumerate(classified, start=1):
         recon_id = item.record.reconstruction_id
-        label = f"{item.ratio_label} {item.k_label} {item.w_label} rep{item.replicate}"
+        label = f"{item.retrieval_label} {item.vio_em_label} rep{item.replicate}"
         print(f"[{index}/{len(classified)}] {recon_id} ({label}) status={item.record.status}")
         row = base_row(item)
         if item.record.status != "succeeded":
@@ -268,14 +270,11 @@ def analyze_all(
 def base_row(item: ClassifiedReconstruction) -> dict:
     return {
         "reconstruction_id": str(item.record.reconstruction_id),
-        "ratio_label": item.ratio_label,
-        "k_label": item.k_label,
-        "w_label": item.w_label,
+        "retrieval_label": item.retrieval_label,
+        "vio_em_label": item.vio_em_label,
         "replicate": item.replicate,
-        "ratio": item.record.ratio,
-        "count": item.record.count,
-        "k": item.record.k,
-        "w": item.record.w,
+        "retrieval_neighbors": item.record.retrieval_neighbors,
+        "vio_em_rotation_deg": item.record.vio_em_rotation_deg,
         "status": item.record.status,
         "created_at": item.record.created_at,
     }
@@ -334,12 +333,8 @@ def summarize_displacement(sfm_dir: Path, frames_csv: Path) -> DisplacementSumma
 
 def summarize_tracks(sfm_dir: Path, sequential_window: int):
     image_id_to_timestamp = parse_image_id_to_timestamp(sfm_dir / "images.txt")
-    image_id_to_rig_temporal_index = parse_image_id_to_rig_temporal_index(
-        sfm_dir / "frames.txt", image_id_to_timestamp
-    )
-    return summarize_track_extents(
-        sfm_dir / "points3D.txt", image_id_to_rig_temporal_index, sequential_window
-    )
+    image_id_to_rig_temporal_index = parse_image_id_to_rig_temporal_index(sfm_dir / "frames.txt", image_id_to_timestamp)
+    return summarize_track_extents(sfm_dir / "points3D.txt", image_id_to_rig_temporal_index, sequential_window)
 
 
 def write_results(enriched: list[dict], output_dir: Path) -> None:
@@ -356,14 +351,14 @@ def write_results(enriched: list[dict], output_dir: Path) -> None:
 
 
 def print_summary(enriched: list[dict], summary_path: Path) -> None:
-    cells: dict[tuple[str, str, str], list[dict]] = {}
+    cells: dict[tuple[str, str], list[dict]] = {}
     for entry in enriched:
         if entry.get("max_speed") is None:
             continue
-        cell_key = (entry["ratio_label"], entry["k_label"], entry["w_label"])
+        cell_key = (entry["retrieval_label"], entry["vio_em_label"])
         cells.setdefault(cell_key, []).append(entry)
     lines = ["=== per-cell summary (median across replicates) ==="]
-    for (ratio_label, k_label, w_label), entries in sorted(cells.items()):
+    for (retrieval_label, vio_em_label), entries in sorted(cells.items()):
         speeds = [e["max_speed"] for e in entries if "max_speed" in e]
         bad_counts = [e["bad_pair_count"] for e in entries if "bad_pair_count" in e]
         long_range = [e["long_range_track_count"] for e in entries if "long_range_track_count" in e]
@@ -371,7 +366,7 @@ def print_summary(enriched: list[dict], summary_path: Path) -> None:
         if not speeds:
             continue
         lines.append(
-            f"  {ratio_label} {k_label} {w_label}: n={len(speeds)}  "
+            f"  {retrieval_label} {vio_em_label}: n={len(speeds)}  "
             f"median_max_speed={np.median(speeds):.2f} m/s  "
             f"speed_spread={max(speeds) - min(speeds):.2f}  "
             f"median_bad_pairs={int(np.median(bad_counts))}  "
