@@ -338,16 +338,23 @@ Three escalating implementation forms exist:
   clean.
 - **Form C — inline rejection during incremental mapping.** Hook into
   COLMAP's incremental pipeline so the consistency check fires during
-  registration and rejects bad poses before they enter BA. Effort
-  depends on what pycolmap exposes — best case 1–2 days (pycolmap has
-  a `verify_pose_callback`), medium case 1–2 weeks (decompose into
-  primitives and orchestrate the loop ourselves), hard case multi-week
-  (modify COLMAP C++, fork/upstream). The progress-only callbacks our
-  code currently uses (`initial_image_pair_callback`,
-  `next_image_callback`) don't return decisions — we'd need an
-  upstream callback that does. A ~30-minute pycolmap-source dive
-  before quoting Form C effort with confidence is required and has
-  not been done.
+  registration and rejects bad poses before they enter BA. **Built and
+  landed**: lives in
+  `docker/reconstructor/src/reconstructor/colmap_pipeline.py` as a
+  custom-fork of `pycolmap/python/examples/custom_incremental_pipeline.py`,
+  with the VIO check inserted between successful `register_next_image`
+  and the subsequent `triangulate_image` + local-BA call. Frame
+  unwinding goes through `ObservationManager.deregister_frame` (keeps
+  correspondence graph consistent — `Reconstruction.deregister_frame`
+  alone leaves stale entries). A Python-side skip-list filters
+  `find_next_images` because manual deregistration doesn't bump
+  COLMAP's internal `reg_trials` counter. The check uses
+  `bisect_left` over a sorted-by-timestamp VIO list to grab the N=10
+  nearest already-registered neighbors, then a LO-RANSAC Sim3 fit.
+  Effort came in around the optimistic end (~3 days), well below the
+  earlier "medium / hard" estimates, because COLMAP shipped the
+  reference implementation and every primitive we needed was already
+  Python-bound in pycolmap 4.0.4.
 
 Form A only diagnoses; it does not fix anything by itself, but it's the
 primitive everything else builds on and gives us the metric
@@ -374,10 +381,26 @@ reactive is an output verifier ("validate the matcher's verdict against
 VIO ground truth"). Same reason you want both type checking and
 runtime tests.
 
-Build order recommendation: Form A first (metric infrastructure,
-cheap, always useful), preventive filter second (cheap, addresses bulk
-of cases at low compute cost), Form C only if B's wall-clock /
-ghost-frame properties become a real production problem.
+Build order, as it actually played out: Form C (reactive, inline) was
+built first and is now in `colmap_pipeline.py`. The preventive
+drift-aware retrieval filter is still pending. Both will run together
+initially.
+
+**The custom-fork of the COLMAP incremental pipeline loop in
+`docker/reconstructor/src/reconstructor/colmap_pipeline.py` should
+probably be ripped out later if the preventive drift-aware retrieval
+filter ends up addressing the whole problem on its own.** Forking the
+upstream pipeline is real maintenance debt — every pycolmap upgrade is
+a manual reconciliation, and the reasons not to do it (drift from
+upstream, the cost of understanding the loop body in detail) are real.
+We are deliberately leaving both reactive (Form C, the fork) and
+preventive (pending) in place initially so we can measure whether
+reactive ever fires once preventive is active. If the reactive logs
+show it never (or essentially never) deregisters a frame in real
+captures after the preventive filter is online, that is the trigger to
+revisit removing the fork — restoring `IncrementalPipeline.run()` as a
+single bound call and dropping ~600 lines of forked loop. If reactive
+keeps firing, both stay.
 
 ## What per-frame quality filters could do (and why we deprioritized them)
 
@@ -553,7 +576,19 @@ rather than a removable supplement.
   deliberately not building it now.
 - **The architectural fix is spatial / drift-aware gating on retrieval
   candidates, plus reactive VIO-consistency checking on reconstruction
-  output.** Both, in that order of priority.
+  output.** Both. Form C (reactive) has shipped; the preventive
+  drift-aware retrieval filter is pending.
+- **Form C lives in `colmap_pipeline.py` as a fork of the upstream
+  reference incremental pipeline.** Required because pycolmap exposes
+  no decision callbacks on `IncrementalPipeline.run()` — only progress
+  callbacks — so the per-image VIO check has to live inside our own
+  copy of the loop.
+- **The fork is provisional.** Once the preventive drift-aware
+  retrieval filter is online, observe whether reactive ever fires on
+  real captures. If it doesn't, rip out `colmap_pipeline.py` and
+  collapse back to a single `IncrementalPipeline.run()` call. If it
+  does, both stay. Do not pre-decide either direction before the data
+  exists.
 - **Pose-prior reasoning has two roles**, evaluated independently:
   Role A (BA cost terms — `σ_prior` tuning question, optional, was
   mis-blamed for poisoning BA) and Role B (pair gating — load-bearing
@@ -585,15 +620,25 @@ rather than a removable supplement.
   `generate_image_pairs` is where retrieval / spatial / sequential
   sources are emitted. The covisibility filter
   (`retrieval_covisibility_window`, `retrieval_covisibility_min_support`)
-  lives here, plus the new `write_pairs_with_source()` writer.
+  lives here, plus the new `write_pairs_with_source()` writer. The
+  pending preventive drift-aware retrieval filter slots in here.
 - `docker/reconstructor/src/reconstructor/run_reconstruction.py` —
   where the new `pairs_with_source.csv` + `database.db` artifact
   uploads are wired.
+- `docker/reconstructor/src/reconstructor/colmap_pipeline.py` — the
+  Form C reactive VIO-consistency check lives here. Custom-fork of
+  `pycolmap/python/examples/custom_incremental_pipeline.py` (~600
+  lines). Inline VIO check between `register_next_image` and
+  `triangulate_image` / local BA, with skip-list and
+  `ObservationManager.deregister_frame` unwind. **Slated for removal
+  if the preventive filter subsumes it** — see the "Preventive vs
+  reactive" section.
 - `docker/reconstructor/src/reconstructor/options_builder.py` — where
   per-source RANSAC thresholds (`retrieval_min_inlier_ratio`,
   `retrieval_min_num_inliers`) are or were dispatched. The split was
   reverted to uniform thresholds during the sweep; restoring it is a
-  code change, not just config.
+  code change, not just config. Also exposes
+  `vio_check_max_disagreement_m` consumed by `colmap_pipeline.py`.
 - `docker/reconstructor/SPEC.md` — being updated with the new artifact
   rows; prose commit kept separate from code per repo convention.
 - `.pulsar/memories/reconstruction-validation.md` — the
@@ -618,29 +663,36 @@ across all pair sources (real work happens on retrieval;
 stereo/sequential are no-ops or near-no-ops). Either a generous
 global threshold (e.g., R = 15m on a capture with up to 12m drift)
 or the principled drift-tolerant relative formulation (preferred).
-This is the load-bearing architectural change.
+This is the load-bearing architectural change still outstanding.
+Lives in `docker/reconstructor/src/reconstructor/pairs.py`.
 
-### Form A: VIO-consistency reactive metric
+### Measure whether Form C still fires once preventive is on
 
-Build the local-window post-hoc consistency script. ~80 lines.
-Inputs: capture `frames.csv` + recon `frames.txt` keyed by timestamp.
-For each registered frame, fit a local Umeyama transform over N=10
-nearest-in-time neighbors, predict the frame's recon position from
-its VIO position via that transform, flag if disagreement > ~0.5–1.0m.
-Outputs flagged-frame list and a per-reconstruction
-"fraction-flagged" metric to replace the deprecated
-`prior_drift_residual_rms_m`.
+Once the preventive filter ships, instrument `colmap_pipeline.py` to
+log whether `vio_check` ever rejects a frame on real captures (the
+`_log_vio_check` helper already emits a structured line per call).
+Aggregate across a representative set of captures. If the rejection
+rate is effectively zero, the fork is doing nothing useful and the
+maintenance cost (manual reconciliation on every pycolmap upgrade,
+~600 lines of forked loop body to keep in sync) is paying for
+nothing. Trigger to revisit and probably delete
+`colmap_pipeline.py`, restoring a single `IncrementalPipeline.run()`
+call. If reactive keeps firing, both stay.
 
-### Form B / C decision
+### Form A: VIO-consistency reactive metric (still useful even with Form C)
 
-After Form A and the preventive filter are in place, decide whether
-the additional cost of Form B (two-pass self-healing pipeline) or
-Form C (inline rejection during incremental mapping) is justified
-by residual failure modes. Form C needs a pycolmap-source dive
-(~30 min) before its effort can be estimated with confidence. Don't
-commit to either until Form A's flagged-frame distribution on real
-captures clarifies how often residual aliasing slips through the
-preventive filter.
+The offline diagnostic Form A is *still* worth building. Form C
+rejects bad frames during reconstruction; Form A measures whether the
+output recon is consistent with VIO end-to-end. Useful as a
+per-reconstruction quality metric independent of any single defense
+mechanism. ~80 lines. Inputs: capture `frames.csv` + recon
+`frames.txt` keyed by timestamp. Replaces the deprecated
+`prior_drift_residual_rms_m`. Lower priority than the preventive
+filter now that Form C exists.
+
+### Form B (two-pass)
+
+Not pursued. Form C subsumed it. Documented above for completeness.
 
 ### Re-run the sweep with spatial gating on
 
@@ -651,6 +703,8 @@ with varying R) and observes whether A and B both vanish, only B
 vanishes, or neither vanishes. This is the experiment that
 discriminates the "architectural fix solves both" hypothesis from
 the "B is architectural, A still needs its own treatment" fallback.
+Also the experiment whose null result on B would trigger removing
+the `colmap_pipeline.py` fork.
 
 ### Build the held-out-frame localization harness
 
