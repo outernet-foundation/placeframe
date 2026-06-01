@@ -22,10 +22,6 @@ class ReconstructionOptions(BaseModel):
         default=0,
         description="Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.",
     )
-    retrieval_min_distance_m: float = Field(
-        default=1.0,
-        description="Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing.",
-    )
     pair_min_match_spread: float = Field(
         default=0.08,
         description="Minimum spread of inlier-match keypoint positions, expressed as geometric mean of per-axis standard deviations normalized by image dimensions, taken as the min across the two images. Pairs below the threshold are rejected at the two-view verification stage. Catches the repeated-decor aliasing pattern where matches concentrate on a small set of similar features (e.g. multiple identical artworks in an office) — both images show matches clustered in a tiny region, producing a low spread, while true wide-baseline matches spread across the image. Independent of VIO drift; works monocular. 0 disables the filter.",

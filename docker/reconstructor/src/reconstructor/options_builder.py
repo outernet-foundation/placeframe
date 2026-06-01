@@ -68,9 +68,6 @@ class OptionsBuilder:
     def retrieval_neighbors(self):
         return self.options.retrieval_neighbors
 
-    def retrieval_min_distance_m(self):
-        return self.options.retrieval_min_distance_m
-
     def retrieval_min_score(self):
         return self.options.retrieval_min_score
 

@@ -6,7 +6,7 @@ from itertools import combinations
 from pathlib import Path
 
 import torch
-from numpy import float32, float64, stack, where
+from numpy import float32, float64, where
 from numpy.linalg import norm
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from torch import from_numpy, topk  # type: ignore
@@ -42,7 +42,6 @@ def generate_image_pairs(
     global_descriptors: dict[str, NDArray[float32]],
     sequential_window_m: float,
     retrieval_neighbors: int,
-    retrieval_min_distance_m: float,
     retrieval_min_score: float,
 ) -> list[Pair]:
     sequential_frame_pairs: list[tuple[tuple[str, str], tuple[str, str]]] = []
@@ -90,18 +89,11 @@ def generate_image_pairs(
         image_descriptors = torch.nn.functional.normalize(pooled, dim=1)
         similarity = image_descriptors @ image_descriptors.t()
 
-        image_position_list: list[NDArray[float64]] = []
-        for name in image_names:
-            rig_id, _, rest = name.split("/", 2)
-            frame_id = rest.rsplit(".", 1)[0]
-            translation = rigs[rig_id].frame_poses[frame_id].translation
-            assert translation is not None, f"frame {frame_id} in rig {rig_id} missing VIO translation"
-            image_position_list.append(translation)
-        image_positions = stack(image_position_list).astype(float64, copy=False)
-        image_distances = norm(image_positions[:, None, :] - image_positions[None, :, :], axis=-1)
-        too_close = from_numpy(image_distances < retrieval_min_distance_m).to(similarity.device)
-        scores = similarity.masked_fill(too_close, float("-inf"))
-        scores = scores.masked_fill(scores < retrieval_min_score, float("-inf"))
+        # No VIO-distance gate here: retrieval candidates that overlap with sequential's path-distance
+        # window get deduped against sequential downstream, while genuinely-distant-but-visually-close
+        # candidates (corridor return passes, room revisits) are exactly the loop closures retrieval
+        # exists to find.
+        scores = similarity.masked_fill(similarity < retrieval_min_score, float("-inf"))
         scores = scores.masked_fill(torch.eye(len(image_names), dtype=torch.bool, device=scores.device), float("-inf"))
 
         top_k = topk(scores, min(retrieval_neighbors, len(image_names)), dim=1)

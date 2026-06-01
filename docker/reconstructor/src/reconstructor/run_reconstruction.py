@@ -207,7 +207,6 @@ def run_reconstruction(
         global_descriptors,
         options.sequential_window_m(),
         options.retrieval_neighbors(),
-        options.retrieval_min_distance_m(),
         options.retrieval_min_score(),
     )
     file_name, file_bytes = write_pairs(pairs, WORK_DIR)
