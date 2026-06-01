@@ -44,6 +44,17 @@ def generate_image_pairs(
     retrieval_neighbors: int,
     retrieval_min_score: float,
 ) -> list[Pair]:
+
+    intra_frame_image_pairs = [
+        (
+            f"{rig_id}/{camera_a[0].id}/{frame_id}.jpg",
+            f"{rig_id}/{camera_b[0].id}/{frame_id}.jpg",
+        )
+        for rig_id, rig in rigs.items()
+        for frame_id in rig.frame_poses.keys()
+        for camera_a, camera_b in combinations(rig.cameras.values(), 2)
+    ]
+
     sequential_frame_pairs: list[tuple[tuple[str, str], tuple[str, str]]] = []
     for rig_id, rig in rigs.items():
         frame_ids = sorted(rig.frame_poses.keys(), key=int)
@@ -66,16 +77,6 @@ def generate_image_pairs(
         for camera_b in rigs[rig_id_b].cameras.values()
     ]
 
-    intra_frame_image_pairs = [
-        (
-            f"{rig_id}/{camera_a[0].id}/{frame_id}.jpg",
-            f"{rig_id}/{camera_b[0].id}/{frame_id}.jpg",
-        )
-        for rig_id, rig in rigs.items()
-        for frame_id in rig.frame_poses.keys()
-        for camera_a, camera_b in combinations(rig.cameras.values(), 2)
-    ]
-
     retrieval_image_pairs: list[tuple[str, str]] = []
     if retrieval_neighbors > 0 and global_descriptors:
         image_names = list(global_descriptors.keys())
@@ -83,10 +84,6 @@ def generate_image_pairs(
         image_descriptors = torch.nn.functional.normalize(pooled, dim=1)
         similarity = image_descriptors @ image_descriptors.t()
 
-        # No VIO-distance gate here: retrieval candidates that overlap with sequential's path-distance
-        # window get deduped against sequential downstream, while genuinely-distant-but-visually-close
-        # candidates (corridor return passes, room revisits) are exactly the loop closures retrieval
-        # exists to find.
         scores = similarity.masked_fill(similarity < retrieval_min_score, float("-inf"))
         scores = scores.masked_fill(torch.eye(len(image_names), dtype=torch.bool, device=scores.device), float("-inf"))
 
@@ -97,6 +94,7 @@ def generate_image_pairs(
             (image_names[int(i)], image_names[int(retrieval_indices[i, j])]) for i, j in zip(*where(retrieval_valid))
         ]
 
+    # Canonicalize pair ordering, and deduplicate across sources
     seen: dict[tuple[str, str], PairSource] = {}
     for source, candidate_pairs in [
         (PairSource.INTRA_FRAME_STEREO, intra_frame_image_pairs),
