@@ -137,39 +137,72 @@ def run_colmap_pipeline_with_vio_check(
         raise FileNotFoundError(f"Image path does not exist: {image_path}")
     sfm_output_path.mkdir(exist_ok=True, parents=True)
 
+    # Two-phase ingest. Phase 1 builds a trajectory from short-baseline pairs only
+    # (intra_frame_stereo, sequential, spatial); retrieval pairs are withheld from the database so
+    # they cannot poison the seed or any same-registration PnP solve. Phase 2 ingests retrieval
+    # matches into the same database against the now-stiff Phase 1 reconstruction with existing
+    # frames fixed, triangulates the new loop-closure tracks, then releases the fixed-frame
+    # constraint for a final global BA that absorbs the closures. The pose-graph consistency
+    # check runs in both phases; in Phase 2 its oracle (the existing model) is uncontaminated by
+    # construction, which is the regime where it carries the most leverage.
+    phase_1_pairs = [pair for pair in pairs if pair.source != PairSource.RETRIEVAL]
+    phase_2_pairs = [pair for pair in pairs if pair.source == PairSource.RETRIEVAL]
+
     with Database.open(str(database_path)) as database:  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
         pipeline_context = PipelineContext(database=database, options=options, publisher=publisher)
-        colmap_image_ids, image_cameras, vio_data_by_image_id = _seed_database(
-            pipeline_context, rigs, keypoints, pairs, match_indices
-        )
-
-        publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, len(pairs))
-        _verify_two_view_geometries(pipeline_context, image_cameras, keypoints, pairs, match_indices, colmap_image_ids)
-        metrics.build_verified_matches_metrics(database, pairs)
-
-        # Phase total is the candidate image count — an upper bound, since COLMAP may drop images that
-        # fail to register or get filtered after bundle adjustment.
-        publisher.set_phase(ReconstructionStatus.RECONSTRUCTING, len(colmap_image_ids))
+        colmap_image_ids, image_cameras, vio_data_by_image_id = _seed_database_images(pipeline_context, rigs, keypoints)
         pair_source_by_image_pair: dict[tuple[int, int], PairSource] = {}
         for pair in pairs:
             image_id_a = colmap_image_ids[pair.image_a]
             image_id_b = colmap_image_ids[pair.image_b]
             image_id_pair = (image_id_a, image_id_b) if image_id_a < image_id_b else (image_id_b, image_id_a)
             pair_source_by_image_pair[image_id_pair] = pair.source
-        reconstruction_manager = _run_incremental_reconstruction(
-            pipeline_context, image_path, vio_data_by_image_id, pair_source_by_image_pair
+        pose_graph_rejections: dict[PairSource, int] = dict.fromkeys(PairSource, 0)
+
+        _write_pair_matches(pipeline_context, phase_1_pairs, match_indices, colmap_image_ids)
+        publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, len(phase_1_pairs))
+        _verify_two_view_geometries(
+            pipeline_context, image_cameras, keypoints, phase_1_pairs, match_indices, colmap_image_ids
         )
+
+        # Phase total is the candidate image count — an upper bound, since COLMAP may drop images that
+        # fail to register or get filtered after bundle adjustment.
+        publisher.set_phase(ReconstructionStatus.RECONSTRUCTING, len(colmap_image_ids))
+        reconstruction_manager = _run_incremental_reconstruction(
+            pipeline_context,
+            image_path,
+            vio_data_by_image_id,
+            pair_source_by_image_pair,
+            pose_graph_rejections,
+        )
+
+        if phase_2_pairs and reconstruction_manager.size() > 0:
+            _write_pair_matches(pipeline_context, phase_2_pairs, match_indices, colmap_image_ids)
+            publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, len(phase_2_pairs))
+            _verify_two_view_geometries(
+                pipeline_context, image_cameras, keypoints, phase_2_pairs, match_indices, colmap_image_ids
+            )
+            publisher.set_phase(ReconstructionStatus.RECONSTRUCTING, len(colmap_image_ids))
+            _run_phase2_retrieval_ingest(
+                pipeline_context,
+                reconstruction_manager,
+                phase_2_pairs,
+                colmap_image_ids,
+                pair_source_by_image_pair,
+                pose_graph_rejections,
+            )
+
+        metrics.build_verified_matches_metrics(database, pairs)
+        _log_pose_graph_summary(pose_graph_rejections)
 
     reconstruction_manager.write(str(sfm_output_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
     return {index: reconstruction_manager.get(index) for index in range(reconstruction_manager.size())}
 
 
-def _seed_database(
+def _seed_database_images(
     pipeline_context: PipelineContext,
     rigs: dict[str, Rig],
     keypoints: dict[str, Any],
-    pairs: list[Pair],
-    match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
 ) -> tuple[dict[str, int], dict[str, ColmapCamera], dict[int, VioFrameData]]:
     position_covariance = (pipeline_context.options.pose_prior_position_sigma_m() ** 2) * eye(3, dtype=float64)
 
@@ -222,14 +255,21 @@ def _seed_database(
 
     apply_rig_config([rig.colmap_rig_config for rig in rigs.values()], pipeline_context.database)
 
+    return colmap_image_ids, image_cameras, vio_data_by_image_id
+
+
+def _write_pair_matches(
+    pipeline_context: PipelineContext,
+    pairs: list[Pair],
+    match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
+    colmap_image_ids: dict[str, int],
+) -> None:
     for pair in pairs:
         pipeline_context.database.write_matches(
             colmap_image_ids[pair.image_a],
             colmap_image_ids[pair.image_b],
             stack(match_indices[(pair.image_a, pair.image_b)], axis=1).astype(uint32, copy=False),
         )
-
-    return colmap_image_ids, image_cameras, vio_data_by_image_id
 
 
 def _verify_two_view_geometries(
@@ -322,6 +362,7 @@ def _run_incremental_reconstruction(
     image_path: Path,
     vio_data_by_image_id: dict[int, VioFrameData],
     pair_source_by_image_pair: dict[tuple[int, int], PairSource],
+    pose_graph_rejections: dict[PairSource, int],
 ) -> ReconstructionManager:
     # COLMAP assigns rig_t IDs at apply_rig_config time; harvest them so the incremental BA
     # loop can pin every rig's sensor_from_rig transform.
@@ -348,7 +389,7 @@ def _run_incremental_reconstruction(
         vio_check_max_disagreement_m=pipeline_context.options.vio_check_max_disagreement_m(),
         pose_graph_options=pipeline_context.options.pair_pose_graph_options(),
         pair_source_by_image_pair=pair_source_by_image_pair,
-        pose_graph_rejections=dict.fromkeys(PairSource, 0),
+        pose_graph_rejections=pose_graph_rejections,
         publisher=pipeline_context.publisher,
     )
 
@@ -370,11 +411,91 @@ def _run_incremental_reconstruction(
             if outcome == TrialOutcome.NEXT_RELAXATION:
                 break
             if outcome == TrialOutcome.COMPLETE:
-                _log_pose_graph_summary(context.pose_graph_rejections)
                 return reconstruction_manager
 
-    _log_pose_graph_summary(context.pose_graph_rejections)
     return reconstruction_manager
+
+
+def _run_phase2_retrieval_ingest(
+    pipeline_context: PipelineContext,
+    reconstruction_manager: ReconstructionManager,
+    phase_2_pairs: list[Pair],
+    colmap_image_ids: dict[str, int],
+    pair_source_by_image_pair: dict[tuple[int, int], PairSource],
+    pose_graph_rejections: dict[PairSource, int],
+) -> None:
+    # Retrieval-ingest pass against the converged Phase 1 reconstruction. Fresh
+    # IncrementalPipeline binds a fresh DatabaseCache to the augmented database (now containing
+    # retrieval matches and two-view geometries), and the new IncrementalMapper resumes the
+    # existing Reconstruction via begin_reconstruction. fix_existing_frames pins Phase 1 poses
+    # during triangulation, complete_and_merge_tracks, and retriangulate so the retrieval
+    # correspondences cannot pull the model toward themselves before the pose-graph
+    # consistency check has a stiff oracle to judge them against. The flag is released for
+    # the final global BA so the closures can deform the graph.
+    pipeline_options = pipeline_context.options.incremental_pipeline_options({
+        rig.rig_id for rig in pipeline_context.database.read_all_rigs()
+    })
+
+    best_index = max(
+        range(reconstruction_manager.size()),
+        key=lambda index: reconstruction_manager.get(index).num_reg_images(),
+    )
+    best_reconstruction = reconstruction_manager.get(best_index)
+
+    controller = IncrementalPipeline(pipeline_options, pipeline_context.database, reconstruction_manager)
+    mapper = IncrementalMapper(controller.database_cache)
+    mapper.begin_reconstruction(best_reconstruction)
+
+    mapper_options = pipeline_options.get_mapper()
+    mapper_options.fix_existing_frames = True
+
+    triangulation_options = pipeline_options.get_triangulation()
+
+    context = IncrementalContext(
+        mapper=mapper,
+        mapper_options=mapper_options,
+        pipeline_options=pipeline_options,
+        controller=controller,
+        reconstruction_manager=reconstruction_manager,
+        database=pipeline_context.database,
+        skipped_image_ids=set(),
+        vio_data_by_image_id={},
+        sorted_vio_entries=[],
+        vio_check_max_disagreement_m=pipeline_context.options.vio_check_max_disagreement_m(),
+        pose_graph_options=pipeline_context.options.pair_pose_graph_options(),
+        pair_source_by_image_pair=pair_source_by_image_pair,
+        pose_graph_rejections=pose_graph_rejections,
+        publisher=pipeline_context.publisher,
+    )
+
+    registered_image_ids = set(best_reconstruction.reg_image_ids())
+    retrieval_touched_image_ids: set[int] = set()
+    for pair in phase_2_pairs:
+        image_id_a = colmap_image_ids[pair.image_a]
+        image_id_b = colmap_image_ids[pair.image_b]
+        if image_id_a in registered_image_ids:
+            retrieval_touched_image_ids.add(image_id_a)
+        if image_id_b in registered_image_ids:
+            retrieval_touched_image_ids.add(image_id_b)
+
+    print(
+        f"[phase2] retrieval pairs={len(phase_2_pairs)} touched registered images="
+        f"{len(retrieval_touched_image_ids)} of {len(registered_image_ids)} total"
+    )
+
+    for image_id in retrieval_touched_image_ids:
+        mapper.triangulate_image(triangulation_options, image_id)
+        _check_and_excise_poisoned_pairs(context, best_reconstruction, image_id)
+
+    mapper.complete_and_merge_tracks(triangulation_options)
+    mapper.retriangulate(triangulation_options)
+
+    mapper_options.fix_existing_frames = False
+    _iterative_global_refinement(pipeline_options, mapper_options, mapper)
+
+    best_reconstruction.update_point_3d_errors()
+    mapper.end_reconstruction(False)
+    align_reconstruction_to_orig_rig_scales(controller.database_cache.rigs, best_reconstruction)
 
 
 def _run_single_trial(context: IncrementalContext) -> TrialOutcome:
@@ -685,7 +806,10 @@ def _excise_pair_observations(
         new_kp_idx = int(match[0]) if new_is_low else int(match[1])
         partner_kp_idx = int(match[1]) if new_is_low else int(match[0])
         shared_point3d_id = new_image.point2D(new_kp_idx).point3D_id
-        if shared_point3d_id != INVALID_POINT3D_ID and shared_point3d_id == partner_image.point2D(partner_kp_idx).point3D_id:
+        if (
+            shared_point3d_id != INVALID_POINT3D_ID
+            and shared_point3d_id == partner_image.point2D(partner_kp_idx).point3D_id
+        ):
             observation_manager.delete_observation(new_image_id, new_kp_idx)
             excised_count += 1
     return excised_count
