@@ -19,7 +19,7 @@ class ReconstructionOptions(BaseModel):
         description="VIO-path-distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe whose cumulative segment-by-segment path length along the VIO trajectory is within this many metres is paired with it. Path distance — not straight-line distance — so doubling back along the trajectory (e.g. corridor return pass) walks away from earlier frames rather than landing on them. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc.",
     )
     retrieval_neighbors: int = Field(
-        default=0,
+        default=20,
         description="Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.",
     )
     retrieval_min_score: float = Field(
