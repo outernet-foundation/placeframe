@@ -2672,32 +2672,33 @@ components:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         options:
-          ransac_max_error: 1.2315135367772556
+          ransac_max_error: 1.0246457001441578
           held_out_frame_timestamps:
-          - 9
-          - 9
+          - 6
+          - 6
           pair_max_displacement_drift_rate_m_per_s: 3.616076749251911
-          bundle_adjustment_global_function_tolerance: 9.965781217890562
-          retrieval_min_score: 2.027123023002322
-          retrieval_min_num_inliers: 7
+          pair_min_match_spread: 2.027123023002322
+          bundle_adjustment_global_function_tolerance: 9.369310271410669
+          retrieval_min_score: 4.145608029883936
+          retrieval_min_num_inliers: 1
           retrieval_neighbors: 2
-          max_keypoints_per_image: 8
-          mapper_filter_max_reprojection_error: 4.965218492984954
-          triangulation_minimum_angle: 1.1730742509559433
-          bundle_adjustment_global_frames_ratio: 5.025004791520295
+          max_keypoints_per_image: 9
+          mapper_filter_max_reprojection_error: 5.025004791520295
+          triangulation_minimum_angle: 4.965218492984954
+          bundle_adjustment_global_frames_ratio: 9.965781217890562
           retrieval_min_distance_m: 7.061401241503109
-          two_view_min_num_inliers: 1
+          two_view_min_num_inliers: 6
           spatial_max_distance_m: 5.637376656633329
-          retrieval_min_inlier_ratio: 6.84685269835264
-          retrieval_covisibility_min_support: 7
-          vio_check_max_disagreement_m: 6.683562403749608
+          retrieval_min_inlier_ratio: 7.457744773683766
+          retrieval_covisibility_min_support: 1
+          vio_check_max_disagreement_m: 8.762042012749001
           spatial_neighbors: 5
           pair_max_displacement_scene_m: 9.301444243932576
-          ransac_min_inlier_ratio: 1.0246457001441578
-          pose_prior_position_sigma_m: 9.369310271410669
+          ransac_min_inlier_ratio: 1.4894159098541704
+          pose_prior_position_sigma_m: 6.683562403749608
           sequential_window: 1
           deterministic_seed: 0
-          retrieval_covisibility_window: 4
+          retrieval_covisibility_window: 7
           keyframe_min_distance_m: 6.027456183070403
         reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
@@ -4029,32 +4030,33 @@ components:
     ReconstructionCreateWithOptions:
       example:
         options:
-          ransac_max_error: 1.2315135367772556
+          ransac_max_error: 1.0246457001441578
           held_out_frame_timestamps:
-          - 9
-          - 9
+          - 6
+          - 6
           pair_max_displacement_drift_rate_m_per_s: 3.616076749251911
-          bundle_adjustment_global_function_tolerance: 9.965781217890562
-          retrieval_min_score: 2.027123023002322
-          retrieval_min_num_inliers: 7
+          pair_min_match_spread: 2.027123023002322
+          bundle_adjustment_global_function_tolerance: 9.369310271410669
+          retrieval_min_score: 4.145608029883936
+          retrieval_min_num_inliers: 1
           retrieval_neighbors: 2
-          max_keypoints_per_image: 8
-          mapper_filter_max_reprojection_error: 4.965218492984954
-          triangulation_minimum_angle: 1.1730742509559433
-          bundle_adjustment_global_frames_ratio: 5.025004791520295
+          max_keypoints_per_image: 9
+          mapper_filter_max_reprojection_error: 5.025004791520295
+          triangulation_minimum_angle: 4.965218492984954
+          bundle_adjustment_global_frames_ratio: 9.965781217890562
           retrieval_min_distance_m: 7.061401241503109
-          two_view_min_num_inliers: 1
+          two_view_min_num_inliers: 6
           spatial_max_distance_m: 5.637376656633329
-          retrieval_min_inlier_ratio: 6.84685269835264
-          retrieval_covisibility_min_support: 7
-          vio_check_max_disagreement_m: 6.683562403749608
+          retrieval_min_inlier_ratio: 7.457744773683766
+          retrieval_covisibility_min_support: 1
+          vio_check_max_disagreement_m: 8.762042012749001
           spatial_neighbors: 5
           pair_max_displacement_scene_m: 9.301444243932576
-          ransac_min_inlier_ratio: 1.0246457001441578
-          pose_prior_position_sigma_m: 9.369310271410669
+          ransac_min_inlier_ratio: 1.4894159098541704
+          pose_prior_position_sigma_m: 6.683562403749608
           sequential_window: 1
           deterministic_seed: 0
-          retrieval_covisibility_window: 4
+          retrieval_covisibility_window: 7
           keyframe_min_distance_m: 6.027456183070403
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -4209,32 +4211,33 @@ components:
       type: object
     ReconstructionOptions:
       example:
-        ransac_max_error: 1.2315135367772556
+        ransac_max_error: 1.0246457001441578
         held_out_frame_timestamps:
-        - 9
-        - 9
+        - 6
+        - 6
         pair_max_displacement_drift_rate_m_per_s: 3.616076749251911
-        bundle_adjustment_global_function_tolerance: 9.965781217890562
-        retrieval_min_score: 2.027123023002322
-        retrieval_min_num_inliers: 7
+        pair_min_match_spread: 2.027123023002322
+        bundle_adjustment_global_function_tolerance: 9.369310271410669
+        retrieval_min_score: 4.145608029883936
+        retrieval_min_num_inliers: 1
         retrieval_neighbors: 2
-        max_keypoints_per_image: 8
-        mapper_filter_max_reprojection_error: 4.965218492984954
-        triangulation_minimum_angle: 1.1730742509559433
-        bundle_adjustment_global_frames_ratio: 5.025004791520295
+        max_keypoints_per_image: 9
+        mapper_filter_max_reprojection_error: 5.025004791520295
+        triangulation_minimum_angle: 4.965218492984954
+        bundle_adjustment_global_frames_ratio: 9.965781217890562
         retrieval_min_distance_m: 7.061401241503109
-        two_view_min_num_inliers: 1
+        two_view_min_num_inliers: 6
         spatial_max_distance_m: 5.637376656633329
-        retrieval_min_inlier_ratio: 6.84685269835264
-        retrieval_covisibility_min_support: 7
-        vio_check_max_disagreement_m: 6.683562403749608
+        retrieval_min_inlier_ratio: 7.457744773683766
+        retrieval_covisibility_min_support: 1
+        vio_check_max_disagreement_m: 8.762042012749001
         spatial_neighbors: 5
         pair_max_displacement_scene_m: 9.301444243932576
-        ransac_min_inlier_ratio: 1.0246457001441578
-        pose_prior_position_sigma_m: 9.369310271410669
+        ransac_min_inlier_ratio: 1.4894159098541704
+        pose_prior_position_sigma_m: 6.683562403749608
         sequential_window: 1
         deterministic_seed: 0
-        retrieval_covisibility_window: 4
+        retrieval_covisibility_window: 7
         keyframe_min_distance_m: 6.027456183070403
       properties:
         deterministic_seed:
@@ -4297,6 +4300,19 @@ components:
             aliased pairs (e.g. retrieval matches between physically distant frames
             seconds apart). Calibrate per device class against post-hoc VIO↔recon
             residuals.
+          format: double
+          type: number
+        pair_min_match_spread:
+          default: 0.08
+          description: "Minimum spread of inlier-match keypoint positions, expressed\
+            \ as geometric mean of per-axis standard deviations normalized by image\
+            \ dimensions, taken as the min across the two images. Pairs below the\
+            \ threshold are rejected at the two-view verification stage. Catches the\
+            \ repeated-decor aliasing pattern where matches concentrate on a small\
+            \ set of similar features (e.g. multiple identical artworks in an office)\
+            \ — both images show matches clustered in a tiny region, producing a low\
+            \ spread, while true wide-baseline matches spread across the image. Independent\
+            \ of VIO drift; works monocular. 0 disables the filter."
           format: double
           type: number
         retrieval_min_score:

@@ -43,6 +43,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="retrievalMinDistanceM">Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent. (default to 1.0D).</param>
         /// <param name="pairMaxDisplacementSceneM">Max plausible scene-radius component of the displacement bound used to reject any candidate pair (a,b) whose VIO straight-line displacement exceeds the bound. Combined with pair_max_displacement_drift_rate_m_per_s: a pair is rejected when |vio_pos(b)−vio_pos(a)| &gt; pair_max_displacement_scene_m + pair_max_displacement_drift_rate_m_per_s · |t_b−t_a|. Applied uniformly across all pair sources; stereo and short-temporal pairs trivially satisfy any reasonable bound. No-op when positions are absent. (default to 10.0D).</param>
         /// <param name="pairMaxDisplacementDriftRateMPerS">VIO drift-rate slack added to the displacement bound per second of time gap between the two frames of a candidate pair. Lets long-temporal-gap true loop closures survive accumulated drift while still rejecting short-temporal-gap aliased pairs (e.g. retrieval matches between physically distant frames seconds apart). Calibrate per device class against post-hoc VIO↔recon residuals. (default to 0.1D).</param>
+        /// <param name="pairMinMatchSpread">Minimum spread of inlier-match keypoint positions, expressed as geometric mean of per-axis standard deviations normalized by image dimensions, taken as the min across the two images. Pairs below the threshold are rejected at the two-view verification stage. Catches the repeated-decor aliasing pattern where matches concentrate on a small set of similar features (e.g. multiple identical artworks in an office) — both images show matches clustered in a tiny region, producing a low spread, while true wide-baseline matches spread across the image. Independent of VIO drift; works monocular. 0 disables the filter. (default to 0.08D).</param>
         /// <param name="retrievalMinScore">Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA. (default to 0.35D).</param>
         /// <param name="retrievalCovisibilityWindow">Half-width (in temporal keyframe indices) of the neighborhood used to validate retrieval pairs against perceptual aliasing. A pair (A,B) is supported by another retrieval pair (A&#39;,B&#39;) iff both endpoints fall within this window of the original pair on their respective trajectories. (default to 3).</param>
         /// <param name="retrievalCovisibilityMinSupport">Minimum count of supporting retrieval pairs within retrieval_covisibility_window required for a retrieval candidate to be kept; aliased pairs (e.g. two similar paintings in different rooms) appear as singletons and get dropped, while true loop closures appear as bands and survive. 0 disables the filter. (default to 2).</param>
@@ -287,6 +288,31 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializePairMaxDisplacementDriftRateMPerS()
         {
             return _flagPairMaxDisplacementDriftRateMPerS;
+        }
+        /// <summary>
+        /// Minimum spread of inlier-match keypoint positions, expressed as geometric mean of per-axis standard deviations normalized by image dimensions, taken as the min across the two images. Pairs below the threshold are rejected at the two-view verification stage. Catches the repeated-decor aliasing pattern where matches concentrate on a small set of similar features (e.g. multiple identical artworks in an office) — both images show matches clustered in a tiny region, producing a low spread, while true wide-baseline matches spread across the image. Independent of VIO drift; works monocular. 0 disables the filter.
+        /// </summary>
+        /// <value>Minimum spread of inlier-match keypoint positions, expressed as geometric mean of per-axis standard deviations normalized by image dimensions, taken as the min across the two images. Pairs below the threshold are rejected at the two-view verification stage. Catches the repeated-decor aliasing pattern where matches concentrate on a small set of similar features (e.g. multiple identical artworks in an office) — both images show matches clustered in a tiny region, producing a low spread, while true wide-baseline matches spread across the image. Independent of VIO drift; works monocular. 0 disables the filter.</value>
+        [DataMember(Name = "pair_min_match_spread", EmitDefaultValue = false)]
+        public double PairMinMatchSpread
+        {
+            get{ return _PairMinMatchSpread;}
+            set
+            {
+                _PairMinMatchSpread = value;
+                _flagPairMinMatchSpread = true;
+            }
+        }
+        private double _PairMinMatchSpread = 0.08D;
+        private bool _flagPairMinMatchSpread;
+
+        /// <summary>
+        /// Returns false as PairMinMatchSpread should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePairMinMatchSpread()
+        {
+            return _flagPairMinMatchSpread;
         }
         /// <summary>
         /// Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.
@@ -705,6 +731,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  RetrievalMinDistanceM: ").Append(RetrievalMinDistanceM).Append("\n");
             sb.Append("  PairMaxDisplacementSceneM: ").Append(PairMaxDisplacementSceneM).Append("\n");
             sb.Append("  PairMaxDisplacementDriftRateMPerS: ").Append(PairMaxDisplacementDriftRateMPerS).Append("\n");
+            sb.Append("  PairMinMatchSpread: ").Append(PairMinMatchSpread).Append("\n");
             sb.Append("  RetrievalMinScore: ").Append(RetrievalMinScore).Append("\n");
             sb.Append("  RetrievalCovisibilityWindow: ").Append(RetrievalCovisibilityWindow).Append("\n");
             sb.Append("  RetrievalCovisibilityMinSupport: ").Append(RetrievalCovisibilityMinSupport).Append("\n");
