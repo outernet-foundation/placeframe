@@ -18,7 +18,7 @@ CREATE TABLE capture_sessions(
   recorded_at timestamptz
     NOT NULL
     DEFAULT now(),
-  name text,
+  name text NOT NULL,
   device_type device_type
     NOT NULL,
 

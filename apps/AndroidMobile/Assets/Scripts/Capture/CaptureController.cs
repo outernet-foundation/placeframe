@@ -76,7 +76,7 @@ namespace Placeframe.Client
                     (loggedIn, captureStatus) => loggedIn && captureStatus == CaptureStatus.Stopping)
                     .Subscribe(isStoppingAndLoggedIn =>
                     {
-                        if (isStoppingAndLoggedIn) StopCaptureForCurrentDevice().Forget();
+                        if (isStoppingAndLoggedIn) StopCaptureForCurrentDevice(App.state.pendingCaptureName.value).Forget();
                     }),
                 ObservableCombineValues(
                     App.state.loggedIn,
@@ -107,7 +107,7 @@ namespace Placeframe.Client
                     .SubscribeWithId(
                         onAdd: (subscriptionId, capture) =>
                             _nameSubscriptions[subscriptionId] = capture.name.Subscribe(
-                                name => OnCaptureNameChanged(capture.id, name)),
+                                name => OnCaptureNameChanged(capture, name)),
                         onRemove: (subscriptionId, capture) =>
                         {
                             if (_nameSubscriptions.TryGetValue(subscriptionId, out var sub))
@@ -199,16 +199,18 @@ namespace Placeframe.Client
             App.state.captureStatus.value = CaptureStatus.Capturing;
         }
 
-        private static async UniTask StopCaptureForCurrentDevice()
+        private static async UniTask StopCaptureForCurrentDevice(string name)
         {
             var deviceType = App.state.captureMode.value;
             switch (deviceType)
             {
                 case DeviceType.ARFoundation:
-                    CaptureManager.StopCapture();
+                    var arId = CaptureManager.StopCapture();
+                    _localCaptureNames[arId] = name;
+                    SaveLocalCaptureNames();
                     break;
                 case DeviceType.Zed:
-                    await ZedCaptureController.StopCapture();
+                    await ZedCaptureController.StopCapture(name);
                     break;
                 default:
                     throw new ArgumentException($"Unknown DeviceType {deviceType}");
@@ -216,18 +218,54 @@ namespace Placeframe.Client
             App.state.captureStatus.value = CaptureStatus.Idle;
         }
 
-        private static void OnCaptureNameChanged(Guid captureId, string name)
+        private static void OnCaptureNameChanged(CaptureState capture, string name)
         {
-            if (string.IsNullOrEmpty(name))
+            if (string.IsNullOrWhiteSpace(name))
+                return;
+            var trimmed = name.Trim();
+            var captureId = capture.id;
+
+            if (capture.type.value == DeviceType.ARFoundation)
             {
-                if (_localCaptureNames.Remove(captureId))
+                if (!_localCaptureNames.TryGetValue(captureId, out var existing) || existing != trimmed)
+                {
+                    _localCaptureNames[captureId] = trimmed;
                     SaveLocalCaptureNames();
-                return;
+                }
             }
-            if (_localCaptureNames.TryGetValue(captureId, out var existing) && existing == name)
-                return;
-            _localCaptureNames[captureId] = name;
-            SaveLocalCaptureNames();
+            else
+            {
+                if (capture.hasLocalFiles.value)
+                    PatchBoxName(captureId, trimmed).Forget();
+            }
+
+            if (capture.serverCaptureExists.value)
+                PatchApiName(captureId, trimmed).Forget();
+        }
+
+        private static async UniTask PatchApiName(Guid captureId, string name)
+        {
+            try
+            {
+                await VisualPositioningSystem.Api.UpdateCaptureSessionAsync(
+                    captureId, new CaptureSessionUpdate { Name = name });
+            }
+            catch (Exception exception)
+            {
+                Log.Info(LogGroup.Capture, exception, "Rename PATCH to API failed for {CaptureId}", captureId);
+            }
+        }
+
+        private static async UniTask PatchBoxName(Guid captureId, string name)
+        {
+            try
+            {
+                await ZedCaptureController.UpdateCaptureSessionName(captureId, name);
+            }
+            catch (Exception exception)
+            {
+                Log.Info(LogGroup.Capture, exception, "Rename PATCH to box failed for {CaptureId}", captureId);
+            }
         }
 
         private static void SaveLocalCaptureNames()
@@ -288,7 +326,10 @@ namespace Placeframe.Client
                         var remote = remotes.GetValueOrDefault(id);
                         var primary = remote?.Reconstructions.FirstOrDefault();
                         var hasLocal = locals.TryGetValue(id, out var local);
-                        state.name.value = remote?.CaptureSession.Name ?? _localCaptureNames.GetValueOrDefault(id);
+                        state.name.value = remote?.CaptureSession.Name
+                            ?? local.Name
+                            ?? _localCaptureNames.GetValueOrDefault(id)
+                            ?? id.ToString();
                         state.hasLocalFiles.value = hasLocal;
                         state.recordedAt.value = remote?.CaptureSession.RecordedAt ?? local.RecordedAt;
                         state.type.value = remote?.CaptureSession.DeviceType ?? local.Type;
