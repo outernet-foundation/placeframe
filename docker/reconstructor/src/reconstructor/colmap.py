@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from math import acos, pi
 from pathlib import Path
 from shutil import rmtree
 from typing import Any, Iterator, ValuesView, cast
@@ -36,6 +37,8 @@ from pycolmap import (
     Rigid3d,
     SensorType,
     Sim3d,
+    TwoViewGeometry,
+    TwoViewGeometryConfiguration,
     data_t,
     sensor_t,
 )
@@ -45,7 +48,7 @@ from pycolmap._core import incremental_mapping  # noqa: PLC2701 — no public AP
 from scipy.spatial.transform import Rotation
 
 from .metrics_builder import MetricsBuilder
-from .options_builder import OptionsBuilder
+from .options_builder import OptionsBuilder, PairVioEssentialMatrixOptions
 from .progress_publisher import ReconstructionPublisher
 from .rig import FramePose, Rig
 
@@ -139,6 +142,12 @@ def run_colmap_reconstruction(
         verifier_options=GeometricVerifierOptions(rig_verification=True),
         two_view_geometry_options=options.two_view_geometry_options(),
     )
+
+    # Post-verification VIO/EM consistency filter. Rig verification confirms each frame-pair is
+    # internally consistent across its constituent image-pairs, but accepts internally-consistent
+    # pairs whose absolute motion disagrees with VIO. Rejecting those here catches the residual
+    # "adjacent keyframes placed too far apart" failure mode rig verification cannot see.
+    _apply_vio_em_check(colmap_db_path, colmap_image_ids, pairs, rigs, options.pair_vio_essential_matrix_options())
 
     # Compute and store verified matches metrics
     metrics.build_verified_matches_metrics(colmap_db_path, pairs)
@@ -284,6 +293,97 @@ def _registered_frames(
                     rig_from_world = cast(Rigid3d, cast(Frame, reconstruction.images[image_id].frame).rig_from_world)  # type: ignore
                     yield int(frame_id), transform, rig_from_world
                     break
+
+
+def _apply_vio_em_check(
+    colmap_db_path: Path,
+    colmap_image_ids: dict[str, int],
+    pairs: list[tuple[str, str]],
+    rigs: dict[str, Rig],
+    vio_em_options: PairVioEssentialMatrixOptions,
+) -> None:
+    rotation_threshold_rad = vio_em_options.max_rotation_disagreement_deg * pi / 180.0
+    translation_threshold_rad = vio_em_options.max_translation_direction_deg * pi / 180.0
+    if vio_em_options.max_rotation_disagreement_deg <= 0 and vio_em_options.max_translation_direction_deg <= 0:
+        return
+
+    cam_from_rig_by_image_prefix: dict[str, Rigid3d] = {
+        camera.image_prefix: camera.cam_from_rig
+        for rig in rigs.values()
+        for camera in rig.colmap_rig_config.cameras
+        if camera.cam_from_rig is not None
+    }
+    rig_from_world_by_rig_and_frame: dict[tuple[str, str], Rigid3d] = {}
+    for rig_id, rig in rigs.items():
+        for frame_id, pose in rig.frame_poses.items():
+            if pose.rotation is None or pose.translation is None:
+                continue
+            rig_from_world_by_rig_and_frame[(rig_id, frame_id)] = Rigid3d(
+                rotation=pose.rotation, translation=pose.translation
+            )
+
+    database = Database.open(str(colmap_db_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
+    checked = 0
+    skipped_no_vio = 0
+    skipped_short_baseline = 0
+    rejected_rotation = 0
+    rejected_translation = 0
+    empty_tvg = TwoViewGeometry()
+    for a, b in pairs:
+        tvg: TwoViewGeometry = database.read_two_view_geometry(colmap_image_ids[a], colmap_image_ids[b])
+        if tvg.config == TwoViewGeometryConfiguration.UNDEFINED:
+            continue
+        if tvg.cam2_from_cam1 is None:
+            continue
+
+        rig_a, _, frame_a_dot = a.split("/", 2)
+        rig_b, _, frame_b_dot = b.split("/", 2)
+        frame_a = frame_a_dot.rsplit(".", 1)[0]
+        frame_b = frame_b_dot.rsplit(".", 1)[0]
+        cam_a_from_rig = cam_from_rig_by_image_prefix.get(a.rsplit("/", 1)[0] + "/")
+        cam_b_from_rig = cam_from_rig_by_image_prefix.get(b.rsplit("/", 1)[0] + "/")
+        rig_a_from_world = rig_from_world_by_rig_and_frame.get((rig_a, frame_a))
+        rig_b_from_world = rig_from_world_by_rig_and_frame.get((rig_b, frame_b))
+        if cam_a_from_rig is None or cam_b_from_rig is None or rig_a_from_world is None or rig_b_from_world is None:
+            skipped_no_vio += 1
+            continue
+
+        recon_translation = asarray(tvg.cam2_from_cam1.translation, dtype=float64).reshape(3)
+        recon_baseline = float(norm(recon_translation))
+        if recon_baseline < vio_em_options.min_baseline_m:
+            skipped_short_baseline += 1
+            continue
+
+        vio_cam2_from_cam1 = cam_b_from_rig * rig_b_from_world * rig_a_from_world.inverse() * cam_a_from_rig.inverse()
+        checked += 1
+
+        rotation_bad = (
+            vio_em_options.max_rotation_disagreement_deg > 0
+            and tvg.cam2_from_cam1.rotation.angle_to(vio_cam2_from_cam1.rotation) > rotation_threshold_rad
+        )
+        translation_bad = False
+        if vio_em_options.max_translation_direction_deg > 0:
+            vio_translation = asarray(vio_cam2_from_cam1.translation, dtype=float64).reshape(3)
+            vio_baseline = float(norm(vio_translation))
+            if vio_baseline >= vio_em_options.min_baseline_m:
+                cosine = float((recon_translation @ vio_translation) / (recon_baseline * vio_baseline))
+                cosine = max(-1.0, min(1.0, cosine))
+                translation_angle = acos(cosine)
+                translation_bad = translation_angle > translation_threshold_rad
+
+        if rotation_bad:
+            rejected_rotation += 1
+        if translation_bad:
+            rejected_translation += 1
+        if rotation_bad or translation_bad:
+            database.write_two_view_geometry(colmap_image_ids[a], colmap_image_ids[b], empty_tvg)
+
+    database.close()
+    print(
+        f"[vio_em_check] checked={checked} rejected_rotation={rejected_rotation} "
+        f"rejected_translation={rejected_translation} skipped_no_vio={skipped_no_vio} "
+        f"skipped_short_baseline={skipped_short_baseline}"
+    )
 
 
 class _IncrementalMappingProgress:
