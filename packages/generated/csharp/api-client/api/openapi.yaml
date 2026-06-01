@@ -2672,31 +2672,33 @@ components:
       example:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         options:
-          ransac_max_error: 4.145608029883936
-          retrieval_min_inlier_ratio: 1.0246457001441578
-          retrieval_covisibility_min_support: 2
-          vio_check_max_disagreement_m: 9.965781217890562
-          spatial_neighbors: 5
-          ransac_min_inlier_ratio: 7.386281948385884
+          ransac_max_error: 1.2315135367772556
           held_out_frame_timestamps:
-          - 6
-          - 6
-          bundle_adjustment_global_function_tolerance: 4.965218492984954
-          retrieval_min_score: 9.301444243932576
-          retrieval_min_num_inliers: 1
-          pose_prior_position_sigma_m: 5.025004791520295
-          sequential_window: 1
-          deterministic_seed: 0
+          - 9
+          - 9
+          pair_max_displacement_drift_rate_m_per_s: 3.616076749251911
+          bundle_adjustment_global_function_tolerance: 9.965781217890562
+          retrieval_min_score: 2.027123023002322
+          retrieval_min_num_inliers: 7
           retrieval_neighbors: 2
-          retrieval_covisibility_window: 3
-          max_keypoints_per_image: 9
-          mapper_filter_max_reprojection_error: 7.457744773683766
-          keyframe_min_distance_m: 6.027456183070403
-          triangulation_minimum_angle: 6.84685269835264
-          bundle_adjustment_global_frames_ratio: 1.1730742509559433
+          max_keypoints_per_image: 8
+          mapper_filter_max_reprojection_error: 4.965218492984954
+          triangulation_minimum_angle: 1.1730742509559433
+          bundle_adjustment_global_frames_ratio: 5.025004791520295
           retrieval_min_distance_m: 7.061401241503109
           two_view_min_num_inliers: 1
           spatial_max_distance_m: 5.637376656633329
+          retrieval_min_inlier_ratio: 6.84685269835264
+          retrieval_covisibility_min_support: 7
+          vio_check_max_disagreement_m: 6.683562403749608
+          spatial_neighbors: 5
+          pair_max_displacement_scene_m: 9.301444243932576
+          ransac_min_inlier_ratio: 1.0246457001441578
+          pose_prior_position_sigma_m: 9.369310271410669
+          sequential_window: 1
+          deterministic_seed: 0
+          retrieval_covisibility_window: 4
+          keyframe_min_distance_m: 6.027456183070403
         reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         reconstruction_id:
@@ -4027,31 +4029,33 @@ components:
     ReconstructionCreateWithOptions:
       example:
         options:
-          ransac_max_error: 4.145608029883936
-          retrieval_min_inlier_ratio: 1.0246457001441578
-          retrieval_covisibility_min_support: 2
-          vio_check_max_disagreement_m: 9.965781217890562
-          spatial_neighbors: 5
-          ransac_min_inlier_ratio: 7.386281948385884
+          ransac_max_error: 1.2315135367772556
           held_out_frame_timestamps:
-          - 6
-          - 6
-          bundle_adjustment_global_function_tolerance: 4.965218492984954
-          retrieval_min_score: 9.301444243932576
-          retrieval_min_num_inliers: 1
-          pose_prior_position_sigma_m: 5.025004791520295
-          sequential_window: 1
-          deterministic_seed: 0
+          - 9
+          - 9
+          pair_max_displacement_drift_rate_m_per_s: 3.616076749251911
+          bundle_adjustment_global_function_tolerance: 9.965781217890562
+          retrieval_min_score: 2.027123023002322
+          retrieval_min_num_inliers: 7
           retrieval_neighbors: 2
-          retrieval_covisibility_window: 3
-          max_keypoints_per_image: 9
-          mapper_filter_max_reprojection_error: 7.457744773683766
-          keyframe_min_distance_m: 6.027456183070403
-          triangulation_minimum_angle: 6.84685269835264
-          bundle_adjustment_global_frames_ratio: 1.1730742509559433
+          max_keypoints_per_image: 8
+          mapper_filter_max_reprojection_error: 4.965218492984954
+          triangulation_minimum_angle: 1.1730742509559433
+          bundle_adjustment_global_frames_ratio: 5.025004791520295
           retrieval_min_distance_m: 7.061401241503109
           two_view_min_num_inliers: 1
           spatial_max_distance_m: 5.637376656633329
+          retrieval_min_inlier_ratio: 6.84685269835264
+          retrieval_covisibility_min_support: 7
+          vio_check_max_disagreement_m: 6.683562403749608
+          spatial_neighbors: 5
+          pair_max_displacement_scene_m: 9.301444243932576
+          ransac_min_inlier_ratio: 1.0246457001441578
+          pose_prior_position_sigma_m: 9.369310271410669
+          sequential_window: 1
+          deterministic_seed: 0
+          retrieval_covisibility_window: 4
+          keyframe_min_distance_m: 6.027456183070403
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -4205,31 +4209,33 @@ components:
       type: object
     ReconstructionOptions:
       example:
-        ransac_max_error: 4.145608029883936
-        retrieval_min_inlier_ratio: 1.0246457001441578
-        retrieval_covisibility_min_support: 2
-        vio_check_max_disagreement_m: 9.965781217890562
-        spatial_neighbors: 5
-        ransac_min_inlier_ratio: 7.386281948385884
+        ransac_max_error: 1.2315135367772556
         held_out_frame_timestamps:
-        - 6
-        - 6
-        bundle_adjustment_global_function_tolerance: 4.965218492984954
-        retrieval_min_score: 9.301444243932576
-        retrieval_min_num_inliers: 1
-        pose_prior_position_sigma_m: 5.025004791520295
-        sequential_window: 1
-        deterministic_seed: 0
+        - 9
+        - 9
+        pair_max_displacement_drift_rate_m_per_s: 3.616076749251911
+        bundle_adjustment_global_function_tolerance: 9.965781217890562
+        retrieval_min_score: 2.027123023002322
+        retrieval_min_num_inliers: 7
         retrieval_neighbors: 2
-        retrieval_covisibility_window: 3
-        max_keypoints_per_image: 9
-        mapper_filter_max_reprojection_error: 7.457744773683766
-        keyframe_min_distance_m: 6.027456183070403
-        triangulation_minimum_angle: 6.84685269835264
-        bundle_adjustment_global_frames_ratio: 1.1730742509559433
+        max_keypoints_per_image: 8
+        mapper_filter_max_reprojection_error: 4.965218492984954
+        triangulation_minimum_angle: 1.1730742509559433
+        bundle_adjustment_global_frames_ratio: 5.025004791520295
         retrieval_min_distance_m: 7.061401241503109
         two_view_min_num_inliers: 1
         spatial_max_distance_m: 5.637376656633329
+        retrieval_min_inlier_ratio: 6.84685269835264
+        retrieval_covisibility_min_support: 7
+        vio_check_max_disagreement_m: 6.683562403749608
+        spatial_neighbors: 5
+        pair_max_displacement_scene_m: 9.301444243932576
+        ransac_min_inlier_ratio: 1.0246457001441578
+        pose_prior_position_sigma_m: 9.369310271410669
+        sequential_window: 1
+        deterministic_seed: 0
+        retrieval_covisibility_window: 4
+        keyframe_min_distance_m: 6.027456183070403
       properties:
         deterministic_seed:
           description: PRNG seed and single-threaded gate for reproducible reconstructions;
@@ -4270,6 +4276,27 @@ components:
           default: 1.0
           description: Minimum VIO-position distance for retrieval pairs; drops candidates
             already covered by sequential pairing. No-op when positions are absent.
+          format: double
+          type: number
+        pair_max_displacement_scene_m:
+          default: 10.0
+          description: "Max plausible scene-radius component of the displacement bound\
+            \ used to reject any candidate pair (a,b) whose VIO straight-line displacement\
+            \ exceeds the bound. Combined with pair_max_displacement_drift_rate_m_per_s:\
+            \ a pair is rejected when |vio_pos(b)−vio_pos(a)| > pair_max_displacement_scene_m\
+            \ + pair_max_displacement_drift_rate_m_per_s · |t_b−t_a|. Applied uniformly\
+            \ across all pair sources; stereo and short-temporal pairs trivially satisfy\
+            \ any reasonable bound. No-op when positions are absent."
+          format: double
+          type: number
+        pair_max_displacement_drift_rate_m_per_s:
+          default: 0.1
+          description: VIO drift-rate slack added to the displacement bound per second
+            of time gap between the two frames of a candidate pair. Lets long-temporal-gap
+            true loop closures survive accumulated drift while still rejecting short-temporal-gap
+            aliased pairs (e.g. retrieval matches between physically distant frames
+            seconds apart). Calibrate per device class against post-hoc VIO↔recon
+            residuals.
           format: double
           type: number
         retrieval_min_score:

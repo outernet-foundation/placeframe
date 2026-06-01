@@ -41,6 +41,8 @@ namespace PlaceframeApiClient.Model
         /// <param name="spatialMaxDistanceM">Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent. (default to 6.0D).</param>
         /// <param name="retrievalNeighbors">Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval. (default to 20).</param>
         /// <param name="retrievalMinDistanceM">Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent. (default to 1.0D).</param>
+        /// <param name="pairMaxDisplacementSceneM">Max plausible scene-radius component of the displacement bound used to reject any candidate pair (a,b) whose VIO straight-line displacement exceeds the bound. Combined with pair_max_displacement_drift_rate_m_per_s: a pair is rejected when |vio_pos(b)−vio_pos(a)| &gt; pair_max_displacement_scene_m + pair_max_displacement_drift_rate_m_per_s · |t_b−t_a|. Applied uniformly across all pair sources; stereo and short-temporal pairs trivially satisfy any reasonable bound. No-op when positions are absent. (default to 10.0D).</param>
+        /// <param name="pairMaxDisplacementDriftRateMPerS">VIO drift-rate slack added to the displacement bound per second of time gap between the two frames of a candidate pair. Lets long-temporal-gap true loop closures survive accumulated drift while still rejecting short-temporal-gap aliased pairs (e.g. retrieval matches between physically distant frames seconds apart). Calibrate per device class against post-hoc VIO↔recon residuals. (default to 0.1D).</param>
         /// <param name="retrievalMinScore">Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA. (default to 0.35D).</param>
         /// <param name="retrievalCovisibilityWindow">Half-width (in temporal keyframe indices) of the neighborhood used to validate retrieval pairs against perceptual aliasing. A pair (A,B) is supported by another retrieval pair (A&#39;,B&#39;) iff both endpoints fall within this window of the original pair on their respective trajectories. (default to 3).</param>
         /// <param name="retrievalCovisibilityMinSupport">Minimum count of supporting retrieval pairs within retrieval_covisibility_window required for a retrieval candidate to be kept; aliased pairs (e.g. two similar paintings in different rooms) appear as singletons and get dropped, while true loop closures appear as bands and survive. 0 disables the filter. (default to 2).</param>
@@ -235,6 +237,56 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeRetrievalMinDistanceM()
         {
             return _flagRetrievalMinDistanceM;
+        }
+        /// <summary>
+        /// Max plausible scene-radius component of the displacement bound used to reject any candidate pair (a,b) whose VIO straight-line displacement exceeds the bound. Combined with pair_max_displacement_drift_rate_m_per_s: a pair is rejected when |vio_pos(b)−vio_pos(a)| &gt; pair_max_displacement_scene_m + pair_max_displacement_drift_rate_m_per_s · |t_b−t_a|. Applied uniformly across all pair sources; stereo and short-temporal pairs trivially satisfy any reasonable bound. No-op when positions are absent.
+        /// </summary>
+        /// <value>Max plausible scene-radius component of the displacement bound used to reject any candidate pair (a,b) whose VIO straight-line displacement exceeds the bound. Combined with pair_max_displacement_drift_rate_m_per_s: a pair is rejected when |vio_pos(b)−vio_pos(a)| &gt; pair_max_displacement_scene_m + pair_max_displacement_drift_rate_m_per_s · |t_b−t_a|. Applied uniformly across all pair sources; stereo and short-temporal pairs trivially satisfy any reasonable bound. No-op when positions are absent.</value>
+        [DataMember(Name = "pair_max_displacement_scene_m", EmitDefaultValue = false)]
+        public double PairMaxDisplacementSceneM
+        {
+            get{ return _PairMaxDisplacementSceneM;}
+            set
+            {
+                _PairMaxDisplacementSceneM = value;
+                _flagPairMaxDisplacementSceneM = true;
+            }
+        }
+        private double _PairMaxDisplacementSceneM = 10.0D;
+        private bool _flagPairMaxDisplacementSceneM;
+
+        /// <summary>
+        /// Returns false as PairMaxDisplacementSceneM should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePairMaxDisplacementSceneM()
+        {
+            return _flagPairMaxDisplacementSceneM;
+        }
+        /// <summary>
+        /// VIO drift-rate slack added to the displacement bound per second of time gap between the two frames of a candidate pair. Lets long-temporal-gap true loop closures survive accumulated drift while still rejecting short-temporal-gap aliased pairs (e.g. retrieval matches between physically distant frames seconds apart). Calibrate per device class against post-hoc VIO↔recon residuals.
+        /// </summary>
+        /// <value>VIO drift-rate slack added to the displacement bound per second of time gap between the two frames of a candidate pair. Lets long-temporal-gap true loop closures survive accumulated drift while still rejecting short-temporal-gap aliased pairs (e.g. retrieval matches between physically distant frames seconds apart). Calibrate per device class against post-hoc VIO↔recon residuals.</value>
+        [DataMember(Name = "pair_max_displacement_drift_rate_m_per_s", EmitDefaultValue = false)]
+        public double PairMaxDisplacementDriftRateMPerS
+        {
+            get{ return _PairMaxDisplacementDriftRateMPerS;}
+            set
+            {
+                _PairMaxDisplacementDriftRateMPerS = value;
+                _flagPairMaxDisplacementDriftRateMPerS = true;
+            }
+        }
+        private double _PairMaxDisplacementDriftRateMPerS = 0.1D;
+        private bool _flagPairMaxDisplacementDriftRateMPerS;
+
+        /// <summary>
+        /// Returns false as PairMaxDisplacementDriftRateMPerS should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePairMaxDisplacementDriftRateMPerS()
+        {
+            return _flagPairMaxDisplacementDriftRateMPerS;
         }
         /// <summary>
         /// Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.
@@ -651,6 +703,8 @@ namespace PlaceframeApiClient.Model
             sb.Append("  SpatialMaxDistanceM: ").Append(SpatialMaxDistanceM).Append("\n");
             sb.Append("  RetrievalNeighbors: ").Append(RetrievalNeighbors).Append("\n");
             sb.Append("  RetrievalMinDistanceM: ").Append(RetrievalMinDistanceM).Append("\n");
+            sb.Append("  PairMaxDisplacementSceneM: ").Append(PairMaxDisplacementSceneM).Append("\n");
+            sb.Append("  PairMaxDisplacementDriftRateMPerS: ").Append(PairMaxDisplacementDriftRateMPerS).Append("\n");
             sb.Append("  RetrievalMinScore: ").Append(RetrievalMinScore).Append("\n");
             sb.Append("  RetrievalCovisibilityWindow: ").Append(RetrievalCovisibilityWindow).Append("\n");
             sb.Append("  RetrievalCovisibilityMinSupport: ").Append(RetrievalCovisibilityMinSupport).Append("\n");
