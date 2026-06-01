@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import sqlite3
 from bisect import bisect_left
-from concurrent.futures import ThreadPoolExecutor, wait
-from contextlib import closing
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
@@ -12,16 +11,14 @@ from typing import Any, Literal
 from placeframe_api_client import ReconstructionStatus
 
 from math import cos, radians
-from numpy import asarray, clip, dot, eye, float64, intp, stack, uint32
+from numpy import asarray, clip, concatenate, dot, eye, float64, intp, stack, uint32
 from numpy.linalg import norm
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from pycolmap import INVALID_POINT3D_ID
 from pycolmap import Camera as ColmapCamera
 from pycolmap import (
     Database,
-    ExistingMatchedPairingOptions,
     Frame,
-    GeometricVerifierOptions,
     IncrementalMapper,
     IncrementalMapperOptions,
     IncrementalPipeline,
@@ -37,10 +34,12 @@ from pycolmap import (
     SensorType,
     Sim3d,
     TwoViewGeometry,
+    TwoViewGeometryConfiguration,
     align_reconstruction_to_orig_rig_scales,
     data_t,
+    estimate_generalized_relative_pose,  # pyright: ignore[reportUnknownVariableType] — upstream stub returns unparameterized dict
     estimate_sim3d_robust,
-    geometric_verification,  # pyright: ignore[reportUnknownVariableType] — upstream stub uses unparameterized os.PathLike
+    estimate_two_view_geometry,
     sensor_t,
 )
 from pycolmap import Image as pycolmapImage
@@ -82,6 +81,39 @@ VIO_CHECK_WINDOW = 10
 class VioFrameData:
     timestamp_ns: int
     position: NDArray[float64]
+
+
+@dataclass(frozen=True)
+class FramePairKey:
+    rig_id: str
+    frame_id_low: str
+    frame_id_high: str
+
+
+class EmVerdict(Enum):
+    KEPT = auto()
+    UNDEFINED = auto()
+    LOW_INLIERS = auto()
+    VIO_NO_ROTATION = auto()
+    VIO_ROTATION = auto()
+    VIO_TRANSLATION = auto()
+
+
+@dataclass(frozen=True)
+class EmResult:
+    verdict: EmVerdict
+    two_view_geometry: TwoViewGeometry | None
+    image_id_a: int
+    image_id_b: int
+
+
+@dataclass(frozen=True)
+class VioEmContext:
+    sensor_from_rig_by_camera: dict[tuple[str, str], Rigid3d]
+    cos_max_rotation: float
+    cos_max_translation_direction: float
+    min_baseline_m: float
+    active: bool
 
 
 @dataclass(frozen=True)
@@ -158,15 +190,14 @@ def run_colmap_pipeline_with_vio_check(
     pair_source_by_image_pair: dict[tuple[int, int], PairSource] = {}
     pose_graph_rejections: dict[PairSource, int] = dict.fromkeys(PairSource, 0)
 
-    # Stage 1: seed images + write phase-1 matches. Close the database before geometric_verification
-    # so its C++ connection has the file to itself (pycolmap.geometric_verification opens its own
-    # connection internally, and we poll the same file from a read-only sqlite3 connection for
-    # progress).
+    # Stage 1: seed images + write phase-1 matches. Close the database before verification so the
+    # parallel worker pool that runs estimate_two_view_geometry / estimate_generalized_relative_pose
+    # operates against pure in-memory inputs (keypoints, match_indices, image_cameras), with no
+    # cross-thread SQLite contention. The verifier opens its own connection at the end to write
+    # the surviving two-view geometries in one batch.
     with Database.open(str(database_path)) as database:  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
         pipeline_context = PipelineContext(database=database, options=options, publisher=publisher)
-        colmap_image_ids, _image_cameras, vio_data_by_image_id = _seed_database_images(
-            pipeline_context, rigs, keypoints
-        )
+        colmap_image_ids, image_cameras, vio_data_by_image_id = _seed_database_images(pipeline_context, rigs, keypoints)
         for pair in pairs:
             image_id_a = colmap_image_ids[pair.image_a]
             image_id_b = colmap_image_ids[pair.image_b]
@@ -174,9 +205,17 @@ def run_colmap_pipeline_with_vio_check(
             pair_source_by_image_pair[image_id_pair] = pair.source
         _write_pair_matches(pipeline_context, phase_1_pairs, match_indices, colmap_image_ids)
 
-    publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, len(phase_1_pairs))
-    _verify_two_view_geometries(database_path, options, publisher, expected_count=len(phase_1_pairs))
-    _check_sequential_pairs_against_vio(database_path, phase_1_pairs, rigs, colmap_image_ids, options)
+    _verify_two_view_geometries(
+        database_path,
+        options,
+        publisher,
+        rigs,
+        colmap_image_ids,
+        image_cameras,
+        phase_1_pairs,
+        keypoints,
+        match_indices,
+    )
 
     # Stage 2: incremental reconstruction. Reopen the database so IncrementalPipeline/IncrementalMapper
     # have a live connection. They reference the Python Database object through their lifetime; the
@@ -196,10 +235,20 @@ def run_colmap_pipeline_with_vio_check(
             _write_pair_matches(pipeline_context, phase_2_pairs, match_indices, colmap_image_ids)
 
     if phase_2_active:
-        publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, len(phase_2_pairs))
-        _verify_two_view_geometries(database_path, options, publisher, expected_count=len(phase_2_pairs))
-        # Retrieval pairs intentionally skip the VIO-vs-essential-matrix check: VIO drift over a
-        # loop-closure interval can legitimately disagree with a correctly-recovered essential matrix.
+        # Retrieval pairs intentionally bypass the VIO-vs-essential-matrix check (folded into the EM
+        # seam below): VIO drift over a loop-closure interval can legitimately disagree with a
+        # correctly-recovered essential matrix. PairSource.RETRIEVAL gates the check in the worker.
+        _verify_two_view_geometries(
+            database_path,
+            options,
+            publisher,
+            rigs,
+            colmap_image_ids,
+            image_cameras,
+            phase_2_pairs,
+            keypoints,
+            match_indices,
+        )
 
         with Database.open(str(database_path)) as database:  # pyright: ignore[reportUnknownMemberType]
             pipeline_context = PipelineContext(database=database, options=options, publisher=publisher)
@@ -300,58 +349,212 @@ def _verify_two_view_geometries(
     database_path: Path,
     options: OptionsBuilder,
     publisher: ReconstructionPublisher,
-    expected_count: int,
-) -> None:
-    # Hands off the entire verification pass to pycolmap.geometric_verification. With
-    # rig_verification=True it first runs the standard two-view essential-matrix RANSAC per image
-    # pair, then a rig-constrained second pass (EstimateGeneralizedRelativePose / GR6P RANSAC)
-    # that deletes pairs whose calibrated-rig pose disagrees with the standard recovery — the
-    # rig-aware filter that was inadvertently dropped when we replaced match_spatial with our
-    # per-pair estimate_two_view_geometry loop. Progress is recovered by polling the
-    # two_view_geometries row count from a separate read-only sqlite3 connection; pycolmap doesn't
-    # expose a per-pair callback at this granularity. expected_count is the upper bound (every
-    # candidate pair gets a row even on failure), so the publisher sees a monotonic 0..expected
-    # ramp barring the rig pass's deletions.
-    verifier_options = GeometricVerifierOptions(rig_verification=True)
-    pairing_options = ExistingMatchedPairingOptions()
-    two_view_geometry_options = options.two_view_geometry_options()
-
-    def run_geometric_verification() -> None:
-        geometric_verification(
-            str(database_path),
-            verifier_options,
-            pairing_options,
-            two_view_geometry_options,
-        )
-
-    with ThreadPoolExecutor(max_workers=1) as pool:
-        future = pool.submit(run_geometric_verification)
-        with closing(sqlite3.connect(f"file:{database_path}?mode=ro", uri=True)) as connection:
-            while not future.done():
-                wait([future], timeout=1.0)
-                row = connection.execute("SELECT COUNT(*) FROM two_view_geometries").fetchone()
-                publisher.on_progress(min(int(row[0]), expected_count))
-        future.result()
-    publisher.on_progress(expected_count)
-
-
-def _check_sequential_pairs_against_vio(
-    database_path: Path,
-    sequential_pairs: list[Pair],
     rigs: dict[str, Rig],
     colmap_image_ids: dict[str, int],
-    options: OptionsBuilder,
+    image_cameras: dict[str, ColmapCamera],
+    pairs: list[Pair],
+    keypoints: dict[str, Any],
+    match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
 ) -> None:
-    # Pair-time consistency check: every sequential pair whose VIO row carries a quaternion has its
-    # essential-matrix relative pose compared against the VIO-implied relative pose. Pairs failing
-    # the rotation or translation-direction bound have their two_view_geometry row deleted, so the
-    # incremental mapper never sees them. Sequential-only because retrieval pairs span genuine loop
-    # closures where VIO drift can disagree legitimately; intra-frame stereo is already pinned by
-    # the rig calibration. Skips silently for pairs whose VIO rotation is absent (6-column frames.csv
-    # carries only gravity, no orientation).
-    vio_em_options = options.pair_vio_essential_matrix_options()
-    if vio_em_options.max_rotation_disagreement_deg <= 0 and vio_em_options.max_translation_direction_deg <= 0:
+    # Hand-rolled two-phase verification. Phase 1 runs per-pair essential-matrix RANSAC
+    # (estimate_two_view_geometry) and folds the sequential VIO-vs-EM consistency check into
+    # the same seam: pairs the check rejects never get written to the database, identical in
+    # effect to a separate post-pass but with one fewer database round-trip and no temporary row
+    # to delete. Phase 2 runs per-frame-pair rig-constrained RANSAC
+    # (estimate_generalized_relative_pose / GR6P) over the surviving EM inliers and drops every
+    # constituent image-pair of any frame-pair the rig estimator rejects. Both phases parallelize
+    # via ThreadPoolExecutor; per-pair / per-frame-pair workers receive everything they need from
+    # in-memory dicts (keypoints, match_indices, image_cameras) so SQLite is touched only at the
+    # end to write the survivors in one batch.
+    if not pairs:
         return
+
+    two_view_geometry_options = options.two_view_geometry_options()
+    rig_ransac_options = _build_rig_ransac_options(two_view_geometry_options.ransac)
+    min_num_inliers = options.options.two_view_min_num_inliers
+    max_workers = 1 if options.options.deterministic_seed is not None else None
+    vio_em_context = _build_vio_em_context(rigs, options.pair_vio_essential_matrix_options())
+
+    em_results = _run_em_phase(
+        pairs,
+        publisher,
+        max_workers,
+        two_view_geometry_options,
+        min_num_inliers,
+        rigs,
+        colmap_image_ids,
+        image_cameras,
+        keypoints,
+        match_indices,
+        vio_em_context,
+    )
+
+    surviving_pair_keys = _run_rig_phase(
+        pairs,
+        publisher,
+        max_workers,
+        rig_ransac_options,
+        min_num_inliers,
+        rigs,
+        colmap_image_ids,
+        keypoints,
+        em_results,
+        vio_em_context.sensor_from_rig_by_camera,
+    )
+
+    written = 0
+    with Database.open(str(database_path)) as database:  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
+        for image_id_pair, result in em_results.items():
+            if result.verdict != EmVerdict.KEPT:
+                continue
+            if image_id_pair not in surviving_pair_keys:
+                continue
+            assert result.two_view_geometry is not None
+            database.write_two_view_geometry(result.image_id_a, result.image_id_b, result.two_view_geometry)
+            written += 1
+    print(f"[verification] wrote {written} two_view_geometries of {len(pairs)} candidate pairs")
+
+
+def _run_em_phase(
+    pairs: list[Pair],
+    publisher: ReconstructionPublisher,
+    max_workers: int | None,
+    two_view_geometry_options: Any,
+    min_num_inliers: int,
+    rigs: dict[str, Rig],
+    colmap_image_ids: dict[str, int],
+    image_cameras: dict[str, ColmapCamera],
+    keypoints: dict[str, Any],
+    match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
+    vio_em_context: VioEmContext,
+) -> dict[tuple[int, int], EmResult]:
+    publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, len(pairs))
+
+    def worker(pair: Pair) -> EmResult:
+        return _verify_pair_em(
+            pair,
+            two_view_geometry_options,
+            min_num_inliers,
+            rigs,
+            colmap_image_ids,
+            image_cameras,
+            keypoints,
+            match_indices,
+            vio_em_context,
+        )
+
+    counters: dict[EmVerdict, int] = dict.fromkeys(EmVerdict, 0)
+    em_results: dict[tuple[int, int], EmResult] = {}
+    completed = 0
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        for result in executor.map(worker, pairs):
+            counters[result.verdict] += 1
+            image_id_pair = (
+                (result.image_id_a, result.image_id_b)
+                if result.image_id_a < result.image_id_b
+                else (result.image_id_b, result.image_id_a)
+            )
+            em_results[image_id_pair] = result
+            completed += 1
+            publisher.on_progress(completed)
+
+    print("[em_phase] " + " ".join(f"{verdict.name.lower()}={counters[verdict]}" for verdict in EmVerdict))
+    return em_results
+
+
+def _verify_pair_em(
+    pair: Pair,
+    two_view_geometry_options: Any,
+    min_num_inliers: int,
+    rigs: dict[str, Rig],
+    colmap_image_ids: dict[str, int],
+    image_cameras: dict[str, ColmapCamera],
+    keypoints: dict[str, Any],
+    match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
+    vio_em_context: VioEmContext,
+) -> EmResult:
+    image_id_a = colmap_image_ids[pair.image_a]
+    image_id_b = colmap_image_ids[pair.image_b]
+    keypoints_a = keypoints[pair.image_a][:, :2].astype(float64, copy=False)
+    keypoints_b = keypoints[pair.image_b][:, :2].astype(float64, copy=False)
+    raw_matches = stack(match_indices[(pair.image_a, pair.image_b)], axis=1).astype(uint32, copy=False)
+    two_view_geometry: TwoViewGeometry = estimate_two_view_geometry(
+        image_cameras[pair.image_a],
+        keypoints_a,
+        image_cameras[pair.image_b],
+        keypoints_b,
+        raw_matches,
+        two_view_geometry_options,
+    )
+
+    if two_view_geometry.config == TwoViewGeometryConfiguration.UNDEFINED:
+        return EmResult(EmVerdict.UNDEFINED, None, image_id_a, image_id_b)
+    em_inlier_matches: NDArray[uint32] = two_view_geometry.inlier_matches  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType] — upstream stub uses unbound TypeVar for inlier_matches shape
+    if len(em_inlier_matches) < min_num_inliers:
+        return EmResult(EmVerdict.LOW_INLIERS, None, image_id_a, image_id_b)
+
+    if vio_em_context.active and pair.source == PairSource.SEQUENTIAL:
+        vio_verdict = _vio_em_verdict(pair, two_view_geometry, rigs, vio_em_context)
+        if vio_verdict in (EmVerdict.VIO_ROTATION, EmVerdict.VIO_TRANSLATION):
+            return EmResult(vio_verdict, None, image_id_a, image_id_b)
+        if vio_verdict == EmVerdict.VIO_NO_ROTATION:
+            return EmResult(EmVerdict.KEPT, two_view_geometry, image_id_a, image_id_b)
+
+    return EmResult(EmVerdict.KEPT, two_view_geometry, image_id_a, image_id_b)
+
+
+def _vio_em_verdict(
+    pair: Pair,
+    two_view_geometry: TwoViewGeometry,
+    rigs: dict[str, Rig],
+    vio_em_context: VioEmContext,
+) -> EmVerdict:
+    rig_id_a, camera_id_a, frame_id_a = _parse_image_name(pair.image_a)
+    rig_id_b, camera_id_b, frame_id_b = _parse_image_name(pair.image_b)
+    frame_pose_a = rigs[rig_id_a].frame_poses[frame_id_a]
+    frame_pose_b = rigs[rig_id_b].frame_poses[frame_id_b]
+    if (
+        frame_pose_a.translation is None
+        or frame_pose_a.rotation is None
+        or frame_pose_b.translation is None
+        or frame_pose_b.rotation is None
+    ):
+        return EmVerdict.VIO_NO_ROTATION
+
+    em_cam_b_from_cam_a: Rigid3d | None = two_view_geometry.cam2_from_cam1
+    if em_cam_b_from_cam_a is None:
+        return EmVerdict.VIO_NO_ROTATION
+
+    vio_cam_b_from_cam_a = _compose_cam_b_from_cam_a(
+        vio_em_context.sensor_from_rig_by_camera[(rig_id_a, camera_id_a)],
+        frame_pose_a.rotation,
+        frame_pose_a.translation,
+        vio_em_context.sensor_from_rig_by_camera[(rig_id_b, camera_id_b)],
+        frame_pose_b.rotation,
+        frame_pose_b.translation,
+    )
+    cos_rotation, cos_translation_direction, em_baseline = _relative_pose_disagreement(
+        em_cam_b_from_cam_a, vio_cam_b_from_cam_a
+    )
+    if vio_em_context.cos_max_rotation > -2.0 and cos_rotation < vio_em_context.cos_max_rotation:
+        return EmVerdict.VIO_ROTATION
+    if (
+        vio_em_context.cos_max_translation_direction > -2.0
+        and em_baseline >= vio_em_context.min_baseline_m
+        and cos_translation_direction < vio_em_context.cos_max_translation_direction
+    ):
+        return EmVerdict.VIO_TRANSLATION
+    return EmVerdict.KEPT
+
+
+def _build_vio_em_context(
+    rigs: dict[str, Rig],
+    vio_em_options: Any,
+) -> VioEmContext:
+    sensor_from_rig_by_camera: dict[tuple[str, str], Rigid3d] = {}
+    for rig_id, rig in rigs.items():
+        for camera_id in rig.cameras:
+            sensor_from_rig_by_camera[(rig_id, camera_id)] = _sensor_from_rig_for_camera(rig, camera_id)
     cos_max_rotation = (
         cos(radians(vio_em_options.max_rotation_disagreement_deg))
         if vio_em_options.max_rotation_disagreement_deg > 0
@@ -362,74 +565,192 @@ def _check_sequential_pairs_against_vio(
         if vio_em_options.max_translation_direction_deg > 0
         else -2.0
     )
+    active = vio_em_options.max_rotation_disagreement_deg > 0 or vio_em_options.max_translation_direction_deg > 0
+    return VioEmContext(
+        sensor_from_rig_by_camera=sensor_from_rig_by_camera,
+        cos_max_rotation=cos_max_rotation,
+        cos_max_translation_direction=cos_max_translation_direction,
+        min_baseline_m=vio_em_options.min_baseline_m,
+        active=active,
+    )
 
-    sensor_from_rig_by_camera: dict[tuple[str, str], Rigid3d] = {}
-    for rig_id, rig in rigs.items():
-        for camera_id_a in rig.cameras:
-            sensor_from_rig_by_camera[(rig_id, camera_id_a)] = _sensor_from_rig_for_camera(rig, camera_id_a)
 
-    sequential_pairs_filtered = [pair for pair in sequential_pairs if pair.source == PairSource.SEQUENTIAL]
+def _run_rig_phase(
+    pairs: list[Pair],
+    publisher: ReconstructionPublisher,
+    max_workers: int | None,
+    rig_ransac_options: RANSACOptions,
+    min_num_inliers: int,
+    rigs: dict[str, Rig],
+    colmap_image_ids: dict[str, int],
+    keypoints: dict[str, Any],
+    em_results: dict[tuple[int, int], EmResult],
+    sensor_from_rig_by_camera: dict[tuple[str, str], Rigid3d],
+) -> set[tuple[int, int]]:
+    # Group surviving EM pairs by (rig_id, frame_id_low, frame_id_high). Cross-rig frame-pairs
+    # would need a different cams_from_rig layout (per-side rig) and don't arise in practice on
+    # single-rig captures — skip them with a single counter and let them inherit the EM-only
+    # decision. Same-frame intra-stereo collapses to one constituent pair, which the GR6P solver
+    # cannot estimate from, so it falls out by the `> 1` threshold below.
+    frame_pair_groups: dict[FramePairKey, list[Pair]] = defaultdict(list)
+    cross_rig_skipped = 0
+    for pair in pairs:
+        image_id_a = colmap_image_ids[pair.image_a]
+        image_id_b = colmap_image_ids[pair.image_b]
+        image_id_pair = (image_id_a, image_id_b) if image_id_a < image_id_b else (image_id_b, image_id_a)
+        em_result = em_results.get(image_id_pair)
+        if em_result is None or em_result.verdict != EmVerdict.KEPT:
+            continue
+        rig_id_a, _, frame_id_a = _parse_image_name(pair.image_a)
+        rig_id_b, _, frame_id_b = _parse_image_name(pair.image_b)
+        if rig_id_a != rig_id_b:
+            cross_rig_skipped += 1
+            continue
+        if frame_id_a == frame_id_b:
+            continue
+        frame_id_low, frame_id_high = (frame_id_a, frame_id_b) if frame_id_a < frame_id_b else (frame_id_b, frame_id_a)
+        frame_pair_groups[FramePairKey(rig_id_a, frame_id_low, frame_id_high)].append(pair)
 
-    checked = rejected_rotation = rejected_translation = skipped_no_rotation = 0
-    with Database.open(str(database_path)) as database:  # pyright: ignore[reportUnknownMemberType]
-        for pair in sequential_pairs_filtered:
-            rig_id_a, camera_id_a, frame_id_a = _parse_image_name(pair.image_a)
-            rig_id_b, camera_id_b, frame_id_b = _parse_image_name(pair.image_b)
-            frame_pose_a = rigs[rig_id_a].frame_poses[frame_id_a]
-            frame_pose_b = rigs[rig_id_b].frame_poses[frame_id_b]
-            if (
-                frame_pose_a.translation is None
-                or frame_pose_a.rotation is None
-                or frame_pose_b.translation is None
-                or frame_pose_b.rotation is None
-            ):
-                skipped_no_rotation += 1
-                continue
+    rig_eligible: list[tuple[FramePairKey, list[Pair]]] = [
+        (key, group) for key, group in frame_pair_groups.items() if len(group) > 1
+    ]
 
-            vio_cam_b_from_cam_a = _compose_cam_b_from_cam_a(
-                sensor_from_rig_by_camera[(rig_id_a, camera_id_a)],
-                frame_pose_a.rotation,
-                frame_pose_a.translation,
-                sensor_from_rig_by_camera[(rig_id_b, camera_id_b)],
-                frame_pose_b.rotation,
-                frame_pose_b.translation,
-            )
+    surviving_pair_keys = {key for key, em_result in em_results.items() if em_result.verdict == EmVerdict.KEPT}
 
-            image_id_a = colmap_image_ids[pair.image_a]
-            image_id_b = colmap_image_ids[pair.image_b]
-            image_id_low, image_id_high = (
-                (image_id_a, image_id_b) if image_id_a < image_id_b else (image_id_b, image_id_a)
-            )
-            if not database.exists_two_view_geometry(image_id_low, image_id_high):
-                continue
-            two_view_geometry = database.read_two_view_geometry(image_id_low, image_id_high)
-            em_high_from_low: Rigid3d | None = two_view_geometry.cam2_from_cam1
-            if em_high_from_low is None:
-                continue
-            em_cam_b_from_cam_a = em_high_from_low if image_id_a == image_id_low else em_high_from_low.inverse()
+    if not rig_eligible:
+        print(f"[rig_phase] no eligible frame-pairs (cross_rig_skipped={cross_rig_skipped})")
+        return surviving_pair_keys
 
-            checked += 1
-            cos_rotation, cos_translation_direction, em_baseline = _relative_pose_disagreement(
-                em_cam_b_from_cam_a, vio_cam_b_from_cam_a
-            )
-            rotation_failed = vio_em_options.max_rotation_disagreement_deg > 0 and cos_rotation < cos_max_rotation
-            translation_failed = (
-                vio_em_options.max_translation_direction_deg > 0
-                and em_baseline >= vio_em_options.min_baseline_m
-                and cos_translation_direction < cos_max_translation_direction
-            )
-            if rotation_failed or translation_failed:
-                database.delete_two_view_geometry(image_id_low, image_id_high)
-                if rotation_failed:
-                    rejected_rotation += 1
-                if translation_failed:
-                    rejected_translation += 1
+    publisher.set_phase(ReconstructionStatus.VERIFYING_RIG_GEOMETRY, len(rig_eligible))
+
+    def worker(item: tuple[FramePairKey, list[Pair]]) -> tuple[FramePairKey, bool, int]:
+        return _verify_frame_pair_rig(
+            item[0],
+            item[1],
+            rig_ransac_options,
+            min_num_inliers,
+            rigs,
+            colmap_image_ids,
+            keypoints,
+            em_results,
+            sensor_from_rig_by_camera,
+        )
+
+    accepted = rejected = empty = 0
+    completed = 0
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        for key, passed, num_inliers in executor.map(worker, rig_eligible):
+            if num_inliers == 0 and not passed:
+                empty += 1
+            elif passed:
+                accepted += 1
+            else:
+                rejected += 1
+            if not passed:
+                for rejected_pair in frame_pair_groups[key]:
+                    image_id_a = colmap_image_ids[rejected_pair.image_a]
+                    image_id_b = colmap_image_ids[rejected_pair.image_b]
+                    surviving_pair_keys.discard(
+                        (image_id_a, image_id_b) if image_id_a < image_id_b else (image_id_b, image_id_a)
+                    )
+            completed += 1
+            publisher.on_progress(completed)
 
     print(
-        f"[vio_em_check] sequential pairs checked={checked} "
-        f"rejected_rotation={rejected_rotation} rejected_translation={rejected_translation} "
-        f"skipped_no_rotation={skipped_no_rotation}"
+        f"[rig_phase] eligible={len(rig_eligible)} accepted={accepted} rejected={rejected} "
+        f"empty={empty} cross_rig_skipped={cross_rig_skipped}"
     )
+    return surviving_pair_keys
+
+
+def _verify_frame_pair_rig(
+    key: FramePairKey,
+    constituent_pairs: list[Pair],
+    rig_ransac_options: RANSACOptions,
+    min_num_inliers: int,
+    rigs: dict[str, Rig],
+    colmap_image_ids: dict[str, int],
+    keypoints: dict[str, Any],
+    em_results: dict[tuple[int, int], EmResult],
+    sensor_from_rig_by_camera: dict[tuple[str, str], Rigid3d],
+) -> tuple[FramePairKey, bool, int]:
+    rig = rigs[key.rig_id]
+    camera_ids = list(rig.cameras.keys())
+    camera_idx_by_camera_id = {camera_id: index for index, camera_id in enumerate(camera_ids)}
+    cameras_list = [rig.cameras[camera_id][1] for camera_id in camera_ids]
+    cams_from_rig = [sensor_from_rig_by_camera[(key.rig_id, camera_id)] for camera_id in camera_ids]
+
+    points2D1_chunks: list[NDArray[float64]] = []
+    points2D2_chunks: list[NDArray[float64]] = []
+    camera_idxs1: list[int] = []
+    camera_idxs2: list[int] = []
+    for pair in constituent_pairs:
+        image_id_a = colmap_image_ids[pair.image_a]
+        image_id_b = colmap_image_ids[pair.image_b]
+        image_id_pair = (image_id_a, image_id_b) if image_id_a < image_id_b else (image_id_b, image_id_a)
+        em_result = em_results.get(image_id_pair)
+        if em_result is None or em_result.two_view_geometry is None:
+            continue
+        inlier_matches: NDArray[uint32] = em_result.two_view_geometry.inlier_matches  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType] — upstream stub uses unbound TypeVar for inlier_matches shape
+        if len(inlier_matches) == 0:
+            continue
+
+        _, camera_id_a, frame_id_a = _parse_image_name(pair.image_a)
+        _, camera_id_b, _ = _parse_image_name(pair.image_b)
+        keypoints_a = keypoints[pair.image_a][:, :2].astype(float64, copy=False)
+        keypoints_b = keypoints[pair.image_b][:, :2].astype(float64, copy=False)
+        # inlier_matches col 0 indexes pair.image_a's keypoints, col 1 indexes pair.image_b's
+        # (the EM call passed (cam_a, kp_a, cam_b, kp_b, raw_matches) in that order). Assign
+        # sides so points2D1 holds the frame_id_low side and points2D2 holds frame_id_high.
+        if frame_id_a == key.frame_id_low:
+            points2D1_chunks.append(keypoints_a[inlier_matches[:, 0]])
+            points2D2_chunks.append(keypoints_b[inlier_matches[:, 1]])
+            camera_idxs1.extend([camera_idx_by_camera_id[camera_id_a]] * len(inlier_matches))
+            camera_idxs2.extend([camera_idx_by_camera_id[camera_id_b]] * len(inlier_matches))
+        else:
+            points2D1_chunks.append(keypoints_b[inlier_matches[:, 1]])
+            points2D2_chunks.append(keypoints_a[inlier_matches[:, 0]])
+            camera_idxs1.extend([camera_idx_by_camera_id[camera_id_b]] * len(inlier_matches))
+            camera_idxs2.extend([camera_idx_by_camera_id[camera_id_a]] * len(inlier_matches))
+
+    if not points2D1_chunks:
+        return key, False, 0
+
+    points2D1 = concatenate(points2D1_chunks, axis=0)
+    points2D2 = concatenate(points2D2_chunks, axis=0)
+
+    # pycolmap 4.0.4 stub types this as `dict[Unknown, Unknown] | None`. Keys are documented
+    # ("num_inliers": int, "inlier_mask": NDArray[bool], "pano2_from_pano1": Rigid3d) but the
+    # stub lacks a TypedDict; narrow at this seam so the rest of the function is honest.
+    result: dict[str, Any] | None = estimate_generalized_relative_pose(  # pyright: ignore[reportUnknownVariableType] — upstream stub uses unparameterized dict
+        points2D1=points2D1,
+        points2D2=points2D2,
+        camera_idxs1=camera_idxs1,
+        camera_idxs2=camera_idxs2,
+        cams_from_rig=cams_from_rig,
+        cameras=cameras_list,
+        estimation_options=rig_ransac_options,
+    )
+    if result is None:
+        return key, False, 0
+    num_inliers = int(result["num_inliers"])
+    return key, num_inliers >= min_num_inliers, num_inliers
+
+
+def _build_rig_ransac_options(em_ransac_options: RANSACOptions) -> RANSACOptions:
+    # GR6P RANSAC reuses the EM phase's thresholds (max_error, min_inlier_ratio, num_threads,
+    # random_seed) until evidence justifies divergence. Copying keeps the rig phase tracking the
+    # EM phase if the latter is later tuned.
+    rig_options = RANSACOptions()
+    rig_options.max_error = em_ransac_options.max_error
+    rig_options.min_inlier_ratio = em_ransac_options.min_inlier_ratio
+    rig_options.confidence = em_ransac_options.confidence
+    rig_options.dyn_num_trials_multiplier = em_ransac_options.dyn_num_trials_multiplier
+    rig_options.min_num_trials = em_ransac_options.min_num_trials
+    rig_options.max_num_trials = em_ransac_options.max_num_trials
+    rig_options.num_threads = em_ransac_options.num_threads
+    rig_options.random_seed = em_ransac_options.random_seed
+    return rig_options
 
 
 def _parse_image_name(image_name_string: str) -> tuple[str, str, str]:
