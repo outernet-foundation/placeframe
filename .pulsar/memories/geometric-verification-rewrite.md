@@ -6,222 +6,194 @@ updated: 2026-06-01
 
 ## Goal
 
-Replace the current `pycolmap.geometric_verification(rig_verification=True)`
-call in `_verify_two_view_geometries` with a fully-owned Python loop that
-does **both** the per-pair essential-matrix pass **and** the rig-constrained
-second pass (GR6P / `estimate_generalized_relative_pose`). The current call
-into stock pycolmap does not release the GIL, which makes progress
-reporting and per-pair filtering impossible without subprocess gymnastics.
-Owning the loop is the right structural fix: it folds the lost
-match-spread filter and the new VIO-EM check back to the natural seam,
-eliminates the recurring "what is pycolmap silently doing" class of
-surprise (we lost rig verification in `ddcb5033` without noticing, and
-hit a hang in the rig pass with no progress signal), and gives one
-uniform progress accounting / kill story across both halves.
+Replace the stock `pycolmap.geometric_verification(rig_verification=True)`
+call in `_verify_two_view_geometries` with a fully-owned Python loop
+that does **both** the per-pair essential-matrix pass **and** the
+rig-constrained second pass (GR6P / `estimate_generalized_relative_pose`).
+The stock entry point does not release the GIL, takes ~30 minutes on
+this capture's pair count, and emits no progress signal — owning the
+loop is the right structural fix. It folds the per-pair VIO-EM check
+back to the natural seam, gives uniform progress accounting and kill
+story across both halves, and eliminates the recurring "what is
+pycolmap silently doing" surprise (we lost rig verification in
+`ddcb5033` without noticing).
 
-The user explicitly chose this larger structural rewrite over the
-smaller subprocess-polling band-aid currently sitting uncommitted in the
-working tree. Direct quote: *"if we do this, then we should revert the
-change to use geometric_verification and do that bit ourselves too, and
-just do all of it ourselves, shouldn't we?"* — agreed by the assistant
-with reasoning around symmetry / ownership / opacity bites.
+The user explicitly chose this larger structural rewrite over a
+smaller subprocess-polling band-aid. Direct quote: *"if we do this,
+then we should revert the change to use geometric_verification and
+do that bit ourselves too, and just do all of it ourselves, shouldn't
+we?"*
 
 ## State
 
-- **Pipeline state just before this work**: commit `e82a61ee` on branch
-  `misc-fixes` is HEAD. The three "shipped last session" items
-  (`pycolmap.geometric_verification(rig_verification=True)` with
-  DB-row polling for progress, pair-time VIO-vs-essential-matrix check
-  for sequential pairs, metric `sequential_window_m=3.0`) are in. The
-  `reconstruction-aliasing-failure-modes` memory is the canonical
-  long-form context.
-- **Uncommitted work-in-progress** sits in
-  `docker/reconstructor/src/reconstructor/colmap_pipeline.py`. It is a
-  *subprocess* workaround for the GIL-not-released problem — the
-  parent spawns a child via `multiprocessing.get_context("spawn")`
-  that calls `geometric_verification`, while the parent polls the
-  `two_view_geometries` row count from a read-only sqlite3 connection.
-  This is the smaller band-aid. **Decision: this approach is being
-  abandoned in favor of the full rewrite.** Either revert this diff
-  before starting, or keep it staged temporarily and delete during
-  the rewrite — but do not ship it.
-- **The "test the three new changes on `4bd303f1`" item from the prior
-  memory is now deferred.** Doing it on the soon-to-be-replaced
-  pycolmap entry point burns time on architecture we're discarding.
-  Run the validation on the hand-rolled stack instead.
-- **No new captures or A/B runs since the prior memory.** The two
-  residual teleports the VIO-EM check is meant to address
-  (`858015→858515`, `864515→865015→865515`) remain untested.
+- **Rewrite is landed.** Three commits on `misc-fixes`:
+  - `f2fce95d` — hand-rolled two-phase verification with rig pass and
+    parallel workers. EM phase + rig phase live in
+    `_verify_two_view_geometries`; rig phase has its own publisher
+    status `verifying_rig_geometry`.
+  - `a78dc0b2` — drop VIO-EM consistency check, leave rig pass as
+    the rig-aware filter (was killing 93% of pairs when inline).
+  - `978940bd` — move VIO-EM check to run after rig pass on the
+    survivor pool (current HEAD-ish behavior; outcome was barely
+    different from inline).
+- **GIL release confirmed empirically.** Both
+  `estimate_two_view_geometry` and `estimate_generalized_relative_pose`
+  release the GIL. The hand-rolled `ThreadPoolExecutor` over 7999
+  pairs completes in **seconds** on this capture, vs ~30 min for
+  stock `geometric_verification`. The subprocess-pool escape hatch
+  was not needed.
+- **Best result so far on `4bd303f1`** (commit `a78dc0b2`, rig pass
+  but no VIO-EM): **220 / 222 images registered** (vs 122/222 baseline
+  under stock `geometric_verification` + post-pass VIO-EM). EM phase
+  keeps 3175/7999; rig pass eligible=799, accepted=798, rejected=1.
+- **Residual teleports remain.** The two timestamps the prior memory
+  flagged (`858015→858515`, `864515→865015→865515`) still appear in
+  `displacement-check` output for the 220/222 run:
+  ```
+  1780106865015 → 1780106865515  Δt=0.50s recon=17.74m prior=0.29m speed=35.49 m/s
+  1780106864515 → 1780106865015  Δt=0.50s recon=14.41m prior=1.26m speed=28.83 m/s
+  1780106859515 → 1780106860015  Δt=0.50s recon=2.87m  prior=0.35m speed=5.73 m/s
+  1780106858515 → 1780106859015  Δt=0.50s recon=2.16m  prior=0.26m speed=4.32 m/s
+  ```
+- **VIO-EM-as-pre-write filter is too aggressive.** Both inline and
+  post-rig placement give ~85% rejection rate
+  (`rotation` and `translation` thresholds each fire on ~85% of
+  the same pairs — not catching disjoint outliers). Inline → 16/222
+  registered; post-rig → 206 pairs written, still kills the run.
+  At current thresholds (15° rotation / 30° translation), the check
+  is broken on this capture's drift profile, not catching the
+  teleports it was designed to address.
+- **No SPEC.md update yet.** The reconstructor SPEC is stale and
+  the rewrite is a natural prose-first opportunity. Still pending.
 
 ## Decisions
 
-- **Hand-roll both passes in Python.** Drop the stock
-  `pycolmap.geometric_verification(...)` call entirely. EM phase + rig
-  phase live in our own loop, with our own progress publisher cadence,
-  our own per-pair filters at the natural seam.
-- **Parallelize both passes.** User explicitly said *"we will need to
-  parallelize the rig-verification too"*. The EM phase will use
-  `ThreadPoolExecutor` against `pycolmap.estimate_two_view_geometry`
-  (already pybind11-released GIL by precedent of how match_spatial
-  internally threads). The rig phase will use the same pattern against
-  `pycolmap.estimate_generalized_relative_pose`. Confirm GIL release
-  empirically by watching CPU utilization on the first run; fall back
-  to a subprocess pool only if a single Python thread is the bottleneck.
-- **Order**: EM phase first (per-pair essential matrix RANSAC, writes
+- **Hand-roll both passes in Python.** Done. Stock
+  `pycolmap.geometric_verification(...)` is gone; EM + rig live in
+  our own loop with our own progress publisher cadence.
+- **Parallelize both passes.** Done. `ThreadPoolExecutor` against
+  `pycolmap.estimate_two_view_geometry` (EM phase) and
+  `pycolmap.estimate_generalized_relative_pose` (rig phase). Both
+  pycolmap calls release the GIL — confirmed by observation of
+  near-instant completion on 7999 pairs. `deterministic_seed != None`
+  forces both pools to `max_workers=1` for reproducibility.
+- **Order**: EM phase first (per-pair RANSAC, writes
   `two_view_geometries` rows). Then rig phase: enumerate frame-pairs
-  with `num_image_pairs > 1`, pool inlier correspondences across the 4
-  cross-camera image-pairs, call
-  `estimate_generalized_relative_pose(points2D1, points2D2,
-  camera_idxs1, camera_idxs2, cams_from_rig, cameras,
-  estimation_options=RANSACOptions(...))`. On `None` or below inlier
-  threshold, delete the constituent image-pair `two_view_geometries`
-  rows via `database.delete_two_view_geometry`.
-- **Per-pair filters fold back inline.** The match-spread filter (this
-  session removed) and the new VIO-EM consistency check belong as
-  predicates inside the EM-phase loop, run on the surviving
-  TwoViewGeometry before the database write. Don't keep them as
-  separate post-passes once we own the seam.
-- **Acceptable EM-phase slowdown**: COLMAP's batched C++ did ~8000
-  pairs in 20s; Python thread-pool likely 60-90s. One-time tax on each
-  reconstruction, noise relative to 5-30 min total pipeline. Subprocess
-  pool is the escape hatch if it ever bites.
-- **Stereo gets the rig pass for free; no separate VIO-EM check
-  for stereo.** Both stereo cameras share the same VIO frame at the
-  same instant, so VIO is identical for both — the correct oracle is
-  `sensor_from_rig` (rig calibration), which the rig pass already uses.
-- **VIO-EM check applies to sequential pairs only.** Stereo: covered by
-  rig pass. Spatial (off by default): VIO drift over minutes makes the
-  check tighter than needed, defensible with looser thresholds if
-  re-enabled. Retrieval: VIO disagreement is exactly the signal we
-  want retrieval to provide, the check would kill the pairs we need.
-- **One alternative explicitly dismissed**: a one-line pycolmap patch
-  adding `py::call_guard<py::gil_scoped_release>()` to
-  `geometric_verification` would give us SQLite-polling visibility for
-  free. Right answer in a fast-upstream-cycle universe; not waiting on
-  pycolmap's real cycle time.
-
-## Implementation outline
-
-Lives in `docker/reconstructor/src/reconstructor/colmap_pipeline.py`.
-Replace `_verify_two_view_geometries` with two-stage:
-
-1. **EM phase loop.** For each candidate pair from the existing pair
-   set, `ThreadPoolExecutor` submits a worker that:
-   - reads the matches from the DB,
-   - runs `pycolmap.estimate_two_view_geometry(...)` (the same call our
-     old `ddcb5033` per-pair loop made),
-   - applies inline match-spread filter (if we decide it's worth
-     keeping — see "Open questions"),
-   - applies inline VIO-EM check on sequential pairs,
-   - writes `database.write_two_view_geometry(pair_id, tvg)` on
-     success.
-   Publisher progress ticks per pair.
-2. **Rig phase loop.** Enumerate distinct frame-pairs with
-   `num_image_pairs > 1` from the pair set (same set the EM phase
-   just verified). For each frame-pair, `ThreadPoolExecutor` submits a
-   worker that:
-   - reads each constituent image-pair's `TwoViewGeometry` via
-     `Database.read_two_view_geometry`,
-   - gathers inlier 2D-2D correspondences and the per-correspondence
-     camera-index assignment into the four flat arrays the GR6P
-     entry point expects,
-   - calls `pycolmap.estimate_generalized_relative_pose(...)` with
-     `cams_from_rig` + `cameras` pre-built once at the top of the
-     function from `rigs`,
-   - if `None` or below an inlier-count floor, calls
-     `database.delete_two_view_geometry` for each image-pair in the
-     frame-pair.
-   Publisher progress ticks per frame-pair.
-
-Plumbing details (load-bearing):
-
-- Build the `cams_from_rig` + `cameras` arrays once at function entry
-  from `rigs`. The per-correspondence camera index is derived from
-  which image-pair the correspondence came from (we already track this
-  by construction in pair-gen).
-- The existing `expected_count` plumbing in the publisher works for
-  EM phase as-is (one tick per pair). Add a second phase publisher
-  call (or extend the existing one) for the rig pass — one tick per
-  frame-pair, with the count pre-computed from the pair-set.
-- `VERIFYING_GEOMETRY` may want to split into `VERIFYING_GEOMETRY_EM`
-  and `VERIFYING_GEOMETRY_RIG` publisher phases for observability,
-  matching prior memory's note that no new publisher phase was added
-  for the `geometric_verification` rig pass — this rewrite is the
-  natural time to add the split.
+  with `num_image_pairs > 1`, pool inlier correspondences across the
+  constituent image-pairs, call `estimate_generalized_relative_pose`
+  with `cams_from_rig` + `cameras` prebuilt once. On reject, delete
+  the constituent image-pair rows.
+- **New publisher status added.** `verifying_rig_geometry` was added
+  alongside the existing `verifying_geometry`. The rig pass counts
+  frame-pairs, not image-pairs, so giving it its own status label
+  means operators can tell which half of verification is moving.
+  SQL enum + datamodels + clients all regenerated.
+- **Stereo gets the rig pass for free; no separate VIO-EM check for
+  stereo.** Confirmed — both stereo cameras share the same VIO frame
+  at the same instant, so the rig calibration is the correct oracle.
+- **VIO-EM check applies (when on) to sequential pairs only.**
+  Spatial (off by default) and retrieval are excluded by design.
+- **Match-spread filter stays out.** Prior reassessment held — net
+  negative on this capture. The rig pass and two-phase ingest
+  largely subsume what it was supposed to catch.
 
 ## Open questions
 
-- **Does `estimate_two_view_geometry` release the GIL?** Strongly
-  suspected (pybind11 idiom for small per-call work) but not verified.
-  First test: run the EM-phase thread pool with 8 workers, observe
-  CPU utilization. If it pegs one core, subprocess-pool the EM phase.
-- **Does `estimate_generalized_relative_pose` release the GIL?** Same
-  unknown, same first test. The rig pass has fewer iterations
-  (frame-pairs, not image-pairs), so single-threaded is a less painful
-  fallback.
-- **Match-spread filter: re-add or stay deleted?** Prior memory's
-  honest reassessment was that it's plausibly net-negative on the
-  cubicle capture (killed 12% of sequential / spatial pairs to catch
-  only 4% of retrieval). Question for the rewrite: does it pay off in
-  the *new* world where retrieval no longer enters the seed (two-phase
-  ingest) and the rig pass catches one-side-lies aliasing on stereo
-  pairs? Probably leave it out until evidence justifies adding back.
-- **Inlier-count floor for the rig pass.** GR6P returns an inlier
-  count; we need a threshold below which the frame-pair is deleted.
-  Stock COLMAP uses a `min_num_inliers` from `TwoViewGeometryOptions`
-  — reuse that, don't invent a new knob.
-- **GR6P RANSAC options.** Reuse the EM phase's `RANSACOptions` until
-  a reason to diverge surfaces.
+- **Should the hand-roll mirror C++'s per-image-pair inlier rebinning
+  inside the rig pass?** Verified by reading `two_view_geometry.cc`
+  in the COLMAP source: when GR6P succeeds, C++ does **not** keep the
+  original monocular EM TVGs unchanged. Instead it:
+  1. Bins the global GR6P `inlier_mask` back into per-image-pair
+     groups (`two_view_geometry.cc` lines 422–430).
+  2. Each surviving image-pair gets a **rig-derived**
+     `cam2_from_cam1` (computed as
+     `cam2_from_rig2 * rig2_from_rig1 * Inverse(cam1_from_rig1)`) —
+     the rig's solved relative pose, not the monocular EM pose.
+  3. Each image-pair's TVG config is set to `CALIBRATED_RIG`.
+  4. Image-pairs whose contributions ended up with **zero**
+     inliers in the global mask get an **empty** TVG (cam2_from_cam1
+     absent, inlier_matches empty) — effectively deleted from the
+     mapper's view.
+
+  Our hand-roll just says "rig succeeded → keep original monocular
+  EM TVG unchanged." This is plausibly **the** divergence that lets
+  the residual teleports through: image-pairs whose EM solution
+  disagreed with the rig still survive in our pipeline, where in
+  C++ they'd be reduced to a near-empty CALIBRATED_RIG TVG.
+  Implementing this mirroring is the leading candidate next step.
+
+- **VIO-EM check: drop entirely or fix thresholds?** At the current
+  86% rejection rate, the check is broken on this capture's drift
+  profile. Options are (a) loosen thresholds (15° → 30° rotation,
+  30° → 60° translation) — likely widens until residual teleports
+  also pass; (b) keep thresholds, accept that VIO-EM is a wrong-shape
+  filter here; (c) leave the per-image-pair rig rebinning to do the
+  job and drop VIO-EM altogether. (c) is the leading candidate, since
+  the divergence above explains why teleports survive without
+  invoking VIO at all.
+
+- **Why is the rig pass rejecting only 1/798 frame-pairs?** Expected
+  more on a capture with known aliasing. Probably because GR6P pools
+  inliers across all 4 constituent image-pairs and the 3 healthy
+  ones outvote the 1 aliased one in the RANSAC consensus — exactly
+  the failure mode per-image-pair rebinning is designed to handle.
+
+- **Inlier-count floor for the rig pass.** Reuses
+  `two_view_min_num_inliers` from `TwoViewGeometryOptions`. No need
+  to invent a separate knob.
 
 ## Key files
 
 - `docker/reconstructor/src/reconstructor/colmap_pipeline.py` —
-  contains `_verify_two_view_geometries`, the function being replaced.
-  Currently has uncommitted subprocess WIP that should be reverted
-  or discarded.
-- `docker/reconstructor/src/reconstructor/pairs.py` — pair generation
-  (sequential, spatial, retrieval, intra-frame-stereo). Lines ~109-110
-  emit the cross-camera combos that make frame-pairs have
-  `num_image_pairs > 1` and thus eligible for the rig pass.
+  contains the new `_verify_two_view_geometries` orchestrator,
+  `_run_em_phase` / `_verify_pair_em`, `_run_rig_phase` /
+  `_verify_frame_pair_rig`, `_build_rig_ransac_options`, and (in
+  `978940bd`) `_apply_vio_em_filter` as a post-rig pass. Removed:
+  `_check_sequential_pairs_against_vio`, the multiprocessing
+  workaround, the `geometric_verification` / `GeometricVerifierOptions`
+  / `ExistingMatchedPairingOptions` imports.
+- `docker/reconstructor/src/reconstructor/pairs.py` — pair generation;
+  intra-frame-stereo + sequential combos that make frame-pairs
+  eligible for the rig pass (`num_image_pairs > 1`).
 - `packages/python/core/src/core/reconstruction_options.py` /
-  `OptionsBuilder` — where the two_view_geometry / RANSAC options
-  come from. New thresholds (if any) land here.
-- `docker/reconstructor/SPEC.md` — **stale** at lines 56, 60, 164 per
-  prior memory. The rewrite is a new prose-first opportunity to
-  capture both this rewrite and the prior session's `geometric_verification`
-  + DB-polling + VIO-EM + metric-window changes in one
-  documentation pass. Per CLAUDE.md spec-first / prose-and-code-separate
-  rules, the SPEC update lands in its own commit before the code.
-- `.pulsar/memories/reconstruction-aliasing-failure-modes.md` — long-form
-  context for everything upstream of this rewrite (failure modes,
-  prior A/B runs, layered weak signals architecture).
+  `OptionsBuilder` — RANSAC + two-view-geometry options.
+  `two_view_min_num_inliers` is reused as the rig pass floor.
+- `database/*.sql` — `reconstruction_status` enum gained
+  `verifying_rig_geometry`. Datamodels + API clients regenerated in
+  `37656c7f`.
+- `docker/reconstructor/SPEC.md` — **stale**. Still needs to capture
+  this rewrite, the EM + rig phase split, and the new publisher
+  status. Prose-only commit per CLAUDE.md spec-first rule.
+- `.pulsar/memories/reconstruction-aliasing-failure-modes.md` —
+  long-form context for everything upstream of this rewrite.
 
 ## Pending threads
 
-1. **Revert or discard the uncommitted subprocess WIP** in
-   `colmap_pipeline.py` before starting the rewrite, so the diff is
-   clean against `e82a61ee`.
-2. **Implement the hand-rolled two-phase verification** per the
-   outline above. Lint, type-check, run reconstructor tests.
-3. **Validate empirically that GIL is released** on
-   `estimate_two_view_geometry` and `estimate_generalized_relative_pose`
-   by observing CPU utilization with the ThreadPoolExecutor. Fall back
-   to subprocess pool per phase if needed.
-4. **Run end-to-end on `4bd303f1`** with the hand-rolled stack +
-   metric `sequential_window_m=3.0` + sequential VIO-EM check. Track:
-   - rig-pass rejections (expect the 10-12 intra-frame-stereo
-     "smell" to be caught explicitly now);
-   - sequential VIO-EM rejections at the two residual teleport
-     timestamps (`858015→858515`, `864515→865015→865515`);
-   - registered-frame count; if VIO-EM thresholds (15° rot / 30°
-     trans-direction) are too tight at this capture's ~12m drift,
-     either retighten or accept the catch is real.
-5. **Update `docker/reconstructor/SPEC.md`** (prose-only commit per
-   CLAUDE.md spec-first rule) to describe the hand-rolled
-   verification, the EM + rig phase split, and the new
-   `VERIFYING_GEOMETRY_EM` / `VERIFYING_GEOMETRY_RIG` publisher
-   phases if added. Roll up the still-stale lines 56, 60, 164 in
-   the same pass.
-6. **Fix the stale `--sequential-window` help text** in
+1. **Implement per-image-pair inlier rebinning in the rig pass** to
+   mirror C++ `EstimateRigTwoViewGeometries`. After GR6P returns
+   `inlier_mask`, bin the mask back into the constituent image-pairs,
+   write a CALIBRATED_RIG TVG with the rig-derived `cam2_from_cam1`
+   for each survivor, and write an empty TVG for image-pairs that
+   ended up with zero rig-consensus inliers. Strong candidate to
+   close out the two residual teleports without needing the VIO-EM
+   check at all.
+2. **Re-run end-to-end on `4bd303f1`** after the rebinning lands.
+   Track:
+   - rig-pass per-image-pair rejection counts (expect aliased
+     stereo-pair constituents to be dropped explicitly);
+   - sequential teleport pairs at `858015→858515` and
+     `864515→865015→865515` (expect them to die naturally);
+   - registered-frame count (should stay near 220/222).
+3. **Decide VIO-EM fate** after step 2. If per-image-pair rebinning
+   catches the teleports, drop VIO-EM entirely as redundant. If
+   teleports survive, revisit thresholds with diagnostic logging
+   of the actual `cos_rotation` / `cos_translation_direction`
+   distributions to choose them empirically rather than by
+   intuition.
+4. **Update `docker/reconstructor/SPEC.md`** (prose-only commit) to
+   describe the hand-rolled two-phase verification, the new
+   `verifying_rig_geometry` publisher status, and roll up the
+   still-stale lines from the prior memory in the same pass.
+5. **Fix stale `--sequential-window` help text** in
    `scripts/sweep_postprocess.py` and `scripts/displacement_check.py`
    (carried over from the prior memory's queue — not landed yet).
