@@ -1891,11 +1891,11 @@ components:
         device_type:
           $ref: "#/components/schemas/DeviceType"
         name:
-          nullable: true
           title: Name
           type: string
       required:
       - device_type
+      - name
       title: CaptureSessionCreate
       type: object
     CaptureSessionManifest:
@@ -2033,13 +2033,13 @@ components:
         device_type:
           $ref: "#/components/schemas/DeviceType"
         name:
-          nullable: true
           title: Name
           type: string
       required:
       - created_at
       - device_type
       - id
+      - name
       - recorded_at
       - updated_at
       title: CaptureSessionRead
@@ -2072,11 +2072,10 @@ components:
         data:
           format: binary
           type: string
+        name:
+          type: string
         id:
           format: uuid
-          nullable: true
-          type: string
-        name:
           nullable: true
           type: string
         recorded_at:
@@ -2089,6 +2088,7 @@ components:
       required:
       - data
       - device_type
+      - name
       title: CaptureSessionUploadRequest
       type: object
     CaptureSessionsExpanded:

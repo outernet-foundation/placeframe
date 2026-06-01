@@ -418,14 +418,14 @@ class CaptureSessionCreate(BaseModel):
     id: UUID | None = Field(None, title="Id")
     recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
     device_type: DeviceType
-    name: str | None = Field(None, title="Name")
+    name: str = Field(..., title="Name")
 
 
 class CaptureSessionBatchCreate(BaseModel):
     id: UUID = Field(..., title="Id")
     recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
     device_type: DeviceType
-    name: str | None = Field(None, title="Name")
+    name: str = Field(..., title="Name")
 
 
 class CaptureSessionUpdate(BaseModel):
@@ -447,7 +447,7 @@ class CaptureSessionRead(BaseModel):
     updated_at: AwareDatetime = Field(..., title="Updated At")
     recorded_at: AwareDatetime = Field(..., title="Recorded At")
     device_type: DeviceType
-    name: str | None = Field(None, title="Name")
+    name: str = Field(..., title="Name")
 
 
 class NodeCreate(BaseModel):

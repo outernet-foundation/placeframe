@@ -69,13 +69,13 @@ async with placeframe_api_client.ApiClient(configuration) as api_client:
     api_instance = placeframe_api_client.DefaultApi(api_client)
     device_type = placeframe_api_client.DeviceType() # DeviceType | 
     data = None # bytes | 
+    name = 'name_example' # str | 
     id = UUID('38400000-8cf0-11bd-b23e-10b96e4ef00d') # UUID |  (optional)
-    name = 'name_example' # str |  (optional)
     recorded_at = '2013-10-20T19:20:30+01:00' # datetime | datetime with the constraint that the value must have timezone info (optional)
 
     try:
         # CreateCaptureSession
-        api_response = await api_instance.create_capture_session(device_type, data, id=id, name=name, recorded_at=recorded_at)
+        api_response = await api_instance.create_capture_session(device_type, data, name, id=id, recorded_at=recorded_at)
         print("The response of DefaultApi->create_capture_session:\n")
         pprint(api_response)
     except ApiException as e:

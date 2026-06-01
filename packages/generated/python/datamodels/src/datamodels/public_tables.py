@@ -153,7 +153,7 @@ class CaptureSession(Base):
     device_type: Mapped[DeviceType] = mapped_column(
         Enum(DeviceType, name="device_type", values_callable=enum_values), nullable=False
     )
-    name: Mapped[Optional[str]] = mapped_column(Text)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
 
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="capture_sessions")
     reconstructions: Mapped[list["Reconstruction"]] = relationship("Reconstruction", back_populates="capture_session")

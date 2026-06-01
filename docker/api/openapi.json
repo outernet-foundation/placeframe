@@ -4254,14 +4254,14 @@
             "$ref": "#/components/schemas/DeviceType"
           },
           "name": {
-            "title": "Name",
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "title": "Name"
           }
         },
         "type": "object",
         "required": [
-          "device_type"
+          "device_type",
+          "name"
         ],
         "title": "CaptureSessionCreate"
       },
@@ -4318,9 +4318,8 @@
             "$ref": "#/components/schemas/DeviceType"
           },
           "name": {
-            "title": "Name",
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "title": "Name"
           }
         },
         "type": "object",
@@ -4328,6 +4327,7 @@
           "created_at",
           "device_type",
           "id",
+          "name",
           "recorded_at",
           "updated_at"
         ],
@@ -4365,14 +4365,13 @@
             "type": "string",
             "format": "binary"
           },
+          "name": {
+            "type": "string"
+          },
           "id": {
             "nullable": true,
             "type": "string",
             "format": "uuid"
-          },
-          "name": {
-            "nullable": true,
-            "type": "string"
           },
           "recorded_at": {
             "nullable": true,
@@ -4385,7 +4384,8 @@
         "type": "object",
         "required": [
           "data",
-          "device_type"
+          "device_type",
+          "name"
         ],
         "title": "CaptureSessionUploadRequest"
       },

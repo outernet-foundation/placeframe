@@ -10,10 +10,10 @@
     }
   ],
   "paths": {
-    "/captures/start": {
+    "/capture_sessions/start": {
       "post": {
         "tags": [
-          "captures"
+          "Capture Sessions"
         ],
         "summary": "StartCapture",
         "operationId": "start_capture",
@@ -90,29 +90,80 @@
         "deprecated": false
       }
     },
-    "/captures/stop": {
+    "/capture_sessions/stop": {
       "post": {
         "tags": [
-          "captures"
+          "Capture Sessions"
         ],
         "summary": "StopCapture",
         "operationId": "stop_capture",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StopCaptureRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": "Document created, URL follows",
             "headers": {}
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
           }
         },
         "deprecated": false
       }
     },
-    "/captures": {
+    "/capture_sessions": {
       "get": {
         "tags": [
-          "captures"
+          "Capture Sessions"
         ],
-        "summary": "GetCaptures",
-        "operationId": "get_captures",
+        "summary": "GetCaptureSessions",
+        "operationId": "get_capture_sessions",
         "responses": {
           "200": {
             "description": "Request fulfilled, document follows",
@@ -133,10 +184,10 @@
       },
       "delete": {
         "tags": [
-          "captures"
+          "Capture Sessions"
         ],
-        "summary": "DeleteAllCaptures",
-        "operationId": "delete_all_captures",
+        "summary": "DeleteAllCaptureSessions",
+        "operationId": "delete_all_capture_sessions",
         "responses": {
           "204": {
             "description": "Request fulfilled, nothing follows",
@@ -146,13 +197,159 @@
         "deprecated": false
       }
     },
-    "/captures/{id}": {
+    "/capture_sessions/{id}": {
+      "delete": {
+        "tags": [
+          "Capture Sessions"
+        ],
+        "summary": "DeleteCaptureSession",
+        "operationId": "delete_capture_session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Request fulfilled, nothing follows",
+            "headers": {}
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      },
+      "patch": {
+        "tags": [
+          "Capture Sessions"
+        ],
+        "summary": "UpdateCaptureSession",
+        "operationId": "update_capture_session",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCaptureSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/capture_sessions/{id}/tar": {
       "get": {
         "tags": [
-          "captures"
+          "Capture Sessions"
         ],
-        "summary": "DownloadCaptureTar",
-        "operationId": "download_capture_tar",
+        "summary": "DownloadCaptureSessionTar",
+        "operationId": "download_capture_session_tar",
         "parameters": [
           {
             "name": "id",
@@ -233,73 +430,6 @@
           }
         },
         "deprecated": false
-      },
-      "delete": {
-        "tags": [
-          "captures"
-        ],
-        "summary": "DeleteCapture",
-        "operationId": "delete_capture",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "required": true,
-            "deprecated": false
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Request fulfilled, nothing follows",
-            "headers": {}
-          },
-          "400": {
-            "description": "Bad request syntax or unsupported method",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "status_code": {
-                      "type": "integer"
-                    },
-                    "detail": {
-                      "type": "string"
-                    },
-                    "extra": {
-                      "additionalProperties": {},
-                      "anyOf": [
-                        {
-                          "type": "object"
-                        },
-                        {
-                          "type": "array",
-                          "items": {}
-                        }
-                      ],
-                      "nullable": true
-                    }
-                  },
-                  "type": "object",
-                  "required": [
-                    "detail",
-                    "status_code"
-                  ],
-                  "description": "Validation Exception",
-                  "example": {
-                    "status_code": 400,
-                    "detail": "Bad Request",
-                    "extra": {}
-                  }
-                }
-              }
-            }
-          }
-        },
-        "deprecated": false
       }
     },
     "/status": {
@@ -328,11 +458,38 @@
   },
   "components": {
     "schemas": {
+      "StopCaptureRequest": {
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "StopCaptureRequest"
+      },
+      "UpdateCaptureSessionRequest": {
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "UpdateCaptureSessionRequest"
+      },
       "ZedCapture": {
         "properties": {
           "id": {
             "type": "string",
             "format": "uuid"
+          },
+          "name": {
+            "type": "string"
           },
           "recorded_at": {
             "type": "string",
@@ -347,6 +504,7 @@
         "type": "object",
         "required": [
           "id",
+          "name",
           "recorded_at",
           "size_bytes"
         ],

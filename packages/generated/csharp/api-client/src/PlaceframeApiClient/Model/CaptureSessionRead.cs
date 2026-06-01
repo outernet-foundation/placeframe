@@ -70,14 +70,20 @@ namespace PlaceframeApiClient.Model
         /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="deviceType">deviceType (required).</param>
-        /// <param name="name">name.</param>
-        public CaptureSessionRead(Guid id, DateTime createdAt, DateTime updatedAt, DateTime recordedAt, DeviceType deviceType)
+        /// <param name="name">name (required).</param>
+        public CaptureSessionRead(Guid id, DateTime createdAt, DateTime updatedAt, DateTime recordedAt, DeviceType deviceType, string name)
         {
             this.Id = id;
             this.CreatedAt = createdAt;
             this.UpdatedAt = updatedAt;
             this.RecordedAt = recordedAt;
             this.DeviceType = deviceType;
+            // to ensure "name" is required (not null)
+            if (name == null)
+            {
+                throw new ArgumentNullException("name is a required property for CaptureSessionRead and cannot be null");
+            }
+            this.Name = name;
         }
 
         /// <summary>
@@ -182,7 +188,7 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Gets or Sets Name
         /// </summary>
-        [DataMember(Name = "name", EmitDefaultValue = true)]
+        [DataMember(Name = "name", IsRequired = true, EmitDefaultValue = true)]
         public string Name
         {
             get{ return _Name;}

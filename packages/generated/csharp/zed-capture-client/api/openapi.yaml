@@ -5,7 +5,7 @@ info:
 servers:
 - url: /
 paths:
-  /captures/start:
+  /capture_sessions/start:
     post:
       deprecated: false
       operationId: start_capture
@@ -39,29 +39,41 @@ paths:
       summary: StartCapture
       tags:
       - Default
-  /captures/stop:
+  /capture_sessions/stop:
     post:
       deprecated: false
       operationId: stop_capture
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StopCaptureRequest"
+        required: true
       responses:
         "201":
           description: "Document created, URL follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/start_capture_400_response"
+          description: Bad request syntax or unsupported method
       summary: StopCapture
       tags:
       - Default
-  /captures:
+  /capture_sessions:
     delete:
       deprecated: false
-      operationId: delete_all_captures
+      operationId: delete_all_capture_sessions
       responses:
         "204":
           description: "Request fulfilled, nothing follows"
-      summary: DeleteAllCaptures
+      summary: DeleteAllCaptureSessions
       tags:
       - Default
     get:
       deprecated: false
-      operationId: get_captures
+      operationId: get_capture_sessions
       responses:
         "200":
           content:
@@ -71,13 +83,13 @@ paths:
                   $ref: "#/components/schemas/ZedCapture"
                 type: array
           description: "Request fulfilled, document follows"
-      summary: GetCaptures
+      summary: GetCaptureSessions
       tags:
       - Default
-  /captures/{id}:
+  /capture_sessions/{id}:
     delete:
       deprecated: false
-      operationId: delete_capture
+      operationId: delete_capture_session
       parameters:
       - deprecated: false
         explode: false
@@ -97,12 +109,44 @@ paths:
               schema:
                 $ref: "#/components/schemas/start_capture_400_response"
           description: Bad request syntax or unsupported method
-      summary: DeleteCapture
+      summary: DeleteCaptureSession
       tags:
       - Default
+    patch:
+      deprecated: false
+      operationId: update_capture_session
+      parameters:
+      - deprecated: false
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCaptureSessionRequest"
+        required: true
+      responses:
+        "200":
+          description: "Request fulfilled, document follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/start_capture_400_response"
+          description: Bad request syntax or unsupported method
+      summary: UpdateCaptureSession
+      tags:
+      - Default
+  /capture_sessions/{id}/tar:
     get:
       deprecated: false
-      operationId: download_capture_tar
+      operationId: download_capture_session_tar
       parameters:
       - deprecated: false
         explode: false
@@ -138,7 +182,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/start_capture_400_response"
           description: Bad request syntax or unsupported method
-      summary: DownloadCaptureTar
+      summary: DownloadCaptureSessionTar
       tags:
       - Default
   /status:
@@ -157,14 +201,37 @@ paths:
       - Default
 components:
   schemas:
+    StopCaptureRequest:
+      example:
+        name: name
+      properties:
+        name:
+          type: string
+      required:
+      - name
+      title: StopCaptureRequest
+      type: object
+    UpdateCaptureSessionRequest:
+      example:
+        name: name
+      properties:
+        name:
+          type: string
+      required:
+      - name
+      title: UpdateCaptureSessionRequest
+      type: object
     ZedCapture:
       example:
         recorded_at: 2000-01-23T04:56:07.000+00:00
         size_bytes: 0
+        name: name
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         id:
           format: uuid
+          type: string
+        name:
           type: string
         recorded_at:
           description: datetime with the constraint that the value must have timezone
@@ -176,6 +243,7 @@ components:
           type: integer
       required:
       - id
+      - name
       - recorded_at
       - size_bytes
       title: ZedCapture

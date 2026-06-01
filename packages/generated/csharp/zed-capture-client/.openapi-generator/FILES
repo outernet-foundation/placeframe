@@ -25,6 +25,8 @@ src/PlaceframeZedCaptureClient/Client/WebRequestPathBuilder.cs
 src/PlaceframeZedCaptureClient/Model/AbstractOpenAPISchema.cs
 src/PlaceframeZedCaptureClient/Model/StartCapture400Response.cs
 src/PlaceframeZedCaptureClient/Model/StartCapture400ResponseExtra.cs
+src/PlaceframeZedCaptureClient/Model/StopCaptureRequest.cs
+src/PlaceframeZedCaptureClient/Model/UpdateCaptureSessionRequest.cs
 src/PlaceframeZedCaptureClient/Model/ZedCapture.cs
 src/PlaceframeZedCaptureClient/Model/ZedStatus.cs
 src/PlaceframeZedCaptureClient/PlaceframeZedCaptureClient.csproj

@@ -68,12 +68,42 @@ namespace PlaceframeApiClient.Model
         /// <param name="id">id.</param>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info.</param>
         /// <param name="deviceType">deviceType (required).</param>
-        /// <param name="name">name.</param>
-        public CaptureSessionCreate(DeviceType deviceType)
+        /// <param name="name">name (required).</param>
+        public CaptureSessionCreate(DeviceType deviceType, string name)
         {
             this.DeviceType = deviceType;
+            // to ensure "name" is required (not null)
+            if (name == null)
+            {
+                throw new ArgumentNullException("name is a required property for CaptureSessionCreate and cannot be null");
+            }
+            this.Name = name;
         }
 
+        /// <summary>
+        /// Gets or Sets Name
+        /// </summary>
+        [DataMember(Name = "name", IsRequired = true, EmitDefaultValue = true)]
+        public string Name
+        {
+            get{ return _Name;}
+            set
+            {
+                _Name = value;
+                _flagName = true;
+            }
+        }
+        private string _Name;
+        private bool _flagName;
+
+        /// <summary>
+        /// Returns false as Name should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeName()
+        {
+            return _flagName;
+        }
         /// <summary>
         /// Gets or Sets Id
         /// </summary>
@@ -124,30 +154,6 @@ namespace PlaceframeApiClient.Model
             return _flagRecordedAt;
         }
         /// <summary>
-        /// Gets or Sets Name
-        /// </summary>
-        [DataMember(Name = "name", EmitDefaultValue = true)]
-        public string Name
-        {
-            get{ return _Name;}
-            set
-            {
-                _Name = value;
-                _flagName = true;
-            }
-        }
-        private string _Name;
-        private bool _flagName;
-
-        /// <summary>
-        /// Returns false as Name should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeName()
-        {
-            return _flagName;
-        }
-        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -156,9 +162,9 @@ namespace PlaceframeApiClient.Model
             StringBuilder sb = new StringBuilder();
             sb.Append("class CaptureSessionCreate {\n");
             sb.Append("  DeviceType: ").Append(DeviceType).Append("\n");
+            sb.Append("  Name: ").Append(Name).Append("\n");
             sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  RecordedAt: ").Append(RecordedAt).Append("\n");
-            sb.Append("  Name: ").Append(Name).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

@@ -77,8 +77,8 @@ class DefaultApi:
         self,
         device_type: DeviceType,
         data: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
+        name: StrictStr,
         id: Optional[UUID] = None,
-        name: Optional[StrictStr] = None,
         recorded_at: Annotated[Optional[datetime], Field(description="datetime with the constraint that the value must have timezone info")] = None,
         _request_timeout: Union[
             None,
@@ -100,10 +100,10 @@ class DefaultApi:
         :type device_type: DeviceType
         :param data: (required)
         :type data: bytes
+        :param name: (required)
+        :type name: str
         :param id:
         :type id: UUID
-        :param name:
-        :type name: str
         :param recorded_at: datetime with the constraint that the value must have timezone info
         :type recorded_at: datetime
         :param _request_timeout: timeout setting for this request. If one
@@ -131,8 +131,8 @@ class DefaultApi:
         _param = self._create_capture_session_serialize(
             device_type=device_type,
             data=data,
-            id=id,
             name=name,
+            id=id,
             recorded_at=recorded_at,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -160,8 +160,8 @@ class DefaultApi:
         self,
         device_type: DeviceType,
         data: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
+        name: StrictStr,
         id: Optional[UUID] = None,
-        name: Optional[StrictStr] = None,
         recorded_at: Annotated[Optional[datetime], Field(description="datetime with the constraint that the value must have timezone info")] = None,
         _request_timeout: Union[
             None,
@@ -183,10 +183,10 @@ class DefaultApi:
         :type device_type: DeviceType
         :param data: (required)
         :type data: bytes
+        :param name: (required)
+        :type name: str
         :param id:
         :type id: UUID
-        :param name:
-        :type name: str
         :param recorded_at: datetime with the constraint that the value must have timezone info
         :type recorded_at: datetime
         :param _request_timeout: timeout setting for this request. If one
@@ -214,8 +214,8 @@ class DefaultApi:
         _param = self._create_capture_session_serialize(
             device_type=device_type,
             data=data,
-            id=id,
             name=name,
+            id=id,
             recorded_at=recorded_at,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -243,8 +243,8 @@ class DefaultApi:
         self,
         device_type: DeviceType,
         data: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
+        name: StrictStr,
         id: Optional[UUID] = None,
-        name: Optional[StrictStr] = None,
         recorded_at: Annotated[Optional[datetime], Field(description="datetime with the constraint that the value must have timezone info")] = None,
         _request_timeout: Union[
             None,
@@ -266,10 +266,10 @@ class DefaultApi:
         :type device_type: DeviceType
         :param data: (required)
         :type data: bytes
+        :param name: (required)
+        :type name: str
         :param id:
         :type id: UUID
-        :param name:
-        :type name: str
         :param recorded_at: datetime with the constraint that the value must have timezone info
         :type recorded_at: datetime
         :param _request_timeout: timeout setting for this request. If one
@@ -297,8 +297,8 @@ class DefaultApi:
         _param = self._create_capture_session_serialize(
             device_type=device_type,
             data=data,
-            id=id,
             name=name,
+            id=id,
             recorded_at=recorded_at,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -321,8 +321,8 @@ class DefaultApi:
         self,
         device_type,
         data,
-        id,
         name,
+        id,
         recorded_at,
         _request_auth,
         _content_type,
@@ -352,10 +352,10 @@ class DefaultApi:
             _form_params.append(('device_type', device_type))
         if data is not None:
             _files['data'] = data
-        if id is not None:
-            _form_params.append(('id', id))
         if name is not None:
             _form_params.append(('name', name))
+        if id is not None:
+            _form_params.append(('id', id))
         if recorded_at is not None:
             _form_params.append(('recorded_at', recorded_at))
         # process the body parameter
