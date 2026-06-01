@@ -2,6 +2,117 @@
 updated: 2026-05-31
 ---
 
+## What's new (2026-05-31, late-night session)
+
+- **Two-phase retrieval ingest shipped** (commit `e9565dca`). Phase 1 builds a
+  trajectory from `intra_frame_stereo + sequential + spatial` only — retrieval
+  matches are withheld from the database entirely so they cannot poison the
+  seed, dominate any PnP solve, or self-validate as a cluster. Phase 2 writes
+  retrieval matches + two-view geometries into the same database, builds a
+  fresh `IncrementalPipeline` against the augmented cache, binds a fresh
+  `IncrementalMapper` to the best Phase 1 `Reconstruction` via
+  `begin_reconstruction`, sets `fix_existing_frames=True` for
+  `triangulate_image` / `complete_and_merge_tracks` / `retriangulate` so the
+  retrieval correspondences cannot pull existing poses, then releases the
+  fix-frames constraint for `iterative_global_refinement` to absorb the loop
+  closures. The pose-graph check runs in both phases; in Phase 2 its oracle
+  (the Phase 1 model) is uncontaminated by construction. **No phase-3
+  straggler pass** — frames orphaned from Phase 1 stay orphaned.
+- **Defaults changed** (commit `9515401a`):
+  - `spatial_neighbors`: `25 → 0` (spatial pairing disabled by default)
+  - `vio_check_max_disagreement_m`: `1.0 → 1e9` (vio_check effectively
+    disabled by default; code path stays live, set to a finite value to
+    re-enable)
+- **Three A/B runs on `4bd303f1`** under the new architecture. The teleports
+  on this capture are *not* primarily retrieval-driven, despite what the
+  earlier framing assumed:
+  - `1e5508c2` (two-phase + spatial on, vio_check off): same four teleports
+    as pose-graph-only baseline (max 15.95 m/s), same exact timestamps.
+    Retrieval rejections went 4→14 (Phase 2's stiff oracle catches more),
+    but those weren't the dominant poison.
+  - `32951227` (two-phase + spatial OFF, vio_check off): the two severe
+    teleports at `1780106840515` / `841015` (~15 m/s) **eliminated**. Two
+    residual ~4 m/s teleports at `…859015` and `…865515` survived. Cost:
+    154/222 frames mapped (−29% coverage), long-range tracks 4643→690
+    (−85%). Retrieval rejections jumped to 80 — the now-untwisted model
+    surfaces aliases that were hidden when the graph was bent.
+- **Spatial pairs are the dominant teleport vector on this capture, not
+  retrieval.** The original framing put retrieval at the center; the data
+  here say spatial-near-but-visually-aliased pairs are the primary poisoning
+  source. The user's read is unambiguous: "spatial off always. it is just a
+  bad idea, period." The default change makes this stick.
+- **Residual ~4 m/s teleports are sequential-driven.** Survived all three
+  A/B configurations at the same timestamps; not eliminated by removing
+  spatial or by withholding retrieval. By elimination, they're aliased
+  two-view geometries between temporally-adjacent keyframes within
+  `sequential_window=20`. Open hypothesis: the sequential window is simply
+  too wide — narrowing it from 20 to a smaller value may be the cheap fix.
+- **Three failure modes of the pose-graph check, named.** The earlier
+  memory had "early-seed contamination" alone. Two more were identified:
+  - **(1) Early-seed contamination.** Alias gets baked in before the
+    `min_registered_frames` gate (default 15); the check never fires on
+    it, and afterward the region is "the model's truth."
+  - **(2) Same-registration PnP domination.** A new frame registers via
+    PnP using *all* its matches at once. If the aliased partner has more
+    inliers than the correct partners (which is exactly the case for
+    visually-strong aliases), the new frame's pose absorbs the alias
+    *during the registration step itself*. Then the check on that frame
+    flags the *correct* partners as the disagreers — the wrong side wins.
+  - **(3) Co-misregistered cluster.** Two or more aliased frames register
+    such that their relative poses are mutually consistent with the alias.
+    Self-consistent island; from inside it every pair agrees with every
+    other pair, so the check has no leverage. Tight 3-frame clusters can
+    validate each other indefinitely.
+  Unifying principle: the check fails whenever the model already agrees
+  with the lying pair at the moment of the check. Early-seed is one way
+  to get there; PnP-domination and co-registration are two others, and
+  both can happen long after the 15-frame threshold.
+- **vio_check non-redundancy formalized.** vio_check is the only oracle
+  that *doesn't care what the model thinks* — VIO doesn't get
+  contamination-propagated. It's the architecturally appropriate defense
+  against all three pose-graph failure modes (subject to its own
+  drift-budget limitation). Code stayed; only the default flipped.
+- **Stereo rejections diagnosed.** The 4–6 `intra_frame_stereo`
+  rejections per run are not a calibration smell — they're a tell that
+  the model in that neighborhood is wrong, because stereo's relative
+  pose is *ground truth* by rig construction. Stereo rejections mark the
+  spots where contamination has already bent the model.
+- **A/B methodology acknowledged as flawed.** Nine independent
+  aliasing-related levers are now on by default, layered without
+  isolation: drift-budget, retrieval inlier strictness, raised global
+  inlier floor, match-spread, retrieval covisibility, pose-graph check,
+  two-phase ingest, vio_check (now off), and retrieval-specific RANSAC.
+  Every "win" we've attributed to a single patch has been measured
+  against a baseline that included the rest of the stack. We do not
+  know which patches are load-bearing and which are dead weight. The
+  next investigation block must be a **strip-to-bare**: start from
+  two-phase + spatial-off + everything-else-at-pycolmap-defaults
+  (`bare`), then add patches back one at a time, on this capture *and*
+  on ARFoundation-grade captures.
+- **Match-spread decision deferred again.** Still in the default
+  pipeline. The strip-to-bare test will tell us whether it pays off net.
+
+## Commits this session
+
+| commit | subject |
+|---|---|
+| `c242a429` | Add pair-level pose-graph consistency check |
+| `7ef967c8` | Run generate-clients |
+| `e9565dca` | Add two-phase retrieval ingest to incremental reconstruction |
+| `9515401a` | Default spatial_neighbors to 0 and vio_check to 1e9 |
+| `1f9164b3` | Run generate-clients |
+
+## Captures referenced this session
+
+- `1e5508c2-2b20-4cf2-9673-14ad76cf9990` — two-phase ingest + spatial on,
+  vio_check off. Same teleports as pose-graph-only baseline.
+- `32951227-2ed9-49ef-afb6-7e66f1d77a5c` — two-phase ingest + spatial
+  off, vio_check off. The principled-but-coverage-expensive run. Severe
+  teleports eliminated, residual sequential-driven teleports survive,
+  long-range tracks collapse 85%.
+
+---
+
 # Retrieval-pair visual aliasing is the dominant reconstruction failure mode
 
 ## Goal
@@ -1074,33 +1185,77 @@ vision rather than a removable supplement.
 
 ## Pending threads
 
-### Commit the pose-graph check
+### Strip-to-bare A/B matrix (top priority — methodology reset)
 
-The pose-graph check (`_check_and_excise_poisoned_pairs` +
-`PairPoseGraphOptions` + `PairDisplacementOptions` refactor + four new
-`ReconstructionOptions` fields + regenerated clients) is implemented
-and tested (pytest 7 passed, ruff/basedpyright clean on touched files)
-but **not yet committed** at write time. Source commit must be split
-from the `Run generate-clients` codegen commit per repo convention.
-Pre-existing preflight blockers on the branch
-(`scripts/src/scripts/sweep_postprocess.py:101` S608,
-`scripts/src/scripts/tune_reconstruction.py` basedpyright errors
-referencing removed `ReconstructionMetrics` attributes) are unrelated
-and should not be folded into this commit.
+We have nine layered aliasing patches on by default and no isolated
+measurement of which are load-bearing. Acknowledged as a methodology
+failure: all "wins" so far were measured against baselines that
+included the rest of the stack.
 
-### Run the both-checks-on A/B (the natural follow-up)
+Phase A — start from `bare`: only two-phase ingest + `spatial_neighbors=0`
+on, everything else at pycolmap defaults. Specifically off / at default:
 
-Re-enable vio_check at a loose threshold (3 m or 5 m), keep the
-pose-graph check at defaults (15° rot, 30° trans-direction, 0.3 m
-baseline, 15-frame gate). Hypothesis: vio_check gates the seed phase
-that pose-graph is structurally blind to, pose-graph carries the long
-tail without vio_check killing loop closures. If teleports get caught
-during the seed and loop closures survive into the late phase, the
-"complementary, not redundant" framing is empirically validated and
-we have a defensible default. If teleports survive or loop closures
-die, decide whether to (a) tighten the seed-phase pose-graph
-thresholds, (b) add gravity-rotation consistency at the front door,
-or (c) reframe to a capture-quality gate.
+- `pair_max_displacement_scene_m` / `drift_rate_m_per_s` (drift budget)
+- `pair_min_match_spread` (match-spread filter)
+- `retrieval_min_inlier_ratio` / `retrieval_min_num_inliers` (retrieval-specific RANSAC strictness)
+- `two_view_min_num_inliers` (raised global inlier floor)
+- `retrieval_covisibility_*` (singleton-retrieval filter)
+- `pair_pose_graph_*` (post-triangulation consistency check)
+- `vio_check_max_disagreement_m` (already off by default at `1e9`)
+
+Run `bare` on `4bd303f1` and on at least one ARFoundation-grade capture.
+Then add patches back one at a time, ordered by prior-belief contribution:
+pose-graph check first (it's the closest to architecturally load-bearing
+under the new defaults), then narrowing `sequential_window`, then the
+rest. Goal: the minimum essential patch set that produces clean
+reconstructions on both capture regimes.
+
+The user's stated rule: spatial off always. Do not relitigate.
+
+### Investigate sequential aliasing (the residual teleport vector)
+
+The two residual ~4 m/s teleports at `…859015` and `…865515` survive
+every configuration tested and are not spatial- or retrieval-driven.
+By elimination they're aliased two-view geometries between temporally
+adjacent keyframes within `sequential_window=20`. User's hypothesis:
+the sequential window is simply too wide.
+
+Cheapest move: re-run with `sequential_window` reduced (try 10, then 5)
+and see whether the residual teleports collapse. If they survive even
+at `window=5`, the failure is *immediate*-sequential aliasing (within
+a few keyframes) which would require a different defense — gravity
+rotation, motion-model gating, or a sequential-specific match
+verification step.
+
+### Add phase-3 straggler-retrieval registration (deferred)
+
+Two-phase ingest deliberately ships without a phase-3 pass that would
+register Phase 1-orphaned frames via retrieval matches. Cost is real:
+on `32951227`, 68/222 frames are orphans (mostly because spatial-off
+removed a fallback path). Reintroducing a phase-3 risks the same
+poisoning the two-phase split eliminated, but now against a stiff
+oracle so the pose-graph check should bite correctly. Build only
+after the strip-to-bare establishes a known-clean baseline.
+
+### Run on ARFoundation-grade capture
+
+Every result so far is on `4bd303f1`, a ZED capture with anomalously
+high (~12m) VIO drift. ARFoundation captures will have sub-meter VIO
+drift, which fundamentally changes the regime — the drift-budget
+filter that was inert on `4bd303f1` should do real work; vio_check at
+a finite (loose) threshold may make sense again. Strip-to-bare must
+include at least one ARFoundation capture so we're not optimizing for
+one corner.
+
+### Both-checks-on A/B — folded into strip-to-bare
+
+The prior "both-checks-on" experiment plan (vio_check at 3-5m + pose-graph
+defaults) is now a *cell* in the strip-to-bare matrix above, not its own
+thread. Re-enabling vio_check at a finite threshold becomes one of the
+patches we add back during the strip-to-bare evaluation. The pose-graph
+check is the one that defaults to on under the new architecture; vio_check
+re-enable is the cheapest cell to test because the code already exists
+and only the threshold flips.
 
 ### Decide: keep or revert match-spread in default pipeline
 
