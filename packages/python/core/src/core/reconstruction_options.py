@@ -102,6 +102,22 @@ class ReconstructionOptions(BaseModel):
         default=1.0,
         description="Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors.",
     )
+    pair_pose_graph_max_rotation_disagreement_deg: float = Field(
+        default=15.0,
+        description="At per-frame registration time, compare the relative rotation each already-registered partner's two-view geometry implies against the relative rotation the partial reconstruction estimates between the same frames. Partners exceeding this angular threshold are flagged poisoned and their contributing matches are excised from the new frame's observations before the next BA pass. Independent of VIO; uses the pose graph itself as the consistency oracle. 0 disables.",
+    )
+    pair_pose_graph_max_translation_direction_deg: float = Field(
+        default=30.0,
+        description="Companion to pair_pose_graph_max_rotation_disagreement_deg: bounds the angle between the unit translation direction the two-view geometry implies and the unit translation direction implied by the partial reconstruction's pose estimates of the two frames. Two-view geometry is scale-free in the monocular case so only direction is compared. Skipped when the estimated baseline is below pair_pose_graph_min_baseline_m. 0 disables.",
+    )
+    pair_pose_graph_min_baseline_m: float = Field(
+        default=0.3,
+        description="Estimated-baseline floor below which the translation-direction component of the pose-graph consistency check is skipped. Near-co-located frames have ill-defined translation direction; the rotation component still applies.",
+    )
+    pair_pose_graph_min_registered_frames: int = Field(
+        default=15,
+        description="Minimum number of registered frames in the partial reconstruction before pair_pose_graph_* consistency checks fire. Early in the reconstruction the pose graph is too soft to be a reliable oracle; the front-door filters (covisibility, drift budget, vio_check) carry the load until the graph stiffens.",
+    )
     max_keypoints_per_image: int = Field(
         default=2500,
         description="Maximum ALIKED keypoints retained per image.",

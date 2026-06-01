@@ -9,9 +9,11 @@ from typing import Any, Literal
 
 from placeframe_api_client import ReconstructionStatus
 
-from numpy import asarray, eye, float64, intp, stack, uint32
+from math import cos, radians
+from numpy import asarray, clip, dot, eye, float64, intp, stack, uint32
 from numpy.linalg import norm
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
+from pycolmap import INVALID_POINT3D_ID
 from pycolmap import Camera as ColmapCamera
 from pycolmap import (
     Database,
@@ -20,6 +22,7 @@ from pycolmap import (
     IncrementalMapperOptions,
     IncrementalPipeline,
     IncrementalPipelineOptions,
+    ObservationManager,
     PosePrior,
     PosePriorCoordinateSystem,
     RANSACOptions,
@@ -38,7 +41,7 @@ from pycolmap import Image as pycolmapImage
 from pycolmap._core import apply_rig_config, estimate_two_view_geometry  # noqa: PLC2701 — no public API
 
 from .metrics_builder import MetricsBuilder
-from .options_builder import OptionsBuilder
+from .options_builder import OptionsBuilder, PairPoseGraphOptions
 from .pairs import Pair, PairSource
 from .progress_publisher import ReconstructionPublisher
 from .rig import Rig, image_name
@@ -88,12 +91,19 @@ class IncrementalContext:
     pipeline_options: IncrementalPipelineOptions
     controller: IncrementalPipeline
     reconstruction_manager: ReconstructionManager
+    database: Database
     skipped_image_ids: set[int]
     vio_data_by_image_id: dict[int, VioFrameData]
     # (timestamp_ns, image_id) sorted by timestamp_ns. Lets vio_check bisect for the
     # nearest-in-time neighbors instead of scanning every registered image per call.
     sorted_vio_entries: list[tuple[int, int]]
     vio_check_max_disagreement_m: float
+    pose_graph_options: PairPoseGraphOptions
+    # Sorted (image_id_low, image_id_high) tuple keyed to pair source. Lets the per-frame
+    # pose-graph check attribute rejections back to the source that admitted the pair.
+    pair_source_by_image_pair: dict[tuple[int, int], PairSource]
+    # Mutable counters threaded through frozen dataclass; printed once at run end.
+    pose_graph_rejections: dict[PairSource, int]
     publisher: ReconstructionPublisher
 
 
@@ -140,7 +150,15 @@ def run_colmap_pipeline_with_vio_check(
         # Phase total is the candidate image count — an upper bound, since COLMAP may drop images that
         # fail to register or get filtered after bundle adjustment.
         publisher.set_phase(ReconstructionStatus.RECONSTRUCTING, len(colmap_image_ids))
-        reconstruction_manager = _run_incremental_reconstruction(pipeline_context, image_path, vio_data_by_image_id)
+        pair_source_by_image_pair: dict[tuple[int, int], PairSource] = {}
+        for pair in pairs:
+            image_id_a = colmap_image_ids[pair.image_a]
+            image_id_b = colmap_image_ids[pair.image_b]
+            image_id_pair = (image_id_a, image_id_b) if image_id_a < image_id_b else (image_id_b, image_id_a)
+            pair_source_by_image_pair[image_id_pair] = pair.source
+        reconstruction_manager = _run_incremental_reconstruction(
+            pipeline_context, image_path, vio_data_by_image_id, pair_source_by_image_pair
+        )
 
     reconstruction_manager.write(str(sfm_output_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
     return {index: reconstruction_manager.get(index) for index in range(reconstruction_manager.size())}
@@ -303,6 +321,7 @@ def _run_incremental_reconstruction(
     pipeline_context: PipelineContext,
     image_path: Path,
     vio_data_by_image_id: dict[int, VioFrameData],
+    pair_source_by_image_pair: dict[tuple[int, int], PairSource],
 ) -> ReconstructionManager:
     # COLMAP assigns rig_t IDs at apply_rig_config time; harvest them so the incremental BA
     # loop can pin every rig's sensor_from_rig transform.
@@ -322,10 +341,14 @@ def _run_incremental_reconstruction(
         pipeline_options=pipeline_options,
         controller=controller,
         reconstruction_manager=reconstruction_manager,
+        database=pipeline_context.database,
         skipped_image_ids=set(),
         vio_data_by_image_id=vio_data_by_image_id,
         sorted_vio_entries=sorted((data.timestamp_ns, image_id) for image_id, data in vio_data_by_image_id.items()),
         vio_check_max_disagreement_m=pipeline_context.options.vio_check_max_disagreement_m(),
+        pose_graph_options=pipeline_context.options.pair_pose_graph_options(),
+        pair_source_by_image_pair=pair_source_by_image_pair,
+        pose_graph_rejections=dict.fromkeys(PairSource, 0),
         publisher=pipeline_context.publisher,
     )
 
@@ -347,8 +370,10 @@ def _run_incremental_reconstruction(
             if outcome == TrialOutcome.NEXT_RELAXATION:
                 break
             if outcome == TrialOutcome.COMPLETE:
+                _log_pose_graph_summary(context.pose_graph_rejections)
                 return reconstruction_manager
 
+    _log_pose_graph_summary(context.pose_graph_rejections)
     return reconstruction_manager
 
 
@@ -446,6 +471,7 @@ def _run_incremental_registration_step(
         assert frame is not None
         for data_id in frame.image_ids:
             context.mapper.triangulate_image(context.pipeline_options.get_triangulation(), data_id.id)
+            _check_and_excise_poisoned_pairs(context, reconstruction, data_id.id)
         context.mapper.iterative_local_refinement(
             context.pipeline_options.ba_local_max_refinements,
             context.pipeline_options.ba_local_max_refinement_change,
@@ -526,6 +552,143 @@ def _find_and_register_next_image(
         context.mapper.observation_manager.deregister_frame(rejected_frame.frame_id)
 
     return None
+
+
+def _check_and_excise_poisoned_pairs(
+    context: IncrementalContext,
+    reconstruction: Reconstruction,
+    new_image_id: int,
+) -> None:
+    # Pair-level pose-graph consistency. For each already-registered partner sharing a
+    # verified two-view geometry with the just-triangulated new_image_id, compare the
+    # partner's pair-implied relative pose against the partial reconstruction's estimated
+    # relative pose. Partners exceeding rotation or translation-direction thresholds are
+    # flagged poisoned; their inlier-match observations on new_image_id are deleted from
+    # the observation manager before the next local BA pass. The pose graph is too soft
+    # to be a reliable oracle below pose_graph_min_registered_frames — the check returns
+    # early in that regime and the front-door filters (covisibility, drift budget,
+    # vio_check) carry the load until the graph stiffens.
+    pose_graph_options = context.pose_graph_options
+    if pose_graph_options.max_rotation_disagreement_deg <= 0 and pose_graph_options.max_translation_direction_deg <= 0:
+        return
+    if reconstruction.num_reg_images() < pose_graph_options.min_registered_frames:
+        return
+    if new_image_id not in reconstruction.images:
+        return
+
+    cos_max_rotation = (
+        cos(radians(pose_graph_options.max_rotation_disagreement_deg))
+        if pose_graph_options.max_rotation_disagreement_deg > 0
+        else -2.0
+    )
+    cos_max_translation_direction = (
+        cos(radians(pose_graph_options.max_translation_direction_deg))
+        if pose_graph_options.max_translation_direction_deg > 0
+        else -2.0
+    )
+
+    for partner_id in reconstruction.reg_image_ids():
+        if partner_id == new_image_id:
+            continue
+        image_id_low, image_id_high = (
+            (new_image_id, partner_id) if new_image_id < partner_id else (partner_id, new_image_id)
+        )
+        if not context.database.exists_two_view_geometry(image_id_low, image_id_high):
+            continue
+
+        two_view_geometry = context.database.read_two_view_geometry(image_id_low, image_id_high)
+        implied_high_from_low = two_view_geometry.cam2_from_cam1
+        if implied_high_from_low is None:
+            continue
+        rotation_disagreement_cos, translation_direction_cos, estimated_baseline_m = _pose_graph_disagreement(
+            reconstruction, image_id_low, image_id_high, implied_high_from_low
+        )
+        rotation_failed = (
+            pose_graph_options.max_rotation_disagreement_deg > 0 and rotation_disagreement_cos < cos_max_rotation
+        )
+        translation_failed = (
+            pose_graph_options.max_translation_direction_deg > 0
+            and estimated_baseline_m >= pose_graph_options.min_baseline_m
+            and translation_direction_cos < cos_max_translation_direction
+        )
+        if not (rotation_failed or translation_failed):
+            continue
+
+        excised = _excise_pair_observations(
+            context.mapper.observation_manager,
+            reconstruction,
+            two_view_geometry,
+            new_image_id,
+            partner_id,
+            new_is_low=new_image_id == image_id_low,
+        )
+        source = context.pair_source_by_image_pair.get((image_id_low, image_id_high))
+        if source is not None:
+            context.pose_graph_rejections[source] += 1
+        _log_pose_graph_rejection(
+            new_image_id=new_image_id,
+            partner_id=partner_id,
+            source=source,
+            rotation_failed=rotation_failed,
+            translation_failed=translation_failed,
+            excised=excised,
+        )
+
+
+def _pose_graph_disagreement(
+    reconstruction: Reconstruction,
+    image_id_low: int,
+    image_id_high: int,
+    implied_high_from_low: Rigid3d,
+) -> tuple[float, float, float]:
+    cam_low_from_world: Rigid3d = reconstruction.images[image_id_low].cam_from_world()
+    cam_high_from_world: Rigid3d = reconstruction.images[image_id_high].cam_from_world()
+    estimated_high_from_low: Rigid3d = cam_high_from_world * cam_low_from_world.inverse()
+
+    estimated_rotation: NDArray[float64] = estimated_high_from_low.rotation.matrix()
+    implied_rotation: NDArray[float64] = implied_high_from_low.rotation.matrix()
+    rotation_trace = float((estimated_rotation @ implied_rotation.T).trace())
+    rotation_disagreement_cos = float(clip((rotation_trace - 1.0) / 2.0, -1.0, 1.0))
+
+    estimated_translation: NDArray[float64] = estimated_high_from_low.translation
+    implied_translation: NDArray[float64] = implied_high_from_low.translation
+    estimated_baseline_m = float(norm(estimated_translation))
+    implied_translation_norm = float(norm(implied_translation))
+    if estimated_baseline_m > 0 and implied_translation_norm > 0:
+        translation_direction_cos = float(
+            clip(
+                dot(estimated_translation / estimated_baseline_m, implied_translation / implied_translation_norm),
+                -1.0,
+                1.0,
+            )
+        )
+    else:
+        translation_direction_cos = 1.0
+    return rotation_disagreement_cos, translation_direction_cos, estimated_baseline_m
+
+
+def _excise_pair_observations(
+    observation_manager: ObservationManager,
+    reconstruction: Reconstruction,
+    two_view_geometry: TwoViewGeometry,
+    new_image_id: int,
+    partner_id: int,
+    new_is_low: bool,
+) -> int:
+    inlier_matches: NDArray[uint32] = two_view_geometry.inlier_matches  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType] — upstream stub uses unbound TypeVar for inlier_matches shape
+    if len(inlier_matches) == 0:
+        return 0
+    new_image = reconstruction.images[new_image_id]
+    partner_image = reconstruction.images[partner_id]
+    excised_count = 0
+    for match in inlier_matches:
+        new_kp_idx = int(match[0]) if new_is_low else int(match[1])
+        partner_kp_idx = int(match[1]) if new_is_low else int(match[0])
+        shared_point3d_id = new_image.point2D(new_kp_idx).point3D_id
+        if shared_point3d_id != INVALID_POINT3D_ID and shared_point3d_id == partner_image.point2D(partner_kp_idx).point3D_id:
+            observation_manager.delete_observation(new_image_id, new_kp_idx)
+            excised_count += 1
+    return excised_count
 
 
 def vio_check(
@@ -626,6 +789,32 @@ def _log_vio_check(image_id: int, *, passed: bool, disagreement_m: float | None,
     disagreement_str = "vacuous" if disagreement_m is None else f"{disagreement_m:.6f}"
     print(
         f"[vio_check] image_id={image_id} neighbors={neighbor_count} disagreement_m={disagreement_str} passed={passed}"
+    )
+
+
+def _log_pose_graph_rejection(
+    *,
+    new_image_id: int,
+    partner_id: int,
+    source: PairSource | None,
+    rotation_failed: bool,
+    translation_failed: bool,
+    excised: int,
+) -> None:
+    reasons = ",".join(
+        reason for reason, failed in (("rotation", rotation_failed), ("translation", translation_failed)) if failed
+    )
+    source_str = source.value if source is not None else "unknown"
+    print(
+        f"[pose_graph_check] image_id={new_image_id} partner_id={partner_id} "
+        f"source={source_str} reason={reasons} excised={excised}"
+    )
+
+
+def _log_pose_graph_summary(rejections: dict[PairSource, int]) -> None:
+    print(
+        "Pose-graph consistency rejections: "
+        + ", ".join(f"{source.value}={count}" for source, count in rejections.items())
     )
 
 

@@ -1,7 +1,24 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from core.reconstruction_options import ReconstructionOptions
 from pycolmap import BundleAdjustmentOptions, IncrementalPipelineOptions, TwoViewGeometryOptions
+
+
+@dataclass(frozen=True)
+class PairDisplacementOptions:
+    scene_m: float
+    drift_rate_m_per_s: float
+
+
+@dataclass(frozen=True)
+class PairPoseGraphOptions:
+    max_rotation_disagreement_deg: float
+    max_translation_direction_deg: float
+    min_baseline_m: float
+    min_registered_frames: int
+
 
 # Hardcoded pipeline knobs. Kept out of ReconstructionOptions because either there is one
 # correct answer or the option was never exercised by any caller.
@@ -58,11 +75,11 @@ class OptionsBuilder:
     def retrieval_min_distance_m(self):
         return self.options.retrieval_min_distance_m
 
-    def pair_max_displacement_scene_m(self):
-        return self.options.pair_max_displacement_scene_m
-
-    def pair_max_displacement_drift_rate_m_per_s(self):
-        return self.options.pair_max_displacement_drift_rate_m_per_s
+    def pair_displacement_options(self):
+        return PairDisplacementOptions(
+            scene_m=self.options.pair_max_displacement_scene_m,
+            drift_rate_m_per_s=self.options.pair_max_displacement_drift_rate_m_per_s,
+        )
 
     def pair_min_match_spread(self):
         return self.options.pair_min_match_spread
@@ -81,6 +98,14 @@ class OptionsBuilder:
 
     def vio_check_max_disagreement_m(self):
         return self.options.vio_check_max_disagreement_m
+
+    def pair_pose_graph_options(self):
+        return PairPoseGraphOptions(
+            max_rotation_disagreement_deg=self.options.pair_pose_graph_max_rotation_disagreement_deg,
+            max_translation_direction_deg=self.options.pair_pose_graph_max_translation_direction_deg,
+            min_baseline_m=self.options.pair_pose_graph_min_baseline_m,
+            min_registered_frames=self.options.pair_pose_graph_min_registered_frames,
+        )
 
     def max_keypoints_per_image(self):
         return self.options.max_keypoints_per_image
