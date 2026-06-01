@@ -4,6 +4,88 @@ updated: 2026-06-01
 
 # Stock pycolmap rig verification + post-pass VIO-EM filter on capture 4bd303f1
 
+## Recent session delta (2026-06-01 afternoon)
+
+Working tree (uncommitted) holds the source-filter bug fix for
+`_apply_vio_em_check`. Two files changed:
+`docker/reconstructor/src/reconstructor/colmap.py` and
+`docker/reconstructor/src/reconstructor/run_reconstruction.py`. Needs
+a source commit + a `Run generate-clients` commit (the `Pair` type
+shape change ripples through the API).
+
+What landed in this session (post commit `2d2e05a9`):
+
+- **`_apply_vio_em_check` was firing on every pair, not just
+  sequential.** The function received `list[tuple[str, str]]` —
+  source already stripped at `run_reconstruction.py:254` via
+  `[(pair.image_a, pair.image_b) for pair in pairs]`. The memory's
+  description "skipped for phase-2 retrieval" was design intent that
+  never made it to shipped code. So **every prior reconstruction with
+  retrieval enabled was VIO-EM-rejecting retrieval pairs** — exactly
+  the loop closures retrieval exists to find. Some conclusions in
+  `reconstruction-aliasing-failure-modes.md` about retrieval need
+  re-reading with this in mind.
+- **Fix shape.** Thread `list[Pair]` (source-tagged) through
+  `run_colmap_reconstruction` instead of `list[tuple[str, str]]`.
+  Filter inside `_apply_vio_em_check` to `PairSource.SEQUENTIAL`
+  only. Metrics call gets a tuple projection at the seam. Inline
+  comment captures the rationale (retrieval crosses loops where VIO
+  drift can legitimately disagree; intra-frame stereo is already
+  pinned by rig calibration).
+- **Retrieval-on run with the fixed gate (no run-id captured —
+  reconstruction succeeded, sfm pulled, displacement-check at
+  `--sequential-window 20`):**
+
+  | metric | A (retrieval off) | R (retrieval on, fixed gate) |
+  |---|---|---|
+  | registered images | 162 / 222 | **216 / 222** |
+  | 3D points | 26,420 | 36,388 |
+  | pair sources | 111 stereo + 7888 seq | 111 + 7888 + **1616 retrieval** |
+  | long-range tracks (>40 kf) | 237 | **4,608** |
+  | p95 long-range extent | 24 | **88** |
+  | max long-range extent | 59 | 107 |
+  | teleports >2.5 m/s | 0 / 80 | 1 / 107 |
+  | worst teleport | — | 9.85 m/s at `858515 → 859015` |
+
+  Worst teleport: `recon=4.93 m, prior=0.26 m`. Same keyframe pair as
+  the `reconstruction-aliasing-failure-modes.md` corridor-aliasing
+  case (historical `window=20 + retrieval ON` was 25.83 m/s; this run
+  9.85 m/s — much better, still bad). VIO-EM doesn't see this pair
+  by design (it's retrieval-class); the corridor-aliasing defense
+  surface is retrieval-side covisibility / retrieval-min-score or a
+  retrieval-aware non-VIO consistency check.
+- **Long-range track metric semantics nailed down.** The threshold is
+  `2 × sequential_window` keyframes. The team convention is
+  `--sequential-window 20` → threshold 40. At threshold 40, chained
+  sequential matches *can* still occasionally reach across (~200 is
+  the empirical noise floor on this capture), so the metric is
+  *necessary but not sufficient*: zero = definitely no loop closures
+  landed; nonzero means "probably loop closures, but a 200ish residue
+  is just sequential chaining." The dramatic 237 → 4608 jump when
+  retrieval was actually turned on (with the fix) is the unambiguous
+  positive signal. `displacement_check.py`'s code comment claiming
+  the count "cannot exist from sequential matching alone" is wrong;
+  it's a heuristic.
+- **Threshold A/B was inconclusive due to nondeterminism.**
+  - **A**: `25° / 60°`, **B**: `25° / 40°`. Both reconstructions on
+    capture `4bd303f1`. Both produced **zero teleports** (>2.5 m/s)
+    and **162 / 222** registered. B accepted 5.8% fewer pairs (2676
+    vs 2840). A had 30% more long-range tracks (1661 vs 1159) at the
+    wrong threshold of 16 — at the correct threshold of 40 they were
+    237 and 148, both within the noise floor.
+  - The prior `053156e6` reconstruction at the **stricter** default
+    (`15° / 30°`, math-fixed) had **two teleports**. A looser gate
+    can't catch more outliers than a stricter one, so the clean
+    A/B runs aren't a threshold win — they're nondeterminism.
+    `deterministic_seed` defaults to `None`; RANSAC + incremental
+    mapper are stochastic. A real A/B needs a fixed seed *or* N≥5
+    replicates per condition.
+  - Net: **the 15° / 30° default has not been beaten on this capture
+    in a controlled way.** Earlier "looser thresholds equal cleaner
+    output" framing was wrong.
+
+
+
 ## Goal
 
 Get a clean reconstruction on the test capture
@@ -216,13 +298,20 @@ that chapter has been reverted.
 
 ## Open questions
 
-- **At what thresholds does VIO-EM actually catch Regime-1
-  teleports without killing the p95 noise tail?** Diagnostic
-  numbers suggest rotation ≥ 25°, translation ≥ 60° is the
-  natural floor for "anomalous" given this capture's distribution.
-  Need to A/B the current `15°/30°` and proposed `25°/60°` and
-  measure both teleport survival and overall registration count.
-  This is the immediate next experiment.
+- **What is the *real* threshold sensitivity, controlled for
+  nondeterminism?** The A/B (`25°/60°` vs `25°/40°`) was
+  inconclusive — both clean, but a stricter prior run had two
+  teleports. Need either `deterministic_seed` pinned or N≥5
+  replicates per condition (default `15°/30°`, A, B) to detect
+  signal above run-to-run variance.
+- **Does the corridor teleport at `858515→859015` (Regime 1 in
+  the diagnostic, now also surviving the retrieval-on run at
+  9.85 m/s) need a retrieval-aware defense?** VIO-EM doesn't
+  apply to retrieval pairs by design. Candidates: retrieval-side
+  covisibility filter, retrieval-min-score gate, or a
+  retrieval-aware consistency check that doesn't compare to VIO
+  (since retrieval crosses legitimate loops where VIO drift is
+  expected).
 - **Can we exploit the metric translation magnitude on
   `config = 9` pairs?** Currently the check only uses
   translation direction. The CALIBRATED_RIG pairs carry real
@@ -240,6 +329,10 @@ that chapter has been reverted.
   `1000 / 0.99` doubles wall-clock to ~6 min but pushed
   registration to `218/222`. With a working VIO-EM at sensible
   thresholds, the tighter RANSAC may be the right place to land.
+- **How much of `reconstruction-aliasing-failure-modes.md`'s
+  retrieval-related conclusions need revising** given the
+  VIO-EM-killing-retrieval-pairs bug was live throughout those
+  sweeps?
 
 ## Key files
 
@@ -278,26 +371,43 @@ that chapter has been reverted.
 
 ## Pending threads
 
-1. **Run the `15°/30°` vs `25°/60°` A/B on capture 4bd303f1**
-   ("run both and compare" — user was interrupted before this).
-   Compare registered frames, both teleports' survival in
-   `displacement-check`, and CALIBRATED_RIG kill count.
-2. **Add a magnitude check on `config = 9` pairs.** Compare recon
+1. **Commit the source-filter bug fix.** Working tree has
+   `colmap.py` + `run_reconstruction.py` modified. Two-commit
+   sequence: source commit ("Apply VIO-EM check to sequential
+   pairs only" or similar), then `Run generate-clients` for the
+   ripple from the function signature change. Tests already pass
+   locally (ruff + basedpyright + pytest clean per the session).
+2. **Replicate experiment with `deterministic_seed` pinned.**
+   Re-run the `15°/30°` default + `25°/60°` A + `25°/40°` B with
+   a fixed seed each, compare teleports + registration count.
+   Without this we can't distinguish threshold effects from
+   nondeterminism noise. This was the experiment we *thought* we
+   ran but actually didn't, because of the unseeded mapper.
+3. **Design a retrieval-side aliasing defense for the
+   `858515→859015` corridor case.** Now that the gate fix
+   restores 1616 retrieval pairs and the residual teleport is
+   demonstrably retrieval-driven, the leverage point is one of:
+   covisibility filter, retrieval-min-score, or a non-VIO
+   consistency check (e.g. essential-matrix-vs-current-partial-
+   reconstruction agreement). VIO-EM is structurally the wrong
+   tool here.
+4. **Add a magnitude check on `config = 9` pairs.** Compare recon
    translation magnitude to VIO translation magnitude with a
    ratio threshold (e.g. reject if ratio > 2×). Wire as a new
    `pair_vio_em_max_translation_magnitude_ratio` option. Test on
    teleport 1 — it should fire (recon 0.324 m vs VIO 0.261 m is
    only 24% off, so a 2× threshold wouldn't catch it on
    magnitude; teleport 1 is a direction-only kill).
-3. **Investigate Regime-2 teleport 2.** Identify which upstream
+5. **Investigate Regime-2 teleport 2.** Identify which upstream
    pair gave BA enough confidence to place these two
    unverified-against-each-other frames in implausibly different
    poses. The 2↔3 column of the diagnostic is the entry point.
-4. **Re-evaluate RANSAC tuning** once VIO-EM thresholds are
+6. **Re-evaluate RANSAC tuning** once VIO-EM thresholds are
    settled. `500/0.95` and `1000/0.99` both on the table;
    `218/222` at `1000/0.99` is still the headline number to beat.
-5. **Update `docker/reconstructor/SPEC.md`** (prose-only commit
+7. **Update `docker/reconstructor/SPEC.md`** (prose-only commit
    per spec-first rule) to capture the post-revert pipeline shape:
-   stock `geometric_verification` + post-pass VIO-EM, SQLite
-   subprocess progress poller, no hand-rolled verification phases.
-   Pending across this memory and the prior chapter.
+   stock `geometric_verification` + post-pass VIO-EM (sequential-
+   only), SQLite subprocess progress poller, no hand-rolled
+   verification phases. Pending across this memory and the prior
+   chapter.
