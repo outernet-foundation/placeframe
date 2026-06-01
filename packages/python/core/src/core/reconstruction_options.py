@@ -19,8 +19,8 @@ class ReconstructionOptions(BaseModel):
         description="Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.",
     )
     spatial_neighbors: int = Field(
-        default=25,
-        description="Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time.",
+        default=0,
+        description="Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame's true neighbours.",
     )
     spatial_max_distance_m: float = Field(
         default=6.0,
@@ -99,8 +99,8 @@ class ReconstructionOptions(BaseModel):
         description="Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off).",
     )
     vio_check_max_disagreement_m: float = Field(
-        default=1.0,
-        description="Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors.",
+        default=1e9,
+        description="Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors. Disabled by default (1e9 m is effectively infinity for any real capture); the pair-level pose-graph consistency check and the two-phase retrieval ingest are the primary aliasing defenses. Set to a finite value (e.g. 1.0) to gate registrations against VIO drift bounds on captures where the device-reported trajectory is trusted to within a metre.",
     )
     pair_pose_graph_max_rotation_disagreement_deg: float = Field(
         default=15.0,
