@@ -2675,11 +2675,12 @@ components:
           ransac_max_error: 4.145608029883936
           retrieval_min_inlier_ratio: 1.0246457001441578
           retrieval_covisibility_min_support: 2
+          vio_check_max_disagreement_m: 9.965781217890562
           spatial_neighbors: 5
           ransac_min_inlier_ratio: 7.386281948385884
           held_out_frame_timestamps:
-          - 9
-          - 9
+          - 6
+          - 6
           bundle_adjustment_global_function_tolerance: 4.965218492984954
           retrieval_min_score: 9.301444243932576
           retrieval_min_num_inliers: 1
@@ -4029,11 +4030,12 @@ components:
           ransac_max_error: 4.145608029883936
           retrieval_min_inlier_ratio: 1.0246457001441578
           retrieval_covisibility_min_support: 2
+          vio_check_max_disagreement_m: 9.965781217890562
           spatial_neighbors: 5
           ransac_min_inlier_ratio: 7.386281948385884
           held_out_frame_timestamps:
-          - 9
-          - 9
+          - 6
+          - 6
           bundle_adjustment_global_function_tolerance: 4.965218492984954
           retrieval_min_score: 9.301444243932576
           retrieval_min_num_inliers: 1
@@ -4206,11 +4208,12 @@ components:
         ransac_max_error: 4.145608029883936
         retrieval_min_inlier_ratio: 1.0246457001441578
         retrieval_covisibility_min_support: 2
+        vio_check_max_disagreement_m: 9.965781217890562
         spatial_neighbors: 5
         ransac_min_inlier_ratio: 7.386281948385884
         held_out_frame_timestamps:
-        - 9
-        - 9
+        - 6
+        - 6
         bundle_adjustment_global_function_tolerance: 4.965218492984954
         retrieval_min_score: 9.301444243932576
         retrieval_min_num_inliers: 1
@@ -4349,6 +4352,14 @@ components:
           default: 0.05
           description: Standard deviation in meters for the position prior covariance;
             consumed only by monocular captures (multi-camera captures run priors-off).
+          format: double
+          type: number
+        vio_check_max_disagreement_m:
+          default: 1.0
+          description: Reject a registration when the disagreement (meters) between
+            the local-Umeyama-predicted recon position and the recon position COLMAP
+            just assigned exceeds this. Also used as the LO-RANSAC inlier threshold
+            when fitting the local Sim3 from VIO neighbors.
           format: double
           type: number
         max_keypoints_per_image:

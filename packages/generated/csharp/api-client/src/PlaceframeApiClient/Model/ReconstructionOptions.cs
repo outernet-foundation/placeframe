@@ -54,6 +54,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="bundleAdjustmentGlobalFramesRatio">Frame-count growth ratio that triggers a global BA event; larger &#x3D; fewer events. (default to 1.5D).</param>
         /// <param name="bundleAdjustmentGlobalFunctionTolerance">Ceres function tolerance for global BA exit; larger &#x3D; earlier exit on residual plateaus. (default to 0.001D).</param>
         /// <param name="posePriorPositionSigmaM">Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off). (default to 0.05D).</param>
+        /// <param name="vioCheckMaxDisagreementM">Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors. (default to 1.0D).</param>
         /// <param name="maxKeypointsPerImage">Maximum ALIKED keypoints retained per image. (default to 2500).</param>
         /// <param name="heldOutFrameTimestamps">Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries..</param>
         public ReconstructionOptions()
@@ -561,6 +562,31 @@ namespace PlaceframeApiClient.Model
             return _flagPosePriorPositionSigmaM;
         }
         /// <summary>
+        /// Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors.
+        /// </summary>
+        /// <value>Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors.</value>
+        [DataMember(Name = "vio_check_max_disagreement_m", EmitDefaultValue = false)]
+        public double VioCheckMaxDisagreementM
+        {
+            get{ return _VioCheckMaxDisagreementM;}
+            set
+            {
+                _VioCheckMaxDisagreementM = value;
+                _flagVioCheckMaxDisagreementM = true;
+            }
+        }
+        private double _VioCheckMaxDisagreementM = 1.0D;
+        private bool _flagVioCheckMaxDisagreementM;
+
+        /// <summary>
+        /// Returns false as VioCheckMaxDisagreementM should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeVioCheckMaxDisagreementM()
+        {
+            return _flagVioCheckMaxDisagreementM;
+        }
+        /// <summary>
         /// Maximum ALIKED keypoints retained per image.
         /// </summary>
         /// <value>Maximum ALIKED keypoints retained per image.</value>
@@ -638,6 +664,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("  BundleAdjustmentGlobalFramesRatio: ").Append(BundleAdjustmentGlobalFramesRatio).Append("\n");
             sb.Append("  BundleAdjustmentGlobalFunctionTolerance: ").Append(BundleAdjustmentGlobalFunctionTolerance).Append("\n");
             sb.Append("  PosePriorPositionSigmaM: ").Append(PosePriorPositionSigmaM).Append("\n");
+            sb.Append("  VioCheckMaxDisagreementM: ").Append(VioCheckMaxDisagreementM).Append("\n");
             sb.Append("  MaxKeypointsPerImage: ").Append(MaxKeypointsPerImage).Append("\n");
             sb.Append("  HeldOutFrameTimestamps: ").Append(HeldOutFrameTimestamps).Append("\n");
             sb.Append("}\n");

@@ -6333,6 +6333,12 @@
             "description": "Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off).",
             "default": 0.05
           },
+          "vio_check_max_disagreement_m": {
+            "type": "number",
+            "format": "double",
+            "description": "Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors.",
+            "default": 1.0
+          },
           "max_keypoints_per_image": {
             "type": "integer",
             "description": "Maximum ALIKED keypoints retained per image.",

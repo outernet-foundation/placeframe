@@ -47,10 +47,11 @@ class ReconstructionOptions(BaseModel):
     bundle_adjustment_global_frames_ratio: Optional[Union[StrictFloat, StrictInt]] = Field(default=1.5, description="Frame-count growth ratio that triggers a global BA event; larger = fewer events.")
     bundle_adjustment_global_function_tolerance: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.001, description="Ceres function tolerance for global BA exit; larger = earlier exit on residual plateaus.")
     pose_prior_position_sigma_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.05, description="Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off).")
+    vio_check_max_disagreement_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=1.0, description="Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors.")
     max_keypoints_per_image: Optional[StrictInt] = Field(default=2500, description="Maximum ALIKED keypoints retained per image.")
     held_out_frame_timestamps: Optional[List[StrictInt]] = Field(default=None, description="Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.")
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_min_distance_m", "sequential_window", "spatial_neighbors", "spatial_max_distance_m", "retrieval_neighbors", "retrieval_min_distance_m", "retrieval_min_score", "retrieval_covisibility_window", "retrieval_covisibility_min_support", "ransac_max_error", "ransac_min_inlier_ratio", "two_view_min_num_inliers", "retrieval_min_inlier_ratio", "retrieval_min_num_inliers", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "max_keypoints_per_image", "held_out_frame_timestamps"]
+    __properties: ClassVar[List[str]] = ["deterministic_seed", "keyframe_min_distance_m", "sequential_window", "spatial_neighbors", "spatial_max_distance_m", "retrieval_neighbors", "retrieval_min_distance_m", "retrieval_min_score", "retrieval_covisibility_window", "retrieval_covisibility_min_support", "ransac_max_error", "ransac_min_inlier_ratio", "two_view_min_num_inliers", "retrieval_min_inlier_ratio", "retrieval_min_num_inliers", "triangulation_minimum_angle", "mapper_filter_max_reprojection_error", "bundle_adjustment_global_frames_ratio", "bundle_adjustment_global_function_tolerance", "pose_prior_position_sigma_m", "vio_check_max_disagreement_m", "max_keypoints_per_image", "held_out_frame_timestamps"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -140,6 +141,7 @@ class ReconstructionOptions(BaseModel):
             "bundle_adjustment_global_frames_ratio": obj.get("bundle_adjustment_global_frames_ratio") if obj.get("bundle_adjustment_global_frames_ratio") is not None else 1.5,
             "bundle_adjustment_global_function_tolerance": obj.get("bundle_adjustment_global_function_tolerance") if obj.get("bundle_adjustment_global_function_tolerance") is not None else 0.001,
             "pose_prior_position_sigma_m": obj.get("pose_prior_position_sigma_m") if obj.get("pose_prior_position_sigma_m") is not None else 0.05,
+            "vio_check_max_disagreement_m": obj.get("vio_check_max_disagreement_m") if obj.get("vio_check_max_disagreement_m") is not None else 1.0,
             "max_keypoints_per_image": obj.get("max_keypoints_per_image") if obj.get("max_keypoints_per_image") is not None else 2500,
             "held_out_frame_timestamps": obj.get("held_out_frame_timestamps")
         })
