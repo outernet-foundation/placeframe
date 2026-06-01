@@ -37,7 +37,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="deterministicSeed">PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic..</param>
         /// <param name="keyframeMinDistanceM">Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction. (default to 0.2D).</param>
         /// <param name="sequentialWindow">Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone. (default to 20).</param>
-        /// <param name="spatialNeighbors">Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time. (default to 25).</param>
+        /// <param name="spatialNeighbors">Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame&#39;s true neighbours. (default to 0).</param>
         /// <param name="spatialMaxDistanceM">Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent. (default to 6.0D).</param>
         /// <param name="retrievalNeighbors">Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval. (default to 20).</param>
         /// <param name="retrievalMinDistanceM">Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent. (default to 1.0D).</param>
@@ -57,7 +57,7 @@ namespace PlaceframeApiClient.Model
         /// <param name="bundleAdjustmentGlobalFramesRatio">Frame-count growth ratio that triggers a global BA event; larger &#x3D; fewer events. (default to 1.5D).</param>
         /// <param name="bundleAdjustmentGlobalFunctionTolerance">Ceres function tolerance for global BA exit; larger &#x3D; earlier exit on residual plateaus. (default to 0.001D).</param>
         /// <param name="posePriorPositionSigmaM">Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off). (default to 0.05D).</param>
-        /// <param name="vioCheckMaxDisagreementM">Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors. (default to 1.0D).</param>
+        /// <param name="vioCheckMaxDisagreementM">Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors. Disabled by default (1e9 m is effectively infinity for any real capture); the pair-level pose-graph consistency check and the two-phase retrieval ingest are the primary aliasing defenses. Set to a finite value (e.g. 1.0) to gate registrations against VIO drift bounds on captures where the device-reported trajectory is trusted to within a metre. (default to 1.0E+9D).</param>
         /// <param name="pairPoseGraphMaxRotationDisagreementDeg">At per-frame registration time, compare the relative rotation each already-registered partner&#39;s two-view geometry implies against the relative rotation the partial reconstruction estimates between the same frames. Partners exceeding this angular threshold are flagged poisoned and their contributing matches are excised from the new frame&#39;s observations before the next BA pass. Independent of VIO; uses the pose graph itself as the consistency oracle. 0 disables. (default to 15.0D).</param>
         /// <param name="pairPoseGraphMaxTranslationDirectionDeg">Companion to pair_pose_graph_max_rotation_disagreement_deg: bounds the angle between the unit translation direction the two-view geometry implies and the unit translation direction implied by the partial reconstruction&#39;s pose estimates of the two frames. Two-view geometry is scale-free in the monocular case so only direction is compared. Skipped when the estimated baseline is below pair_pose_graph_min_baseline_m. 0 disables. (default to 30.0D).</param>
         /// <param name="pairPoseGraphMinBaselineM">Estimated-baseline floor below which the translation-direction component of the pose-graph consistency check is skipped. Near-co-located frames have ill-defined translation direction; the rotation component still applies. (default to 0.3D).</param>
@@ -144,9 +144,9 @@ namespace PlaceframeApiClient.Model
             return _flagSequentialWindow;
         }
         /// <summary>
-        /// Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time.
+        /// Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame&#39;s true neighbours.
         /// </summary>
-        /// <value>Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time.</value>
+        /// <value>Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame&#39;s true neighbours.</value>
         [DataMember(Name = "spatial_neighbors", EmitDefaultValue = false)]
         public int SpatialNeighbors
         {
@@ -157,7 +157,7 @@ namespace PlaceframeApiClient.Model
                 _flagSpatialNeighbors = true;
             }
         }
-        private int _SpatialNeighbors = 25;
+        private int _SpatialNeighbors = 0;
         private bool _flagSpatialNeighbors;
 
         /// <summary>
@@ -644,9 +644,9 @@ namespace PlaceframeApiClient.Model
             return _flagPosePriorPositionSigmaM;
         }
         /// <summary>
-        /// Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors.
+        /// Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors. Disabled by default (1e9 m is effectively infinity for any real capture); the pair-level pose-graph consistency check and the two-phase retrieval ingest are the primary aliasing defenses. Set to a finite value (e.g. 1.0) to gate registrations against VIO drift bounds on captures where the device-reported trajectory is trusted to within a metre.
         /// </summary>
-        /// <value>Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors.</value>
+        /// <value>Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors. Disabled by default (1e9 m is effectively infinity for any real capture); the pair-level pose-graph consistency check and the two-phase retrieval ingest are the primary aliasing defenses. Set to a finite value (e.g. 1.0) to gate registrations against VIO drift bounds on captures where the device-reported trajectory is trusted to within a metre.</value>
         [DataMember(Name = "vio_check_max_disagreement_m", EmitDefaultValue = false)]
         public double VioCheckMaxDisagreementM
         {
@@ -657,7 +657,7 @@ namespace PlaceframeApiClient.Model
                 _flagVioCheckMaxDisagreementM = true;
             }
         }
-        private double _VioCheckMaxDisagreementM = 1.0D;
+        private double _VioCheckMaxDisagreementM = 1.0E+9D;
         private bool _flagVioCheckMaxDisagreementM;
 
         /// <summary>
