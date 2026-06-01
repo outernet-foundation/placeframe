@@ -105,6 +105,19 @@ class EmResult:
 
 
 @dataclass(frozen=True)
+class ConstituentRecord:
+    image_id_pair: tuple[int, int]
+    image_id_a: int
+    image_id_b: int
+    camera_id_a: str
+    camera_id_b: str
+    em_inlier_matches: NDArray[uint32]
+    # True when pair.image_a is the frame-pair's side-1 (frame_id_low). Determines whether the
+    # GR6P-solved rig2_from_rig1 needs inverting when constructing cam2_from_cam1 for this pair.
+    a_is_side1: bool
+
+
+@dataclass(frozen=True)
 class PipelineContext:
     database: Database
     options: OptionsBuilder
@@ -376,7 +389,7 @@ def _verify_two_view_geometries(
         for camera_id in rig.cameras:
             sensor_from_rig_by_camera[(rig_id, camera_id)] = _sensor_from_rig_for_camera(rig, camera_id)
 
-    surviving_pair_keys = _run_rig_phase(
+    surviving_pair_keys, rig_rewritten_tvgs = _run_rig_phase(
         pairs,
         publisher,
         max_workers,
@@ -406,17 +419,36 @@ def _verify_two_view_geometries(
         options.pair_vio_essential_matrix_options(),
     )
 
-    written = 0
+    # Write surviving pairs. Pairs that went through a successful rig pass get the rewritten TVG
+    # (rig-consensus inlier subset + rig-derived cam2_from_cam1 + CALIBRATED_RIG config); pairs
+    # the rig pass did not see (intra-frame stereo, cross-rig, no eligible frame-pair group) keep
+    # their EM TwoViewGeometry. The empty TVGs written for image-pairs in successful frame-pairs
+    # that retained zero rig-inliers mirror the C++ `EstimateRigTwoViewGeometries` behavior — the
+    # mapper treats them as no usable geometry.
+    written = written_rig = written_em = written_empty = 0
     with Database.open(str(database_path)) as database:  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
         for image_id_pair, result in em_results.items():
             if result.verdict != EmVerdict.KEPT:
                 continue
             if image_id_pair not in surviving_pair_keys:
                 continue
-            assert result.two_view_geometry is not None
-            database.write_two_view_geometry(result.image_id_a, result.image_id_b, result.two_view_geometry)
+            rig_tvg = rig_rewritten_tvgs.get(image_id_pair)
+            if rig_tvg is not None:
+                tvg_to_write = rig_tvg
+                if rig_tvg.config == TwoViewGeometryConfiguration.UNDEFINED:
+                    written_empty += 1
+                else:
+                    written_rig += 1
+            else:
+                assert result.two_view_geometry is not None
+                tvg_to_write = result.two_view_geometry
+                written_em += 1
+            database.write_two_view_geometry(result.image_id_a, result.image_id_b, tvg_to_write)
             written += 1
-    print(f"[verification] wrote {written} two_view_geometries of {len(pairs)} candidate pairs")
+    print(
+        f"[verification] wrote {written} two_view_geometries of {len(pairs)} candidate pairs "
+        f"(rig_rewritten={written_rig} em_only={written_em} empty={written_empty})"
+    )
 
 
 def _run_em_phase(
@@ -504,7 +536,7 @@ def _run_rig_phase(
     keypoints: dict[str, Any],
     em_results: dict[tuple[int, int], EmResult],
     sensor_from_rig_by_camera: dict[tuple[str, str], Rigid3d],
-) -> set[tuple[int, int]]:
+) -> tuple[set[tuple[int, int]], dict[tuple[int, int], TwoViewGeometry]]:
     # Group surviving EM pairs by (rig_id, frame_id_low, frame_id_high). Cross-rig frame-pairs
     # would need a different cams_from_rig layout (per-side rig) and don't arise in practice on
     # single-rig captures — skip them with a single counter and let them inherit the EM-only
@@ -534,14 +566,17 @@ def _run_rig_phase(
     ]
 
     surviving_pair_keys = {key for key, em_result in em_results.items() if em_result.verdict == EmVerdict.KEPT}
+    rig_rewritten_tvgs: dict[tuple[int, int], TwoViewGeometry] = {}
 
     if not rig_eligible:
         print(f"[rig_phase] no eligible frame-pairs (cross_rig_skipped={cross_rig_skipped})")
-        return surviving_pair_keys
+        return surviving_pair_keys, rig_rewritten_tvgs
 
     publisher.set_phase(ReconstructionStatus.VERIFYING_RIG_GEOMETRY, len(rig_eligible))
 
-    def worker(item: tuple[FramePairKey, list[Pair]]) -> tuple[FramePairKey, bool, int]:
+    def worker(
+        item: tuple[FramePairKey, list[Pair]],
+    ) -> tuple[FramePairKey, dict[tuple[int, int], TwoViewGeometry | None], int]:
         return _verify_frame_pair_rig(
             item[0],
             item[1],
@@ -554,31 +589,30 @@ def _run_rig_phase(
             sensor_from_rig_by_camera,
         )
 
-    accepted = rejected = empty = 0
+    accepted = rejected = empty_constituents = 0
     completed = 0
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        for key, passed, num_inliers in executor.map(worker, rig_eligible):
-            if num_inliers == 0 and not passed:
-                empty += 1
-            elif passed:
+        for _key, rewritten, num_inliers in executor.map(worker, rig_eligible):
+            passed = any(tvg is not None for tvg in rewritten.values())
+            if passed:
                 accepted += 1
+            elif num_inliers == 0:
+                empty_constituents += 1
             else:
                 rejected += 1
-            if not passed:
-                for rejected_pair in frame_pair_groups[key]:
-                    image_id_a = colmap_image_ids[rejected_pair.image_a]
-                    image_id_b = colmap_image_ids[rejected_pair.image_b]
-                    surviving_pair_keys.discard(
-                        (image_id_a, image_id_b) if image_id_a < image_id_b else (image_id_b, image_id_a)
-                    )
+            for image_id_pair, tvg in rewritten.items():
+                if tvg is None:
+                    surviving_pair_keys.discard(image_id_pair)
+                else:
+                    rig_rewritten_tvgs[image_id_pair] = tvg
             completed += 1
             publisher.on_progress(completed)
 
     print(
         f"[rig_phase] eligible={len(rig_eligible)} accepted={accepted} rejected={rejected} "
-        f"empty={empty} cross_rig_skipped={cross_rig_skipped}"
+        f"no_input_inliers={empty_constituents} cross_rig_skipped={cross_rig_skipped}"
     )
-    return surviving_pair_keys
+    return surviving_pair_keys, rig_rewritten_tvgs
 
 
 def _verify_frame_pair_rig(
@@ -591,7 +625,18 @@ def _verify_frame_pair_rig(
     keypoints: dict[str, Any],
     em_results: dict[tuple[int, int], EmResult],
     sensor_from_rig_by_camera: dict[tuple[str, str], Rigid3d],
-) -> tuple[FramePairKey, bool, int]:
+) -> tuple[FramePairKey, dict[tuple[int, int], TwoViewGeometry | None], int]:
+    # Mirrors COLMAP's `EstimateRigTwoViewGeometries` (src/colmap/estimators/two_view_geometry.cc):
+    # pool correspondences across the frame-pair's constituent image-pairs, run one GR6P-RANSAC
+    # call against the rig calibration, then bin the global inlier mask back per image-pair.
+    # Each constituent that retained >= 1 rig-inlier gets a rewritten TwoViewGeometry whose
+    # `inlier_matches` is the binned subset and whose `cam2_from_cam1` is derived from the
+    # rig-solved relative pose (not the monocular EM essential matrix). Constituents with zero
+    # rig-inliers get an empty TwoViewGeometry — same as C++ line 474-478 in two_view_geometry.cc.
+    # The return dict maps each constituent's canonical image_id_pair to its rewritten TVG, or
+    # to None when the frame-pair as a whole failed (caller drops those keys from the survivor
+    # set). The TwoViewGeometry returned uses the pair's (image_a, image_b) orientation, matching
+    # the EM phase convention so the downstream writer can hand them to the database unchanged.
     rig = rigs[key.rig_id]
     camera_ids = list(rig.cameras.keys())
     camera_idx_by_camera_id = {camera_id: index for index, camera_id in enumerate(camera_ids)}
@@ -602,6 +647,10 @@ def _verify_frame_pair_rig(
     points2D2_chunks: list[NDArray[float64]] = []
     camera_idxs1: list[int] = []
     camera_idxs2: list[int] = []
+    # Per-correspondence (record_index, em_row_within_record) so the GR6P inlier mask can be
+    # binned back to each constituent's EM-phase inlier_matches rows.
+    correspondence_origin: list[tuple[int, int]] = []
+    constituent_records: list[ConstituentRecord] = []
     for pair in constituent_pairs:
         image_id_a = colmap_image_ids[pair.image_a]
         image_id_b = colmap_image_ids[pair.image_b]
@@ -620,7 +669,8 @@ def _verify_frame_pair_rig(
         # inlier_matches col 0 indexes pair.image_a's keypoints, col 1 indexes pair.image_b's
         # (the EM call passed (cam_a, kp_a, cam_b, kp_b, raw_matches) in that order). Assign
         # sides so points2D1 holds the frame_id_low side and points2D2 holds frame_id_high.
-        if frame_id_a == key.frame_id_low:
+        a_is_side1 = frame_id_a == key.frame_id_low
+        if a_is_side1:
             points2D1_chunks.append(keypoints_a[inlier_matches[:, 0]])
             points2D2_chunks.append(keypoints_b[inlier_matches[:, 1]])
             camera_idxs1.extend([camera_idx_by_camera_id[camera_id_a]] * len(inlier_matches))
@@ -631,15 +681,30 @@ def _verify_frame_pair_rig(
             camera_idxs1.extend([camera_idx_by_camera_id[camera_id_b]] * len(inlier_matches))
             camera_idxs2.extend([camera_idx_by_camera_id[camera_id_a]] * len(inlier_matches))
 
-    if not points2D1_chunks:
-        return key, False, 0
+        record_index = len(constituent_records)
+        correspondence_origin.extend((record_index, em_row) for em_row in range(len(inlier_matches)))
+        constituent_records.append(
+            ConstituentRecord(
+                image_id_pair=image_id_pair,
+                image_id_a=image_id_a,
+                image_id_b=image_id_b,
+                camera_id_a=camera_id_a,
+                camera_id_b=camera_id_b,
+                em_inlier_matches=inlier_matches,
+                a_is_side1=a_is_side1,
+            )
+        )
+
+    if not constituent_records:
+        return key, {}, 0
 
     points2D1 = concatenate(points2D1_chunks, axis=0)
     points2D2 = concatenate(points2D2_chunks, axis=0)
 
     # pycolmap 4.0.4 stub types this as `dict[Unknown, Unknown] | None`. Keys are documented
-    # ("num_inliers": int, "inlier_mask": NDArray[bool], "pano2_from_pano1": Rigid3d) but the
-    # stub lacks a TypedDict; narrow at this seam so the rest of the function is honest.
+    # ("num_inliers": int, "inlier_mask": NDArray[bool], "rig2_from_rig1" or "pano2_from_pano1":
+    # Rigid3d) but the stub lacks a TypedDict; narrow at this seam so the rest of the function
+    # is honest.
     result: dict[str, Any] | None = estimate_generalized_relative_pose(  # pyright: ignore[reportUnknownVariableType] — upstream stub uses unparameterized dict
         points2D1=points2D1,
         points2D2=points2D2,
@@ -650,9 +715,43 @@ def _verify_frame_pair_rig(
         estimation_options=rig_ransac_options,
     )
     if result is None:
-        return key, False, 0
+        return key, {record.image_id_pair: None for record in constituent_records}, 0
+
     num_inliers = int(result["num_inliers"])
-    return key, num_inliers >= min_num_inliers, num_inliers
+    if num_inliers < min_num_inliers:
+        return key, {record.image_id_pair: None for record in constituent_records}, num_inliers
+
+    # GR6P succeeded — bin inliers back per constituent and build rewritten TwoViewGeometries.
+    inlier_mask: NDArray[Any] = result["inlier_mask"]
+    is_calibrated_rig = "rig2_from_rig1" in result
+    rig_high_from_rig_low: Rigid3d = result["rig2_from_rig1"] if is_calibrated_rig else result["pano2_from_pano1"]
+    new_config = (
+        TwoViewGeometryConfiguration.CALIBRATED_RIG if is_calibrated_rig else TwoViewGeometryConfiguration.CALIBRATED
+    )
+
+    per_record_inlier_rows: dict[int, list[int]] = defaultdict(list)
+    for global_index, is_inlier in enumerate(inlier_mask):
+        if is_inlier:
+            record_index, em_row = correspondence_origin[global_index]
+            per_record_inlier_rows[record_index].append(em_row)
+
+    rewritten: dict[tuple[int, int], TwoViewGeometry | None] = {}
+    for record_index, record in enumerate(constituent_records):
+        new_tvg = TwoViewGeometry()
+        rig_inlier_rows = per_record_inlier_rows.get(record_index)
+        if rig_inlier_rows:
+            new_tvg.inlier_matches = record.em_inlier_matches[asarray(rig_inlier_rows, dtype=intp)]
+            new_tvg.config = new_config
+            sensor_a_from_rig = sensor_from_rig_by_camera[(key.rig_id, record.camera_id_a)]
+            sensor_b_from_rig = sensor_from_rig_by_camera[(key.rig_id, record.camera_id_b)]
+            # rig_high_from_rig_low maps the frame_id_low rig instance to the frame_id_high rig
+            # instance. For a pair whose image_a is side-1 (frame_low): rig_for_b = rig_high,
+            # rig_for_a = rig_low, so rig_b_from_rig_a = rig_high_from_rig_low. Otherwise flip.
+            rig_b_from_rig_a = rig_high_from_rig_low if record.a_is_side1 else rig_high_from_rig_low.inverse()
+            new_tvg.cam2_from_cam1 = sensor_b_from_rig * rig_b_from_rig_a * sensor_a_from_rig.inverse()
+        rewritten[record.image_id_pair] = new_tvg
+
+    return key, rewritten, num_inliers
 
 
 def _apply_vio_em_filter(
