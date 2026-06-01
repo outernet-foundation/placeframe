@@ -6,7 +6,6 @@ from itertools import combinations
 from pathlib import Path
 
 import torch
-from core.tile_retrieval import image_similarity_matrix
 from numpy import float32, where
 from numpy.linalg import norm
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
@@ -81,20 +80,8 @@ def generate_image_pairs(
     retrieval_image_pairs: list[tuple[str, str]] = []
     if retrieval_neighbors > 0 and global_descriptors:
         image_names = list(global_descriptors.keys())
-        per_image_tile_descriptors = [from_numpy(global_descriptors[name]) for name in image_names]
-        tile_counts = torch.tensor([descriptor.size(0) for descriptor in per_image_tile_descriptors], dtype=torch.int64)
-        max_tiles = int(tile_counts.max())
-        descriptor_dim = per_image_tile_descriptors[0].size(1)
-        padded_tile_descriptors = torch.zeros(
-            (len(image_names), max_tiles, descriptor_dim), dtype=per_image_tile_descriptors[0].dtype
-        )
-        for image_index, descriptors in enumerate(per_image_tile_descriptors):
-            padded_tile_descriptors[image_index, : descriptors.size(0)] = descriptors
-
-        asymmetric = image_similarity_matrix(padded_tile_descriptors, tile_counts, padded_tile_descriptors)
-        # Map-build pair scoring is symmetric: A and B are either the same place or they aren't,
-        # independent of which one we call the query. Average the two asymmetric directions.
-        similarity = 0.5 * (asymmetric + asymmetric.t())
+        image_descriptors = torch.stack([from_numpy(global_descriptors[name]) for name in image_names])
+        similarity = image_descriptors @ image_descriptors.t()
 
         scores = similarity.masked_fill(similarity < retrieval_min_score, float("-inf"))
         scores = scores.masked_fill(torch.eye(len(image_names), dtype=torch.bool, device=scores.device), float("-inf"))

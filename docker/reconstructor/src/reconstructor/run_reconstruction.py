@@ -12,7 +12,6 @@ from common.boto_clients import create_s3_client
 from core.camera_config import PinholeCameraConfig
 from core.capture_session_manifest import CaptureSessionManifest
 from core.image_preprocess import canonicalize_image
-from core.tile_retrieval import tile_image
 from core.h5 import write_features, write_global_descriptors
 from core.lightglue import DescriptorsArrays, KeypointsArrays, MatchIndices
 from core.model_wrappers import (
@@ -27,7 +26,7 @@ from core.reconstruction_options import ReconstructionOptions
 from core.model_wrappers import RetrievalDim
 from core.tensor_types import TT
 from neural_networks.models import load_aliked, load_DIR, load_lightglue
-from numpy import asarray, ascontiguousarray, float32, float64, random, stack, vstack
+from numpy import asarray, ascontiguousarray, float32, float64, random, vstack
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from placeframe_api_client import ReconstructionStatus
 from pycolmap._core import set_random_seed  # noqa: PLC2701 — no public API
@@ -180,16 +179,10 @@ def run_reconstruction(
         # Write image back to disk, so incremental_mapping samples the processed image for point cloud colorization
         image.save(image_path)
 
-        tile_descriptors: list[TT[RetrievalDim]] = []
-        for tile in tile_image(image):
-            tile_tensor = from_numpy(asarray(tile, dtype=float32)).permute(2, 0, 1).div(255.0)
-            tile_descriptors.append(global_descriptor_extractor(tile_tensor.unsqueeze(0).to(device=DEVICE)))
-
+        image_descriptor = global_descriptor_extractor(rgb_tensor.unsqueeze(0).to(device=DEVICE))
         image_keypoints, image_descriptors = local_feature_extractor(rgb_tensor.unsqueeze(0).to(device=DEVICE))
 
-        global_descriptors[image_name] = stack(
-            [tile_descriptor.cpu().numpy().astype(float32, copy=False) for tile_descriptor in tile_descriptors], axis=0
-        )
+        global_descriptors[image_name] = image_descriptor.cpu().numpy().astype(float32, copy=False)
         keypoints[image_name] = image_keypoints.cpu().numpy().astype(float32, copy=False)
         descriptors[image_name] = image_descriptors.cpu().numpy().astype(float32, copy=False)
         sizes[image_name] = (image.height, image.width)
