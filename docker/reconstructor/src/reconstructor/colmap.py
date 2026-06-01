@@ -136,9 +136,7 @@ class _VerificationProgressPoller:
         connection = sqlite3.connect(str(self._database_path), isolation_level=None, timeout=1.0)
         try:
             connection.execute("PRAGMA query_only = 1")
-            row = connection.execute(
-                "SELECT COUNT(*) FROM two_view_geometries WHERE config = 9"
-            ).fetchone()
+            row = connection.execute("SELECT COUNT(*) FROM two_view_geometries WHERE config = 9").fetchone()
         finally:
             connection.close()
         final_count = int(row[0]) if row else 0
@@ -187,9 +185,7 @@ def run_colmap_reconstruction(
                 image_cameras[image_name] = camera[1]
                 database.write_keypoints(colmap_image_ids[image_name], keypoints[image_name])
 
-                # Pose priors only carry position; write only when the capture supplies a position
-                # (ARFoundation does, multi-rig ZED captures don't).
-                if camera[0].ref_sensor and transform.translation is not None:
+                if camera[0].ref_sensor:
                     database.write_pose_prior(
                         PosePrior(
                             position=transform.translation.reshape(3, 1),
@@ -285,21 +281,15 @@ def run_colmap_reconstruction(
     gravity_samples_in_recon_world = [
         rig_from_world.rotation.matrix().T @ transform.gravity_in_rig_local
         for _frame_id, transform, rig_from_world in registered
-        if transform.gravity_in_rig_local is not None
     ]
-    if gravity_samples_in_recon_world:
-        gravity_stack = stack(gravity_samples_in_recon_world)
-        gravity_in_recon_world_estimate = median(gravity_stack, axis=0)
-        gravity_in_recon_world_estimate /= norm(gravity_in_recon_world_estimate)
-        # OPENCV convention: +Y is the world's "down" axis, so map-frame down is also [0, 1, 0].
-        alignment_rotation, _ = Rotation.align_vectors([[0.0, 1.0, 0.0]], [gravity_in_recon_world_estimate])
-        rotation_align = alignment_rotation.as_matrix()
-        metrics.metrics.gravity_aligned_in_map_frame = True
-        metrics.metrics.gravity_sample_count = len(gravity_samples_in_recon_world)
-    else:
-        rotation_align = eye(3, dtype=float64)
-        metrics.metrics.gravity_aligned_in_map_frame = False
-        metrics.metrics.gravity_sample_count = 0
+    gravity_stack = stack(gravity_samples_in_recon_world)
+    gravity_in_recon_world_estimate = median(gravity_stack, axis=0)
+    gravity_in_recon_world_estimate /= norm(gravity_in_recon_world_estimate)
+    # OPENCV convention: +Y is the world's "down" axis, so map-frame down is also [0, 1, 0].
+    alignment_rotation, _ = Rotation.align_vectors([[0.0, 1.0, 0.0]], [gravity_in_recon_world_estimate])
+    rotation_align = alignment_rotation.as_matrix()
+    metrics.metrics.gravity_aligned_in_map_frame = True
+    metrics.metrics.gravity_sample_count = len(gravity_samples_in_recon_world)
 
     _first_frame_id, _first_transform, first_rig_from_world = registered[0]
     first_camera_position = -first_rig_from_world.rotation.matrix().T @ first_rig_from_world.translation
@@ -307,19 +297,14 @@ def run_colmap_reconstruction(
     best_reconstruction.transform(Sim3d(concatenate([rotation_align, translation_align.reshape(3, 1)], axis=1)))
 
     # Rigid Umeyama best-fit of map centers to VIO position priors. Fit is not applied — the
-    # residual is the prior-drift diagnostic surfaced for calibration-corpus filtering. No signal
-    # without position priors, so this skips for multi-camera captures (which carry no per-frame
-    # translations by contract).
+    # residual is the prior-drift diagnostic surfaced for calibration-corpus filtering.
     if not options.is_multi_camera_capture:
         truth_centers_list: list[NDArray[float64]] = [
-            transform.translation.astype(float64)
-            for _frame_id, transform, _ in registered
-            if transform.translation is not None
+            transform.translation.astype(float64) for _frame_id, transform, _ in registered
         ]
         map_centers_list: list[NDArray[float64]] = [
             -rig_from_world.rotation.matrix().T @ rig_from_world.translation
-            for _frame_id, transform, rig_from_world in registered
-            if transform.translation is not None
+            for _frame_id, _transform, rig_from_world in registered
         ]
         if len(truth_centers_list) >= 3:
             truth_centers = asarray(truth_centers_list, dtype=float64)
@@ -410,14 +395,11 @@ def _apply_vio_em_check(
         for camera in rig.colmap_rig_config.cameras
         if camera.cam_from_rig is not None
     }
-    world_from_rig_by_rig_and_frame: dict[tuple[str, str], Rigid3d] = {}
-    for rig_id, rig in rigs.items():
-        for frame_id, pose in rig.frame_poses.items():
-            if pose.rotation is None or pose.translation is None:
-                continue
-            world_from_rig_by_rig_and_frame[(rig_id, frame_id)] = Rigid3d(
-                rotation=pose.rotation, translation=pose.translation
-            )
+    world_from_rig_by_rig_and_frame: dict[tuple[str, str], Rigid3d] = {
+        (rig_id, frame_id): Rigid3d(rotation=pose.rotation, translation=pose.translation)
+        for rig_id, rig in rigs.items()
+        for frame_id, pose in rig.frame_poses.items()
+    }
 
     database = Database.open(str(colmap_db_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
     checked = 0

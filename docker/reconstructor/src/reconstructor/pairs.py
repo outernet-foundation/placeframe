@@ -6,7 +6,7 @@ from itertools import combinations
 from pathlib import Path
 
 import torch
-from numpy import float32, float64, where
+from numpy import float32, where
 from numpy.linalg import norm
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
 from torch import from_numpy, topk  # type: ignore
@@ -47,13 +47,7 @@ def generate_image_pairs(
     sequential_frame_pairs: list[tuple[tuple[str, str], tuple[str, str]]] = []
     for rig_id, rig in rigs.items():
         frame_ids = sorted(rig.frame_poses.keys(), key=int)
-        translations: list[NDArray[float64]] = []
-        for frame_id in frame_ids:
-            translation = rig.frame_poses[frame_id].translation
-            # Captures with any frame lacking a VIO translation are rejected upstream; the
-            # FramePose.translation Optional shape is a legacy artefact of an earlier detour.
-            assert translation is not None, f"frame {frame_id} in rig {rig_id} missing VIO translation"
-            translations.append(translation)
+        translations = [rig.frame_poses[frame_id].translation for frame_id in frame_ids]
         for i in range(len(frame_ids)):
             cumulative_distance = 0.0
             for j in range(i + 1, len(frame_ids)):

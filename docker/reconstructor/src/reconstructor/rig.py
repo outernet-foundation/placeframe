@@ -15,15 +15,14 @@ from scipy.spatial.transform import Rotation
 
 @dataclass(frozen=True)
 class FramePose:
-    # World-frame position of the rig (= camera0 center in world). This is what Unity emits as
-    # CameraTranslationUnityWorldFromCamera and what ZED writes as the SDK's world_from_rig
-    # translation. None on rows that carry only gravity samples.
-    translation: NDArray[float64] | None
-    # world_from_rig rotation derived from the VIO quaternion when frames.csv carries one (7-column
-    # format). None when the row only has gravity samples (ZED capture's 6-column format) — the
-    # downstream consumer that uses rotation skips the pair silently in that case.
-    rotation: Rotation3d | None
-    gravity_in_rig_local: NDArray[float64] | None
+    # World-frame position of the rig (= camera0 center in world). Unity emits this as
+    # CameraTranslationUnityWorldFromCamera; ZED writes it as the SDK's world_from_rig translation.
+    translation: NDArray[float64]
+    # world_from_rig rotation derived from the VIO quaternion.
+    rotation: Rotation3d
+    # Unit down vector ([0, 1, 0] in OpenCV world) re-expressed in rig-local coordinates via
+    # rig_from_world = world_from_rig.T applied to world-down.
+    gravity_in_rig_local: NDArray[float64]
 
 
 class Rig:
@@ -79,56 +78,19 @@ class Rig:
 
         self.frame_poses: dict[str, FramePose] = {}
         for frame in frames_csv.splitlines()[1:]:
-            fields = frame.strip().split(",")
-            frame_id = fields[0]
+            frame_id, tx, ty, tz, qx, qy, qz, qw = frame.strip().split(",")
             if held_out_frame_timestamps is not None and int(frame_id) in held_out_frame_timestamps:
                 continue
-            pose = _parse_frame_pose(fields[1:], axis_convention)
-            if not self.is_multi_camera and pose.translation is None:
-                raise ValueError(
-                    f"Monocular rig {rig_config.id} requires per-frame position priors in frames.csv "
-                    f"(frame {frame_id} has only gravity columns)"
-                )
-            self.frame_poses[frame_id] = pose
-
-
-def _parse_frame_pose(values: list[str], axis_convention: AxisConvention) -> FramePose:
-    if len(values) == 3:
-        # gx, gy, gz — gravity samples only, no position prior.
-        gravity = array([float(values[0]), float(values[1]), float(values[2])], dtype=float64)
-        if axis_convention == AxisConvention.UNITY:
-            gravity = basis_change_opencv_from_unity @ gravity
-        return FramePose(translation=None, rotation=None, gravity_in_rig_local=gravity)
-
-    if len(values) == 6:
-        # tx, ty, tz, gx, gy, gz — VIO position plus gravity samples.
-        translation = array([float(values[0]), float(values[1]), float(values[2])], dtype=float64)
-        gravity = array([float(values[3]), float(values[4]), float(values[5])], dtype=float64)
-        if axis_convention == AxisConvention.UNITY:
-            translation = basis_change_opencv_from_unity @ translation
-            gravity = basis_change_opencv_from_unity @ gravity
-        return FramePose(translation=translation, rotation=None, gravity_in_rig_local=gravity)
-
-    if len(values) == 7:
-        # tx, ty, tz, qx, qy, qz, qw — VIO position with quaternion. (tx, ty, tz) is the rig's
-        # position in world (camera0 center in world); (qx, qy, qz, qw) is the world_from_rig
-        # rotation — matching CaptureManager.cs's CameraTranslationUnityWorldFromCamera /
-        # CameraRotationUnityWorldFromCamera fields. Under UNITY we conjugate the rotation by the
-        # OpenCV-from-Unity basis change so it lives in the same OpenCV frame as the translation.
-        translation = array([float(values[0]), float(values[1]), float(values[2])], dtype=float64)
-        rotation_matrix = Rotation.from_quat([
-            float(values[3]),
-            float(values[4]),
-            float(values[5]),
-            float(values[6]),
-        ]).as_matrix()
-        if axis_convention == AxisConvention.UNITY:
-            translation = basis_change_opencv_from_unity @ translation
-            rotation_matrix = basis_change_opencv_from_unity @ rotation_matrix @ basis_change_opencv_from_unity.T
-        return FramePose(
-            translation=translation,
-            rotation=Rotation3d(matrix=rotation_matrix),
-            gravity_in_rig_local=None,
-        )
-
-    raise ValueError(f"Unrecognized frames.csv row width: {len(values) + 1} columns")
+            translation = array([float(tx), float(ty), float(tz)], dtype=float64)
+            rotation_matrix = Rotation.from_quat([float(qx), float(qy), float(qz), float(qw)]).as_matrix()
+            if axis_convention == AxisConvention.UNITY:
+                translation = basis_change_opencv_from_unity @ translation
+                rotation_matrix = basis_change_opencv_from_unity @ rotation_matrix @ basis_change_opencv_from_unity.T
+            # OpenCV world-down is [0, 1, 0]; rig_from_world @ world_down = rotation_matrix.T @ [0, 1, 0]
+            # which is the second row of rotation_matrix.
+            gravity_in_rig_local = rotation_matrix[1, :].astype(float64, copy=True)
+            self.frame_poses[frame_id] = FramePose(
+                translation=translation,
+                rotation=Rotation3d(matrix=rotation_matrix),
+                gravity_in_rig_local=gravity_in_rig_local,
+            )

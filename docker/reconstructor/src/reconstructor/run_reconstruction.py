@@ -136,14 +136,9 @@ def run_reconstruction(
     # device-reported position is at least keyframe_min_distance_m from the last kept keyframe.
     for rig in rigs.values():
         ordered_frame_ids = sorted(rig.frame_poses.keys(), key=int)
-        translations_by_frame_id: dict[str, NDArray[float64]] = {}
-        for frame_id in ordered_frame_ids:
-            translation = rig.frame_poses[frame_id].translation
-            if translation is None:
-                raise ValueError(
-                    f"Rig {rig.id}: keyframe subsampling requires per-frame translations; frame {frame_id} has none"
-                )
-            translations_by_frame_id[frame_id] = translation
+        translations_by_frame_id: dict[str, NDArray[float64]] = {
+            frame_id: rig.frame_poses[frame_id].translation for frame_id in ordered_frame_ids
+        }
         kept_frame_ids = set(
             select_keyframes_by_distance(
                 ordered_frame_ids,
