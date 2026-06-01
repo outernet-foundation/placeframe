@@ -94,9 +94,6 @@ class EmVerdict(Enum):
     KEPT = auto()
     UNDEFINED = auto()
     LOW_INLIERS = auto()
-    VIO_NO_ROTATION = auto()
-    VIO_ROTATION = auto()
-    VIO_TRANSLATION = auto()
 
 
 @dataclass(frozen=True)
@@ -105,15 +102,6 @@ class EmResult:
     two_view_geometry: TwoViewGeometry | None
     image_id_a: int
     image_id_b: int
-
-
-@dataclass(frozen=True)
-class VioEmContext:
-    sensor_from_rig_by_camera: dict[tuple[str, str], Rigid3d]
-    cos_max_rotation: float
-    cos_max_translation_direction: float
-    min_baseline_m: float
-    active: bool
 
 
 @dataclass(frozen=True)
@@ -357,10 +345,7 @@ def _verify_two_view_geometries(
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
 ) -> None:
     # Hand-rolled two-phase verification. Phase 1 runs per-pair essential-matrix RANSAC
-    # (estimate_two_view_geometry) and folds the sequential VIO-vs-EM consistency check into
-    # the same seam: pairs the check rejects never get written to the database, identical in
-    # effect to a separate post-pass but with one fewer database round-trip and no temporary row
-    # to delete. Phase 2 runs per-frame-pair rig-constrained RANSAC
+    # (estimate_two_view_geometry). Phase 2 runs per-frame-pair rig-constrained RANSAC
     # (estimate_generalized_relative_pose / GR6P) over the surviving EM inliers and drops every
     # constituent image-pair of any frame-pair the rig estimator rejects. Both phases parallelize
     # via ThreadPoolExecutor; per-pair / per-frame-pair workers receive everything they need from
@@ -373,7 +358,6 @@ def _verify_two_view_geometries(
     rig_ransac_options = _build_rig_ransac_options(two_view_geometry_options.ransac)
     min_num_inliers = options.options.two_view_min_num_inliers
     max_workers = 1 if options.options.deterministic_seed is not None else None
-    vio_em_context = _build_vio_em_context(rigs, options.pair_vio_essential_matrix_options())
 
     em_results = _run_em_phase(
         pairs,
@@ -381,13 +365,16 @@ def _verify_two_view_geometries(
         max_workers,
         two_view_geometry_options,
         min_num_inliers,
-        rigs,
         colmap_image_ids,
         image_cameras,
         keypoints,
         match_indices,
-        vio_em_context,
     )
+
+    sensor_from_rig_by_camera: dict[tuple[str, str], Rigid3d] = {}
+    for rig_id, rig in rigs.items():
+        for camera_id in rig.cameras:
+            sensor_from_rig_by_camera[(rig_id, camera_id)] = _sensor_from_rig_for_camera(rig, camera_id)
 
     surviving_pair_keys = _run_rig_phase(
         pairs,
@@ -399,7 +386,7 @@ def _verify_two_view_geometries(
         colmap_image_ids,
         keypoints,
         em_results,
-        vio_em_context.sensor_from_rig_by_camera,
+        sensor_from_rig_by_camera,
     )
 
     written = 0
@@ -421,12 +408,10 @@ def _run_em_phase(
     max_workers: int | None,
     two_view_geometry_options: Any,
     min_num_inliers: int,
-    rigs: dict[str, Rig],
     colmap_image_ids: dict[str, int],
     image_cameras: dict[str, ColmapCamera],
     keypoints: dict[str, Any],
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
-    vio_em_context: VioEmContext,
 ) -> dict[tuple[int, int], EmResult]:
     publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, len(pairs))
 
@@ -435,12 +420,10 @@ def _run_em_phase(
             pair,
             two_view_geometry_options,
             min_num_inliers,
-            rigs,
             colmap_image_ids,
             image_cameras,
             keypoints,
             match_indices,
-            vio_em_context,
         )
 
     counters: dict[EmVerdict, int] = dict.fromkeys(EmVerdict, 0)
@@ -466,12 +449,10 @@ def _verify_pair_em(
     pair: Pair,
     two_view_geometry_options: Any,
     min_num_inliers: int,
-    rigs: dict[str, Rig],
     colmap_image_ids: dict[str, int],
     image_cameras: dict[str, ColmapCamera],
     keypoints: dict[str, Any],
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
-    vio_em_context: VioEmContext,
 ) -> EmResult:
     image_id_a = colmap_image_ids[pair.image_a]
     image_id_b = colmap_image_ids[pair.image_b]
@@ -492,87 +473,7 @@ def _verify_pair_em(
     em_inlier_matches: NDArray[uint32] = two_view_geometry.inlier_matches  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType] — upstream stub uses unbound TypeVar for inlier_matches shape
     if len(em_inlier_matches) < min_num_inliers:
         return EmResult(EmVerdict.LOW_INLIERS, None, image_id_a, image_id_b)
-
-    if vio_em_context.active and pair.source == PairSource.SEQUENTIAL:
-        vio_verdict = _vio_em_verdict(pair, two_view_geometry, rigs, vio_em_context)
-        if vio_verdict in (EmVerdict.VIO_ROTATION, EmVerdict.VIO_TRANSLATION):
-            return EmResult(vio_verdict, None, image_id_a, image_id_b)
-        if vio_verdict == EmVerdict.VIO_NO_ROTATION:
-            return EmResult(EmVerdict.KEPT, two_view_geometry, image_id_a, image_id_b)
-
     return EmResult(EmVerdict.KEPT, two_view_geometry, image_id_a, image_id_b)
-
-
-def _vio_em_verdict(
-    pair: Pair,
-    two_view_geometry: TwoViewGeometry,
-    rigs: dict[str, Rig],
-    vio_em_context: VioEmContext,
-) -> EmVerdict:
-    rig_id_a, camera_id_a, frame_id_a = _parse_image_name(pair.image_a)
-    rig_id_b, camera_id_b, frame_id_b = _parse_image_name(pair.image_b)
-    frame_pose_a = rigs[rig_id_a].frame_poses[frame_id_a]
-    frame_pose_b = rigs[rig_id_b].frame_poses[frame_id_b]
-    if (
-        frame_pose_a.translation is None
-        or frame_pose_a.rotation is None
-        or frame_pose_b.translation is None
-        or frame_pose_b.rotation is None
-    ):
-        return EmVerdict.VIO_NO_ROTATION
-
-    em_cam_b_from_cam_a: Rigid3d | None = two_view_geometry.cam2_from_cam1
-    if em_cam_b_from_cam_a is None:
-        return EmVerdict.VIO_NO_ROTATION
-
-    vio_cam_b_from_cam_a = _compose_cam_b_from_cam_a(
-        vio_em_context.sensor_from_rig_by_camera[(rig_id_a, camera_id_a)],
-        frame_pose_a.rotation,
-        frame_pose_a.translation,
-        vio_em_context.sensor_from_rig_by_camera[(rig_id_b, camera_id_b)],
-        frame_pose_b.rotation,
-        frame_pose_b.translation,
-    )
-    cos_rotation, cos_translation_direction, em_baseline = _relative_pose_disagreement(
-        em_cam_b_from_cam_a, vio_cam_b_from_cam_a
-    )
-    if vio_em_context.cos_max_rotation > -2.0 and cos_rotation < vio_em_context.cos_max_rotation:
-        return EmVerdict.VIO_ROTATION
-    if (
-        vio_em_context.cos_max_translation_direction > -2.0
-        and em_baseline >= vio_em_context.min_baseline_m
-        and cos_translation_direction < vio_em_context.cos_max_translation_direction
-    ):
-        return EmVerdict.VIO_TRANSLATION
-    return EmVerdict.KEPT
-
-
-def _build_vio_em_context(
-    rigs: dict[str, Rig],
-    vio_em_options: Any,
-) -> VioEmContext:
-    sensor_from_rig_by_camera: dict[tuple[str, str], Rigid3d] = {}
-    for rig_id, rig in rigs.items():
-        for camera_id in rig.cameras:
-            sensor_from_rig_by_camera[(rig_id, camera_id)] = _sensor_from_rig_for_camera(rig, camera_id)
-    cos_max_rotation = (
-        cos(radians(vio_em_options.max_rotation_disagreement_deg))
-        if vio_em_options.max_rotation_disagreement_deg > 0
-        else -2.0
-    )
-    cos_max_translation_direction = (
-        cos(radians(vio_em_options.max_translation_direction_deg))
-        if vio_em_options.max_translation_direction_deg > 0
-        else -2.0
-    )
-    active = vio_em_options.max_rotation_disagreement_deg > 0 or vio_em_options.max_translation_direction_deg > 0
-    return VioEmContext(
-        sensor_from_rig_by_camera=sensor_from_rig_by_camera,
-        cos_max_rotation=cos_max_rotation,
-        cos_max_translation_direction=cos_max_translation_direction,
-        min_baseline_m=vio_em_options.min_baseline_m,
-        active=active,
-    )
 
 
 def _run_rig_phase(
@@ -777,21 +678,6 @@ def _sensor_from_rig_for_camera(rig: Rig, camera_id: str) -> Rigid3d:
 
 def _quaternion_to_rotation3d(x: float, y: float, z: float, w: float) -> Rotation3d:
     return Rotation3d(matrix=Rotation.from_quat([x, y, z, w]).as_matrix())
-
-
-def _compose_cam_b_from_cam_a(
-    sensor_a_from_rig_a: Rigid3d,
-    rig_a_rotation: Rotation3d,
-    rig_a_translation: NDArray[float64],
-    sensor_b_from_rig_b: Rigid3d,
-    rig_b_rotation: Rotation3d,
-    rig_b_translation: NDArray[float64],
-) -> Rigid3d:
-    rig_a_from_world = Rigid3d(rotation=rig_a_rotation, translation=rig_a_translation.reshape(3, 1))
-    rig_b_from_world = Rigid3d(rotation=rig_b_rotation, translation=rig_b_translation.reshape(3, 1))
-    cam_a_from_world = sensor_a_from_rig_a * rig_a_from_world
-    cam_b_from_world = sensor_b_from_rig_b * rig_b_from_world
-    return cam_b_from_world * cam_a_from_world.inverse()
 
 
 def _relative_pose_disagreement(
