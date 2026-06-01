@@ -70,7 +70,12 @@ while True:
     connection = sqlite3.connect(database_path, isolation_level=None, timeout=1.0)
     try:
         connection.execute('PRAGMA query_only = 1')
-        row = connection.execute('SELECT COUNT(*) FROM two_view_geometries').fetchone()
+        # Track config=9 (CALIBRATED_RIG) row count: the per-pair essential-matrix stage finishes
+        # in well under a second while the rig pass spends minutes updating those same rows in
+        # place. COUNT(*) maxes out after stage one and stops growing, but the CALIBRATED_RIG
+        # count starts at zero and grows monotonically through the rig pass — a faithful live
+        # signal for the phase that actually takes wall-clock time.
+        row = connection.execute('SELECT COUNT(*) FROM two_view_geometries WHERE config = 9').fetchone()
     finally:
         connection.close()
     count = int(row[0]) if row else 0
@@ -130,7 +135,9 @@ class _VerificationProgressPoller:
         connection = sqlite3.connect(str(self._database_path), isolation_level=None, timeout=1.0)
         try:
             connection.execute("PRAGMA query_only = 1")
-            row = connection.execute("SELECT COUNT(*) FROM two_view_geometries").fetchone()
+            row = connection.execute(
+                "SELECT COUNT(*) FROM two_view_geometries WHERE config = 9"
+            ).fetchone()
         finally:
             connection.close()
         final_count = int(row[0]) if row else 0
