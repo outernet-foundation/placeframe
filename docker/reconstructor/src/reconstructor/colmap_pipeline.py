@@ -389,6 +389,23 @@ def _verify_two_view_geometries(
         sensor_from_rig_by_camera,
     )
 
+    # VIO-EM check runs on the rig-survivor pool, not on raw EM survivors. The rig pass already
+    # rejects pairs whose cross-camera geometry disagrees across the rig; what remains is the
+    # set of pairs the rig pass *agreed with itself on* but where VIO offers an independent
+    # sanity check. On the prior session's capture the residual teleports (864515→865015→865515,
+    # 858015→858515) live in exactly this regime: rig pass passes them because both stereo cams
+    # see the same aliased structure, VIO is the only other oracle. Same 15°/30° thresholds as
+    # the prior post-`geometric_verification` pass — calibrated against this same post-rig pool.
+    surviving_pair_keys = _apply_vio_em_filter(
+        surviving_pair_keys,
+        em_results,
+        pairs,
+        colmap_image_ids,
+        rigs,
+        sensor_from_rig_by_camera,
+        options.pair_vio_essential_matrix_options(),
+    )
+
     written = 0
     with Database.open(str(database_path)) as database:  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
         for image_id_pair, result in em_results.items():
@@ -636,6 +653,90 @@ def _verify_frame_pair_rig(
         return key, False, 0
     num_inliers = int(result["num_inliers"])
     return key, num_inliers >= min_num_inliers, num_inliers
+
+
+def _apply_vio_em_filter(
+    surviving_pair_keys: set[tuple[int, int]],
+    em_results: dict[tuple[int, int], EmResult],
+    pairs: list[Pair],
+    colmap_image_ids: dict[str, int],
+    rigs: dict[str, Rig],
+    sensor_from_rig_by_camera: dict[tuple[str, str], Rigid3d],
+    vio_em_options: Any,
+) -> set[tuple[int, int]]:
+    if vio_em_options.max_rotation_disagreement_deg <= 0 and vio_em_options.max_translation_direction_deg <= 0:
+        return surviving_pair_keys
+
+    cos_max_rotation = (
+        cos(radians(vio_em_options.max_rotation_disagreement_deg))
+        if vio_em_options.max_rotation_disagreement_deg > 0
+        else -2.0
+    )
+    cos_max_translation_direction = (
+        cos(radians(vio_em_options.max_translation_direction_deg))
+        if vio_em_options.max_translation_direction_deg > 0
+        else -2.0
+    )
+
+    refined = set(surviving_pair_keys)
+    checked = rejected_rotation = rejected_translation = skipped_no_rotation = 0
+    for pair in pairs:
+        if pair.source != PairSource.SEQUENTIAL:
+            continue
+        image_id_a = colmap_image_ids[pair.image_a]
+        image_id_b = colmap_image_ids[pair.image_b]
+        image_id_pair = (image_id_a, image_id_b) if image_id_a < image_id_b else (image_id_b, image_id_a)
+        if image_id_pair not in refined:
+            continue
+        em_result = em_results.get(image_id_pair)
+        if em_result is None or em_result.two_view_geometry is None:
+            continue
+        em_cam_b_from_cam_a: Rigid3d | None = em_result.two_view_geometry.cam2_from_cam1
+        if em_cam_b_from_cam_a is None:
+            continue
+        rig_id_a, camera_id_a, frame_id_a = _parse_image_name(pair.image_a)
+        rig_id_b, camera_id_b, frame_id_b = _parse_image_name(pair.image_b)
+        frame_pose_a = rigs[rig_id_a].frame_poses[frame_id_a]
+        frame_pose_b = rigs[rig_id_b].frame_poses[frame_id_b]
+        if (
+            frame_pose_a.translation is None
+            or frame_pose_a.rotation is None
+            or frame_pose_b.translation is None
+            or frame_pose_b.rotation is None
+        ):
+            skipped_no_rotation += 1
+            continue
+
+        sensor_a_from_rig = sensor_from_rig_by_camera[(rig_id_a, camera_id_a)]
+        sensor_b_from_rig = sensor_from_rig_by_camera[(rig_id_b, camera_id_b)]
+        rig_a_from_world = Rigid3d(rotation=frame_pose_a.rotation, translation=frame_pose_a.translation.reshape(3, 1))
+        rig_b_from_world = Rigid3d(rotation=frame_pose_b.rotation, translation=frame_pose_b.translation.reshape(3, 1))
+        cam_a_from_world = sensor_a_from_rig * rig_a_from_world
+        cam_b_from_world = sensor_b_from_rig * rig_b_from_world
+        vio_cam_b_from_cam_a = cam_b_from_world * cam_a_from_world.inverse()
+
+        cos_rotation, cos_translation_direction, em_baseline = _relative_pose_disagreement(
+            em_cam_b_from_cam_a, vio_cam_b_from_cam_a
+        )
+        rotation_failed = vio_em_options.max_rotation_disagreement_deg > 0 and cos_rotation < cos_max_rotation
+        translation_failed = (
+            vio_em_options.max_translation_direction_deg > 0
+            and em_baseline >= vio_em_options.min_baseline_m
+            and cos_translation_direction < cos_max_translation_direction
+        )
+        checked += 1
+        if rotation_failed:
+            rejected_rotation += 1
+        if translation_failed:
+            rejected_translation += 1
+        if rotation_failed or translation_failed:
+            refined.discard(image_id_pair)
+
+    print(
+        f"[vio_em_filter] checked={checked} rejected_rotation={rejected_rotation} "
+        f"rejected_translation={rejected_translation} skipped_no_rotation={skipped_no_rotation}"
+    )
+    return refined
 
 
 def _build_rig_ransac_options(em_ransac_options: RANSACOptions) -> RANSACOptions:
