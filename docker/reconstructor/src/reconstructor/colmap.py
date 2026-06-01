@@ -405,7 +405,6 @@ def _apply_vio_em_check(
     database = Database.open(str(colmap_db_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
     checked = 0
     skipped_no_vio = 0
-    skipped_short_baseline = 0
     rejected_rotation = 0
     rejected_translation = 0
     empty_tvg = TwoViewGeometry()
@@ -431,9 +430,6 @@ def _apply_vio_em_check(
 
         recon_translation = asarray(tvg.cam2_from_cam1.translation, dtype=float64).reshape(3)
         recon_baseline = float(norm(recon_translation))
-        if recon_baseline < vio_em_options.min_baseline_m:
-            skipped_short_baseline += 1
-            continue
 
         vio_cam2_from_cam1 = cam_b_from_rig * world_from_rig_b.inverse() * world_from_rig_a * cam_a_from_rig.inverse()
         checked += 1
@@ -462,8 +458,7 @@ def _apply_vio_em_check(
     database.close()
     print(
         f"[vio_em_check] checked={checked} rejected_rotation={rejected_rotation} "
-        f"rejected_translation={rejected_translation} skipped_no_vio={skipped_no_vio} "
-        f"skipped_short_baseline={skipped_short_baseline}"
+        f"rejected_translation={rejected_translation} skipped_no_vio={skipped_no_vio}"
     )
 
 
