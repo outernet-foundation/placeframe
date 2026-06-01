@@ -213,6 +213,8 @@ def run_reconstruction(
         options.retrieval_min_score(),
         options.retrieval_covisibility_window(),
         options.retrieval_covisibility_min_support(),
+        options.pair_max_displacement_scene_m(),
+        options.pair_max_displacement_drift_rate_m_per_s(),
     )
     file_name, file_bytes = write_pairs(pairs, WORK_DIR)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)

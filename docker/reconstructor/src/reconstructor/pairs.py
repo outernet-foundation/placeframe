@@ -55,6 +55,8 @@ def generate_image_pairs(
     retrieval_min_score: float,
     retrieval_covisibility_window: int,
     retrieval_covisibility_min_support: int,
+    pair_max_displacement_scene_m: float,
+    pair_max_displacement_drift_rate_m_per_s: float,
 ) -> list[Pair]:
     sequential_frame_pairs: list[tuple[tuple[str, str], tuple[str, str]]] = []
     for rig_id, rig in rigs.items():
@@ -226,6 +228,17 @@ def generate_image_pairs(
                 filtered_retrieval_image_pairs.append((image_a, image_b))
         retrieval_image_pairs = filtered_retrieval_image_pairs
 
+    image_translations: dict[str, NDArray[float64] | None] = {}
+    image_timestamps_ms: dict[str, int] = {}
+    for rig_id, rig in rigs.items():
+        for frame_id, frame_pose in rig.frame_poses.items():
+            timestamp_ms = int(frame_id)
+            for camera_a, _ in rig.cameras.values():
+                name = f"{rig_id}/{camera_a.id}/{frame_id}.jpg"
+                image_translations[name] = frame_pose.translation
+                image_timestamps_ms[name] = timestamp_ms
+
+    rejected_by_source: dict[PairSource, int] = dict.fromkeys(SOURCE_PRECEDENCE, 0)
     seen: dict[tuple[str, str], PairSource] = {}
     for source, candidate_pairs in [
         (PairSource.INTRA_FRAME_STEREO, intra_frame_image_pairs),
@@ -239,9 +252,46 @@ def generate_image_pairs(
             normalized = (a, b) if a <= b else (b, a)
             if normalized in seen:
                 continue
+            if not _pair_passes_drift_budget(
+                normalized[0],
+                normalized[1],
+                image_translations,
+                image_timestamps_ms,
+                pair_max_displacement_scene_m,
+                pair_max_displacement_drift_rate_m_per_s,
+            ):
+                rejected_by_source[source] += 1
+                continue
             seen[normalized] = source
 
+    print(
+        "Drift-budget filter rejections: "
+        + ", ".join(f"{source.value}={count}" for source, count in rejected_by_source.items())
+    )
+
     return [Pair(image_a=a, image_b=b, source=source) for (a, b), source in sorted(seen.items())]
+
+
+def _pair_passes_drift_budget(
+    image_a: str,
+    image_b: str,
+    image_translations: dict[str, NDArray[float64] | None],
+    image_timestamps_ms: dict[str, int],
+    pair_max_displacement_scene_m: float,
+    pair_max_displacement_drift_rate_m_per_s: float,
+) -> bool:
+    # Bound = room-scale floor + per-second VIO drift budget. The drift budget lets
+    # long-temporal-gap true loop closures survive accumulated drift in absolute VIO positions;
+    # the floor still rejects short-temporal-gap visually-similar pairs across physically distant
+    # parts of the scene. Skips silently when either frame lacks a VIO position, mirroring
+    # retrieval_min_distance_m.
+    translation_a = image_translations[image_a]
+    translation_b = image_translations[image_b]
+    if translation_a is None or translation_b is None:
+        return True
+    delta_seconds = abs(image_timestamps_ms[image_a] - image_timestamps_ms[image_b]) / 1000.0
+    max_displacement = pair_max_displacement_scene_m + pair_max_displacement_drift_rate_m_per_s * delta_seconds
+    return bool(norm(translation_b - translation_a) <= max_displacement)
 
 
 def write_pairs(pairs: list[Pair], root_path: Path) -> tuple[str, bytes]:

@@ -58,6 +58,12 @@ class OptionsBuilder:
     def retrieval_min_distance_m(self):
         return self.options.retrieval_min_distance_m
 
+    def pair_max_displacement_scene_m(self):
+        return self.options.pair_max_displacement_scene_m
+
+    def pair_max_displacement_drift_rate_m_per_s(self):
+        return self.options.pair_max_displacement_drift_rate_m_per_s
+
     def retrieval_min_score(self):
         return self.options.retrieval_min_score
 

@@ -34,6 +34,14 @@ class ReconstructionOptions(BaseModel):
         default=1.0,
         description="Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent.",
     )
+    pair_max_displacement_scene_m: float = Field(
+        default=10.0,
+        description="Max plausible scene-radius component of the displacement bound used to reject any candidate pair (a,b) whose VIO straight-line displacement exceeds the bound. Combined with pair_max_displacement_drift_rate_m_per_s: a pair is rejected when |vio_pos(b)−vio_pos(a)| > pair_max_displacement_scene_m + pair_max_displacement_drift_rate_m_per_s · |t_b−t_a|. Applied uniformly across all pair sources; stereo and short-temporal pairs trivially satisfy any reasonable bound. No-op when positions are absent.",
+    )
+    pair_max_displacement_drift_rate_m_per_s: float = Field(
+        default=0.1,
+        description="VIO drift-rate slack added to the displacement bound per second of time gap between the two frames of a candidate pair. Lets long-temporal-gap true loop closures survive accumulated drift while still rejecting short-temporal-gap aliased pairs (e.g. retrieval matches between physically distant frames seconds apart). Calibrate per device class against post-hoc VIO↔recon residuals.",
+    )
     retrieval_min_score: float = Field(
         default=0.35,
         description="Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.",
