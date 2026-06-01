@@ -68,28 +68,34 @@ namespace PlaceframeApiClient.Model
         VerifyingGeometry = 6,
 
         /// <summary>
+        /// Enum VerifyingRigGeometry for value: verifying_rig_geometry
+        /// </summary>
+        [EnumMember(Value = "verifying_rig_geometry")]
+        VerifyingRigGeometry = 7,
+
+        /// <summary>
         /// Enum Reconstructing for value: reconstructing
         /// </summary>
         [EnumMember(Value = "reconstructing")]
-        Reconstructing = 7,
+        Reconstructing = 8,
 
         /// <summary>
         /// Enum Succeeded for value: succeeded
         /// </summary>
         [EnumMember(Value = "succeeded")]
-        Succeeded = 8,
+        Succeeded = 9,
 
         /// <summary>
         /// Enum Failed for value: failed
         /// </summary>
         [EnumMember(Value = "failed")]
-        Failed = 9,
+        Failed = 10,
 
         /// <summary>
         /// Enum Cancelled for value: cancelled
         /// </summary>
         [EnumMember(Value = "cancelled")]
-        Cancelled = 10
+        Cancelled = 11
     }
 
 }
