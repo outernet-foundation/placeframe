@@ -2,6 +2,93 @@
 updated: 2026-06-01
 ---
 
+## What's new (2026-06-01, late-night: queued items shipped)
+
+The three "Queued for next session" items from the previous entry shipped
+in commit `418c7c18` ("Switch to geometric_verification with rig pass,
+add VIO-EM check, metric sequential window"), plus codegen in `34b17489`.
+
+- **Rig-aware verification wired back via `pycolmap.geometric_verification`
+  with DB polling for progress.** `_verify_two_view_geometries` no longer
+  hand-rolls a per-pair `estimate_two_view_geometry` threadpool; it now
+  spawns `geometric_verification(database_path,
+  verifier_options=GeometricVerifierOptions(rig_verification=True),
+  pairing_options=ExistingMatchedPairingOptions(),
+  two_view_geometry_options=...)` on a worker thread and ticks the
+  progress publisher from a separate read-only `sqlite3` connection
+  polling `SELECT COUNT(*) FROM two_view_geometries` every ~1s. The
+  outer pipeline (`run_colmap_pipeline_with_vio_check`) is restructured
+  into staged `with Database.open(...)` blocks so the file is closed
+  during each verification call. This restores the rig-aware GR6P-RANSAC
+  pass that we lost in `ddcb5033`. One localized `# pyright: ignore` at
+  the import line for the unparameterized `os.PathLike` stub — matches
+  the existing `Database.open` precedent.
+- **Pair-time VIO-vs-essential-matrix check for sequential pairs only.**
+  New `_check_sequential_pairs_against_vio` runs after phase-1
+  verification (skipped for phase-2 retrieval, where VIO drift across a
+  loop closure can legitimately disagree). For each `SEQUENTIAL` pair
+  with VIO rotation present, it composes `vio_cam_b_from_cam_a` from rig
+  pose + per-camera `sensor_from_rig`, compares rotation (trace) and
+  translation direction (dot-product) against the essential matrix, and
+  deletes failing `two_view_geometries` rows. New `ReconstructionOptions`
+  fields: `pair_vio_em_max_rotation_disagreement_deg` (default 15°),
+  `pair_vio_em_max_translation_direction_deg` (default 30°),
+  `pair_vio_em_min_baseline_m` (default 0.3 m). To enable this,
+  `FramePose` now retains the quaternion from 7-column `frames.csv`
+  (previously dropped) with OpenCV-from-Unity basis conjugation; ZED
+  captures (6-column gravity-only) skip the check silently.
+- **Sequential window is now metric.** `sequential_window: int` (count)
+  → `sequential_window_m: float` (metres of straight-line VIO
+  displacement), default **3.0 m**. Each frame *i* pairs with every
+  later frame *j* whose VIO displacement from *i* is ≤ the budget;
+  spatial dedup updated to use the actual paired-partner set instead of
+  temporal-index distance.
+- **Retrieval is now off by default** (was already disabled before this
+  session as part of the strip-to-bare work). Last toggle of the
+  session: "change the options to completely disable retrieval, and
+  rerun codegen. then run a reconstruction in that state."
+- **No end-to-end reconstruction run with these three changes yet.**
+  Preflight pieces that ran cleanly: `ruff check`, `basedpyright`
+  (strict), `pytest docker/reconstructor/tests/`, `deptry-check`,
+  `generate-clients --project docker/api`. The "test this on
+  `4bd303f1`" work is the immediate next step.
+- **SPEC.md is stale.** `docker/reconstructor/SPEC.md` lines 56, 60, 164
+  still describe the old fixed-count sequential window, the per-pair
+  `estimate_two_view_geometry` loop, and the absence of a VIO-EM check.
+  Per CLAUDE.md's spec-first rule the spec update should land before
+  any further code change in those areas; not yet done. Also stale:
+  `scripts/sweep_postprocess.py` and `scripts/displacement_check.py`
+  keep their own `--sequential-window` typer arg whose help text now
+  references a reconstruction option that no longer exists by that
+  name.
+
+## Queued for next session (post-compact)
+
+Both deferred to next session — the "Queued" items from the prior entry
+just shipped; these replace them.
+
+1. **Run the three new changes end-to-end on `4bd303f1`.** That's the
+   immediate validation: confirm rig verification fires on the
+   intra-frame-stereo pairs it used to miss, the VIO-EM check trims the
+   two residual sequential-driven teleports at `858015→858515` and
+   `864515→865015→865515`, and the metric `sequential_window_m=3.0`
+   produces sane coverage. Track per-source rejection counts. The
+   capture has ~12 m VIO drift; if the VIO-EM check thresholds (15°
+   rot / 30° trans-direction) end up too tight at this drift level,
+   either retighten the threshold or accept that the catch is real and
+   the cost is registered-frame count.
+2. **Update `docker/reconstructor/SPEC.md`** (prose-only commit, per
+   CLAUDE.md spec-first / prose-and-code-separate rules) to describe
+   the new architecture: `geometric_verification` + DB-row polling,
+   VIO-vs-essential-matrix sequential check, metric sequential window.
+   Lines 56, 60, 164 are the stale spots.
+3. **Fix the stale `--sequential-window` help text** in
+   `scripts/sweep_postprocess.py` and `scripts/displacement_check.py`.
+   The scripts can keep their own keyframe-index-distance threshold (it
+   means something different from the reconstructor option now), but
+   the help text should stop referencing a reconstruction option that
+   has been renamed.
+
 ## What's new (2026-06-01, strip-to-bare + lost rig verification)
 
 - **Strip-to-bare runs on `4bd303f1` at `sequential_window=10`** (a tighter
@@ -123,9 +210,13 @@ updated: 2026-06-01
     the signal we want retrieval to provide. **Must skip** or the
     check kills exactly the pairs we need.
 
-## Queued for next session (post-compact)
+## Status note on the prior "Queued for next session" block
 
-Both deferred to the next session by the user; not started this session.
+Both items below were the queue at the end of the earlier 2026-06-01
+session. Both shipped in commit `418c7c18`. Kept verbatim for
+historical context; the live queue is the post-shipment block near
+the top of the file ("Queued for next session (post-compact)" under
+the late-night entry).
 
 1. **Wire rig-aware verification back via `geometric_verification(...)`
    with `rig_verification=True`.** Replace (or append after) the
@@ -135,12 +226,20 @@ Both deferred to the next session by the user; not started this session.
    `ReconstructionOptions.rig_verification` field that existed in
    `bcf0ecec` and got culled in `0b3a4aa0` does not need to come
    back — just wire the flag on at the call site.
+   **Status: SHIPPED in `418c7c18`.** The chosen polling cadence was
+   ~1 s on a read-only sqlite3 connection. No new publisher phase
+   was added — the existing phase nomenclature carried it.
 2. **Add pair-time VIO-vs-essential-matrix consistency check at the
    two-view verification stage, sequential pairs only.** Thresholds
    ~15° rotation / 30° translation direction. Plumb via two new
    `ReconstructionOptions` fields. Skip stereo (covered by
    `rig_verification`), spatial (off, would need different
    thresholds), and retrieval (would kill the signal we want).
+   **Status: SHIPPED in `418c7c18`.** Three options ended up plumbed,
+   not two (rotation, translation-direction, *and* a baseline floor).
+   Defaults: 15°, 30°, 0.3 m. `FramePose` had to be widened to retain
+   the quaternion from 7-column `frames.csv` (previously dropped); ZED
+   captures (6-column gravity-only) skip the check silently.
 
 ## What's new (2026-05-31, late-night session)
 
@@ -1381,13 +1480,16 @@ the pose-graph check (no seed model to police) nor the
 displacement-budget filter (no orientation signal) catches them.
 
 The proposed fix is the **pair-time VIO-vs-essential-matrix
-consistency check** queued under the Queued for next session section
-above. The check is sequential-only by construction (see the
-per-source applicability table above).
+consistency check**. **Shipped 2026-06-01 in `418c7c18`**, sequential
+pairs only by construction (see the per-source applicability table
+above). Validation against the two residual teleports has not yet
+been run end-to-end; that is the next session's first task.
 
-Tighter `sequential_window` (try 5) remains a fallback if the new
-check doesn't catch them, but coverage cost will be brutal: at
-`window=10` we already drop from 220 → ~120 mapped frames.
+Tighter `sequential_window` is now a different knob — it became metric
+(`sequential_window_m: float`, default 3.0 m, also shipped in
+`418c7c18`). Coverage cost of further tightening will be brutal: at
+the previous index-based `window=10` we already drop from 220 → ~120
+mapped frames.
 
 ### Add phase-3 straggler-retrieval registration (deferred)
 
@@ -1453,14 +1555,17 @@ try 3.0 m and 5.0 m as part of the pose-graph + vio_check joint
 configuration. The cleaner version of this experiment is now the
 both-on test, not vio_check alone.
 
-### Investigate intra-frame-stereo rejections (RESOLVED 2026-06-01)
+### Investigate intra-frame-stereo rejections (RESOLVED 2026-06-01, FIX SHIPPED)
 
-Resolved: the rejections are not a calibration smell. They are stereo
-pairs whose unconstrained essential matrix doesn't satisfy the fixed
-rig baseline making it through unfiltered, because commit `ddcb5033`
-silently dropped rig-aware verification when it switched from
-`match_spatial` to per-pair `estimate_two_view_geometry`. Fix is
-queued under "Wire rig-aware verification back" above.
+Diagnosed: the rejections are not a calibration smell. They are
+stereo pairs whose unconstrained essential matrix doesn't satisfy the
+fixed rig baseline making it through unfiltered, because commit
+`ddcb5033` silently dropped rig-aware verification when it switched
+from `match_spatial` to per-pair `estimate_two_view_geometry`.
+Fix shipped in `418c7c18` — `geometric_verification(...,
+rig_verification=True)` with DB-row polling for progress. Validation
+that the per-source stereo rejection count drops to ~0 is part of the
+next session's end-to-end run.
 
 ### Refuse structure-less PnP / 3D-observation count gate (form b)
 
