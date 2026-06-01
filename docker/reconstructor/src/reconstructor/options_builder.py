@@ -7,14 +7,6 @@ from pycolmap import BundleAdjustmentOptions, IncrementalPipelineOptions, TwoVie
 
 
 @dataclass(frozen=True)
-class PairPoseGraphOptions:
-    max_rotation_disagreement_deg: float
-    max_translation_direction_deg: float
-    min_baseline_m: float
-    min_registered_frames: int
-
-
-@dataclass(frozen=True)
 class PairVioEssentialMatrixOptions:
     max_rotation_disagreement_deg: float
     max_translation_direction_deg: float
@@ -73,17 +65,6 @@ class OptionsBuilder:
 
     def pose_prior_position_sigma_m(self):
         return self.options.pose_prior_position_sigma_m
-
-    def vio_check_max_disagreement_m(self):
-        return self.options.vio_check_max_disagreement_m
-
-    def pair_pose_graph_options(self):
-        return PairPoseGraphOptions(
-            max_rotation_disagreement_deg=self.options.pair_pose_graph_max_rotation_disagreement_deg,
-            max_translation_direction_deg=self.options.pair_pose_graph_max_translation_direction_deg,
-            min_baseline_m=self.options.pair_pose_graph_min_baseline_m,
-            min_registered_frames=self.options.pair_pose_graph_min_registered_frames,
-        )
 
     def pair_vio_essential_matrix_options(self):
         return PairVioEssentialMatrixOptions(

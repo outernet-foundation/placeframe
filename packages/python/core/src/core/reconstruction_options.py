@@ -22,10 +22,6 @@ class ReconstructionOptions(BaseModel):
         default=0,
         description="Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.",
     )
-    pair_min_match_spread: float = Field(
-        default=0.08,
-        description="Minimum spread of inlier-match keypoint positions, expressed as geometric mean of per-axis standard deviations normalized by image dimensions, taken as the min across the two images. Pairs below the threshold are rejected at the two-view verification stage. Catches the repeated-decor aliasing pattern where matches concentrate on a small set of similar features (e.g. multiple identical artworks in an office) — both images show matches clustered in a tiny region, producing a low spread, while true wide-baseline matches spread across the image. Independent of VIO drift; works monocular. 0 disables the filter.",
-    )
     retrieval_min_score: float = Field(
         default=0.35,
         description="Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.",
@@ -41,14 +37,6 @@ class ReconstructionOptions(BaseModel):
     two_view_min_num_inliers: int = Field(
         default=30,
         description="Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap's SIFT-era default of 15 to reject small false-positive clusters on repetitive structure.",
-    )
-    retrieval_min_inlier_ratio: float = Field(
-        default=0.40,
-        description="Two-view RANSAC minimum inlier ratio for retrieval-sourced pairs only; stricter than the sequential/intra-frame-stereo floor because visually-similar-but-spatially-distant indoor regions can fabricate plausible-looking essential matrices.",
-    )
-    retrieval_min_num_inliers: int = Field(
-        default=50,
-        description="Absolute minimum inlier count for retrieval-sourced pair geometries; stricter than the global two_view_min_num_inliers because retrieval is the lone pair source where visual similarity does not imply spatial proximity.",
     )
     triangulation_minimum_angle: float = Field(
         default=3.0,
@@ -69,26 +57,6 @@ class ReconstructionOptions(BaseModel):
     pose_prior_position_sigma_m: float = Field(
         default=0.05,
         description="Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off).",
-    )
-    vio_check_max_disagreement_m: float = Field(
-        default=1e9,
-        description="Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors. Disabled by default (1e9 m is effectively infinity for any real capture); the pair-level pose-graph consistency check and the two-phase retrieval ingest are the primary aliasing defenses. Set to a finite value (e.g. 1.0) to gate registrations against VIO drift bounds on captures where the device-reported trajectory is trusted to within a metre.",
-    )
-    pair_pose_graph_max_rotation_disagreement_deg: float = Field(
-        default=15.0,
-        description="At per-frame registration time, compare the relative rotation each already-registered partner's two-view geometry implies against the relative rotation the partial reconstruction estimates between the same frames. Partners exceeding this angular threshold are flagged poisoned and their contributing matches are excised from the new frame's observations before the next BA pass. Independent of VIO; uses the pose graph itself as the consistency oracle. 0 disables.",
-    )
-    pair_pose_graph_max_translation_direction_deg: float = Field(
-        default=30.0,
-        description="Companion to pair_pose_graph_max_rotation_disagreement_deg: bounds the angle between the unit translation direction the two-view geometry implies and the unit translation direction implied by the partial reconstruction's pose estimates of the two frames. Two-view geometry is scale-free in the monocular case so only direction is compared. Skipped when the estimated baseline is below pair_pose_graph_min_baseline_m. 0 disables.",
-    )
-    pair_pose_graph_min_baseline_m: float = Field(
-        default=0.3,
-        description="Estimated-baseline floor below which the translation-direction component of the pose-graph consistency check is skipped. Near-co-located frames have ill-defined translation direction; the rotation component still applies.",
-    )
-    pair_pose_graph_min_registered_frames: int = Field(
-        default=15,
-        description="Minimum number of registered frames in the partial reconstruction before pair_pose_graph_* consistency checks fire. Early in the reconstruction the pose graph is too soft to be a reliable oracle; the front-door filters (covisibility, drift budget, vio_check) carry the load until the graph stiffens.",
     )
     pair_vio_em_max_rotation_disagreement_deg: float = Field(
         default=25.0,
