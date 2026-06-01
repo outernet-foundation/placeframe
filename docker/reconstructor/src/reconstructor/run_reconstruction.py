@@ -277,7 +277,7 @@ def run_reconstruction(
         metrics,
         rigs,
         keypoints,
-        image_name_pairs,
+        pairs,
         match_indices,
         publisher,
     )

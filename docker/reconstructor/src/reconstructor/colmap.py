@@ -52,6 +52,7 @@ from scipy.spatial.transform import Rotation
 
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder, PairVioEssentialMatrixOptions
+from .pairs import Pair, PairSource
 from .progress_publisher import ReconstructionPublisher
 from .rig import FramePose, Rig
 
@@ -152,7 +153,7 @@ def run_colmap_reconstruction(
     metrics: MetricsBuilder,
     rigs: dict[str, Rig],
     keypoints: dict[str, Any],
-    pairs: list[tuple[str, str]],
+    pairs: list[Pair],
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
     publisher: ReconstructionPublisher,
 ):
@@ -209,11 +210,11 @@ def run_colmap_reconstruction(
     constant_rigs = {rig.rig_id for rig in database.read_all_rigs()}
 
     # Write matches to database
-    for a, b in pairs:
-        (image_a_indices, image_b_indices) = match_indices[(a, b)]
+    for pair in pairs:
+        (image_a_indices, image_b_indices) = match_indices[(pair.image_a, pair.image_b)]
         database.write_matches(
-            colmap_image_ids[a],
-            colmap_image_ids[b],
+            colmap_image_ids[pair.image_a],
+            colmap_image_ids[pair.image_b],
             stack((image_a_indices, image_b_indices), axis=1).astype(uint32, copy=False),
         )
 
@@ -240,7 +241,7 @@ def run_colmap_reconstruction(
     _apply_vio_em_check(colmap_db_path, colmap_image_ids, pairs, rigs, options.pair_vio_essential_matrix_options())
 
     # Compute and store verified matches metrics
-    metrics.build_verified_matches_metrics(colmap_db_path, pairs)
+    metrics.build_verified_matches_metrics(colmap_db_path, [(pair.image_a, pair.image_b) for pair in pairs])
 
     progress = _IncrementalMappingProgress(publisher)
 
@@ -388,7 +389,7 @@ def _registered_frames(
 def _apply_vio_em_check(
     colmap_db_path: Path,
     colmap_image_ids: dict[str, int],
-    pairs: list[tuple[str, str]],
+    pairs: list[Pair],
     rigs: dict[str, Rig],
     vio_em_options: PairVioEssentialMatrixOptions,
 ) -> None:
@@ -396,6 +397,12 @@ def _apply_vio_em_check(
     translation_threshold_rad = vio_em_options.max_translation_direction_deg * pi / 180.0
     if vio_em_options.max_rotation_disagreement_deg <= 0 and vio_em_options.max_translation_direction_deg <= 0:
         return
+
+    # Sequential-only by design: retrieval pairs cross genuine loop closures where VIO drift can
+    # legitimately disagree with the essential matrix, and intra-frame stereo is already pinned by
+    # rig calibration. Applying the check to retrieval pairs would reject the very loop closures
+    # the retrieval pass exists to find.
+    sequential_pairs = [pair for pair in pairs if pair.source == PairSource.SEQUENTIAL]
 
     cam_from_rig_by_image_prefix: dict[str, Rigid3d] = {
         camera.image_prefix: camera.cam_from_rig
@@ -419,7 +426,8 @@ def _apply_vio_em_check(
     rejected_rotation = 0
     rejected_translation = 0
     empty_tvg = TwoViewGeometry()
-    for a, b in pairs:
+    for pair in sequential_pairs:
+        a, b = pair.image_a, pair.image_b
         tvg: TwoViewGeometry = database.read_two_view_geometry(colmap_image_ids[a], colmap_image_ids[b])
         if tvg.config == TwoViewGeometryConfiguration.UNDEFINED:
             continue

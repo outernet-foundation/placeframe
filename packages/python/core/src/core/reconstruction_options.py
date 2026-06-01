@@ -119,11 +119,11 @@ class ReconstructionOptions(BaseModel):
         description="Minimum number of registered frames in the partial reconstruction before pair_pose_graph_* consistency checks fire. Early in the reconstruction the pose graph is too soft to be a reliable oracle; the front-door filters (covisibility, drift budget, vio_check) carry the load until the graph stiffens.",
     )
     pair_vio_em_max_rotation_disagreement_deg: float = Field(
-        default=15.0,
+        default=25.0,
         description="At two-view verification time, every sequential pair whose VIO poses carry rotation has its essential-matrix relative pose compared against the VIO-implied relative pose. The pair is rejected (its two-view geometry deleted from the database) when the angle between the two rotations exceeds this threshold. Sequential-only because retrieval pairs span genuine loop closures where VIO drift can disagree with the essential matrix legitimately, and intra-frame stereo is already validated by the rig constraint. 0 disables. Applied only to pairs with 7-column VIO rows (quaternion present).",
     )
     pair_vio_em_max_translation_direction_deg: float = Field(
-        default=30.0,
+        default=60.0,
         description="Companion to pair_vio_em_max_rotation_disagreement_deg: bounds the angle between the essential-matrix translation direction (camera-1 origin direction in camera-2) and the VIO-implied translation direction for the same camera pair. Skipped when the essential-matrix baseline is below pair_vio_em_min_baseline_m, where translation direction is ill-conditioned. 0 disables.",
     )
     pair_vio_em_min_baseline_m: float = Field(
