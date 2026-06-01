@@ -2673,18 +2673,20 @@ components:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         options:
           ransac_max_error: 1.0246457001441578
+          pair_vio_em_max_rotation_disagreement_deg: 1.284659006116532
           pair_pose_graph_min_baseline_m: 3.5571952270680973
           held_out_frame_timestamps:
-          - 2
-          - 2
+          - 5
+          - 5
           pair_pose_graph_max_rotation_disagreement_deg: 9.018348186070783
           pair_max_displacement_drift_rate_m_per_s: 3.616076749251911
           pair_min_match_spread: 2.027123023002322
           bundle_adjustment_global_function_tolerance: 9.369310271410669
+          pair_vio_em_max_translation_direction_deg: 2.8841621266687802
           retrieval_min_score: 4.145608029883936
           retrieval_min_num_inliers: 1
           retrieval_neighbors: 2
-          max_keypoints_per_image: 1
+          max_keypoints_per_image: 6
           mapper_filter_max_reprojection_error: 5.025004791520295
           triangulation_minimum_angle: 4.965218492984954
           bundle_adjustment_global_frames_ratio: 9.965781217890562
@@ -2699,11 +2701,12 @@ components:
           ransac_min_inlier_ratio: 1.4894159098541704
           pair_pose_graph_min_registered_frames: 6
           pose_prior_position_sigma_m: 6.683562403749608
-          sequential_window: 1
           pair_pose_graph_max_translation_direction_deg: 6.438423552598547
           deterministic_seed: 0
+          pair_vio_em_min_baseline_m: 6.778324963048013
           retrieval_covisibility_window: 7
           keyframe_min_distance_m: 6.027456183070403
+          sequential_window_m: 1.4658129805029452
         reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
         reconstruction_id:
@@ -4035,18 +4038,20 @@ components:
       example:
         options:
           ransac_max_error: 1.0246457001441578
+          pair_vio_em_max_rotation_disagreement_deg: 1.284659006116532
           pair_pose_graph_min_baseline_m: 3.5571952270680973
           held_out_frame_timestamps:
-          - 2
-          - 2
+          - 5
+          - 5
           pair_pose_graph_max_rotation_disagreement_deg: 9.018348186070783
           pair_max_displacement_drift_rate_m_per_s: 3.616076749251911
           pair_min_match_spread: 2.027123023002322
           bundle_adjustment_global_function_tolerance: 9.369310271410669
+          pair_vio_em_max_translation_direction_deg: 2.8841621266687802
           retrieval_min_score: 4.145608029883936
           retrieval_min_num_inliers: 1
           retrieval_neighbors: 2
-          max_keypoints_per_image: 1
+          max_keypoints_per_image: 6
           mapper_filter_max_reprojection_error: 5.025004791520295
           triangulation_minimum_angle: 4.965218492984954
           bundle_adjustment_global_frames_ratio: 9.965781217890562
@@ -4061,11 +4066,12 @@ components:
           ransac_min_inlier_ratio: 1.4894159098541704
           pair_pose_graph_min_registered_frames: 6
           pose_prior_position_sigma_m: 6.683562403749608
-          sequential_window: 1
           pair_pose_graph_max_translation_direction_deg: 6.438423552598547
           deterministic_seed: 0
+          pair_vio_em_min_baseline_m: 6.778324963048013
           retrieval_covisibility_window: 7
           keyframe_min_distance_m: 6.027456183070403
+          sequential_window_m: 1.4658129805029452
         create:
           capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
           id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
@@ -4220,18 +4226,20 @@ components:
     ReconstructionOptions:
       example:
         ransac_max_error: 1.0246457001441578
+        pair_vio_em_max_rotation_disagreement_deg: 1.284659006116532
         pair_pose_graph_min_baseline_m: 3.5571952270680973
         held_out_frame_timestamps:
-        - 2
-        - 2
+        - 5
+        - 5
         pair_pose_graph_max_rotation_disagreement_deg: 9.018348186070783
         pair_max_displacement_drift_rate_m_per_s: 3.616076749251911
         pair_min_match_spread: 2.027123023002322
         bundle_adjustment_global_function_tolerance: 9.369310271410669
+        pair_vio_em_max_translation_direction_deg: 2.8841621266687802
         retrieval_min_score: 4.145608029883936
         retrieval_min_num_inliers: 1
         retrieval_neighbors: 2
-        max_keypoints_per_image: 1
+        max_keypoints_per_image: 6
         mapper_filter_max_reprojection_error: 5.025004791520295
         triangulation_minimum_angle: 4.965218492984954
         bundle_adjustment_global_frames_ratio: 9.965781217890562
@@ -4246,11 +4254,12 @@ components:
         ransac_min_inlier_ratio: 1.4894159098541704
         pair_pose_graph_min_registered_frames: 6
         pose_prior_position_sigma_m: 6.683562403749608
-        sequential_window: 1
         pair_pose_graph_max_translation_direction_deg: 6.438423552598547
         deterministic_seed: 0
+        pair_vio_em_min_baseline_m: 6.778324963048013
         retrieval_covisibility_window: 7
         keyframe_min_distance_m: 6.027456183070403
+        sequential_window_m: 1.4658129805029452
       properties:
         deterministic_seed:
           description: PRNG seed and single-threaded gate for reproducible reconstructions;
@@ -4264,21 +4273,29 @@ components:
             before feature extraction.
           format: double
           type: number
-        sequential_window:
-          default: 10
-          description: Per-frame count of temporally-adjacent neighbours (each side)
-            paired within a rig for the temporal match-graph backbone.
-          type: integer
+        sequential_window_m:
+          default: 3.0
+          description: "VIO-straight-line distance window (meters) used to enumerate\
+            \ same-rig sequential pairs. For each keyframe, every later keyframe within\
+            \ this many metres of straight-line VIO displacement is paired with it.\
+            \ Scales the temporal match-graph backbone to actual device motion: stationary\
+            \ stretches shrink to almost no extra pairs, fast-motion stretches grow\
+            \ to cover the swept arc, instead of the old fixed-neighbour count over-reaching\
+            \ in fast zones and under-reaching in slow ones. No-op on rigs without\
+            \ VIO translations."
+          format: double
+          type: number
         spatial_neighbors:
           default: 0
           description: "Top-K closest in-range neighbours by VIO-position paired with\
             \ each frame; 0 disables spatial pairing. Adjacent frames already covered\
-            \ by sequential pairing are deduped at union time. Disabled by default:\
-            \ VIO-near pairs that are also visually-aliased can poison the early model,\
-            \ and sequential pairing already covers the temporal-local backbone while\
-            \ retrieval handles loop closure under the two-phase ingest. Re-enable\
-            \ for VIO-quiet captures where neither sequential nor retrieval can reach\
-            \ a frame's true neighbours."
+            \ by sequential pairing (within sequential_window_m metres) are skipped\
+            \ here so spatial_neighbors counts loop-closure candidates, not redundancy.\
+            \ Disabled by default: VIO-near pairs that are also visually-aliased can\
+            \ poison the early model, and sequential pairing already covers the temporal-local\
+            \ backbone while retrieval handles loop closure under the two-phase ingest.\
+            \ Re-enable for VIO-quiet captures where neither sequential nor retrieval\
+            \ can reach a frame's true neighbours."
           type: integer
         spatial_max_distance_m:
           default: 6.0
@@ -4465,6 +4482,38 @@ components:
             \ (covisibility, drift budget, vio_check) carry the load until the graph\
             \ stiffens."
           type: integer
+        pair_vio_em_max_rotation_disagreement_deg:
+          default: 15.0
+          description: "At two-view verification time, every sequential pair whose\
+            \ VIO poses carry rotation has its essential-matrix relative pose compared\
+            \ against the VIO-implied relative pose. The pair is rejected (its two-view\
+            \ geometry deleted from the database) when the angle between the two rotations\
+            \ exceeds this threshold. Sequential-only because retrieval pairs span\
+            \ genuine loop closures where VIO drift can disagree with the essential\
+            \ matrix legitimately, and intra-frame stereo is already validated by\
+            \ the rig constraint. 0 disables. Applied only to pairs with 7-column\
+            \ VIO rows (quaternion present)."
+          format: double
+          type: number
+        pair_vio_em_max_translation_direction_deg:
+          default: 30.0
+          description: "Companion to pair_vio_em_max_rotation_disagreement_deg: bounds\
+            \ the angle between the essential-matrix translation direction (camera-1\
+            \ origin direction in camera-2) and the VIO-implied translation direction\
+            \ for the same camera pair. Skipped when the essential-matrix baseline\
+            \ is below pair_vio_em_min_baseline_m, where translation direction is\
+            \ ill-conditioned. 0 disables."
+          format: double
+          type: number
+        pair_vio_em_min_baseline_m:
+          default: 0.3
+          description: "Essential-matrix-baseline floor below which the VIO-vs-essential-matrix\
+            \ translation-direction component is skipped. Near-co-located camera pairs\
+            \ (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined\
+            \ essential-matrix translation direction; the rotation component still\
+            \ applies."
+          format: double
+          type: number
         max_keypoints_per_image:
           default: 2500
           description: Maximum ALIKED keypoints retained per image.

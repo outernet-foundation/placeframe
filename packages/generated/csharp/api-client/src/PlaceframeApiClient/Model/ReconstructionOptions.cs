@@ -36,8 +36,8 @@ namespace PlaceframeApiClient.Model
         /// </summary>
         /// <param name="deterministicSeed">PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic..</param>
         /// <param name="keyframeMinDistanceM">Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction. (default to 0.2D).</param>
-        /// <param name="sequentialWindow">Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone. (default to 10).</param>
-        /// <param name="spatialNeighbors">Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame&#39;s true neighbours. (default to 0).</param>
+        /// <param name="sequentialWindowM">VIO-straight-line distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe within this many metres of straight-line VIO displacement is paired with it. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc, instead of the old fixed-neighbour count over-reaching in fast zones and under-reaching in slow ones. No-op on rigs without VIO translations. (default to 3.0D).</param>
+        /// <param name="spatialNeighbors">Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing (within sequential_window_m metres) are skipped here so spatial_neighbors counts loop-closure candidates, not redundancy. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame&#39;s true neighbours. (default to 0).</param>
         /// <param name="spatialMaxDistanceM">Maximum VIO-position distance (meters) for spatial pairs; in-range neighbours are then capped at spatial_neighbors closest. No-op when positions are absent. (default to 6.0D).</param>
         /// <param name="retrievalNeighbors">Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval. (default to 0).</param>
         /// <param name="retrievalMinDistanceM">Minimum VIO-position distance for retrieval pairs; drops candidates already covered by sequential pairing. No-op when positions are absent. (default to 1.0D).</param>
@@ -62,6 +62,9 @@ namespace PlaceframeApiClient.Model
         /// <param name="pairPoseGraphMaxTranslationDirectionDeg">Companion to pair_pose_graph_max_rotation_disagreement_deg: bounds the angle between the unit translation direction the two-view geometry implies and the unit translation direction implied by the partial reconstruction&#39;s pose estimates of the two frames. Two-view geometry is scale-free in the monocular case so only direction is compared. Skipped when the estimated baseline is below pair_pose_graph_min_baseline_m. 0 disables. (default to 30.0D).</param>
         /// <param name="pairPoseGraphMinBaselineM">Estimated-baseline floor below which the translation-direction component of the pose-graph consistency check is skipped. Near-co-located frames have ill-defined translation direction; the rotation component still applies. (default to 0.3D).</param>
         /// <param name="pairPoseGraphMinRegisteredFrames">Minimum number of registered frames in the partial reconstruction before pair_pose_graph_* consistency checks fire. Early in the reconstruction the pose graph is too soft to be a reliable oracle; the front-door filters (covisibility, drift budget, vio_check) carry the load until the graph stiffens. (default to 15).</param>
+        /// <param name="pairVioEmMaxRotationDisagreementDeg">At two-view verification time, every sequential pair whose VIO poses carry rotation has its essential-matrix relative pose compared against the VIO-implied relative pose. The pair is rejected (its two-view geometry deleted from the database) when the angle between the two rotations exceeds this threshold. Sequential-only because retrieval pairs span genuine loop closures where VIO drift can disagree with the essential matrix legitimately, and intra-frame stereo is already validated by the rig constraint. 0 disables. Applied only to pairs with 7-column VIO rows (quaternion present). (default to 15.0D).</param>
+        /// <param name="pairVioEmMaxTranslationDirectionDeg">Companion to pair_vio_em_max_rotation_disagreement_deg: bounds the angle between the essential-matrix translation direction (camera-1 origin direction in camera-2) and the VIO-implied translation direction for the same camera pair. Skipped when the essential-matrix baseline is below pair_vio_em_min_baseline_m, where translation direction is ill-conditioned. 0 disables. (default to 30.0D).</param>
+        /// <param name="pairVioEmMinBaselineM">Essential-matrix-baseline floor below which the VIO-vs-essential-matrix translation-direction component is skipped. Near-co-located camera pairs (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined essential-matrix translation direction; the rotation component still applies. (default to 0.3D).</param>
         /// <param name="maxKeypointsPerImage">Maximum ALIKED keypoints retained per image. (default to 2500).</param>
         /// <param name="heldOutFrameTimestamps">Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries..</param>
         public ReconstructionOptions()
@@ -119,34 +122,34 @@ namespace PlaceframeApiClient.Model
             return _flagKeyframeMinDistanceM;
         }
         /// <summary>
-        /// Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.
+        /// VIO-straight-line distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe within this many metres of straight-line VIO displacement is paired with it. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc, instead of the old fixed-neighbour count over-reaching in fast zones and under-reaching in slow ones. No-op on rigs without VIO translations.
         /// </summary>
-        /// <value>Per-frame count of temporally-adjacent neighbours (each side) paired within a rig for the temporal match-graph backbone.</value>
-        [DataMember(Name = "sequential_window", EmitDefaultValue = false)]
-        public int SequentialWindow
+        /// <value>VIO-straight-line distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe within this many metres of straight-line VIO displacement is paired with it. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc, instead of the old fixed-neighbour count over-reaching in fast zones and under-reaching in slow ones. No-op on rigs without VIO translations.</value>
+        [DataMember(Name = "sequential_window_m", EmitDefaultValue = false)]
+        public double SequentialWindowM
         {
-            get{ return _SequentialWindow;}
+            get{ return _SequentialWindowM;}
             set
             {
-                _SequentialWindow = value;
-                _flagSequentialWindow = true;
+                _SequentialWindowM = value;
+                _flagSequentialWindowM = true;
             }
         }
-        private int _SequentialWindow = 10;
-        private bool _flagSequentialWindow;
+        private double _SequentialWindowM = 3.0D;
+        private bool _flagSequentialWindowM;
 
         /// <summary>
-        /// Returns false as SequentialWindow should not be serialized given that it's read-only.
+        /// Returns false as SequentialWindowM should not be serialized given that it's read-only.
         /// </summary>
         /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeSequentialWindow()
+        public bool ShouldSerializeSequentialWindowM()
         {
-            return _flagSequentialWindow;
+            return _flagSequentialWindowM;
         }
         /// <summary>
-        /// Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame&#39;s true neighbours.
+        /// Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing (within sequential_window_m metres) are skipped here so spatial_neighbors counts loop-closure candidates, not redundancy. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame&#39;s true neighbours.
         /// </summary>
-        /// <value>Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing are deduped at union time. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame&#39;s true neighbours.</value>
+        /// <value>Top-K closest in-range neighbours by VIO-position paired with each frame; 0 disables spatial pairing. Adjacent frames already covered by sequential pairing (within sequential_window_m metres) are skipped here so spatial_neighbors counts loop-closure candidates, not redundancy. Disabled by default: VIO-near pairs that are also visually-aliased can poison the early model, and sequential pairing already covers the temporal-local backbone while retrieval handles loop closure under the two-phase ingest. Re-enable for VIO-quiet captures where neither sequential nor retrieval can reach a frame&#39;s true neighbours.</value>
         [DataMember(Name = "spatial_neighbors", EmitDefaultValue = false)]
         public int SpatialNeighbors
         {
@@ -769,6 +772,81 @@ namespace PlaceframeApiClient.Model
             return _flagPairPoseGraphMinRegisteredFrames;
         }
         /// <summary>
+        /// At two-view verification time, every sequential pair whose VIO poses carry rotation has its essential-matrix relative pose compared against the VIO-implied relative pose. The pair is rejected (its two-view geometry deleted from the database) when the angle between the two rotations exceeds this threshold. Sequential-only because retrieval pairs span genuine loop closures where VIO drift can disagree with the essential matrix legitimately, and intra-frame stereo is already validated by the rig constraint. 0 disables. Applied only to pairs with 7-column VIO rows (quaternion present).
+        /// </summary>
+        /// <value>At two-view verification time, every sequential pair whose VIO poses carry rotation has its essential-matrix relative pose compared against the VIO-implied relative pose. The pair is rejected (its two-view geometry deleted from the database) when the angle between the two rotations exceeds this threshold. Sequential-only because retrieval pairs span genuine loop closures where VIO drift can disagree with the essential matrix legitimately, and intra-frame stereo is already validated by the rig constraint. 0 disables. Applied only to pairs with 7-column VIO rows (quaternion present).</value>
+        [DataMember(Name = "pair_vio_em_max_rotation_disagreement_deg", EmitDefaultValue = false)]
+        public double PairVioEmMaxRotationDisagreementDeg
+        {
+            get{ return _PairVioEmMaxRotationDisagreementDeg;}
+            set
+            {
+                _PairVioEmMaxRotationDisagreementDeg = value;
+                _flagPairVioEmMaxRotationDisagreementDeg = true;
+            }
+        }
+        private double _PairVioEmMaxRotationDisagreementDeg = 15.0D;
+        private bool _flagPairVioEmMaxRotationDisagreementDeg;
+
+        /// <summary>
+        /// Returns false as PairVioEmMaxRotationDisagreementDeg should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePairVioEmMaxRotationDisagreementDeg()
+        {
+            return _flagPairVioEmMaxRotationDisagreementDeg;
+        }
+        /// <summary>
+        /// Companion to pair_vio_em_max_rotation_disagreement_deg: bounds the angle between the essential-matrix translation direction (camera-1 origin direction in camera-2) and the VIO-implied translation direction for the same camera pair. Skipped when the essential-matrix baseline is below pair_vio_em_min_baseline_m, where translation direction is ill-conditioned. 0 disables.
+        /// </summary>
+        /// <value>Companion to pair_vio_em_max_rotation_disagreement_deg: bounds the angle between the essential-matrix translation direction (camera-1 origin direction in camera-2) and the VIO-implied translation direction for the same camera pair. Skipped when the essential-matrix baseline is below pair_vio_em_min_baseline_m, where translation direction is ill-conditioned. 0 disables.</value>
+        [DataMember(Name = "pair_vio_em_max_translation_direction_deg", EmitDefaultValue = false)]
+        public double PairVioEmMaxTranslationDirectionDeg
+        {
+            get{ return _PairVioEmMaxTranslationDirectionDeg;}
+            set
+            {
+                _PairVioEmMaxTranslationDirectionDeg = value;
+                _flagPairVioEmMaxTranslationDirectionDeg = true;
+            }
+        }
+        private double _PairVioEmMaxTranslationDirectionDeg = 30.0D;
+        private bool _flagPairVioEmMaxTranslationDirectionDeg;
+
+        /// <summary>
+        /// Returns false as PairVioEmMaxTranslationDirectionDeg should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePairVioEmMaxTranslationDirectionDeg()
+        {
+            return _flagPairVioEmMaxTranslationDirectionDeg;
+        }
+        /// <summary>
+        /// Essential-matrix-baseline floor below which the VIO-vs-essential-matrix translation-direction component is skipped. Near-co-located camera pairs (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined essential-matrix translation direction; the rotation component still applies.
+        /// </summary>
+        /// <value>Essential-matrix-baseline floor below which the VIO-vs-essential-matrix translation-direction component is skipped. Near-co-located camera pairs (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined essential-matrix translation direction; the rotation component still applies.</value>
+        [DataMember(Name = "pair_vio_em_min_baseline_m", EmitDefaultValue = false)]
+        public double PairVioEmMinBaselineM
+        {
+            get{ return _PairVioEmMinBaselineM;}
+            set
+            {
+                _PairVioEmMinBaselineM = value;
+                _flagPairVioEmMinBaselineM = true;
+            }
+        }
+        private double _PairVioEmMinBaselineM = 0.3D;
+        private bool _flagPairVioEmMinBaselineM;
+
+        /// <summary>
+        /// Returns false as PairVioEmMinBaselineM should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializePairVioEmMinBaselineM()
+        {
+            return _flagPairVioEmMinBaselineM;
+        }
+        /// <summary>
         /// Maximum ALIKED keypoints retained per image.
         /// </summary>
         /// <value>Maximum ALIKED keypoints retained per image.</value>
@@ -828,7 +906,7 @@ namespace PlaceframeApiClient.Model
             sb.Append("class ReconstructionOptions {\n");
             sb.Append("  DeterministicSeed: ").Append(DeterministicSeed).Append("\n");
             sb.Append("  KeyframeMinDistanceM: ").Append(KeyframeMinDistanceM).Append("\n");
-            sb.Append("  SequentialWindow: ").Append(SequentialWindow).Append("\n");
+            sb.Append("  SequentialWindowM: ").Append(SequentialWindowM).Append("\n");
             sb.Append("  SpatialNeighbors: ").Append(SpatialNeighbors).Append("\n");
             sb.Append("  SpatialMaxDistanceM: ").Append(SpatialMaxDistanceM).Append("\n");
             sb.Append("  RetrievalNeighbors: ").Append(RetrievalNeighbors).Append("\n");
@@ -854,6 +932,9 @@ namespace PlaceframeApiClient.Model
             sb.Append("  PairPoseGraphMaxTranslationDirectionDeg: ").Append(PairPoseGraphMaxTranslationDirectionDeg).Append("\n");
             sb.Append("  PairPoseGraphMinBaselineM: ").Append(PairPoseGraphMinBaselineM).Append("\n");
             sb.Append("  PairPoseGraphMinRegisteredFrames: ").Append(PairPoseGraphMinRegisteredFrames).Append("\n");
+            sb.Append("  PairVioEmMaxRotationDisagreementDeg: ").Append(PairVioEmMaxRotationDisagreementDeg).Append("\n");
+            sb.Append("  PairVioEmMaxTranslationDirectionDeg: ").Append(PairVioEmMaxTranslationDirectionDeg).Append("\n");
+            sb.Append("  PairVioEmMinBaselineM: ").Append(PairVioEmMinBaselineM).Append("\n");
             sb.Append("  MaxKeypointsPerImage: ").Append(MaxKeypointsPerImage).Append("\n");
             sb.Append("  HeldOutFrameTimestamps: ").Append(HeldOutFrameTimestamps).Append("\n");
             sb.Append("}\n");
