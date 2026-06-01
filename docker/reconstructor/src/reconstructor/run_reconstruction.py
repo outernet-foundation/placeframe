@@ -11,7 +11,8 @@ from uuid import UUID
 from common.boto_clients import create_s3_client
 from core.camera_config import PinholeCameraConfig
 from core.capture_session_manifest import CaptureSessionManifest
-from core.image_preprocess import canonicalize_image, tile_image
+from core.image_preprocess import canonicalize_image
+from core.tile_retrieval import tile_image
 from core.h5 import write_features, write_global_descriptors
 from core.lightglue import DescriptorsArrays, KeypointsArrays, MatchIndices
 from core.model_wrappers import (

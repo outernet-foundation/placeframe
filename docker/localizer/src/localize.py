@@ -7,7 +7,7 @@ from typing import Any, cast
 
 from core.axis_convention import AxisConvention, change_basis_unity_from_opencv_pose
 from core.camera_config import PinholeCameraConfig
-from core.image_preprocess import canonicalize_image, canonicalize_intrinsics, tile_image
+from core.image_preprocess import canonicalize_image, canonicalize_intrinsics
 from core.lightglue import Descriptors, Keypoints, MatchIndices
 from core.localization_metrics import RANSAC_THRESHOLD_DEFAULT, RETRIEVAL_TOP_K_DEFAULT, LocalizationMetrics
 from core.model_wrappers import (
@@ -17,7 +17,7 @@ from core.model_wrappers import (
     make_local_feature_matcher_for_tensors,
 )
 from core.opq import decode_descriptors
-from core.image_preprocess import NumQueryTiles
+from core.tile_retrieval import NumQueryTiles, image_similarity_matrix, tile_image
 from core.model_wrappers import RetrievalDim
 from core.tensor_types import TT
 from core.transform import Float3, Float4, Transform
@@ -26,12 +26,12 @@ from pycolmap import AbsolutePoseEstimationOptions, RANSACOptions
 from pycolmap import Camera as ColmapCamera
 from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose, set_random_seed  # type: ignore  # noqa: PLC2701 — no public API
 from scipy.spatial.transform import Rotation
-from torch import Tensor, cuda, inference_mode, manual_seed, topk  # type: ignore
+from torch import Tensor, cuda, inference_mode, int64, manual_seed, tensor, topk  # type: ignore
 
 from .build_metrics import build_localization_metrics
 from core.calibration import CalibrationArtifact
 from .map import Map
-from .torch_ops import amax, from_numpy, matmul, permute, stack, to, transpose
+from .torch_ops import from_numpy, stack, to
 
 DEVICE = "cuda" if cuda.is_available() else "cpu"
 
@@ -116,10 +116,13 @@ def localize_image_against_reconstruction(
     timings["dir_tiles"] = perf_counter() - t
 
     t = perf_counter()
-    # Per-database-image similarity is the max over all (query_tile, database_tile) pairs for that image.
     database_descriptors = to(from_numpy(map.tile_descriptors), DEVICE)
-    similarity_pairs = permute(matmul(query_tile_descriptors, transpose(database_descriptors, 1, 2)), (1, 0, 2))
-    per_image_similarity = amax(similarity_pairs, dim=(0, 2))
+    query_tile_count = query_tile_descriptors.size(0)
+    per_image_similarity = image_similarity_matrix(
+        query_tile_descriptors.unsqueeze(0),
+        tensor([query_tile_count], dtype=int64, device=query_tile_descriptors.device),
+        database_descriptors,
+    ).squeeze(0)
     top_k = retrieval_top_k if retrieval_top_k is not None else RETRIEVAL_TOP_K_DEFAULT
     top_k_image_indices: list[int] = topk(per_image_similarity, top_k).indices.cpu().tolist()  # type: ignore
     matched_image_ids = [map.ordered_image_ids[i] for i in top_k_image_indices]

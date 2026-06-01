@@ -15,7 +15,7 @@ from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up m
 from pycolmap import Reconstruction
 from pycolmap._core import ImageMap, Point3DMap
 
-from core.image_preprocess import MaxTiles, NumImages
+from core.tile_retrieval import MaxTiles, NumImages
 from core.model_wrappers import RetrievalDim
 from core.numpy_ops import zeros
 
