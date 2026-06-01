@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import inspect
 import sqlite3
 import subprocess
 import sys
+import time
 from math import acos, pi
 from pathlib import Path
 from shutil import rmtree
@@ -60,33 +62,6 @@ COLMAP_DB_FILE = "database.db"
 COLMAP_SFM_DIRECTORY = "sfm_model"
 
 
-_VERIFICATION_POLL_SCRIPT = """
-import sqlite3
-import sys
-import time
-
-database_path, total_pairs, interval_seconds = sys.argv[1], int(sys.argv[2]), float(sys.argv[3])
-last_emitted = -1
-while True:
-    connection = sqlite3.connect(database_path, isolation_level=None, timeout=1.0)
-    try:
-        connection.execute('PRAGMA query_only = 1')
-        # Track config=9 (CALIBRATED_RIG) row count: the per-pair essential-matrix stage finishes
-        # in well under a second while the rig pass spends minutes updating those same rows in
-        # place. COUNT(*) maxes out after stage one and stops growing, but the CALIBRATED_RIG
-        # count starts at zero and grows monotonically through the rig pass — a faithful live
-        # signal for the phase that actually takes wall-clock time.
-        row = connection.execute('SELECT COUNT(*) FROM two_view_geometries WHERE config = 9').fetchone()
-    finally:
-        connection.close()
-    count = int(row[0]) if row else 0
-    if count != last_emitted:
-        print(f'[verifying_geometry] {min(count, total_pairs)}/{total_pairs}', flush=True)
-        last_emitted = count
-    time.sleep(interval_seconds)
-"""
-
-
 class _VerificationProgressPoller:
     # Polls the COLMAP database's two_view_geometries row count while pycolmap's
     # geometric_verification runs as a single opaque C++ call. COLMAP inserts one row per
@@ -112,11 +87,16 @@ class _VerificationProgressPoller:
         self._process: subprocess.Popen[bytes] | None = None
 
     def __enter__(self) -> Self:
+        script = (
+            "import sqlite3, sys, time\n"
+            + inspect.getsource(_poll_verification)
+            + "_poll_verification(sys.argv[1], int(sys.argv[2]), float(sys.argv[3]))\n"
+        )
         self._process = subprocess.Popen(
             [
                 sys.executable,
                 "-c",
-                _VERIFICATION_POLL_SCRIPT,
+                script,
                 str(self._database_path),
                 str(self._total_pairs),
                 str(self._poll_interval_seconds),
@@ -141,6 +121,27 @@ class _VerificationProgressPoller:
             connection.close()
         final_count = int(row[0]) if row else 0
         self._publisher.on_progress(min(final_count, self._total_pairs))
+
+
+def _poll_verification(database_path: str, total_pairs: int, interval_seconds: float) -> None:
+    last_emitted = -1
+    while True:
+        connection = sqlite3.connect(database_path, isolation_level=None, timeout=1.0)
+        try:
+            connection.execute("PRAGMA query_only = 1")
+            # Track config=9 (CALIBRATED_RIG) row count: the per-pair essential-matrix stage
+            # finishes in well under a second while the rig pass spends minutes updating those
+            # same rows in place. COUNT(*) maxes out after stage one and stops growing, but the
+            # CALIBRATED_RIG count starts at zero and grows monotonically through the rig pass —
+            # a faithful live signal for the phase that actually takes wall-clock time.
+            row = connection.execute("SELECT COUNT(*) FROM two_view_geometries WHERE config = 9").fetchone()
+        finally:
+            connection.close()
+        count = int(row[0]) if row else 0
+        if count != last_emitted:
+            print(f"[verifying_geometry] {min(count, total_pairs)}/{total_pairs}", flush=True)
+            last_emitted = count
+        time.sleep(interval_seconds)
 
 
 def run_colmap_reconstruction(
