@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import sqlite3
+import threading
 from math import acos, pi
 from pathlib import Path
 from shutil import rmtree
-from typing import Any, Iterator, ValuesView, cast
+from typing import Any, Iterator, Self, ValuesView, cast
 
 from placeframe_api_client import ReconstructionStatus
 
@@ -54,6 +56,52 @@ from .rig import FramePose, Rig
 
 COLMAP_DB_FILE = "database.db"
 COLMAP_SFM_DIRECTORY = "sfm_model"
+
+
+class _VerificationProgressPoller:
+    # Polls the COLMAP database's two_view_geometries row count while pycolmap's
+    # geometric_verification runs as a single opaque C++ call. COLMAP inserts one row per
+    # processed pair regardless of the resulting config tag, so the row count is a faithful
+    # progress measure. SQLite WAL mode lets the polling thread read concurrently with COLMAP's
+    # writes from another connection.
+
+    def __init__(
+        self,
+        database_path: Path,
+        total_pairs: int,
+        publisher: ReconstructionPublisher,
+        poll_interval_seconds: float = 5.0,
+    ) -> None:
+        self._database_path = database_path
+        self._total_pairs = total_pairs
+        self._publisher = publisher
+        self._poll_interval_seconds = poll_interval_seconds
+        self._stop_event = threading.Event()
+        self._thread = threading.Thread(target=self._poll, name="verification-progress", daemon=True)
+
+    def __enter__(self) -> Self:
+        self._thread.start()
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self._stop_event.set()
+        self._thread.join(timeout=10.0)
+
+    def _poll(self) -> None:
+        last_emitted = -1
+        while not self._stop_event.is_set():
+            connection = sqlite3.connect(str(self._database_path), isolation_level=None, timeout=1.0)
+            try:
+                connection.execute("PRAGMA query_only = 1")
+                row = connection.execute("SELECT COUNT(*) FROM two_view_geometries").fetchone()
+            finally:
+                connection.close()
+            verified = int(row[0]) if row else 0
+            if verified != last_emitted:
+                self._publisher.on_progress(min(verified, self._total_pairs))
+                last_emitted = verified
+            if self._stop_event.wait(self._poll_interval_seconds):
+                return
 
 
 def run_colmap_reconstruction(
@@ -133,15 +181,17 @@ def run_colmap_reconstruction(
     # its own connection from the path.
     database.close()
 
-    # Stock pycolmap geometric_verification with rig_verification=True. Single opaque C++ call that
-    # holds the GIL throughout, no in-Python progress signal — set the phase with no total so the
-    # UI shows it as an indeterminate step.
-    publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY)
-    geometric_verification(
-        database_path=str(colmap_db_path),
-        verifier_options=GeometricVerifierOptions(rig_verification=True),
-        two_view_geometry_options=options.two_view_geometry_options(),
-    )
+    # Stock pycolmap geometric_verification with rig_verification=True. The C++ call exposes no
+    # progress callback, but COLMAP writes one two_view_geometries row per processed pair into the
+    # SQLite database. _VerificationProgressPoller reads that row count from a background thread
+    # using SQLite WAL's concurrent-read guarantee and feeds ticks to the publisher.
+    publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, total=len(pairs))
+    with _VerificationProgressPoller(colmap_db_path, len(pairs), publisher):
+        geometric_verification(
+            database_path=str(colmap_db_path),
+            verifier_options=GeometricVerifierOptions(rig_verification=True),
+            two_view_geometry_options=options.two_view_geometry_options(),
+        )
 
     # Post-verification VIO/EM consistency filter. Rig verification confirms each frame-pair is
     # internally consistent across its constituent image-pairs, but accepts internally-consistent
