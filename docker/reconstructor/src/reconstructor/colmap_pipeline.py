@@ -467,7 +467,16 @@ def _find_and_register_next_image(
         rejected_frame = reconstruction.images[candidate_image_id].frame
         assert rejected_frame is not None
         context.skipped_image_ids.update(data_id.id for data_id in rejected_frame.image_ids)
-        reconstruction.deregister_frame(rejected_frame.frame_id)
+        # ObservationManager.deregister_frame walks the correspondence graph,
+        # decrements num_visible_correspondences on every Point2D's neighbors, deletes
+        # Point3D observations, then internally calls Reconstruction::DeRegisterFrame.
+        # Calling Reconstruction.deregister_frame directly skips the correspondence-graph
+        # cleanup and leaves the next triangulate_image to hit
+        # `num_tri_corrs <= num_total_corrs`. Note IncrementalMapper::DeRegisterFrameEvent
+        # (private in COLMAP, not exposed in pycolmap) also normally fires here to keep
+        # the mapper's per-rig / per-camera reg_stats_ counters in sync with reality;
+        # skipping it leaves find_next_images' scoring slightly skewed but does not crash.
+        context.mapper.observation_manager.deregister_frame(rejected_frame.frame_id)
 
     return None
 
