@@ -88,6 +88,7 @@ def run_reconstruction(
     reconstruction_options: ReconstructionOptions,
     publisher: ReconstructionPublisher,
     metrics: MetricsBuilder,
+    bearer_token: str,
 ) -> ReconstructionMetrics:
 
     settings = get_settings()
@@ -261,6 +262,7 @@ def run_reconstruction(
         pairs,
         match_indices,
         publisher,
+        bearer_token,
     )
 
     # Verify reconstruction was successful and write to storage

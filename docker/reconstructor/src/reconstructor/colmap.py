@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import os
 import sqlite3
 import subprocess
 import sys
@@ -9,7 +10,9 @@ from math import acos, pi
 from pathlib import Path
 from shutil import rmtree
 from typing import Any, Iterator, Self, ValuesView, cast
+from uuid import UUID
 
+import httpx
 from placeframe_api_client import ReconstructionStatus
 
 from numpy import (
@@ -55,8 +58,9 @@ from scipy.spatial.transform import Rotation
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder, PairVioEssentialMatrixOptions
 from .pairs import Pair, PairSource
-from .progress_publisher import ReconstructionPublisher
+from .progress_publisher import ReconstructionPublisher, SyncProgressFlusher
 from .rig import FramePose, Rig
+from .settings import get_settings
 
 COLMAP_DB_FILE = "database.db"
 COLMAP_SFM_DIRECTORY = "sfm_model"
@@ -67,31 +71,42 @@ class _VerificationProgressPoller:
     # geometric_verification runs as a single opaque C++ call. COLMAP inserts one row per
     # processed pair regardless of the resulting config tag, so the row count is a faithful
     # progress measure. The poll runs in a child subprocess because the C++ call holds the GIL
-    # for its full duration — an in-process thread never gets scheduled until the call returns.
-    # The child's stdout is the parent's stdout, so [verifying_geometry] N/M lines flow through
-    # the same log relay as the main process. The API-side flush happens once at __exit__ with
-    # the final count, since the asyncio loop that drives publisher._flush is also GIL-blocked
-    # during the verification call.
+    # for its full duration — an in-process thread never gets scheduled until the call returns,
+    # and the parent's asyncio loop that drives publisher flushes is GIL-blocked for the same
+    # reason. The subprocess constructs its own ReconstructionPublisher backed by a
+    # SyncProgressFlusher (plain httpx PUTs against the internal lease endpoint) and emits
+    # progress through the same publisher abstraction the parent uses. The parent's __exit__
+    # publishes one authoritative final count after pycolmap returns and the asyncio loop wakes.
 
     def __init__(
         self,
         database_path: Path,
         total_pairs: int,
         publisher: ReconstructionPublisher,
+        bearer_token: str,
         poll_interval_seconds: float = 5.0,
     ) -> None:
         self._database_path = database_path
         self._total_pairs = total_pairs
         self._publisher = publisher
+        self._bearer_token = bearer_token
         self._poll_interval_seconds = poll_interval_seconds
         self._process: subprocess.Popen[bytes] | None = None
 
     def __enter__(self) -> Self:
         script = (
-            "import sqlite3, sys, time\n"
+            "import sqlite3\n"
+            "import sys\n"
+            "import time\n"
+            "import os\n"
+            "from uuid import UUID\n"
+            "import httpx\n"
+            "from placeframe_api_client import ReconstructionStatus\n"
+            "from reconstructor.progress_publisher import ReconstructionPublisher, SyncProgressFlusher\n"
             + inspect.getsource(_poll_verification)
-            + "_poll_verification(sys.argv[1], int(sys.argv[2]), float(sys.argv[3]))\n"
+            + "_poll_verification(sys.argv[1], int(sys.argv[2]), float(sys.argv[3]), sys.argv[4], UUID(sys.argv[5]))\n"
         )
+        environment = {**os.environ, "PROGRESS_BEARER_TOKEN": self._bearer_token}
         self._process = subprocess.Popen(
             [
                 sys.executable,
@@ -100,7 +115,10 @@ class _VerificationProgressPoller:
                 str(self._database_path),
                 str(self._total_pairs),
                 str(self._poll_interval_seconds),
+                str(get_settings().api_internal_url).rstrip("/"),
+                str(self._publisher.reconstruction_id),
             ],
+            env=environment,
         )
         return self
 
@@ -123,7 +141,12 @@ class _VerificationProgressPoller:
         self._publisher.on_progress(min(final_count, self._total_pairs))
 
 
-def _poll_verification(database_path: str, total_pairs: int, interval_seconds: float) -> None:
+def _poll_verification(
+    database_path: str, total_pairs: int, interval_seconds: float, api_url: str, reconstruction_id: UUID
+) -> None:
+    client = httpx.Client(headers={"Authorization": f"Bearer {os.environ['PROGRESS_BEARER_TOKEN']}"}, timeout=5.0)
+    publisher = ReconstructionPublisher(SyncProgressFlusher(client, api_url), reconstruction_id)
+    publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, total=total_pairs)
     last_emitted = -1
     while True:
         connection = sqlite3.connect(database_path, isolation_level=None, timeout=1.0)
@@ -139,7 +162,7 @@ def _poll_verification(database_path: str, total_pairs: int, interval_seconds: f
             connection.close()
         count = int(row[0]) if row else 0
         if count != last_emitted:
-            print(f"[verifying_geometry] {min(count, total_pairs)}/{total_pairs}", flush=True)
+            publisher.on_progress(min(count, total_pairs))
             last_emitted = count
         time.sleep(interval_seconds)
 
@@ -155,6 +178,7 @@ def run_colmap_reconstruction(
     pairs: list[Pair],
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
     publisher: ReconstructionPublisher,
+    bearer_token: str,
 ):
     colmap_db_path = root_path / COLMAP_DB_FILE
     if colmap_db_path.exists():
@@ -224,7 +248,7 @@ def run_colmap_reconstruction(
     # SQLite database. _VerificationProgressPoller reads that row count from a background thread
     # using SQLite WAL's concurrent-read guarantee and feeds ticks to the publisher.
     publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, total=len(pairs))
-    with _VerificationProgressPoller(colmap_db_path, len(pairs), publisher):
+    with _VerificationProgressPoller(colmap_db_path, len(pairs), publisher, bearer_token):
         geometric_verification(
             database_path=str(colmap_db_path),
             verifier_options=GeometricVerifierOptions(rig_verification=True),

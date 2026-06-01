@@ -23,7 +23,7 @@ class TokenManager:
     def __post_init__(self):
         self._private_key_bytes = self.private_key_path.read_bytes()
 
-    async def get_token(self):
+    async def get_token(self) -> str:
         if self._access_token and time.time() < (self._expires_at - SKEW_SECONDS):
             return self._access_token
 
@@ -54,10 +54,12 @@ class TokenManager:
                 response.raise_for_status()
 
                 data = response.json()
+                token = data["access_token"]
+                assert isinstance(token, str)
                 self._expires_at = time.time() + int(data.get("expires_in", 300))
-                self._access_token = data["access_token"]
+                self._access_token = token
 
-                return self._access_token
+                return token
 
             except httpx.HTTPError as e:
                 print(f"[Auth] Failed to fetch token: {e}")
