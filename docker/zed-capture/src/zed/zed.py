@@ -316,7 +316,7 @@ class Zed(Thread):
 
         with open(self._rig_directory() / "frames.csv", "w", newline="") as csv_file:
             csv_writer = writer(csv_file)
-            csv_writer.writerow(["timestamp_ms", "tx", "ty", "tz", "gx", "gy", "gz"])
+            csv_writer.writerow(["timestamp_ms", "tx", "ty", "tz", "qx", "qy", "qz", "qw"])
 
         logger.info("Capture started")
 
@@ -335,15 +335,9 @@ class Zed(Thread):
         camera_center_in_world = get_translation_array(self._pose)
         rotation_world_from_camera = get_orientation_quaternion(self._pose)
 
-        # ZED's positional tracking initialises its world frame gravity-aligned (IMAGE/OpenCV convention:
-        # +Y down). Projecting world's +Y axis into the current rig-local frame yields gravity-in-rig.
-        # Camera0 is the reference sensor with identity rig↔camera0, so this is also gravity-in-camera0.
-        rotation_camera_from_world = Rotation.from_quat(rotation_world_from_camera).as_matrix().T
-        gravity_in_rig_local = rotation_camera_from_world @ asarray([0.0, 1.0, 0.0], dtype=float64)
-
         with open(self._rig_directory() / "frames.csv", "a", newline="") as csv_file:
             csv_writer = writer(csv_file)
-            csv_writer.writerow([timestamp, *camera_center_in_world.tolist(), *gravity_in_rig_local.tolist()])
+            csv_writer.writerow([timestamp, *camera_center_in_world.tolist(), *rotation_world_from_camera.tolist()])
 
         image_buffer = Mat()
         retrieve_image(self._camera, image_buffer, VIEW.LEFT)
