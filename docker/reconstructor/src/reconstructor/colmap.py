@@ -28,7 +28,7 @@ from scipy.spatial.transform import Rotation
 from .colmap_pipeline import run_colmap_pipeline_with_vio_check
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
-from .pairs import PairSource
+from .pairs import Pair
 from .progress_publisher import ReconstructionPublisher
 from .rig import FramePose, Rig, image_name
 
@@ -44,7 +44,7 @@ def run_colmap_reconstruction(
     metrics: MetricsBuilder,
     rigs: dict[str, Rig],
     keypoints: dict[str, Any],
-    pairs_by_source: dict[PairSource, list[tuple[str, str]]],
+    pairs: list[Pair],
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
     publisher: ReconstructionPublisher,
 ):
@@ -65,7 +65,7 @@ def run_colmap_reconstruction(
         metrics=metrics,
         rigs=rigs,
         keypoints=keypoints,
-        pairs_by_source=pairs_by_source,
+        pairs=pairs,
         match_indices=match_indices,
         publisher=publisher,
     )

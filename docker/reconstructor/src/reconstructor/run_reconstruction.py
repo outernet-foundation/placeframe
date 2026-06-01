@@ -36,7 +36,7 @@ from .colmap import COLMAP_DB_FILE, run_colmap_reconstruction
 from .keyframes import select_keyframes_by_distance
 from .metrics_builder import MetricsBuilder
 from .options_builder import OptionsBuilder
-from .pairs import flatten_pairs, generate_image_pairs, write_pairs, write_pairs_with_source
+from .pairs import generate_image_pairs, write_pairs, write_pairs_with_source
 from .progress_publisher import ReconstructionPublisher
 from .rig import Rig
 from .settings import get_settings
@@ -202,7 +202,7 @@ def run_reconstruction(
     file_name, file_bytes = write_global_descriptors(WORK_DIR, global_descriptors)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
-    pairs_by_source = generate_image_pairs(
+    pairs = generate_image_pairs(
         rigs,
         global_descriptors,
         options.sequential_window(),
@@ -214,10 +214,9 @@ def run_reconstruction(
         options.retrieval_covisibility_window(),
         options.retrieval_covisibility_min_support(),
     )
-    pairs = flatten_pairs(pairs_by_source)
     file_name, file_bytes = write_pairs(pairs, WORK_DIR)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
-    file_name, file_bytes = write_pairs_with_source(pairs_by_source, WORK_DIR)
+    file_name, file_bytes = write_pairs_with_source(pairs, WORK_DIR)
     _put_artifact(s3_client, settings.reconstructions_bucket, reconstruction_id, file_name, file_bytes)
 
     # Combine all descriptors into a single array for training OPQ and PQ
@@ -252,7 +251,7 @@ def run_reconstruction(
     # Match features
     publisher.set_phase(ReconstructionStatus.MATCHING_FEATURES, total=len(pairs))
     match_indices = local_feature_matcher(
-        pairs,
+        [(pair.image_a, pair.image_b) for pair in pairs],
         keypoints,
         descriptors,
         sizes,
@@ -273,7 +272,7 @@ def run_reconstruction(
         metrics,
         rigs,
         keypoints,
-        pairs_by_source,
+        pairs,
         match_indices,
         publisher,
     )

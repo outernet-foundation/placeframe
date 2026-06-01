@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import Enum
 from itertools import combinations
 from pathlib import Path
@@ -21,6 +22,13 @@ class PairSource(str, Enum):
     SEQUENTIAL = "sequential"
     SPATIAL = "spatial"
     RETRIEVAL = "retrieval"
+
+
+@dataclass(frozen=True)
+class Pair:
+    image_a: str
+    image_b: str
+    source: PairSource
 
 
 # Precedence: the most-trusted source wins when a pair would be claimed by several. Intra-frame
@@ -47,7 +55,7 @@ def generate_image_pairs(
     retrieval_min_score: float,
     retrieval_covisibility_window: int,
     retrieval_covisibility_min_support: int,
-) -> dict[PairSource, list[tuple[str, str]]]:
+) -> list[Pair]:
     sequential_frame_pairs: list[tuple[tuple[str, str], tuple[str, str]]] = []
     for rig_id, rig in rigs.items():
         frame_ids = sorted(rig.frame_poses.keys(), key=int)
@@ -218,7 +226,6 @@ def generate_image_pairs(
                 filtered_retrieval_image_pairs.append((image_a, image_b))
         retrieval_image_pairs = filtered_retrieval_image_pairs
 
-    pairs_by_source: dict[PairSource, list[tuple[str, str]]] = {source: [] for source in PairSource}
     seen: dict[tuple[str, str], PairSource] = {}
     for source, candidate_pairs in [
         (PairSource.INTRA_FRAME_STEREO, intra_frame_image_pairs),
@@ -233,31 +240,24 @@ def generate_image_pairs(
             if normalized in seen:
                 continue
             seen[normalized] = source
-            pairs_by_source[source].append(normalized)
 
-    for source_pairs in pairs_by_source.values():
-        source_pairs.sort()
-
-    return pairs_by_source
+    return [Pair(image_a=a, image_b=b, source=source) for (a, b), source in sorted(seen.items())]
 
 
-def flatten_pairs(pairs_by_source: dict[PairSource, list[tuple[str, str]]]) -> list[tuple[str, str]]:
-    return sorted(pair for pairs in pairs_by_source.values() for pair in pairs)
-
-
-def write_pairs(pairs: list[tuple[str, ...]], root_path: Path):
+def write_pairs(pairs: list[Pair], root_path: Path) -> tuple[str, bytes]:
     path = root_path / PAIRS_FILE
-    path.write_text("\n".join([" ".join(pair) for pair in pairs]))
+    path.write_text("\n".join(f"{pair.image_a} {pair.image_b}" for pair in pairs))
     return PAIRS_FILE, path.read_bytes()
 
 
-def write_pairs_with_source(
-    pairs_by_source: dict[PairSource, list[tuple[str, str]]], root_path: Path
-) -> tuple[str, bytes]:
+def write_pairs_with_source(pairs: list[Pair], root_path: Path) -> tuple[str, bytes]:
+    pairs_by_source: dict[PairSource, list[Pair]] = {source: [] for source in SOURCE_PRECEDENCE}
+    for pair in pairs:
+        pairs_by_source[pair.source].append(pair)
     lines = ["image_a,image_b,source"]
     for source in SOURCE_PRECEDENCE:
-        for image_a, image_b in pairs_by_source.get(source, []):
-            lines.append(f"{image_a},{image_b},{source.value}")
+        for pair in pairs_by_source[source]:
+            lines.append(f"{pair.image_a},{pair.image_b},{source.value}")
     path = root_path / PAIRS_WITH_SOURCE_FILE
     path.write_text("\n".join(lines) + "\n")
     return PAIRS_WITH_SOURCE_FILE, path.read_bytes()

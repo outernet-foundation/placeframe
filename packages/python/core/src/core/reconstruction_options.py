@@ -86,6 +86,10 @@ class ReconstructionOptions(BaseModel):
         default=0.05,
         description="Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off).",
     )
+    vio_check_max_disagreement_m: float = Field(
+        default=1.0,
+        description="Reject a registration when the disagreement (meters) between the local-Umeyama-predicted recon position and the recon position COLMAP just assigned exceeds this. Also used as the LO-RANSAC inlier threshold when fitting the local Sim3 from VIO neighbors.",
+    )
     max_keypoints_per_image: int = Field(
         default=2500,
         description="Maximum ALIKED keypoints retained per image.",

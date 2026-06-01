@@ -70,6 +70,9 @@ class OptionsBuilder:
     def pose_prior_position_sigma_m(self):
         return self.options.pose_prior_position_sigma_m
 
+    def vio_check_max_disagreement_m(self):
+        return self.options.vio_check_max_disagreement_m
+
     def max_keypoints_per_image(self):
         return self.options.max_keypoints_per_image
 

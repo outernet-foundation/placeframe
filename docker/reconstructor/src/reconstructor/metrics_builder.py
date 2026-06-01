@@ -10,6 +10,8 @@ from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up m
 from pycolmap import Database, Frame, ImageMap, Point3D, Point3DMap, Reconstruction, Rigid3d
 from pycolmap import Image as ColmapImage
 
+from .pairs import Pair
+
 UINT64_MAX = 18446744073709551615  # sentinel used by Point2D.point3D_id default
 
 
@@ -17,7 +19,7 @@ class MetricsBuilder:
     def __init__(self):
         self.metrics = ReconstructionMetrics()
 
-    def build_verified_matches_metrics(self, database: Database, pairs: list[tuple[str, ...]]) -> None:
+    def build_verified_matches_metrics(self, database: Database, pairs: list[Pair]) -> None:
         # Map image name -> image_id (help Pyright with explicit types)
         all_images: list[ColmapImage] = database.read_all_images()
         name_to_id: dict[str, int] = {img.name: img.image_id for img in all_images}
@@ -38,7 +40,8 @@ class MetricsBuilder:
         st_total = st_verified = 0  # stereo: same frame, different sensors
         st_inliers: List[int] = []
 
-        for a, b in pairs:
+        for pair in pairs:
+            a, b = pair.image_a, pair.image_b
             total += 1
             ida: int = name_to_id[a]
             idb: int = name_to_id[b]
