@@ -4,17 +4,48 @@ import asyncio
 from asyncio import AbstractEventLoop
 from concurrent.futures import Future
 from time import perf_counter
-from typing import Any
+from typing import Any, Protocol
 from uuid import UUID
 
+import httpx
 from core.reconstruction_metrics import PhaseTiming
 from placeframe_api_client import DefaultApi, ProgressUpdate, ReconstructionStatus
 
 
-class ReconstructionPublisher:
-    def __init__(self, api: DefaultApi, loop: AbstractEventLoop, reconstruction_id: UUID) -> None:
+class ProgressFlusher(Protocol):
+    def flush(self, reconstruction_id: UUID, update: ProgressUpdate) -> None: ...
+
+
+class AsyncProgressFlusher:
+    def __init__(self, api: DefaultApi, loop: AbstractEventLoop) -> None:
         self._api = api
         self._loop = loop
+
+    def flush(self, reconstruction_id: UUID, update: ProgressUpdate) -> None:
+        future = asyncio.run_coroutine_threadsafe(
+            self._api.update_progress(reconstruction_id, update),
+            self._loop,
+        )
+        future.add_done_callback(_log_progress_failure)
+
+
+class SyncProgressFlusher:
+    def __init__(self, client: httpx.Client, base_url: str) -> None:
+        self._client = client
+        self._base_url = base_url
+
+    def flush(self, reconstruction_id: UUID, update: ProgressUpdate) -> None:
+        response = self._client.put(
+            f"{self._base_url}/internal/leases/{reconstruction_id}/progress",
+            json=update.model_dump(mode="json", exclude_none=False),
+        )
+        if response.status_code >= 400:
+            print(f"[progress write failed] HTTP {response.status_code} {response.text}")
+
+
+class ReconstructionPublisher:
+    def __init__(self, flusher: ProgressFlusher, reconstruction_id: UUID) -> None:
+        self._flusher = flusher
         self._reconstruction_id = reconstruction_id
         self._status: ReconstructionStatus | None = None
         self._progress_total: int | None = None
@@ -23,6 +54,10 @@ class ReconstructionPublisher:
         self._last_emit = 0.0
         self._phase_start: float | None = None
         self._phase_timings: list[PhaseTiming] = []
+
+    @property
+    def reconstruction_id(self) -> UUID:
+        return self._reconstruction_id
 
     @property
     def phase_timings(self) -> list[PhaseTiming]:
@@ -70,11 +105,7 @@ class ReconstructionPublisher:
             progress_total=self._progress_total,
             progress_attempt=self._progress_attempt,
         )
-        future = asyncio.run_coroutine_threadsafe(
-            self._api.update_progress(self._reconstruction_id, update),
-            self._loop,
-        )
-        future.add_done_callback(_log_progress_failure)
+        self._flusher.flush(self._reconstruction_id, update)
 
 
 def _log_progress_failure(future: Future[Any]) -> None:
