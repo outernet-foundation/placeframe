@@ -1,4 +1,4 @@
-import json
+import csv
 import pathlib
 from asyncio import to_thread
 from datetime import UTC, datetime
@@ -23,10 +23,10 @@ CAPTURES_DIRECTORY = pathlib.Path.home() / "captures"
 
 # Recording artifacts (rig0/, frames.csv, manifest.json, *.svo2) live in
 # CAPTURES_DIRECTORY / <id>/ and are write-once after stop_capture finishes.
-# Mutable metadata (operator-chosen name) lives outside that directory in
-# CAPTURES_DIRECTORY / <id>.meta.json, so the tar payload remains immutable and
-# its on-disk size matches the Content-Length declared by the static-file
-# response for every byte.
+# Mutable metadata (operator-chosen name + recorded_at) lives outside that
+# directory in CAPTURES_DIRECTORY / <id>.meta.json, so the tar payload remains
+# immutable and its on-disk size matches the Content-Length declared by the
+# static-file response for every byte.
 META_SUFFIX = ".meta.json"
 TAR_SUFFIX = ".tar"
 
@@ -34,13 +34,13 @@ TAR_SUFFIX = ".tar"
 # replay), so the pre-built tar excludes them by construction.
 _TAR_EXCLUDE_SUFFIXES: tuple[str, ...] = (".svo2",)
 
-# Legacy on-disk shape from before metadata-outside-dir and from the cached
-# Content-Length scheme. The startup migration converts these forward so no
-# future tar-build sees them.
-_LEGACY_CACHE_PREFIX = ".placeframe_tar_size_cache."
-_LEGACY_NAME_FILE = "name.txt"
-
 DEFAULT_CAPTURE_INTERVAL = 0.5
+
+# rig0/frames.csv columns: timestamp_ms,tx,ty,tz,qx,qy,qz,qw. Camera0's wall-clock
+# capture timestamps live in column 0 and are the authoritative recording-start
+# signal — the directory's st_ctime is unreliable because any inode-touch on the
+# parent (file unlink, attribute change) rewrites it.
+_FRAMES_CSV_RELATIVE_PATH = pathlib.Path("rig0") / "frames.csv"
 
 
 class ZedCapture(BaseModel):
@@ -58,6 +58,11 @@ class UpdateCaptureSessionRequest(BaseModel):
     name: str
 
 
+class CaptureMeta(BaseModel):
+    name: str
+    recorded_at: AwareDatetime | None = None
+
+
 zed = Zed(CAPTURES_DIRECTORY)
 
 
@@ -71,10 +76,11 @@ async def start_capture(capture_interval: float | None = None) -> UUID:
         capture_id = await to_thread(zed.start_capture, capture_interval or DEFAULT_CAPTURE_INTERVAL)
     except InvalidStateException as e:
         raise ClientException(detail=str(e), status_code=HTTP_409_CONFLICT)
-    # Placeholder so the non-null name invariant holds during the recording
+    # Placeholder name so the non-null name invariant holds during the recording
     # window and survives a crash mid-recording. Overwritten by /stop with the
-    # operator's chosen name on the normal path.
-    _write_meta(capture_id, _placeholder_name())
+    # operator's chosen name on the normal path. recorded_at is None until /stop
+    # reads the first frames.csv timestamp.
+    _write_meta(capture_id, CaptureMeta(name=_placeholder_name()))
     return capture_id
 
 
@@ -88,10 +94,10 @@ async def stop_capture(data: StopCaptureRequest) -> None:
         await to_thread(zed.stop_capture)
     except InvalidStateException as e:
         raise ClientException(detail=str(e), status_code=HTTP_409_CONFLICT)
-    # Commit the operator's chosen name before building the tar so a build
-    # failure leaves the meta intact for the startup migration to rebuild the
-    # tar on the next container restart.
-    _write_meta(active_id, name)
+    # Commit name + recorded_at before building the tar so a build failure
+    # leaves the meta intact.
+    recorded_at = _read_recorded_at_from_frames_csv(active_id)
+    _write_meta(active_id, CaptureMeta(name=name, recorded_at=recorded_at))
     await to_thread(
         build_tar,
         _recording_directory(active_id),
@@ -102,30 +108,31 @@ async def stop_capture(data: StopCaptureRequest) -> None:
 
 @get("")
 async def get_capture_sessions() -> List[ZedCapture]:
-    return sorted(
-        [
+    captures: list[ZedCapture] = []
+    for capture_id in _finalized_capture_ids():
+        meta = _read_meta(capture_id)
+        if meta.recorded_at is None:
+            # Tar exists but meta predates the recorded_at field. Skip rather
+            # than fabricate a timestamp — the operator can re-record or delete
+            # the orphan via the UI.
+            continue
+        captures.append(
             ZedCapture(
                 id=capture_id,
-                name=_read_meta(capture_id)["name"],
-                # st_ctime is the recording directory's inode-change time. The
-                # directory is created at recording-start and its child
-                # rig0/cameraN subdirs are created within the same start_capture()
-                # call (see zed.py _start), so st_ctime settles within ~ms of
-                # recording-start and is stable for the rest of the session.
-                recorded_at=datetime.fromtimestamp(_recording_directory(capture_id).stat().st_ctime, tz=UTC),
+                name=meta.name,
+                recorded_at=meta.recorded_at,
                 size_bytes=_tar_path(capture_id).stat().st_size,
             )
-            for capture_id in _finalized_capture_ids()
-        ],
-        key=lambda c: c.id,
-    )
+        )
+    return sorted(captures, key=lambda c: c.id)
 
 
 @patch("/{id:uuid}")
 async def update_capture_session(id: UUID, data: UpdateCaptureSessionRequest) -> None:
     if not _meta_path(id).exists():
         raise NotFoundException(f"Capture with id {id} not found")
-    _write_meta(id, _validate_name(data.name))
+    meta = _read_meta(id)
+    _write_meta(id, CaptureMeta(name=_validate_name(data.name), recorded_at=meta.recorded_at))
 
 
 @get(
@@ -165,15 +172,24 @@ def _validate_name(name: str) -> str:
     return stripped
 
 
-def _write_meta(capture_id: UUID, name: str) -> None:
+def _write_meta(capture_id: UUID, meta: CaptureMeta) -> None:
     meta_path = _meta_path(capture_id)
     temp_path = meta_path.with_name(meta_path.name + ".tmp")
-    temp_path.write_text(json.dumps({"name": name}), encoding="utf-8")
+    temp_path.write_text(meta.model_dump_json(), encoding="utf-8")
     temp_path.rename(meta_path)
 
 
-def _read_meta(capture_id: UUID) -> dict[str, str]:
-    return json.loads(_meta_path(capture_id).read_text(encoding="utf-8"))
+def _read_meta(capture_id: UUID) -> CaptureMeta:
+    return CaptureMeta.model_validate_json(_meta_path(capture_id).read_text(encoding="utf-8"))
+
+
+def _read_recorded_at_from_frames_csv(capture_id: UUID) -> datetime:
+    frames_csv_path = _recording_directory(capture_id) / _FRAMES_CSV_RELATIVE_PATH
+    with open(frames_csv_path, newline="") as csv_file:
+        reader = csv.reader(csv_file)
+        next(reader)
+        first_row = next(reader)
+    return datetime.fromtimestamp(int(first_row[0]) / 1000.0, tz=UTC)
 
 
 def _recording_directory(capture_id: UUID) -> pathlib.Path:
@@ -216,33 +232,6 @@ def _delete_capture(capture_id: UUID) -> None:
     _meta_path(capture_id).unlink(missing_ok=True)
 
 
-def _migrate_legacy_captures() -> None:
-    CAPTURES_DIRECTORY.mkdir(parents=True, exist_ok=True)
-    for recording in CAPTURES_DIRECTORY.glob("*"):
-        if not recording.is_dir():
-            continue
-        try:
-            capture_id = UUID(recording.name)
-        except ValueError:
-            continue
-        # Forward-migrate the legacy on-disk shape: name.txt-inside-dir → sibling
-        # meta.json; delete stale Content-Length cache sidecars.
-        legacy_name_file = recording / _LEGACY_NAME_FILE
-        meta_path = _meta_path(capture_id)
-        if legacy_name_file.exists() and not meta_path.exists():
-            legacy_name = legacy_name_file.read_text(encoding="utf-8").strip()
-            _write_meta(capture_id, legacy_name or _placeholder_name())
-        legacy_name_file.unlink(missing_ok=True)
-        for cache_file in recording.glob(f"{_LEGACY_CACHE_PREFIX}*"):
-            cache_file.unlink(missing_ok=True)
-        # Rebuild the immutable tar for any recording whose meta exists but
-        # whose tar is missing (legacy captures pre-migration, or a previous
-        # stop_capture that crashed between recording-stop and tar-build).
-        tar_path = _tar_path(capture_id)
-        if meta_path.exists() and not tar_path.exists():
-            build_tar(recording, tar_path, _TAR_EXCLUDE_SUFFIXES)
-
-
 router = Router(
     path="/capture_sessions",
     tags=["Capture Sessions"],
@@ -259,5 +248,5 @@ router = Router(
 
 
 if not environ.get("CODEGEN"):
-    _migrate_legacy_captures()
+    CAPTURES_DIRECTORY.mkdir(parents=True, exist_ok=True)
     zed.start()
