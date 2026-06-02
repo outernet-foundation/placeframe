@@ -49,7 +49,6 @@ from .messages import (
     NO_BOX_WIRED_CONNECTION,
     NO_DHCP_LEASE_RECEIVED,
     SSH_KEY_COPY_PROMPT,
-    SUDOERS_INSTALL_PROMPT,
 )
 from .ssh import ssh_check, ssh_output, ssh_run
 
@@ -65,26 +64,19 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
     logger.info("connecting_to_box", extra={"target": BOX_SSH_TARGET})
     bash(f"ssh {SSH_MUX} -fN {BOX_SSH_TARGET}")
     try:
-        # Install the passwordless-sudo rule so the rest of the script runs unattended.
-        sudoers_matches = ssh_check("test -f /etc/sudoers.d/install-zed") and (
-            ssh_output("cat /etc/sudoers.d/install-zed").strip() == SUDOERS_RULE
-        )
-        if sudoers_matches:
-            logger.info("sudoers_rule_present")
-        else:
-            logger.info("installing_sudoers_rule")
-            note(SUDOERS_INSTALL_PROMPT)
-            # `sudo install` (not pipe-into-tee) avoids a remote pipeline and
-            # works before passwordless sudo exists.
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".sudoers") as sudoers_file:
-                sudoers_file.write(SUDOERS_RULE + "\n")
-                sudoers_file.flush()
-                bash(f"scp {SSH_MUX} {sudoers_file.name} {BOX_SSH_TARGET}:/tmp/install-zed.sudoers")
-                bash(
-                    f"ssh -t {SSH_MUX} {BOX_SSH_TARGET}"
-                    ' "sudo install -m 0440 -o root -g root /tmp/install-zed.sudoers /etc/sudoers.d/install-zed"'
-                )
-                ssh_run("rm /tmp/install-zed.sudoers")
+        # Refresh the passwordless-sudo rule. `sudo -n install` overwrites the
+        # file with identical content on subsequent runs, so this is naturally
+        # idempotent; no content-comparison check is needed. The `-n` flag
+        # fails loudly instead of prompting if NOPASSWD isn't in effect,
+        # which surfaces a stale or missing rule as a script-fatal error
+        # rather than silently degrading to interactive.
+        logger.info("refreshing_sudoers_rule")
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".sudoers") as sudoers_file:
+            sudoers_file.write(SUDOERS_RULE + "\n")
+            sudoers_file.flush()
+            bash(f"scp {SSH_MUX} {sudoers_file.name} {BOX_SSH_TARGET}:/tmp/install-zed.sudoers")
+            ssh_run("sudo -n install -m 0440 -o root -g root /tmp/install-zed.sudoers /etc/sudoers.d/install-zed")
+            ssh_run("rm /tmp/install-zed.sudoers")
 
         # Install Docker from pinned .deb URLs (Ubuntu's repo is a moving target).
         if ssh_check("which docker"):
