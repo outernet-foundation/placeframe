@@ -18,8 +18,8 @@ import re  # noqa: F401
 import json
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
-from typing import Any, ClassVar, Dict, List, Optional
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
+from typing import Any, ClassVar, Dict, List
 from uuid import UUID
 from placeframe_api_client.models.device_type import DeviceType
 from typing import Optional, Set
@@ -34,10 +34,11 @@ class CaptureSessionRead(BaseModel):
     created_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     updated_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     recorded_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
+    size_bytes: StrictInt
     device_type: DeviceType
-    name: Optional[StrictStr] = None
+    name: StrictStr
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "created_at", "updated_at", "recorded_at", "device_type", "name"]
+    __properties: ClassVar[List[str]] = ["id", "created_at", "updated_at", "recorded_at", "size_bytes", "device_type", "name"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -85,11 +86,6 @@ class CaptureSessionRead(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
-        # set to None if name (nullable) is None
-        # and model_fields_set contains the field
-        if self.name is None and "name" in self.model_fields_set:
-            _dict['name'] = None
-
         return _dict
 
     @classmethod
@@ -106,6 +102,7 @@ class CaptureSessionRead(BaseModel):
             "created_at": obj.get("created_at"),
             "updated_at": obj.get("updated_at"),
             "recorded_at": obj.get("recorded_at"),
+            "size_bytes": obj.get("size_bytes"),
             "device_type": obj.get("device_type"),
             "name": obj.get("name")
         })

@@ -40,7 +40,7 @@ namespace PlaceframeApiClient.Model
         /// Initializes a new instance of the <see cref="PhaseTiming" /> class.
         /// </summary>
         /// <param name="phase">ReconstructionStatus value of the phase, e.g. &#39;extracting_features&#39;. (required).</param>
-        /// <param name="durationSeconds">Wall-clock seconds the phase spent in-flight, measured between the publisher&#39;s set_phase boundaries. (required).</param>
+        /// <param name="durationSeconds">Wall-clock seconds the phase spent in-flight. (required).</param>
         public PhaseTiming(string phase, double durationSeconds)
         {
             // to ensure "phase" is required (not null)
@@ -78,9 +78,9 @@ namespace PlaceframeApiClient.Model
             return _flagPhase;
         }
         /// <summary>
-        /// Wall-clock seconds the phase spent in-flight, measured between the publisher&#39;s set_phase boundaries.
+        /// Wall-clock seconds the phase spent in-flight.
         /// </summary>
-        /// <value>Wall-clock seconds the phase spent in-flight, measured between the publisher&#39;s set_phase boundaries.</value>
+        /// <value>Wall-clock seconds the phase spent in-flight.</value>
         [DataMember(Name = "duration_seconds", IsRequired = true, EmitDefaultValue = true)]
         public double DurationSeconds
         {

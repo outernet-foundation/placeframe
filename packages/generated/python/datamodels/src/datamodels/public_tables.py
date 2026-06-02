@@ -57,6 +57,7 @@ class ReconstructionStatus(enum.Enum):
     TRAINING_OPQ_MATRIX = "training_opq_matrix"
     TRAINING_PRODUCT_QUANTIZER = "training_product_quantizer"
     VERIFYING_GEOMETRY = "verifying_geometry"
+    VERIFYING_RIG_GEOMETRY = "verifying_rig_geometry"
     RECONSTRUCTING = "reconstructing"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
@@ -149,10 +150,11 @@ class CaptureSession(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     recorded_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default=text("0"))
     device_type: Mapped[DeviceType] = mapped_column(
         Enum(DeviceType, name="device_type", values_callable=enum_values), nullable=False
     )
-    name: Mapped[Optional[str]] = mapped_column(Text)
+    name: Mapped[str] = mapped_column(Text, nullable=False)
 
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="capture_sessions")
     reconstructions: Mapped[list["Reconstruction"]] = relationship("Reconstruction", back_populates="capture_session")

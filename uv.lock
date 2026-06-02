@@ -1781,6 +1781,7 @@ dependencies = [
     { name = "common" },
     { name = "core" },
     { name = "cryptography" },
+    { name = "httpx" },
     { name = "numpy" },
     { name = "placeframe-api-client" },
     { name = "pycolmap" },
@@ -1793,7 +1794,6 @@ dependencies = [
 dev = [
     { name = "boto3-stubs", extra = ["batch"] },
     { name = "debugpy" },
-    { name = "pybind11-stubgen" },
     { name = "scipy-stubs" },
 ]
 neural-networks-cpu = [
@@ -1814,6 +1814,7 @@ requires-dist = [
     { name = "common", editable = "packages/python/common" },
     { name = "core", editable = "packages/python/core" },
     { name = "cryptography", specifier = ">=46.0.3" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.0" },
     { name = "placeframe-api-client", editable = "packages/generated/python/api-client" },
     { name = "pycolmap", specifier = ">=4.0.4" },
@@ -1826,7 +1827,6 @@ requires-dist = [
 dev = [
     { name = "boto3-stubs", extras = ["batch"], specifier = ">=1.40.18" },
     { name = "debugpy", specifier = ">=1.8.16" },
-    { name = "pybind11-stubgen", git = "https://github.com/sarlinpe/pybind11-stubgen?rev=sarlinpe%2Ffix-2024-08" },
     { name = "scipy-stubs", specifier = ">=1.15.3" },
 ]
 neural-networks-cpu = [{ name = "neural-networks", extras = ["cpu"], editable = "packages/python/neural-networks" }]
@@ -1898,11 +1898,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/3a/62/a8e0f092f4dbef9a94b032fb71e214cf0a375010692fbe7493a766339e47/psycopg_binary-3.3.2-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:8db9034cde3bcdafc66980f0130813f5c5d19e74b3f2a19fb3cfbc25ad113121", size = 4220070, upload-time = "2025-12-06T17:34:11.392Z" },
     { url = "https://files.pythonhosted.org/packages/09/e6/5fc8d8aff8afa114bb4a94a0341b9309311e8bf3ab32d816032f8b984d4e/psycopg_binary-3.3.2-cp313-cp313-win_amd64.whl", hash = "sha256:df65174c7cf6b05ea273ce955927d3270b3a6e27b0b12762b009ce6082b8d3fc", size = 3540922, upload-time = "2025-12-06T17:34:14.88Z" },
 ]
-
-[[package]]
-name = "pybind11-stubgen"
-version = "2.5.1"
-source = { git = "https://github.com/sarlinpe/pybind11-stubgen?rev=sarlinpe%2Ffix-2024-08#28d2acac14e92df0aa3136c27628a4d20b07d616" }
 
 [[package]]
 name = "pycolmap"

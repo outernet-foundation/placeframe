@@ -417,19 +417,22 @@ class TenantRead(BaseModel):
 class CaptureSessionCreate(BaseModel):
     id: UUID | None = Field(None, title="Id")
     recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
+    size_bytes: int | None = Field(None, title="Size Bytes")
     device_type: DeviceType
-    name: str | None = Field(None, title="Name")
+    name: str = Field(..., title="Name")
 
 
 class CaptureSessionBatchCreate(BaseModel):
     id: UUID = Field(..., title="Id")
     recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
+    size_bytes: int | None = Field(None, title="Size Bytes")
     device_type: DeviceType
-    name: str | None = Field(None, title="Name")
+    name: str = Field(..., title="Name")
 
 
 class CaptureSessionUpdate(BaseModel):
     recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
+    size_bytes: int | None = Field(None, title="Size Bytes")
     device_type: DeviceType | None = None
     name: str | None = Field(None, title="Name")
 
@@ -437,6 +440,7 @@ class CaptureSessionUpdate(BaseModel):
 class CaptureSessionBatchUpdate(BaseModel):
     id: UUID = Field(..., title="Id")
     recorded_at: AwareDatetime | None = Field(None, title="Recorded At")
+    size_bytes: int | None = Field(None, title="Size Bytes")
     device_type: DeviceType | None = None
     name: str | None = Field(None, title="Name")
 
@@ -446,8 +450,9 @@ class CaptureSessionRead(BaseModel):
     created_at: AwareDatetime = Field(..., title="Created At")
     updated_at: AwareDatetime = Field(..., title="Updated At")
     recorded_at: AwareDatetime = Field(..., title="Recorded At")
+    size_bytes: int = Field(..., title="Size Bytes")
     device_type: DeviceType
-    name: str | None = Field(None, title="Name")
+    name: str = Field(..., title="Name")
 
 
 class NodeCreate(BaseModel):
