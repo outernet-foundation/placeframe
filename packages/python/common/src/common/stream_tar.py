@@ -46,6 +46,9 @@ class _ZeroReader:
         return b"\x00" * size
 
 
+_TAR_SIZE_CACHE_PREFIX = ".placeframe_tar_size_cache."
+
+
 def compute_tar_size(
     base: str | PathLike[str],
     exclude_suffixes: tuple[str, ...] = (),
@@ -60,6 +63,41 @@ def compute_tar_size(
             lambda _path, info: nullcontext(_ZeroReader(info.size)),
         )
     return counter.count
+
+
+# Sidecar lives inside the capture directory so deletion reclaims it; `_emit_tar` skips
+# it so the cached size matches the upload.
+def compute_tar_size_cached(
+    base: str | PathLike[str],
+    exclude_suffixes: tuple[str, ...] = (),
+) -> int:
+    base_path = _resolve_capture_directory(base)
+    key = "+".join(sorted(suffix.lstrip(".") for suffix in exclude_suffixes)) or "none"
+    cache_path = base_path / f"{_TAR_SIZE_CACHE_PREFIX}{key}"
+    if cache_path.exists():
+        try:
+            return int(cache_path.read_text())
+        except ValueError:
+            # A pre-fsync write or external interference left the sidecar with non-int contents
+            # (a power loss between rename-journal-commit and data-flush produces a 0-byte file
+            # whose name resolves but whose contents are empty). Drop it and recompute.
+            cache_path.unlink()
+    size = compute_tar_size(base_path, exclude_suffixes)
+    temp_path = cache_path.with_name(cache_path.name + ".tmp")
+    # fsync the file's data before the rename so a power loss between rename-journal and
+    # data-flush cannot leave the cache name pointing at empty contents. fsync the parent
+    # directory after rename so the directory entry update is itself durable.
+    with open(temp_path, "w") as cache_file:
+        cache_file.write(str(size))
+        cache_file.flush()
+        os.fsync(cache_file.fileno())
+    temp_path.rename(cache_path)
+    dir_fd = os.open(cache_path.parent, os.O_RDONLY)
+    try:
+        os.fsync(dir_fd)
+    finally:
+        os.close(dir_fd)
+    return size
 
 
 def stream_tar(
@@ -103,6 +141,8 @@ def _emit_tar(
         if not path.is_file():
             continue
         if exclude_suffixes and path.suffix in exclude_suffixes:
+            continue
+        if path.name.startswith(_TAR_SIZE_CACHE_PREFIX):
             continue
         arcname = str(path.relative_to(base_path))
         tar_info = tar_file.gettarinfo(str(path), arcname=arcname)
