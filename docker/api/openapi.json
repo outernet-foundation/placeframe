@@ -1286,7 +1286,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "string"
+                "$ref": "#/components/schemas/FailLeaseRequest"
               }
             }
           },
@@ -4219,6 +4219,11 @@
             "format": "date-time",
             "description": "datetime with the constraint that the value must have timezone info"
           },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "nullable": true,
+            "type": "integer"
+          },
           "device_type": {
             "nullable": true,
             "$ref": "#/components/schemas/DeviceType"
@@ -4250,18 +4255,23 @@
             "format": "date-time",
             "description": "datetime with the constraint that the value must have timezone info"
           },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "nullable": true,
+            "type": "integer"
+          },
           "device_type": {
             "$ref": "#/components/schemas/DeviceType"
           },
           "name": {
-            "title": "Name",
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "title": "Name"
           }
         },
         "type": "object",
         "required": [
-          "device_type"
+          "device_type",
+          "name"
         ],
         "title": "CaptureSessionCreate"
       },
@@ -4314,13 +4324,16 @@
             "title": "Created At",
             "description": "datetime with the constraint that the value must have timezone info"
           },
+          "size_bytes": {
+            "type": "integer",
+            "title": "Size Bytes"
+          },
           "device_type": {
             "$ref": "#/components/schemas/DeviceType"
           },
           "name": {
-            "title": "Name",
-            "nullable": true,
-            "type": "string"
+            "type": "string",
+            "title": "Name"
           }
         },
         "type": "object",
@@ -4328,7 +4341,9 @@
           "created_at",
           "device_type",
           "id",
+          "name",
           "recorded_at",
+          "size_bytes",
           "updated_at"
         ],
         "title": "CaptureSessionRead"
@@ -4341,6 +4356,11 @@
             "type": "string",
             "format": "date-time",
             "description": "datetime with the constraint that the value must have timezone info"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "nullable": true,
+            "type": "integer"
           },
           "device_type": {
             "nullable": true,
@@ -4365,14 +4385,13 @@
             "type": "string",
             "format": "binary"
           },
+          "name": {
+            "type": "string"
+          },
           "id": {
             "nullable": true,
             "type": "string",
             "format": "uuid"
-          },
-          "name": {
-            "nullable": true,
-            "type": "string"
           },
           "recorded_at": {
             "nullable": true,
@@ -4385,7 +4404,8 @@
         "type": "object",
         "required": [
           "data",
-          "device_type"
+          "device_type",
+          "name"
         ],
         "title": "CaptureSessionUploadRequest"
       },
@@ -4488,6 +4508,22 @@
           "reconstruction"
         ],
         "title": "ExpandedReconstruction"
+      },
+      "FailLeaseRequest": {
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "metrics": {
+            "nullable": true,
+            "$ref": "#/components/schemas/ReconstructionMetrics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "FailLeaseRequest"
       },
       "Float3": {
         "properties": {
@@ -5950,7 +5986,7 @@
           "duration_seconds": {
             "type": "number",
             "format": "double",
-            "description": "Wall-clock seconds the phase spent in-flight, measured between the publisher's set_phase boundaries."
+            "description": "Wall-clock seconds the phase spent in-flight."
           }
         },
         "type": "object",
@@ -6077,53 +6113,20 @@
       },
       "ReconstructionMetrics": {
         "properties": {
-          "total_images": {
-            "description": "Total number of input images considered for this reconstruction run.",
-            "nullable": true,
-            "type": "integer"
-          },
-          "registered_images": {
-            "description": "Number of images successfully registered into the final model.",
-            "nullable": true,
-            "type": "integer"
-          },
-          "registration_rate": {
-            "description": "Registration rate in percent: 100 \u00d7 (registered_images / total_images). Computed after selecting the best reconstruction (max registered images).",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "num_3d_points": {
-            "description": "Count of 3D points in the selected 'best' reconstruction.",
-            "nullable": true,
-            "type": "integer"
-          },
-          "average_keypoints_per_image": {
-            "description": "Average number of detected keypoints per image (after ALIKED extraction), computed across all images.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
           "reprojection_pixel_error_50th_percentile": {
-            "description": "Median (50th percentile) reprojection error in pixels across all valid 2D observations in registered images, measured using image.project_point(point3D.xyz) vs. observed 2D keypoint.",
+            "description": "Median reprojection error in pixels across all valid 2D observations in registered images.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "reprojection_pixel_error_90th_percentile": {
-            "description": "90th percentile reprojection error in pixels across all valid 2D observations, computed the same way as the median.",
+            "description": "90th percentile reprojection error in pixels across all valid 2D observations.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "track_length_50th_percentile": {
-            "description": "Median (50th percentile) track length across 3D points in the selected model. Track length = number of distinct images observing the point.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "percent_tracks_with_length_greater_than_or_equal_to_3": {
-            "description": "Percentage of 3D points whose track length is \u2265 3 (a common robustness threshold). Computed as 100 \u00d7 (#points with length\u22653 / #points).",
+            "description": "Median number of distinct images observing each 3D point.",
             "nullable": true,
             "type": "number",
             "format": "double"
@@ -6134,88 +6137,42 @@
             "type": "integer"
           },
           "all_verified_match_rate": {
-            "description": "Percentage of verified matches across all image pairs.",
+            "description": "Percentage of image pairs that passed two-view geometry verification.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "all_verified_match_inliers_mean": {
-            "description": "Mean number of inliers for all verified matches.",
+            "description": "Mean inlier count among verified image pairs.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "all_verified_match_inliers_median": {
-            "description": "Median number of inliers for all verified matches.",
+            "description": "Median inlier count among verified image pairs.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "stereo_verified_matches": {
-            "description": "Number of verified matches for stereo pairs (same frame, different sensors).",
+            "description": "Number of verified stereo pairs (same frame, different sensors).",
             "nullable": true,
             "type": "integer"
           },
           "stereo_verified_match_rate": {
-            "description": "Percentage of verified matches for stereo pairs.",
+            "description": "Percentage of stereo pairs that passed verification.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "stereo_verified_match_inliers_mean": {
-            "description": "Mean number of inliers for verified matches for stereo pairs.",
+            "description": "Mean inlier count among verified stereo pairs.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "stereo_verified_match_inliers_median": {
-            "description": "Median number of inliers for verified matches for stereo pairs.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "same_sensor_verified_matches": {
-            "description": "Number of verified matches for same-sensor pairs (across frames).",
-            "nullable": true,
-            "type": "integer"
-          },
-          "same_sensor_verified_match_rate": {
-            "description": "Percentage of verified matches for same-sensor pairs.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "same_sensor_verified_match_inliers_mean": {
-            "description": "Mean number of inliers for verified matches for same-sensor pairs.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "same_sensor_verified_match_inliers_median": {
-            "description": "Median number of inliers for verified matches for same-sensor pairs.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "cross_sensor_verified_matches": {
-            "description": "Number of verified matches for cross-sensor pairs (across frames).",
-            "nullable": true,
-            "type": "integer"
-          },
-          "cross_sensor_verified_match_rate": {
-            "description": "Percentage of verified matches for cross-sensor pairs.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "cross_sensor_verified_match_inliers_mean": {
-            "description": "Mean number of inliers for verified matches for cross-sensor pairs.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "cross_sensor_verified_match_inliers_median": {
-            "description": "Median number of inliers for verified matches for cross-sensor pairs.",
+            "description": "Median inlier count among verified stereo pairs.",
             "nullable": true,
             "type": "number",
             "format": "double"
@@ -6231,37 +6188,41 @@
             "type": "integer"
           },
           "map_avg_track_length": {
-            "description": "Mean number of image observations per 3D point. Coarse density-of-evidence proxy.",
-            "nullable": true,
-            "type": "number",
-            "format": "double"
-          },
-          "map_bounding_volume_m3": {
-            "description": "Convex-hull volume of registered camera centers, in cubic meters. Captures spatial extent; complements image_count which only captures coverage density.",
+            "description": "Mean number of image observations per 3D point.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "map_viewpoint_diversity": {
-            "description": "1 - |mean(unit viewing direction)| across registered cameras. Zero when all cameras face the same way; approaches one as viewing directions spread uniformly. Discriminates panoramic sweeps from single-viewpoint maps even when the rest of the metrics agree.",
+            "description": "1 minus the magnitude of the mean unit viewing direction across registered cameras; 0 means uniform direction, approaches 1 as viewpoints spread.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
-          "truth_alignment_rms_residual_m": {
-            "description": "RMS over registered cameras of ||T\u00b7c_map - c_truth|| in meters, where T is the rigid Umeyama alignment from map to truth applied during reconstruction. Diagnostic for VIO-truth quality: small (~cm) means the truth poses are internally consistent with the COLMAP geometry; large values indicate VIO drift, scale errors, or other capture-time pose noise that disqualifies the capture from calibration.",
+          "gravity_aligned_in_map_frame": {
+            "description": "True when per-frame gravity samples aligned the map's vertical axis; False when no samples were available and only origin-shift was applied.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "gravity_sample_count": {
+            "description": "Number of registered frames that contributed gravity samples to the map-frame alignment.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "prior_drift_residual_rms_m": {
+            "description": "RMS residual in meters of a rigid Umeyama fit from map camera centers to VIO position priors; None for multi-camera captures, which run priors-off and carry no per-frame positions.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
-          "truth_alignment_max_residual_m": {
-            "description": "Maximum over registered cameras of ||T\u00b7c_map - c_truth|| in meters. Companion to the RMS field; surfaces single-frame outliers that the RMS would smooth over.",
+          "prior_drift_residual_max_m": {
+            "description": "Maximum residual in meters of the same Umeyama fit; surfaces single-frame outliers the RMS smooths over.",
             "nullable": true,
             "type": "number",
             "format": "double"
           },
           "phase_timings": {
-            "description": "Per-phase wall-clock durations in execution order, captured at each ReconstructionPublisher set_phase boundary. Useful for after-the-fact attribution of total reconstruction time across feature extraction, OPQ/PQ training, matching, geometric verification, and incremental mapping.",
+            "description": "Per-phase wall-clock durations in execution order, captured at each set_phase boundary.",
             "nullable": true,
             "items": {
               "$ref": "#/components/schemas/PhaseTiming"
@@ -6269,7 +6230,7 @@
             "type": "array"
           },
           "pipeline_version": {
-            "description": "Content-addressed hash of the reconstructor image's build context (RECONSTRUCTOR_SHA, computed by build_scripts.placeframe.context_sha.compute_service_shas) that produced this reconstruction. None on rows whose manifest was created before the lease succeeded. Mirrors the localizer's LocalizationMetrics.pipeline_version contract.",
+            "description": "RECONSTRUCTOR_SHA of the image that produced this reconstruction.",
             "nullable": true,
             "type": "string"
           }
@@ -6281,142 +6242,105 @@
       "ReconstructionOptions": {
         "properties": {
           "deterministic_seed": {
-            "description": "If set, run the reconstruction deterministically: this value is the PRNG seed AND the pipeline runs single-threaded so thread-scheduling does not introduce non-determinism between reruns. If None, the reconstruction is non-deterministic (seed unpinned, threading enabled).",
+            "description": "PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic.",
             "nullable": true,
             "type": "integer"
           },
-          "neighbors_count": {
-            "type": "integer",
-            "description": "How many pose-nearest neighbors to consider when generating image pairs. Use -1 for exhaustive matching (all pairs). Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.",
-            "default": 12
-          },
-          "rotation_threshold": {
+          "keyframe_min_distance_m": {
             "type": "number",
             "format": "double",
-            "description": "Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. Smaller values reduce weak overlaps and speed up matching at the cost of some coverage.",
-            "default": 30.0
+            "description": "Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.",
+            "default": 0.2
           },
-          "lightglue_batch_size": {
+          "sequential_window_m": {
+            "type": "number",
+            "format": "double",
+            "description": "VIO-path-distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe whose cumulative segment-by-segment path length along the VIO trajectory is within this many metres is paired with it. Path distance \u2014 not straight-line distance \u2014 so doubling back along the trajectory (e.g. corridor return pass) walks away from earlier frames rather than landing on them. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc.",
+            "default": 3.0
+          },
+          "retrieval_neighbors": {
             "type": "integer",
-            "description": "Batch size to use when running LightGlue for feature matching. Larger batch sizes can improve GPU utilization but require more memory.",
-            "default": 16
+            "description": "Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.",
+            "default": 20
+          },
+          "retrieval_min_score": {
+            "type": "number",
+            "format": "double",
+            "description": "Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.",
+            "default": 0.35
           },
           "ransac_max_error": {
             "type": "number",
             "format": "double",
-            "description": "Two-view RANSAC inlier threshold (pixels) used by verify_matches(). Lower = stricter inlier test; removes borderline correspondences before SfM.",
+            "description": "Two-view RANSAC inlier threshold in pixels; lower is stricter.",
             "default": 2.0
           },
           "ransac_min_inlier_ratio": {
             "type": "number",
             "format": "double",
-            "description": "Two-view RANSAC minimum inlier ratio to accept the model. Higher = reject more weak pairs; typically 0.10\u20130.20 for stricter matching.",
-            "default": 0.15
+            "description": "Two-view RANSAC minimum inlier ratio to accept a pair's geometry.",
+            "default": 0.25
           },
-          "use_prior_position": {
-            "type": "boolean",
-            "description": "If true, use position priors during registration. This leverages PosePrior(position=...) written into the database to guide image registration.",
-            "default": true
-          },
-          "rig_verification": {
-            "type": "boolean",
-            "description": "If true, perform rig-based verification during feature matching and two-view geometry verification. Requires images to be tagged with rig/camera IDs.",
-            "default": true
+          "two_view_min_num_inliers": {
+            "type": "integer",
+            "description": "Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap's SIFT-era default of 15 to reject small false-positive clusters on repetitive structure.",
+            "default": 30
           },
           "triangulation_minimum_angle": {
             "type": "number",
             "format": "double",
-            "description": "Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points.",
+            "description": "Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering.",
             "default": 3.0
-          },
-          "triangulation_complete_max_reprojection_error": {
-            "type": "number",
-            "format": "double",
-            "description": "Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points (triangulation.complete_max_reproj_error). Lower \u2192 fewer borderline new points.",
-            "default": 2.0
-          },
-          "triangulation_merge_max_reprojection_error": {
-            "type": "number",
-            "format": "double",
-            "description": "Triangulation-time gate (pixels) for MERGING near-duplicate 3D points (triangulation.merge_max_reproj_error). Lower \u2192 fewer merges; higher \u2192 more aggressive deduplication.",
-            "default": 4.0
           },
           "mapper_filter_max_reprojection_error": {
             "type": "number",
             "format": "double",
-            "description": "Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). Points exceeding this after local/global BA are culled. This is NOT a triangulation accept threshold.",
+            "description": "Post-BA outlier reprojection threshold in pixels; points exceeding it are culled.",
             "default": 2.0
-          },
-          "bundle_adjustment_refine_sensor_from_rig": {
-            "type": "boolean",
-            "description": "If true, refine per-camera extrinsics within the rig during the incremental BA loop (ba_refine_sensor_from_rig). The shipped pattern leaves this False, pins rigs via constant_rigs, and re-enables rig refinement only on the final standalone BA pass. See docker/reconstructor/SPEC.md for rationale.",
-            "default": false
-          },
-          "bundle_adjustment_refine_focal_length": {
-            "type": "boolean",
-            "description": "If true, refine the camera focal length during BA (ba_refine_focal_length).",
-            "default": true
-          },
-          "bundle_adjustment_refine_principal_point": {
-            "type": "boolean",
-            "description": "If true, refine the camera principal point during BA (ba_refine_principal_point).",
-            "default": false
-          },
-          "bundle_adjustment_refine_additional_params": {
-            "type": "boolean",
-            "description": "If true, refine model-specific additional parameters during BA (ba_refine_extra_params), e.g., radial/tangential distortion where applicable.",
-            "default": true
           },
           "bundle_adjustment_global_frames_ratio": {
             "type": "number",
             "format": "double",
-            "description": "Growth ratio of registered frames after which to trigger a global bundle adjustment (ba_global_frames_ratio). Larger = fewer global BA events, less wall time, longer between cleanup passes.",
+            "description": "Frame-count growth ratio that triggers a global BA event; larger = fewer events.",
             "default": 1.5
-          },
-          "bundle_adjustment_global_max_refinements": {
-            "type": "integer",
-            "description": "Maximum BA refinement passes per global-BA event (ba_global_max_refinements). Dev default 1; production-quality maps should override to 3 (or higher). See docker/reconstructor/SPEC.md.",
-            "default": 1
           },
           "bundle_adjustment_global_function_tolerance": {
             "type": "number",
             "format": "double",
-            "description": "Ceres solver function tolerance for global bundle adjustment (ba_global_function_tolerance). Larger = earlier exit when residual delta becomes insignificant.",
+            "description": "Ceres function tolerance for global BA exit; larger = earlier exit on residual plateaus.",
             "default": 0.001
-          },
-          "bundle_adjustment_ignore_redundant_points3D": {
-            "type": "boolean",
-            "description": "If true, solve global BA without redundant 3D points first, then refine pruned points in a second pass with everything else fixed (mapper.ba_global_ignore_redundant_points3D). Same final geometry, smaller main problem. Activates only when \u226510 frames are registered.",
-            "default": true
-          },
-          "compression_opq_number_of_subvectors": {
-            "type": "integer",
-            "description": "Number of subvectors for OPQ compression.",
-            "default": 16
-          },
-          "compression_opq_number_of_bits_per_subvector": {
-            "type": "integer",
-            "description": "Number of bits per subvector for OPQ compression.",
-            "default": 8
-          },
-          "compression_opq_number_of_training_iterations": {
-            "type": "integer",
-            "description": "Number of training iterations for OPQ compression.",
-            "default": 20
           },
           "pose_prior_position_sigma_m": {
             "type": "number",
             "format": "double",
-            "description": "Standard deviation (meters) for position priors when writing PosePrior to the database. Smaller values = stronger priors.",
+            "description": "Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off).",
             "default": 0.05
+          },
+          "pair_vio_em_max_rotation_disagreement_deg": {
+            "type": "number",
+            "format": "double",
+            "description": "At two-view verification time, every sequential pair whose VIO poses carry rotation has its essential-matrix relative pose compared against the VIO-implied relative pose. The pair is rejected (its two-view geometry deleted from the database) when the angle between the two rotations exceeds this threshold. Sequential-only because retrieval pairs span genuine loop closures where VIO drift can disagree with the essential matrix legitimately, and intra-frame stereo is already validated by the rig constraint. 0 disables. Applied only to pairs with 7-column VIO rows (quaternion present).",
+            "default": 25.0
+          },
+          "pair_vio_em_max_translation_direction_deg": {
+            "type": "number",
+            "format": "double",
+            "description": "Companion to pair_vio_em_max_rotation_disagreement_deg: bounds the angle between the essential-matrix translation direction (camera-1 origin direction in camera-2) and the VIO-implied translation direction for the same camera pair. Skipped when the essential-matrix baseline is below pair_vio_em_min_baseline_m, where translation direction is ill-conditioned. 0 disables.",
+            "default": 60.0
+          },
+          "pair_vio_em_min_baseline_m": {
+            "type": "number",
+            "format": "double",
+            "description": "Essential-matrix-baseline floor below which the VIO-vs-essential-matrix translation-direction component is skipped. Near-co-located camera pairs (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined essential-matrix translation direction; the rotation component still applies.",
+            "default": 0.3
           },
           "max_keypoints_per_image": {
             "type": "integer",
-            "description": "Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode).",
+            "description": "Maximum ALIKED keypoints retained per image.",
             "default": 2500
           },
           "held_out_frame_timestamps": {
-            "description": "Frame timestamps (Unix milliseconds, matching the first column of each rig's frames.csv) to exclude from this reconstruction. Held-out frames never enter the rig's frame_poses, so their images are skipped during feature extraction, pair generation, and SfM. Used by calibration to build a map without specific frames so those frames can later be localized as held-out queries.",
+            "description": "Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.",
             "nullable": true,
             "items": {
               "type": "integer"
@@ -6514,6 +6438,7 @@
           "training_opq_matrix",
           "training_product_quantizer",
           "verifying_geometry",
+          "verifying_rig_geometry",
           "reconstructing",
           "succeeded",
           "failed",

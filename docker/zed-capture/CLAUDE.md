@@ -16,6 +16,10 @@ The Jetson is the **USB host** for the phone-as-accessory link, and uses its RJ-
 
 NVIDIA's stock `nv-l4t-usb-device-mode.service` is disabled by `install-zed` because it pins the USB-C port as a peripheral (CDC ethernet + mass-storage gadget), preventing the host-mode role the AOA bridge requires.
 
+## `frames.csv` schema
+
+ZED captures write `timestamp_ms,tx,ty,tz,gx,gy,gz`. `(tx, ty, tz)` is the SDK's `world_from_rig` translation (the camera0 center in the SDK's gravity-aligned world); `(gx, gy, gz)` is the unit down vector in the frame's rig-local coordinates, derived from the SDK's `world_from_rig` rotation and the IMAGE/OpenCV world's `+Y` down convention. Camera0 is the ref sensor with identity rig↔camera0, so it's also gravity-in-camera0. The reconstructor consumes the position as a pair-generation signal (spatial-neighbor source) and the gravity as a map-frame alignment signal — see `docker/reconstructor/SPEC.md` "Map-frame alignment via per-frame gravity + first-frame origin" and "Pair generation".
+
 ## Reading box-side logs from Loki
 
 The ZED box's container logs are pulled by the phone via `GET /logs` (cursor-based) and forwarded to the api at `POST /zed-boxes/logs` (see `docker/api/src/routers/zed_box_logs.py`). The api tags the relayed lines with stream label `service="zed-capture"` and `box_id=<box hardware serial>` in Loki. Each log record carries its own `box_id` field, stamped by `logging_config.py` from the `ZED_BOX_ID` env var (set by `install-zed` from the box's hardware serial). The api groups entries by `box_id` and emits one Loki stream per id.

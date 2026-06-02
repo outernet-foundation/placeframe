@@ -18,6 +18,8 @@ from core.transform import Float3, Float4
 from numpy import asarray, float64
 from PIL import Image
 from pyzed.sl import (
+    DEPTH_MODE,
+    POSITIONAL_TRACKING_MODE,
     REFERENCE_FRAME,
     RESOLUTION,
     SVO_COMPRESSION_MODE,
@@ -113,9 +115,7 @@ class Zed(Thread):
     def run(self) -> None:
         while True:
             try:
-                command = self._commands.get(
-                    timeout=0.1 if self._next_capture_time is None else max(0.0, self._next_capture_time - time())
-                )
+                command = self._commands.get(timeout=self._queue_timeout())
 
                 if isinstance(command, _StartCapture):
                     if self._current_id is not None:
@@ -160,17 +160,29 @@ class Zed(Thread):
             except Empty:
                 pass
 
-            if self._next_capture_time is not None:
-                assert self._capture_interval is not None
+            if self._next_capture_time is None:
+                continue
 
-                if time() >= self._next_capture_time:
-                    try:
-                        self._capture_frame()
-                    except Exception as e:
-                        logger.exception("Exception occurred during frame capture")
-                        self._last_exception = str(e)
+            try:
+                self._tick()
+            except Exception as e:
+                logger.exception("Exception occurred during frame capture")
+                self._last_exception = str(e)
 
-                    self._next_capture_time += self._capture_interval
+    def _queue_timeout(self) -> float:
+        if self._next_capture_time is None:
+            return 0.1
+        return 0.0
+
+    def _tick(self) -> None:
+        assert self._capture_interval is not None
+        assert self._next_capture_time is not None
+
+        self._advance_tracker()
+        if time() >= self._next_capture_time:
+            logger.info("Capturing frame")
+            self._persist_current_frame()
+            self._next_capture_time += self._capture_interval
 
     def _output_directory(self) -> Path:
         assert self._current_id is not None
@@ -198,6 +210,9 @@ class Zed(Thread):
         init.camera_fps = 30
         init.enable_image_enhancement = True
         init.sdk_verbose = True
+        init.depth_mode = DEPTH_MODE.NONE
+        # Without this the SDK keeps running depth in the background to stabilize tracking, even when depth_mode is NONE.
+        init.depth_stabilization = 0
         open_camera(self._camera, init)
 
         if get_camera_settings(self._camera, VIDEO_SETTINGS.SHARPNESS) != 4:
@@ -214,11 +229,16 @@ class Zed(Thread):
         # with open(self._output_directory() / "metered_values.json", "w") as config_file:
         #     dump({"exposure": exposure, "gain": gain, "white_balance": white_balance}, config_file, indent=4)
 
-        logger.info("Enabling positional tracking")
-
         positionTrackingParameters = PositionalTrackingParameters()
         positionTrackingParameters.enable_imu_fusion = True
         positionTrackingParameters.set_floor_as_origin = False
+        positionTrackingParameters.mode = POSITIONAL_TRACKING_MODE.GEN_3
+        logger.info(
+            "Enabling positional tracking mode=%s depth_mode=%s depth_stabilization=%d",
+            positionTrackingParameters.mode.name,
+            init.depth_mode.name,
+            init.depth_stabilization,
+        )
         enable_positional_tracking(self._camera, positionTrackingParameters)
 
         logger.info("Writing manifest.json")
@@ -306,22 +326,19 @@ class Zed(Thread):
         close_camera(self._camera)
         logger.info("Capture stopped")
 
-    def _capture_frame(self):
-        logger.info("Capturing frame")
+    def _advance_tracker(self) -> None:
         grab(self._camera)
-
-        # Retrieve pose and write to disk
         update_pose(self._camera, self._pose, REFERENCE_FRAME.WORLD)
+
+    def _persist_current_frame(self) -> None:
         timestamp = int(self._pose.timestamp.get_milliseconds())
         camera_center_in_world = get_translation_array(self._pose)
         rotation_world_from_camera = get_orientation_quaternion(self._pose)
 
-        # Write pose to CSV
         with open(self._rig_directory() / "frames.csv", "a", newline="") as csv_file:
             csv_writer = writer(csv_file)
             csv_writer.writerow([timestamp, *camera_center_in_world.tolist(), *rotation_world_from_camera.tolist()])
 
-        # Write stereo JPEG pair
         image_buffer = Mat()
         retrieve_image(self._camera, image_buffer, VIEW.LEFT)
         self._write_jpeg(image_buffer, self._camera0_directory() / f"{timestamp}.jpg")

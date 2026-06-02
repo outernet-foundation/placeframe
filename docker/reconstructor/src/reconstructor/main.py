@@ -11,10 +11,13 @@ from placeframe_api_client import (
     ApiException,
     Configuration,
     DefaultApi,
+    FailLeaseRequest,
+    LeaseResponse,
 )
 from placeframe_api_client import ReconstructionMetrics as ClientReconstructionMetrics
 
-from .progress_publisher import ReconstructionPublisher
+from .metrics_builder import MetricsBuilder
+from .progress_publisher import AsyncProgressFlusher, ReconstructionPublisher
 from .run_reconstruction import load_models, run_reconstruction
 from .settings import get_settings
 
@@ -51,35 +54,8 @@ async def worker_loop() -> None:
                         await sleep(POLL_INTERVAL_SECONDS)
                         continue
 
-                reconstruction_id = lease.reconstruction_id
-                capture_id = lease.capture_session_id
-                options = CoreReconstructionOptions.model_validate(lease.options.model_dump())
-                print(f"[{reconstruction_id}] Acquired lease")
-
-                publisher = ReconstructionPublisher(api, loop, reconstruction_id)
-
-                try:
-                    # run_reconstruction is sync and CPU/GPU-bound; push it to a thread so the
-                    # event loop stays live for progress writes the publisher dispatches back.
-                    metrics = await loop.run_in_executor(
-                        None,
-                        run_reconstruction,
-                        reconstruction_id,
-                        capture_id,
-                        options,
-                        publisher,
-                    )
-                    print(f"[{reconstruction_id}] Reconstruction succeeded")
-
-                    await api.succeed_lease(
-                        reconstruction_id,
-                        ClientReconstructionMetrics.model_validate(metrics.model_dump()),
-                    )
-
-                except Exception as e:
-                    print(f"[{reconstruction_id}] Reconstruction failed: {e}")
-
-                    await api.fail_lease(reconstruction_id, str(e))
+                print(f"[{lease.reconstruction_id}] Acquired lease")
+                await _run_and_report(api, loop, lease, token)
 
             except CancelledError:
                 print("Worker loop cancelled. Shutting down...")
@@ -87,6 +63,43 @@ async def worker_loop() -> None:
             except Exception as e:
                 print(f"[Critical Worker Error] {e}")
                 await sleep(POLL_INTERVAL_SECONDS)
+
+
+async def _run_and_report(
+    api: DefaultApi, loop: asyncio.AbstractEventLoop, lease: LeaseResponse, bearer_token: str
+) -> None:
+    reconstruction_id = lease.reconstruction_id
+    capture_id = lease.capture_session_id
+    options = CoreReconstructionOptions.model_validate(lease.options.model_dump())
+
+    publisher = ReconstructionPublisher(AsyncProgressFlusher(api, loop), reconstruction_id)
+    metrics_builder = MetricsBuilder()
+
+    try:
+        # run_reconstruction is sync and CPU/GPU-bound; push it to a thread so the
+        # event loop stays live for progress writes the publisher dispatches back.
+        metrics = await loop.run_in_executor(
+            None,
+            run_reconstruction,
+            reconstruction_id,
+            capture_id,
+            options,
+            publisher,
+            metrics_builder,
+            bearer_token,
+        )
+        print(f"[{reconstruction_id}] Reconstruction succeeded")
+        await api.succeed_lease(
+            reconstruction_id,
+            ClientReconstructionMetrics.model_validate(metrics.model_dump()),
+        )
+    except Exception as e:
+        print(f"[{reconstruction_id}] Reconstruction failed: {e}")
+        partial_metrics = ClientReconstructionMetrics.model_validate(metrics_builder.metrics.model_dump())
+        await api.fail_lease(
+            reconstruction_id,
+            FailLeaseRequest(error=str(e), metrics=partial_metrics),
+        )
 
 
 def handle_sigterm(signum: int, frame: Any) -> NoReturn:

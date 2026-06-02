@@ -70,6 +70,8 @@ namespace Placeframe.Client
         public StateValue<DeviceType> captureMode { get; private set; } =
             new StateValue<DeviceType>(DeviceType.ARFoundation);
         public StateValue<CaptureStatus> captureStatus { get; private set; }
+        public StateValue<string> pendingCaptureName { get; private set; } =
+            new StateValue<string>("");
         public StateDictionary<Guid, CaptureState> captures { get; private set; }
 
         public StateValue<ZedStatusKind> zedStatus { get; private set; } =
@@ -102,6 +104,7 @@ namespace Placeframe.Client
     public enum CaptureUploadStatus
     {
         NotUploaded,
+        Queued,
         Uploading,
         ReconstructionNotStarted,
         Reconstructing,
@@ -113,6 +116,7 @@ namespace Placeframe.Client
     public enum CaptureClientPhase
     {
         Idle,
+        Queued,
         Uploading,
         Failed,
     }
@@ -128,6 +132,8 @@ namespace Placeframe.Client
         public StateValue<CaptureClientPhase> clientPhase { get; private set; }
         public StateValue<float?> clientProgress { get; private set; }
         public StateValue<double?> uploadBytesPerSecond { get; private set; }
+        public StateValue<int?> uploadQueuePosition { get; private set; }
+        public StateValue<int?> uploadQueueDepth { get; private set; }
         public StateValue<long?> sessionSizeBytes { get; private set; }
         public StateValue<bool> serverCaptureExists { get; private set; }
         public StateValue<Guid> localizationMapId { get; private set; }
@@ -155,6 +161,7 @@ namespace Placeframe.Client
         {
             switch (clientPhase)
             {
+                case CaptureClientPhase.Queued: return CaptureUploadStatus.Queued;
                 case CaptureClientPhase.Uploading: return CaptureUploadStatus.Uploading;
                 case CaptureClientPhase.Failed: return CaptureUploadStatus.Failed;
             }

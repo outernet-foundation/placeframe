@@ -115,6 +115,7 @@ namespace Placeframe.Client
         public static IControl CaptureUI()
         {
             var zedStatusObservable = App.state.zedStatus;
+            IControl namePromptDialog = default;
 
             return Control("Capture UI", new()
             {
@@ -226,7 +227,17 @@ namespace Placeframe.Client
                                     else
                                     {
                                         if (App.state.captureStatus.value == CaptureStatus.Capturing)
-                                            App.state.captureStatus.value = CaptureStatus.Stopping;
+                                        {
+                                            namePromptDialog = NamePromptDialog(new()
+                                            {
+                                                onSubmit = name =>
+                                                {
+                                                    App.state.pendingCaptureName.value = name;
+                                                    App.state.captureStatus.value = CaptureStatus.Stopping;
+                                                    namePromptDialog.Dispose();
+                                                }
+                                            });
+                                        }
                                     }
                                 }
                             })
@@ -508,6 +519,57 @@ namespace Placeframe.Client
             public UnityAction<Guid> onValidationTargetSelected;
         }
 
+        public struct NamePromptDialogProps
+        {
+            public Action<string> onSubmit;
+        }
+
+        public static IControl NamePromptDialog(NamePromptDialogProps props)
+        {
+            var input = new ObservableValue<string>("");
+            return Dialog(new()
+            {
+                useBackground = Props.Value(true),
+                backgroundColor = Props.Value(elements.backgroundColor),
+                contentConstructor = dialog => Props.Value(SafeArea(new()
+                {
+                    children = Props.List(
+                        VerticalLayout(new()
+                        {
+                            childControlWidth = Props.Value(true),
+                            childControlHeight = Props.Value(true),
+                            childForceExpandWidth = Props.Value(true),
+                            spacing = Props.Value(30f),
+                            padding = Props.Value(new RectOffset(30, 30, 30, 30)),
+                            layout = Utility.FillParentProps(),
+                            children = Props.List(
+                                Title(new() { value = Props.Value("Name this capture") }),
+                                InputField(new InputFieldProps()
+                                {
+                                    layout = new() { flexibleWidth = Props.Value(1f) },
+                                    value = input,
+                                    placeholderValue = Props.Value("e.g. west stairwell"),
+                                    onValueChanged = x => input.value = x
+                                }),
+                                Row(new()
+                                {
+                                    childAlignment = Props.Value(TextAnchor.MiddleRight),
+                                    children = Props.List(
+                                        LabeledButton(new LabeledButtonProps()
+                                        {
+                                            label = Props.Value("OK"),
+                                            interactable = input.ObservableSelect(n => !string.IsNullOrWhiteSpace(n)),
+                                            onClick = () => props.onSubmit?.Invoke(input.value.Trim())
+                                        })
+                                    )
+                                })
+                            )
+                        })
+                    )
+                }))
+            });
+        }
+
         public static IControl SelectValidationTargetDialog(SelectValidationTargetProps props = default)
         {
             return Dialog(new()
@@ -560,93 +622,6 @@ namespace Placeframe.Client
                                         {
                                             label = Props.Value("Done"),
                                             onClick = dialog.Dispose
-                                        })
-                                    )
-                                })
-                            )
-                        })
-                    )
-                }))
-            });
-        }
-
-        public struct ReconstructionOptionsDialogProps
-        {
-            public CaptureState capture;
-            public ReconstructionOptions options;
-            public UnityAction<ReconstructionOptions> onDialogComplete;
-            public UnityAction onDialogCancelled;
-        }
-
-        public static IControl ReconstructionOptionsDialog(ReconstructionOptionsDialogProps props)
-        {
-            props.options = props.options ?? new ReconstructionOptions();
-
-            return Dialog(new()
-            {
-                useBackground = Props.Value(true),
-                backgroundColor = Props.Value(elements.backgroundColor),
-                contentConstructor = dialog => Props.Value(SafeArea(new()
-                {
-                    children = Props.List(
-                        TightRowsWideColumns(new()
-                        {
-                            padding = Props.Value(new RectOffset(30, 30, 30, 30)),
-                            layout = Utility.FillParentProps(),
-                            children = Props.List(
-                                Title(new TextProps() { value = Props.Value("Reconstruction Options") }),
-                                ScrollRect(new ScrollRectProps()
-                                {
-                                    vertical = Props.Value(true),
-                                    value = Props.Value(new Vector2(0, 1)),
-                                    layout = new() { flexibleHeight = Props.Value(1f) },
-                                    content = Props.Value(
-                                        VerticalLayout(new()
-                                        {
-                                            childControlHeight = Props.Value(true),
-                                            childControlWidth = Props.Value(true),
-                                            spacing = Props.Value(10f),
-                                            padding = Props.Value(new RectOffset(30, 30, 30, 30)),
-                                            layout = new()
-                                            {
-                                                anchorMin = Props.Value(new Vector2(0, 1)),
-                                                anchorMax = Props.Value(new Vector2(1, 1)),
-                                                offsetMin = Props.Value(new Vector2(0, 0)),
-                                                offsetMax = Props.Value(new Vector2(0, 0)),
-                                                fitContentVertical = Props.Value(ContentSizeFitter.FitMode.PreferredSize),
-                                            },
-                                            children = Props.List(ObjectFieldInspectors(
-                                                props.options,
-                                                includeField: name => name != nameof(ReconstructionOptions.BundleAdjustmentRefineSensorFromRig)
-                                            ))
-                                        })
-                                    )
-                                }),
-                                HorizontalLayout(new()
-                                {
-                                    childControlWidth = Props.Value(true),
-                                    childControlHeight = Props.Value(true),
-                                    spacing = Props.Value(30f),
-                                    childAlignment = Props.Value(TextAnchor.MiddleRight),
-                                    layout = new() { flexibleWidth = Props.Value(1f) },
-                                    children = Props.List(
-                                        LabeledButton(new LabeledButtonProps()
-                                        {
-                                            label = Props.Value("Cancel"),
-                                            onClick = () =>
-                                            {
-                                                dialog.Dispose();
-                                                props.onDialogCancelled?.Invoke();
-                                            }
-                                        }),
-                                        LabeledButton(new LabeledButtonProps()
-                                        {
-                                            label = Props.Value("Done"),
-                                            onClick = () =>
-                                            {
-                                                dialog.Dispose();
-                                                props.onDialogComplete?.Invoke(props.options);
-                                            }
                                         })
                                     )
                                 })
@@ -784,6 +759,8 @@ namespace Placeframe.Client
                                                                 capture.reconstruction,
                                                                 capture.clientProgress,
                                                                 capture.uploadBytesPerSecond,
+                                                                capture.uploadQueuePosition,
+                                                                capture.uploadQueueDepth,
                                                                 CaptureStatusLabel
                                                             ),
                                                             interactable = capture.status.ObservableSelect(CaptureStatusIsActionable),

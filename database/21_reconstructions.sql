@@ -5,6 +5,7 @@ CREATE TYPE reconstruction_status AS ENUM (
   'training_opq_matrix',
   'training_product_quantizer',
   'verifying_geometry',
+  'verifying_rig_geometry',
   'reconstructing',
   'succeeded',
   'failed',

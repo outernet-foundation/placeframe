@@ -8,29 +8,44 @@ from core.transform import Float3, Float4
 from reconstructor.rig import Rig
 
 
+def _camera(camera_id: str, ref_sensor: bool, translation: Float3) -> RigCameraConfig:
+    return RigCameraConfig(
+        id=camera_id,
+        ref_sensor=ref_sensor,
+        rotation=Float4(w=1.0, x=0.0, y=0.0, z=0.0),
+        translation=translation,
+        camera_config=PinholeCameraConfig(
+            width=640,
+            height=480,
+            orientation="TOP_LEFT",
+            fx=500.0,
+            fy=500.0,
+            cx=320.0,
+            cy=240.0,
+        ),
+    )
+
+
 @pytest.fixture
 def manifest() -> CaptureSessionManifest:
+    return CaptureSessionManifest(
+        axis_convention=AxisConvention.OPENCV,
+        rigs=[
+            RigConfig(id="rig0", cameras=[_camera("camera0", ref_sensor=True, translation=Float3(x=0.0, y=0.0, z=0.0))])
+        ],
+    )
+
+
+@pytest.fixture
+def multi_camera_manifest() -> CaptureSessionManifest:
     return CaptureSessionManifest(
         axis_convention=AxisConvention.OPENCV,
         rigs=[
             RigConfig(
                 id="rig0",
                 cameras=[
-                    RigCameraConfig(
-                        id="camera0",
-                        ref_sensor=True,
-                        rotation=Float4(w=1.0, x=0.0, y=0.0, z=0.0),
-                        translation=Float3(x=0.0, y=0.0, z=0.0),
-                        camera_config=PinholeCameraConfig(
-                            width=640,
-                            height=480,
-                            orientation="TOP_LEFT",
-                            fx=500.0,
-                            fy=500.0,
-                            cx=320.0,
-                            cy=240.0,
-                        ),
-                    )
+                    _camera("camera0", ref_sensor=True, translation=Float3(x=0.0, y=0.0, z=0.0)),
+                    _camera("camera1", ref_sensor=False, translation=Float3(x=0.12, y=0.0, z=0.0)),
                 ],
             )
         ],
@@ -73,3 +88,17 @@ def test_no_held_out_argument_preserves_all_frames(manifest: CaptureSessionManif
     rig = Rig(rig_config, manifest.axis_convention, frames_csv)
     expected_count = len(frames_csv.splitlines()) - 1
     assert len(rig.frame_poses) == expected_count
+
+
+def test_frame_poses_carry_translation_rotation_and_gravity(
+    multi_camera_manifest: CaptureSessionManifest, frames_csv: str
+):
+    rig_config = multi_camera_manifest.rigs[0]
+    rig = Rig(rig_config, multi_camera_manifest.axis_convention, frames_csv)
+
+    assert rig.is_multi_camera
+    assert len(rig.frame_poses) == 3
+    for pose in rig.frame_poses.values():
+        assert pose.translation.shape == (3,)
+        assert pose.rotation is not None
+        assert pose.gravity_in_rig_local.tolist() == [0.0, 1.0, 0.0]

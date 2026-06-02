@@ -34,11 +34,11 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="deviceType"></param>
         /// <param name="data"></param>
+        /// <param name="name"></param>
         /// <param name="id"> (optional)</param>
-        /// <param name="name"> (optional)</param>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <returns>CaptureSessionRead</returns>
-        CaptureSessionRead CreateCaptureSession(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default);
+        CaptureSessionRead CreateCaptureSession(DeviceType deviceType, FileParameter data, string name, Guid? id = default, DateTime? recordedAt = default);
 
         /// <summary>
         /// CreateCaptureSession
@@ -49,11 +49,11 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="deviceType"></param>
         /// <param name="data"></param>
+        /// <param name="name"></param>
         /// <param name="id"> (optional)</param>
-        /// <param name="name"> (optional)</param>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <returns>ApiResponse of CaptureSessionRead</returns>
-        ApiResponse<CaptureSessionRead> CreateCaptureSessionWithHttpInfo(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default);
+        ApiResponse<CaptureSessionRead> CreateCaptureSessionWithHttpInfo(DeviceType deviceType, FileParameter data, string name, Guid? id = default, DateTime? recordedAt = default);
         /// <summary>
         /// CreateCaptureSessions
         /// </summary>
@@ -369,9 +369,9 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <returns></returns>
-        void FailLease(Guid id, string body);
+        void FailLease(Guid id, FailLeaseRequest failLeaseRequest);
 
         /// <summary>
         /// FailLease
@@ -381,9 +381,9 @@ namespace PlaceframeApiClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <returns>ApiResponse of Object(void)</returns>
-        ApiResponse<Object> FailLeaseWithHttpInfo(Guid id, string body);
+        ApiResponse<Object> FailLeaseWithHttpInfo(Guid id, FailLeaseRequest failLeaseRequest);
         /// <summary>
         /// GetCaptureSession
         /// </summary>
@@ -1050,12 +1050,12 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="deviceType"></param>
         /// <param name="data"></param>
+        /// <param name="name"></param>
         /// <param name="id"> (optional)</param>
-        /// <param name="name"> (optional)</param>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of CaptureSessionRead</returns>
-        Cysharp.Threading.Tasks.UniTask<CaptureSessionRead> CreateCaptureSessionAsync(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<CaptureSessionRead> CreateCaptureSessionAsync(DeviceType deviceType, FileParameter data, string name, Guid? id = default, DateTime? recordedAt = default, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// CreateCaptureSession
@@ -1066,12 +1066,12 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="deviceType"></param>
         /// <param name="data"></param>
+        /// <param name="name"></param>
         /// <param name="id"> (optional)</param>
-        /// <param name="name"> (optional)</param>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (CaptureSessionRead)</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<CaptureSessionRead>> CreateCaptureSessionWithHttpInfoAsync(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<CaptureSessionRead>> CreateCaptureSessionWithHttpInfoAsync(DeviceType deviceType, FileParameter data, string name, Guid? id = default, DateTime? recordedAt = default, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// CreateCaptureSessions
         /// </summary>
@@ -1475,10 +1475,10 @@ namespace PlaceframeApiClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        Cysharp.Threading.Tasks.UniTask FailLeaseAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask FailLeaseAsync(Guid id, FailLeaseRequest failLeaseRequest, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// FailLease
@@ -1488,10 +1488,10 @@ namespace PlaceframeApiClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> FailLeaseWithHttpInfoAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Object>> FailLeaseWithHttpInfoAsync(Guid id, FailLeaseRequest failLeaseRequest, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetCaptureSession
         /// </summary>
@@ -2524,13 +2524,13 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="deviceType"></param>
         /// <param name="data"></param>
+        /// <param name="name"></param>
         /// <param name="id"> (optional)</param>
-        /// <param name="name"> (optional)</param>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <returns>CaptureSessionRead</returns>
-        public CaptureSessionRead CreateCaptureSession(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default)
+        public CaptureSessionRead CreateCaptureSession(DeviceType deviceType, FileParameter data, string name, Guid? id = default, DateTime? recordedAt = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> localVarResponse = CreateCaptureSessionWithHttpInfo(deviceType, data, id, name, recordedAt);
+            PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> localVarResponse = CreateCaptureSessionWithHttpInfo(deviceType, data, name, id, recordedAt);
             return localVarResponse.Data;
         }
 
@@ -2540,15 +2540,19 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="deviceType"></param>
         /// <param name="data"></param>
+        /// <param name="name"></param>
         /// <param name="id"> (optional)</param>
-        /// <param name="name"> (optional)</param>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <returns>ApiResponse of CaptureSessionRead</returns>
-        public PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> CreateCaptureSessionWithHttpInfo(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default)
+        public PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> CreateCaptureSessionWithHttpInfo(DeviceType deviceType, FileParameter data, string name, Guid? id = default, DateTime? recordedAt = default)
         {
             // verify the required parameter 'data' is set
             if (data == null)
                 throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'data' when calling DefaultApi->CreateCaptureSession");
+
+            // verify the required parameter 'name' is set
+            if (name == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'name' when calling DefaultApi->CreateCaptureSession");
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
 
@@ -2570,15 +2574,12 @@ namespace PlaceframeApiClient.Api
             // Primitive types (int, string, bool) go as standard form fields
             localVarRequestOptions.FormParameters.Add("device_type", PlaceframeApiClient.Client.ClientUtils.ParameterToString(deviceType));
             localVarRequestOptions.FileParameters.Add("data", data);
+            // Primitive types (int, string, bool) go as standard form fields
+            localVarRequestOptions.FormParameters.Add("name", PlaceframeApiClient.Client.ClientUtils.ParameterToString(name));
             if (id != null)
             {
                 // Primitive types (int, string, bool) go as standard form fields
                 localVarRequestOptions.FormParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id));
-            }
-            if (name != null)
-            {
-                // Primitive types (int, string, bool) go as standard form fields
-                localVarRequestOptions.FormParameters.Add("name", PlaceframeApiClient.Client.ClientUtils.ParameterToString(name));
             }
             if (recordedAt != null)
             {
@@ -2605,14 +2606,14 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="deviceType"></param>
         /// <param name="data"></param>
+        /// <param name="name"></param>
         /// <param name="id"> (optional)</param>
-        /// <param name="name"> (optional)</param>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of CaptureSessionRead</returns>
-        public async Cysharp.Threading.Tasks.UniTask<CaptureSessionRead> CreateCaptureSessionAsync(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<CaptureSessionRead> CreateCaptureSessionAsync(DeviceType deviceType, FileParameter data, string name, Guid? id = default, DateTime? recordedAt = default, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> localVarResponse = await CreateCaptureSessionWithHttpInfoAsync(deviceType, data, id, name, recordedAt, cancellationToken);
+            PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead> localVarResponse = await CreateCaptureSessionWithHttpInfoAsync(deviceType, data, name, id, recordedAt, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -2622,16 +2623,20 @@ namespace PlaceframeApiClient.Api
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="deviceType"></param>
         /// <param name="data"></param>
+        /// <param name="name"></param>
         /// <param name="id"> (optional)</param>
-        /// <param name="name"> (optional)</param>
         /// <param name="recordedAt">datetime with the constraint that the value must have timezone info (optional)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (CaptureSessionRead)</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead>> CreateCaptureSessionWithHttpInfoAsync(DeviceType deviceType, FileParameter data, Guid? id = default, string? name = default, DateTime? recordedAt = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<CaptureSessionRead>> CreateCaptureSessionWithHttpInfoAsync(DeviceType deviceType, FileParameter data, string name, Guid? id = default, DateTime? recordedAt = default, System.Threading.CancellationToken cancellationToken = default)
         {
             // verify the required parameter 'data' is set
             if (data == null)
                 throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'data' when calling DefaultApi->CreateCaptureSession");
+
+            // verify the required parameter 'name' is set
+            if (name == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'name' when calling DefaultApi->CreateCaptureSession");
 
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -2655,15 +2660,12 @@ namespace PlaceframeApiClient.Api
             // Primitive types (int, string, bool) go as standard form fields
             localVarRequestOptions.FormParameters.Add("device_type", PlaceframeApiClient.Client.ClientUtils.ParameterToString(deviceType));
             localVarRequestOptions.FileParameters.Add("data", data);
+            // Primitive types (int, string, bool) go as standard form fields
+            localVarRequestOptions.FormParameters.Add("name", PlaceframeApiClient.Client.ClientUtils.ParameterToString(name));
             if (id != null)
             {
                 // Primitive types (int, string, bool) go as standard form fields
                 localVarRequestOptions.FormParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id));
-            }
-            if (name != null)
-            {
-                // Primitive types (int, string, bool) go as standard form fields
-                localVarRequestOptions.FormParameters.Add("name", PlaceframeApiClient.Client.ClientUtils.ParameterToString(name));
             }
             if (recordedAt != null)
             {
@@ -4643,11 +4645,11 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <returns></returns>
-        public void FailLease(Guid id, string body)
+        public void FailLease(Guid id, FailLeaseRequest failLeaseRequest)
         {
-            FailLeaseWithHttpInfo(id, body);
+            FailLeaseWithHttpInfo(id, failLeaseRequest);
         }
 
         /// <summary>
@@ -4655,13 +4657,13 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <returns>ApiResponse of Object(void)</returns>
-        public PlaceframeApiClient.Client.ApiResponse<Object> FailLeaseWithHttpInfo(Guid id, string body)
+        public PlaceframeApiClient.Client.ApiResponse<Object> FailLeaseWithHttpInfo(Guid id, FailLeaseRequest failLeaseRequest)
         {
-            // verify the required parameter 'body' is set
-            if (body == null)
-                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'body' when calling DefaultApi->FailLease");
+            // verify the required parameter 'failLeaseRequest' is set
+            if (failLeaseRequest == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'failLeaseRequest' when calling DefaultApi->FailLease");
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
 
@@ -4681,7 +4683,7 @@ namespace PlaceframeApiClient.Api
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
             localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-            localVarRequestOptions.Data = body;
+            localVarRequestOptions.Data = failLeaseRequest;
 
 
             // make the HTTP request
@@ -4701,12 +4703,12 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of void</returns>
-        public async Cysharp.Threading.Tasks.UniTask FailLeaseAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask FailLeaseAsync(Guid id, FailLeaseRequest failLeaseRequest, System.Threading.CancellationToken cancellationToken = default)
         {
-            await FailLeaseWithHttpInfoAsync(id, body, cancellationToken);
+            await FailLeaseWithHttpInfoAsync(id, failLeaseRequest, cancellationToken);
         }
 
         /// <summary>
@@ -4714,14 +4716,14 @@ namespace PlaceframeApiClient.Api
         /// </summary>
         /// <exception cref="PlaceframeApiClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="body"></param>
+        /// <param name="failLeaseRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> FailLeaseWithHttpInfoAsync(Guid id, string body, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeApiClient.Client.ApiResponse<Object>> FailLeaseWithHttpInfoAsync(Guid id, FailLeaseRequest failLeaseRequest, System.Threading.CancellationToken cancellationToken = default)
         {
-            // verify the required parameter 'body' is set
-            if (body == null)
-                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'body' when calling DefaultApi->FailLease");
+            // verify the required parameter 'failLeaseRequest' is set
+            if (failLeaseRequest == null)
+                throw new PlaceframeApiClient.Client.ApiException(400, "Missing required parameter 'failLeaseRequest' when calling DefaultApi->FailLease");
 
 
             PlaceframeApiClient.Client.RequestOptions localVarRequestOptions = new PlaceframeApiClient.Client.RequestOptions();
@@ -4743,7 +4745,7 @@ namespace PlaceframeApiClient.Api
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
             localVarRequestOptions.PathParameters.Add("id", PlaceframeApiClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-            localVarRequestOptions.Data = body;
+            localVarRequestOptions.Data = failLeaseRequest;
 
 
             // make the HTTP request

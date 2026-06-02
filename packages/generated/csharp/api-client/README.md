@@ -100,14 +100,14 @@ namespace Example
             var apiInstance = new DefaultApi(httpClient, config, httpClientHandler);
             var deviceType = (DeviceType) "ARFoundation";  // DeviceType | 
             var data = new System.IO.MemoryStream(System.IO.File.ReadAllBytes("/path/to/file.txt"));  // FileParameter | 
+            var name = "name_example";  // string | 
             var id = "id_example";  // Guid? |  (optional) 
-            var name = "name_example";  // string? |  (optional) 
             var recordedAt = DateTime.Parse("2013-10-20T19:20:30+01:00");  // DateTime? | datetime with the constraint that the value must have timezone info (optional) 
 
             try
             {
                 // CreateCaptureSession
-                CaptureSessionRead result = apiInstance.CreateCaptureSession(deviceType, data, id, name, recordedAt);
+                CaptureSessionRead result = apiInstance.CreateCaptureSession(deviceType, data, name, id, recordedAt);
                 Debug.WriteLine(result);
             }
             catch (ApiException e)
@@ -198,6 +198,7 @@ Class | Method | HTTP request | Description
  - [Model.DeviceType](docs/DeviceType.md)
  - [Model.ExpandedCaptureSession](docs/ExpandedCaptureSession.md)
  - [Model.ExpandedReconstruction](docs/ExpandedReconstruction.md)
+ - [Model.FailLeaseRequest](docs/FailLeaseRequest.md)
  - [Model.Float3](docs/Float3.md)
  - [Model.Float4](docs/Float4.md)
  - [Model.GetCaptureSessions400Response](docs/GetCaptureSessions400Response.md)

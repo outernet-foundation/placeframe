@@ -86,7 +86,7 @@ Per-reconstruction errors are tolerated; only an empty result set produces a 422
 3. For each sorted image_id, hydrate `image_sizes[(h, w)]`, `keypoints[float32]` from `features.h5`, `pq_codes[uint8]` from the same file, and append the variable-tile-count `[tiles, RetrievalDim]` global descriptors from `global_descriptors.h5` into a list.
 4. Zero-pad the per-image tile descriptor list into one rank-3 ndarray of shape `[NumImages, MaxTiles, RetrievalDim]` (the unused slots are zero so the later `amax` over query-tile x db-tile pairs naturally drops them).
 5. Load the faiss `OPQMatrix` and `ProductQuantizer` from `opq_matrix.tf` / `pq_quantizer.pq`.
-6. Re-validate the API-forwarded `ReconstructionMetrics` as `RawMapMetrics` — drops every field except the five the calibration features consume (`map_image_count`, `map_point_count`, `map_avg_track_length`, `map_bounding_volume_m3`, `map_viewpoint_diversity`).
+6. Re-validate the API-forwarded `ReconstructionMetrics` as `RawMapMetrics` — drops every field except the four the calibration features consume (`map_image_count`, `map_point_count`, `map_avg_track_length`, `map_viewpoint_diversity`).
 
 Returns a frozen `Map` dataclass. Cached in `_maps: dict[UUID, Map]` (`src/main.py:44`) for the container's lifetime.
 

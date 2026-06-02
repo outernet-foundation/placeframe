@@ -10,6 +10,7 @@ volumes:
   auth_data:
   keycloak_import:
   keycloak_data:
+  loki_data:
 
 
 configs:
@@ -281,6 +282,7 @@ services:
         condition: service_completed_successfully
     volumes:
       - ./docker/loki/config.yaml:/etc/loki/config.yaml:ro
+      - loki_data:/loki
     command: -config.file=/etc/loki/config.yaml -config.expand-env=true
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--output-document=-", "http://localhost:3100/ready" ]

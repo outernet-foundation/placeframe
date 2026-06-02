@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 
 using Cysharp.Threading.Tasks;
 
@@ -10,8 +9,6 @@ using TMPro;
 using FofX.Stateful;
 
 using Nessle;
-
-using Newtonsoft.Json;
 
 using ObserveThing;
 
@@ -29,10 +26,17 @@ namespace Placeframe.Client
 {
     public static partial class UIElements
     {
-        public static string CaptureStatusLabel(CaptureUploadStatus status, ReconstructionReadWithQueue reconstruction, float? clientProgress, double? uploadBytesPerSecond) =>
+        public static string CaptureStatusLabel(
+            CaptureUploadStatus status,
+            ReconstructionReadWithQueue reconstruction,
+            float? clientProgress,
+            double? uploadBytesPerSecond,
+            int? uploadQueuePosition,
+            int? uploadQueueDepth) =>
             status switch
             {
                 CaptureUploadStatus.NotUploaded => "Upload",
+                CaptureUploadStatus.Queued => $"Upload Queued{UploadQueuedSuffix(uploadQueuePosition, uploadQueueDepth)}",
                 CaptureUploadStatus.Uploading => "Uploading" + ClientProgressSuffix(clientProgress) + UploadSpeedSuffix(uploadBytesPerSecond),
                 CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
                 CaptureUploadStatus.Reconstructing => ReconstructingPhaseLabel(reconstruction),
@@ -41,6 +45,9 @@ namespace Placeframe.Client
                 CaptureUploadStatus.Failed => "Retry",
                 _ => throw new ArgumentOutOfRangeException(nameof(status), status, null)
             };
+
+        private static string UploadQueuedSuffix(int? position, int? depth) =>
+            position == null || depth == null ? "" : $" [{position}/{depth}]";
 
         private static string ClientProgressSuffix(float? clientProgress) =>
             clientProgress is float p && p >= 0f ? $" {p:0}%" : "";
@@ -59,19 +66,19 @@ namespace Placeframe.Client
             switch (capture.status.value)
             {
                 case CaptureUploadStatus.NotUploaded:
-                    PromptOptionsThen(capture, options => Upload(capture, options).Forget());
+                    CaptureController.EnqueueUpload(capture).Forget();
                     break;
                 case CaptureUploadStatus.ReconstructionNotStarted:
-                    PromptOptionsThen(capture, options => Reconstruct(capture, options).Forget());
+                    Reconstruct(capture).Forget();
                     break;
                 case CaptureUploadStatus.Uploaded:
                     CreateMap(capture).Forget();
                     break;
                 case CaptureUploadStatus.Failed:
                     if (!capture.serverCaptureExists.value)
-                        PromptOptionsThen(capture, options => Upload(capture, options).Forget());
+                        CaptureController.EnqueueUpload(capture).Forget();
                     else if (capture.reconstruction.value == null)
-                        PromptOptionsThen(capture, options => Reconstruct(capture, options).Forget());
+                        Reconstruct(capture).Forget();
                     else if (capture.reconstruction.value?.Status == ReconstructionStatus.Succeeded)
                         CreateMap(capture).Forget();
                     else
@@ -82,7 +89,7 @@ namespace Placeframe.Client
 
         private static readonly TimeSpan UploadCheckpointInterval = TimeSpan.FromSeconds(30);
 
-        public static async UniTask Upload(CaptureState capture, ReconstructionOptions reconstructionOptions)
+        public static async UniTask Upload(CaptureState capture)
         {
             var id = capture.id;
             UploadProgress lastProgress = default;
@@ -99,6 +106,13 @@ namespace Placeframe.Client
                     capture.clientProgress.value = p.Percent;
                     capture.uploadBytesPerSecond.value = p.BytesPerSecond;
                     lastProgress = p;
+                    Log.Info(
+                        LogGroup.Capture,
+                        "Upload tick capture={CaptureId} sent={BytesSent}B total={BytesTotal}B percent={Percent}",
+                        id,
+                        p.BytesSent,
+                        p.BytesTotal,
+                        p.Percent ?? -1f);
                     var now = DateTime.UtcNow;
                     if (now - lastCheckpoint >= UploadCheckpointInterval)
                     {
@@ -145,7 +159,7 @@ namespace Placeframe.Client
 
                 capture.serverCaptureExists.value = true;
 
-                var reconstruction = await CreateReconstruction(captureSession.Id, reconstructionOptions);
+                var reconstruction = await CreateReconstruction(captureSession.Id);
                 capture.reconstruction.value = reconstruction;
                 capture.clientPhase.value = CaptureClientPhase.Idle;
                 capture.clientProgress.value = null;
@@ -166,11 +180,11 @@ namespace Placeframe.Client
             }
         }
 
-        public static async UniTask Reconstruct(CaptureState capture, ReconstructionOptions reconstructionOptions)
+        public static async UniTask Reconstruct(CaptureState capture)
         {
             try
             {
-                var reconstruction = await CreateReconstruction(capture.id, reconstructionOptions);
+                var reconstruction = await CreateReconstruction(capture.id);
                 capture.reconstruction.value = reconstruction;
                 capture.clientPhase.value = CaptureClientPhase.Idle;
             }
@@ -216,58 +230,18 @@ namespace Placeframe.Client
             }
         }
 
-        private static UniTask<ReconstructionReadWithQueue> CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions) =>
+        private static UniTask<ReconstructionReadWithQueue> CreateReconstruction(Guid captureId) =>
             VisualPositioningSystem.Api
-                .CreateReconstructionAsync(
-                    new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId))
-                    {
-                        Options = reconstructionOptions,
-                    });
-
-        private static string ReconstructionOptionsCachePath =>
-            Path.Join(Application.persistentDataPath, "reconstructionOptions.json");
-
-        private static ReconstructionOptions LoadReconstructionOptions()
-        {
-            if (!File.Exists(ReconstructionOptionsCachePath))
-                return new ReconstructionOptions();
-
-            var options = new ReconstructionOptions();
-            try
-            {
-                JsonConvert.PopulateObject(File.ReadAllText(ReconstructionOptionsCachePath), options);
-            }
-            catch (Exception exception)
-            {
-                Log.Info(LogGroup.Capture, exception, "Reconstruction options cache unreadable, using defaults path={Path}", ReconstructionOptionsCachePath);
-                return new ReconstructionOptions();
-            }
-            return options;
-        }
-
-        private static void SaveReconstructionOptions(ReconstructionOptions updated) =>
-            File.WriteAllText(ReconstructionOptionsCachePath, JsonConvert.SerializeObject(updated, Formatting.Indented));
-
-        private static void PromptOptionsThen(CaptureState capture, Action<ReconstructionOptions> onConfirmed) =>
-            ReconstructionOptionsDialog(new ReconstructionOptionsDialogProps()
-            {
-                capture = capture,
-                options = LoadReconstructionOptions(),
-                onDialogComplete = updated =>
-                {
-                    SaveReconstructionOptions(updated);
-                    onConfirmed(updated);
-                },
-            });
+                .CreateReconstructionAsync(new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId)));
 
         private static string ReconstructingPhaseLabel(ReconstructionReadWithQueue reconstruction)
         {
             if (reconstruction == null)
-                return "Queued";
+                return "Reconstruction Queued";
 
             return reconstruction.Status switch
             {
-                ReconstructionStatus.Queued => $"Queued{QueuedSuffix(reconstruction)}",
+                ReconstructionStatus.Queued => $"Reconstruction Queued{QueuedSuffix(reconstruction)}",
                 ReconstructionStatus.ExtractingFeatures => $"Extracting features{ProgressSuffix(reconstruction)}",
                 ReconstructionStatus.MatchingFeatures => $"Matching features{ProgressSuffix(reconstruction)}",
                 ReconstructionStatus.VerifyingGeometry => $"Verifying geometry{ProgressSuffix(reconstruction)}",
@@ -402,6 +376,8 @@ namespace Placeframe.Client
                                     capture.reconstruction,
                                     capture.clientProgress,
                                     capture.uploadBytesPerSecond,
+                                    capture.uploadQueuePosition,
+                                    capture.uploadQueueDepth,
                                     CaptureStatusLabel
                                 ),
                                 interactable = capture.status.ObservableSelect(CaptureStatusIsActionable),

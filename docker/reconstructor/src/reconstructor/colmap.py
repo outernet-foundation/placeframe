@@ -1,10 +1,18 @@
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import inspect
+import os
+import sqlite3
+import subprocess
+import sys
+import time
+from math import acos, pi
 from pathlib import Path
 from shutil import rmtree
-from typing import Any, Iterator, ValuesView, cast
+from typing import Any, Iterator, Self, ValuesView, cast
+from uuid import UUID
 
+import httpx
 from placeframe_api_client import ReconstructionStatus
 
 from numpy import (
@@ -16,6 +24,7 @@ from numpy import (
     float32,
     float64,
     intp,
+    median,
     savez_compressed,
     sign,
     stack,
@@ -28,6 +37,7 @@ from pycolmap import Camera as ColmapCamera
 from pycolmap import (
     Database,
     Frame,
+    GeometricVerifierOptions,
     Point3D,
     PosePrior,
     PosePriorCoordinateSystem,
@@ -35,20 +45,114 @@ from pycolmap import (
     Rigid3d,
     SensorType,
     Sim3d,
+    TwoViewGeometry,
+    TwoViewGeometryConfiguration,
     data_t,
     sensor_t,
 )
 from pycolmap import Image as pycolmapImage
-from pycolmap._core import apply_rig_config, bundle_adjustment, estimate_two_view_geometry, incremental_mapping  # noqa: PLC2701 — no public API
+from pycolmap._core import apply_rig_config, bundle_adjustment, geometric_verification  # noqa: PLC2701 — no public API  # pyright: ignore[reportUnknownVariableType] — upstream stub uses unparameterized os.PathLike
+from pycolmap._core import incremental_mapping  # noqa: PLC2701 — no public API  # pyright: ignore[reportUnknownVariableType] — upstream stub uses unparameterized os.PathLike
 from scipy.spatial.transform import Rotation
 
 from .metrics_builder import MetricsBuilder
-from .options_builder import OptionsBuilder
-from .progress_publisher import ReconstructionPublisher
-from .rig import Rig, Transform
+from .options_builder import OptionsBuilder, PairVioEssentialMatrixOptions
+from .pairs import Pair, PairSource
+from .progress_publisher import ReconstructionPublisher, SyncProgressFlusher
+from .rig import FramePose, Rig
+from .settings import get_settings
 
 COLMAP_DB_FILE = "database.db"
 COLMAP_SFM_DIRECTORY = "sfm_model"
+
+
+class _VerificationProgressPoller:
+    # geometric_verification holds the GIL for its full duration, so progress is polled from a
+    # child subprocess that reads the COLMAP database's CALIBRATED_RIG row count and publishes
+    # ticks against the lease endpoint.
+
+    def __init__(
+        self,
+        database_path: Path,
+        total_pairs: int,
+        publisher: ReconstructionPublisher,
+        bearer_token: str,
+        poll_interval_seconds: float = 0.5,
+    ) -> None:
+        self._database_path = database_path
+        self._total_pairs = total_pairs
+        self._publisher = publisher
+        self._bearer_token = bearer_token
+        self._poll_interval_seconds = poll_interval_seconds
+        self._process: subprocess.Popen[bytes] | None = None
+
+    def __enter__(self) -> Self:
+        script = (
+            "import sqlite3\n"
+            "import sys\n"
+            "import time\n"
+            "import os\n"
+            "from uuid import UUID\n"
+            "import httpx\n"
+            "from placeframe_api_client import ReconstructionStatus\n"
+            "from reconstructor.progress_publisher import ReconstructionPublisher, SyncProgressFlusher\n"
+            + inspect.getsource(_poll_verification)
+            + "_poll_verification(sys.argv[1], int(sys.argv[2]), float(sys.argv[3]), sys.argv[4], UUID(sys.argv[5]))\n"
+        )
+        environment = {**os.environ, "PROGRESS_BEARER_TOKEN": self._bearer_token}
+        self._process = subprocess.Popen(
+            [
+                sys.executable,
+                "-c",
+                script,
+                str(self._database_path),
+                str(self._total_pairs),
+                str(self._poll_interval_seconds),
+                str(get_settings().api_internal_url).rstrip("/"),
+                str(self._publisher.reconstruction_id),
+            ],
+            env=environment,
+        )
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        if self._process is None:
+            return
+        self._process.terminate()
+        try:
+            self._process.wait(timeout=5.0)
+        except subprocess.TimeoutExpired:
+            self._process.kill()
+            self._process.wait(timeout=5.0)
+        connection = sqlite3.connect(str(self._database_path), isolation_level=None, timeout=1.0)
+        try:
+            connection.execute("PRAGMA query_only = 1")
+            row = connection.execute("SELECT COUNT(*) FROM two_view_geometries WHERE config = 9").fetchone()
+        finally:
+            connection.close()
+        final_count = int(row[0]) if row else 0
+        self._publisher.on_progress(min(final_count, self._total_pairs))
+
+
+def _poll_verification(
+    database_path: str, total_pairs: int, interval_seconds: float, api_url: str, reconstruction_id: UUID
+) -> None:
+    client = httpx.Client(headers={"Authorization": f"Bearer {os.environ['PROGRESS_BEARER_TOKEN']}"}, timeout=5.0)
+    publisher = ReconstructionPublisher(SyncProgressFlusher(client, api_url), reconstruction_id)
+    publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, total=total_pairs)
+    last_emitted = -1
+    while True:
+        connection = sqlite3.connect(database_path, isolation_level=None, timeout=1.0)
+        try:
+            connection.execute("PRAGMA query_only = 1")
+            row = connection.execute("SELECT COUNT(*) FROM two_view_geometries WHERE config = 9").fetchone()
+        finally:
+            connection.close()
+        count = int(row[0]) if row else 0
+        if count != last_emitted:
+            publisher.on_progress(min(count, total_pairs))
+            last_emitted = count
+        time.sleep(interval_seconds)
 
 
 def run_colmap_reconstruction(
@@ -59,9 +163,10 @@ def run_colmap_reconstruction(
     metrics: MetricsBuilder,
     rigs: dict[str, Rig],
     keypoints: dict[str, Any],
-    pairs: list[tuple[str, str]],
+    pairs: list[Pair],
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
     publisher: ReconstructionPublisher,
+    bearer_token: str,
 ):
     colmap_db_path = root_path / COLMAP_DB_FILE
     if colmap_db_path.exists():
@@ -76,7 +181,7 @@ def run_colmap_reconstruction(
     position_covariance = (options.pose_prior_position_sigma_m() ** 2) * eye(3, dtype=float64)
 
     # Create COLMAP database
-    database = Database.open(str(colmap_db_path))
+    database = Database.open(str(colmap_db_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
     # Write cameras, images, keypoints, and pose priors to database
     colmap_image_ids: dict[str, int] = {}
     image_cameras: dict[str, ColmapCamera] = {}
@@ -93,7 +198,6 @@ def run_colmap_reconstruction(
                 image_cameras[image_name] = camera[1]
                 database.write_keypoints(colmap_image_ids[image_name], keypoints[image_name])
 
-                # Only write pose prior for images from reference sensors (all others are implied by rig)
                 if camera[0].ref_sensor:
                     database.write_pose_prior(
                         PosePrior(
@@ -115,40 +219,29 @@ def run_colmap_reconstruction(
     constant_rigs = {rig.rig_id for rig in database.read_all_rigs()}
 
     # Write matches to database
-    for a, b in pairs:
-        (image_a_indices, image_b_indices) = match_indices[(a, b)]
+    for pair in pairs:
+        (image_a_indices, image_b_indices) = match_indices[(pair.image_a, pair.image_b)]
         database.write_matches(
-            colmap_image_ids[a],
-            colmap_image_ids[b],
+            colmap_image_ids[pair.image_a],
+            colmap_image_ids[pair.image_b],
             stack((image_a_indices, image_b_indices), axis=1).astype(uint32, copy=False),
         )
-
-    # Per-pair so each completion ticks progress; sqlite writes stay on the main thread.
-    publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, len(pairs))
-    verification_options = options.two_view_geometry_options()
-    with ThreadPoolExecutor() as pool:
-        future_to_pair = {
-            pool.submit(
-                estimate_two_view_geometry,
-                image_cameras[a],
-                keypoints[a],
-                image_cameras[b],
-                keypoints[b],
-                stack(match_indices[(a, b)], axis=1).astype(uint32, copy=False),
-                verification_options,
-            ): (a, b)
-            for a, b in pairs
-        }
-        for completed, future in enumerate(as_completed(future_to_pair), start=1):
-            a, b = future_to_pair[future]
-            database.write_two_view_geometry(colmap_image_ids[a], colmap_image_ids[b], future.result())
-            publisher.on_progress(completed)
 
     # Close database
     database.close()
 
+    publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, total=len(pairs))
+    with _VerificationProgressPoller(colmap_db_path, len(pairs), publisher, bearer_token):
+        geometric_verification(
+            database_path=str(colmap_db_path),
+            verifier_options=GeometricVerifierOptions(rig_verification=True),
+            two_view_geometry_options=options.two_view_geometry_options(),
+        )
+
+    _apply_vio_em_check(colmap_db_path, colmap_image_ids, pairs, rigs, options.pair_vio_essential_matrix_options())
+
     # Compute and store verified matches metrics
-    metrics.build_verified_matches_metrics(colmap_db_path, pairs)
+    metrics.build_verified_matches_metrics(colmap_db_path, [(pair.image_a, pair.image_b) for pair in pairs])
 
     progress = _IncrementalMappingProgress(publisher)
 
@@ -179,42 +272,50 @@ def run_colmap_reconstruction(
 
     metrics.build_reconstruction_metrics(best_reconstruction)
 
-    # Pose priors spread over the trajectory already pin the COLMAP world frame's rotation to
-    # VIO's during bundle adjustment, so only the origin translation remains: shift it onto the
-    # first registered frame. Sort by integer frame_id for timestamp order across rigs.
     registered = sorted(_registered_frames(rigs, colmap_image_ids, best_reconstruction), key=lambda entry: entry[0])
     if not registered:
         raise RuntimeError("Could not find anchor frame in best reconstruction")
 
+    gravity_samples_in_recon_world = [
+        rig_from_world.rotation.matrix().T @ transform.gravity_in_rig_local
+        for _frame_id, transform, rig_from_world in registered
+    ]
+    gravity_stack = stack(gravity_samples_in_recon_world)
+    gravity_in_recon_world_estimate = median(gravity_stack, axis=0)
+    gravity_in_recon_world_estimate /= norm(gravity_in_recon_world_estimate)
+    alignment_rotation, _ = Rotation.align_vectors([[0.0, 1.0, 0.0]], [gravity_in_recon_world_estimate])
+    rotation_align = alignment_rotation.as_matrix()
+    metrics.metrics.gravity_aligned_in_map_frame = True
+    metrics.metrics.gravity_sample_count = len(gravity_samples_in_recon_world)
+
     _first_frame_id, _first_transform, first_rig_from_world = registered[0]
     first_camera_position = -first_rig_from_world.rotation.matrix().T @ first_rig_from_world.translation
-    best_reconstruction.transform(
-        Sim3d(concatenate([eye(3, dtype=float64), -first_camera_position.reshape(3, 1)], axis=1))
-    )
+    translation_align = -rotation_align @ first_camera_position
+    best_reconstruction.transform(Sim3d(concatenate([rotation_align, translation_align.reshape(3, 1)], axis=1)))
 
-    # Rigid Umeyama best-fit of map centers to truth — fit not applied; only the residual is
-    # kept as the VIO-quality signal that filters unreliable captures from the calibration corpus.
-    truth_centers_list: list[NDArray[float64]] = []
-    map_centers_list: list[NDArray[float64]] = []
-    for _frame_id, transform, rig_from_world in registered:
-        truth_centers_list.append(transform.translation.astype(float64))
-        map_centers_list.append(-rig_from_world.rotation.matrix().T @ rig_from_world.translation)
-
-    if len(truth_centers_list) < 3:
-        raise RuntimeError(f"Need ≥3 registered frames for alignment diagnostic (got {len(truth_centers_list)})")
-
-    truth_centers = asarray(truth_centers_list, dtype=float64)
-    map_centers = asarray(map_centers_list, dtype=float64)
-    truth_mean, map_mean = truth_centers.mean(axis=0), map_centers.mean(axis=0)
-    u, _, vt = svd((map_centers - map_mean).T @ (truth_centers - truth_mean))
-    fit_rotation = vt.T @ diag([1.0, 1.0, sign(det(vt.T @ u.T))]) @ u.T
-    fit_translation = truth_mean - fit_rotation @ map_mean
-    residuals = norm((fit_rotation @ map_centers.T).T + fit_translation - truth_centers, axis=1)
-    metrics.metrics.truth_alignment_rms_residual_m = float((residuals**2).mean() ** 0.5)
-    metrics.metrics.truth_alignment_max_residual_m = float(residuals.max())
+    # Rigid Umeyama best-fit of map centers to VIO position priors. Fit is not applied — the
+    # residual is the prior-drift diagnostic surfaced for calibration-corpus filtering.
+    if not options.is_multi_camera_capture:
+        truth_centers_list: list[NDArray[float64]] = [
+            transform.translation.astype(float64) for _frame_id, transform, _ in registered
+        ]
+        map_centers_list: list[NDArray[float64]] = [
+            -rig_from_world.rotation.matrix().T @ rig_from_world.translation
+            for _frame_id, _transform, rig_from_world in registered
+        ]
+        if len(truth_centers_list) >= 3:
+            truth_centers = asarray(truth_centers_list, dtype=float64)
+            map_centers = asarray(map_centers_list, dtype=float64)
+            truth_mean, map_mean = truth_centers.mean(axis=0), map_centers.mean(axis=0)
+            u, _, vt = svd((map_centers - map_mean).T @ (truth_centers - truth_mean))
+            fit_rotation = vt.T @ diag([1.0, 1.0, sign(det(vt.T @ u.T))]) @ u.T
+            fit_translation = truth_mean - fit_rotation @ map_mean
+            residuals = norm((fit_rotation @ map_centers.T).T + fit_translation - truth_centers, axis=1)
+            metrics.metrics.prior_drift_residual_rms_m = float((residuals**2).mean() ** 0.5)
+            metrics.metrics.prior_drift_residual_max_m = float(residuals.max())
 
     # Write the best reconstruction to disk in COLMAP format
-    best_reconstruction.write_text(str(output_path))
+    best_reconstruction.write_text(str(output_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
 
     # Write point cloud to disk in NPZ format
     point_cloud_point_count = len(best_reconstruction.points3D)
@@ -254,7 +355,7 @@ def _registered_frames(
     rigs: dict[str, Rig],
     colmap_image_ids: dict[str, int],
     reconstruction: Reconstruction,
-) -> Iterator[tuple[int, Transform, Rigid3d]]:
+) -> Iterator[tuple[int, FramePose, Rigid3d]]:
     # Multi-camera rigs (e.g. ZED stereo) share one Frame per rig+frame, so any registered
     # image of any camera in that frame yields the Frame's rig_from_world.
     for rig_id, rig in rigs.items():
@@ -265,6 +366,92 @@ def _registered_frames(
                     rig_from_world = cast(Rigid3d, cast(Frame, reconstruction.images[image_id].frame).rig_from_world)  # type: ignore
                     yield int(frame_id), transform, rig_from_world
                     break
+
+
+def _apply_vio_em_check(
+    colmap_db_path: Path,
+    colmap_image_ids: dict[str, int],
+    pairs: list[Pair],
+    rigs: dict[str, Rig],
+    vio_em_options: PairVioEssentialMatrixOptions,
+) -> None:
+    rotation_threshold_rad = vio_em_options.max_rotation_disagreement_deg * pi / 180.0
+    translation_threshold_rad = vio_em_options.max_translation_direction_deg * pi / 180.0
+    if vio_em_options.max_rotation_disagreement_deg <= 0 and vio_em_options.max_translation_direction_deg <= 0:
+        return
+
+    sequential_pairs = [pair for pair in pairs if pair.source == PairSource.SEQUENTIAL]
+
+    cam_from_rig_by_image_prefix: dict[str, Rigid3d] = {
+        camera.image_prefix: camera.cam_from_rig
+        for rig in rigs.values()
+        for camera in rig.colmap_rig_config.cameras
+        if camera.cam_from_rig is not None
+    }
+    world_from_rig_by_rig_and_frame: dict[tuple[str, str], Rigid3d] = {
+        (rig_id, frame_id): Rigid3d(rotation=pose.rotation, translation=pose.translation)
+        for rig_id, rig in rigs.items()
+        for frame_id, pose in rig.frame_poses.items()
+    }
+
+    database = Database.open(str(colmap_db_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
+    checked = 0
+    skipped_no_vio = 0
+    rejected_rotation = 0
+    rejected_translation = 0
+    empty_tvg = TwoViewGeometry()
+    for pair in sequential_pairs:
+        a, b = pair.image_a, pair.image_b
+        tvg: TwoViewGeometry = database.read_two_view_geometry(colmap_image_ids[a], colmap_image_ids[b])
+        if tvg.config == TwoViewGeometryConfiguration.UNDEFINED:
+            continue
+        if tvg.cam2_from_cam1 is None:
+            continue
+
+        rig_a, _, frame_a_dot = a.split("/", 2)
+        rig_b, _, frame_b_dot = b.split("/", 2)
+        frame_a = frame_a_dot.rsplit(".", 1)[0]
+        frame_b = frame_b_dot.rsplit(".", 1)[0]
+        cam_a_from_rig = cam_from_rig_by_image_prefix.get(a.rsplit("/", 1)[0] + "/")
+        cam_b_from_rig = cam_from_rig_by_image_prefix.get(b.rsplit("/", 1)[0] + "/")
+        world_from_rig_a = world_from_rig_by_rig_and_frame.get((rig_a, frame_a))
+        world_from_rig_b = world_from_rig_by_rig_and_frame.get((rig_b, frame_b))
+        if cam_a_from_rig is None or cam_b_from_rig is None or world_from_rig_a is None or world_from_rig_b is None:
+            skipped_no_vio += 1
+            continue
+
+        recon_translation = asarray(tvg.cam2_from_cam1.translation, dtype=float64).reshape(3)
+        recon_baseline = float(norm(recon_translation))
+
+        vio_cam2_from_cam1 = cam_b_from_rig * world_from_rig_b.inverse() * world_from_rig_a * cam_a_from_rig.inverse()
+        checked += 1
+
+        rotation_bad = (
+            vio_em_options.max_rotation_disagreement_deg > 0
+            and tvg.cam2_from_cam1.rotation.angle_to(vio_cam2_from_cam1.rotation) > rotation_threshold_rad
+        )
+        translation_bad = False
+        if vio_em_options.max_translation_direction_deg > 0:
+            vio_translation = asarray(vio_cam2_from_cam1.translation, dtype=float64).reshape(3)
+            vio_baseline = float(norm(vio_translation))
+            if vio_baseline >= vio_em_options.min_baseline_m:
+                cosine = float((recon_translation @ vio_translation) / (recon_baseline * vio_baseline))
+                cosine = max(-1.0, min(1.0, cosine))
+                translation_angle = acos(cosine)
+                translation_bad = translation_angle > translation_threshold_rad
+
+        if rotation_bad:
+            rejected_rotation += 1
+        if translation_bad:
+            rejected_translation += 1
+        if rotation_bad or translation_bad:
+            database.update_two_view_geometry(colmap_image_ids[a], colmap_image_ids[b], empty_tvg)
+
+    database.close()
+    print(
+        f"[vio_em_check] checked={checked} rejected_rotation={rejected_rotation} "
+        f"rejected_translation={rejected_translation} skipped_no_vio={skipped_no_vio}"
+    )
 
 
 class _IncrementalMappingProgress:

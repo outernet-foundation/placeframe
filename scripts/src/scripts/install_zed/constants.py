@@ -33,8 +33,10 @@ COMPOSE_SOURCE = REPO_ROOT / "docker" / "zed-capture" / "compose.rig.yml"
 AOA_LOKI_CONFIG_SOURCE = REPO_ROOT / "docker" / "aoa-loki" / "config.yaml"
 AOA_ALLOY_CONFIG_SOURCE = REPO_ROOT / "docker" / "aoa-alloy" / "config.alloy"
 SYSTEMD_UNIT_SOURCE = REPO_ROOT / "docker" / "zed-capture" / "placeframe-zed.service"
+WAIT_FOR_ARGUS_SOURCE = REPO_ROOT / "docker" / "zed-capture" / "wait_for_argus_socket.py"
 REMOTE_DIR = "~/.placeframe"
 REMOTE_COMPOSE = f"{REMOTE_DIR}/compose.rig.yml"
+REMOTE_WAIT_FOR_ARGUS = f"{REMOTE_DIR}/wait_for_argus_socket.py"
 REMOTE_AOA_LOKI_DIR = f"{REMOTE_DIR}/aoa-loki"
 REMOTE_AOA_ALLOY_DIR = f"{REMOTE_DIR}/aoa-alloy"
 SSH_SOCKET = "/tmp/install-zed-ssh-%C"
@@ -70,10 +72,54 @@ DHCP_LEASE_WAIT_SECONDS = 60
 
 SUDOERS_RULE = (
     "user ALL=(ALL) NOPASSWD: /usr/bin/dpkg, /usr/sbin/usermod, /usr/bin/nvidia-ctk,"
-    " /usr/bin/systemctl, /usr/bin/docker, /usr/bin/tee, /usr/bin/nmcli"
+    " /usr/bin/systemctl, /usr/bin/docker, /usr/bin/tee, /usr/bin/nmcli, /usr/bin/install"
 )
 
 # Pins the Jetson's USB-C port as a USB gadget, which is incompatible with
 # the box acting as USB host for the phone-as-accessory link. Disabling
 # frees the port for host duty.
 L4T_USB_DEVICE_MODE_UNIT = "nv-l4t-usb-device-mode.service"
+
+APPLIANCE_DEFAULT_TARGET = "multi-user.target"
+
+# System-level units installed by the stock JetPack desktop image that have
+# no role on a placeframe appliance. gdm pulls in the entire GNOME session;
+# fwupd / packagekit / snapd run unsolicited update + probe traffic;
+# geoclue / accounts-daemon / ModemManager / upower are desktop-session
+# auxiliaries; cups / bluetooth / whoopsie / apport / unattended-upgrades are
+# generic Ubuntu defaults a headless box has no business running.
+APPLIANCE_SYSTEM_UNITS_TO_MASK: tuple[str, ...] = (
+    "gdm.service",
+    "fwupd.service",
+    "packagekit.service",
+    "snapd.service",
+    "geoclue.service",
+    "accounts-daemon.service",
+    "ModemManager.service",
+    "upower.service",
+    "cups.service",
+    "cups-browsed.service",
+    "bluetooth.service",
+    "whoopsie.service",
+    "apport.service",
+    "unattended-upgrades.service",
+)
+
+# User-scope units that gnome-session spawns when a desktop user logs in.
+# Masking at --global level keeps them off even if a maintenance user shells
+# in interactively. The gvfs-*-volume-monitor probers were the proximate
+# cause of the AOA dialog-respawn bug — libusb_open + descriptor probes
+# against the AOA-mode phone stalled the kernel into a SuperSpeed reset.
+APPLIANCE_USER_UNITS_TO_MASK: tuple[str, ...] = (
+    "gvfs-udisks2-volume-monitor.service",
+    "gvfs-mtp-volume-monitor.service",
+    "gvfs-afc-volume-monitor.service",
+    "gvfs-gphoto2-volume-monitor.service",
+    "evolution-source-registry.service",
+    "evolution-calendar-factory.service",
+    "evolution-addressbook-factory.service",
+    "gnome-software.service",
+)
+
+APPLIANCE_BANNER_TEXT = "Placeframe ZED Box - managed remotely, see install-zed.\n"
+APPLIANCE_BANNER_PATHS: tuple[str, ...] = ("/etc/issue", "/etc/issue.net", "/etc/motd")

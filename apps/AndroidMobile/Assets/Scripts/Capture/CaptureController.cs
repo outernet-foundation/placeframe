@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
@@ -22,12 +23,15 @@ namespace Placeframe.Client
         private static float captureIntervalSeconds = 0.5f;
         private static readonly TimeSpan idleRefreshInterval = TimeSpan.FromSeconds(5);
 
-        private static bool capturesLoaded;
         private static string localCaptureNamePath;
         private static Dictionary<Guid, string> _localCaptureNames = new();
+        private static Dictionary<uint, IDisposable> _nameSubscriptions = new();
         private static IDisposable _subscription;
         private static IDisposable _idleRefreshTimerSubscription;
         private static CompositeDisposable _pollSubscriptions = new();
+
+        private static readonly SemaphoreSlim _uploadSemaphore = new SemaphoreSlim(1, 1);
+        private static readonly List<Guid> _uploadOrder = new();
 
         public static void Initialize()
         {
@@ -75,7 +79,7 @@ namespace Placeframe.Client
                     (loggedIn, captureStatus) => loggedIn && captureStatus == CaptureStatus.Stopping)
                     .Subscribe(isStoppingAndLoggedIn =>
                     {
-                        if (isStoppingAndLoggedIn) StopCaptureForCurrentDevice().Forget();
+                        if (isStoppingAndLoggedIn) StopCaptureForCurrentDevice(App.state.pendingCaptureName.value).Forget();
                     }),
                 ObservableCombineValues(
                     App.state.loggedIn,
@@ -101,35 +105,59 @@ namespace Placeframe.Client
                             _idleRefreshTimerSubscription = null;
                         }
                     }),
-                App.state.captures.SubscribeOperations(HandleCapturesChanged),
+                App.state.captures
+                    .ObservableSelect(entry => entry.Value)
+                    .SubscribeWithId(
+                        onAdd: (subscriptionId, capture) =>
+                            _nameSubscriptions[subscriptionId] = capture.name.Subscribe(
+                                name => OnCaptureNameChanged(capture, name)),
+                        onRemove: (subscriptionId, capture) =>
+                        {
+                            if (_nameSubscriptions.TryGetValue(subscriptionId, out var sub))
+                            {
+                                sub.Dispose();
+                                _nameSubscriptions.Remove(subscriptionId);
+                            }
+                            if (_localCaptureNames.Remove(capture.id))
+                                SaveLocalCaptureNames();
+                        },
+                        onDispose: () =>
+                        {
+                            foreach (var sub in _nameSubscriptions.Values)
+                                sub.Dispose();
+                            _nameSubscriptions.Clear();
+                        }
+                    ),
                 App.state.captures
                     .ObservableSelect(entry => entry.Value)
                     .ObservableWhere(capture => capture.status
                         .ObservableSelect(status => status == CaptureUploadStatus.Reconstructing))
                     .Subscribe(onAdd: capture =>
                         Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(0.5))
-                            .SelectAwait(async (_, cancellationToken) => await VisualPositioningSystem.Api.GetReconstructionAsync(App.state.captures[capture.id].reconstruction.value.Id, cancellationToken: cancellationToken))
-                            .OnErrorResumeAsFailure()
+                            .SelectAwait(async (_, cancellationToken) => await PollReconstruction(capture.id, cancellationToken))
+                            .Where(reconstruction => reconstruction != null)
                             .TakeUntil(reconstruction => reconstruction.Status is ReconstructionStatus.Succeeded or ReconstructionStatus.Failed or ReconstructionStatus.Cancelled)
                             .Subscribe(
                                 onNext: reconstruction => App.state.captures[capture.id].reconstruction.value = reconstruction,
-                                onCompleted: result =>
-                                {
-                                    if (result.IsFailure)
-                                    {
-                                        Log.Error(
-                                            LogGroup.Capture,
-                                            result.Exception,
-                                            "Reconstruction poll failed for capture {CaptureId}",
-                                            capture.id
-                                        );
-                                        App.state.captures[capture.id].clientPhase.value = CaptureClientPhase.Failed;
-                                    }
-                                    else
-                                        UpdateCaptureList().Forget();
-                                })
+                                onCompleted: _ => UpdateCaptureList().Forget())
                             .AddTo(_pollSubscriptions))
             );
+        }
+
+        private static async UniTask<ReconstructionReadWithQueue> PollReconstruction(Guid captureId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await VisualPositioningSystem.Api.GetReconstructionAsync(
+                    App.state.captures[captureId].reconstruction.value.Id,
+                    cancellationToken: cancellationToken
+                );
+            }
+            catch (HttpRequestException exception)
+            {
+                Log.Info(LogGroup.Capture, exception, "Reconstruction poll transient error for capture {CaptureId}", captureId);
+                return null;
+            }
         }
 
         public static void Shutdown()
@@ -141,6 +169,55 @@ namespace Placeframe.Client
             _pollSubscriptions.Dispose();
             LogDrainController.Shutdown();
             ZedCaptureController.Shutdown();
+        }
+
+        public static async UniTask EnqueueUpload(CaptureState capture)
+        {
+            EnterUploadQueue(capture);
+            try
+            {
+                await _uploadSemaphore.WaitAsync().AsUniTask();
+            }
+            finally
+            {
+                LeaveUploadQueue(capture);
+            }
+
+            try
+            {
+                await UIElements.Upload(capture);
+            }
+            finally
+            {
+                _uploadSemaphore.Release();
+            }
+        }
+
+        private static void EnterUploadQueue(CaptureState capture)
+        {
+            _uploadOrder.Add(capture.id);
+            RefreshUploadQueuePositions();
+            capture.clientPhase.value = CaptureClientPhase.Queued;
+        }
+
+        private static void LeaveUploadQueue(CaptureState capture)
+        {
+            _uploadOrder.Remove(capture.id);
+            capture.uploadQueuePosition.value = null;
+            capture.uploadQueueDepth.value = null;
+            RefreshUploadQueuePositions();
+        }
+
+        private static void RefreshUploadQueuePositions()
+        {
+            var depth = _uploadOrder.Count;
+            for (var index = 0; index < _uploadOrder.Count; index++)
+            {
+                if (!App.state.captures.TryGetValue(_uploadOrder[index], out var queued))
+                    continue;
+                queued.uploadQueuePosition.value = index + 1;
+                queued.uploadQueueDepth.value = depth;
+            }
         }
 
         public static UniTask DeleteCapture(Guid id, DeviceType type)
@@ -174,16 +251,18 @@ namespace Placeframe.Client
             App.state.captureStatus.value = CaptureStatus.Capturing;
         }
 
-        private static async UniTask StopCaptureForCurrentDevice()
+        private static async UniTask StopCaptureForCurrentDevice(string name)
         {
             var deviceType = App.state.captureMode.value;
             switch (deviceType)
             {
                 case DeviceType.ARFoundation:
-                    CaptureManager.StopCapture();
+                    var arId = CaptureManager.StopCapture();
+                    _localCaptureNames[arId] = name;
+                    SaveLocalCaptureNames();
                     break;
                 case DeviceType.Zed:
-                    await ZedCaptureController.StopCapture();
+                    await ZedCaptureController.StopCapture(name);
                     break;
                 default:
                     throw new ArgumentException($"Unknown DeviceType {deviceType}");
@@ -191,20 +270,61 @@ namespace Placeframe.Client
             App.state.captureStatus.value = CaptureStatus.Idle;
         }
 
-        private static void HandleCapturesChanged(IReadOnlyList<IStateOperation> ops)
+        private static void OnCaptureNameChanged(CaptureState capture, string name)
         {
-            if (!capturesLoaded)
+            if (string.IsNullOrWhiteSpace(name))
                 return;
+            var trimmed = name.Trim();
+            var captureId = capture.id;
 
-            _localCaptureNames.Clear();
-            var json = new SimpleJSON.JSONObject();
-            foreach (var kvp in App.state.captures.Where(x => x.Value.status.value == CaptureUploadStatus.NotUploaded))
+            if (capture.type.value == DeviceType.ARFoundation)
             {
-                var name = kvp.Value.name.value;
-                _localCaptureNames[kvp.Key] = name;
-                json[kvp.Key.ToString()] = name;
+                if (!_localCaptureNames.TryGetValue(captureId, out var existing) || existing != trimmed)
+                {
+                    _localCaptureNames[captureId] = trimmed;
+                    SaveLocalCaptureNames();
+                }
+            }
+            else
+            {
+                if (capture.hasLocalFiles.value)
+                    PatchBoxName(captureId, trimmed).Forget();
             }
 
+            if (capture.serverCaptureExists.value)
+                PatchApiName(captureId, trimmed).Forget();
+        }
+
+        private static async UniTask PatchApiName(Guid captureId, string name)
+        {
+            try
+            {
+                await VisualPositioningSystem.Api.UpdateCaptureSessionAsync(
+                    captureId, new CaptureSessionUpdate { Name = name });
+            }
+            catch (Exception exception)
+            {
+                Log.Info(LogGroup.Capture, exception, "Rename PATCH to API failed for {CaptureId}", captureId);
+            }
+        }
+
+        private static async UniTask PatchBoxName(Guid captureId, string name)
+        {
+            try
+            {
+                await ZedCaptureController.UpdateCaptureSessionName(captureId, name);
+            }
+            catch (Exception exception)
+            {
+                Log.Info(LogGroup.Capture, exception, "Rename PATCH to box failed for {CaptureId}", captureId);
+            }
+        }
+
+        private static void SaveLocalCaptureNames()
+        {
+            var json = new SimpleJSON.JSONObject();
+            foreach (var kvp in _localCaptureNames)
+                json[kvp.Key.ToString()] = kvp.Value;
             File.WriteAllText(localCaptureNamePath, json.ToString());
         }
 
@@ -258,18 +378,22 @@ namespace Placeframe.Client
                         var remote = remotes.GetValueOrDefault(id);
                         var primary = remote?.Reconstructions.FirstOrDefault();
                         var hasLocal = locals.TryGetValue(id, out var local);
-                        state.name.value = remote?.CaptureSession.Name ?? _localCaptureNames.GetValueOrDefault(id);
+                        state.name.value = remote?.CaptureSession.Name
+                            ?? local.Name
+                            ?? _localCaptureNames.GetValueOrDefault(id)
+                            ?? id.ToString();
                         state.hasLocalFiles.value = hasLocal;
                         state.recordedAt.value = remote?.CaptureSession.RecordedAt ?? local.RecordedAt;
                         state.type.value = remote?.CaptureSession.DeviceType ?? local.Type;
-                        state.sessionSizeBytes.value = hasLocal ? local.SizeBytes : null;
+                        state.sessionSizeBytes.value = hasLocal
+                            ? local.SizeBytes
+                            : (long?)remote?.CaptureSession.SizeBytes;
                         state.serverCaptureExists.value = remote != null;
                         state.reconstruction.value = primary?.Reconstruction;
                         state.localizationMapId.value = primary?.LocalizationMapId ?? Guid.Empty;
                     });
             });
 
-            capturesLoaded = true;
             Log.Info(LogGroup.Capture,
                 "UpdateCaptureList done durationMs={DurationMs} resultCount={ResultCount}",
                 stopwatch.ElapsedMilliseconds, App.state.captures.Count);

@@ -58,7 +58,6 @@ def _make_map(
     map_image_count: int = 100,
     map_point_count: int = 25_000,
     map_avg_track_length: float = 4.5,
-    map_bounding_volume_m3: float = 12.0,
     map_viewpoint_diversity: float = 0.6,
 ) -> SimpleNamespace:
     return SimpleNamespace(
@@ -66,7 +65,6 @@ def _make_map(
             map_image_count=map_image_count,
             map_point_count=map_point_count,
             map_avg_track_length=map_avg_track_length,
-            map_bounding_volume_m3=map_bounding_volume_m3,
             map_viewpoint_diversity=map_viewpoint_diversity,
         ),
     )
@@ -117,7 +115,6 @@ class TestBuildFeatures:
         assert features.log_map_image_count == pytest.approx(log1p(100))
         assert features.log_map_point_count == pytest.approx(log1p(25_000))
         assert features.map_avg_track_length == 4.5
-        assert features.log_map_bounding_volume_m3 == pytest.approx(log1p(12.0))
         assert features.map_viewpoint_diversity == 0.6
 
 

@@ -11,6 +11,11 @@ from common.ui import bail, note
 from .constants import (
     AOA_ALLOY_CONFIG_SOURCE,
     AOA_LOKI_CONFIG_SOURCE,
+    APPLIANCE_BANNER_PATHS,
+    APPLIANCE_BANNER_TEXT,
+    APPLIANCE_DEFAULT_TARGET,
+    APPLIANCE_SYSTEM_UNITS_TO_MASK,
+    APPLIANCE_USER_UNITS_TO_MASK,
     BAKE_FILE,
     BOX_IP,
     BOX_SSH_TARGET,
@@ -27,11 +32,13 @@ from .constants import (
     REMOTE_AOA_LOKI_DIR,
     REMOTE_COMPOSE,
     REMOTE_DIR,
+    REMOTE_WAIT_FOR_ARGUS,
     SSH_KEY,
     SSH_MUX,
     SSH_SOCKET,
     SUDOERS_RULE,
     SYSTEMD_UNIT_SOURCE,
+    WAIT_FOR_ARGUS_SOURCE,
     ZED_SERVICES,
     ZED_UPSTREAM_IMAGE_KEYS,
 )
@@ -44,7 +51,6 @@ from .messages import (
     NO_BOX_WIRED_CONNECTION,
     NO_DHCP_LEASE_RECEIVED,
     SSH_KEY_COPY_PROMPT,
-    SUDOERS_INSTALL_PROMPT,
 )
 from .ssh import ssh_check, ssh_output, ssh_run
 
@@ -60,26 +66,19 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
     logger.info("connecting_to_box", extra={"target": BOX_SSH_TARGET})
     bash(f"ssh {SSH_MUX} -fN {BOX_SSH_TARGET}")
     try:
-        # Install the passwordless-sudo rule so the rest of the script runs unattended.
-        sudoers_matches = ssh_check("test -f /etc/sudoers.d/install-zed") and (
-            ssh_output("cat /etc/sudoers.d/install-zed").strip() == SUDOERS_RULE
-        )
-        if sudoers_matches:
-            logger.info("sudoers_rule_present")
-        else:
-            logger.info("installing_sudoers_rule")
-            note(SUDOERS_INSTALL_PROMPT)
-            # `sudo install` (not pipe-into-tee) avoids a remote pipeline and
-            # works before passwordless sudo exists.
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".sudoers") as sudoers_file:
-                sudoers_file.write(SUDOERS_RULE + "\n")
-                sudoers_file.flush()
-                bash(f"scp {SSH_MUX} {sudoers_file.name} {BOX_SSH_TARGET}:/tmp/install-zed.sudoers")
-                bash(
-                    f"ssh -t {SSH_MUX} {BOX_SSH_TARGET}"
-                    ' "sudo install -m 0440 -o root -g root /tmp/install-zed.sudoers /etc/sudoers.d/install-zed"'
-                )
-                ssh_run("rm /tmp/install-zed.sudoers")
+        # Refresh the passwordless-sudo rule. `sudo -n install` overwrites the
+        # file with identical content on subsequent runs, so this is naturally
+        # idempotent; no content-comparison check is needed. The `-n` flag
+        # fails loudly instead of prompting if NOPASSWD isn't in effect,
+        # which surfaces a stale or missing rule as a script-fatal error
+        # rather than silently degrading to interactive.
+        logger.info("refreshing_sudoers_rule")
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".sudoers") as sudoers_file:
+            sudoers_file.write(SUDOERS_RULE + "\n")
+            sudoers_file.flush()
+            bash(f"scp {SSH_MUX} {sudoers_file.name} {BOX_SSH_TARGET}:/tmp/install-zed.sudoers")
+            ssh_run("sudo -n install -m 0440 -o root -g root /tmp/install-zed.sudoers /etc/sudoers.d/install-zed")
+            ssh_run("rm /tmp/install-zed.sudoers")
 
         # Install Docker from pinned .deb URLs (Ubuntu's repo is a moving target).
         if ssh_check("which docker"):
@@ -113,6 +112,15 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
         # Disabling frees the port for host duty.
         logger.info("disabling_usb_device_mode_service", extra={"unit": L4T_USB_DEVICE_MODE_UNIT})
         ssh_check(f"sudo systemctl disable --now {L4T_USB_DEVICE_MODE_UNIT}")
+
+        # Strip the stock JetPack desktop down to a headless appliance. The
+        # GNOME session's volume-monitor probers (gvfs-mtp / gvfs-afc /
+        # gvfs-gphoto2 / udisks2) issue libusb descriptor reads against any
+        # newly-enumerated USB device; against an AOA-mode phone those reads
+        # stall the kernel's 5s USB_CTRL_GET_TIMEOUT, which triggers a
+        # SuperSpeed bus reset that invalidates the phone-side accessory FD
+        # and forces Android to fire a second UsbConfirmActivity dialog.
+        _strip_to_appliance()
 
         # Add the box's hostname to /etc/hosts so sudo doesn't reverse-DNS each call.
         box_hostname = ssh_output("hostname").strip()
@@ -156,6 +164,7 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
         bash(f"scp {SSH_MUX} {COMPOSE_SOURCE!s} {BOX_SSH_TARGET}:{REMOTE_COMPOSE}")
         bash(f"scp {SSH_MUX} {AOA_LOKI_CONFIG_SOURCE!s} {BOX_SSH_TARGET}:{REMOTE_AOA_LOKI_DIR}/config.yaml")
         bash(f"scp {SSH_MUX} {AOA_ALLOY_CONFIG_SOURCE!s} {BOX_SSH_TARGET}:{REMOTE_AOA_ALLOY_DIR}/config.alloy")
+        bash(f"scp {SSH_MUX} {WAIT_FOR_ARGUS_SOURCE!s} {BOX_SSH_TARGET}:{REMOTE_WAIT_FOR_ARGUS}")
 
         # Jetson hardware-burned serial survives OS reflashes.
         box_id = ssh_output("tr -d '\\0\\n' < /proc/device-tree/serial-number").strip()
@@ -173,7 +182,13 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
         logger.info("installing_systemd_unit", extra={"unit": "placeframe-zed.service"})
         remote_home = ssh_output("echo $HOME").strip()
         remote_compose_abs = f"{remote_home}/.placeframe/compose.rig.yml"
-        unit_content = SYSTEMD_UNIT_SOURCE.read_text().replace("COMPOSE_PATH", remote_compose_abs)
+        remote_wait_for_argus_abs = f"{remote_home}/.placeframe/wait_for_argus_socket.py"
+        unit_content = (
+            SYSTEMD_UNIT_SOURCE
+            .read_text()
+            .replace("COMPOSE_PATH", remote_compose_abs)
+            .replace("WAIT_FOR_ARGUS_PATH", remote_wait_for_argus_abs)
+        )
         ssh_run("sudo tee /etc/systemd/system/placeframe-zed.service > /dev/null", stdin_text=unit_content)
         ssh_run("sudo systemctl daemon-reload")
         ssh_run("sudo systemctl enable placeframe-zed.service")
@@ -201,6 +216,32 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
     finally:
         # Close the SSH multiplexer (otherwise it lingers until ControlPersist expires).
         bash_check(f"ssh -o ControlPath={SSH_SOCKET} -O exit {BOX_SSH_TARGET}")
+
+
+def _strip_to_appliance() -> None:
+    current_target = ssh_output("systemctl get-default").strip()
+    if current_target == APPLIANCE_DEFAULT_TARGET:
+        logger.info("appliance_default_target_already_set", extra={"target": current_target})
+    else:
+        logger.info(
+            "setting_appliance_default_target",
+            extra={"from": current_target, "to": APPLIANCE_DEFAULT_TARGET},
+        )
+        ssh_run(f"sudo systemctl set-default {APPLIANCE_DEFAULT_TARGET}")
+
+    logger.info("masking_appliance_system_units", extra={"count": len(APPLIANCE_SYSTEM_UNITS_TO_MASK)})
+    ssh_run(f"sudo systemctl mask --now {' '.join(APPLIANCE_SYSTEM_UNITS_TO_MASK)}")
+
+    logger.info("masking_appliance_user_units", extra={"count": len(APPLIANCE_USER_UNITS_TO_MASK)})
+    ssh_run(f"sudo systemctl --global mask {' '.join(APPLIANCE_USER_UNITS_TO_MASK)}")
+
+    for banner_path in APPLIANCE_BANNER_PATHS:
+        current = ssh_output(f"cat {banner_path}") if ssh_check(f"test -f {banner_path}") else ""
+        if current == APPLIANCE_BANNER_TEXT:
+            logger.info("appliance_banner_present", extra={"path": banner_path})
+        else:
+            logger.info("installing_appliance_banner", extra={"path": banner_path})
+            ssh_run(f"sudo tee {banner_path} > /dev/null", stdin_text=APPLIANCE_BANNER_TEXT)
 
 
 def _claim_box_via_dhcp() -> None:

@@ -101,12 +101,12 @@ namespace Example
 
             try
             {
-                // DeleteAllCaptures
-                apiInstance.DeleteAllCaptures();
+                // DeleteAllCaptureSessions
+                apiInstance.DeleteAllCaptureSessions();
             }
             catch (ApiException e)
             {
-                Debug.Print("Exception when calling DefaultApi.DeleteAllCaptures: " + e.Message );
+                Debug.Print("Exception when calling DefaultApi.DeleteAllCaptureSessions: " + e.Message );
                 Debug.Print("Status Code: "+ e.ErrorCode);
                 Debug.Print(e.StackTrace);
             }
@@ -123,13 +123,14 @@ All URIs are relative to *http://localhost*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
-*DefaultApi* | [**DeleteAllCaptures**](docs/DefaultApi.md#deleteallcaptures) | **DELETE** /captures | DeleteAllCaptures
-*DefaultApi* | [**DeleteCapture**](docs/DefaultApi.md#deletecapture) | **DELETE** /captures/{id} | DeleteCapture
-*DefaultApi* | [**DownloadCaptureTar**](docs/DefaultApi.md#downloadcapturetar) | **GET** /captures/{id} | DownloadCaptureTar
-*DefaultApi* | [**GetCaptures**](docs/DefaultApi.md#getcaptures) | **GET** /captures | GetCaptures
+*DefaultApi* | [**DeleteAllCaptureSessions**](docs/DefaultApi.md#deleteallcapturesessions) | **DELETE** /capture_sessions | DeleteAllCaptureSessions
+*DefaultApi* | [**DeleteCaptureSession**](docs/DefaultApi.md#deletecapturesession) | **DELETE** /capture_sessions/{id} | DeleteCaptureSession
+*DefaultApi* | [**DownloadCaptureSessionTar**](docs/DefaultApi.md#downloadcapturesessiontar) | **GET** /capture_sessions/{id}/tar | DownloadCaptureSessionTar
+*DefaultApi* | [**GetCaptureSessions**](docs/DefaultApi.md#getcapturesessions) | **GET** /capture_sessions | GetCaptureSessions
 *DefaultApi* | [**GetStatus**](docs/DefaultApi.md#getstatus) | **GET** /status | GetStatus
-*DefaultApi* | [**StartCapture**](docs/DefaultApi.md#startcapture) | **POST** /captures/start | StartCapture
-*DefaultApi* | [**StopCapture**](docs/DefaultApi.md#stopcapture) | **POST** /captures/stop | StopCapture
+*DefaultApi* | [**StartCapture**](docs/DefaultApi.md#startcapture) | **POST** /capture_sessions/start | StartCapture
+*DefaultApi* | [**StopCapture**](docs/DefaultApi.md#stopcapture) | **POST** /capture_sessions/stop | StopCapture
+*DefaultApi* | [**UpdateCaptureSession**](docs/DefaultApi.md#updatecapturesession) | **PATCH** /capture_sessions/{id} | UpdateCaptureSession
 
 
 <a id="documentation-for-models"></a>
@@ -137,6 +138,8 @@ Class | Method | HTTP request | Description
 
  - [Model.StartCapture400Response](docs/StartCapture400Response.md)
  - [Model.StartCapture400ResponseExtra](docs/StartCapture400ResponseExtra.md)
+ - [Model.StopCaptureRequest](docs/StopCaptureRequest.md)
+ - [Model.UpdateCaptureSessionRequest](docs/UpdateCaptureSessionRequest.md)
  - [Model.ZedCapture](docs/ZedCapture.md)
  - [Model.ZedStatus](docs/ZedStatus.md)
 

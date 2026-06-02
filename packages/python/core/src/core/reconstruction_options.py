@@ -8,177 +8,73 @@ from pydantic import BaseModel, Field
 class ReconstructionOptions(BaseModel):
     deterministic_seed: Optional[int] = Field(
         default=None,
-        description=(
-            "If set, run the reconstruction deterministically: this value is the PRNG seed AND the "
-            "pipeline runs single-threaded so thread-scheduling does not introduce non-determinism "
-            "between reruns. If None, the reconstruction is non-deterministic (seed unpinned, "
-            "threading enabled)."
-        ),
+        description="PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic.",
     )
-    neighbors_count: int = Field(
-        default=12,
-        description=(
-            "How many pose-nearest neighbors to consider when generating image pairs. "
-            "Use -1 for exhaustive matching (all pairs). "
-            "Smaller values reduce weak overlaps and speed up matching at the cost of some coverage."
-        ),
+    keyframe_min_distance_m: float = Field(
+        default=0.2,
+        description="Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.",
     )
-    rotation_threshold: float = Field(
-        default=30.0,
-        description=(
-            "Rotation angle threshold (degrees) for considering two images as neighbors when generating image pairs. "
-            "Smaller values reduce weak overlaps and speed up matching at the cost of some coverage."
-        ),
+    sequential_window_m: float = Field(
+        default=3.0,
+        description="VIO-path-distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe whose cumulative segment-by-segment path length along the VIO trajectory is within this many metres is paired with it. Path distance — not straight-line distance — so doubling back along the trajectory (e.g. corridor return pass) walks away from earlier frames rather than landing on them. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc.",
     )
-    lightglue_batch_size: int = Field(
-        default=16,
-        description=(
-            "Batch size to use when running LightGlue for feature matching. "
-            "Larger batch sizes can improve GPU utilization but require more memory."
-        ),
+    retrieval_neighbors: int = Field(
+        default=20,
+        description="Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.",
+    )
+    retrieval_min_score: float = Field(
+        default=0.35,
+        description="Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.",
     )
     ransac_max_error: float = Field(
         default=2.0,
-        description=(
-            "Two-view RANSAC inlier threshold (pixels) used by verify_matches(). "
-            "Lower = stricter inlier test; removes borderline correspondences before SfM."
-        ),
+        description="Two-view RANSAC inlier threshold in pixels; lower is stricter.",
     )
     ransac_min_inlier_ratio: float = Field(
-        default=0.15,
-        description=(
-            "Two-view RANSAC minimum inlier ratio to accept the model. "
-            "Higher = reject more weak pairs; typically 0.10–0.20 for stricter matching."
-        ),
+        default=0.25,
+        description="Two-view RANSAC minimum inlier ratio to accept a pair's geometry.",
     )
-    use_prior_position: bool = Field(
-        default=True,
-        description=(
-            "If true, use position priors during registration. "
-            "This leverages PosePrior(position=...) written into the database to guide image registration."
-        ),
-    )
-    rig_verification: bool = Field(
-        default=True,
-        description=(
-            "If true, perform rig-based verification during feature matching and two-view geometry verification. "
-            "Requires images to be tagged with rig/camera IDs."
-        ),
+    two_view_min_num_inliers: int = Field(
+        default=30,
+        description="Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap's SIFT-era default of 15 to reject small false-positive clusters on repetitive structure.",
     )
     triangulation_minimum_angle: float = Field(
         default=3.0,
-        description=(
-            "Minimum triangulation angle (degrees). Applied at creation time (triangulation.min_angle) and "
-            "again during mapper filtering (mapper.filter_min_tri_angle). Raising it removes low-parallax points."
-        ),
-    )
-    triangulation_complete_max_reprojection_error: float = Field(
-        default=2.0,
-        description=(
-            "Triangulation-time gate (pixels) for COMPLETING tracks into new 3D points "
-            "(triangulation.complete_max_reproj_error). Lower → fewer borderline new points."
-        ),
-    )
-    triangulation_merge_max_reprojection_error: float = Field(
-        default=4.0,
-        description=(
-            "Triangulation-time gate (pixels) for MERGING near-duplicate 3D points "
-            "(triangulation.merge_max_reproj_error). Lower → fewer merges; higher → more aggressive deduplication."
-        ),
+        description="Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering.",
     )
     mapper_filter_max_reprojection_error: float = Field(
         default=2.0,
-        description=(
-            "Mapper-level **post-BA outlier** threshold (pixels) (mapper.filter_max_reproj_error). "
-            "Points exceeding this after local/global BA are culled. "
-            "This is NOT a triangulation accept threshold."
-        ),
-    )
-    bundle_adjustment_refine_sensor_from_rig: bool = Field(
-        default=False,
-        description=(
-            "If true, refine per-camera extrinsics within the rig during the incremental "
-            "BA loop (ba_refine_sensor_from_rig). The shipped pattern leaves this False, "
-            "pins rigs via constant_rigs, and re-enables rig refinement only on the final "
-            "standalone BA pass. See docker/reconstructor/SPEC.md for rationale."
-        ),
-    )
-    bundle_adjustment_refine_focal_length: bool = Field(
-        default=True,
-        description="If true, refine the camera focal length during BA (ba_refine_focal_length).",
-    )
-    bundle_adjustment_refine_principal_point: bool = Field(
-        default=False,
-        description="If true, refine the camera principal point during BA (ba_refine_principal_point).",
-    )
-    bundle_adjustment_refine_additional_params: bool = Field(
-        default=True,
-        description=(
-            "If true, refine model-specific additional parameters during BA (ba_refine_extra_params), "
-            "e.g., radial/tangential distortion where applicable."
-        ),
+        description="Post-BA outlier reprojection threshold in pixels; points exceeding it are culled.",
     )
     bundle_adjustment_global_frames_ratio: float = Field(
         default=1.5,
-        description=(
-            "Growth ratio of registered frames after which to trigger a global bundle adjustment "
-            "(ba_global_frames_ratio). Larger = fewer global BA events, less wall time, "
-            "longer between cleanup passes."
-        ),
-    )
-    bundle_adjustment_global_max_refinements: int = Field(
-        default=1,
-        description=(
-            "Maximum BA refinement passes per global-BA event (ba_global_max_refinements). "
-            "Dev default 1; production-quality maps should override to 3 (or higher). See "
-            "docker/reconstructor/SPEC.md."
-        ),
+        description="Frame-count growth ratio that triggers a global BA event; larger = fewer events.",
     )
     bundle_adjustment_global_function_tolerance: float = Field(
         default=1e-3,
-        description=(
-            "Ceres solver function tolerance for global bundle adjustment "
-            "(ba_global_function_tolerance). Larger = earlier exit when residual delta becomes "
-            "insignificant."
-        ),
-    )
-    bundle_adjustment_ignore_redundant_points3D: bool = Field(
-        default=True,
-        description=(
-            "If true, solve global BA without redundant 3D points first, then refine pruned points "
-            "in a second pass with everything else fixed (mapper.ba_global_ignore_redundant_points3D). "
-            "Same final geometry, smaller main problem. Activates only when ≥10 frames are registered."
-        ),
-    )
-    compression_opq_number_of_subvectors: int = Field(
-        default=16, description="Number of subvectors for OPQ compression."
-    )
-    compression_opq_number_of_bits_per_subvector: int = Field(
-        default=8, description="Number of bits per subvector for OPQ compression."
-    )
-    compression_opq_number_of_training_iterations: int = Field(
-        default=20, description="Number of training iterations for OPQ compression."
+        description="Ceres function tolerance for global BA exit; larger = earlier exit on residual plateaus.",
     )
     pose_prior_position_sigma_m: float = Field(
         default=0.05,
-        description=(
-            "Standard deviation (meters) for position priors when writing PosePrior to the database. "
-            "Smaller values = stronger priors."
-        ),
+        description="Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off).",
+    )
+    pair_vio_em_max_rotation_disagreement_deg: float = Field(
+        default=25.0,
+        description="At two-view verification time, every sequential pair whose VIO poses carry rotation has its essential-matrix relative pose compared against the VIO-implied relative pose. The pair is rejected (its two-view geometry deleted from the database) when the angle between the two rotations exceeds this threshold. Sequential-only because retrieval pairs span genuine loop closures where VIO drift can disagree with the essential matrix legitimately, and intra-frame stereo is already validated by the rig constraint. 0 disables. Applied only to pairs with 7-column VIO rows (quaternion present).",
+    )
+    pair_vio_em_max_translation_direction_deg: float = Field(
+        default=60.0,
+        description="Companion to pair_vio_em_max_rotation_disagreement_deg: bounds the angle between the essential-matrix translation direction (camera-1 origin direction in camera-2) and the VIO-implied translation direction for the same camera pair. Skipped when the essential-matrix baseline is below pair_vio_em_min_baseline_m, where translation direction is ill-conditioned. 0 disables.",
+    )
+    pair_vio_em_min_baseline_m: float = Field(
+        default=0.3,
+        description="Essential-matrix-baseline floor below which the VIO-vs-essential-matrix translation-direction component is skipped. Near-co-located camera pairs (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined essential-matrix translation direction; the rotation component still applies.",
     )
     max_keypoints_per_image: int = Field(
         default=2500,
-        description=(
-            "Maximum number of ALIKED keypoints to retain per image (acts as a safety cap in threshold mode)."
-        ),
+        description="Maximum ALIKED keypoints retained per image.",
     )
     held_out_frame_timestamps: Optional[list[int]] = Field(
         default=None,
-        description=(
-            "Frame timestamps (Unix milliseconds, matching the first column of each rig's frames.csv) "
-            "to exclude from this reconstruction. Held-out frames never enter the rig's frame_poses, so "
-            "their images are skipped during feature extraction, pair generation, and SfM. Used by "
-            "calibration to build a map without specific frames so those frames can later be localized "
-            "as held-out queries."
-        ),
+        description="Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.",
     )

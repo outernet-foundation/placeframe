@@ -30,6 +30,7 @@ from placeframe_api_client.models.capture_sessions_expanded import CaptureSessio
 from placeframe_api_client.models.create_graph_request import CreateGraphRequest
 from placeframe_api_client.models.create_graph_response import CreateGraphResponse
 from placeframe_api_client.models.device_type import DeviceType
+from placeframe_api_client.models.fail_lease_request import FailLeaseRequest
 from placeframe_api_client.models.group_batch_update import GroupBatchUpdate
 from placeframe_api_client.models.group_create import GroupCreate
 from placeframe_api_client.models.group_read import GroupRead
@@ -76,8 +77,8 @@ class DefaultApi:
         self,
         device_type: DeviceType,
         data: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
+        name: StrictStr,
         id: Optional[UUID] = None,
-        name: Optional[StrictStr] = None,
         recorded_at: Annotated[Optional[datetime], Field(description="datetime with the constraint that the value must have timezone info")] = None,
         _request_timeout: Union[
             None,
@@ -99,10 +100,10 @@ class DefaultApi:
         :type device_type: DeviceType
         :param data: (required)
         :type data: bytes
+        :param name: (required)
+        :type name: str
         :param id:
         :type id: UUID
-        :param name:
-        :type name: str
         :param recorded_at: datetime with the constraint that the value must have timezone info
         :type recorded_at: datetime
         :param _request_timeout: timeout setting for this request. If one
@@ -130,8 +131,8 @@ class DefaultApi:
         _param = self._create_capture_session_serialize(
             device_type=device_type,
             data=data,
-            id=id,
             name=name,
+            id=id,
             recorded_at=recorded_at,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -159,8 +160,8 @@ class DefaultApi:
         self,
         device_type: DeviceType,
         data: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
+        name: StrictStr,
         id: Optional[UUID] = None,
-        name: Optional[StrictStr] = None,
         recorded_at: Annotated[Optional[datetime], Field(description="datetime with the constraint that the value must have timezone info")] = None,
         _request_timeout: Union[
             None,
@@ -182,10 +183,10 @@ class DefaultApi:
         :type device_type: DeviceType
         :param data: (required)
         :type data: bytes
+        :param name: (required)
+        :type name: str
         :param id:
         :type id: UUID
-        :param name:
-        :type name: str
         :param recorded_at: datetime with the constraint that the value must have timezone info
         :type recorded_at: datetime
         :param _request_timeout: timeout setting for this request. If one
@@ -213,8 +214,8 @@ class DefaultApi:
         _param = self._create_capture_session_serialize(
             device_type=device_type,
             data=data,
-            id=id,
             name=name,
+            id=id,
             recorded_at=recorded_at,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -242,8 +243,8 @@ class DefaultApi:
         self,
         device_type: DeviceType,
         data: Union[StrictBytes, StrictStr, Tuple[StrictStr, StrictBytes]],
+        name: StrictStr,
         id: Optional[UUID] = None,
-        name: Optional[StrictStr] = None,
         recorded_at: Annotated[Optional[datetime], Field(description="datetime with the constraint that the value must have timezone info")] = None,
         _request_timeout: Union[
             None,
@@ -265,10 +266,10 @@ class DefaultApi:
         :type device_type: DeviceType
         :param data: (required)
         :type data: bytes
+        :param name: (required)
+        :type name: str
         :param id:
         :type id: UUID
-        :param name:
-        :type name: str
         :param recorded_at: datetime with the constraint that the value must have timezone info
         :type recorded_at: datetime
         :param _request_timeout: timeout setting for this request. If one
@@ -296,8 +297,8 @@ class DefaultApi:
         _param = self._create_capture_session_serialize(
             device_type=device_type,
             data=data,
-            id=id,
             name=name,
+            id=id,
             recorded_at=recorded_at,
             _request_auth=_request_auth,
             _content_type=_content_type,
@@ -320,8 +321,8 @@ class DefaultApi:
         self,
         device_type,
         data,
-        id,
         name,
+        id,
         recorded_at,
         _request_auth,
         _content_type,
@@ -351,10 +352,10 @@ class DefaultApi:
             _form_params.append(('device_type', device_type))
         if data is not None:
             _files['data'] = data
-        if id is not None:
-            _form_params.append(('id', id))
         if name is not None:
             _form_params.append(('name', name))
+        if id is not None:
+            _form_params.append(('id', id))
         if recorded_at is not None:
             _form_params.append(('recorded_at', recorded_at))
         # process the body parameter
@@ -4995,7 +4996,7 @@ class DefaultApi:
     async def fail_lease(
         self,
         id: UUID,
-        body: StrictStr,
+        fail_lease_request: FailLeaseRequest,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -5014,8 +5015,8 @@ class DefaultApi:
 
         :param id: (required)
         :type id: UUID
-        :param body: (required)
-        :type body: str
+        :param fail_lease_request: (required)
+        :type fail_lease_request: FailLeaseRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -5040,7 +5041,7 @@ class DefaultApi:
 
         _param = self._fail_lease_serialize(
             id=id,
-            body=body,
+            fail_lease_request=fail_lease_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -5066,7 +5067,7 @@ class DefaultApi:
     async def fail_lease_with_http_info(
         self,
         id: UUID,
-        body: StrictStr,
+        fail_lease_request: FailLeaseRequest,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -5085,8 +5086,8 @@ class DefaultApi:
 
         :param id: (required)
         :type id: UUID
-        :param body: (required)
-        :type body: str
+        :param fail_lease_request: (required)
+        :type fail_lease_request: FailLeaseRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -5111,7 +5112,7 @@ class DefaultApi:
 
         _param = self._fail_lease_serialize(
             id=id,
-            body=body,
+            fail_lease_request=fail_lease_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -5137,7 +5138,7 @@ class DefaultApi:
     async def fail_lease_without_preload_content(
         self,
         id: UUID,
-        body: StrictStr,
+        fail_lease_request: FailLeaseRequest,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -5156,8 +5157,8 @@ class DefaultApi:
 
         :param id: (required)
         :type id: UUID
-        :param body: (required)
-        :type body: str
+        :param fail_lease_request: (required)
+        :type fail_lease_request: FailLeaseRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -5182,7 +5183,7 @@ class DefaultApi:
 
         _param = self._fail_lease_serialize(
             id=id,
-            body=body,
+            fail_lease_request=fail_lease_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -5203,7 +5204,7 @@ class DefaultApi:
     def _fail_lease_serialize(
         self,
         id,
-        body,
+        fail_lease_request,
         _request_auth,
         _content_type,
         _headers,
@@ -5231,8 +5232,8 @@ class DefaultApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if body is not None:
-            _body_params = body
+        if fail_lease_request is not None:
+            _body_params = fail_lease_request
 
 
         # set the HTTP header `Accept`

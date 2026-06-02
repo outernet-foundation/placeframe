@@ -8,6 +8,8 @@ using Placeframe.Client;
 using Placeframe.Core;
 using PlaceframeApiClient.Model;
 using FileParameter = PlaceframeApiClient.Client.FileParameter;
+using StopCaptureRequest = PlaceframeZedCaptureClient.Model.StopCaptureRequest;
+using UpdateCaptureSessionRequest = PlaceframeZedCaptureClient.Model.UpdateCaptureSessionRequest;
 using ZedStatusModel = PlaceframeZedCaptureClient.Model.ZedStatus;
 
 #if !UNITY_EDITOR && UNITY_ANDROID
@@ -54,7 +56,7 @@ public static class ZedCaptureController
     public static UniTask StartCapture(float captureInterval, CancellationToken cancellationToken = default) =>
         throw new PlatformNotSupportedException(unsupportedMessage);
 
-    public static UniTask StopCapture(CancellationToken cancellationToken = default) =>
+    public static UniTask StopCapture(string name, CancellationToken cancellationToken = default) =>
         throw new PlatformNotSupportedException(unsupportedMessage);
 
     public static UniTask<IEnumerable<LocalCapture>> EnumerateCaptures() =>
@@ -64,6 +66,9 @@ public static class ZedCaptureController
         throw new PlatformNotSupportedException(unsupportedMessage);
 
     public static UniTask DeleteCapture(Guid captureId, CancellationToken cancellationToken = default) =>
+        throw new PlatformNotSupportedException(unsupportedMessage);
+
+    public static UniTask UpdateCaptureSessionName(Guid captureId, string name, CancellationToken cancellationToken = default) =>
         throw new PlatformNotSupportedException(unsupportedMessage);
 
 #else
@@ -139,6 +144,7 @@ public static class ZedCaptureController
         capturesApi = null;
         capturesHttpClient?.Dispose();
         capturesHttpClient = null;
+        _lastEnumeration = Array.Empty<LocalCapture>();
     }
 
     public static async UniTask StartCapture(float captureInterval, CancellationToken cancellationToken = default)
@@ -148,16 +154,25 @@ public static class ZedCaptureController
         App.state.zedStatus.value = ZedStatusKind.Recording;
     }
 
-    public static async UniTask StopCapture(CancellationToken cancellationToken = default)
+    public static async UniTask StopCapture(string name, CancellationToken cancellationToken = default)
     {
         EnsureReachable();
-        await capturesApi.StopCaptureAsync(cancellationToken);
+        await capturesApi.StopCaptureAsync(new StopCaptureRequest(name), cancellationToken);
         App.state.zedStatus.value = ZedStatusKind.Ready;
+    }
+
+    public static async UniTask UpdateCaptureSessionName(Guid captureId, string name, CancellationToken cancellationToken = default)
+    {
+        EnsureReachable();
+        await capturesApi.UpdateCaptureSessionAsync(captureId, new UpdateCaptureSessionRequest(name), cancellationToken);
     }
 
     // Bound enumerate so refreshes don't stall on a long socket timeout when the
     // ZED box is unreachable. An absent box is indistinguishable from an empty one.
-    private static readonly TimeSpan enumerateTimeout = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan enumerateTimeout = TimeSpan.FromSeconds(5);
+
+    // Returned on enumerate failure so a transient blip doesn't blank the menu.
+    private static IReadOnlyList<LocalCapture> _lastEnumeration = Array.Empty<LocalCapture>();
 
     public static async UniTask<IEnumerable<LocalCapture>> EnumerateCaptures()
     {
@@ -166,27 +181,28 @@ public static class ZedCaptureController
         try
         {
             using var cts = new CancellationTokenSource(enumerateTimeout);
-            var captures = await capturesApi.GetCapturesAsync(cts.Token);
+            var captures = await capturesApi.GetCaptureSessionsAsync(cts.Token);
             var result = captures
-                .Select(c => new LocalCapture(c.Id, c.RecordedAt, DeviceType.Zed, c.SizeBytes))
+                .Select(c => new LocalCapture(c.Id, c.Name, c.RecordedAt, DeviceType.Zed, c.SizeBytes))
                 .ToList();
             Log.Info(LogGroup.Zed, "EnumerateCaptures success count={Count} durationMs={DurationMs}",
                 result.Count, stopwatch.ElapsedMilliseconds);
+            _lastEnumeration = result;
             return result;
         }
         catch (Exception exception)
         {
             Log.Info(LogGroup.Zed, exception,
-                "EnumerateCaptures failed durationMs={DurationMs} timeoutMs={TimeoutMs}",
-                stopwatch.ElapsedMilliseconds, (int)enumerateTimeout.TotalMilliseconds);
-            return Enumerable.Empty<LocalCapture>();
+                "EnumerateCaptures failed durationMs={DurationMs} timeoutMs={TimeoutMs} retainedCount={RetainedCount}",
+                stopwatch.ElapsedMilliseconds, (int)enumerateTimeout.TotalMilliseconds, _lastEnumeration.Count);
+            return _lastEnumeration;
         }
     }
 
     public static async UniTask<FileParameter> GetCapture(Guid captureId, CancellationToken cancellationToken = default)
     {
         EnsureReachable();
-        var response = await capturesApi.DownloadCaptureTarWithHttpInfoAsync(captureId, cancellationToken: cancellationToken);
+        var response = await capturesApi.DownloadCaptureSessionTarWithHttpInfoAsync(captureId, cancellationToken: cancellationToken);
         return new FileParameter(
             $"{captureId}.tar",
             "application/x-tar",
@@ -196,7 +212,7 @@ public static class ZedCaptureController
     public static async UniTask DeleteCapture(Guid captureId, CancellationToken cancellationToken = default)
     {
         EnsureReachable();
-        await capturesApi.DeleteCaptureAsync(captureId, cancellationToken);
+        await capturesApi.DeleteCaptureSessionAsync(captureId, cancellationToken);
     }
 
     private static void EnsureReachable()

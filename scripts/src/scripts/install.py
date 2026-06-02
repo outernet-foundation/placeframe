@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import typer
+from build_scripts.placeframe.compile_unity import build_unity_project
 from build_scripts.placeframe.projects import UnityProjectConfig, load_unity_projects
 from common.bash import bash, bash_check, bash_handoff, bash_output
 
@@ -101,26 +102,44 @@ def main(
             ),
         ),
     ] = False,
+    build_locally: Annotated[
+        bool,
+        typer.Option(
+            "--build",
+            "-B",
+            help=(
+                "Compile the project locally via `compile-unity` and install the produced APK / "
+                "linux executable. Skips the GitHub Actions artifact lookup; --branch / --run are ignored."
+            ),
+        ),
+    ] = False,
 ) -> None:
     projects = load_unity_projects().projects
     project_name = _resolve_project(projects, project)
     target_name = _resolve_target(projects[project_name], project_name, target)
-    artifact_name = f"{project_name}-{target_name}"
 
     if serial and target_name not in ADB_TARGETS:
         print(f"Warning: --serial is ignored for target '{target_name}'")
 
-    resolved_branch = branch or _current_git_branch()
-    run_id = str(run) if run else _find_run_id(artifact_name, resolved_branch)
-    print(f"Run: {run_id}")
-    print(f"Artifact: {artifact_name}")
-
-    download_path = _download_artifact(run_id, artifact_name)
+    if build_locally:
+        if branch or run:
+            print("Warning: --branch / --run are ignored when --build is set")
+        produced = build_unity_project(project_name, target_name)
+        apks = [path for path in produced if path.suffix == ".apk"]
+        executables = [path for path in produced if path.suffix == ".exe"]
+    else:
+        artifact_name = f"{project_name}-{target_name}"
+        resolved_branch = branch or _current_git_branch()
+        run_id = str(run) if run else _find_run_id(artifact_name, resolved_branch)
+        print(f"Run: {run_id}")
+        print(f"Artifact: {artifact_name}")
+        download_path = _download_artifact(run_id, artifact_name)
+        apks = sorted(download_path.rglob("*.apk"))
+        executables = [_find_linux_executable(download_path)] if target_name == "linux64" else []
 
     if target_name in ADB_TARGETS:
-        apks = list(download_path.rglob("*.apk"))
         if not apks:
-            print("No .apk files found in downloaded artifact")
+            print("No .apk found in install source")
             raise SystemExit(1)
 
         print(f"Installing: {apks[0].name}")
@@ -140,7 +159,10 @@ def main(
                 bash(f"{adb_prefix} shell pm grant {package} {permission}")
         print("Done.")
     else:
-        executable = _find_linux_executable(download_path)
+        if not executables:
+            print("No linux executable found in install source")
+            raise SystemExit(1)
+        executable = executables[0]
         os.chmod(executable, executable.stat().st_mode | 0o755)
         print(f"Launching: {executable.name}")
         bash_handoff(str(executable))

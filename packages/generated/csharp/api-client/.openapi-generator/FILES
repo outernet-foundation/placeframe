@@ -35,6 +35,7 @@ src/PlaceframeApiClient/Model/CreateGraphResponse.cs
 src/PlaceframeApiClient/Model/DeviceType.cs
 src/PlaceframeApiClient/Model/ExpandedCaptureSession.cs
 src/PlaceframeApiClient/Model/ExpandedReconstruction.cs
+src/PlaceframeApiClient/Model/FailLeaseRequest.cs
 src/PlaceframeApiClient/Model/Float3.cs
 src/PlaceframeApiClient/Model/Float4.cs
 src/PlaceframeApiClient/Model/GetCaptureSessions400Response.cs

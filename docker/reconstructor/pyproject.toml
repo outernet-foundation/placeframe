@@ -8,6 +8,7 @@ dependencies = [
     "core",
     "common",
     "placeframe-api-client",
+    "httpx>=0.28.1",
     "numpy>=2.0",
     "scipy>=1.7",
     "pycolmap>=4.0.4",
@@ -21,7 +22,6 @@ dev = [
     "boto3-stubs[batch]>=1.40.18",
     "debugpy>=1.8.16",
     "scipy-stubs>=1.15.3",
-    "pybind11-stubgen",
 ]
 neural-networks-cpu = ["neural-networks[cpu]"]
 neural-networks-cuda = ["neural-networks[cuda]"]
