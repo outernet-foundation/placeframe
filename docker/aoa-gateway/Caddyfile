@@ -5,8 +5,8 @@
 		output stdout
 		format json
 	}
-	servers :9000 {
-		protocols h1 h2c
+	servers {
+		protocols h2c
 	}
 }
 
