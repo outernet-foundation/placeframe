@@ -66,16 +66,18 @@ namespace Placeframe.Core
             );
         }
 
-        public static void StopCapture()
+        public static Guid StopCapture()
         {
             if (_subscriptions == null)
                 throw new InvalidOperationException("Capture not running");
 
+            var stoppedId = _sessionId;
+
             UniTask
                 .RunOnThreadPool(() =>
                     System.IO.Compression.ZipFile.CreateFromDirectory(
-                        SessionDir(_sessionId.ToString()),
-                        ZipPath(_sessionId.ToString())
+                        SessionDir(stoppedId.ToString()),
+                        ZipPath(stoppedId.ToString())
                     )
                 )
                 .Forget();
@@ -85,6 +87,8 @@ namespace Placeframe.Core
 
             _poseWriter?.Dispose();
             _poseWriter = null;
+
+            return stoppedId;
         }
 
         public static IEnumerable<LocalCapture> GetCaptures()
@@ -95,7 +99,7 @@ namespace Placeframe.Core
             return new DirectoryInfo(_recordingsRoot)
                 .GetDirectories()
                 .Select(d => Guid.Parse(d.Name))
-                .Select(id => new LocalCapture(id, GetCaptureRecordedAtUtc(id), DeviceType.ARFoundation, ComputeSessionSizeBytes(id)));
+                .Select(id => new LocalCapture(id, null, GetCaptureRecordedAtUtc(id), DeviceType.ARFoundation, ComputeSessionSizeBytes(id)));
         }
 
         private static long ComputeSessionSizeBytes(Guid captureId)

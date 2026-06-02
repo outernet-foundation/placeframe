@@ -7,7 +7,7 @@ from uuid import UUID
 from litestar import Router, get
 from pydantic import BaseModel, Field
 
-from .captures import CAPTURES_DIRECTORY, zed
+from .capture_sessions import CAPTURES_DIRECTORY, zed
 
 _START_MONOTONIC = monotonic()
 

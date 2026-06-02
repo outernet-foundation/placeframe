@@ -70,6 +70,8 @@ namespace Placeframe.Client
         public StateValue<DeviceType> captureMode { get; private set; } =
             new StateValue<DeviceType>(DeviceType.ARFoundation);
         public StateValue<CaptureStatus> captureStatus { get; private set; }
+        public StateValue<string> pendingCaptureName { get; private set; } =
+            new StateValue<string>("");
         public StateDictionary<Guid, CaptureState> captures { get; private set; }
 
         public StateValue<ZedStatusKind> zedStatus { get; private set; } =

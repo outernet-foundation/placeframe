@@ -115,6 +115,7 @@ namespace Placeframe.Client
         public static IControl CaptureUI()
         {
             var zedStatusObservable = App.state.zedStatus;
+            IControl namePromptDialog = default;
 
             return Control("Capture UI", new()
             {
@@ -226,7 +227,17 @@ namespace Placeframe.Client
                                     else
                                     {
                                         if (App.state.captureStatus.value == CaptureStatus.Capturing)
-                                            App.state.captureStatus.value = CaptureStatus.Stopping;
+                                        {
+                                            namePromptDialog = NamePromptDialog(new()
+                                            {
+                                                onSubmit = name =>
+                                                {
+                                                    App.state.pendingCaptureName.value = name;
+                                                    App.state.captureStatus.value = CaptureStatus.Stopping;
+                                                    namePromptDialog.Dispose();
+                                                }
+                                            });
+                                        }
                                     }
                                 }
                             })
@@ -506,6 +517,57 @@ namespace Placeframe.Client
         public struct SelectValidationTargetProps
         {
             public UnityAction<Guid> onValidationTargetSelected;
+        }
+
+        public struct NamePromptDialogProps
+        {
+            public Action<string> onSubmit;
+        }
+
+        public static IControl NamePromptDialog(NamePromptDialogProps props)
+        {
+            var input = new ObservableValue<string>("");
+            return Dialog(new()
+            {
+                useBackground = Props.Value(true),
+                backgroundColor = Props.Value(elements.backgroundColor),
+                contentConstructor = dialog => Props.Value(SafeArea(new()
+                {
+                    children = Props.List(
+                        VerticalLayout(new()
+                        {
+                            childControlWidth = Props.Value(true),
+                            childControlHeight = Props.Value(true),
+                            childForceExpandWidth = Props.Value(true),
+                            spacing = Props.Value(30f),
+                            padding = Props.Value(new RectOffset(30, 30, 30, 30)),
+                            layout = Utility.FillParentProps(),
+                            children = Props.List(
+                                Title(new() { value = Props.Value("Name this capture") }),
+                                InputField(new InputFieldProps()
+                                {
+                                    layout = new() { flexibleWidth = Props.Value(1f) },
+                                    value = input,
+                                    placeholderValue = Props.Value("e.g. west stairwell"),
+                                    onValueChanged = x => input.value = x
+                                }),
+                                Row(new()
+                                {
+                                    childAlignment = Props.Value(TextAnchor.MiddleRight),
+                                    children = Props.List(
+                                        LabeledButton(new LabeledButtonProps()
+                                        {
+                                            label = Props.Value("OK"),
+                                            interactable = input.ObservableSelect(n => !string.IsNullOrWhiteSpace(n)),
+                                            onClick = () => props.onSubmit?.Invoke(input.value.Trim())
+                                        })
+                                    )
+                                })
+                            )
+                        })
+                    )
+                }))
+            });
         }
 
         public static IControl SelectValidationTargetDialog(SelectValidationTargetProps props = default)
