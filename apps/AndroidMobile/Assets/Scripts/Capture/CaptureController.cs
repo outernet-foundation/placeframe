@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
@@ -108,28 +109,30 @@ namespace Placeframe.Client
                         .ObservableSelect(status => status == CaptureUploadStatus.Reconstructing))
                     .Subscribe(onAdd: capture =>
                         Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(0.5))
-                            .SelectAwait(async (_, cancellationToken) => await VisualPositioningSystem.Api.GetReconstructionAsync(App.state.captures[capture.id].reconstruction.value.Id, cancellationToken: cancellationToken))
-                            .OnErrorResumeAsFailure()
+                            .SelectAwait(async (_, cancellationToken) => await PollReconstruction(capture.id, cancellationToken))
+                            .Where(reconstruction => reconstruction != null)
                             .TakeUntil(reconstruction => reconstruction.Status is ReconstructionStatus.Succeeded or ReconstructionStatus.Failed or ReconstructionStatus.Cancelled)
                             .Subscribe(
                                 onNext: reconstruction => App.state.captures[capture.id].reconstruction.value = reconstruction,
-                                onCompleted: result =>
-                                {
-                                    if (result.IsFailure)
-                                    {
-                                        Log.Error(
-                                            LogGroup.Capture,
-                                            result.Exception,
-                                            "Reconstruction poll failed for capture {CaptureId}",
-                                            capture.id
-                                        );
-                                        App.state.captures[capture.id].clientPhase.value = CaptureClientPhase.Failed;
-                                    }
-                                    else
-                                        UpdateCaptureList().Forget();
-                                })
+                                onCompleted: _ => UpdateCaptureList().Forget())
                             .AddTo(_pollSubscriptions))
             );
+        }
+
+        private static async UniTask<ReconstructionReadWithQueue> PollReconstruction(Guid captureId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                return await VisualPositioningSystem.Api.GetReconstructionAsync(
+                    App.state.captures[captureId].reconstruction.value.Id,
+                    cancellationToken: cancellationToken
+                );
+            }
+            catch (HttpRequestException exception)
+            {
+                Log.Info(LogGroup.Capture, exception, "Reconstruction poll transient error for capture {CaptureId}", captureId);
+                return null;
+            }
         }
 
         public static void Shutdown()
