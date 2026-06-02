@@ -697,6 +697,8 @@ namespace Placeframe.Client
                                                                 capture.reconstruction,
                                                                 capture.clientProgress,
                                                                 capture.uploadBytesPerSecond,
+                                                                capture.uploadQueuePosition,
+                                                                capture.uploadQueueDepth,
                                                                 CaptureStatusLabel
                                                             ),
                                                             interactable = capture.status.ObservableSelect(CaptureStatusIsActionable),

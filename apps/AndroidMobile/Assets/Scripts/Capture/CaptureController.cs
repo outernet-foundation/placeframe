@@ -30,6 +30,9 @@ namespace Placeframe.Client
         private static IDisposable _idleRefreshTimerSubscription;
         private static CompositeDisposable _pollSubscriptions = new();
 
+        private static readonly SemaphoreSlim _uploadSemaphore = new SemaphoreSlim(1, 1);
+        private static readonly List<Guid> _uploadOrder = new();
+
         public static void Initialize()
         {
             ZedCaptureController.Initialize();
@@ -168,6 +171,55 @@ namespace Placeframe.Client
             ZedCaptureController.Shutdown();
         }
 
+        public static async UniTask EnqueueUpload(CaptureState capture)
+        {
+            EnterUploadQueue(capture);
+            try
+            {
+                await _uploadSemaphore.WaitAsync().AsUniTask();
+            }
+            finally
+            {
+                LeaveUploadQueue(capture);
+            }
+
+            try
+            {
+                await UIElements.Upload(capture);
+            }
+            finally
+            {
+                _uploadSemaphore.Release();
+            }
+        }
+
+        private static void EnterUploadQueue(CaptureState capture)
+        {
+            _uploadOrder.Add(capture.id);
+            RefreshUploadQueuePositions();
+            capture.clientPhase.value = CaptureClientPhase.Queued;
+        }
+
+        private static void LeaveUploadQueue(CaptureState capture)
+        {
+            _uploadOrder.Remove(capture.id);
+            capture.uploadQueuePosition.value = null;
+            capture.uploadQueueDepth.value = null;
+            RefreshUploadQueuePositions();
+        }
+
+        private static void RefreshUploadQueuePositions()
+        {
+            var depth = _uploadOrder.Count;
+            for (var index = 0; index < _uploadOrder.Count; index++)
+            {
+                if (!App.state.captures.TryGetValue(_uploadOrder[index], out var queued))
+                    continue;
+                queued.uploadQueuePosition.value = index + 1;
+                queued.uploadQueueDepth.value = depth;
+            }
+        }
+
         public static UniTask DeleteCapture(Guid id, DeviceType type)
         {
             switch (type)
@@ -288,7 +340,9 @@ namespace Placeframe.Client
                         var remote = remotes.GetValueOrDefault(id);
                         var primary = remote?.Reconstructions.FirstOrDefault();
                         var hasLocal = locals.TryGetValue(id, out var local);
-                        state.name.value = remote?.CaptureSession.Name ?? _localCaptureNames.GetValueOrDefault(id);
+                        state.name.value = remote?.CaptureSession.Name
+                            ?? _localCaptureNames.GetValueOrDefault(id)
+                            ?? id.ToString();
                         state.hasLocalFiles.value = hasLocal;
                         state.recordedAt.value = remote?.CaptureSession.RecordedAt ?? local.RecordedAt;
                         state.type.value = remote?.CaptureSession.DeviceType ?? local.Type;

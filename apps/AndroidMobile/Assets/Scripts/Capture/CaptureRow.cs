@@ -26,10 +26,17 @@ namespace Placeframe.Client
 {
     public static partial class UIElements
     {
-        public static string CaptureStatusLabel(CaptureUploadStatus status, ReconstructionReadWithQueue reconstruction, float? clientProgress, double? uploadBytesPerSecond) =>
+        public static string CaptureStatusLabel(
+            CaptureUploadStatus status,
+            ReconstructionReadWithQueue reconstruction,
+            float? clientProgress,
+            double? uploadBytesPerSecond,
+            int? uploadQueuePosition,
+            int? uploadQueueDepth) =>
             status switch
             {
                 CaptureUploadStatus.NotUploaded => "Upload",
+                CaptureUploadStatus.Queued => $"Upload Queued{UploadQueuedSuffix(uploadQueuePosition, uploadQueueDepth)}",
                 CaptureUploadStatus.Uploading => "Uploading" + ClientProgressSuffix(clientProgress) + UploadSpeedSuffix(uploadBytesPerSecond),
                 CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
                 CaptureUploadStatus.Reconstructing => ReconstructingPhaseLabel(reconstruction),
@@ -38,6 +45,9 @@ namespace Placeframe.Client
                 CaptureUploadStatus.Failed => "Retry",
                 _ => throw new ArgumentOutOfRangeException(nameof(status), status, null)
             };
+
+        private static string UploadQueuedSuffix(int? position, int? depth) =>
+            position == null || depth == null ? "" : $" [{position}/{depth}]";
 
         private static string ClientProgressSuffix(float? clientProgress) =>
             clientProgress is float p && p >= 0f ? $" {p:0}%" : "";
@@ -56,7 +66,7 @@ namespace Placeframe.Client
             switch (capture.status.value)
             {
                 case CaptureUploadStatus.NotUploaded:
-                    Upload(capture).Forget();
+                    CaptureController.EnqueueUpload(capture).Forget();
                     break;
                 case CaptureUploadStatus.ReconstructionNotStarted:
                     Reconstruct(capture).Forget();
@@ -66,7 +76,7 @@ namespace Placeframe.Client
                     break;
                 case CaptureUploadStatus.Failed:
                     if (!capture.serverCaptureExists.value)
-                        Upload(capture).Forget();
+                        CaptureController.EnqueueUpload(capture).Forget();
                     else if (capture.reconstruction.value == null)
                         Reconstruct(capture).Forget();
                     else if (capture.reconstruction.value?.Status == ReconstructionStatus.Succeeded)
@@ -227,11 +237,11 @@ namespace Placeframe.Client
         private static string ReconstructingPhaseLabel(ReconstructionReadWithQueue reconstruction)
         {
             if (reconstruction == null)
-                return "Queued";
+                return "Reconstruction Queued";
 
             return reconstruction.Status switch
             {
-                ReconstructionStatus.Queued => $"Queued{QueuedSuffix(reconstruction)}",
+                ReconstructionStatus.Queued => $"Reconstruction Queued{QueuedSuffix(reconstruction)}",
                 ReconstructionStatus.ExtractingFeatures => $"Extracting features{ProgressSuffix(reconstruction)}",
                 ReconstructionStatus.MatchingFeatures => $"Matching features{ProgressSuffix(reconstruction)}",
                 ReconstructionStatus.VerifyingGeometry => $"Verifying geometry{ProgressSuffix(reconstruction)}",
@@ -366,6 +376,8 @@ namespace Placeframe.Client
                                     capture.reconstruction,
                                     capture.clientProgress,
                                     capture.uploadBytesPerSecond,
+                                    capture.uploadQueuePosition,
+                                    capture.uploadQueueDepth,
                                     CaptureStatusLabel
                                 ),
                                 interactable = capture.status.ObservableSelect(CaptureStatusIsActionable),
