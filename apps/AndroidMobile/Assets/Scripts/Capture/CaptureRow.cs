@@ -30,6 +30,7 @@ namespace Placeframe.Client
             status switch
             {
                 CaptureUploadStatus.NotUploaded => "Upload",
+                CaptureUploadStatus.Queued => "Queued",
                 CaptureUploadStatus.Uploading => "Uploading" + ClientProgressSuffix(clientProgress) + UploadSpeedSuffix(uploadBytesPerSecond),
                 CaptureUploadStatus.ReconstructionNotStarted => "Reconstruct",
                 CaptureUploadStatus.Reconstructing => ReconstructingPhaseLabel(reconstruction),
@@ -56,7 +57,7 @@ namespace Placeframe.Client
             switch (capture.status.value)
             {
                 case CaptureUploadStatus.NotUploaded:
-                    Upload(capture).Forget();
+                    CaptureController.EnqueueUpload(capture).Forget();
                     break;
                 case CaptureUploadStatus.ReconstructionNotStarted:
                     Reconstruct(capture).Forget();
@@ -66,7 +67,7 @@ namespace Placeframe.Client
                     break;
                 case CaptureUploadStatus.Failed:
                     if (!capture.serverCaptureExists.value)
-                        Upload(capture).Forget();
+                        CaptureController.EnqueueUpload(capture).Forget();
                     else if (capture.reconstruction.value == null)
                         Reconstruct(capture).Forget();
                     else if (capture.reconstruction.value?.Status == ReconstructionStatus.Succeeded)

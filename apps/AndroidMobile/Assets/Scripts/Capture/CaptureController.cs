@@ -30,6 +30,13 @@ namespace Placeframe.Client
         private static IDisposable _idleRefreshTimerSubscription;
         private static CompositeDisposable _pollSubscriptions = new();
 
+        // The AOA bulk endpoint is a single duplex FD; multiplexing N concurrent
+        // uploads over it splits one channel's bandwidth N ways instead of
+        // adding throughput. Serializing uploads at the queue ensures only one
+        // upload owns the box→phone→API pipe at a time and limits the blast
+        // radius of any in-flight disconnect to a single capture.
+        private static readonly SemaphoreSlim _uploadQueue = new SemaphoreSlim(1, 1);
+
         public static void Initialize()
         {
             ZedCaptureController.Initialize();
@@ -166,6 +173,20 @@ namespace Placeframe.Client
             _pollSubscriptions.Dispose();
             LogDrainController.Shutdown();
             ZedCaptureController.Shutdown();
+        }
+
+        public static async UniTask EnqueueUpload(CaptureState capture)
+        {
+            capture.clientPhase.value = CaptureClientPhase.Queued;
+            await _uploadQueue.WaitAsync().AsUniTask();
+            try
+            {
+                await UIElements.Upload(capture);
+            }
+            finally
+            {
+                _uploadQueue.Release();
+            }
         }
 
         public static UniTask DeleteCapture(Guid id, DeviceType type)
