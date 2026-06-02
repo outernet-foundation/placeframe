@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 
 using Cysharp.Threading.Tasks;
 
@@ -10,8 +9,6 @@ using TMPro;
 using FofX.Stateful;
 
 using Nessle;
-
-using Newtonsoft.Json;
 
 using ObserveThing;
 
@@ -59,19 +56,19 @@ namespace Placeframe.Client
             switch (capture.status.value)
             {
                 case CaptureUploadStatus.NotUploaded:
-                    PromptOptionsThen(capture, options => Upload(capture, options).Forget());
+                    Upload(capture).Forget();
                     break;
                 case CaptureUploadStatus.ReconstructionNotStarted:
-                    PromptOptionsThen(capture, options => Reconstruct(capture, options).Forget());
+                    Reconstruct(capture).Forget();
                     break;
                 case CaptureUploadStatus.Uploaded:
                     CreateMap(capture).Forget();
                     break;
                 case CaptureUploadStatus.Failed:
                     if (!capture.serverCaptureExists.value)
-                        PromptOptionsThen(capture, options => Upload(capture, options).Forget());
+                        Upload(capture).Forget();
                     else if (capture.reconstruction.value == null)
-                        PromptOptionsThen(capture, options => Reconstruct(capture, options).Forget());
+                        Reconstruct(capture).Forget();
                     else if (capture.reconstruction.value?.Status == ReconstructionStatus.Succeeded)
                         CreateMap(capture).Forget();
                     else
@@ -82,7 +79,7 @@ namespace Placeframe.Client
 
         private static readonly TimeSpan UploadCheckpointInterval = TimeSpan.FromSeconds(30);
 
-        public static async UniTask Upload(CaptureState capture, ReconstructionOptions reconstructionOptions)
+        public static async UniTask Upload(CaptureState capture)
         {
             var id = capture.id;
             UploadProgress lastProgress = default;
@@ -152,7 +149,7 @@ namespace Placeframe.Client
 
                 capture.serverCaptureExists.value = true;
 
-                var reconstruction = await CreateReconstruction(captureSession.Id, reconstructionOptions);
+                var reconstruction = await CreateReconstruction(captureSession.Id);
                 capture.reconstruction.value = reconstruction;
                 capture.clientPhase.value = CaptureClientPhase.Idle;
                 capture.clientProgress.value = null;
@@ -173,11 +170,11 @@ namespace Placeframe.Client
             }
         }
 
-        public static async UniTask Reconstruct(CaptureState capture, ReconstructionOptions reconstructionOptions)
+        public static async UniTask Reconstruct(CaptureState capture)
         {
             try
             {
-                var reconstruction = await CreateReconstruction(capture.id, reconstructionOptions);
+                var reconstruction = await CreateReconstruction(capture.id);
                 capture.reconstruction.value = reconstruction;
                 capture.clientPhase.value = CaptureClientPhase.Idle;
             }
@@ -223,49 +220,9 @@ namespace Placeframe.Client
             }
         }
 
-        private static UniTask<ReconstructionReadWithQueue> CreateReconstruction(Guid captureId, ReconstructionOptions reconstructionOptions) =>
+        private static UniTask<ReconstructionReadWithQueue> CreateReconstruction(Guid captureId) =>
             VisualPositioningSystem.Api
-                .CreateReconstructionAsync(
-                    new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId))
-                    {
-                        Options = reconstructionOptions,
-                    });
-
-        private static string ReconstructionOptionsCachePath =>
-            Path.Join(Application.persistentDataPath, "reconstructionOptions.json");
-
-        private static ReconstructionOptions LoadReconstructionOptions()
-        {
-            if (!File.Exists(ReconstructionOptionsCachePath))
-                return new ReconstructionOptions();
-
-            var options = new ReconstructionOptions();
-            try
-            {
-                JsonConvert.PopulateObject(File.ReadAllText(ReconstructionOptionsCachePath), options);
-            }
-            catch (Exception exception)
-            {
-                Log.Info(LogGroup.Capture, exception, "Reconstruction options cache unreadable, using defaults path={Path}", ReconstructionOptionsCachePath);
-                return new ReconstructionOptions();
-            }
-            return options;
-        }
-
-        private static void SaveReconstructionOptions(ReconstructionOptions updated) =>
-            File.WriteAllText(ReconstructionOptionsCachePath, JsonConvert.SerializeObject(updated, Formatting.Indented));
-
-        private static void PromptOptionsThen(CaptureState capture, Action<ReconstructionOptions> onConfirmed) =>
-            ReconstructionOptionsDialog(new ReconstructionOptionsDialogProps()
-            {
-                capture = capture,
-                options = LoadReconstructionOptions(),
-                onDialogComplete = updated =>
-                {
-                    SaveReconstructionOptions(updated);
-                    onConfirmed(updated);
-                },
-            });
+                .CreateReconstructionAsync(new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId)));
 
         private static string ReconstructingPhaseLabel(ReconstructionReadWithQueue reconstruction)
         {
