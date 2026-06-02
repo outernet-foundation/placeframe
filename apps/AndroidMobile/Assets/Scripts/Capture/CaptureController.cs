@@ -292,7 +292,9 @@ namespace Placeframe.Client
                         state.hasLocalFiles.value = hasLocal;
                         state.recordedAt.value = remote?.CaptureSession.RecordedAt ?? local.RecordedAt;
                         state.type.value = remote?.CaptureSession.DeviceType ?? local.Type;
-                        state.sessionSizeBytes.value = hasLocal ? local.SizeBytes : null;
+                        state.sessionSizeBytes.value = hasLocal
+                            ? local.SizeBytes
+                            : (long?)remote?.CaptureSession.SizeBytes;
                         state.serverCaptureExists.value = remote != null;
                         state.reconstruction.value = primary?.Reconstruction;
                         state.localizationMapId.value = primary?.LocalizationMapId ?? Guid.Empty;

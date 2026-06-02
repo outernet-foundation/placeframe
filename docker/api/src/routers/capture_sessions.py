@@ -97,7 +97,13 @@ async def create_capture_session(
 
     row = await _create_capture(
         session,
-        CaptureSessionCreate(id=data.id, recorded_at=data.recorded_at, device_type=data.device_type, name=data.name),
+        CaptureSessionCreate(
+            id=data.id,
+            recorded_at=data.recorded_at,
+            size_bytes=None,
+            device_type=data.device_type,
+            name=data.name,
+        ),
         overwrite=False,
     )
     session.add(row)
@@ -112,6 +118,10 @@ async def create_capture_session(
         raise HTTPException(status_code=HTTP_504_GATEWAY_TIMEOUT, detail="Upload failed: storage timeout") from e
     except Exception as e:
         raise InternalServerException(detail="Upload failed") from e
+
+    row.size_bytes = get_storage().head_object_size(BUCKET, f"{row.id}.tar")
+    await session.flush()
+    await session.refresh(row)
 
     return capture_session_to_dto(row)
 

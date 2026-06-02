@@ -24,6 +24,9 @@ class Storage:
     def get_object(self, bucket: str, key: str):
         return self._s3.get_object(Bucket=bucket, Key=key)
 
+    def head_object_size(self, bucket: str, key: str) -> int:
+        return self._s3.head_object(Bucket=bucket, Key=key)["ContentLength"]
+
 
 @lru_cache(maxsize=1)
 def _build_storage() -> Storage:
