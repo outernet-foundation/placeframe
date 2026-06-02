@@ -39,7 +39,8 @@ from pycolmap import (
     sensor_t,
 )
 from pycolmap import Image as pycolmapImage
-from pycolmap._core import apply_rig_config, bundle_adjustment, estimate_two_view_geometry, incremental_mapping  # noqa: PLC2701 — no public API
+from pycolmap._core import apply_rig_config, bundle_adjustment, estimate_two_view_geometry  # noqa: PLC2701 — no public API
+from pycolmap._core import incremental_mapping  # noqa: PLC2701 — no public API  # pyright: ignore[reportUnknownVariableType] — upstream stub uses unparameterized os.PathLike
 from scipy.spatial.transform import Rotation
 
 from .metrics_builder import MetricsBuilder
@@ -76,7 +77,7 @@ def run_colmap_reconstruction(
     position_covariance = (options.pose_prior_position_sigma_m() ** 2) * eye(3, dtype=float64)
 
     # Create COLMAP database
-    database = Database.open(str(colmap_db_path))
+    database = Database.open(str(colmap_db_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
     # Write cameras, images, keypoints, and pose priors to database
     colmap_image_ids: dict[str, int] = {}
     image_cameras: dict[str, ColmapCamera] = {}
@@ -214,7 +215,7 @@ def run_colmap_reconstruction(
     metrics.metrics.truth_alignment_max_residual_m = float(residuals.max())
 
     # Write the best reconstruction to disk in COLMAP format
-    best_reconstruction.write_text(str(output_path))
+    best_reconstruction.write_text(str(output_path))  # pyright: ignore[reportUnknownMemberType] — upstream stub uses unparameterized os.PathLike
 
     # Write point cloud to disk in NPZ format
     point_cloud_point_count = len(best_reconstruction.points3D)

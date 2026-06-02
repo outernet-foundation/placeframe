@@ -56,7 +56,7 @@ def build_localization_metrics(
     camera_frame_points = (rotation_camera_from_world @ points3d_inliers.T).T + translation_camera_from_world[None, :]
 
     # Project 3d inliers into pixel coordinates using the camera model
-    projected_pixel_coordinates = pycolmap_camera.img_from_cam(camera_frame_points)
+    projected_pixel_coordinates = pycolmap_camera.img_from_cam(cam_points=camera_frame_points)
 
     # Compute reprojection residuals for inliers
     residuals: NDArray[float64] = norm(projected_pixel_coordinates - points2d_inliers, axis=1).astype(float64)
