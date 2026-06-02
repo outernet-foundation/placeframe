@@ -104,6 +104,7 @@ namespace Placeframe.Client
     public enum CaptureUploadStatus
     {
         NotUploaded,
+        Queued,
         Uploading,
         ReconstructionNotStarted,
         Reconstructing,
@@ -115,6 +116,7 @@ namespace Placeframe.Client
     public enum CaptureClientPhase
     {
         Idle,
+        Queued,
         Uploading,
         Failed,
     }
@@ -159,6 +161,7 @@ namespace Placeframe.Client
         {
             switch (clientPhase)
             {
+                case CaptureClientPhase.Queued: return CaptureUploadStatus.Queued;
                 case CaptureClientPhase.Uploading: return CaptureUploadStatus.Uploading;
                 case CaptureClientPhase.Failed: return CaptureUploadStatus.Failed;
             }
