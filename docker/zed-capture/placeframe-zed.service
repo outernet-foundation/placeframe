@@ -7,8 +7,8 @@ Wants=nvargus-daemon.service zed_x_daemon.service
 [Service]
 Type=oneshot
 RemainAfterExit=true
-ExecStartPre=/usr/bin/python3 WAIT_FOR_ARGUS_PATH
-ExecStart=/usr/bin/docker compose -f COMPOSE_PATH up -d
+ExecStartPre=/usr/bin/python3 WAIT_FOR_ZED_CAMERA_PATH
+ExecStart=/usr/bin/docker compose -f COMPOSE_PATH up -d --force-recreate
 ExecStop=/usr/bin/docker compose -f COMPOSE_PATH down
 Restart=on-failure
 RestartSec=10s
