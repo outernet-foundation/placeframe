@@ -11,6 +11,11 @@ from common.ui import bail, note
 from .constants import (
     AOA_ALLOY_CONFIG_SOURCE,
     AOA_LOKI_CONFIG_SOURCE,
+    APPLIANCE_BANNER_PATHS,
+    APPLIANCE_BANNER_TEXT,
+    APPLIANCE_DEFAULT_TARGET,
+    APPLIANCE_SYSTEM_UNITS_TO_MASK,
+    APPLIANCE_USER_UNITS_TO_MASK,
     BAKE_FILE,
     BOX_IP,
     BOX_SSH_TARGET,
@@ -114,6 +119,15 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
         logger.info("disabling_usb_device_mode_service", extra={"unit": L4T_USB_DEVICE_MODE_UNIT})
         ssh_check(f"sudo systemctl disable --now {L4T_USB_DEVICE_MODE_UNIT}")
 
+        # Strip the stock JetPack desktop down to a headless appliance. The
+        # GNOME session's volume-monitor probers (gvfs-mtp / gvfs-afc /
+        # gvfs-gphoto2 / udisks2) issue libusb descriptor reads against any
+        # newly-enumerated USB device; against an AOA-mode phone those reads
+        # stall the kernel's 5s USB_CTRL_GET_TIMEOUT, which triggers a
+        # SuperSpeed bus reset that invalidates the phone-side accessory FD
+        # and forces Android to fire a second UsbConfirmActivity dialog.
+        _strip_to_appliance()
+
         # Add the box's hostname to /etc/hosts so sudo doesn't reverse-DNS each call.
         box_hostname = ssh_output("hostname").strip()
         if ssh_check(f"grep -q {box_hostname} /etc/hosts"):
@@ -201,6 +215,32 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
     finally:
         # Close the SSH multiplexer (otherwise it lingers until ControlPersist expires).
         bash_check(f"ssh -o ControlPath={SSH_SOCKET} -O exit {BOX_SSH_TARGET}")
+
+
+def _strip_to_appliance() -> None:
+    current_target = ssh_output("systemctl get-default").strip()
+    if current_target == APPLIANCE_DEFAULT_TARGET:
+        logger.info("appliance_default_target_already_set", extra={"target": current_target})
+    else:
+        logger.info(
+            "setting_appliance_default_target",
+            extra={"from": current_target, "to": APPLIANCE_DEFAULT_TARGET},
+        )
+        ssh_run(f"sudo systemctl set-default {APPLIANCE_DEFAULT_TARGET}")
+
+    logger.info("masking_appliance_system_units", extra={"count": len(APPLIANCE_SYSTEM_UNITS_TO_MASK)})
+    ssh_run(f"sudo systemctl mask --now {' '.join(APPLIANCE_SYSTEM_UNITS_TO_MASK)}")
+
+    logger.info("masking_appliance_user_units", extra={"count": len(APPLIANCE_USER_UNITS_TO_MASK)})
+    ssh_run(f"sudo systemctl --global mask {' '.join(APPLIANCE_USER_UNITS_TO_MASK)}")
+
+    for banner_path in APPLIANCE_BANNER_PATHS:
+        current = ssh_output(f"cat {banner_path}") if ssh_check(f"test -f {banner_path}") else ""
+        if current == APPLIANCE_BANNER_TEXT:
+            logger.info("appliance_banner_present", extra={"path": banner_path})
+        else:
+            logger.info("installing_appliance_banner", extra={"path": banner_path})
+            ssh_run(f"sudo tee {banner_path} > /dev/null", stdin_text=APPLIANCE_BANNER_TEXT)
 
 
 def _claim_box_via_dhcp() -> None:

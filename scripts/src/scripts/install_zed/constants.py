@@ -77,3 +77,47 @@ SUDOERS_RULE = (
 # the box acting as USB host for the phone-as-accessory link. Disabling
 # frees the port for host duty.
 L4T_USB_DEVICE_MODE_UNIT = "nv-l4t-usb-device-mode.service"
+
+APPLIANCE_DEFAULT_TARGET = "multi-user.target"
+
+# System-level units installed by the stock JetPack desktop image that have
+# no role on a placeframe appliance. gdm pulls in the entire GNOME session;
+# fwupd / packagekit / snapd run unsolicited update + probe traffic;
+# geoclue / accounts-daemon / ModemManager / upower are desktop-session
+# auxiliaries; cups / bluetooth / whoopsie / apport / unattended-upgrades are
+# generic Ubuntu defaults a headless box has no business running.
+APPLIANCE_SYSTEM_UNITS_TO_MASK: tuple[str, ...] = (
+    "gdm.service",
+    "fwupd.service",
+    "packagekit.service",
+    "snapd.service",
+    "geoclue.service",
+    "accounts-daemon.service",
+    "ModemManager.service",
+    "upower.service",
+    "cups.service",
+    "cups-browsed.service",
+    "bluetooth.service",
+    "whoopsie.service",
+    "apport.service",
+    "unattended-upgrades.service",
+)
+
+# User-scope units that gnome-session spawns when a desktop user logs in.
+# Masking at --global level keeps them off even if a maintenance user shells
+# in interactively. The gvfs-*-volume-monitor probers were the proximate
+# cause of the AOA dialog-respawn bug — libusb_open + descriptor probes
+# against the AOA-mode phone stalled the kernel into a SuperSpeed reset.
+APPLIANCE_USER_UNITS_TO_MASK: tuple[str, ...] = (
+    "gvfs-udisks2-volume-monitor.service",
+    "gvfs-mtp-volume-monitor.service",
+    "gvfs-afc-volume-monitor.service",
+    "gvfs-gphoto2-volume-monitor.service",
+    "evolution-source-registry.service",
+    "evolution-calendar-factory.service",
+    "evolution-addressbook-factory.service",
+    "gnome-software.service",
+)
+
+APPLIANCE_BANNER_TEXT = "Placeframe ZED Box - managed remotely, see install-zed.\n"
+APPLIANCE_BANNER_PATHS: tuple[str, ...] = ("/etc/issue", "/etc/issue.net", "/etc/motd")
