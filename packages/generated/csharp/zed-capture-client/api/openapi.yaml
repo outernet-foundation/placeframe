@@ -157,17 +157,6 @@ paths:
           format: uuid
           type: string
         style: simple
-      - allowEmptyValue: false
-        allowReserved: false
-        deprecated: false
-        explode: true
-        in: query
-        name: include_svo
-        required: false
-        schema:
-          default: false
-          type: boolean
-        style: form
       responses:
         "200":
           content:
@@ -175,7 +164,33 @@ paths:
               schema:
                 format: binary
                 type: string
-          description: Stream Response
+          description: File Download
+          headers:
+            content-length:
+              deprecated: false
+              description: File size in bytes
+              explode: false
+              required: false
+              schema:
+                type: string
+              style: simple
+            last-modified:
+              deprecated: false
+              description: Last modified data-time in RFC 2822 format
+              explode: false
+              required: false
+              schema:
+                format: date-time
+                type: string
+              style: simple
+            etag:
+              deprecated: false
+              description: Entity tag
+              explode: false
+              required: false
+              schema:
+                type: string
+              style: simple
         "400":
           content:
             application/json:

@@ -360,29 +360,43 @@
             },
             "required": true,
             "deprecated": false
-          },
-          {
-            "name": "include_svo",
-            "in": "query",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "required": false,
-            "deprecated": false,
-            "allowEmptyValue": false,
-            "allowReserved": false
           }
         ],
         "responses": {
           "200": {
-            "description": "Stream Response",
-            "headers": {},
+            "description": "File Download",
+            "headers": {
+              "content-length": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "File size in bytes",
+                "required": false,
+                "deprecated": false
+              },
+              "last-modified": {
+                "schema": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "description": "Last modified data-time in RFC 2822 format",
+                "required": false,
+                "deprecated": false
+              },
+              "etag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Entity tag",
+                "required": false,
+                "deprecated": false
+              }
+            },
             "content": {
               "application/x-tar": {
                 "schema": {
-                  "format": "binary",
-                  "type": "string"
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }

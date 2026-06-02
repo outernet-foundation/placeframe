@@ -67,9 +67,8 @@ namespace PlaceframeZedCaptureClient.Api
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <returns>FileParameter</returns>
-        FileParameter DownloadCaptureSessionTar(Guid id, bool? includeSvo = default);
+        FileParameter DownloadCaptureSessionTar(Guid id);
 
         /// <summary>
         /// DownloadCaptureSessionTar
@@ -79,9 +78,8 @@ namespace PlaceframeZedCaptureClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <returns>ApiResponse of FileParameter</returns>
-        ApiResponse<FileParameter> DownloadCaptureSessionTarWithHttpInfo(Guid id, bool? includeSvo = default);
+        ApiResponse<FileParameter> DownloadCaptureSessionTarWithHttpInfo(Guid id);
         /// <summary>
         /// GetCaptureSessions
         /// </summary>
@@ -231,10 +229,9 @@ namespace PlaceframeZedCaptureClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FileParameter</returns>
-        Cysharp.Threading.Tasks.UniTask<FileParameter> DownloadCaptureSessionTarAsync(Guid id, bool? includeSvo = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<FileParameter> DownloadCaptureSessionTarAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// DownloadCaptureSessionTar
@@ -244,10 +241,9 @@ namespace PlaceframeZedCaptureClient.Api
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<FileParameter>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, bool? includeSvo = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<FileParameter>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// GetCaptureSessions
         /// </summary>
@@ -781,11 +777,10 @@ namespace PlaceframeZedCaptureClient.Api
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <returns>FileParameter</returns>
-        public FileParameter DownloadCaptureSessionTar(Guid id, bool? includeSvo = default)
+        public FileParameter DownloadCaptureSessionTar(Guid id)
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter> localVarResponse = DownloadCaptureSessionTarWithHttpInfo(id, includeSvo);
+            PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter> localVarResponse = DownloadCaptureSessionTarWithHttpInfo(id);
             return localVarResponse.Data;
         }
 
@@ -794,9 +789,8 @@ namespace PlaceframeZedCaptureClient.Api
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <returns>ApiResponse of FileParameter</returns>
-        public PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter> DownloadCaptureSessionTarWithHttpInfo(Guid id, bool? includeSvo = default)
+        public PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter> DownloadCaptureSessionTarWithHttpInfo(Guid id)
         {
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
 
@@ -816,10 +810,6 @@ namespace PlaceframeZedCaptureClient.Api
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
             localVarRequestOptions.PathParameters.Add("id", PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-            if (includeSvo != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "include_svo", includeSvo));
-            }
 
 
             // make the HTTP request
@@ -839,12 +829,11 @@ namespace PlaceframeZedCaptureClient.Api
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of FileParameter</returns>
-        public async Cysharp.Threading.Tasks.UniTask<FileParameter> DownloadCaptureSessionTarAsync(Guid id, bool? includeSvo = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<FileParameter> DownloadCaptureSessionTarAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter> localVarResponse = await DownloadCaptureSessionTarWithHttpInfoAsync(id, includeSvo, cancellationToken);
+            PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter> localVarResponse = await DownloadCaptureSessionTarWithHttpInfoAsync(id, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -853,10 +842,9 @@ namespace PlaceframeZedCaptureClient.Api
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
         /// <param name="id"></param>
-        /// <param name="includeSvo"> (optional, default to false)</param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (FileParameter)</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, bool? includeSvo = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<FileParameter>> DownloadCaptureSessionTarWithHttpInfoAsync(Guid id, System.Threading.CancellationToken cancellationToken = default)
         {
 
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
@@ -878,10 +866,6 @@ namespace PlaceframeZedCaptureClient.Api
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
             localVarRequestOptions.PathParameters.Add("id", PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToString(id)); // path parameter
-            if (includeSvo != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "include_svo", includeSvo));
-            }
 
 
             // make the HTTP request
