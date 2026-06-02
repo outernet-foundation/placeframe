@@ -82,8 +82,8 @@ def _validate_temporal_coverage(tf: tarfile.TarFile, capture_interval_seconds: f
 class CaptureSessionUploadRequest(MultipartRequestModel):
     device_type: DeviceType
     data: UploadFile
+    name: str
     id: UUID | None = None
-    name: str | None = None
     recorded_at: AwareDatetime | None = None
 
 
