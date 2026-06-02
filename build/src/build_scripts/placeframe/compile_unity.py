@@ -9,11 +9,7 @@ from .unity import prepare_unity_project, resolve_unity_build, unity_batchmode_c
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 
-@app.command()
-def compile_unity(
-    project: Annotated[str, typer.Option(help="Unity project name from unity-projects.json")],
-    build: Annotated[str, typer.Option(help="Build target from the project's builds list (e.g. android-mobile)")],
-) -> None:
+def build_unity_project(project: str, build: str) -> list[Path]:
     project_path, build_flag, execute_method = resolve_unity_build(project, build)
     prepare_unity_project(project_path)
 
@@ -24,7 +20,7 @@ def compile_unity(
         f"{unity_batchmode_command(project_path)} {build_flag} -executeMethod {execute_method} -logFile /dev/stdout"
     )
     if not bash_check_stream(command):
-        raise typer.Exit(code=1)
+        raise SystemExit(1)
 
     after = snapshot_artifacts(build_directory)
     produced = sorted(path for path, modification_time in after.items() if before.get(path) != modification_time)
@@ -34,7 +30,15 @@ def compile_unity(
             "the incremental build served a stale artifact. Delete the existing "
             "output under Build/ and the project's Library/Bee/.../build/ tree, then retry."
         )
-    for artifact in produced:
+    return produced
+
+
+@app.command()
+def compile_unity(
+    project: Annotated[str, typer.Option(help="Unity project name from unity-projects.json")],
+    build: Annotated[str, typer.Option(help="Build target from the project's builds list (e.g. android-mobile)")],
+) -> None:
+    for artifact in build_unity_project(project, build):
         print(f"Built: {artifact}")
 
 
