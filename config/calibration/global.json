@@ -15,7 +15,6 @@
       "log_map_image_count": 0.0,
       "log_map_point_count": 0.0,
       "map_avg_track_length": 0.0,
-      "log_map_bounding_volume_m3": 0.0,
       "map_viewpoint_diversity": 0.0
     },
     "logistic_intercept": -5.5,
@@ -32,7 +31,6 @@
       "log_map_image_count": 0.0,
       "log_map_point_count": 0.0,
       "map_avg_track_length": 0.0,
-      "log_map_bounding_volume_m3": 0.0,
       "map_viewpoint_diversity": 0.0
     },
     "logistic_intercept": -5.5,
