@@ -41,7 +41,7 @@ namespace Placeframe.Core
             Directory.CreateDirectory(Path.Combine(sessionDirectory, "rig0", "camera0"));
 
             _poseWriter = new StreamWriter(Path.Combine(sessionDirectory, "rig0", "frames.csv")) { AutoFlush = true };
-            _poseWriter.WriteLine("timestamp,tx,ty,tz,qx,qy,qz,qw");
+            _poseWriter.WriteLine("timestamp_ms,tx,ty,tz,qx,qy,qz,qw");
 
             var cameraConfigObservable = _cameraProvider
                 // Get camera configuration asynchronously
