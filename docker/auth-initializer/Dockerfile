@@ -38,4 +38,6 @@ RUN uv pip check
 # Copy the entrypoint and make it executable
 COPY --chmod=0755 docker/auth-initializer/entrypoint.sh /usr/local/bin/entrypoint.sh
 
+COPY docker/auth-initializer/realm-export /templates
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

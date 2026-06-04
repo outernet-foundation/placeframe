@@ -1,9 +1,8 @@
 import os
-from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
-from common.bash import bash, bash_handoff
+from common.bash import bash_handoff
 from common.detect_gpu import Gpu, detect_gpu
 
 from .build_docker import run_build
@@ -11,7 +10,6 @@ from .context_sha import compute_service_shas
 
 ENV_FILE = Path(".env")
 LOCK_FILE = Path(".env.lock")
-LOG_DIRECTORY = Path(".placeframe") / "logs"
 
 
 def _resolve_service_shas() -> None:
@@ -28,7 +26,7 @@ def up(
         False,
         "--quiet-pull",
         "-q",
-        help="Send pull progress to a log file under .placeframe/logs/ instead of the console",
+        help="Suppress per-layer pull progress (still shows pull/push totals).",
     ),
     build: bool = typer.Option(
         False, "--build", help="Build all images locally before bringing the stack up; skips pulling"
@@ -52,16 +50,15 @@ def up(
     gpu_file = f"-f compose.{gpu}.yml " if gpu != "none" else ""
     compose_args = f"-f compose.yml {gpu_file}--env-file .env --env-file {LOCK_FILE}"
 
-    if not build:
-        if quiet_pull:
-            timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
-            log_path = LOG_DIRECTORY / f"up-pull-{timestamp}.log"
-            print(f"Pulling images → {log_path}")
-            bash(f"docker compose --progress plain {compose_args} pull", log_path=log_path)
-        else:
-            bash(f"docker compose {compose_args} pull")
-
     up_command = f"docker compose {compose_args} up"
+    if not build:
+        # tree-<sha> tags are immutable (derived from dockerignore-allowlisted
+        # context), so a local hit is byte-identical to what the registry would
+        # serve. --pull missing skips locally-present tags, avoiding hard errors
+        # on images built locally but not yet pushed.
+        up_command += " --pull missing"
+        if quiet_pull:
+            up_command += " --quiet-pull"
     if not attached:
         up_command += " -d"
 

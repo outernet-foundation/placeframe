@@ -13,11 +13,6 @@ volumes:
   loki_data:
 
 
-configs:
-  localizer-calibration-global:
-    file: ./config/calibration/global.json
-
-
 services:
   minio:
     x-image-ref: docker.io/minio/minio:latest
@@ -128,7 +123,6 @@ services:
     volumes:
       - auth_data:/auth_data
       - keycloak_import:/keycloak_import
-      - ./docker/keycloak/realm-export:/templates:ro
 
   keycloak:
     x-image-ref: quay.io/keycloak/keycloak:26.3.5
@@ -283,13 +277,11 @@ services:
       PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
 
   loki:
-    x-image-ref: grafana/loki:3.5.0
-    image: "${LOKI_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA:?err}"
     depends_on:
       initialize-minio:
         condition: service_completed_successfully
     volumes:
-      - ./docker/loki/config.yaml:/etc/loki/config.yaml:ro
       - loki_data:/loki
     command: -config.file=/etc/loki/config.yaml -config.expand-env=true
     healthcheck:
@@ -303,26 +295,21 @@ services:
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
 
   alloy:
-    x-image-ref: grafana/alloy:v1.9.0
-    image: "${ALLOY_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/alloy:${ALLOY_SHA:?err}"
     depends_on:
       loki:
         condition: service_healthy
     volumes:
-      - ./docker/alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock
     command: run /etc/alloy/config.alloy
 
   grafana:
-    x-image-ref: grafana/grafana:11.6.0
-    image: "${GRAFANA_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/grafana:${GRAFANA_SHA:?err}"
     depends_on:
       loki:
         condition: service_healthy
     ports:
       - "${GRAFANA_PORT:?err}:3000"
-    volumes:
-      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--output-document=-", "http://localhost:3000/grafana/api/health" ]
       interval: 5s

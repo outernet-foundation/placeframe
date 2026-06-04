@@ -7,6 +7,7 @@ import typer
 from common.bash import bash, bash_output
 
 from ...shared.ci_step import ci_step
+from ..context_sha import compute_service_shas
 from ..lock_python import lock_python
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
@@ -30,6 +31,10 @@ def main() -> None:
             DATABASE_SCHEMA_DIR="database",
             ALLOWED_HAZARDS="HAS_UNTRACKABLE_DEPENDENCIES",
         )
+        os.environ.update(compute_service_shas(Path.cwd(), Path("compose.bake.yml")))
+        # Build the postgres wrapper locally so the image tag in compose.postgres.yml resolves
+        # without needing a registry push first.
+        bash("docker compose -f compose.bake.yml --env-file .env.lock build postgres")
         # Kill any leftover containers to avoid port collisions on shared runners
         bash("docker compose --env-file .env.lock -f compose.postgres.yml down --volumes --remove-orphans")
         bash("docker compose --env-file .env.lock -f compose.postgres.yml up -d --wait")

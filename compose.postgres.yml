@@ -3,15 +3,13 @@ volumes:
 
 services:
   postgres:
-    x-image-ref: docker.io/postgis/postgis:16-3.4-alpine
-    image: "${POSTGRES_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/postgres:${POSTGRES_SHA:?err}"
     ports:
       - "55432:5432"
     expose:
       - "5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/postgres/entrypoint-wrapper.sh:/usr/local/bin/entrypoint-wrapper.sh:ro
     entrypoint: /usr/local/bin/entrypoint-wrapper.sh
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -q -h localhost -p 5432 -U $${POSTGRES_USER} -d postgres" ]

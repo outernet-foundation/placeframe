@@ -34,10 +34,6 @@ services:
     group_add:
       - 44
       - 110
-    configs:
-      - source: localizer-calibration-global
-        target: /etc/placeframe/calibration/global.json
-        mode: 0444
     environment:
       MINIO_ENDPOINT_URL: "http://minio:9000"
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"

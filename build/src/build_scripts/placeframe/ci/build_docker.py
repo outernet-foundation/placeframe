@@ -44,12 +44,17 @@ def ci_main(variant: Variant = typer.Option(help="Build variant: common, cuda, o
         [f"localizer-{variant}", f"reconstructor-{variant}"]
         if variant != "common"
         else [
+            "alloy",
             "api",
             "auth-initializer",
             "create-database",
+            "database-migrator",
             "gateway",
+            "grafana",
             "initialize-cloudbeaver",
-            "migrate-database",
+            "lease-server",
+            "loki",
+            "postgres",
             "state-sync",
         ]
     )
