@@ -63,9 +63,11 @@ namespace Outernet.Logging
                 throw new ObjectDisposedException(nameof(LokiSink));
             if (_httpClient != null)
                 throw new InvalidOperationException("Enable has already been called");
+            if (!Uri.TryCreate(apiUrl, UriKind.Absolute, out var baseUri))
+                throw new ArgumentException($"apiUrl must be an absolute URI, got: '{apiUrl ?? "<null>"}'", nameof(apiUrl));
 
             _httpClient = new HttpClient(new HttpClientHandler());
-            _pushUrl = $"{apiUrl}/loki/api/v1/push";
+            _pushUrl = new Uri(baseUri, "/loki/api/v1/push").AbsoluteUri;
             _tokenProvider = tokenProvider;
 
             UniTask.RunOnThreadPool(DrainLoop).Forget();

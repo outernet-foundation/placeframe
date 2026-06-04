@@ -41,7 +41,19 @@ namespace Outernet.Logging
             global::Serilog.Debugging.SelfLog.Enable(
                 error =>
                 {
-                    defaultUnityLogHandler.LogFormat(LogType.Error, null, error);
+                    // Guard against the SelfLog → defaultUnityLogHandler → Application.logMessageReceived
+                    // → UnityLogMessageReceived → Serilog → LokiSink.Emit feedback loop. Without this,
+                    // a sustained sink fault (LokiSink emits via SelfLog on every drain failure) keeps
+                    // re-queuing its own error message and the queue grows unboundedly.
+                    emittingToUnity = true;
+                    try
+                    {
+                        defaultUnityLogHandler.LogFormat(LogType.Error, null, error);
+                    }
+                    finally
+                    {
+                        emittingToUnity = false;
+                    }
                 });
 
             Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
