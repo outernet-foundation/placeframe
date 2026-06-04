@@ -451,116 +451,6 @@ paths:
       summary: GetCaptureSessionRigConfig
       tags:
       - Default
-  /internal/leases/request:
-    post:
-      deprecated: false
-      operationId: request_lease
-      responses:
-        "201":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LeaseResponse"
-          description: "Document created, URL follows"
-      summary: RequestLease
-      tags:
-      - Default
-  /internal/leases/{id}/progress:
-    put:
-      deprecated: false
-      operationId: update_progress
-      parameters:
-      - deprecated: false
-        explode: false
-        in: path
-        name: id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ProgressUpdate"
-        required: true
-      responses:
-        "200":
-          description: "Request fulfilled, document follows"
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/get_capture_sessions_400_response"
-          description: Bad request syntax or unsupported method
-      summary: UpdateProgress
-      tags:
-      - Default
-  /internal/leases/{id}/succeed:
-    put:
-      deprecated: false
-      operationId: succeed_lease
-      parameters:
-      - deprecated: false
-        explode: false
-        in: path
-        name: id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ReconstructionMetrics"
-        required: true
-      responses:
-        "200":
-          description: "Request fulfilled, document follows"
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/get_capture_sessions_400_response"
-          description: Bad request syntax or unsupported method
-      summary: SucceedLease
-      tags:
-      - Default
-  /internal/leases/{id}/fail:
-    put:
-      deprecated: false
-      operationId: fail_lease
-      parameters:
-      - deprecated: false
-        explode: false
-        in: path
-        name: id
-        required: true
-        schema:
-          format: uuid
-          type: string
-        style: simple
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/FailLeaseRequest"
-        required: true
-      responses:
-        "200":
-          description: "Request fulfilled, document follows"
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/get_capture_sessions_400_response"
-          description: Bad request syntax or unsupported method
-      summary: FailLease
-      tags:
-      - Default
   /reconstructions:
     get:
       deprecated: false
@@ -852,6 +742,36 @@ paths:
                 $ref: "#/components/schemas/get_capture_sessions_400_response"
           description: Bad request syntax or unsupported method
       summary: GetReconstructionFramePoses
+      tags:
+      - Default
+  /reconstructions/{id}/metrics:
+    get:
+      deprecated: false
+      operationId: get_reconstruction_metrics
+      parameters:
+      - deprecated: false
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconstructionMetrics"
+          description: "Request fulfilled, document follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: GetReconstructionMetrics
       tags:
       - Default
   /localization-maps:
@@ -2424,44 +2344,6 @@ components:
       - reconstruction
       title: ExpandedReconstruction
       type: object
-    FailLeaseRequest:
-      example:
-        metrics:
-          pipeline_version: pipeline_version
-          phase_timings:
-          - phase: phase
-            duration_seconds: 4.965218492984954
-          - phase: phase
-            duration_seconds: 4.965218492984954
-          all_verified_match_inliers_median: 7.061401241503109
-          reprojection_pixel_error_50th_percentile: 0.8008281904610115
-          stereo_verified_match_rate: 3.616076749251911
-          all_verified_match_inliers_mean: 2.3021358869347655
-          prior_drift_residual_rms_m: 7.457744773683766
-          gravity_sample_count: 6
-          map_image_count: 7
-          track_length_50th_percentile: 1.4658129805029452
-          all_verified_match_rate: 5.637376656633329
-          stereo_verified_match_inliers_median: 4.145608029883936
-          prior_drift_residual_max_m: 1.1730742509559433
-          all_verified_matches: 5
-          reprojection_pixel_error_90th_percentile: 6.027456183070403
-          stereo_verified_matches: 9
-          map_point_count: 1
-          gravity_aligned_in_map_frame: true
-          map_viewpoint_diversity: 1.4894159098541704
-          stereo_verified_match_inliers_mean: 2.027123023002322
-          map_avg_track_length: 1.0246457001441578
-        error: error
-      properties:
-        error:
-          type: string
-        metrics:
-          $ref: "#/components/schemas/ReconstructionMetrics"
-      required:
-      - error
-      title: FailLeaseRequest
-      type: object
     Float3:
       example:
         x: 5.637376656633329
@@ -2690,46 +2572,6 @@ components:
       - name
       - updated_at
       title: LayerRead
-      type: object
-    LeaseResponse:
-      example:
-        capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-        options:
-          ransac_max_error: 2.3021358869347655
-          pair_vio_em_max_rotation_disagreement_deg: 1.0246457001441578
-          ransac_min_inlier_ratio: 7.061401241503109
-          held_out_frame_timestamps:
-          - 1
-          - 1
-          bundle_adjustment_global_function_tolerance: 7.386281948385884
-          pair_vio_em_max_translation_direction_deg: 1.4894159098541704
-          retrieval_min_score: 5.637376656633329
-          pose_prior_position_sigma_m: 1.2315135367772556
-          deterministic_seed: 0
-          retrieval_neighbors: 5
-          pair_vio_em_min_baseline_m: 6.84685269835264
-          max_keypoints_per_image: 7
-          mapper_filter_max_reprojection_error: 2.027123023002322
-          keyframe_min_distance_m: 6.027456183070403
-          triangulation_minimum_angle: 3.616076749251911
-          bundle_adjustment_global_frames_ratio: 4.145608029883936
-          two_view_min_num_inliers: 9
-          sequential_window_m: 1.4658129805029452
-        reconstruction_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
-      properties:
-        reconstruction_id:
-          format: uuid
-          type: string
-        capture_session_id:
-          format: uuid
-          type: string
-        options:
-          $ref: "#/components/schemas/ReconstructionOptions"
-      required:
-      - capture_session_id
-      - options
-      - reconstruction_id
-      title: LeaseResponse
       type: object
     LinkType:
       enum:
@@ -3997,32 +3839,6 @@ components:
       - orientation
       - width
       title: PinholeCameraConfig
-      type: object
-    ProgressUpdate:
-      example:
-        progress_attempt: 1
-        progress_current: 0
-        progress_total: 6
-        error: error
-        status: queued
-      properties:
-        status:
-          $ref: "#/components/schemas/ReconstructionStatus"
-        progress_current:
-          nullable: true
-          type: integer
-        progress_total:
-          nullable: true
-          type: integer
-        progress_attempt:
-          nullable: true
-          type: integer
-        error:
-          nullable: true
-          type: string
-      required:
-      - status
-      title: ProgressUpdate
       type: object
     ReconstructionCreate:
       example:

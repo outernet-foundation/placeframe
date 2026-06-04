@@ -1,0 +1,621 @@
+{
+  "info": {
+    "title": "Placeframe Lease Server",
+    "version": "0.1.0"
+  },
+  "openapi": "3.0.3",
+  "servers": [
+    {
+      "url": "http://lease-server:8000"
+    }
+  ],
+  "paths": {
+    "/leases/request": {
+      "post": {
+        "tags": [
+          "Leases"
+        ],
+        "summary": "RequestLease",
+        "operationId": "request_lease",
+        "responses": {
+          "201": {
+            "description": "Document created, URL follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaseResponse"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/leases/{id}/progress": {
+      "put": {
+        "tags": [
+          "Leases"
+        ],
+        "summary": "UpdateProgress",
+        "operationId": "update_progress",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgressUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/leases/{id}/succeed": {
+      "put": {
+        "tags": [
+          "Leases"
+        ],
+        "summary": "SucceedLease",
+        "operationId": "succeed_lease",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconstructionMetrics"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/leases/{id}/fail": {
+      "put": {
+        "tags": [
+          "Leases"
+        ],
+        "summary": "FailLease",
+        "operationId": "fail_lease",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FailLeaseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {}
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "FailLeaseRequest": {
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "metrics": {
+            "nullable": true,
+            "$ref": "#/components/schemas/ReconstructionMetrics"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "FailLeaseRequest"
+      },
+      "LeaseResponse": {
+        "properties": {
+          "reconstruction_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "capture_session_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "options": {
+            "$ref": "#/components/schemas/ReconstructionOptions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "capture_session_id",
+          "options",
+          "reconstruction_id"
+        ],
+        "title": "LeaseResponse"
+      },
+      "PhaseTiming": {
+        "properties": {
+          "phase": {
+            "type": "string",
+            "description": "ReconstructionStatus value of the phase, e.g. 'extracting_features'."
+          },
+          "duration_seconds": {
+            "type": "number",
+            "format": "double",
+            "description": "Wall-clock seconds the phase spent in-flight."
+          }
+        },
+        "type": "object",
+        "required": [
+          "duration_seconds",
+          "phase"
+        ],
+        "title": "PhaseTiming"
+      },
+      "ProgressUpdate": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ReconstructionStatus"
+          },
+          "progress_current": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "progress_total": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "progress_attempt": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "error": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "ProgressUpdate"
+      },
+      "ReconstructionMetrics": {
+        "properties": {
+          "reprojection_pixel_error_50th_percentile": {
+            "description": "Median reprojection error in pixels across all valid 2D observations in registered images.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "reprojection_pixel_error_90th_percentile": {
+            "description": "90th percentile reprojection error in pixels across all valid 2D observations.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "track_length_50th_percentile": {
+            "description": "Median number of distinct images observing each 3D point.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "all_verified_matches": {
+            "description": "Total number of verified matches across all image pairs.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "all_verified_match_rate": {
+            "description": "Percentage of image pairs that passed two-view geometry verification.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "all_verified_match_inliers_mean": {
+            "description": "Mean inlier count among verified image pairs.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "all_verified_match_inliers_median": {
+            "description": "Median inlier count among verified image pairs.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "stereo_verified_matches": {
+            "description": "Number of verified stereo pairs (same frame, different sensors).",
+            "nullable": true,
+            "type": "integer"
+          },
+          "stereo_verified_match_rate": {
+            "description": "Percentage of stereo pairs that passed verification.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "stereo_verified_match_inliers_mean": {
+            "description": "Mean inlier count among verified stereo pairs.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "stereo_verified_match_inliers_median": {
+            "description": "Median inlier count among verified stereo pairs.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "map_image_count": {
+            "description": "Number of registered images in the reconstruction.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "map_point_count": {
+            "description": "Number of triangulated 3D points in the reconstruction.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "map_avg_track_length": {
+            "description": "Mean number of image observations per 3D point.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "map_viewpoint_diversity": {
+            "description": "1 minus the magnitude of the mean unit viewing direction across registered cameras; 0 means uniform direction, approaches 1 as viewpoints spread.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "gravity_aligned_in_map_frame": {
+            "description": "True when per-frame gravity samples aligned the map's vertical axis; False when no samples were available and only origin-shift was applied.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "gravity_sample_count": {
+            "description": "Number of registered frames that contributed gravity samples to the map-frame alignment.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "prior_drift_residual_rms_m": {
+            "description": "RMS residual in meters of a rigid Umeyama fit from map camera centers to VIO position priors; None for multi-camera captures, which run priors-off and carry no per-frame positions.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "prior_drift_residual_max_m": {
+            "description": "Maximum residual in meters of the same Umeyama fit; surfaces single-frame outliers the RMS smooths over.",
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          },
+          "phase_timings": {
+            "description": "Per-phase wall-clock durations in execution order, captured at each set_phase boundary.",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/PhaseTiming"
+            },
+            "type": "array"
+          },
+          "pipeline_version": {
+            "description": "RECONSTRUCTOR_SHA of the image that produced this reconstruction.",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [],
+        "title": "ReconstructionMetrics"
+      },
+      "ReconstructionOptions": {
+        "properties": {
+          "deterministic_seed": {
+            "description": "PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "keyframe_min_distance_m": {
+            "type": "number",
+            "format": "double",
+            "description": "Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.",
+            "default": 0.2
+          },
+          "sequential_window_m": {
+            "type": "number",
+            "format": "double",
+            "description": "VIO-path-distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe whose cumulative segment-by-segment path length along the VIO trajectory is within this many metres is paired with it. Path distance \u2014 not straight-line distance \u2014 so doubling back along the trajectory (e.g. corridor return pass) walks away from earlier frames rather than landing on them. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc.",
+            "default": 3.0
+          },
+          "retrieval_neighbors": {
+            "type": "integer",
+            "description": "Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.",
+            "default": 20
+          },
+          "retrieval_min_score": {
+            "type": "number",
+            "format": "double",
+            "description": "Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.",
+            "default": 0.35
+          },
+          "ransac_max_error": {
+            "type": "number",
+            "format": "double",
+            "description": "Two-view RANSAC inlier threshold in pixels; lower is stricter.",
+            "default": 2.0
+          },
+          "ransac_min_inlier_ratio": {
+            "type": "number",
+            "format": "double",
+            "description": "Two-view RANSAC minimum inlier ratio to accept a pair's geometry.",
+            "default": 0.25
+          },
+          "two_view_min_num_inliers": {
+            "type": "integer",
+            "description": "Absolute minimum inlier count for a verified two-view geometry, applied alongside ransac_min_inlier_ratio. Raised above pycolmap's SIFT-era default of 15 to reject small false-positive clusters on repetitive structure.",
+            "default": 30
+          },
+          "triangulation_minimum_angle": {
+            "type": "number",
+            "format": "double",
+            "description": "Minimum triangulation angle in degrees; applied at creation time and again in mapper filtering.",
+            "default": 3.0
+          },
+          "mapper_filter_max_reprojection_error": {
+            "type": "number",
+            "format": "double",
+            "description": "Post-BA outlier reprojection threshold in pixels; points exceeding it are culled.",
+            "default": 2.0
+          },
+          "bundle_adjustment_global_frames_ratio": {
+            "type": "number",
+            "format": "double",
+            "description": "Frame-count growth ratio that triggers a global BA event; larger = fewer events.",
+            "default": 1.5
+          },
+          "bundle_adjustment_global_function_tolerance": {
+            "type": "number",
+            "format": "double",
+            "description": "Ceres function tolerance for global BA exit; larger = earlier exit on residual plateaus.",
+            "default": 0.001
+          },
+          "pose_prior_position_sigma_m": {
+            "type": "number",
+            "format": "double",
+            "description": "Standard deviation in meters for the position prior covariance; consumed only by monocular captures (multi-camera captures run priors-off).",
+            "default": 0.05
+          },
+          "pair_vio_em_max_rotation_disagreement_deg": {
+            "type": "number",
+            "format": "double",
+            "description": "At two-view verification time, every sequential pair whose VIO poses carry rotation has its essential-matrix relative pose compared against the VIO-implied relative pose. The pair is rejected (its two-view geometry deleted from the database) when the angle between the two rotations exceeds this threshold. Sequential-only because retrieval pairs span genuine loop closures where VIO drift can disagree with the essential matrix legitimately, and intra-frame stereo is already validated by the rig constraint. 0 disables. Applied only to pairs with 7-column VIO rows (quaternion present).",
+            "default": 25.0
+          },
+          "pair_vio_em_max_translation_direction_deg": {
+            "type": "number",
+            "format": "double",
+            "description": "Companion to pair_vio_em_max_rotation_disagreement_deg: bounds the angle between the essential-matrix translation direction (camera-1 origin direction in camera-2) and the VIO-implied translation direction for the same camera pair. Skipped when the essential-matrix baseline is below pair_vio_em_min_baseline_m, where translation direction is ill-conditioned. 0 disables.",
+            "default": 60.0
+          },
+          "pair_vio_em_min_baseline_m": {
+            "type": "number",
+            "format": "double",
+            "description": "Essential-matrix-baseline floor below which the VIO-vs-essential-matrix translation-direction component is skipped. Near-co-located camera pairs (intra-rig stereo timing jitter, hover frames in slow motion) have ill-defined essential-matrix translation direction; the rotation component still applies.",
+            "default": 0.3
+          },
+          "max_keypoints_per_image": {
+            "type": "integer",
+            "description": "Maximum ALIKED keypoints retained per image.",
+            "default": 2500
+          },
+          "held_out_frame_timestamps": {
+            "description": "Frame timestamps (ms) to exclude from this reconstruction so they can later be localized as held-out queries.",
+            "nullable": true,
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object",
+        "required": [],
+        "title": "ReconstructionOptions"
+      },
+      "ReconstructionStatus": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "extracting_features",
+          "matching_features",
+          "training_opq_matrix",
+          "training_product_quantizer",
+          "verifying_geometry",
+          "verifying_rig_geometry",
+          "reconstructing",
+          "succeeded",
+          "failed",
+          "cancelled"
+        ],
+        "title": "ReconstructionStatus"
+      }
+    }
+  }
+}
