@@ -1,8 +1,5 @@
 name: placeframe
 
-include:
-  - compose.postgres.yml
-
 volumes:
   uv_cache:
   minio_data:
@@ -18,7 +15,10 @@ services:
     x-image-ref: docker.io/minio/minio:latest
     image: "${MINIO_IMAGE:?err}"
     ports:
-      - "${MINIO_CONSOLE_PORT:?err}:9001"
+      - target: 9001
+        published: "${MINIO_CONSOLE_PORT:?err}"
+        protocol: tcp
+        mode: ingress
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
@@ -86,7 +86,10 @@ services:
       create-database:
         condition: service_completed_successfully
     ports:
-      - "${CLOUDBEAVER_PORT:?err}:8978"
+      - target: 8978
+        published: "${CLOUDBEAVER_PORT:?err}"
+        protocol: tcp
+        mode: ingress
     volumes:
       - cloudbeaver_data:/opt/cloudbeaver/workspace
     environment:
@@ -165,7 +168,10 @@ services:
       - keycloak
       - api
     ports:
-      - "${GATEWAY_PORT:?err}:8443"
+      - target: 8443
+        published: "${GATEWAY_PORT:?err}"
+        protocol: tcp
+        mode: ingress
     environment:
       PUBLIC_PORT: "${GATEWAY_PORT:?err}"
       PUBLIC_DOMAIN: "${PUBLIC_DOMAIN:?err}"
@@ -311,7 +317,10 @@ services:
       loki:
         condition: service_healthy
     ports:
-      - "${GRAFANA_PORT:?err}:3000"
+      - target: 3000
+        published: "${GRAFANA_PORT:?err}"
+        protocol: tcp
+        mode: ingress
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--output-document=-", "http://localhost:3000/grafana/api/health" ]
       interval: 5s

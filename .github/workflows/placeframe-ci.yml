@@ -97,6 +97,11 @@ jobs:
 
       - uses: ./.github/actions/setup-uv
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -203,8 +208,33 @@ jobs:
           path: .env.lock
           include-hidden-files: true
 
+  publish-compose:
+    needs: [build-docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [cuda, rocm]
+    name: publish-compose (${{ matrix.variant }})
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - uses: ./.github/actions/setup-uv
+
+      - name: Publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+        run: uv run --no-sync publish-compose --variant ${{ matrix.variant }}
+
   ensure-release-pr:
-    needs: [build-docker, build-unity, build-zed]
+    needs: [build-docker, build-unity, build-zed, publish-compose]
     if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     steps:

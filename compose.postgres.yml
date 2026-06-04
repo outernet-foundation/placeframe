@@ -1,3 +1,7 @@
+# Standalone so preflight can bring up postgres alone without populating
+# every ${VAR:?err} interpolation in compose.yml. Import via -f, not
+# include:, or this isolation breaks.
+
 volumes:
   postgres_data:
 

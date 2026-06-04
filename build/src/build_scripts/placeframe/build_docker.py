@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import platform
 import re
 from pathlib import Path
 from typing import Any, Literal, cast
@@ -231,6 +232,23 @@ def run_build(
                 f"--set {target}.cache-to+=type=registry,ref={target_cache},mode=max,image-manifest=true,oci-mediatypes=true"
             )
             command_arguments.append(f"--set {target}.cache-from+=type=registry,ref={target_cache}")
+
+    # `docker buildx --load` only writes a single arch to the host image store,
+    # so bake targets declared multi-platform get overridden to host arch in
+    # local builds. CI uses `--push` and produces the full manifest list.
+    # Override key is `platform` (singular) even though the bake field is plural.
+    if mode == "local":
+        machine = platform.machine().lower()
+        if machine in ("x86_64", "amd64"):
+            host_platform = "linux/amd64"
+        elif machine in ("aarch64", "arm64"):
+            host_platform = "linux/arm64"
+        else:
+            raise RuntimeError(f"Unsupported host architecture: {machine}")
+        for target in targets:
+            target_platforms = bake_data["services"][target].get("build", {}).get("platforms", [])
+            if len(target_platforms) > 1:
+                command_arguments.append(f"--set {target}.platform={host_platform}")
 
     # Load or push images based on mode
     command_arguments.append("--load" if mode == "local" else "--push")
