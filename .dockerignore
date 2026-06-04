@@ -7,7 +7,5 @@
 !packages/python/
 !packages/generated/python/
 !packages/generated/csharp/api-client/
-!legacy/
-legacy/Outernet.Client/
 !compose.bake.yml
 !compose.zed.bake.yml

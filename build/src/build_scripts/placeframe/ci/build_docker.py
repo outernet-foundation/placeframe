@@ -55,7 +55,6 @@ def ci_main(variant: Variant = typer.Option(help="Build variant: common, cuda, o
             "lease-server",
             "loki",
             "postgres",
-            "state-sync",
         ]
     )
 

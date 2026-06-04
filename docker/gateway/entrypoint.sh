@@ -55,18 +55,6 @@ cat > /etc/caddy/Caddyfile <<EOF
 }
 
 http://:8443 {
-    # gRPC Service
-    @grpc {
-        header Content-Type application/grpc*
-    }
-    handle @grpc {
-        reverse_proxy state-sync:5000 {
-            transport http {
-                versions h2c 2
-            }
-            flush_interval -1
-        }
-    }
 ${auth_handler}
     # Grafana
     handle /grafana/* {

@@ -82,15 +82,6 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/api:latest"
         - "ghcr.io/outernet-foundation/placeframe/api:${API_SHA}"
 
-  state-sync:
-    build:
-      context: .
-      dockerfile: docker/state-sync/Dockerfile
-      args: *base-args
-      tags:
-        - "ghcr.io/outernet-foundation/placeframe/state-sync:latest"
-        - "ghcr.io/outernet-foundation/placeframe/state-sync:${STATE_SYNC_SHA}"
-
   lease-server:
     build:
       context: .

@@ -289,19 +289,6 @@ services:
       SERVICE_VERSION: "${LEASE_SERVER_SHA:?err}"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"
 
-  state-sync:
-    image: "ghcr.io/outernet-foundation/placeframe/state-sync:${STATE_SYNC_SHA:?err}"
-    depends_on:
-      api:
-        condition: service_healthy
-    volumes:
-      - auth_data:/run/secrets:ro
-    environment:
-      AUTH_MODE: "${AUTH_MODE:-keycloak}"
-      AUTH_TOKEN_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
-      AUTH_CLIENT_ID: "${AUTH_WORKER_CLIENT_ID:?err}"
-      PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
-
   loki:
     image: "ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA:?err}"
     depends_on:
