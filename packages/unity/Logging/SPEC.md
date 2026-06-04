@@ -2,7 +2,7 @@
 
 ## What this is
 
-`Outernet.Logging` is a Unity package that wires Serilog into a Unity app and ships log events to the Placeframe server's Loki over HTTPS via the public gateway, authenticated with a Keycloak Bearer token supplied by the consumer. It also intercepts `UnityEngine.Debug` so anything that goes through Unity's log handler (including native plugins, async unobserved exceptions, and R3 subscription faults) flows through the same Serilog pipeline. Consumers are Unity apps in `apps/`: `AndroidMobile` (Capture Tool, `app=capture-tool`) and `MakeItSing` (`app=make-it-sing`). The package is referenced as a file-pathed UPM dep (`org.outernet.logging` at `file:../../../packages/unity/Logging/Assets/Package`).
+`Outernet.Logging` is a Unity package that wires Serilog into a Unity app and ships log events to the Placeframe server's Loki over HTTPS via the public gateway, authenticated with a Keycloak Bearer token supplied by the consumer. It also intercepts `UnityEngine.Debug` so anything that goes through Unity's log handler (including native plugins, async unobserved exceptions, and R3 subscription faults) flows through the same Serilog pipeline. The in-repo consumer is `apps/AndroidMobile/` (Capture Tool, `app=capture-tool`). The package is referenced as a file-pathed UPM dep (`org.outernet.logging` at `file:../../../packages/unity/Logging/Assets/Package`).
 
 ## Shape
 
@@ -28,11 +28,11 @@ packages/unity/Logging/Assets/Package/
 ### Public surface
 
 - `Logger<TLogGroup>.Initialize(labels, suppressErrors = null)` -- set up Serilog, install Unity-log interception. `labels` (e.g. `[("app","capture-tool"),("platform","android-mobile")]`) bake into the Loki stream selector for every push. `suppressErrors` is a list of substrings: a message containing any of them is downgraded from `Error`/`Exception` to `Log` before forwarding (used for known-benign native spam like ARCore `GL_INVALID_ENUM`).
-- `Logger<TLogGroup>.EnableLoki(domain, tokenProvider)` -- turn on the Loki drain. Until this is called, emitted events queue in memory. `tokenProvider` is a `Func<UniTask<string>>` returning a Bearer token (Placeframe consumers pass `() => Auth.GetOrRefreshToken()`). The sink builds its own `HttpClient` over the default `HttpClientHandler`.
+- `Logger<TLogGroup>.EnableLoki(apiUrl, tokenProvider)` -- turn on the Loki drain. Until this is called, emitted events queue in memory. `apiUrl` is the full public URL of the placeframe gateway (e.g. `https://x.ngrok-free.app` or `http://192.168.1.100:58080`); the sink appends `/loki/api/v1/push`. `tokenProvider` is a `Func<UniTask<string>>` returning a Bearer token (Placeframe consumers pass `() => Auth.GetOrRefreshToken()`) -- or `null` for unauthenticated push, used when the server runs in `AUTH_MODE=disabled` and the gateway has dropped its `/loki/*` `forward_auth` directive (see `docker/gateway/entrypoint.sh`). The sink builds its own `HttpClient` over the default `HttpClientHandler`.
 - `Logger<TLogGroup>.Terminate()` -- dispose the sink and unhook R3/Task subscriptions. Not used by any current consumer.
 - `Log<TLogGroup>.{Trace,Debug,Info,Warn,Error,Fatal}(...)` -- ~40 overloads covering combinations of `(TLogGroup, Exception, string template, object[] values)`.
-- `Log<TLogGroup>.{logLevel, stackTraceLevel, enabledLogGroups}` -- mutable static gates. Defaults: `Info`, `Warn`, all-bits-set. Consumers reconfigure at boot (and `MakeItSing` re-binds them to remote Supabase config at runtime -- `apps/MakeItSing/Assets/App/App.cs:66-68`).
-- `Log<TLogGroup>.LoggerFactory : ILoggerFactory` -- adapter so libraries that take `Microsoft.Extensions.Logging.ILogger` (FofX in `MakeItSing`) flow through the same pipeline.
+- `Log<TLogGroup>.{logLevel, stackTraceLevel, enabledLogGroups}` -- mutable static gates. Defaults: `Info`, `Warn`, all-bits-set. Consumers reconfigure at boot; external consumers may rebind them at runtime against remote config.
+- `Log<TLogGroup>.LoggerFactory : ILoggerFactory` -- adapter so libraries that take `Microsoft.Extensions.Logging.ILogger` flow through the same pipeline.
 - `LogGroupColorAttribute(hexColor)` -- placed on each consumer enum member; the Unity console sink reads it via reflection to color `[group]` preludes.
 - `InnerFramesHiddenFromStackTraceAttribute` -- placed on `Log<>.*` overloads and the internal Unity-log shim; the Enricher trims everything up to and including the last attribute-marked frame so the captured stack starts at the actual caller.
 
@@ -60,17 +60,17 @@ The Unity sink and the reverse hook would naively form a loop (Serilog -> UnityD
 
 The Loki sink is the only non-mechanical piece. `Emit` is callable from the moment `Initialize` returns; it serializes the event to a one-line JSON document and appends it to a `LinkedList<(ts, line)>` guarded by `_queueLock`. Events that arrive before `EnableLoki` accumulate so a successful first drain ships everything captured during boot and pre-login.
 
-When `EnableLoki(domain, tokenProvider, handler)` fires, the sink:
+When `EnableLoki(apiUrl, tokenProvider, handler)` fires, the sink:
 
 1. Constructs an `HttpClient` over the caller-supplied handler (or `new HttpClientHandler()`).
-2. Sets `_pushUrl = https://{domain}/loki/api/v1/push`.
+2. Sets `_pushUrl = {apiUrl}/loki/api/v1/push`.
 3. Starts one `UniTask.RunOnThreadPool(DrainLoop)`.
 
 The drain loop, each iteration:
 
 1. Sleeps `SleepDuration` from the `ExponentialBackoff` schedule (initially `Zero`, so the first iteration runs immediately).
 2. Snapshots `_pending` under the lock. If empty, `OnIdle` -> 2s sleep -> continue.
-3. Awaits `_tokenProvider()` under a 15s `CancellationTokenSource` so a hung token fetch can't wedge the loop.
+3. If `_tokenProvider` is non-null, awaits it under a 15s `CancellationTokenSource` so a hung token fetch can't wedge the loop, and attaches the returned string as `Authorization: Bearer …`. A null provider skips both the await and the header -- the POST goes out unauthenticated, relying on the gateway to drop its forward_auth in `AUTH_MODE=disabled`.
 4. POSTs `{streams: [{stream: <labels>, values: [[ts, line], ...]}]}` under the same cancellation token.
 5. On 2xx: pops `batch.Length` entries from the head -- events that arrived during the in-flight POST stay at the tail and ship next drain. `OnSuccess` resets backoff.
 6. On non-2xx: SelfLog + `OnFailure` (sleeps current backoff, doubles up to 60s).
@@ -95,9 +95,9 @@ Property serialization in `Emit`: it filters any caller-supplied `"level"` so th
 
 ### Consumer integration
 
-Both consumers boot at `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]` with static labels (`apps/AndroidMobile/Assets/Scripts/Capture/App.cs:32`, `apps/MakeItSing/Assets/App/AppSetup.cs:37`), then call `EnableLoki` after their Keycloak login completes (`apps/AndroidMobile/Assets/AuthManager.cs:53`, `apps/MakeItSing/Assets/App/Tasks.cs:22`). Loki labels are static -- every event from one app collapses into one Loki stream. High-cardinality fields (device name, log group, exception) live inside the JSON line, not in the label set.
+The in-repo consumer boots at `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]` with static labels (`apps/AndroidMobile/Assets/Scripts/Capture/App.cs:32`), then calls `EnableLoki` after its Keycloak login completes (`apps/AndroidMobile/Assets/AuthManager.cs:53`). Loki labels are static -- every event from one app collapses into one Loki stream. High-cardinality fields (device name, log group, exception) live inside the JSON line, not in the label set.
 
-The gateway (`docker/SPEC.md` "Authentication") fronts `/loki/` and forwards to Loki using the client's existing Keycloak token -- there is no separate Loki ingress and no Loki-specific credential. The Loki `service_name` label is auto-derived from the `app` label, so a query like `{service_name="capture-tool"}` works.
+The gateway (`docker/SPEC.md` "Authentication") fronts `/loki/` and, in `AUTH_MODE=keycloak`, forwards to Loki using the client's existing Keycloak token -- there is no separate Loki ingress and no Loki-specific credential. In `AUTH_MODE=disabled`, the gateway drops the forward_auth directive and the client is expected to pass `tokenProvider: null` so the push goes out without an `Authorization` header. The Loki `service_name` label is auto-derived from the `app` label, so a query like `{service_name="capture-tool"}` works in either mode.
 
 ## Constraints
 
@@ -109,7 +109,7 @@ The non-obvious pieces of this package fall out of three constraints: (a) Unity 
 
 **In-memory queue + thread-pool drain instead of the upstream `Serilog.Sinks.Grafana.Loki` NuGet.** The replacement (commit `36db199d`) buys three things: (1) events emitted before `EnableLoki` queue rather than drop, so boot-time errors aren't lost when login fails; (2) a per-attempt 15s timeout that wraps both the token fetch and the HTTP send, so a hung token provider can't wedge the drain; (3) one less HTTP/handler abstraction crossing Unity's IL2CPP boundary. The cost is a bespoke implementation with no tests.
 
-**`tokenProvider` is called every drain cycle, not just on 401.** The package takes on faith that the consumer's auth helper caches and only refreshes when the cached token is near-expiry. Placeframe's `Auth.GetOrRefreshToken` does. A consumer with a naive provider that round-trips to Keycloak per call would cap the Loki drain rate at one POST per token roundtrip.
+**`tokenProvider` is called every drain cycle, not just on 401.** The package takes on faith that the consumer's auth helper caches and only refreshes when the cached token is near-expiry. Placeframe's `Auth.GetOrRefreshToken` does. A consumer with a naive provider that round-trips to Keycloak per call would cap the Loki drain rate at one POST per token roundtrip. A `null` provider short-circuits the per-cycle await entirely -- the unauthenticated-push path is cheaper, not more expensive.
 
 **JSON over Protobuf.** Loki accepts both. JSON keeps the implementation grep-able and avoids dragging a Protobuf dep across the IL2CPP boundary. The drain loop POSTs one stream per batch with `Content-Type: application/json` to `/loki/api/v1/push`.
 
@@ -120,4 +120,3 @@ The non-obvious pieces of this package fall out of three constraints: (a) Unity 
 ## See also
 
 - `docker/SPEC.md` -- the gateway's `/loki/` passthrough and the `service_name` label conventions for Loki queries; this package is the client side of that contract.
-- `apps/MakeItSing/SPEC.md` -- uses the package with remote-configurable log levels driven from Supabase `config` rows.

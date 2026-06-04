@@ -2,7 +2,7 @@
 
 ## What this is
 
-`scripts/` is a Python workspace member that ships a set of operator-facing CLIs registered as `uv run` commands in `pyproject.toml`'s `[project.scripts]`. The package contains two cohorts: small operational utilities (Unity adb-forward, Docker debug-target listing, GitHub-Actions artifact install, ZED Box SSH deploy) and the calibration pipeline (`fit-calibration`, `tune-reconstruction`, the held-out selector registry, the shared auth helper). The Docker-stack lifecycle commands (`up`, `down`, `build`, `migrate-database`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`) do not live here — they live in the sibling `build-scripts` package under `build/`. The calibration pipeline is the load-bearing part of this directory and the only piece with tests; the operational utilities are small self-contained shell-out scripts.
+`scripts/` is a Python workspace member that ships a set of operator-facing CLIs registered as `uv run` commands in `pyproject.toml`'s `[project.scripts]`. The package contains two cohorts: small operational utilities (Unity adb-forward, Docker debug-target listing, GitHub-Actions artifact install, ZED Box SSH deploy) and the calibration pipeline (`fit-calibration`, `tune-reconstruction`, the held-out selector registry, the shared auth helper). The Docker-stack lifecycle commands (`up`, `down`, `build`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`) do not live here — they live in the sibling `build-scripts` package under `build/`. The calibration pipeline is the load-bearing part of this directory and the only piece with tests; the operational utilities are small self-contained shell-out scripts.
 
 ## Shape
 
@@ -18,7 +18,7 @@ Registered in `scripts/pyproject.toml`:
 | `install-zed` | `install_zed.py` | End-to-end SSH deploy of the `zed-capture` container onto a Jetson over the box's wired-ethernet link: SSH bootstrap, Docker install, NVIDIA runtime, disable of NVIDIA's USB device-mode service (frees the USB-C port for AOA host duty), strip-to-appliance (default target → `multi-user.target`, mask gdm + consumer-USB / desktop / auto-update units, install login banner), image acquisition (ghcr pull or local cross-compile + `docker save \| ssh docker load`), compose+systemd unit install, `docker compose up`. |
 | `loki-query` | `loki_query.py` | Run a LogQL query against the local Loki via `docker exec placeframe-loki-1 wget`, formatting each entry as `HH:MM:SS LEVEL [logGroup] message` (plus exception chain when present). Flags: `--limit`, `--direction`, `--since`, `--raw`. Use this instead of hand-rolling URL-encoded `wget` invocations — the URL encoding is fragile (`+`/`%7C`/quote-escapes) and easy to get subtly wrong. |
 | `tune-reconstruction` | `tune_reconstruction.py` | Plackett-Burman sweep over `ReconstructionOptions` per capture. One reconstruction per cell. Aggregates map-quality metrics into a JSON report. |
-| `fit-calibration` | `fit_calibration.py` | Algorithm 1: pick held-out frames, build/reuse reconstructions, localize each held-out frame, fit logistic+isotonic for tight/loose success probability, fit Σ_meas `(α, β)`, write `config/calibration/global.json`. |
+| `fit-calibration` | `fit_calibration.py` | Algorithm 1: pick held-out frames, build/reuse reconstructions, localize each held-out frame, fit logistic+isotonic for tight/loose success probability, fit Σ_meas `(α, β)`, write `docker/localizer/calibration/global.json`. |
 
 `api_auth.py` (shared) and `held_out_selection.py` (consumed by `fit-calibration`) are library modules, not entry points.
 
@@ -61,7 +61,8 @@ The pipeline orchestrates over backend IDs and writes/reads through the API. The
 
           ^                                          ^
           | write evaluations,                       | read corpus,
-          | trigger reconstructions                  | fit, write global.json
+          | trigger reconstructions                  | fit, write docker/localizer/
+                                                     |   calibration/global.json
 
       scripts/tune_reconstruction.py        scripts/fit_calibration.py
 
@@ -77,7 +78,7 @@ The pipeline orchestrates over backend IDs and writes/reads through the API. The
                                                  - read cache as corpus
                                                  - fit logistic + isotonic
                                                  - fit Sigma_meas (alpha, beta)
-                                                 - write config/calibration/global.json
+                                                 - write docker/localizer/calibration/global.json
 
 The two scripts share `api_auth.authenticated_api_client` and the `localization_evaluations`/`reconstructions` API surface, but no code path or intermediate file. `tune-reconstruction` does not write to the calibration cache; `fit-calibration` does not call the PB sweep machinery.
 
@@ -102,7 +103,7 @@ The procedure `fit-calibration` runs per capture (`fit_calibration.py` and the r
 7. **Fit Σ_meas scaling.** For each held-out localization, compute SE(3) residual `e = log(P_truth_in_map * P_estimated^-1) ∈ R^6`. Solve scalar `α, β` that maximize `sum_i log N(e_i; 0, alpha * PnP_cov_i + beta * I)` via `scipy.optimize.minimize(L-BFGS-B)`. The scalars carry the empirical "actual pose-error spread relative to PnP_cov" signal that PnP_cov alone misses.
 8. **Optional 10% holdout** for Brier score and reliability diagram in fit metadata.
 
-Output: `CalibrationArtifact(tight, loose, sigma_meas_alpha, sigma_meas_beta, loose_min, tight_min, ...)` written to `config/calibration/global.json` by default. Schema: `packages/python/core/SPEC.md` "Calibration".
+Output: `CalibrationArtifact(tight, loose, sigma_meas_alpha, sigma_meas_beta, loose_min, tight_min, ...)` written to `docker/localizer/calibration/global.json` by default. Schema: `packages/python/core/SPEC.md` "Calibration".
 
 ### Driver-side localization
 
@@ -143,8 +144,6 @@ Deterministic, scales to capture length, gives even temporal spacing → roughly
 
 **Single shared auth helper.** `api_auth.authenticated_api_client()` is an async context manager that reads `PUBLIC_DOMAIN` from `.env`, fetches a Keycloak token, and yields a `DefaultApi`. Both `fit_calibration` and `tune_reconstruction` use it. The token is injected as a default header rather than via `Configuration(access_token=...)` because the openapi-generator output emits empty `_auth_settings` on every method — the documented `access_token` kwarg has no effect end-to-end. This is a generator-config gap (every consumer of `placeframe_api_client` has the same blind spot), worked around locally because fixing the generator config is out of scope for this directory.
 
-**TLS verification disabled for the Keycloak POST.** `verify=False` (with `noqa: S501`) in `api_auth._fetch_keycloak_token` is required because dev deployments terminate TLS through ngrok with a chain that fails default verification. Production deployments would need a different auth pathway anyway (different realm, different domain), so the dev-only verify-off is load-bearing for the dev workflow rather than a corner cut.
-
 **`install-zed` disables L4T's USB device-mode service.** NVIDIA's stock `nv-l4t-usb-device-mode.service` pins the USB-C port as a peripheral (CDC ethernet gadget + mass-storage); the AOA host-mode link needs the port available for host duty. `install-zed` `systemctl disable --now`s the unit on every run (idempotent, no-op once disabled). The connectivity model is otherwise pure wired ethernet: SSH targets the box's RJ-45 address at `user@100.64.0.1` with the host's cable-side end at `100.64.0.2`. Image pulls go directly to ghcr.io from the box. The `--build` path replaces ghcr with a transient Docker registry on the host (`docker run -d -p 5000:5000 registry@sha256:...`): `docker buildx bake --push` cross-compiles `zed-capture` + `aoa-bridge` for ARM64 and pushes to it, then the box pulls from `100.64.0.2:5000`. `100.64.0.2:5000` is added to the box-side `/etc/docker/daemon.json` `insecure-registries` so the box's daemon accepts the plain-HTTP pull. Pulls are layer-aware, so iterative dev only ships changed layers across the cable.
 
 **`install-zed` strips the stock JetPack desktop down to a headless appliance.** The product flow is "buy box → cable to laptop → `install-zed` → install Capture Tool → use"; the end-user never sits at the box with HDMI and a keyboard. The desktop session that JetPack ships is not just dead weight — its volume-monitor probers (`gvfs-mtp-volume-monitor`, `gvfs-afc-volume-monitor`, `gvfs-gphoto2-volume-monitor`, `gvfs-udisks2-volume-monitor`) issue `libusb_open` + descriptor reads against every newly-enumerated USB device. Against an AOA-mode phone those reads stall the kernel's 5 s `USB_CTRL_GET_TIMEOUT` and trip `usb_reset_and_verify_device()`, which invalidates the phone-side accessory FD the user already granted and forces Android to fire a second `UsbConfirmActivity` dialog ("Open Capture_Tool to handle this USB accessory?") inside the app. `install-zed` (a) sets the system default target to `multi-user.target` (drops `gdm` + the entire graphical session); (b) `systemctl mask`s the consumer-USB / desktop / auto-update system units (`gdm`, `fwupd`, `packagekit`, `snapd`, `geoclue`, `accounts-daemon`, `ModemManager`, `upower`, `cups`, `cups-browsed`, `bluetooth`, `whoopsie`, `apport`, `unattended-upgrades`); (c) `systemctl --global mask`s the gvfs and evolution user units so they stay off even if a maintenance user shells in; (d) overwrites `/etc/issue`, `/etc/issue.net`, `/etc/motd` with `Placeframe ZED Box - managed remotely, see install-zed.` so anyone who plugs in HDMI gets a signal, not a black screen. `nvargus-daemon` and `zed_x_daemon` are explicitly preserved — the compose stack depends on their IPC sockets. The architectural choice was strip-the-premise over symptomatic udev VID filtering: a VID filter would suppress this specific symptom but leave the entire consumer-USB-monitoring stack running on hardware that has no business running it; the next bug (fwupd auto-upgrading, snapd refreshing, PackageKit blocking apt) would land in the same place.
@@ -157,7 +156,7 @@ Deterministic, scales to capture length, gives even temporal spacing → roughly
 
 ## See also
 
-- `build/` (the `build-scripts` workspace package) — sibling Python CLI package holding the Docker-stack lifecycle and codegen entry points (`up`, `down`, `build`, `migrate-database`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`). `scripts/` imports from it (`build_scripts.placeframe.projects.load_unity_projects` in `install.py`; `build_scripts.placeframe.context_sha.compute_service_shas` in `install_zed.py`); the inverse does not hold.
+- `build/` (the `build-scripts` workspace package) — sibling Python CLI package holding the Docker-stack lifecycle and codegen entry points (`up`, `down`, `build`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`). `scripts/` imports from it (`build_scripts.placeframe.projects.load_unity_projects` in `install.py`; `build_scripts.placeframe.context_sha.compute_service_shas` in `install_zed.py`); the inverse does not hold.
 - `docker/localizer/SPEC.md` — defines the `/version` and `/localize` endpoints that `fit-calibration` consumes and the `pipeline_version` baked into the localizer image.
 - `docker/reconstructor/SPEC.md` — defines the single-anchor truth-frame alignment and the Procrustes-residual diagnostic metrics that Algorithm 1 step 2 relies on.
 - `packages/python/core/SPEC.md` "Calibration" — schema of `CalibrationArtifact`, `Features`, `ToleranceModel`, `RawMapMetrics`, `RawLocalizationMetrics`.

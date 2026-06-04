@@ -38,13 +38,54 @@ Inspired by (and heavily borrowing from) the extremely useful [Hierarchical-Loca
 - [Docker Engine](https://docs.docker.com/engine/install/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 - [NVIDIA CUDA](https://developer.nvidia.com/cuda-downloads) (experimental [ROCm](https://rocm.docs.amd.com/) support also available)
-- A free [ngrok](https://ngrok.com/) account with:
-  - An auth token
-  - A static domain (your "dev domain")
+- One of the two deployment shapes below
+
+## Deployment shapes
+
+Placeframe has two equally-supported ways to make the backend reachable from XR clients. Pick whichever fits your network — both are tested first-class paths.
+
+| | Tunneled via ngrok | Air-gapped on LAN |
+|---|---|---|
+| **Reach** | Public internet | Local network only |
+| **Internet at the host** | Required | Not required |
+| **Transport to clients** | HTTPS (ngrok terminates TLS) | Cleartext HTTP |
+| **Auth** | Keycloak OAuth (default) or disabled | `AUTH_MODE=disabled` (cleartext + OAuth is rejected at boot) |
+| **What clients enter** | `PUBLIC_URL=https://<sub>.ngrok-free.app` | `PUBLIC_URL=http://<host-LAN-IP>:<port>` |
+
+Consumers that layer additional services on top of placeframe (e.g. the Make-it-Sing multiplayer client, which adds a LiveKit server) may require additional ports and a different tunnel agent — see those consumers' own setup docs.
+
+### Tunneled via ngrok
+
+[ngrok](https://ngrok.com) is a tunneling service that forwards HTTP. Placeframe ships with the ngrok agent as a container alongside the stack; one HTTP tunnel covers the gateway, which is all placeframe-on-its-own needs.
+
+1. **Sign up** at [ngrok.com](https://ngrok.com) and grab your authtoken from the dashboard.
+2. **Reserve a domain** (ngrok's free tier gives one static subdomain on `*.ngrok-free.app`; paid tiers can use a custom domain).
+3. **Copy `.env.sample` to `.env`** and fill in:
+
+   | Variable | Value |
+   |---|---|
+   | `PUBLIC_URL` | `https://<your-ngrok-domain>` — the URL Unity clients will hit |
+   | `NGROK_DOMAIN` | `<your-ngrok-domain>` (just the host portion, no scheme) |
+   | `NGROK_AUTHTOKEN` | The token from step 1 |
+
+   The ngrok agent activates when `NGROK_DOMAIN` is set; leaving it empty disables the tunnel.
+
+4. **Bring it up:** `uv run up`. Visit `https://<your-ngrok-domain>` to confirm the gateway is reachable.
+
+### Air-gapped on LAN
+
+For a self-contained deployment with no internet — every XR client on the same LAN as the server — set:
+
+| Variable | Value |
+|---|---|
+| `PUBLIC_URL` | `http://<host-LAN-IP>:<GATEWAY_PORT>`, e.g. `http://192.168.1.100:58080` |
+| `AUTH_MODE` | `disabled` |
+
+Leave `NGROK_DOMAIN` empty — the ngrok container will start and exit cleanly. The gateway serves cleartext HTTP on the LAN; distributing an internal CA to every Unity client is the cert-handling overhead this mode exists to avoid. `AUTH_MODE=keycloak` is rejected against a cleartext `PUBLIC_URL` because OAuth credentials must not flow without TLS.
 
 ## Backend
 
-To bring up the backend, first copy `.env.sample` to `.env` and configure `PUBLIC_DOMAIN` and `NGROK_AUTHTOKEN` in that file, for your specific ngrok account. Then run:
+Once `.env` is filled in for your chosen exposure mode, bring up the backend with:
 
 ```
 uv run up
@@ -58,9 +99,9 @@ To bring down the backend, run:
 uv run down
 ```
 
-While the server is running, you can visit your ngrok static domain in a web browser to browse the OpenAPI schema and test requests.
+While the server is running, you can visit `${PUBLIC_URL}` in a web browser to browse the OpenAPI schema and test requests.
 
-The backend provides a reference [Keycloak](https://www.keycloak.org/) implementation for authentication and authorization, so you will need to authorize yourself in order to test requests. By default, you can use the username "user", and the password "password". This is configured in the [Keycloak realm configuration file](docker/keycloak/realm-export/placeframe.json).
+The backend provides a reference [Keycloak](https://www.keycloak.org/) implementation for authentication and authorization, so you will need to authorize yourself in order to test requests. By default, you can use the username "user", and the password "password". This is configured in the [Keycloak realm configuration file](docker/auth-initializer/realm-export/placeframe.json).
 
 The backend also includes the following admin UIs, accessible from your public domain:
 

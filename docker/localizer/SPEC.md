@@ -141,10 +141,10 @@ Determinism: `set_random_seed(0)` and `manual_seed(0)` are called per request. `
 
 ### Calibration
 
-A single global calibration JSON is bind-mounted via compose `configs:`:
+A single global calibration JSON is baked into the localizer image at build time:
 
-- Source of truth: `config/calibration/global.json` (git).
-- Container path: `/etc/placeframe/calibration/global.json` (mode 0444; mounted in `compose.cuda.yml` and `compose.rocm.yml`).
+- Source of truth: `docker/localizer/calibration/global.json` (git). Lives under the localizer's build context so changes to it affect only `LOCALIZER_SHA`, not other services.
+- Container path: `/etc/placeframe/calibration/global.json` (copied in by `docker/localizer/Dockerfile`).
 - Validator: `core.calibration.load_global_calibration` enforces `schema_version == 2` and `pipeline_version == localizer's LOCALIZER_SHA`. Either mismatch hard-fails the container. The literal sentinel `"placeholder"` (`core.calibration.PLACEHOLDER_PIPELINE_VERSION`) bypasses the version check with a loud stderr warning — for placeholder calibrations whose values are pipeline-independent.
 
 The artifact carries: per-tolerance (`tight` / `loose`) `logistic_weights: Features`, `logistic_intercept`, plus optional isotonic remapping `(x_breakpoints, y_breakpoints)`. Confidence per query is `sigmoid(intercept + weights @ features.values())`, then optionally `numpy.interp(raw, x_breakpoints, y_breakpoints)`. `Features.compute` packs ten scalars (`log1p(num_inliers)`, `inlier_ratio`, `reproj_error_median / query_image_diagonal_px`, `inlier_coverage`, `log1p(num_matches)`, four log/passthrough map features, `map_viewpoint_diversity`).
@@ -163,10 +163,6 @@ localizer-cuda:
   expose: ["8000"]
   networks: { default: { aliases: ["localizer"] } }   # api hits http://localizer:8000
   gpus: all
-  configs:
-    - source: localizer-calibration-global
-      target: /etc/placeframe/calibration/global.json
-      mode: 0444
   environment:
     MINIO_ENDPOINT_URL, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, RECONSTRUCTIONS_BUCKET
 ```
@@ -199,6 +195,6 @@ The Dockerfile bakes `LOCALIZER_SHA` in the *last* `ENV` layer, so only that lay
 
 - `docker/SPEC.md` — stack-level data flow, log query patterns, MinIO bucket layout, reconstructor lease lifecycle. The localizer is one consumer of `dev-reconstructions/`; this file does not restate the bucket schema.
 - `packages/python/core/` — `calibration.py` (Features / CalibrationArtifact / apply_global_calibration), `h5.py`, `opq.py`, `image_preprocess.py`, `model_wrappers.py`, `localization_metrics.py` carry the shared domain types and the canonical hyperparameter defaults the localizer reads.
-- `scripts/src/scripts/fit_calibration.py` — produces `config/calibration/global.json` from a labeled corpus. The localizer is strictly a consumer; refits land as commits to that file plus a paired image rebuild at the same `LOCALIZER_SHA`.
+- `scripts/src/scripts/fit_calibration.py` — produces `docker/localizer/calibration/global.json` from a labeled corpus. The localizer is strictly a consumer; refits land as commits to that file plus a paired image rebuild at the same `LOCALIZER_SHA`.
 - `build/src/build_scripts/placeframe/context_sha.py` — defines `compute_service_shas`, which derives `LOCALIZER_SHA` (and one such SHA per service) from the localizer image's build context per the `.dockerignore` allowlist convention described in the repo `CLAUDE.md`.
 - `docker/api/src/routers/localization.py` — the only caller. Performs the `map_id -> reconstruction_id` indirection and composes the world-space pose from the map row's anchor `Transform`.
