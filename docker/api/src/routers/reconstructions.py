@@ -331,6 +331,12 @@ async def get_reconstruction_frame_poses(
     )
 
 
+# dummy method, just to get ReconstructionMetrics into the OpenAPI schema
+@get("/{id:uuid}/metrics")
+async def get_reconstruction_metrics(session: AsyncSession, id: UUID) -> ReconstructionMetrics:
+    return ReconstructionMetrics()
+
+
 router = Router(
     "/reconstructions",
     tags=["Reconstructions"],
@@ -344,5 +350,6 @@ router = Router(
         retry_reconstruction,
         get_reconstruction_points,
         get_reconstruction_frame_poses,
+        get_reconstruction_metrics,
     ],
 )

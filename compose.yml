@@ -172,8 +172,6 @@ services:
       - api
     ports:
       - "${GATEWAY_PORT:?err}:8443"
-    volumes:
-      - ./docker/certs:/certs:ro
     environment:
       PUBLIC_PORT: "${GATEWAY_PORT:?err}"
       PUBLIC_DOMAIN: "${PUBLIC_DOMAIN:?err}"
@@ -226,9 +224,6 @@ services:
     ports:
       - "5679:5678"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./compose.yml:/compose.yml:ro
-      - ./.env:/.env:ro
       - ./:/app:ro
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
@@ -237,7 +232,6 @@ services:
       timeout: 5s
       retries: 3
     environment:
-      DOCKER_HOST: unix:///var/run/docker.sock
       PUBLIC_URL: "https://${PUBLIC_DOMAIN:?err}"
       AUTH_AUDIENCE: "${AUTH_AUDIENCE:?err}"
       AUTH_ISSUER_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev"
@@ -261,6 +255,25 @@ services:
       RELOAD: "true"
       DEBUG: "${DEBUG_API:?err}"
       DEBUG_WAIT: "${DEBUG_WAIT_API:?err}"
+
+  lease-server:
+    image: "ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA:?err}"
+    depends_on:
+      migrate-database:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
+      interval: 5s
+      start_period: 5s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./:/app:ro
+    environment:
+      POSTGRES_HOST: "${POSTGRES_HOST:?err}"
+      DATABASE_NAME: "${DATABASE_NAME:?err}"
+      DATABASE_ORCHESTRATION_USER: "${DATABASE_NAME:?err}_orchestration_user"
+      DATABASE_ORCHESTRATION_USER_PASSWORD: "${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}"
 
   state-sync:
     image: "ghcr.io/outernet-foundation/placeframe/state-sync:${STATE_SYNC_SHA:?err}"

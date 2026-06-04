@@ -2,19 +2,14 @@ services:
   reconstructor-cuda:
     image: "ghcr.io/outernet-foundation/placeframe/reconstructor-cuda:${RECONSTRUCTOR_SHA:?err}"
     depends_on:
-      api:
+      lease-server:
         condition: service_healthy
     restart: on-failure
     expose:
       - "5678"
-    volumes:
-      - auth_data:/run/secrets:ro
     gpus: all
     environment:
-      API_INTERNAL_URL: http://api:8000
-      AUTH_TOKEN_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
-      AUTH_CLIENT_ID: "${AUTH_WORKER_CLIENT_ID:?err}"
-      PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
+      LEASE_SERVER_URL: http://lease-server:8000
       MINIO_ENDPOINT_URL: "http://minio:9000"
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"

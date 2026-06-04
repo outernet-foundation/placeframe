@@ -5,7 +5,7 @@ from typing import Any, AsyncGenerator, cast
 
 from datamodels.auth_tables import User
 from litestar import Request
-from litestar.exceptions import NotAuthorizedException, PermissionDeniedException
+from litestar.exceptions import NotAuthorizedException
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -15,9 +15,6 @@ from .settings import get_settings
 if os.environ.get("CODEGEN"):
 
     async def get_session(request: Request[str, dict[str, Any], Any]) -> AsyncGenerator[AsyncSession]:
-        yield AsyncSession()
-
-    async def get_worker_session(request: Request[str, dict[str, Any], Any]) -> AsyncGenerator[AsyncSession]:
         yield AsyncSession()
 
 else:
@@ -76,12 +73,3 @@ else:
         async with ApiSessionLocal() as api_session, api_session.begin():
             await api_session.execute(func.set_config("app.user_id", user_id, True))
             yield api_session
-
-    async def get_worker_session(request: Request[str, dict[str, Any], Any]) -> AsyncGenerator[AsyncSession]:
-        claims = request.auth
-
-        if not claims or claims.get("azp") != "placeframe-worker":
-            raise PermissionDeniedException("Internal use only")
-
-        async for session in get_session(request):
-            yield session

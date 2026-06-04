@@ -83,6 +83,17 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/state-sync:latest"
         - "ghcr.io/outernet-foundation/placeframe/state-sync:${STATE_SYNC_SHA}"
 
+  lease-server:
+    build:
+      context: .
+      dockerfile: docker/lease-server/Dockerfile
+      target: dev
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/lease-server:latest"
+        - "ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA}"
+
+
   neural-networks-base-cuda:
     build:
       context: .

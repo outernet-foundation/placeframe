@@ -16,7 +16,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func
 
-from ..database import get_worker_session
+from ..database import get_session
 
 LEASE_TIMEOUT = timedelta(minutes=30)
 
@@ -59,7 +59,6 @@ async def request_lease(session: AsyncSession) -> LeaseResponse:
         .values(status=ReconstructionStatus.FAILED, error="Lease timed out")
     )
 
-    # Find the oldest queued reconstruction and lock the row
     result = await session.execute(
         select(Reconstruction)
         .where(Reconstruction.status == ReconstructionStatus.QUEUED)
@@ -154,8 +153,8 @@ async def _finalize_lease(session: AsyncSession, id: UUID, status: Reconstructio
 
 
 router = Router(
-    path="/internal/leases",
-    tags=["Leases", "Internal"],
-    dependencies={"session": Provide(get_worker_session)},
+    path="/leases",
+    tags=["Leases"],
+    dependencies={"session": Provide(get_session)},
     route_handlers=[request_lease, update_progress, succeed_lease, fail_lease],
 )

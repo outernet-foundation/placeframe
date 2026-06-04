@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "core",
     "common",
-    "placeframe-api-client",
+    "placeframe-lease-server-client",
     "httpx>=0.28.1",
     "numpy>=2.0",
     "scipy>=1.7",

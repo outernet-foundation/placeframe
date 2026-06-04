@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import inspect
-import os
 import sqlite3
 import subprocess
 import sys
@@ -13,7 +12,7 @@ from typing import Any, Iterator, Self, ValuesView, cast
 from uuid import UUID
 
 import httpx
-from placeframe_api_client import ReconstructionStatus
+from placeframe_lease_server_client import ReconstructionStatus
 
 from numpy import (
     asarray,
@@ -76,13 +75,11 @@ class _VerificationProgressPoller:
         database_path: Path,
         total_pairs: int,
         publisher: ReconstructionPublisher,
-        bearer_token: str,
         poll_interval_seconds: float = 0.5,
     ) -> None:
         self._database_path = database_path
         self._total_pairs = total_pairs
         self._publisher = publisher
-        self._bearer_token = bearer_token
         self._poll_interval_seconds = poll_interval_seconds
         self._process: subprocess.Popen[bytes] | None = None
 
@@ -91,15 +88,13 @@ class _VerificationProgressPoller:
             "import sqlite3\n"
             "import sys\n"
             "import time\n"
-            "import os\n"
             "from uuid import UUID\n"
             "import httpx\n"
-            "from placeframe_api_client import ReconstructionStatus\n"
+            "from placeframe_lease_server_client import ReconstructionStatus\n"
             "from reconstructor.progress_publisher import ReconstructionPublisher, SyncProgressFlusher\n"
             + inspect.getsource(_poll_verification)
             + "_poll_verification(sys.argv[1], int(sys.argv[2]), float(sys.argv[3]), sys.argv[4], UUID(sys.argv[5]))\n"
         )
-        environment = {**os.environ, "PROGRESS_BEARER_TOKEN": self._bearer_token}
         self._process = subprocess.Popen(
             [
                 sys.executable,
@@ -108,10 +103,9 @@ class _VerificationProgressPoller:
                 str(self._database_path),
                 str(self._total_pairs),
                 str(self._poll_interval_seconds),
-                str(get_settings().api_internal_url).rstrip("/"),
+                str(get_settings().lease_server_url).rstrip("/"),
                 str(self._publisher.reconstruction_id),
             ],
-            env=environment,
         )
         return self
 
@@ -137,7 +131,7 @@ class _VerificationProgressPoller:
 def _poll_verification(
     database_path: str, total_pairs: int, interval_seconds: float, api_url: str, reconstruction_id: UUID
 ) -> None:
-    client = httpx.Client(headers={"Authorization": f"Bearer {os.environ['PROGRESS_BEARER_TOKEN']}"}, timeout=5.0)
+    client = httpx.Client(timeout=5.0)
     publisher = ReconstructionPublisher(SyncProgressFlusher(client, api_url), reconstruction_id)
     publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, total=total_pairs)
     last_emitted = -1
@@ -166,7 +160,6 @@ def run_colmap_reconstruction(
     pairs: list[Pair],
     match_indices: dict[tuple[str, str], tuple[NDArray[intp], NDArray[intp]]],
     publisher: ReconstructionPublisher,
-    bearer_token: str,
 ):
     colmap_db_path = root_path / COLMAP_DB_FILE
     if colmap_db_path.exists():
@@ -231,7 +224,7 @@ def run_colmap_reconstruction(
     database.close()
 
     publisher.set_phase(ReconstructionStatus.VERIFYING_GEOMETRY, total=len(pairs))
-    with _VerificationProgressPoller(colmap_db_path, len(pairs), publisher, bearer_token):
+    with _VerificationProgressPoller(colmap_db_path, len(pairs), publisher):
         geometric_verification(
             database_path=str(colmap_db_path),
             verifier_options=GeometricVerifierOptions(rig_verification=True),

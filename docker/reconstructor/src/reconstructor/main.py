@@ -1,12 +1,10 @@
 import asyncio
 from asyncio import CancelledError, run, sleep
-from pathlib import Path
 from signal import SIGTERM, signal
 from typing import Any, NoReturn, cast
 
-from common.token_manager import TokenManager
 from core.reconstruction_options import ReconstructionOptions as CoreReconstructionOptions
-from placeframe_api_client import (
+from placeframe_lease_server_client import (
     ApiClient,
     ApiException,
     Configuration,
@@ -14,7 +12,7 @@ from placeframe_api_client import (
     FailLeaseRequest,
     LeaseResponse,
 )
-from placeframe_api_client import ReconstructionMetrics as ClientReconstructionMetrics
+from placeframe_lease_server_client import ReconstructionMetrics as ClientReconstructionMetrics
 
 from .metrics_builder import MetricsBuilder
 from .progress_publisher import AsyncProgressFlusher, ReconstructionPublisher
@@ -29,8 +27,7 @@ settings = get_settings()
 async def worker_loop() -> None:
     print("Reconstructor Worker Started")
 
-    auth = TokenManager(str(settings.auth_token_url), settings.auth_client_id, Path(settings.private_key_path))
-    configuration = Configuration(host=str(settings.api_internal_url))
+    configuration = Configuration(host=str(settings.lease_server_url))
 
     async with ApiClient(configuration) as api_client:
         api = DefaultApi(api_client)
@@ -38,10 +35,6 @@ async def worker_loop() -> None:
 
         while True:
             try:
-                token = await auth.get_token()
-                configuration.access_token = token
-                cast(dict[Any, Any], api_client.default_headers)["Authorization"] = f"Bearer {token}"
-
                 try:
                     lease = await api.request_lease()
                 except ApiException as e:
@@ -55,7 +48,7 @@ async def worker_loop() -> None:
                         continue
 
                 print(f"[{lease.reconstruction_id}] Acquired lease")
-                await _run_and_report(api, loop, lease, token)
+                await _run_and_report(api, loop, lease)
 
             except CancelledError:
                 print("Worker loop cancelled. Shutting down...")
@@ -66,7 +59,7 @@ async def worker_loop() -> None:
 
 
 async def _run_and_report(
-    api: DefaultApi, loop: asyncio.AbstractEventLoop, lease: LeaseResponse, bearer_token: str
+    api: DefaultApi, loop: asyncio.AbstractEventLoop, lease: LeaseResponse
 ) -> None:
     reconstruction_id = lease.reconstruction_id
     capture_id = lease.capture_session_id
@@ -86,7 +79,6 @@ async def _run_and_report(
             options,
             publisher,
             metrics_builder,
-            bearer_token,
         )
         print(f"[{reconstruction_id}] Reconstruction succeeded")
         await api.succeed_lease(

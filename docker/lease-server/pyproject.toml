@@ -1,0 +1,20 @@
+[project]
+name = "placeframe-lease-server"
+version = "0.1.0"
+description = "Internal control-plane work-queue: lease endpoints the reconstructor polls"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "common",
+    "core",
+    "datamodels",
+    "litestar>=2.19.0",
+    "psycopg[binary]>=3.2.10",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.10.1",
+    "sqlalchemy[asyncio]>=2.0.43",
+    "uvicorn[standard]>=0.35.0",
+]
+
+[tool.deptry.per_rule_ignores]
+DEP002 = ["uvicorn", "psycopg"]

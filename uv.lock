@@ -28,6 +28,8 @@ members = [
     "placeframe",
     "placeframe-api",
     "placeframe-api-client",
+    "placeframe-lease-server",
+    "placeframe-lease-server-client",
     "placeframe-localizer",
     "placeframe-localizer-client",
     "placeframe-reconstructor",
@@ -313,10 +315,8 @@ source = { editable = "packages/python/common" }
 dependencies = [
     { name = "boto3" },
     { name = "botocore" },
-    { name = "httpx" },
     { name = "litestar" },
     { name = "pydantic" },
-    { name = "pyjwt" },
     { name = "python-json-logger" },
 ]
 
@@ -329,10 +329,8 @@ dev = [
 requires-dist = [
     { name = "boto3", specifier = ">=1.39.5" },
     { name = "botocore", specifier = ">=1.42.24" },
-    { name = "httpx", specifier = ">=0.28.1" },
     { name = "litestar", specifier = ">=2.19.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "pyjwt", specifier = ">=2.10.1" },
     { name = "python-json-logger", specifier = ">=3.2.0" },
 ]
 
@@ -1695,6 +1693,54 @@ requires-dist = [
 ]
 
 [[package]]
+name = "placeframe-lease-server"
+version = "0.1.0"
+source = { virtual = "docker/lease-server" }
+dependencies = [
+    { name = "common" },
+    { name = "core" },
+    { name = "datamodels" },
+    { name = "litestar" },
+    { name = "psycopg", extra = ["binary"] },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "common", editable = "packages/python/common" },
+    { name = "core", editable = "packages/python/core" },
+    { name = "datamodels", editable = "packages/generated/python/datamodels" },
+    { name = "litestar", specifier = ">=2.19.0" },
+    { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "pydantic-settings", specifier = ">=2.10.1" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.43" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.35.0" },
+]
+
+[[package]]
+name = "placeframe-lease-server-client"
+version = "0.1.0"
+source = { editable = "packages/generated/python/lease-server-client" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "python-dateutil" },
+    { name = "typing-extensions" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "pydantic", specifier = ">=2.11" },
+    { name = "python-dateutil", specifier = ">=2.8.2" },
+    { name = "typing-extensions", specifier = ">=4.7.1" },
+]
+
+[[package]]
 name = "placeframe-localizer"
 version = "0.1.0"
 source = { editable = "docker/localizer" }
@@ -1783,7 +1829,7 @@ dependencies = [
     { name = "cryptography" },
     { name = "httpx" },
     { name = "numpy" },
-    { name = "placeframe-api-client" },
+    { name = "placeframe-lease-server-client" },
     { name = "pycolmap" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -1816,7 +1862,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=46.0.3" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.0" },
-    { name = "placeframe-api-client", editable = "packages/generated/python/api-client" },
+    { name = "placeframe-lease-server-client", editable = "packages/generated/python/lease-server-client" },
     { name = "pycolmap", specifier = ">=4.0.4" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.12.0" },
