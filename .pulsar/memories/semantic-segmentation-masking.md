@@ -44,7 +44,7 @@ missing.
   raise if observed boundary-keypoint instability hurts matching.
 - **Calibration refit is part of the deliverable, not a follow-up.**
   After landing, re-run `fit_calibration.py` against the new
-  `pipeline_version` and commit the refit `config/calibration/global.json`.
+  `pipeline_version` and commit the refit `docker/localizer/calibration/global.json`.
   ZED-only data is sufficient for the refit; the phone-side path is
   unaffected.
 - **3-day time-box with deferral rule.** If Day 4 is being spent on
@@ -71,7 +71,7 @@ missing.
 - `packages/python/neural-networks/SPEC.md` — masking design lives
   here once it lands; existing model-loader patterns set the shape for
   loading OneFormer at service startup.
-- `config/calibration/global.json` — the artifact that gets refit
+- `docker/localizer/calibration/global.json` — the artifact that gets refit
   against the masked pipeline as part of the deliverable.
 
 ## Pending threads
@@ -84,4 +84,4 @@ missing.
 3. Implement the matching pass in the reconstructor; verify with one
    outdoor capture that previously failed.
 4. Re-run `fit_calibration.py` against the new `pipeline_version`,
-   commit `config/calibration/global.json`.
+   commit `docker/localizer/calibration/global.json`.
