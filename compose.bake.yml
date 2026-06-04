@@ -55,7 +55,7 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/gateway:latest"
         - "ghcr.io/outernet-foundation/placeframe/gateway:${GATEWAY_SHA}"
 
-  migrate-database:
+  database-migrator:
     build:
       context: .
       dockerfile: docker/database-migrator/Dockerfile

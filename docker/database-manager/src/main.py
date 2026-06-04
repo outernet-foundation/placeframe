@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import time
 from contextlib import contextmanager
 from copy import deepcopy
 
@@ -290,31 +289,14 @@ def _update_cloudbeaver(settings: Settings, database_name: str, user: str | None
         print("No changes to CloudBeaver data sources, skipping update.")
         return
 
-    # Persist and restart CloudBeaver
+    data_sources_path.parent.mkdir(parents=True, exist_ok=True)
     with data_sources_path.open("w", encoding="utf-8") as fh:
         json.dump(new_data, fh, indent=2)
         fh.write("\n")
 
-    print("Updated CloudBeaver data sources, restarting service")
+    print("Updated CloudBeaver data sources")
 
-    if settings.backend == "docker":
-        import docker  # local import
-
-        client = docker.from_env()  # type: ignore[call-arg]
-        container = client.containers.get(settings.cloudbeaver_service_id)  # type: ignore[call-arg]
-        container.restart()  # type: ignore[union-attr]
-
-        print("Waiting for CloudBeaver service to restart")
-        deadline = time.time() + 120
-        while time.time() < deadline:
-            container.reload()  # type: ignore[union-attr]
-            if getattr(container, "status", "") == "running":  # type: ignore[union-attr]
-                return
-            time.sleep(2)
-        raise RuntimeError("Timeout waiting for CloudBeaver service to restart")
-
-    else:
-        assert settings.backend == "aws"
+    if settings.backend == "aws":
         assert settings.ecs_cluster_arn is not None
         ecs = create_ecs_client()
         ecs.update_service(

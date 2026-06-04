@@ -88,7 +88,7 @@ services:
     x-image-ref: docker.io/dbeaver/cloudbeaver:latest
     image: "${CLOUDBEAVER_IMAGE:?err}"
     depends_on:
-      initialize-cloudbeaver:
+      create-database:
         condition: service_completed_successfully
     ports:
       - "${CLOUDBEAVER_PORT:?err}:8978"
@@ -109,17 +109,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      cloudbeaver:
-        condition: service_healthy
+      initialize-cloudbeaver:
+        condition: service_completed_successfully
     restart: "no"
     volumes:
       - cloudbeaver_data:/mnt/efs
-      - /var/run/docker.sock:/var/run/docker.sock
     entrypoint: >-
       uv run --no-sync python -m src.main --op create --name "${DATABASE_NAME:?err}" --owner-password "${DATABASE_OWNER_PASSWORD:?err}" --api-user-password "${DATABASE_API_USER_PASSWORD:?err}" --auth-user-password "${DATABASE_AUTH_USER_PASSWORD:?err}" --orchestration-user-password "${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}"
     environment:
-      DOCKER_HOST: unix:///var/run/docker.sock
-      BACKEND: docker
       CLOUDBEAVER_SERVICE_ID: placeframe-cloudbeaver-1
       POSTGRES_HOST: "${POSTGRES_HOST:?err}"
       POSTGRES_ADMIN_USER: "${POSTGRES_ADMIN_USER:?err}"
@@ -195,14 +192,12 @@ services:
     environment:
       NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN:?err}"
 
-  migrate-database:
+  database-migrator:
     image: "ghcr.io/outernet-foundation/placeframe/database-migrator:${DATABASE_MIGRATOR_SHA:?err}"
     depends_on:
       create-database:
         condition: service_completed_successfully
     restart: "no"
-    volumes:
-      - ./:/app
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
@@ -219,7 +214,7 @@ services:
         condition: service_healthy
       initialize-minio:
         condition: service_completed_successfully
-      migrate-database:
+      database-migrator:
         condition: service_completed_successfully
     ports:
       - "5679:5678"
@@ -259,7 +254,7 @@ services:
   lease-server:
     image: "ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA:?err}"
     depends_on:
-      migrate-database:
+      database-migrator:
         condition: service_completed_successfully
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]

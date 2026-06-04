@@ -3,6 +3,7 @@
 # Adding a COPY for a path not listed here will fail the build loudly.
 *
 !docker/
+!database/
 !packages/python/
 !packages/generated/python/
 !packages/generated/csharp/api-client/

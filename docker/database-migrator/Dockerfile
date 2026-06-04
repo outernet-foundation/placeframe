@@ -21,5 +21,6 @@ COPY --from=build /go/bin/pg-schema-diff /usr/local/bin/pg-schema-diff
 WORKDIR /app
 COPY docker/database-migrator/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY database/ /app/database/
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
