@@ -11,12 +11,15 @@ from pathlib import Path
 from typing import Any, LiteralString, cast
 
 from common.boto_clients import create_ecs_client, create_secretsmanager_client
+from common.logging_config import configure_logging
 from psycopg import Cursor
 from psycopg.sql import SQL, Identifier, Literal
 from typer import Exit, Option, run
 
 from .database_utils import postgres_cursor
 from .settings import Settings, get_settings
+
+configure_logging("database-manager")
 
 
 def _read_sql(name: str) -> str:

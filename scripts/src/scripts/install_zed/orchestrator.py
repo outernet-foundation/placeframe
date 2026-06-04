@@ -21,7 +21,7 @@ def main(
         typer.Option("--build", help="Cross-compile zed-capture locally instead of pulling from ghcr"),
     ] = False,
 ) -> None:
-    configure_logging("install-zed")
+    configure_logging("install-zed", log_file_path=REPO_ROOT / ".placeframe" / "logs" / "install-zed.jsonl")
     logger.info("starting_install", extra={"target": BOX_SSH_TARGET, "build": build})
     service_shas = compute_service_shas(REPO_ROOT, BAKE_FILE)
 

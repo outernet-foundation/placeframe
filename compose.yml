@@ -116,6 +116,9 @@ services:
       POSTGRES_HOST: "${POSTGRES_HOST:?err}"
       POSTGRES_ADMIN_USER: "${POSTGRES_ADMIN_USER:?err}"
       POSTGRES_ADMIN_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
+      DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:-development}"
+      SERVICE_VERSION: "${DATABASE_MANAGER_SHA:?err}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"
 
   auth-initializer:
     image: "ghcr.io/outernet-foundation/placeframe/auth-initializer:${AUTH_INITIALIZER_SHA:?err}"
@@ -237,6 +240,9 @@ services:
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
       LOCALIZER_CONTAINER_URL: http://localizer:8000
       LOKI_URL: http://loki:3100
+      DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:-development}"
+      SERVICE_VERSION: "${API_SHA:?err}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"
 
   lease-server:
     image: "ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA:?err}"
@@ -254,6 +260,9 @@ services:
       DATABASE_NAME: "${DATABASE_NAME:?err}"
       DATABASE_ORCHESTRATION_USER: "${DATABASE_NAME:?err}_orchestration_user"
       DATABASE_ORCHESTRATION_USER_PASSWORD: "${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}"
+      DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:-development}"
+      SERVICE_VERSION: "${LEASE_SERVER_SHA:?err}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"
 
   state-sync:
     image: "ghcr.io/outernet-foundation/placeframe/state-sync:${STATE_SYNC_SHA:?err}"
@@ -290,8 +299,10 @@ services:
     depends_on:
       loki:
         condition: service_healthy
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+    expose:
+      - "4317"
+    environment:
+      LOKI_WRITE_ENDPOINT: "http://loki:3100/loki/api/v1/push"
     command: run /etc/alloy/config.alloy
 
   grafana:

@@ -2,12 +2,14 @@ from functools import partial
 from os import environ
 
 from common.litestar import create_litestar_app
+from common.logging_config import configure_logging
 from litestar.openapi.config import OpenAPIConfig
 from litestar.openapi.plugins import ScalarRenderPlugin
 from litestar.openapi.spec import Components, OAuthFlow, OAuthFlows, SecurityScheme, Server
 
 from .auth import AuthMiddleware
 from .routers.capture_sessions import router as capture_sessions_router
+from .routers.config import router as config_router
 from .routers.graph import router as graph_router
 from .routers.groups import router as groups_router
 from .routers.layers import router as layers_router
@@ -18,6 +20,10 @@ from .routers.nodes import router as nodes_router
 from .routers.reconstructions import router as reconstructions_router
 from .settings import get_settings
 
+configure_logging("api")
+
+EXCLUDE_FROM_AUTH = [r"^/$", r"^/health/?$", r"^/schema(?:/.*)?$", r"^/config/?$"]
+
 #####
 if environ.get("CODEGEN"):
     middleware: list[partial[AuthMiddleware]] = []
@@ -27,59 +33,67 @@ if environ.get("CODEGEN"):
 else:
     settings = get_settings()
 
-    middleware = [partial(AuthMiddleware, exclude=[r"^/$", r"^/health/?$", r"^/schema(?:/.*)?$"])]
+    middleware = [partial(AuthMiddleware, exclude=EXCLUDE_FROM_AUTH)]
 
-    openapi_config = OpenAPIConfig(
-        "Placeframe",
-        "0.1.0",
-        servers=[Server(url=str(settings.public_url))],
-        security=[{"oauth2": ["openid"]}, {"bearerAuth": []}],
-        render_plugins=[
-            ScalarRenderPlugin(
-                options={
-                    "authentication": {
-                        "preferredSecurityScheme": "oauth2",
-                        "securitySchemes": {
-                            "oauth2": {
-                                "flows": {
-                                    "authorizationCode": {
-                                        "x-scalar-client-id": settings.auth_audience,
-                                        "x-usePkce": "SHA-256",
-                                        "selectedScopes": ["openid", "email", "profile"],
+    if settings.auth_mode == "disabled":
+        openapi_config = OpenAPIConfig(
+            "Placeframe",
+            "0.1.0",
+            servers=[Server(url=str(settings.public_url))],
+        )
+    else:
+        openapi_config = OpenAPIConfig(
+            "Placeframe",
+            "0.1.0",
+            servers=[Server(url=str(settings.public_url))],
+            security=[{"oauth2": ["openid"]}, {"bearerAuth": []}],
+            render_plugins=[
+                ScalarRenderPlugin(
+                    options={
+                        "authentication": {
+                            "preferredSecurityScheme": "oauth2",
+                            "securitySchemes": {
+                                "oauth2": {
+                                    "flows": {
+                                        "authorizationCode": {
+                                            "x-scalar-client-id": settings.auth_audience,
+                                            "x-usePkce": "SHA-256",
+                                            "selectedScopes": ["openid", "email", "profile"],
+                                        }
                                     }
                                 }
-                            }
-                        },
+                            },
+                        }
                     }
-                }
-            )
-        ],
-        components=Components(
-            security_schemes={
-                "oauth2": SecurityScheme(
-                    type="oauth2",
-                    flows=OAuthFlows(
-                        authorization_code=OAuthFlow(
-                            authorization_url=str(settings.auth_url),
-                            token_url=str(settings.auth_token_url),
-                            scopes={"openid": "OpenID scope", "email": "Email", "profile": "Profile"},
-                        )
+                )
+            ],
+            components=Components(
+                security_schemes={
+                    "oauth2": SecurityScheme(
+                        type="oauth2",
+                        flows=OAuthFlows(
+                            authorization_code=OAuthFlow(
+                                authorization_url=str(settings.auth_url),
+                                token_url=str(settings.auth_token_url),
+                                scopes={"openid": "OpenID scope", "email": "Email", "profile": "Profile"},
+                            )
+                        ),
                     ),
-                ),
-                "bearerAuth": SecurityScheme(
-                    type="http",
-                    scheme="bearer",
-                    bearer_format="JWT",
-                    description="Paste a raw access token (e.g., from Keycloak).",
-                ),
-            }
-        ),
-    )
+                    "bearerAuth": SecurityScheme(
+                        type="http",
+                        scheme="bearer",
+                        bearer_format="JWT",
+                        description="Paste a raw access token (e.g., from Keycloak).",
+                    ),
+                }
+            ),
+        )
 
 
 app = create_litestar_app(
     [
         capture_sessions_router,
+        config_router,
         reconstructions_router,
         localization_maps_router,
         localization_evaluations_router,
@@ -91,4 +105,5 @@ app = create_litestar_app(
     ],
     openapi_config,
     middleware,
+    logging_config=None,
 )

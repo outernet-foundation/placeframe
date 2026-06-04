@@ -20,6 +20,9 @@ services:
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
       CAPTURES_BUCKET: dev-captures
+      DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:-development}"
+      SERVICE_VERSION: "${RECONSTRUCTOR_SHA:?err}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"
 
   localizer-rocm:
     image: "ghcr.io/outernet-foundation/placeframe/localizer-rocm:${LOCALIZER_SHA:?err}"
@@ -39,3 +42,6 @@ services:
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:?err}"
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
+      DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:-development}"
+      SERVICE_VERSION: "${LOCALIZER_SHA:?err}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"

@@ -3,6 +3,7 @@ from asyncio import CancelledError, run, sleep
 from signal import SIGTERM, signal
 from typing import Any, NoReturn, cast
 
+from common.logging_config import configure_logging
 from core.reconstruction_options import ReconstructionOptions as CoreReconstructionOptions
 from placeframe_lease_server_client import (
     ApiClient,
@@ -18,6 +19,8 @@ from .metrics_builder import MetricsBuilder
 from .progress_publisher import AsyncProgressFlusher, ReconstructionPublisher
 from .run_reconstruction import load_models, run_reconstruction
 from .settings import get_settings
+
+configure_logging("reconstructor")
 
 POLL_INTERVAL_SECONDS = 5.0
 
@@ -58,9 +61,7 @@ async def worker_loop() -> None:
                 await sleep(POLL_INTERVAL_SECONDS)
 
 
-async def _run_and_report(
-    api: DefaultApi, loop: asyncio.AbstractEventLoop, lease: LeaseResponse
-) -> None:
+async def _run_and_report(api: DefaultApi, loop: asyncio.AbstractEventLoop, lease: LeaseResponse) -> None:
     reconstruction_id = lease.reconstruction_id
     capture_id = lease.capture_session_id
     options = CoreReconstructionOptions.model_validate(lease.options.model_dump())

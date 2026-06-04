@@ -20,25 +20,22 @@ ZED_SERVICES: tuple[ZedService, ...] = (
     ZedService("aoa-gateway", "AOA_GATEWAY_IMAGE", "AOA_GATEWAY_SHA"),
 )
 
-# Pure-upstream images (no build target) that compose.rig.yml references via
-# `${KEY:?err}`. install_zed reads these entries from the host's .env.lock and
-# forwards them to the box's .env so the box pulls the same digest-pinned
-# versions the host uses.
-ZED_UPSTREAM_IMAGE_KEYS: tuple[str, ...] = ("LOKI_IMAGE", "ALLOY_IMAGE")
+# Placeframe-owned wrapper-image SHAs that compose.rig.yml references via
+# `${KEY:?err}`. install_zed lifts these from the host's resolved service_shas
+# and forwards them to the box's .env so the box pulls the same digest-pinned
+# versions the host uses. The wrapper images are multi-arch (linux/amd64 +
+# linux/arm64); the box pulls the arm64 variant.
+ZED_UPSTREAM_IMAGE_KEYS: tuple[str, ...] = ("LOKI_SHA", "ALLOY_SHA")
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 BAKE_FILE = REPO_ROOT / "compose.zed.bake.yml"
 ENV_LOCK_FILE = REPO_ROOT / ".env.lock"
 COMPOSE_SOURCE = REPO_ROOT / "docker" / "zed-capture" / "compose.rig.yml"
-AOA_LOKI_CONFIG_SOURCE = REPO_ROOT / "docker" / "aoa-loki" / "config.yaml"
-AOA_ALLOY_CONFIG_SOURCE = REPO_ROOT / "docker" / "aoa-alloy" / "config.alloy"
 SYSTEMD_UNIT_SOURCE = REPO_ROOT / "docker" / "zed-capture" / "placeframe-zed.service"
 WAIT_FOR_ZED_CAMERA_SOURCE = REPO_ROOT / "docker" / "zed-capture" / "wait_for_zed_camera.py"
 REMOTE_DIR = "~/.placeframe"
 REMOTE_COMPOSE = f"{REMOTE_DIR}/compose.rig.yml"
 REMOTE_WAIT_FOR_ZED_CAMERA = f"{REMOTE_DIR}/wait_for_zed_camera.py"
-REMOTE_AOA_LOKI_DIR = f"{REMOTE_DIR}/aoa-loki"
-REMOTE_AOA_ALLOY_DIR = f"{REMOTE_DIR}/aoa-alloy"
 SSH_SOCKET = "/tmp/install-zed-ssh-%C"
 SSH_MUX = f"-o ControlMaster=auto -o ControlPath={SSH_SOCKET} -o ControlPersist=120"
 SSH_KEY = Path.home() / ".ssh" / "id_ed25519"
