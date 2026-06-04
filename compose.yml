@@ -210,10 +210,6 @@ services:
         condition: service_completed_successfully
       database-migrator:
         condition: service_completed_successfully
-    ports:
-      - "5679:5678"
-    volumes:
-      - ./:/app:ro
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
       interval: 5s
@@ -241,9 +237,6 @@ services:
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
       LOCALIZER_CONTAINER_URL: http://localizer:8000
       LOKI_URL: http://loki:3100
-      RELOAD: "true"
-      DEBUG: "${DEBUG_API:?err}"
-      DEBUG_WAIT: "${DEBUG_WAIT_API:?err}"
 
   lease-server:
     image: "ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA:?err}"
@@ -256,8 +249,6 @@ services:
       start_period: 5s
       timeout: 5s
       retries: 3
-    volumes:
-      - ./:/app:ro
     environment:
       POSTGRES_HOST: "${POSTGRES_HOST:?err}"
       DATABASE_NAME: "${DATABASE_NAME:?err}"

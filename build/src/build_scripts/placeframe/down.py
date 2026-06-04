@@ -6,6 +6,7 @@ from common.bash import bash_handoff
 from common.detect_gpu import Gpu, detect_gpu
 
 from .context_sha import compute_service_shas
+from .modes import resolve_auth_mode
 
 ENV_FILE = Path(".env")
 LOCK_FILE = Path(".env.lock")
@@ -22,6 +23,11 @@ app = typer.Typer(add_completion=False)
 def down(
     volumes: bool = typer.Option(False, "--volumes", "-v", help="Remove named volumes."),
     gpu: Gpu = typer.Option("auto", "--gpu", help="auto|cuda|rocm|none"),
+    compose_file: Path = typer.Option(
+        Path("compose.yml"),
+        "--compose-file",
+        help=("Base compose file. Default compose.yml. Use compose.makeitsing.yml to tear down the makeitsing stack."),
+    ),
 ) -> None:
     if not ENV_FILE.exists():
         raise RuntimeError("No .env file found")
@@ -32,12 +38,24 @@ def down(
     if gpu == "auto":
         gpu = detect_gpu()
 
+    resolve_auth_mode(ENV_FILE)
+
     _resolve_service_shas()
+
+    if compose_file == Path("compose.yml"):
+        compose_files = (
+            "-f compose.yml "
+            "-f compose.postgres.yml "
+            f"{f'-f compose.{gpu}.yml ' if gpu != 'none' else ''}"
+            "-f compose.dev.yml "  # Include so containers from a prior dev bring-up get torn down even with --no-dev later
+        )
+    else:
+        compose_files = f"-f {compose_file} "
 
     command = (
         "docker compose "
-        "-f compose.yml "
-        f"{f'-f compose.{gpu}.yml ' if gpu != 'none' else ''}"
+        f"{compose_files}"
+        "--profile keycloak "  # Always include so any keycloak containers from a previous AUTH_MODE=keycloak run get torn down
         "--env-file .env "
         f"--env-file {LOCK_FILE} "  # Needed so compose won't error on missing variables, even though they are irrelevant for 'down'
         "down --remove-orphans"

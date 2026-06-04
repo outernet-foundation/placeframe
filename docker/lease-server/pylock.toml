@@ -53,6 +53,19 @@ sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93
 wheels = [{ url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", upload-time = 2022-10-25T02:36:20Z, size = 25335, hashes = { sha256 = "4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6" } }]
 
 [[packages]]
+name = "debugpy"
+version = "1.8.19"
+index = "https://pypi.org/simple"
+sdist = { url = "https://files.pythonhosted.org/packages/73/75/9e12d4d42349b817cd545b89247696c67917aab907012ae5b64bbfea3199/debugpy-1.8.19.tar.gz", upload-time = 2025-12-15T21:53:28Z, size = 1644590, hashes = { sha256 = "eea7e5987445ab0b5ed258093722d5ecb8bb72217c5c9b1e21f64efe23ddebdb" } }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/71/3d/388035a31a59c26f1ecc8d86af607d0c42e20ef80074147cd07b180c4349/debugpy-1.8.19-cp313-cp313-macosx_15_0_universal2.whl", upload-time = 2025-12-15T21:53:50Z, size = 2538859, hashes = { sha256 = "91e35db2672a0abaf325f4868fcac9c1674a0d9ad9bb8a8c849c03a5ebba3e6d" } },
+    { url = "https://files.pythonhosted.org/packages/4a/19/c93a0772d0962294f083dbdb113af1a7427bb632d36e5314297068f55db7/debugpy-1.8.19-cp313-cp313-manylinux_2_34_x86_64.whl", upload-time = 2025-12-15T21:53:51Z, size = 4292575, hashes = { sha256 = "85016a73ab84dea1c1f1dcd88ec692993bcbe4532d1b49ecb5f3c688ae50c606" } },
+    { url = "https://files.pythonhosted.org/packages/5c/56/09e48ab796b0a77e3d7dc250f95251832b8bf6838c9632f6100c98bdf426/debugpy-1.8.19-cp313-cp313-win32.whl", upload-time = 2025-12-15T21:53:53Z, size = 5286209, hashes = { sha256 = "b605f17e89ba0ecee994391194285fada89cee111cfcd29d6f2ee11cbdc40976" } },
+    { url = "https://files.pythonhosted.org/packages/fb/4e/931480b9552c7d0feebe40c73725dd7703dcc578ba9efc14fe0e6d31cfd1/debugpy-1.8.19-cp313-cp313-win_amd64.whl", upload-time = 2025-12-15T21:53:55Z, size = 5328206, hashes = { sha256 = "c30639998a9f9cd9699b4b621942c0179a6527f083c72351f95c6ab1728d5b73" } },
+    { url = "https://files.pythonhosted.org/packages/25/3e/e27078370414ef35fafad2c06d182110073daaeb5d3bf734b0b1eeefe452/debugpy-1.8.19-py2.py3-none-any.whl", upload-time = 2025-12-15T21:54:16Z, size = 5292321, hashes = { sha256 = "360ffd231a780abbc414ba0f005dad409e71c78637efe8f2bd75837132a41d38" } },
+]
+
+[[packages]]
 name = "faiss-cpu"
 version = "1.13.2"
 index = "https://pypi.org/simple"

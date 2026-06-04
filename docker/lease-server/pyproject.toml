@@ -8,6 +8,7 @@ dependencies = [
     "common",
     "core",
     "datamodels",
+    "debugpy>=1.8.16",
     "litestar>=2.19.0",
     "psycopg[binary]>=3.2.10",
     "pydantic>=2.12.5",
@@ -17,4 +18,4 @@ dependencies = [
 ]
 
 [tool.deptry.per_rule_ignores]
-DEP002 = ["uvicorn", "psycopg"]
+DEP002 = ["uvicorn", "debugpy", "psycopg"]
