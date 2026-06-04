@@ -50,7 +50,8 @@ namespace Placeframe.Client
 
     public class SettingsState : StateObject
     {
-        public StateValue<string> domain { get; private set; }
+        public StateValue<string> apiUrl { get; private set; }
+        public StateValue<bool> useKeycloak { get; private set; }
         public StateValue<string> username { get; private set; }
         public StateValue<string> password { get; private set; }
     }

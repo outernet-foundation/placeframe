@@ -101,7 +101,6 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/lease-server:latest"
         - "ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA}"
 
-
   loki:
     build:
       context: .

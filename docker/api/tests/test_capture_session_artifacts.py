@@ -29,12 +29,12 @@ MINIMAL_JPEG = bytes.fromhex(
 )
 
 
-def _public_domain_from_env_file() -> str | None:
+def _public_url_from_env_file() -> str | None:
     for env_file in ENV_FILE_CANDIDATES:
         if not env_file.is_file():
             continue
         for line in env_file.read_text().splitlines():
-            if line.startswith("PUBLIC_DOMAIN="):
+            if line.startswith("PUBLIC_URL="):
                 return line.split("=", 1)[1].strip()
     return None
 
@@ -67,9 +67,9 @@ def _resolve_auth_base_url() -> str | None:
     explicit = os.environ.get("AUTH_BASE_URL")
     if explicit:
         return explicit
-    public_domain = os.environ.get("PUBLIC_DOMAIN") or _public_domain_from_env_file()
-    if public_domain:
-        return f"https://{public_domain}/auth"
+    public_url = os.environ.get("PUBLIC_URL") or _public_url_from_env_file()
+    if public_url:
+        return f"{public_url}/auth"
     return None
 
 
@@ -101,7 +101,7 @@ def api_client() -> httpx.Client:
         pytest.skip("API not reachable; set API_BASE_URL or run inside the placeframe stack")
     auth_base_url = _resolve_auth_base_url()
     if auth_base_url is None:
-        pytest.skip("Auth not reachable; set AUTH_BASE_URL or PUBLIC_DOMAIN")
+        pytest.skip("Auth not reachable; set AUTH_BASE_URL or PUBLIC_URL")
     token = _fetch_access_token(auth_base_url)
     if token is None:
         pytest.skip("Could not obtain Keycloak token; check PLACEFRAME_TEST_USER/PASSWORD env")

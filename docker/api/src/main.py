@@ -9,7 +9,6 @@ from litestar.openapi.spec import Components, OAuthFlow, OAuthFlows, SecuritySch
 
 from .auth import AuthMiddleware
 from .routers.capture_sessions import router as capture_sessions_router
-from .routers.config import router as config_router
 from .routers.graph import router as graph_router
 from .routers.groups import router as groups_router
 from .routers.layers import router as layers_router
@@ -22,7 +21,7 @@ from .settings import get_settings
 
 configure_logging("api")
 
-EXCLUDE_FROM_AUTH = [r"^/$", r"^/health/?$", r"^/schema(?:/.*)?$", r"^/config/?$"]
+EXCLUDE_FROM_AUTH = [r"^/$", r"^/health/?$", r"^/schema(?:/.*)?$"]
 
 #####
 if environ.get("CODEGEN"):
@@ -93,7 +92,6 @@ else:
 app = create_litestar_app(
     [
         capture_sessions_router,
-        config_router,
         reconstructions_router,
         localization_maps_router,
         localization_evaluations_router,

@@ -74,9 +74,9 @@ namespace Outernet.Logging
             ObservableSystem.RegisterUnhandledExceptionHandler(exception => Log<TLogGroup>.Error(exception, "R3 subscription unhandled exception"));
         }
 
-        public static void EnableLoki(string domain, Func<UniTask<string>> tokenProvider)
+        public static void EnableLoki(string apiUrl, Func<UniTask<string>> tokenProvider)
         {
-            _lokiSink.Enable(domain, tokenProvider);
+            _lokiSink.Enable(apiUrl, tokenProvider);
         }
 
         public static void Terminate()

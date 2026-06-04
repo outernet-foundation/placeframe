@@ -125,6 +125,8 @@ services:
 
   auth-initializer:
     image: "ghcr.io/outernet-foundation/placeframe/auth-initializer:${AUTH_INITIALIZER_SHA:?err}"
+    profiles:
+      - keycloak
     restart: "no"
     volumes:
       - auth_data:/auth_data
@@ -133,6 +135,8 @@ services:
   keycloak:
     x-image-ref: quay.io/keycloak/keycloak:26.3.5
     image: "${KEYCLOAK_IMAGE:?err}"
+    profiles:
+      - keycloak
     depends_on:
       auth-initializer:
         condition: service_completed_successfully
@@ -150,14 +154,14 @@ services:
       retries: 20
       start_period: 30s
     environment:
-      PUBLIC_URL: "https://${PUBLIC_DOMAIN:?err}"
+      PUBLIC_URL: "${PUBLIC_URL:?err}"
       KEYCLOAK_ACCESS_TOKEN_LIFESPAN: "${KEYCLOAK_ACCESS_TOKEN_LIFESPAN:?err}"
       KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT: "${KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT:?err}"
       KEYCLOAK_SSO_SESSION_MAX_LIFESPAN: "${KEYCLOAK_SSO_SESSION_MAX_LIFESPAN:?err}"
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_HOSTNAME: "https://${PUBLIC_DOMAIN:?err}/auth"
-      KC_HOSTNAME_ADMIN: "https://${PUBLIC_DOMAIN:?err}/auth"
+      KC_HOSTNAME: "${PUBLIC_URL:?err}/auth"
+      KC_HOSTNAME_ADMIN: "${PUBLIC_URL:?err}/auth"
       KC_PROXY_HEADERS: xforwarded
       KC_HOSTNAME_STRICT_HTTPS: "true"
       KC_HOSTNAME_DEBUG: "true"
@@ -165,35 +169,48 @@ services:
   gateway:
     image: "ghcr.io/outernet-foundation/placeframe/gateway:${GATEWAY_SHA:?err}"
     depends_on:
-      - keycloak
-      - api
+      keycloak:
+        condition: service_started
+        required: false
+      api:
+        condition: service_started
     ports:
       - target: 8443
         published: "${GATEWAY_PORT:?err}"
         protocol: tcp
         mode: ingress
     environment:
-      PUBLIC_PORT: "${GATEWAY_PORT:?err}"
-      PUBLIC_DOMAIN: "${PUBLIC_DOMAIN:?err}"
+      PUBLIC_URL: "${PUBLIC_URL:?err}"
+      AUTH_MODE: "${AUTH_MODE:-keycloak}"
 
+  # ngrok runs unconditionally but self-skips when NGROK_DOMAIN is empty (the
+  # `restart: on-failure` policy keeps an exit-0 from looping). This is how
+  # airgap deployments take effect: the operator simply omits NGROK_DOMAIN
+  # from .env and the tunnel agent stays dormant.
   ngrok:
-    profiles:
-      - ngrok
     x-image-ref: ngrok/ngrok:alpine
     image: "${NGROK_IMAGE:?err}"
     depends_on:
       - gateway
-    restart: unless-stopped
+    restart: on-failure
     ports:
       - "4040:4040"
-    command:
-      - "http"
-      - "--domain=${PUBLIC_DOMAIN:?err}"
-      - "--upstream-protocol=http2"
-      - "--log=stdout"
-      - "http://gateway:8080"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        if [ -z "$$NGROK_DOMAIN" ]; then
+          echo "ngrok: NGROK_DOMAIN unset — tunnel disabled, exiting cleanly."
+          exit 0
+        fi
+        exec ngrok http \
+          --domain="$$NGROK_DOMAIN" \
+          --upstream-protocol=http2 \
+          --log=stdout \
+          http://gateway:8443
     environment:
-      NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN:?err}"
+      NGROK_DOMAIN: "${NGROK_DOMAIN:-}"
+      NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN:-}"
 
   database-migrator:
     image: "ghcr.io/outernet-foundation/placeframe/database-migrator:${DATABASE_MIGRATOR_SHA:?err}"
@@ -215,6 +232,7 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
+        required: false
       initialize-minio:
         condition: service_completed_successfully
       database-migrator:
@@ -226,11 +244,12 @@ services:
       timeout: 5s
       retries: 3
     environment:
-      PUBLIC_URL: "https://${PUBLIC_DOMAIN:?err}"
+      PUBLIC_URL: "${PUBLIC_URL:?err}"
+      AUTH_MODE: "${AUTH_MODE:-keycloak}"
       AUTH_AUDIENCE: "${AUTH_AUDIENCE:?err}"
-      AUTH_ISSUER_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev"
-      AUTH_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth"
-      AUTH_TOKEN_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
+      AUTH_ISSUER_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev"
+      AUTH_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth"
+      AUTH_TOKEN_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
       AUTH_CERTS_URL: "http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs"
       POSTGRES_HOST: "${POSTGRES_HOST:?err}"
       DATABASE_NAME: "${DATABASE_NAME:?err}"
@@ -278,7 +297,8 @@ services:
     volumes:
       - auth_data:/run/secrets:ro
     environment:
-      AUTH_TOKEN_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
+      AUTH_MODE: "${AUTH_MODE:-keycloak}"
+      AUTH_TOKEN_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
       AUTH_CLIENT_ID: "${AUTH_WORKER_CLIENT_ID:?err}"
       PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
 
@@ -328,7 +348,7 @@ services:
       retries: 20
       start_period: 10s
     environment:
-      GF_SERVER_ROOT_URL: "https://${PUBLIC_DOMAIN:?err}/grafana/"
+      GF_SERVER_ROOT_URL: "${PUBLIC_URL:?err}/grafana/"
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       # TODO FIXME: remove anonymous access — only enabled to bypass OAuth over plain HTTP for local dev
       GF_AUTH_ANONYMOUS_ENABLED: "true"
@@ -337,7 +357,7 @@ services:
       GF_AUTH_GENERIC_OAUTH_NAME: Keycloak
       GF_AUTH_GENERIC_OAUTH_CLIENT_ID: placeframe-grafana
       GF_AUTH_GENERIC_OAUTH_SCOPES: openid email profile
-      GF_AUTH_GENERIC_OAUTH_AUTH_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth"
-      GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
-      GF_AUTH_GENERIC_OAUTH_API_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/userinfo"
+      GF_AUTH_GENERIC_OAUTH_AUTH_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth"
+      GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
+      GF_AUTH_GENERIC_OAUTH_API_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/userinfo"
       GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "'Admin'"

@@ -21,7 +21,8 @@ namespace Placeframe.Client
                 App.ExecuteTransaction(appState =>
                 {
                     var x = appState.settings;
-                    x.domain.value = null;
+                    x.apiUrl.value = null;
+                    x.useKeycloak.value = true;
                     x.username.value = "user";
                     x.password.value = "password";
                 });

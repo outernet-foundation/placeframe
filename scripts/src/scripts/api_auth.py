@@ -14,9 +14,9 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 @asynccontextmanager
 async def authenticated_api_client() -> AsyncIterator[DefaultApi]:
-    public_domain = _read_public_domain()
-    token = await _fetch_keycloak_token(public_domain)
-    async with ApiClient(Configuration(host=f"https://{public_domain}")) as api_client:
+    public_url = _read_public_url()
+    token = await _fetch_keycloak_token(public_url)
+    async with ApiClient(Configuration(host=public_url)) as api_client:
         # The generated openapi-generator client emits empty `_auth_settings` on every method
         # and `Configuration.auth_settings()` returns `{}`, so `Configuration(access_token=...)`
         # is dead code. Inject the token as a default header so all requests authenticate.
@@ -24,18 +24,18 @@ async def authenticated_api_client() -> AsyncIterator[DefaultApi]:
         yield DefaultApi(api_client)
 
 
-def _read_public_domain() -> str:
+def _read_public_url() -> str:
     for line in (REPO_ROOT / ".env").read_text().splitlines():
         stripped = line.strip()
-        if stripped.startswith("PUBLIC_DOMAIN=") and not stripped.startswith("#"):
+        if stripped.startswith("PUBLIC_URL=") and not stripped.startswith("#"):
             return stripped.split("=", 1)[1].strip()
-    raise RuntimeError("PUBLIC_DOMAIN not found in .env")
+    raise RuntimeError("PUBLIC_URL not found in .env")
 
 
-async def _fetch_keycloak_token(public_domain: str) -> str:
-    async with AsyncClient(verify=False) as http:  # noqa: S501
+async def _fetch_keycloak_token(public_url: str) -> str:
+    async with AsyncClient() as http:
         response = await http.post(
-            f"https://{public_domain}/auth/realms/placeframe-dev/protocol/openid-connect/token",
+            f"{public_url}/auth/realms/placeframe-dev/protocol/openid-connect/token",
             data={
                 "grant_type": "password",
                 "client_id": "placeframe-api",

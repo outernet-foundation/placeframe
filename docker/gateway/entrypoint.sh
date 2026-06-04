@@ -1,21 +1,60 @@
 #!/bin/sh
 set -eu
 
-# 1. Extract the hostname (remove the port) from PUBLIC_DOMAIN
-#    Input: "localhost:58080" -> Output: "localhost"
-DOMAIN_NAME=${PUBLIC_DOMAIN%:*}
+# Caddy always serves cleartext HTTP on :8443 with h2c enabled. TLS is either
+# terminated upstream by a tunnel relay (ngrok) or absent entirely (LAN /
+# air-gap, where cleartext on the local network is accepted to avoid the
+# cert-distribution overhead of an internal CA on every Unity client). h2c is
+# required so gRPC arriving over the relay's cleartext upstream connection
+# negotiates HTTP/2.
+#
+# X-Forwarded-Proto / X-Forwarded-Port are parsed from PUBLIC_URL so the
+# upstream sees the scheme and port the client actually connected to, not the
+# gateway's internal 8443 bind. Keycloak depends on this for redirect-URI
+# matching when its KC_HOSTNAME embeds the public scheme.
+#
+# AUTH_MODE composition: the /auth/* reverse proxy and the /loki/* forward_auth
+# gate are only emitted when AUTH_MODE=keycloak. In AUTH_MODE=disabled the
+# Keycloak container isn't running (compose profile gating), so those
+# directives would either fail at boot or never resolve their upstream.
 
-# 2. Generate Caddyfile with shell variables injected
+AUTH_MODE="${AUTH_MODE:-keycloak}"
+
+scheme="${PUBLIC_URL%%://*}"
+rest="${PUBLIC_URL#*://}"
+hostport="${rest%%/*}"
+case "$hostport" in
+    *:*) port="${hostport##*:}" ;;
+    *)   if [ "$scheme" = "https" ]; then port=443; else port=80; fi ;;
+esac
+
+if [ "$AUTH_MODE" = "keycloak" ]; then
+    auth_handler="
+    handle_path /auth/* {
+        reverse_proxy keycloak:8080 {
+            header_up X-Forwarded-Proto ${scheme}
+            header_up X-Forwarded-Port ${port}
+        }
+    }
+"
+    loki_forward_auth="        forward_auth keycloak:8080 {
+            uri /realms/placeframe-dev/protocol/openid-connect/userinfo
+        }
+"
+else
+    auth_handler=""
+    loki_forward_auth=""
+fi
+
 cat > /etc/caddy/Caddyfile <<EOF
 {
     debug
-    # Global option: Allow Cleartext HTTP/2 (h2c) on port 8080 for Ngrok
-    servers :8080 {
+    servers :8443 {
         protocols h1 h2c
     }
 }
 
-(backend_routes) {
+http://:8443 {
     # gRPC Service
     @grpc {
         header Content-Type application/grpc*
@@ -28,27 +67,15 @@ cat > /etc/caddy/Caddyfile <<EOF
             flush_interval -1
         }
     }
-
-    # Auth Service
-    handle_path /auth/* {
-        reverse_proxy keycloak:8080 {
-            header_up X-Forwarded-Proto https
-            # Shell expands this to "58080" (or whatever you set)
-            header_up X-Forwarded-Port ${PUBLIC_PORT}
-        }
-    }
-
+${auth_handler}
     # Grafana
     handle /grafana/* {
         reverse_proxy grafana:3000
     }
 
-    # Loki (log ingestion from Unity clients, authenticated via Keycloak)
+    # Loki (log ingestion from Unity clients)
     handle /loki/* {
-        forward_auth keycloak:8080 {
-            uri /realms/placeframe-dev/protocol/openid-connect/userinfo
-        }
-        reverse_proxy loki:3100
+${loki_forward_auth}        reverse_proxy loki:3100
     }
 
     # CloudBeaver
@@ -61,19 +88,6 @@ cat > /etc/caddy/Caddyfile <<EOF
     handle {
         reverse_proxy api:8000
     }
-}
-
-# Listener A: Tunnel Mode (Ngrok) - Explicitly HTTP
-http://:8080 {
-    import backend_routes
-}
-
-# Listener B: Local Mode
-# We explicitly list the domain so Caddy generates the correct cert.
-# e.g., "localhost:8443"
-${DOMAIN_NAME}:8443 {
-    tls internal
-    import backend_routes
 }
 EOF
 
