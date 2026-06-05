@@ -2,7 +2,7 @@
 
 ## What this is
 
-The Unity-side wrapper around Placeframe's relocalization service. It exposes a static facade (`VisualPositioningSystem`) that authenticates against Placeframe's Keycloak, streams camera frames to `POST /localize`, runs a Bayesian SE(3) filter over the returned poses, and publishes a smoothly-slewed ECEF-to-Unity-world transform that consumers use to anchor virtual content to a real physical place. Consumers in this repo: `apps/MakeItSing/` (multiplayer XR) and `apps/AndroidMobile/` (capture tool). The host Unity project at this directory is not the package -- it's the editor harness for developing the package; the package itself lives entirely under `Assets/Package/`.
+The Unity-side wrapper around Placeframe's relocalization service. It exposes a static facade (`VisualPositioningSystem`) that authenticates against Placeframe's Keycloak, streams camera frames to `POST /localize`, runs a Bayesian SE(3) filter over the returned poses, and publishes a smoothly-slewed ECEF-to-Unity-world transform that consumers use to anchor virtual content to a real physical place. In-repo consumer: `apps/AndroidMobile/` (capture tool). The host Unity project at this directory is not the package -- it's the editor harness for developing the package; the package itself lives entirely under `Assets/Package/`.
 
 ## Shape
 
@@ -55,7 +55,7 @@ Public API surface:
 - **Coord conversion**: `EcefToUnityWorld(double3, quaternion) -> (Vector3, Quaternion)`, `UnityWorldToEcef(Vector3, Quaternion) -> (double3, quaternion)`.
 - **Diagnostic bypass switches**: `BypassInnovationGate` and `BypassKalman` are `public static bool` flags surfaced as toggles in the metrics dialog. Setting `BypassInnovationGate=true` skips the chi-squared outlier reject; `BypassKalman=true` snaps the posterior to each accepted measurement instead of merging it with the prior. Used to A/B individual pipeline stages against the same camera feed without a rebuild.
 - **Manual reset**: `SetEcefToUnityTransform(double4x4)` calls `RelocalizationFilter.Reset` -- wipes filter history, re-bootstraps the covariance.
-- **Reconstruction download**: `GetReconstructionPoints(Guid)`, `GetReconstructionFramePoses(Guid)` -- used by editor tooling (e.g. MakeItSing's `ReconstructionDownloadHelperWindow`).
+- **Reconstruction download**: `GetReconstructionPoints(Guid)`, `GetReconstructionFramePoses(Guid)` -- used by editor tooling.
 - **Map visualization**: `SetMapVisualizationsVisible(bool)`, `LocalizationMapManager.AddMap/RemoveMap` -- spawn ParticleSystem-based point-cloud renderers from the downloaded reconstruction points.
 
 ### Authentication
@@ -64,7 +64,7 @@ Public API surface:
 
 `GetOrRefreshToken` short-circuits if the access token is unexpired (60s skew); otherwise it tries refresh-token rotation (Keycloak rotates the refresh token, so the entire token response is replaced); if that fails, full re-login using the cached username/password held in static properties for the process lifetime.
 
-The Keycloak realm path `placeframe-dev` is hardcoded at `Assets/Package/Core/Runtime/VisualPositioningSystem.cs:90`. The first `Initialize` parameter `authAudience` is the OAuth `client_id` (not the audience claim, despite the name) -- MakeItSing passes `placeframe-api`. The realm itself is fixed code.
+The Keycloak realm path `placeframe-dev` is hardcoded at `Assets/Package/Core/Runtime/VisualPositioningSystem.cs:90`. The first `Initialize` parameter `authAudience` is the OAuth `client_id` (not the audience claim, despite the name) -- consumers pass `placeframe-api`. The realm itself is fixed code.
 
 ### The relocalization filter
 
@@ -153,5 +153,4 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 ## See also
 
 - `docker/localizer/SPEC.md` -- server side of the `/localize` contract; documents the `MeasurementCovariance = alpha * PnP + beta * I` formula this filter consumes and the calibration runtime that produces it.
-- `apps/MakeItSing/SPEC.md` -- primary consumer; shows the integration pattern (`Initialize` at boot, `Login` on user submit, `SetLocalizationMaps` on coarse-location change, `StartLocalizing` once logged in, `SceneOrigin` subscribing to `OnEcefToUnityWorldTransformUpdated`).
 - `docker/SPEC.md` -- multi-service stack the Unity client talks to, including the Keycloak realm and the Loki log-shipping path the static log callbacks plug into.

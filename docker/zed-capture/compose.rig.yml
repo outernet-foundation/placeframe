@@ -15,6 +15,11 @@ services:
       - /tmp/argus_socket:/tmp/argus_socket
       - /tmp/nvscsock:/tmp/nvscsock
       - /tmp/camsock:/tmp/camsock
+    environment:
+      ZED_BOX_ID: ${ZED_BOX_ID:?err}
+      DEPLOYMENT_ENVIRONMENT: production
+      SERVICE_VERSION: ${ZED_CAPTURE_SHA:?err}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://127.0.0.1:4317
     restart: unless-stopped
 
   # Caddy sidecar terminating h2c (HTTP/2 cleartext, prior-knowledge) on 9000
@@ -26,8 +31,8 @@ services:
     network_mode: host
     environment:
       # Go HTTP/2 frame-level trace. Logs every SETTINGS/HEADERS/RST_STREAM/GOAWAY
-      # frame sent or received on stderr; Alloy scrapes stderr via docker.sock
-      # and forwards to local box-Loki.
+      # frame sent or received on stderr; aoa-alloy receives OTLP from the host
+      # network namespace and forwards to local box-Loki.
       GODEBUG: http2debug=2
     restart: unless-stopped
 
@@ -47,29 +52,28 @@ services:
     restart: unless-stopped
 
   # Box-side Loki: monolithic mode, filesystem storage, 72h retention. Buffer
-  # between Alloy (writes) and the phone-relay (reads through box-Caddy's
+  # between aoa-alloy (writes) and the phone-relay (reads through box-Caddy's
   # /loki/* handle). Bound to 127.0.0.1:3100 so the wired ethernet doesn't
-  # expose the HTTP API.
+  # expose the HTTP API. Reuses the placeframe-owned Loki wrapper image; the
+  # box-specific config is baked at /etc/loki/box.yaml alongside the main
+  # stack's /etc/loki/config.yaml — command picks the right one.
   aoa-loki:
-    image: ${LOKI_IMAGE:?err}
+    image: ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA:?err}
     network_mode: host
     volumes:
       - aoa-loki:/loki
-      - ./aoa-loki/config.yaml:/etc/loki/config.yaml:ro
-    command: -config.file=/etc/loki/config.yaml
+    command: -config.file=/etc/loki/box.yaml
     restart: unless-stopped
 
-  # Box-side Alloy: scrapes container stdout/stderr via docker.sock and writes
-  # to aoa-loki on 127.0.0.1:3100. ZED_BOX_ID is injected as a Loki external
-  # label so every entry carries the box's hardware identity.
+  # Box-side Alloy: receives OTLP from zed-capture and aoa-gateway, forwards
+  # to aoa-loki. Reuses the placeframe-owned Alloy wrapper image — the config
+  # baked at /etc/alloy/config.alloy is identical to the main stack's;
+  # LOKI_WRITE_ENDPOINT drives the only per-stack difference.
   aoa-alloy:
-    image: ${ALLOY_IMAGE:?err}
+    image: ghcr.io/outernet-foundation/placeframe/alloy:${ALLOY_SHA:?err}
     network_mode: host
     environment:
-      ZED_BOX_ID: ${ZED_BOX_ID:?err}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./aoa-alloy/config.alloy:/etc/alloy/config.alloy:ro
+      LOKI_WRITE_ENDPOINT: http://127.0.0.1:3100/loki/api/v1/push
     command: run /etc/alloy/config.alloy --server.http.listen-addr=127.0.0.1:12345
     restart: unless-stopped
 

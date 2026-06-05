@@ -98,5 +98,5 @@ Flipping `LOCAL_FEATURE_RESIZE_SHORTER_SIDE`, `RETRIEVAL_TILE_OVERLAP_FRACTION`,
 ## See also
 
 - `docker/SPEC.md` -- the service mesh that consumes these types. Core is the vocabulary on the arrows between services; that SPEC describes the arrows.
-- `scripts/src/scripts/fit_calibration.py` -- the producer of `config/calibration/global.json`. Reads `core.calibration`, `core.capture_session_manifest`, and `core.localization_metrics`'s defaults.
+- `scripts/src/scripts/fit_calibration.py` -- the producer of `docker/localizer/calibration/global.json`. Reads `core.calibration`, `core.capture_session_manifest`, and `core.localization_metrics`'s defaults.
 - `packages/generated/` -- the OpenAPI client packages (Python and C#) generated from API routes that respond with `core` schemas. A schema change here requires running `generate-clients`.

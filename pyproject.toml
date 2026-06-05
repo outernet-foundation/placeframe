@@ -14,6 +14,7 @@ members = [
     "docker/database-manager",
     "docker/api",
     "docker/auth-initializer",
+    "docker/lease-server",
     "docker/localizer",
     "docker/orchestrator",
     "docker/reconstructor",
@@ -24,6 +25,7 @@ members = [
     "packages/python/neural-networks/third-party/deep-image-retrieval",
     "packages/generated/python/datamodels",
     "packages/generated/python/api-client",
+    "packages/generated/python/lease-server-client",
     "packages/generated/python/localizer-client",
     "build",
     "scripts",
@@ -32,6 +34,7 @@ members = [
 
 [tool.uv]
 config-settings-package.placeframe-api-client = { editable_mode = "compat" }
+config-settings-package.placeframe-lease-server-client = { editable_mode = "compat" }
 config-settings-package.placeframe-localizer-client = { editable_mode = "compat" }
 
 [tool.uv.sources]
@@ -39,6 +42,7 @@ common = { workspace = true }
 core = { workspace = true }
 neural-networks = { workspace = true }
 datamodels = { workspace = true }
+placeframe-lease-server-client = { workspace = true }
 placeframe-localizer-client = { workspace = true }
 placeframe_api_client = { workspace = true }
 dirtorch = { workspace = true }

@@ -5,8 +5,6 @@ from pathlib import Path
 from common.bash import bash, bash_check, bash_output
 
 APP_TAG_PREFIXES: dict[str, str] = {
-    "LegacyOuternetClient": "legacy-outernet-client",
-    "LegacyOuternetEditor": "legacy-outernet-editor",
     "MapRegistrationTool": "map-registration-tool",
     "CaptureTool": "capture-tool",
 }

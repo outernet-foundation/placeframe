@@ -151,6 +151,7 @@ namespace Placeframe.Client
 
         public struct LabeledControlProps
         {
+            public ElementProps element;
             public IValueObservable<string> label;
             public TextStyleProps labelStyle;
             public IValueObservable<float> labelWidth;
@@ -167,6 +168,7 @@ namespace Placeframe.Client
 
             var control = HorizontalLayout(new()
             {
+                element = props.element,
                 childAlignment = Props.Value(TextAnchor.MiddleLeft),
                 childControlWidth = Props.Value(true),
                 childControlHeight = Props.Value(true),

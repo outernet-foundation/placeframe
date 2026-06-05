@@ -35,17 +35,29 @@ namespace Placeframe.Client
                         children = Props.List(
                             LabeledControl(new LabeledControlProps()
                             {
-                                label = Props.Value("Domain"),
+                                label = Props.Value("API URL"),
                                 labelWidth = Props.Value(225f),
                                 control = InputField(new InputFieldProps()
                                 {
                                     layout = new() { flexibleWidth = Props.Value(1f) },
-                                    value = App.state.settings.domain,
-                                    onValueChanged = x => App.state.settings.domain.value = x
+                                    value = App.state.settings.apiUrl,
+                                    onValueChanged = x => App.state.settings.apiUrl.value = x
                                 })
                             }),
                             LabeledControl(new LabeledControlProps()
                             {
+                                label = Props.Value("Use Keycloak"),
+                                labelWidth = Props.Value(225f),
+                                control = Toggle(new ToggleProps()
+                                {
+                                    layout = new() { flexibleWidth = Props.Value(1f) },
+                                    value = App.state.settings.useKeycloak,
+                                    onValueChanged = x => App.state.settings.useKeycloak.value = x
+                                })
+                            }),
+                            LabeledControl(new LabeledControlProps()
+                            {
+                                element = new() { active = App.state.settings.useKeycloak },
                                 label = Props.Value("Username"),
                                 labelWidth = Props.Value(225f),
                                 control = InputField(new InputFieldProps()
@@ -57,6 +69,7 @@ namespace Placeframe.Client
                             }),
                             LabeledControl(new LabeledControlProps()
                             {
+                                element = new() { active = App.state.settings.useKeycloak },
                                 label = Props.Value("Password"),
                                 labelWidth = Props.Value(225f),
                                 control = InputField(new InputFieldProps()

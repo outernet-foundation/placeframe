@@ -28,7 +28,7 @@ from core.tensor_types import TT
 from neural_networks.models import load_aliked, load_DIR, load_lightglue
 from numpy import asarray, ascontiguousarray, float32, float64, random, vstack
 from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up migration
-from placeframe_api_client import ReconstructionStatus
+from placeframe_lease_server_client import ReconstructionStatus
 from pycolmap._core import set_random_seed  # noqa: PLC2701 — no public API
 from torch import Tensor, cuda, from_numpy, inference_mode  # type: ignore
 
@@ -87,7 +87,6 @@ def run_reconstruction(
     reconstruction_options: ReconstructionOptions,
     publisher: ReconstructionPublisher,
     metrics: MetricsBuilder,
-    bearer_token: str,
 ) -> ReconstructionMetrics:
 
     settings = get_settings()
@@ -256,7 +255,6 @@ def run_reconstruction(
         pairs,
         match_indices,
         publisher,
-        bearer_token,
     )
 
     # Verify reconstruction was successful and write to storage

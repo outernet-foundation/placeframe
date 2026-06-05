@@ -47,6 +47,12 @@ class AuthMiddleware(AbstractAuthenticationMiddleware):
         self._background_refresh: Task[None] | None = None
 
     async def authenticate_request(self, connection: ASGIConnection[Any, Any, Any, Any]) -> AuthenticationResult:
+        if settings.auth_mode == "disabled":
+            identity = connection.headers.get("x-anonymous-identity")
+            if not identity:
+                raise NotAuthorizedException("Missing X-Anonymous-Identity header")
+            return AuthenticationResult(user=identity, auth={"sub": identity})
+
         authorization = connection.headers.get("authorization")
         if not authorization or not authorization.lower().startswith("bearer "):
             raise NotAuthorizedException("Missing bearer token")

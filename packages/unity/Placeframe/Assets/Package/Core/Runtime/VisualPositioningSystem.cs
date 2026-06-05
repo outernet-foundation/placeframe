@@ -66,6 +66,7 @@ namespace Placeframe.Core
         public static bool BypassKalman;
 
         public static DefaultApi Api { get; private set; }
+        public static bool UseKeycloak { get; private set; }
         public static LocalizationMetrics MostRecentMetrics => _state.MostRecentMetrics;
         public static LocalizationMetrics LastReceivedMetrics { get; private set; }
         public static bool Localizing => _localizationSubscription != null;
@@ -120,17 +121,31 @@ namespace Placeframe.Core
                 .Subscribe(_ => ApplyStepResult(RelocalizationFilter.TickSlew(_state, Time.deltaTime)));
         }
 
-        public static async UniTask Login(string domain, string username, string password)
+        // Caller passes the full apiUrl (e.g. https://x.ngrok-free.app or http://192.168.1.100:58080)
+        // and whether to use Keycloak auth. A client/server auth-mode mismatch surfaces as a
+        // 401/403 from the first /api/* call rather than a probe roundtrip at login time.
+        public static async UniTask Login(string apiUrl, bool useKeycloak, string username, string password)
         {
-            var apiUrl = $"https://{domain}";
-            var authTokenUrl = $"{apiUrl}/auth/realms/placeframe-dev/protocol/openid-connect/token";
-
-            await Auth.Login(authTokenUrl, username, password);
+            UseKeycloak = useKeycloak;
 
             // The generated client also enforces Configuration.Timeout via its own
             // CancellationTokenSource, so both timeouts must be infinite to disable it.
+            DelegatingHandler authHandler;
+            if (useKeycloak)
+            {
+                var authTokenUrl = $"{apiUrl}/auth/realms/placeframe-dev/protocol/openid-connect/token";
+                await Auth.Login(authTokenUrl, username, password);
+                authHandler = new AuthHttpHandler();
+            }
+            else
+            {
+                authHandler = new AnonymousIdentityHttpHandler(SystemInfo.deviceUniqueIdentifier);
+            }
+
+            authHandler.InnerHandler = _httpHandlerFactory?.Invoke() ?? new HttpClientHandler();
+
             Api = new DefaultApi(
-                new HttpClient(new AuthHttpHandler() { InnerHandler = _httpHandlerFactory?.Invoke() ?? new HttpClientHandler() })
+                new HttpClient(authHandler)
                 {
                     BaseAddress = new Uri(apiUrl),
                     Timeout = Timeout.InfiniteTimeSpan,

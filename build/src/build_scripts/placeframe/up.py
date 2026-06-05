@@ -1,17 +1,16 @@
 import os
-from datetime import UTC, datetime
 from pathlib import Path
 
 import typer
-from common.bash import bash, bash_handoff
+from common.bash import bash_handoff
 from common.detect_gpu import Gpu, detect_gpu
 
 from .build_docker import run_build
 from .context_sha import compute_service_shas
+from .modes import resolve_auth_mode
 
 ENV_FILE = Path(".env")
 LOCK_FILE = Path(".env.lock")
-LOG_DIRECTORY = Path(".placeframe") / "logs"
 
 
 def _resolve_service_shas() -> None:
@@ -28,12 +27,21 @@ def up(
         False,
         "--quiet-pull",
         "-q",
-        help="Send pull progress to a log file under .placeframe/logs/ instead of the console",
+        help="Suppress per-layer pull progress (still shows pull/push totals).",
     ),
     build: bool = typer.Option(
         False, "--build", help="Build all images locally before bringing the stack up; skips pulling"
     ),
     gpu: Gpu = typer.Option("auto", "--gpu", help="auto|cuda|rocm|none"),
+    no_dev: bool = typer.Option(False, "--no-dev", help="Skip layering compose.dev.yml (production-shape bring-up)"),
+    compose_file: Path = typer.Option(
+        Path("compose.yml"),
+        "--compose-file",
+        help=(
+            "Base compose file. Default compose.yml. Use compose.makeitsing.yml for the makeitsing stack, "
+            "which OCI-pulls the published placeframe artifact and adds LiveKit on top."
+        ),
+    ),
 ) -> None:
     if not LOCK_FILE.exists():
         raise RuntimeError("No lock file found; run 'uv run build --lock-only' first")
@@ -41,27 +49,42 @@ def up(
     if not ENV_FILE.exists():
         raise RuntimeError("No .env file found; create one first (e.g., copy .env.example)")
 
+    if compose_file != Path("compose.yml") and build:
+        raise typer.BadParameter(
+            "--build is only supported with the default --compose-file; non-default stacks consume images "
+            "from the OCI-included placeframe artifact and have no local build graph."
+        )
+
     if gpu == "auto":
         gpu = detect_gpu()
+
+    auth_mode = resolve_auth_mode(ENV_FILE)
 
     if build:
         run_build(gpu=gpu)
 
     _resolve_service_shas()
 
-    gpu_file = f"-f compose.{gpu}.yml " if gpu != "none" else ""
-    compose_args = f"-f compose.yml {gpu_file}--env-file .env --env-file {LOCK_FILE}"
-
-    if not build:
-        if quiet_pull:
-            timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
-            log_path = LOG_DIRECTORY / f"up-pull-{timestamp}.log"
-            print(f"Pulling images → {log_path}")
-            bash(f"docker compose --progress plain {compose_args} pull", log_path=log_path)
-        else:
-            bash(f"docker compose {compose_args} pull")
+    profile_flag = "--profile keycloak " if auth_mode == "keycloak" else ""
+    if compose_file == Path("compose.yml"):
+        gpu_file = f"-f compose.{gpu}.yml " if gpu != "none" else ""
+        dev_file = "" if no_dev else "-f compose.dev.yml "
+        compose_args = (
+            f"-f compose.yml -f compose.postgres.yml {gpu_file}{dev_file}{profile_flag}"
+            f"--env-file .env --env-file {LOCK_FILE}"
+        )
+    else:
+        compose_args = f"-f {compose_file} {profile_flag}--env-file .env --env-file {LOCK_FILE}"
 
     up_command = f"docker compose {compose_args} up"
+    if not build:
+        # tree-<sha> tags are immutable (derived from dockerignore-allowlisted
+        # context), so a local hit is byte-identical to what the registry would
+        # serve. --pull missing skips locally-present tags, avoiding hard errors
+        # on images built locally but not yet pushed.
+        up_command += " --pull missing"
+        if quiet_pull:
+            up_command += " --quiet-pull"
     if not attached:
         up_command += " -d"
 

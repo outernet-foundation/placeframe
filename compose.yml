@@ -1,8 +1,5 @@
 name: placeframe
 
-include:
-  - compose.postgres.yml
-
 volumes:
   uv_cache:
   minio_data:
@@ -13,17 +10,15 @@ volumes:
   loki_data:
 
 
-configs:
-  localizer-calibration-global:
-    file: ./config/calibration/global.json
-
-
 services:
   minio:
     x-image-ref: docker.io/minio/minio:latest
     image: "${MINIO_IMAGE:?err}"
     ports:
-      - "${MINIO_CONSOLE_PORT:?err}:9001"
+      - target: 9001
+        published: "${MINIO_CONSOLE_PORT:?err}"
+        protocol: tcp
+        mode: ingress
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
@@ -88,10 +83,13 @@ services:
     x-image-ref: docker.io/dbeaver/cloudbeaver:latest
     image: "${CLOUDBEAVER_IMAGE:?err}"
     depends_on:
-      initialize-cloudbeaver:
+      create-database:
         condition: service_completed_successfully
     ports:
-      - "${CLOUDBEAVER_PORT:?err}:8978"
+      - target: 8978
+        published: "${CLOUDBEAVER_PORT:?err}"
+        protocol: tcp
+        mode: ingress
     volumes:
       - cloudbeaver_data:/opt/cloudbeaver/workspace
     environment:
@@ -109,33 +107,36 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      cloudbeaver:
-        condition: service_healthy
+      initialize-cloudbeaver:
+        condition: service_completed_successfully
     restart: "no"
     volumes:
       - cloudbeaver_data:/mnt/efs
-      - /var/run/docker.sock:/var/run/docker.sock
     entrypoint: >-
       uv run --no-sync python -m src.main --op create --name "${DATABASE_NAME:?err}" --owner-password "${DATABASE_OWNER_PASSWORD:?err}" --api-user-password "${DATABASE_API_USER_PASSWORD:?err}" --auth-user-password "${DATABASE_AUTH_USER_PASSWORD:?err}" --orchestration-user-password "${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}"
     environment:
-      DOCKER_HOST: unix:///var/run/docker.sock
-      BACKEND: docker
       CLOUDBEAVER_SERVICE_ID: placeframe-cloudbeaver-1
       POSTGRES_HOST: "${POSTGRES_HOST:?err}"
       POSTGRES_ADMIN_USER: "${POSTGRES_ADMIN_USER:?err}"
       POSTGRES_ADMIN_PASSWORD: "${POSTGRES_ADMIN_PASSWORD:?err}"
+      DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:-development}"
+      SERVICE_VERSION: "${DATABASE_MANAGER_SHA:?err}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"
 
   auth-initializer:
     image: "ghcr.io/outernet-foundation/placeframe/auth-initializer:${AUTH_INITIALIZER_SHA:?err}"
+    profiles:
+      - keycloak
     restart: "no"
     volumes:
       - auth_data:/auth_data
       - keycloak_import:/keycloak_import
-      - ./docker/keycloak/realm-export:/templates:ro
 
   keycloak:
     x-image-ref: quay.io/keycloak/keycloak:26.3.5
     image: "${KEYCLOAK_IMAGE:?err}"
+    profiles:
+      - keycloak
     depends_on:
       auth-initializer:
         condition: service_completed_successfully
@@ -153,14 +154,14 @@ services:
       retries: 20
       start_period: 30s
     environment:
-      PUBLIC_URL: "https://${PUBLIC_DOMAIN:?err}"
+      PUBLIC_URL: "${PUBLIC_URL:?err}"
       KEYCLOAK_ACCESS_TOKEN_LIFESPAN: "${KEYCLOAK_ACCESS_TOKEN_LIFESPAN:?err}"
       KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT: "${KEYCLOAK_SSO_SESSION_IDLE_TIMEOUT:?err}"
       KEYCLOAK_SSO_SESSION_MAX_LIFESPAN: "${KEYCLOAK_SSO_SESSION_MAX_LIFESPAN:?err}"
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_HOSTNAME: "https://${PUBLIC_DOMAIN:?err}/auth"
-      KC_HOSTNAME_ADMIN: "https://${PUBLIC_DOMAIN:?err}/auth"
+      KC_HOSTNAME: "${PUBLIC_URL:?err}/auth"
+      KC_HOSTNAME_ADMIN: "${PUBLIC_URL:?err}/auth"
       KC_PROXY_HEADERS: xforwarded
       KC_HOSTNAME_STRICT_HTTPS: "true"
       KC_HOSTNAME_DEBUG: "true"
@@ -168,43 +169,55 @@ services:
   gateway:
     image: "ghcr.io/outernet-foundation/placeframe/gateway:${GATEWAY_SHA:?err}"
     depends_on:
-      - keycloak
-      - api
+      keycloak:
+        condition: service_started
+        required: false
+      api:
+        condition: service_started
     ports:
-      - "${GATEWAY_PORT:?err}:8443"
-    volumes:
-      - ./docker/certs:/certs:ro
+      - target: 8443
+        published: "${GATEWAY_PORT:?err}"
+        protocol: tcp
+        mode: ingress
     environment:
-      PUBLIC_PORT: "${GATEWAY_PORT:?err}"
-      PUBLIC_DOMAIN: "${PUBLIC_DOMAIN:?err}"
+      PUBLIC_URL: "${PUBLIC_URL:?err}"
+      AUTH_MODE: "${AUTH_MODE:-keycloak}"
 
+  # ngrok runs unconditionally but self-skips when NGROK_DOMAIN is empty (the
+  # `restart: on-failure` policy keeps an exit-0 from looping). This is how
+  # airgap deployments take effect: the operator simply omits NGROK_DOMAIN
+  # from .env and the tunnel agent stays dormant.
   ngrok:
-    profiles:
-      - ngrok
     x-image-ref: ngrok/ngrok:alpine
     image: "${NGROK_IMAGE:?err}"
     depends_on:
       - gateway
-    restart: unless-stopped
+    restart: on-failure
     ports:
       - "4040:4040"
-    command:
-      - "http"
-      - "--domain=${PUBLIC_DOMAIN:?err}"
-      - "--upstream-protocol=http2"
-      - "--log=stdout"
-      - "http://gateway:8080"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        if [ -z "$$NGROK_DOMAIN" ]; then
+          echo "ngrok: NGROK_DOMAIN unset — tunnel disabled, exiting cleanly."
+          exit 0
+        fi
+        exec ngrok http \
+          --domain="$$NGROK_DOMAIN" \
+          --upstream-protocol=http2 \
+          --log=stdout \
+          http://gateway:8443
     environment:
-      NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN:?err}"
+      NGROK_DOMAIN: "${NGROK_DOMAIN:-}"
+      NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN:-}"
 
-  migrate-database:
+  database-migrator:
     image: "ghcr.io/outernet-foundation/placeframe/database-migrator:${DATABASE_MIGRATOR_SHA:?err}"
     depends_on:
       create-database:
         condition: service_completed_successfully
     restart: "no"
-    volumes:
-      - ./:/app
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
@@ -219,17 +232,11 @@ services:
     depends_on:
       keycloak:
         condition: service_healthy
+        required: false
       initialize-minio:
         condition: service_completed_successfully
-      migrate-database:
+      database-migrator:
         condition: service_completed_successfully
-    ports:
-      - "5679:5678"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./compose.yml:/compose.yml:ro
-      - ./.env:/.env:ro
-      - ./:/app:ro
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
       interval: 5s
@@ -237,12 +244,12 @@ services:
       timeout: 5s
       retries: 3
     environment:
-      DOCKER_HOST: unix:///var/run/docker.sock
-      PUBLIC_URL: "https://${PUBLIC_DOMAIN:?err}"
+      PUBLIC_URL: "${PUBLIC_URL:?err}"
+      AUTH_MODE: "${AUTH_MODE:-keycloak}"
       AUTH_AUDIENCE: "${AUTH_AUDIENCE:?err}"
-      AUTH_ISSUER_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev"
-      AUTH_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth"
-      AUTH_TOKEN_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
+      AUTH_ISSUER_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev"
+      AUTH_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth"
+      AUTH_TOKEN_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
       AUTH_CERTS_URL: "http://keycloak:8080/realms/placeframe-dev/protocol/openid-connect/certs"
       POSTGRES_HOST: "${POSTGRES_HOST:?err}"
       DATABASE_NAME: "${DATABASE_NAME:?err}"
@@ -258,30 +265,36 @@ services:
       RECONSTRUCTIONS_BUCKET: dev-reconstructions
       LOCALIZER_CONTAINER_URL: http://localizer:8000
       LOKI_URL: http://loki:3100
-      RELOAD: "true"
-      DEBUG: "${DEBUG_API:?err}"
-      DEBUG_WAIT: "${DEBUG_WAIT_API:?err}"
+      DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:-development}"
+      SERVICE_VERSION: "${API_SHA:?err}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"
 
-  state-sync:
-    image: "ghcr.io/outernet-foundation/placeframe/state-sync:${STATE_SYNC_SHA:?err}"
+  lease-server:
+    image: "ghcr.io/outernet-foundation/placeframe/lease-server:${LEASE_SERVER_SHA:?err}"
     depends_on:
-      api:
-        condition: service_healthy
-    volumes:
-      - auth_data:/run/secrets:ro
+      database-migrator:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
+      interval: 5s
+      start_period: 5s
+      timeout: 5s
+      retries: 3
     environment:
-      AUTH_TOKEN_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
-      AUTH_CLIENT_ID: "${AUTH_WORKER_CLIENT_ID:?err}"
-      PRIVATE_KEY_PATH: /run/secrets/worker-private-key.pem
+      POSTGRES_HOST: "${POSTGRES_HOST:?err}"
+      DATABASE_NAME: "${DATABASE_NAME:?err}"
+      DATABASE_ORCHESTRATION_USER: "${DATABASE_NAME:?err}_orchestration_user"
+      DATABASE_ORCHESTRATION_USER_PASSWORD: "${DATABASE_ORCHESTRATION_USER_PASSWORD:?err}"
+      DEPLOYMENT_ENVIRONMENT: "${DEPLOYMENT_ENVIRONMENT:-development}"
+      SERVICE_VERSION: "${LEASE_SERVER_SHA:?err}"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"
 
   loki:
-    x-image-ref: grafana/loki:3.5.0
-    image: "${LOKI_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA:?err}"
     depends_on:
       initialize-minio:
         condition: service_completed_successfully
     volumes:
-      - ./docker/loki/config.yaml:/etc/loki/config.yaml:ro
       - loki_data:/loki
     command: -config.file=/etc/loki/config.yaml -config.expand-env=true
     healthcheck:
@@ -295,26 +308,26 @@ services:
       MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:?err}"
 
   alloy:
-    x-image-ref: grafana/alloy:v1.9.0
-    image: "${ALLOY_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/alloy:${ALLOY_SHA:?err}"
     depends_on:
       loki:
         condition: service_healthy
-    volumes:
-      - ./docker/alloy/config.alloy:/etc/alloy/config.alloy:ro
-      - /var/run/docker.sock:/var/run/docker.sock
+    expose:
+      - "4317"
+    environment:
+      LOKI_WRITE_ENDPOINT: "http://loki:3100/loki/api/v1/push"
     command: run /etc/alloy/config.alloy
 
   grafana:
-    x-image-ref: grafana/grafana:11.6.0
-    image: "${GRAFANA_IMAGE:?err}"
+    image: "ghcr.io/outernet-foundation/placeframe/grafana:${GRAFANA_SHA:?err}"
     depends_on:
       loki:
         condition: service_healthy
     ports:
-      - "${GRAFANA_PORT:?err}:3000"
-    volumes:
-      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+      - target: 3000
+        published: "${GRAFANA_PORT:?err}"
+        protocol: tcp
+        mode: ingress
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--output-document=-", "http://localhost:3000/grafana/api/health" ]
       interval: 5s
@@ -322,7 +335,7 @@ services:
       retries: 20
       start_period: 10s
     environment:
-      GF_SERVER_ROOT_URL: "https://${PUBLIC_DOMAIN:?err}/grafana/"
+      GF_SERVER_ROOT_URL: "${PUBLIC_URL:?err}/grafana/"
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       # TODO FIXME: remove anonymous access — only enabled to bypass OAuth over plain HTTP for local dev
       GF_AUTH_ANONYMOUS_ENABLED: "true"
@@ -331,7 +344,7 @@ services:
       GF_AUTH_GENERIC_OAUTH_NAME: Keycloak
       GF_AUTH_GENERIC_OAUTH_CLIENT_ID: placeframe-grafana
       GF_AUTH_GENERIC_OAUTH_SCOPES: openid email profile
-      GF_AUTH_GENERIC_OAUTH_AUTH_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth"
-      GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
-      GF_AUTH_GENERIC_OAUTH_API_URL: "https://${PUBLIC_DOMAIN:?err}/auth/realms/placeframe-dev/protocol/openid-connect/userinfo"
+      GF_AUTH_GENERIC_OAUTH_AUTH_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/auth"
+      GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/token"
+      GF_AUTH_GENERIC_OAUTH_API_URL: "${PUBLIC_URL:?err}/auth/realms/placeframe-dev/protocol/openid-connect/userinfo"
       GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "'Admin'"

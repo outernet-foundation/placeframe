@@ -9,7 +9,7 @@ from uuid import UUID
 
 import httpx
 from core.reconstruction_metrics import PhaseTiming
-from placeframe_api_client import DefaultApi, ProgressUpdate, ReconstructionStatus
+from placeframe_lease_server_client import DefaultApi, ProgressUpdate, ReconstructionStatus
 
 
 class ProgressFlusher(Protocol):

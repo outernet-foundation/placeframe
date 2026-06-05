@@ -33,8 +33,6 @@ alloy api capture-tool cloudbeaver gateway grafana keycloak loki
 minio minio-logger ngrok postgres reconstructor-cuda zed-capture
 ```
 
-(`state-sync` also appears in the label set — it's the legacy Outernet `.NET` service co-located in compose but unrelated to Placeframe.)
-
 Query template (LogQL via the HTTP API; run from the loki container so you don't have to plumb auth):
 
 ```bash

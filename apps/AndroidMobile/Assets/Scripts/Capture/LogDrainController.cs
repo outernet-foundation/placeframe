@@ -191,8 +191,8 @@ public static class LogDrainController
             return false;
 
         // Push Loki-shaped streams verbatim to host-Loki through host-Caddy.
-        string domain = App.state.settings.domain.value;
-        string pushUrl = $"https://{domain}{hostLokiPushPath}";
+        string apiUrl = App.state.settings.apiUrl.value;
+        string pushUrl = $"{apiUrl}{hostLokiPushPath}";
         string pushBody = JsonConvert.SerializeObject(new { streams });
         string token = await Auth.GetOrRefreshToken();
 

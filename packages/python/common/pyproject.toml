@@ -8,10 +8,9 @@ dependencies = [
     "boto3>=1.39.5",
     "litestar>=2.19.0",
     "pydantic>=2.12.5",
-    "httpx>=0.28.1",
     "botocore>=1.42.24",
-    "pyjwt>=2.10.1",
-    "python-json-logger>=3.2.0",
+    "opentelemetry-sdk>=1.30.0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.30.0",
 ]
 
 [dependency-groups]
@@ -24,8 +23,3 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/common"]
 force-include = { "src/common/py.typed" = "common/py.typed" }
-
-[tool.deptry.per_rule_ignores]
-# python-json-logger is loaded by logging.config.dictConfig via the
-# string "pythonjsonlogger.json.JsonFormatter", not imported directly.
-DEP002 = ["python-json-logger"]

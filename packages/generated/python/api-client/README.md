@@ -107,7 +107,6 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**delete_nodes**](docs/DefaultApi.md#delete_nodes) | **DELETE** /nodes | DeleteNodes
 *DefaultApi* | [**delete_reconstruction**](docs/DefaultApi.md#delete_reconstruction) | **DELETE** /reconstructions/{id} | DeleteReconstruction
 *DefaultApi* | [**download_capture_session_tar**](docs/DefaultApi.md#download_capture_session_tar) | **GET** /capture_sessions/{id}/tar | DownloadCaptureSessionTar
-*DefaultApi* | [**fail_lease**](docs/DefaultApi.md#fail_lease) | **PUT** /internal/leases/{id}/fail | FailLease
 *DefaultApi* | [**get_capture_session**](docs/DefaultApi.md#get_capture_session) | **GET** /capture_sessions/{id} | GetCaptureSession
 *DefaultApi* | [**get_capture_session_frames_csv**](docs/DefaultApi.md#get_capture_session_frames_csv) | **GET** /capture_sessions/{id}/frames.csv | GetCaptureSessionFramesCsv
 *DefaultApi* | [**get_capture_session_image**](docs/DefaultApi.md#get_capture_session_image) | **GET** /capture_sessions/{id}/images/{frame_timestamp} | GetCaptureSessionImage
@@ -125,13 +124,12 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**get_reconstruction**](docs/DefaultApi.md#get_reconstruction) | **GET** /reconstructions/{id} | GetReconstruction
 *DefaultApi* | [**get_reconstruction_frame_poses**](docs/DefaultApi.md#get_reconstruction_frame_poses) | **GET** /reconstructions/{id}/frame_poses | GetReconstructionFramePoses
 *DefaultApi* | [**get_reconstruction_localization_map**](docs/DefaultApi.md#get_reconstruction_localization_map) | **GET** /reconstructions/{id}/localization_map | GetReconstructionLocalizationMap
+*DefaultApi* | [**get_reconstruction_metrics**](docs/DefaultApi.md#get_reconstruction_metrics) | **GET** /reconstructions/{id}/metrics | GetReconstructionMetrics
 *DefaultApi* | [**get_reconstruction_points**](docs/DefaultApi.md#get_reconstruction_points) | **GET** /reconstructions/{id}/points | GetReconstructionPoints
 *DefaultApi* | [**get_reconstructions**](docs/DefaultApi.md#get_reconstructions) | **GET** /reconstructions | GetReconstructions
 *DefaultApi* | [**list_localization_evaluations**](docs/DefaultApi.md#list_localization_evaluations) | **GET** /reconstructions/{reconstruction_id}/localization-evaluations | ListLocalizationEvaluations
 *DefaultApi* | [**localize_image**](docs/DefaultApi.md#localize_image) | **POST** /localize | LocalizeImage
-*DefaultApi* | [**request_lease**](docs/DefaultApi.md#request_lease) | **POST** /internal/leases/request | RequestLease
 *DefaultApi* | [**retry_reconstruction**](docs/DefaultApi.md#retry_reconstruction) | **PUT** /reconstructions/{id}/retry | RetryReconstruction
-*DefaultApi* | [**succeed_lease**](docs/DefaultApi.md#succeed_lease) | **PUT** /internal/leases/{id}/succeed | SucceedLease
 *DefaultApi* | [**update_capture_session**](docs/DefaultApi.md#update_capture_session) | **PATCH** /capture_sessions/{id} | UpdateCaptureSession
 *DefaultApi* | [**update_capture_sessions**](docs/DefaultApi.md#update_capture_sessions) | **PATCH** /capture_sessions | UpdateCaptureSessions
 *DefaultApi* | [**update_groups**](docs/DefaultApi.md#update_groups) | **PATCH** /groups | UpdateGroups
@@ -139,7 +137,6 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**update_localization_map**](docs/DefaultApi.md#update_localization_map) | **PATCH** /localization-maps/{id} | UpdateLocalizationMap
 *DefaultApi* | [**update_localization_maps**](docs/DefaultApi.md#update_localization_maps) | **PATCH** /localization-maps | UpdateLocalizationMaps
 *DefaultApi* | [**update_nodes**](docs/DefaultApi.md#update_nodes) | **PATCH** /nodes | UpdateNodes
-*DefaultApi* | [**update_progress**](docs/DefaultApi.md#update_progress) | **PUT** /internal/leases/{id}/progress | UpdateProgress
 *DefaultApi* | [**upsert_localization_evaluation**](docs/DefaultApi.md#upsert_localization_evaluation) | **POST** /reconstructions/{reconstruction_id}/localization-evaluations | UpsertLocalizationEvaluation
 
 
@@ -157,7 +154,6 @@ Class | Method | HTTP request | Description
  - [DeviceType](docs/DeviceType.md)
  - [ExpandedCaptureSession](docs/ExpandedCaptureSession.md)
  - [ExpandedReconstruction](docs/ExpandedReconstruction.md)
- - [FailLeaseRequest](docs/FailLeaseRequest.md)
  - [Float3](docs/Float3.md)
  - [Float4](docs/Float4.md)
  - [GetCaptureSessions400Response](docs/GetCaptureSessions400Response.md)
@@ -170,7 +166,6 @@ Class | Method | HTTP request | Description
  - [LayerBatchUpdate](docs/LayerBatchUpdate.md)
  - [LayerCreate](docs/LayerCreate.md)
  - [LayerRead](docs/LayerRead.md)
- - [LeaseResponse](docs/LeaseResponse.md)
  - [LinkType](docs/LinkType.md)
  - [LocalizationEvaluationCreate](docs/LocalizationEvaluationCreate.md)
  - [LocalizationEvaluationRead](docs/LocalizationEvaluationRead.md)
@@ -186,7 +181,6 @@ Class | Method | HTTP request | Description
  - [NodeRead](docs/NodeRead.md)
  - [PhaseTiming](docs/PhaseTiming.md)
  - [PinholeCameraConfig](docs/PinholeCameraConfig.md)
- - [ProgressUpdate](docs/ProgressUpdate.md)
  - [ReconstructionCreate](docs/ReconstructionCreate.md)
  - [ReconstructionCreateWithOptions](docs/ReconstructionCreateWithOptions.md)
  - [ReconstructionMetrics](docs/ReconstructionMetrics.md)

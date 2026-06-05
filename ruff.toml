@@ -3,6 +3,7 @@ line-length = 120
 preview = true
 extend-exclude = [
     "packages/generated/python/api-client",
+    "packages/generated/python/lease-server-client",
     "packages/generated/python/localizer-client",
     "packages/python/neural-networks/third-party/deep-image-retrieval/vendored",
     "typings",

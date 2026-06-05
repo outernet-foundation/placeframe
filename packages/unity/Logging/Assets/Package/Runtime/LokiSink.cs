@@ -57,15 +57,17 @@ namespace Outernet.Logging
             _httpClient?.Dispose();
         }
 
-        public void Enable(string domain, Func<UniTask<string>> tokenProvider)
+        public void Enable(string apiUrl, Func<UniTask<string>> tokenProvider)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(LokiSink));
             if (_httpClient != null)
                 throw new InvalidOperationException("Enable has already been called");
+            if (!Uri.TryCreate(apiUrl, UriKind.Absolute, out var baseUri))
+                throw new ArgumentException($"apiUrl must be an absolute URI, got: '{apiUrl ?? "<null>"}'", nameof(apiUrl));
 
             _httpClient = new HttpClient(new HttpClientHandler());
-            _pushUrl = $"https://{domain}/loki/api/v1/push";
+            _pushUrl = new Uri(baseUri, "/loki/api/v1/push").AbsoluteUri;
             _tokenProvider = tokenProvider;
 
             UniTask.RunOnThreadPool(DrainLoop).Forget();
@@ -200,10 +202,13 @@ namespace Outernet.Logging
                     // Per-attempt timeout so a hung token fetch or HTTP send can't
                     // wedge the drain.
                     using var timeout = new CancellationTokenSource(PerAttemptTimeout);
-                    var token = await _tokenProvider().AttachExternalCancellation(timeout.Token);
 
                     using var request = new HttpRequestMessage(HttpMethod.Post, _pushUrl);
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                    if (_tokenProvider != null)
+                    {
+                        var token = await _tokenProvider().AttachExternalCancellation(timeout.Token);
+                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                    }
                     request.Content = new StringContent(
                         JsonConvert.SerializeObject(
                             new { streams = new[] { new { stream = _labels, values = batch.Select(entry => new[] { entry.LastTs, entry.Line }) } } }

@@ -34,16 +34,22 @@ namespace Placeframe.Client
             if (!App.state.loginRequested.value)
                 return;
 
-            _loginTask = TaskHandle.Execute(token => LogIn(App.state.settings.domain.value, App.state.settings.username.value, App.state.settings.password.value, token));
+            _loginTask = TaskHandle.Execute(token => LogIn(
+                App.state.settings.apiUrl.value,
+                App.state.settings.useKeycloak.value,
+                App.state.settings.username.value,
+                App.state.settings.password.value,
+                token
+            ));
         }
 
-        private static async UniTask LogIn(string domain, string username, string password, CancellationToken cancellationToken = default)
+        private static async UniTask LogIn(string apiUrl, bool useKeycloak, string username, string password, CancellationToken cancellationToken = default)
         {
             App.ExecuteTransaction(new SetAuthStatusAction(AuthStatus.LoggingIn));
 
             try
             {
-                await VisualPositioningSystem.Login(domain, username, password);
+                await VisualPositioningSystem.Login(apiUrl, useKeycloak, username, password);
             }
             catch (Exception exc) when (exc is not TaskCanceledException)
             {
@@ -52,8 +58,8 @@ namespace Placeframe.Client
             }
 
             Logger<LogGroup>.EnableLoki(
-                domain,
-                tokenProvider: () => Auth.GetOrRefreshToken()
+                apiUrl,
+                tokenProvider: useKeycloak ? () => Auth.GetOrRefreshToken() : null
             );
 
             await UniTask.SwitchToMainThread(cancellationToken: cancellationToken);

@@ -123,7 +123,7 @@ def main(
         str, Option("--held-out-selector", help="Selector name. See scripts/held_out_selection.py registry.")
     ] = "stride",
     output: Annotated[Path, Option("--output", help="Path to write the calibration artifact.")] = (
-        REPO_ROOT / "config" / "calibration" / "global.json"
+        REPO_ROOT / "docker" / "localizer" / "calibration" / "global.json"
     ),
 ) -> None:
     if not captures and not reconstructions:

@@ -102,7 +102,7 @@ def load_global_calibration(path: Path, expected_pipeline_version: str) -> Calib
             f"Global calibration not found at {path}. "
             f"Expected pipeline version: {expected_pipeline_version}. "
             f"Run scripts/fit_calibration.py against this pipeline and commit "
-            f"the resulting config/calibration/global.json."
+            f"the resulting docker/localizer/calibration/global.json."
         )
 
     calibration = CalibrationArtifact.read(path)

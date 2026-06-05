@@ -22,8 +22,6 @@ SKIP_SUFFIXES = ("-build-report",)
 GHCR_URL = "https://github.com/orgs/outernet-foundation/packages?repo_name=placeframe"
 
 APP_DISPLAY_NAMES: dict[str, str] = {
-    "LegacyOuternetClient": "Legacy Outernet Client",
-    "LegacyOuternetEditor": "Legacy Outernet Editor",
     "MapRegistrationTool": "Map Registration Tool",
     "CaptureTool": "Capture Tool",
 }
