@@ -1,7 +1,7 @@
 import json
 from os import environ, walk
 from pathlib import Path
-from shutil import copyfile, copytree
+from shutil import copytree
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 from common.bash import bash, bash_output
@@ -15,7 +15,6 @@ OPENAPI_GENERATOR_PATH = REPO_ROOT / "build" / "openapi-generator"
 CONFIGS_PATH = OPENAPI_GENERATOR_PATH / "configs"
 TEMPLATES_PATH = OPENAPI_GENERATOR_PATH / "templates-generated"
 TEMPLATE_PATCHES_PATH = OPENAPI_GENERATOR_PATH / "templates-patches"
-OVERLAYS_PATH = OPENAPI_GENERATOR_PATH / "overlays"
 OPENAPI_GENERATOR_CLI_VERSION = json.loads((REPO_ROOT / "openapitools.json").read_text(encoding="utf-8"))[
     "generator-cli"
 ]["version"]
@@ -182,12 +181,13 @@ def _generate_client(openapi_spec: str, project: str, client: str):
             # Tell the C# compiler to enable nullable annotations
             (temporary_directory / "src" / client_package_name_camel / "csc.rsp").write_text("-nullable:annotations")
 
-            # Drop a Directory.Build.props next to the generated csproj so MSBuild
-            # picks up additional <PackageReference>s the upstream csharp generator
-            # doesn't emit (UniTask). Lands inside src/<package>/ so it's covered
-            # by the per-client Dockerfile COPY of packages/generated/csharp/<client>/.
-            for overlay_file in (OVERLAYS_PATH / "csharp").iterdir():
-                copyfile(overlay_file, temporary_directory / "src" / client_package_name_camel / overlay_file.name)
+            # Strip MSBuild project files: Unity consumes via .asmdef, not csproj.
+            # Leaving them in the UPM package lets IDEs auto-build inside the
+            # immutable PackageCache, which writes bin/obj/ that Unity then
+            # errors on for missing .meta files.
+            package_dir = temporary_directory / "src" / client_package_name_camel
+            for stale_artifact in (*package_dir.glob("*.csproj"), *package_dir.glob("Directory.Build.*")):
+                stale_artifact.unlink()
 
         print(f"Syncing to {client_path}...")
 
