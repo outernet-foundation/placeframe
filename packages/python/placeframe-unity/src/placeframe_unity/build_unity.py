@@ -8,13 +8,13 @@ import typer
 from placeframe_bash import bash
 from pydantic_settings import BaseSettings
 
-from ...shared.cache import restore, save
-from ...shared.ci_step import ci_step
-from ...shared.license_restore import restore_license
-from ...shared.setup import configure_git, free_disk_space, install_dotnet
-from ...shared.setup_oras import install_oras
-from ..unity import prepare_unity_project, resolve_unity_build, unity_batchmode_command
-from .git_tags import APP_TAG_PREFIXES, get_latest_tag_version
+from .cache import restore, save
+from .ci_step import ci_step
+from .license_restore import restore_license
+from .setup import configure_git, free_disk_space, install_dotnet
+from .setup_oras import install_oras
+from .unity import prepare_unity_project, resolve_unity_build, unity_batchmode_command
+from .git_tags import get_latest_tag_version
 
 
 class Settings(BaseSettings):
@@ -52,7 +52,8 @@ def main(
         restore(registry, "unity-library", tag, Path("."), fallback_tags=fallback_tags)
 
     with ci_step("Prepare build"):
-        unity_project_path, build_flag, execute_method = resolve_unity_build(project, platform)
+        project_config, build_flag, execute_method = resolve_unity_build(project, platform)
+        unity_project_path = project_config.path
 
     with ci_step("Prepare project"):
         prepare_unity_project(unity_project_path)
@@ -60,7 +61,7 @@ def main(
     with ci_step(f"Build {unity_project_path.name} [{platform}]"):
         command = f"{unity_batchmode_command(unity_project_path)} {build_flag} -executeMethod {execute_method}"
 
-        tag_prefix = APP_TAG_PREFIXES.get(project)
+        tag_prefix = project_config.tag_prefix
         if tag_prefix:
             version = get_latest_tag_version(f"{tag_prefix}-v") or "0.0.0"
             full_version = f"{version}-dev+{run_number}" if branch != "main" else f"{version}+{run_number}"

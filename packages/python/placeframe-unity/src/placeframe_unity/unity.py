@@ -5,7 +5,7 @@ from typing import TypedDict
 
 from placeframe_bash import bash
 
-from .projects import load_unity_projects
+from .projects import UnityProject, load_unity_projects
 
 
 class PlatformConfig(TypedDict):
@@ -80,7 +80,7 @@ def unity_batchmode_command(project_path: Path) -> str:
     return command
 
 
-def resolve_unity_build(project: str, build: str) -> tuple[Path, str, str]:
+def resolve_unity_build(project: str, build: str) -> tuple[UnityProject, str, str]:
     projects = load_unity_projects()
     if project not in projects:
         raise SystemExit(f"Unknown project '{project}'. Valid: {', '.join(projects)}")
@@ -98,4 +98,4 @@ def resolve_unity_build(project: str, build: str) -> tuple[Path, str, str]:
     if build not in PLATFORM_CONFIGS:
         raise SystemExit(f"No platform config for build '{build}'. Valid: {', '.join(PLATFORM_CONFIGS)}")
 
-    return project_config.path, PLATFORM_CONFIGS[build]["build_flag"], execute_method
+    return project_config, PLATFORM_CONFIGS[build]["build_flag"], execute_method

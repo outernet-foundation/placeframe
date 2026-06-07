@@ -99,7 +99,7 @@ def free_disk_space(*, large_packages: bool = False, docker_images: bool = False
 
 def install_dotnet(channel: str) -> None:
     print(f"Installing .NET SDK {channel}")
-    script = Path(__file__).parent.parent / "third-party" / "dotnet-install.sh"
+    script = Path(__file__).parent / "third-party" / "dotnet-install.sh"
     bash(f"bash {script} --channel {channel}")
     dotnet_path = str(Path.home() / ".dotnet")
     os.environ["PATH"] = f"{dotnet_path}{os.pathsep}{os.environ['PATH']}"

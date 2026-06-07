@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
   "placeframe-bash",
+  "placeframe-unity",
   "datamodel-code-generator>=0.33.0",
   "psycopg[binary]>=3.2.10",
   "pydantic>=2.11.7",
@@ -30,14 +31,11 @@ build-backend = "hatchling.build"
 packages = ["src/build_scripts"]
 
 [project.scripts]
-activate-unity-license = "build_scripts.shared.license:activate_app"
 build = "build_scripts.placeframe.build_docker:app"
 build-cesium = "build_scripts.cesium.build:app"
 build-docker = "build_scripts.placeframe.ci.build_docker:ci_app"
-build-unity = "build_scripts.placeframe.ci.build_unity:app"
 codegen-cesium = "build_scripts.cesium.codegen:app"
 combine-cesium = "build_scripts.cesium.combine:app"
-compile-unity = "build_scripts.placeframe.compile_unity:app"
 create-release = "build_scripts.placeframe.ci.create_release:app"
 deptry-check = "build_scripts.placeframe.deptry_check:main"
 ensure-release-pr = "build_scripts.placeframe.ci.ensure_release_pr:app"
@@ -46,12 +44,8 @@ down = "build_scripts.placeframe.down:app"
 generate-clients = "build_scripts.placeframe.generate_clients:app"
 generate-datamodels = "build_scripts.placeframe.generate_datamodels:main"
 lock-python = "build_scripts.placeframe.lock_python:app"
-lock-unity = "build_scripts.placeframe.lock_unity:app"
 preflight = "build_scripts.placeframe.ci.preflight:app"
 protect-branches = "build_scripts.placeframe.protect_branches:app"
 publish-compose = "build_scripts.placeframe.ci.publish_compose:ci_app"
 publish-packages = "build_scripts.placeframe.ci.publish_packages:app"
-test-unity = "build_scripts.placeframe.test_unity:app"
-unity-license-tag = "build_scripts.shared.license_restore:tag_app"
-unity-matrix = "build_scripts.placeframe.ci.matrix:main"
 up = "build_scripts.placeframe.up:app"

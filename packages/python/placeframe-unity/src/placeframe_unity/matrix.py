@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from ..projects import load_unity_projects
-from ..unity import LICENSE_MODULE, PLATFORM_CONFIGS, UNITYCI_IMAGE_REVISION, read_editor_version
+from .projects import load_unity_projects
+from .unity import LICENSE_MODULE, PLATFORM_CONFIGS, UNITYCI_IMAGE_REVISION, read_editor_version
 
 
 def main() -> None:

@@ -6,9 +6,10 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import typer
-from build_scripts.placeframe.compile_unity import build_unity_project
-from build_scripts.placeframe.projects import UnityProject, load_unity_projects
 from placeframe_bash import bash, bash_check, bash_handoff, bash_output
+
+from .compile_unity import build_unity_project
+from .projects import UnityProject, load_unity_projects
 
 INSTALLABLE_TARGETS = {"android-mobile", "magicleap", "linux64"}
 ADB_TARGETS = {"android-mobile", "magicleap"}

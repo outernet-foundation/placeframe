@@ -8,8 +8,8 @@ from placeframe_bash import bash
 from ..detect_gpu import Gpu
 from pydantic_settings import BaseSettings
 
-from ...shared.ci_step import ci_step
-from ...shared.setup import configure_git, free_disk_space
+from placeframe_unity.ci_step import ci_step
+from placeframe_unity.setup import configure_git, free_disk_space
 from ..build_docker import run_build
 
 Variant = Literal["common", "cuda", "rocm"]

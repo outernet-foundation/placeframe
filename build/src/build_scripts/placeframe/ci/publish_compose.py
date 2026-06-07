@@ -11,8 +11,8 @@ import typer
 from placeframe_bash import bash, bash_output
 from pydantic_settings import BaseSettings
 
-from ...shared.ci_step import ci_step
-from ...shared.setup import configure_git
+from placeframe_unity.ci_step import ci_step
+from placeframe_unity.setup import configure_git
 from ..context_sha import compute_service_shas
 
 Variant = Literal["cuda", "rocm"]

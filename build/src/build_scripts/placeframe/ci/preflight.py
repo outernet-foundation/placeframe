@@ -6,7 +6,7 @@ from pathlib import Path
 import typer
 from placeframe_bash import bash, bash_output
 
-from ...shared.ci_step import ci_step
+from placeframe_unity.ci_step import ci_step
 from ..context_sha import compute_service_shas
 from ..lock_python import lock_python
 

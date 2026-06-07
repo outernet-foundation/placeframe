@@ -3,5 +3,6 @@
   "execute_methods": {
     "linux64": "Placeframe.MapRegistrationTool.Build.BuildForLinux64",
     "win64": "Placeframe.MapRegistrationTool.Build.BuildForWin64"
-  }
+  },
+  "tag_prefix": "map-registration-tool"
 }

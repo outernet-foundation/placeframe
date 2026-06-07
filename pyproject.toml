@@ -22,6 +22,7 @@ members = [
     "packages/python/core",
     "packages/python/common",
     "packages/python/placeframe-bash",
+    "packages/python/placeframe-unity",
     "packages/python/neural-networks",
     "packages/python/neural-networks/third-party/deep-image-retrieval",
     "packages/generated/python/datamodels",
@@ -41,6 +42,7 @@ config-settings-package.placeframe-localizer-client = { editable_mode = "compat"
 [tool.uv.sources]
 common = { workspace = true }
 placeframe-bash = { workspace = true }
+placeframe-unity = { workspace = true }
 core = { workspace = true }
 neural-networks = { workspace = true }
 datamodels = { workspace = true }

@@ -10,7 +10,8 @@ app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 
 def build_unity_project(project: str, build: str) -> list[Path]:
-    project_path, build_flag, execute_method = resolve_unity_build(project, build)
+    project_config, build_flag, execute_method = resolve_unity_build(project, build)
+    project_path = project_config.path
     prepare_unity_project(project_path)
 
     build_directory = project_path / "Build"

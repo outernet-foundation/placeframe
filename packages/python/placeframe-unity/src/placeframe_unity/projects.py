@@ -13,6 +13,7 @@ class UnityBuildManifest(BaseModel, extra="forbid"):
     execute_methods: dict[str, str] | None = None
     package: str | None = None
     grant_permissions: list[str] = []
+    tag_prefix: str | None = None
 
 
 class UnityProject(UnityBuildManifest):
