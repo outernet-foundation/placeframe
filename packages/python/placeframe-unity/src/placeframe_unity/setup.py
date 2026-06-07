@@ -110,8 +110,7 @@ def install_dotnet(channel: str) -> None:
 
 def install_node(version: str, registry_url: str | None = None) -> None:
     system = platform.system()
-    in_container = Path("/to_clean").is_dir()
-    sudo = system == "Linux" and not in_container
+    sudo = system == "Linux" and os.geteuid() != 0
 
     print(f"Installing Node.js {version}")
     shasums = bash_output(f"curl -fsSL https://nodejs.org/dist/latest-v{version}.x/SHASUMS256.txt")
