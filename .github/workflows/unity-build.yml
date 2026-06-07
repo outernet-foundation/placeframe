@@ -2,6 +2,11 @@ name: Unity Build
 
 on:
   workflow_call:
+    inputs:
+      runner-labels:
+        description: JSON-encoded runs-on value (string or array) for the license/build jobs
+        type: string
+        default: '"ubuntu-latest"'
     secrets:
       UNITY_EMAIL:
         required: true
@@ -38,7 +43,7 @@ jobs:
 
   activate-license:
     needs: [matrix]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runner-labels) }}
     permissions:
       contents: read
       packages: write
@@ -46,11 +51,6 @@ jobs:
       cache-tag: ${{ steps.tag.outputs.value }}
     container:
       image: ${{ needs.matrix.outputs.license-image }}
-      volumes:
-        - /usr/local/lib/android:/to_clean/android
-        - /usr/share/dotnet:/to_clean/dotnet
-        - /usr/local/.ghcup:/to_clean/ghcup
-        - /usr/share/swift:/to_clean/swift
     steps:
       - uses: actions/checkout@v5
 
@@ -78,17 +78,12 @@ jobs:
   build-unity:
     needs: [matrix, activate-license]
     name: ${{ matrix.project-name }} (${{ matrix.platform }})
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runner-labels) }}
     permissions:
       contents: read
       packages: write
     container:
       image: ${{ matrix.editor-image }}
-      volumes:
-        - /usr/local/lib/android:/to_clean/android
-        - /usr/share/dotnet:/to_clean/dotnet
-        - /usr/local/.ghcup:/to_clean/ghcup
-        - /usr/share/swift:/to_clean/swift
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.matrix.outputs.build-matrix) }}

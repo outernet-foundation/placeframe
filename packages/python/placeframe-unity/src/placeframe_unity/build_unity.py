@@ -11,7 +11,7 @@ from pydantic_settings import BaseSettings
 from .cache import restore, save
 from .ci_step import ci_step
 from .license_restore import restore_license
-from .setup import configure_git, free_disk_space, install_dotnet
+from .setup import configure_git, install_dotnet
 from .setup_oras import install_oras
 from .unity import prepare_unity_project, resolve_unity_build, unity_batchmode_command
 from .git_tags import get_latest_tag_version
@@ -38,7 +38,6 @@ def main(
 ) -> None:
     with ci_step("Setup"):
         configure_git(settings.github_workspace)
-        free_disk_space()
         install_dotnet("8.0")
         install_oras()
         restore_license()

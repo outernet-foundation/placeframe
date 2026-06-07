@@ -33,6 +33,8 @@ jobs:
       contents: read
       packages: write
     uses: ./.github/workflows/unity-build.yml
+    with:
+      runner-labels: '["self-hosted","unity"]'
     secrets: inherit
 
   build-docker:
