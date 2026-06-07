@@ -6,9 +6,10 @@ from pathlib import Path
 from typing import Annotated, Any
 
 import typer
-from build_scripts.placeframe.compile_unity import build_unity_project
-from build_scripts.placeframe.projects import UnityProjectConfig, load_unity_projects
-from common.bash import bash, bash_check, bash_handoff, bash_output
+from placeframe_bash import bash, bash_check, bash_handoff, bash_output
+
+from .compile_unity import build_unity_project
+from .projects import UnityProject, load_unity_projects
 
 INSTALLABLE_TARGETS = {"android-mobile", "magicleap", "linux64"}
 ADB_TARGETS = {"android-mobile", "magicleap"}
@@ -17,7 +18,7 @@ CACHE_ROOT = Path.home() / ".placeframe" / "builds"
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 
-def _resolve_project(projects: dict[str, UnityProjectConfig], name: str) -> str:
+def _resolve_project(projects: dict[str, UnityProject], name: str) -> str:
     for project_name in projects:
         if project_name.lower() == name.lower():
             return project_name
@@ -25,7 +26,7 @@ def _resolve_project(projects: dict[str, UnityProjectConfig], name: str) -> str:
     raise typer.BadParameter(f"Unknown project '{name}'. Valid projects: {valid}")
 
 
-def _resolve_target(project_config: UnityProjectConfig, project_name: str, target: str | None) -> str:
+def _resolve_target(project_config: UnityProject, project_name: str, target: str | None) -> str:
     installable = [build for build in (project_config.builds or []) if build in INSTALLABLE_TARGETS]
     if target is None:
         if len(installable) == 1:
@@ -98,7 +99,7 @@ def main(
             "--no-grant-permissions",
             help=(
                 "Skip the post-install `adb shell pm grant` calls listed under `grant_permissions` "
-                "for the project in unity-projects.json. Permissions are granted by default."
+                "for the project in its unity-build.json manifest. Permissions are granted by default."
             ),
         ),
     ] = False,
@@ -114,7 +115,7 @@ def main(
         ),
     ] = False,
 ) -> None:
-    projects = load_unity_projects().projects
+    projects = load_unity_projects()
     project_name = _resolve_project(projects, project)
     target_name = _resolve_target(projects[project_name], project_name, target)
 
@@ -152,7 +153,7 @@ def main(
         if permissions and not no_grant_permissions:
             if not package:
                 raise typer.BadParameter(
-                    f"{project_name} has grant_permissions but no 'package' field in unity-projects.json"
+                    f"{project_name} has grant_permissions but no 'package' field in unity-build.json"
                 )
             for permission in permissions:
                 print(f"Granting {permission} to {package}")

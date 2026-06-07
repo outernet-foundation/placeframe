@@ -2,7 +2,7 @@
 
 ## What this is
 
-The Unity-side wrapper around Placeframe's relocalization service. It exposes a static facade (`VisualPositioningSystem`) that authenticates against Placeframe's Keycloak, streams camera frames to `POST /localize`, runs a Bayesian SE(3) filter over the returned poses, and publishes a smoothly-slewed ECEF-to-Unity-world transform that consumers use to anchor virtual content to a real physical place. In-repo consumer: `apps/AndroidMobile/` (capture tool). The host Unity project at this directory is not the package -- it's the editor harness for developing the package; the package itself lives entirely under `Assets/Package/`.
+The Unity-side wrapper around Placeframe's relocalization service. It exposes a static facade (`VisualPositioningSystem`) that authenticates against Placeframe's Keycloak, streams camera frames to `POST /localize`, runs a Bayesian SE(3) filter over the returned poses, and publishes a smoothly-slewed ECEF-to-Unity-world transform that consumers use to anchor virtual content to a real physical place. In-repo consumer: `apps/CaptureTool/`. The host Unity project at this directory is not the package -- it's the editor harness for developing the package; the package itself lives entirely under `Assets/Package/`.
 
 ## Shape
 

@@ -8,13 +8,14 @@ from pathlib import Path
 from subprocess import CalledProcessError
 
 import typer
-from common.bash import bash, bash_output
+from placeframe_bash import bash, bash_output
 from pydantic_settings import BaseSettings
 
-from ...shared.ci_step import ci_step
-from ...shared.setup import configure_git, free_disk_space, install_dotnet, install_node
-from ..projects import load_unity_projects
-from .git_tags import APP_TAG_PREFIXES, create_and_push_tag, get_latest_tag_version, has_changes_since_tag
+from placeframe_unity.ci_step import ci_step
+from placeframe_unity.setup import configure_git, free_disk_space, install_dotnet, install_node
+from placeframe_unity.projects import load_unity_projects
+from placeframe_unity.git_tags import create_and_push_tag, get_latest_tag_version, has_changes_since_tag
+from .git_tags import APP_TAG_PREFIXES
 
 
 class Settings(BaseSettings):
@@ -180,14 +181,12 @@ def main(dry_run: bool = typer.Option(False, help="Plan publishes without execut
     app_publish: dict[str, str] = {}
     with ci_step("Compute app versions"):
         projects = load_unity_projects()
-        for name, project in projects.projects.items():
+        for name, project in projects.items():
             if not project.builds or name not in APP_TAG_PREFIXES:
                 continue
             prefix = APP_TAG_PREFIXES[name]
             last_version = get_latest_tag_version(f"{prefix}-v")
-            changed = has_changes_since_tag(
-                f"{prefix}-v{last_version}" if last_version else None, REPO_ROOT / project.path
-            )
+            changed = has_changes_since_tag(f"{prefix}-v{last_version}" if last_version else None, project.path)
             # Apps depend on packages — bump if any package changed
             if any(publish.values()):
                 changed = True

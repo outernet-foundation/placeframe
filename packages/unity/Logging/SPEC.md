@@ -2,7 +2,7 @@
 
 ## What this is
 
-`Outernet.Logging` is a Unity package that wires Serilog into a Unity app and ships log events to the Placeframe server's Loki over HTTPS via the public gateway, authenticated with a Keycloak Bearer token supplied by the consumer. It also intercepts `UnityEngine.Debug` so anything that goes through Unity's log handler (including native plugins, async unobserved exceptions, and R3 subscription faults) flows through the same Serilog pipeline. The in-repo consumer is `apps/AndroidMobile/` (Capture Tool, `app=capture-tool`). The package is referenced as a file-pathed UPM dep (`org.outernet.logging` at `file:../../../packages/unity/Logging/Assets/Package`).
+`Outernet.Logging` is a Unity package that wires Serilog into a Unity app and ships log events to the Placeframe server's Loki over HTTPS via the public gateway, authenticated with a Keycloak Bearer token supplied by the consumer. It also intercepts `UnityEngine.Debug` so anything that goes through Unity's log handler (including native plugins, async unobserved exceptions, and R3 subscription faults) flows through the same Serilog pipeline. The in-repo consumer is `apps/CaptureTool/` (`app=capture-tool`). The package is referenced as a file-pathed UPM dep (`org.outernet.logging` at `file:../../../packages/unity/Logging/Assets/Package`).
 
 ## Shape
 
@@ -95,7 +95,7 @@ Property serialization in `Emit`: it filters any caller-supplied `"level"` so th
 
 ### Consumer integration
 
-The in-repo consumer boots at `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]` with static labels (`apps/AndroidMobile/Assets/Scripts/Capture/App.cs:32`), then calls `EnableLoki` after its Keycloak login completes (`apps/AndroidMobile/Assets/AuthManager.cs:53`). Loki labels are static -- every event from one app collapses into one Loki stream. High-cardinality fields (device name, log group, exception) live inside the JSON line, not in the label set.
+The in-repo consumer boots at `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]` with static labels (`apps/CaptureTool/Assets/Scripts/Capture/App.cs:32`), then calls `EnableLoki` after its Keycloak login completes (`apps/CaptureTool/Assets/AuthManager.cs:53`). Loki labels are static -- every event from one app collapses into one Loki stream. High-cardinality fields (device name, log group, exception) live inside the JSON line, not in the label set.
 
 The gateway (`docker/SPEC.md` "Authentication") fronts `/loki/` and, in `AUTH_MODE=keycloak`, forwards to Loki using the client's existing Keycloak token -- there is no separate Loki ingress and no Loki-specific credential. In `AUTH_MODE=disabled`, the gateway drops the forward_auth directive and the client is expected to pass `tokenProvider: null` so the push goes out without an `Authorization` header. The Loki `service_name` label is auto-derived from the `app` label, so a query like `{service_name="capture-tool"}` works in either mode.
 

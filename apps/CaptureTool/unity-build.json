@@ -1,0 +1,9 @@
+{
+  "package": "com.outernet.captureapp",
+  "builds": ["android-mobile"],
+  "execute_methods": {
+    "android-mobile": "Placeframe.Client.Build.BuildForAndroidMobile"
+  },
+  "grant_permissions": ["android.permission.READ_LOGS"],
+  "tag_prefix": "capture-tool"
+}

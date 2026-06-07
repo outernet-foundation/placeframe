@@ -3,9 +3,9 @@ import sys
 from pathlib import Path
 from typing import TypedDict
 
-from common.bash import bash
+from placeframe_bash import bash
 
-from .projects import load_unity_projects
+from .projects import UnityProject, load_unity_projects
 
 
 class PlatformConfig(TypedDict):
@@ -20,22 +20,15 @@ PLATFORM_CONFIGS: dict[str, PlatformConfig] = {
     "win64": {"build_flag": "-buildTarget Win64", "module": "windows-mono"},
 }
 
+UNITYCI_IMAGE_REVISION = "3"
+LICENSE_MODULE = "linux-il2cpp"
+
 
 def find_unity_editor(project_path: Path) -> str:
     if shutil.which("unity-editor"):
         return "unity-editor"
 
-    version_file = project_path / "ProjectSettings" / "ProjectVersion.txt"
-    if not version_file.exists():
-        raise SystemExit(f"Cannot find {version_file} — is this a Unity project?")
-
-    version = None
-    for line in version_file.read_text().splitlines():
-        if line.startswith("m_EditorVersion:"):
-            version = line.split(":", 1)[1].strip()
-            break
-    if not version:
-        raise SystemExit(f"Cannot parse editor version from {version_file}")
+    version = read_editor_version(project_path)
 
     if sys.platform == "win32":
         candidates = [Path(f"C:/Program Files/Unity/Hub/Editor/{version}/Editor/Unity.exe")]
@@ -51,6 +44,18 @@ def find_unity_editor(project_path: Path) -> str:
 
     searched = ", ".join(str(c) for c in candidates)
     raise SystemExit(f"Cannot find Unity {version} editor. Searched: {searched}")
+
+
+def read_editor_version(project_path: Path) -> str:
+    version_file = project_path / "ProjectSettings" / "ProjectVersion.txt"
+    if not version_file.exists():
+        raise SystemExit(f"Cannot find {version_file} — is this a Unity project?")
+
+    for line in version_file.read_text().splitlines():
+        if line.startswith("m_EditorVersion:"):
+            return line.split(":", 1)[1].strip()
+
+    raise SystemExit(f"Cannot parse editor version from {version_file}")
 
 
 def prepare_unity_project(project_path: Path) -> None:
@@ -75,12 +80,12 @@ def unity_batchmode_command(project_path: Path) -> str:
     return command
 
 
-def resolve_unity_build(project: str, build: str) -> tuple[Path, str, str]:
-    config = load_unity_projects()
-    if project not in config.projects:
-        raise SystemExit(f"Unknown project '{project}'. Valid: {', '.join(config.projects)}")
+def resolve_unity_build(project: str, build: str) -> tuple[UnityProject, str, str]:
+    projects = load_unity_projects()
+    if project not in projects:
+        raise SystemExit(f"Unknown project '{project}'. Valid: {', '.join(projects)}")
 
-    project_config = config.projects[project]
+    project_config = projects[project]
     valid_builds = project_config.builds or []
     if build not in valid_builds:
         valid = ", ".join(valid_builds) or "(none defined)"
@@ -93,5 +98,4 @@ def resolve_unity_build(project: str, build: str) -> tuple[Path, str, str]:
     if build not in PLATFORM_CONFIGS:
         raise SystemExit(f"No platform config for build '{build}'. Valid: {', '.join(PLATFORM_CONFIGS)}")
 
-    project_path = (Path(__file__).parents[4] / project_config.path).resolve()
-    return project_path, PLATFORM_CONFIGS[build]["build_flag"], execute_method
+    return project_config, PLATFORM_CONFIGS[build]["build_flag"], execute_method

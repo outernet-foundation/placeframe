@@ -1,4 +1,4 @@
-# apps/AndroidMobile
+# apps/CaptureTool
 
 Unity 6 project for the phone-side Capture Tool. Talks to the ZED box over USB via the [Android Open Accessory (AOA) protocol](https://source.android.com/docs/core/interaction/accessories/aoa): the ZED is the USB host, the phone is a USB accessory, and the app speaks HTTP/2 cleartext (h2c, prior-knowledge) directly to the accessory file descriptor with no IP layer. HTTP/2 is required because the single duplex byte stream over the accessory FD permits only one in-flight HTTP/1.1 request — a concurrent request corrupts framing and tears the pipe down. HTTP/2 frames multiple logical streams over the one transport, which is exactly the property the medium is missing; `h2c` (prior-knowledge, no ALPN, no TLS) is the correct flavour for a fixed-topology USB link with no IP identity. The HTTP path is a Java+OkHttp hybrid: `Assets/Scripts/AndroidAoaHttpHandler.cs` is the `HttpMessageHandler` shim that marshals requests via JNI into `Assets/Plugins/Android/AoaAccessoryClient.java`, which holds a vendored-OkHttp client (`Protocol.H2_PRIOR_KNOWLEDGE`) wired to `AoaSocketFactory` (`AoaSocket.connect()` is a no-op so OkHttp writes straight into the `UsbAccessory` `ParcelFileDescriptor`). OkHttp still resolves URL hostnames before consulting the SocketFactory, so the client installs a synthetic `Dns` that returns `127.0.0.1` for any hostname — the address is never dialled. The ZED-side bridge is in `docker/aoa-bridge/src/aoa_bridge/main.py`. Internet-bound HTTP (placeframe API, Loki push) uses .NET's default `HttpClientHandler` — there is no per-network binding because AOA isn't a Network from Android's point of view, so default routing can't accidentally use the USB cable.
 
@@ -14,10 +14,10 @@ Use `uv run compile-unity` for every Unity invocation; never call `/opt/unity/..
 
 ```
 uv run compile-unity --project CaptureTool --build android-mobile
-adb install -r apps/AndroidMobile/Build/<ProductName>.apk   # path is printed at end of build
+adb install -r apps/CaptureTool/Build/<ProductName>.apk   # path is printed at end of build
 ```
 
-Both `--project` and `--build` are required (no defaults). `--project` keys live in `build/unity-projects.json`; `--build` keys are the project's entries under `builds`. The command preps NuGet/dotnet tools, builds Unity in batchmode via the project's registered `executeMethod`, streams the log, and prints the produced APK path on success. Use the same command for a "did this `.cs` change compile?" sanity check — Unity bails fast on `error CS####` before the Android build starts.
+Both `--project` and `--build` are required (no defaults). `--project` is the name of a Unity project directory containing a `unity-build.json` manifest; `--build` keys are the manifest's entries under `builds`. The command preps NuGet/dotnet tools, builds Unity in batchmode via the project's registered `executeMethod`, streams the log, and prints the produced APK path on success. Use the same command for a "did this `.cs` change compile?" sanity check — Unity bails fast on `error CS####` before the Android build starts.
 
 The CI-side `uv run build-unity` is a different entry point (cache, license, OCI registry, version tags) and is not usable from a slot. Don't reach for it.
 
@@ -35,7 +35,7 @@ The Pixel has one USB-C port. In end-to-end testing the ZED cable occupies it, w
 
 `LogcatRelay` (`Assets/Scripts/LogcatRelay.cs`) tails Android's logcat in a background thread and forwards filtered lines (USB / accessory framework tags) through Serilog into the existing Loki sink, so phone-side diagnosis of `UsbHostManager` / `UsbDeviceManager` decisions does not require swapping the debug cable. The reader runs unconditionally, but the kernel only exposes other processes' lines to apps holding `android.permission.READ_LOGS`. That permission is `signature|privileged|development`, so install-time grant is impossible; the `development` flag is what lets `pm grant` satisfy it at runtime.
 
-After every fresh install of the Capture Tool, the grant has to be re-applied — it persists across reboots and app launches but is lost on uninstall. `uv run install --project CaptureTool` does this automatically: the project's `grant_permissions: ["android.permission.READ_LOGS"]` entry in `build/unity-projects.json` drives a post-install `adb shell pm grant` call. Pass `--no-grant-permissions` to opt out for a specific install (rare; the grant is harmless when LogcatRelay isn't actively used).
+After every fresh install of the Capture Tool, the grant has to be re-applied — it persists across reboots and app launches but is lost on uninstall. `uv run install --project CaptureTool` does this automatically: the project's `grant_permissions: ["android.permission.READ_LOGS"]` entry in `apps/CaptureTool/unity-build.json` drives a post-install `adb shell pm grant` call. Pass `--no-grant-permissions` to opt out for a specific install (rare; the grant is harmless when LogcatRelay isn't actively used).
 
 For a hand-built APK from `uv run compile-unity` + `adb install`, the grant has to be applied manually:
 

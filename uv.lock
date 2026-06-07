@@ -28,11 +28,13 @@ members = [
     "placeframe",
     "placeframe-api",
     "placeframe-api-client",
+    "placeframe-bash",
     "placeframe-lease-server",
     "placeframe-lease-server-client",
     "placeframe-localizer",
     "placeframe-localizer-client",
     "placeframe-reconstructor",
+    "placeframe-unity",
     "scripts",
     "zed",
 ]
@@ -202,9 +204,10 @@ name = "build-scripts"
 version = "0.1.0"
 source = { editable = "build" }
 dependencies = [
-    { name = "common" },
     { name = "datamodel-code-generator" },
     { name = "pathspec" },
+    { name = "placeframe-bash" },
+    { name = "placeframe-unity" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -217,9 +220,10 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "common", editable = "packages/python/common" },
     { name = "datamodel-code-generator", specifier = ">=0.33.0" },
     { name = "pathspec", specifier = ">=1.0.4" },
+    { name = "placeframe-bash", editable = "packages/python/placeframe-bash" },
+    { name = "placeframe-unity", editable = "packages/python/placeframe-unity" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.10" },
     { name = "pydantic", specifier = ">=2.11.7" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
@@ -1768,6 +1772,11 @@ requires-dist = [
 ]
 
 [[package]]
+name = "placeframe-bash"
+version = "0.1.0"
+source = { editable = "packages/python/placeframe-bash" }
+
+[[package]]
 name = "placeframe-lease-server"
 version = "0.1.0"
 source = { virtual = "docker/lease-server" }
@@ -1955,6 +1964,25 @@ dev = [
 neural-networks-cpu = [{ name = "neural-networks", extras = ["cpu"], editable = "packages/python/neural-networks" }]
 neural-networks-cuda = [{ name = "neural-networks", extras = ["cuda"], editable = "packages/python/neural-networks" }]
 neural-networks-rocm = [{ name = "neural-networks", extras = ["rocm"], editable = "packages/python/neural-networks" }]
+
+[[package]]
+name = "placeframe-unity"
+version = "0.1.0"
+source = { editable = "packages/python/placeframe-unity" }
+dependencies = [
+    { name = "placeframe-bash" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "typer" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "placeframe-bash", editable = "packages/python/placeframe-bash" },
+    { name = "pydantic", specifier = ">=2.11.7" },
+    { name = "pydantic-settings", specifier = ">=2.9.1" },
+    { name = "typer", specifier = ">=0.17.4" },
+]
 
 [[package]]
 name = "platformdirs"
@@ -2420,6 +2448,7 @@ dependencies = [
     { name = "httpx" },
     { name = "numpy" },
     { name = "placeframe-api-client" },
+    { name = "placeframe-bash" },
     { name = "pydantic" },
     { name = "pytransform3d" },
     { name = "scikit-learn" },
@@ -2435,6 +2464,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "numpy", specifier = ">=2.1" },
     { name = "placeframe-api-client", editable = "packages/generated/python/api-client" },
+    { name = "placeframe-bash", editable = "packages/python/placeframe-bash" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pytransform3d", specifier = ">=3.5" },
     { name = "scikit-learn", specifier = ">=1.5" },

@@ -1,20 +1,21 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 from pathlib import Path
 
 import typer
-from common.bash import bash
+from placeframe_bash import bash
 from pydantic_settings import BaseSettings
 
-from ...shared.cache import restore, save
-from ...shared.ci_step import ci_step
-from ...shared.license_restore import restore_license
-from ...shared.setup import configure_git, free_disk_space, install_dotnet
-from ...shared.setup_oras import install_oras
-from ..unity import prepare_unity_project, resolve_unity_build, unity_batchmode_command
-from .git_tags import APP_TAG_PREFIXES, get_latest_tag_version
+from .cache import restore, save
+from .ci_step import ci_step
+from .license_restore import restore_license
+from .setup import configure_git, install_dotnet
+from .setup_oras import install_oras
+from .unity import prepare_unity_project, resolve_unity_build, unity_batchmode_command
+from .git_tags import get_latest_tag_version
 
 
 class Settings(BaseSettings):
@@ -35,10 +36,21 @@ def main(
     run_number: int = typer.Option(0, help="CI run number"),
     branch: str = typer.Option("dev", help="Git branch name"),
     registry: str = typer.Option(help="OCI registry path"),
+    build_env: str = typer.Option(
+        "", help="Newline-separated KEY=VALUE pairs injected into the Unity build process environment"
+    ),
 ) -> None:
+    for line in build_env.splitlines():
+        entry = line.strip()
+        if not entry:
+            continue
+        key, separator, value = entry.partition("=")
+        if not separator:
+            raise SystemExit(f"Invalid --build-env entry (expected KEY=VALUE): {entry!r}")
+        os.environ[key.strip()] = value.strip()
+
     with ci_step("Setup"):
         configure_git(settings.github_workspace)
-        free_disk_space()
         install_dotnet("8.0")
         install_oras()
         restore_license()
@@ -52,7 +64,8 @@ def main(
         restore(registry, "unity-library", tag, Path("."), fallback_tags=fallback_tags)
 
     with ci_step("Prepare build"):
-        unity_project_path, build_flag, execute_method = resolve_unity_build(project, platform)
+        project_config, build_flag, execute_method = resolve_unity_build(project, platform)
+        unity_project_path = project_config.path
 
     with ci_step("Prepare project"):
         prepare_unity_project(unity_project_path)
@@ -60,7 +73,7 @@ def main(
     with ci_step(f"Build {unity_project_path.name} [{platform}]"):
         command = f"{unity_batchmode_command(unity_project_path)} {build_flag} -executeMethod {execute_method}"
 
-        tag_prefix = APP_TAG_PREFIXES.get(project)
+        tag_prefix = project_config.tag_prefix
         if tag_prefix:
             version = get_latest_tag_version(f"{tag_prefix}-v") or "0.0.0"
             full_version = f"{version}-dev+{run_number}" if branch != "main" else f"{version}+{run_number}"

@@ -7,7 +7,7 @@ import shlex
 import shutil
 from pathlib import Path
 
-from common.bash import bash, bash_no_raise, bash_output
+from placeframe_bash import bash, bash_no_raise, bash_output
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
@@ -99,7 +99,7 @@ def free_disk_space(*, large_packages: bool = False, docker_images: bool = False
 
 def install_dotnet(channel: str) -> None:
     print(f"Installing .NET SDK {channel}")
-    script = Path(__file__).parent.parent / "third-party" / "dotnet-install.sh"
+    script = Path(__file__).parent / "third-party" / "dotnet-install.sh"
     bash(f"bash {script} --channel {channel}")
     dotnet_path = str(Path.home() / ".dotnet")
     os.environ["PATH"] = f"{dotnet_path}{os.pathsep}{os.environ['PATH']}"
@@ -110,8 +110,7 @@ def install_dotnet(channel: str) -> None:
 
 def install_node(version: str, registry_url: str | None = None) -> None:
     system = platform.system()
-    in_container = Path("/to_clean").is_dir()
-    sudo = system == "Linux" and not in_container
+    sudo = system == "Linux" and os.geteuid() != 0
 
     print(f"Installing Node.js {version}")
     shasums = bash_output(f"curl -fsSL https://nodejs.org/dist/latest-v{version}.x/SHASUMS256.txt")

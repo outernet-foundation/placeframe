@@ -6,7 +6,7 @@ import shlex
 import shutil
 from pathlib import Path
 
-from common.bash import bash
+from placeframe_bash import bash
 from pydantic_settings import BaseSettings
 
 
@@ -20,8 +20,7 @@ class Settings(BaseSettings):
 def install_oras(version: str = "1.2.2") -> None:
     settings = Settings.model_validate({})
     system = platform.system()
-    in_container = Path("/to_clean").is_dir()
-    sudo = system == "Linux" and not in_container
+    sudo = system == "Linux" and os.geteuid() != 0
     prefix = "sudo " if sudo else ""
 
     if system == "Linux":

@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from common.bash import bash_check_stream
+from placeframe_bash import bash_check_stream
 
 from .unity import prepare_unity_project, resolve_unity_build, unity_batchmode_command
 
@@ -10,7 +10,8 @@ app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 
 def build_unity_project(project: str, build: str) -> list[Path]:
-    project_path, build_flag, execute_method = resolve_unity_build(project, build)
+    project_config, build_flag, execute_method = resolve_unity_build(project, build)
+    project_path = project_config.path
     prepare_unity_project(project_path)
 
     build_directory = project_path / "Build"
@@ -35,7 +36,7 @@ def build_unity_project(project: str, build: str) -> list[Path]:
 
 @app.command()
 def compile_unity(
-    project: Annotated[str, typer.Option(help="Unity project name from unity-projects.json")],
+    project: Annotated[str, typer.Option(help="Unity project name (directory containing unity-build.json)")],
     build: Annotated[str, typer.Option(help="Build target from the project's builds list (e.g. android-mobile)")],
 ) -> None:
     for artifact in build_unity_project(project, build):
