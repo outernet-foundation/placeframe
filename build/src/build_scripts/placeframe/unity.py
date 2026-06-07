@@ -20,22 +20,15 @@ PLATFORM_CONFIGS: dict[str, PlatformConfig] = {
     "win64": {"build_flag": "-buildTarget Win64", "module": "windows-mono"},
 }
 
+UNITYCI_IMAGE_REVISION = "3"
+LICENSE_MODULE = "linux-il2cpp"
+
 
 def find_unity_editor(project_path: Path) -> str:
     if shutil.which("unity-editor"):
         return "unity-editor"
 
-    version_file = project_path / "ProjectSettings" / "ProjectVersion.txt"
-    if not version_file.exists():
-        raise SystemExit(f"Cannot find {version_file} — is this a Unity project?")
-
-    version = None
-    for line in version_file.read_text().splitlines():
-        if line.startswith("m_EditorVersion:"):
-            version = line.split(":", 1)[1].strip()
-            break
-    if not version:
-        raise SystemExit(f"Cannot parse editor version from {version_file}")
+    version = read_editor_version(project_path)
 
     if sys.platform == "win32":
         candidates = [Path(f"C:/Program Files/Unity/Hub/Editor/{version}/Editor/Unity.exe")]
@@ -51,6 +44,18 @@ def find_unity_editor(project_path: Path) -> str:
 
     searched = ", ".join(str(c) for c in candidates)
     raise SystemExit(f"Cannot find Unity {version} editor. Searched: {searched}")
+
+
+def read_editor_version(project_path: Path) -> str:
+    version_file = project_path / "ProjectSettings" / "ProjectVersion.txt"
+    if not version_file.exists():
+        raise SystemExit(f"Cannot find {version_file} — is this a Unity project?")
+
+    for line in version_file.read_text().splitlines():
+        if line.startswith("m_EditorVersion:"):
+            return line.split(":", 1)[1].strip()
+
+    raise SystemExit(f"Cannot parse editor version from {version_file}")
 
 
 def prepare_unity_project(project_path: Path) -> None:
