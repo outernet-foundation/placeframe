@@ -5,6 +5,7 @@ requires-python = ">=3.13"
 dependencies = [
     "build-scripts",
     "common",
+    "placeframe-bash",
     "core",
     "placeframe-api-client",
     "pydantic>=2",

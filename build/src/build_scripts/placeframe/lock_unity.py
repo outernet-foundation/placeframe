@@ -1,7 +1,7 @@
 from typing import Annotated
 
 import typer
-from common.bash import bash_check_stream
+from placeframe_bash import bash_check_stream
 
 from .projects import load_unity_projects
 from .unity import prepare_unity_project, unity_batchmode_command

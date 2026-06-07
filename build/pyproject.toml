@@ -3,7 +3,7 @@ name = "build-scripts"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-  "common",
+  "placeframe-bash",
   "datamodel-code-generator>=0.33.0",
   "psycopg[binary]>=3.2.10",
   "pydantic>=2.11.7",

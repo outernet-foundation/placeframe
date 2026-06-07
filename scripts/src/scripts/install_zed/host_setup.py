@@ -2,7 +2,7 @@ from logging import getLogger
 from pathlib import Path
 from typing import Literal
 
-from common.bash import bash, bash_check, bash_output
+from placeframe_bash import bash, bash_check, bash_output
 from common.ui import bail
 
 from .constants import (

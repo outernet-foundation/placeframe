@@ -8,7 +8,7 @@ from pathlib import Path
 from subprocess import CalledProcessError
 
 import typer
-from common.bash import bash, bash_output
+from placeframe_bash import bash, bash_output
 from pydantic_settings import BaseSettings
 
 from ...shared.ci_step import ci_step

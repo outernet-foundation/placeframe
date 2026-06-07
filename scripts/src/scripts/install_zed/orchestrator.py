@@ -3,7 +3,7 @@ from typing import Annotated
 
 import typer
 from build_scripts.placeframe.context_sha import compute_service_shas
-from common.bash import bash
+from placeframe_bash import bash
 from common.logging_config import configure_logging
 
 from .box_install import install_box

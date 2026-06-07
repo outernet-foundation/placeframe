@@ -4,8 +4,8 @@ import shlex
 from typing import Literal
 
 import typer
-from common.bash import bash
-from common.detect_gpu import Gpu
+from placeframe_bash import bash
+from ..detect_gpu import Gpu
 from pydantic_settings import BaseSettings
 
 from ...shared.ci_step import ci_step

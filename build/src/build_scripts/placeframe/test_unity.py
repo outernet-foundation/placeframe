@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 import typer
-from common.bash import bash
+from placeframe_bash import bash
 
 from .projects import load_unity_projects
 from .unity import find_unity_editor

@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 
 import typer
-from common.bash import bash, bash_check
+from placeframe_bash import bash, bash_check
 from pydantic_settings import BaseSettings
 
 from ..shared.cache import restore

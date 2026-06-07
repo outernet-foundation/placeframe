@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
-from common.bash import bash_check_stream
+from placeframe_bash import bash_check_stream
 
 from .unity import prepare_unity_project, resolve_unity_build, unity_batchmode_command
 

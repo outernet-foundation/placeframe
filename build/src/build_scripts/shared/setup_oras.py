@@ -6,7 +6,7 @@ import shlex
 import shutil
 from pathlib import Path
 
-from common.bash import bash
+from placeframe_bash import bash
 from pydantic_settings import BaseSettings
 
 

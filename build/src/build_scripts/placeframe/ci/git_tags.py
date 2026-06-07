@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from common.bash import bash, bash_check, bash_output
+from placeframe_bash import bash, bash_check, bash_output
 
 APP_TAG_PREFIXES: dict[str, str] = {
     "MapRegistrationTool": "map-registration-tool",

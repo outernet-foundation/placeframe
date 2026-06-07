@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from typing import TypedDict
 
-from common.bash import bash
+from placeframe_bash import bash
 
 from .projects import load_unity_projects
 

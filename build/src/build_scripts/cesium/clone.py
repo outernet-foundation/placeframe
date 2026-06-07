@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import shutil
 
-from common.bash import bash
+from placeframe_bash import bash
 
 from .paths import get_cesium_build_paths
 

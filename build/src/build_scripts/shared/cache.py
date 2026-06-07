@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 from subprocess import CalledProcessError
 
-from common.bash import bash, bash_check, bash_pipe
+from placeframe_bash import bash, bash_check, bash_pipe
 
 
 def _posix(path: Path) -> str:

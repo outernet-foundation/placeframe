@@ -5,7 +5,7 @@ import time
 from logging import getLogger
 from subprocess import CalledProcessError
 
-from common.bash import bash, bash_check, bash_output
+from placeframe_bash import bash, bash_check, bash_output
 from common.ui import bail, note
 
 from .constants import (

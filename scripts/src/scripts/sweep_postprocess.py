@@ -9,7 +9,7 @@ from uuid import UUID
 
 import numpy as np
 import typer
-from common.bash import bash, bash_output
+from placeframe_bash import bash, bash_output
 
 from .displacement_check import (
     DEFAULT_SEQUENTIAL_WINDOW,
