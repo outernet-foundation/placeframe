@@ -9,7 +9,7 @@
       }
     },
     "CaptureTool": {
-      "path": "apps/AndroidMobile",
+      "path": "apps/CaptureTool",
       "package": "com.outernet.captureapp",
       "builds": ["android-mobile"],
       "execute_methods": {
