@@ -92,6 +92,11 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.matrix.outputs.build-matrix) }}
     steps:
+      - name: Wipe workspace
+        run: |
+          find "$GITHUB_WORKSPACE" -mindepth 1 -delete
+          rm -rf ~/.cache/Unity
+
       - uses: actions/checkout@v5
 
       - uses: astral-sh/setup-uv@v7
@@ -106,9 +111,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.cache/Unity/upm
-          key: unity-upm-${{ hashFiles(format('{0}/Packages/manifest.json', matrix.project)) }}
-          restore-keys: |
-            unity-upm-
+          key: unity-upm-v2-${{ hashFiles(format('{0}/Packages/manifest.json', matrix.project)) }}
 
       - name: Build
         env:
