@@ -7,6 +7,10 @@ on:
         description: JSON-encoded runs-on value (string or array) for the license/build jobs
         type: string
         default: '"ubuntu-latest"'
+      build-env:
+        description: Newline-separated KEY=VALUE pairs injected into the Unity build process environment
+        type: string
+        default: ''
     secrets:
       UNITY_EMAIL:
         required: true
@@ -110,6 +114,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           LICENSE_CACHE_TAG: ${{ needs.activate-license.outputs.cache-tag }}
+          BUILD_ENV: ${{ inputs.build-env }}
         run: |
           uv run --no-sync build-unity \
             --project ${{ matrix.project-name }} \
@@ -118,7 +123,8 @@ jobs:
             --cache-key ${{ matrix.cache-key }} \
             --run-number ${{ github.run_number }} \
             --branch ${{ github.head_ref || github.ref_name }} \
-            --registry "$CACHE_REGISTRY"
+            --registry "$CACHE_REGISTRY" \
+            --build-env "$BUILD_ENV"
 
       - name: Upload Build Artifacts
         if: success()

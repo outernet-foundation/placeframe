@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 from pathlib import Path
 
@@ -35,7 +36,19 @@ def main(
     run_number: int = typer.Option(0, help="CI run number"),
     branch: str = typer.Option("dev", help="Git branch name"),
     registry: str = typer.Option(help="OCI registry path"),
+    build_env: str = typer.Option(
+        "", help="Newline-separated KEY=VALUE pairs injected into the Unity build process environment"
+    ),
 ) -> None:
+    for line in build_env.splitlines():
+        entry = line.strip()
+        if not entry:
+            continue
+        key, separator, value = entry.partition("=")
+        if not separator:
+            raise SystemExit(f"Invalid --build-env entry (expected KEY=VALUE): {entry!r}")
+        os.environ[key.strip()] = value.strip()
+
     with ci_step("Setup"):
         configure_git(settings.github_workspace)
         install_dotnet("8.0")
