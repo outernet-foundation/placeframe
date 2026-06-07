@@ -2,7 +2,7 @@
 
 ## What this is
 
-`scripts/` is a Python workspace member that ships a set of operator-facing CLIs registered as `uv run` commands in `pyproject.toml`'s `[project.scripts]`. The package contains two cohorts: small operational utilities (Unity adb-forward, Docker debug-target listing, GitHub-Actions artifact install, ZED Box SSH deploy) and the calibration pipeline (`fit-calibration`, `tune-reconstruction`, the held-out selector registry, the shared auth helper). The Docker-stack lifecycle commands (`up`, `down`, `build`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`) do not live here — they live in the sibling `build-scripts` package under `build/`. The calibration pipeline is the load-bearing part of this directory and the only piece with tests; the operational utilities are small self-contained shell-out scripts.
+`scripts/` is a Python workspace member that ships a set of operator-facing CLIs registered as `uv run` commands in `pyproject.toml`'s `[project.scripts]`. The package contains two cohorts: small operational utilities (Unity adb-forward, Docker debug-target listing, ZED Box SSH deploy) and the calibration pipeline (`fit-calibration`, `tune-reconstruction`, the held-out selector registry, the shared auth helper). The Docker-stack lifecycle commands (`up`, `down`, `build`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`) do not live here — they live in the sibling `build-scripts` package under `build/`. The `install` command (download or build-then-install Unity APKs / linux executables) lives in `placeframe-unity` so cross-repo consumers can use it. The calibration pipeline is the load-bearing part of this directory and the only piece with tests; the operational utilities are small self-contained shell-out scripts.
 
 ## Shape
 
@@ -14,7 +14,6 @@ Registered in `scripts/pyproject.toml`:
 |---|---|---|
 | `forward-unity-android-debug-port` | `forward_unity_android_debug_port.py` | Auto-detects the single adb device, finds the listening Unity debugger port in 56000–56999 via `/proc/net/tcp{,6}`, and `adb forward tcp:56000 tcp:{found}`. |
 | `list-debug-targets` | `list_debug_targets.py` | Enumerates Docker containers with a `service` label that publishes `5678/tcp`. Prints `{host_port}|{service} | {name} {job} {task}` lines for VS Code's attach picker. |
-| `install` | `install.py` | Downloads the latest GitHub Actions Unity build artifact for `(project, target)` on the current branch (overridable), caches it under `~/.placeframe/builds/{run_id}/`, and `adb install`s the APK or `bash_handoff`s the linux64 executable. With `--build` / `-B`, skips the artifact fetch and calls `compile-unity` locally instead, installing the produced APK / executable through the same adb / handoff path. |
 | `install-zed` | `install_zed.py` | End-to-end SSH deploy of the `zed-capture` container onto a Jetson over the box's wired-ethernet link: SSH bootstrap, Docker install, NVIDIA runtime, disable of NVIDIA's USB device-mode service (frees the USB-C port for AOA host duty), strip-to-appliance (default target → `multi-user.target`, mask gdm + consumer-USB / desktop / auto-update units, install login banner), image acquisition (ghcr pull or local cross-compile + `docker save \| ssh docker load`), compose+systemd unit install, `docker compose up`. |
 | `loki-query` | `loki_query.py` | Run a LogQL query against the local Loki via `docker exec placeframe-loki-1 wget`, formatting each entry as `HH:MM:SS LEVEL [logGroup] message` (plus exception chain when present). Flags: `--limit`, `--direction`, `--since`, `--raw`. Use this instead of hand-rolling URL-encoded `wget` invocations — the URL encoding is fragile (`+`/`%7C`/quote-escapes) and easy to get subtly wrong. |
 | `tune-reconstruction` | `tune_reconstruction.py` | Plackett-Burman sweep over `ReconstructionOptions` per capture. One reconstruction per cell. Aggregates map-quality metrics into a JSON report. |
@@ -30,7 +29,6 @@ Registered in `scripts/pyproject.toml`:
         api_auth.py                               -- async auth: read .env, POST Keycloak, default-header inject
         forward_unity_android_debug_port.py       -- adb port forward for Unity debug
         list_debug_targets.py                     -- enumerate docker containers exposing :5678
-        install.py                                -- download + install Unity CI artifact
         install_zed.py                            -- SSH deploy ZED Box
         tune_reconstruction.py                    -- PB sweep over ReconstructionOptions
         fit_calibration.py                        -- Algorithm 1 calibration pipeline
@@ -156,7 +154,8 @@ Deterministic, scales to capture length, gives even temporal spacing → roughly
 
 ## See also
 
-- `build/` (the `build-scripts` workspace package) — sibling Python CLI package holding the Docker-stack lifecycle and codegen entry points (`up`, `down`, `build`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`). `scripts/` imports from it (`build_scripts.placeframe.projects.load_unity_projects` in `install.py`; `build_scripts.placeframe.context_sha.compute_service_shas` in `install_zed.py`); the inverse does not hold.
+- `build/` (the `build-scripts` workspace package) — sibling Python CLI package holding the Docker-stack lifecycle and codegen entry points (`up`, `down`, `build`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`). `scripts/` imports from it (`build_scripts.placeframe.context_sha.compute_service_shas` in `install_zed.py`); the inverse does not hold.
+- `packages/python/placeframe-unity/SPEC.md` — the Unity build toolkit, which also hosts the `install` command. `scripts/` no longer imports from it; the dependency was dropped when `install.py` moved.
 - `docker/localizer/SPEC.md` — defines the `/version` and `/localize` endpoints that `fit-calibration` consumes and the `pipeline_version` baked into the localizer image.
 - `docker/reconstructor/SPEC.md` — defines the single-anchor truth-frame alignment and the Procrustes-residual diagnostic metrics that Algorithm 1 step 2 relies on.
 - `packages/python/core/SPEC.md` "Calibration" — schema of `CalibrationArtifact`, `Features`, `ToleranceModel`, `RawMapMetrics`, `RawLocalizationMetrics`.

@@ -2,7 +2,7 @@
 
 ## What this is
 
-`build/` is a Python workspace member (`build-scripts`) that ships the placeframe-wide CLI commands invoked via `uv run <name>` from the repo root. It owns three cohorts of commands: the Docker-stack lifecycle (`up`, `down`, `build`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`), the Unity-project build/test helpers (`compile-unity`, `lock-unity`, `test-unity`, `activate-unity-license`), and the Cesium asset pipeline (`build-cesium`, `codegen-cesium`, `combine-cesium`). A fourth cohort under `placeframe/ci/` exists to be invoked from `.github/workflows/`; those commands are not intended for operator use locally. The sibling `scripts/` package holds operator utilities (calibration, debug attach, capture-tool install, ZED Box deploy) — see `scripts/SPEC.md` for that catalog.
+`build/` is a Python workspace member (`build-scripts`) that ships the placeframe-wide CLI commands invoked via `uv run <name>` from the repo root. It owns two cohorts of commands: the Docker-stack lifecycle (`up`, `down`, `build`, `generate-clients`, `generate-datamodels`, `lock-python`, `deptry-check`, `preflight`) and the Cesium asset pipeline (`build-cesium`, `codegen-cesium`, `combine-cesium`). A third cohort under `placeframe/ci/` exists to be invoked from `.github/workflows/`; those commands are not intended for operator use locally. The Unity build commands (`compile-unity`, `lock-unity`, `test-unity`, `build-unity`, `unity-matrix`, license helpers) live in the standalone `placeframe-unity` package — see `packages/python/placeframe-unity/SPEC.md` — which this package depends on for its shared CI helpers (`ci_step`, ORAS cache, runner setup). The sibling `scripts/` package holds operator utilities (calibration, debug attach, capture-tool install, ZED Box deploy) — see `scripts/SPEC.md` for that catalog.
 
 ## Shape
 
@@ -21,15 +21,6 @@ Defined in `build/pyproject.toml`'s `[project.scripts]`. All commands accept `--
 | `deptry-check` | `placeframe/deptry_check.py` | Dependency-vs-imports audit across all workspace packages. |
 | `preflight` | `placeframe/ci/preflight.py` | The exact command CI invokes — bundles sync + ruff (check + format) + basedpyright + deptry + pytest + lock-file check + datamodel codegen + client codegen staleness, gated as a single pass/fail. Tears down + brings up `compose.postgres.yml`, so it interrupts a running stack. Invoke as `uv run --no-sync preflight`. |
 
-### Unity (operator-facing)
-
-| `uv run` command | Module | Notes |
-|---|---|---|
-| `compile-unity` | `placeframe/compile_unity.py` | Local Unity build (APK or platform binary, suitable for `adb install`). Required flags: `--project <name>` and `--build <target>`, matching `build/unity-projects.json`. Streams the editor log, prints output paths under `<project>/Build/`. |
-| `lock-unity` | `placeframe/lock_unity.py` | Lock Unity package versions for reproducible builds. |
-| `test-unity` | `placeframe/test_unity.py` | Run Unity editmode / playmode tests. |
-| `activate-unity-license` | `shared/license.py` | Activate the local Unity Editor license. |
-
 ### Cesium asset pipeline
 
 | `uv run` command | Module | Notes |
@@ -40,30 +31,26 @@ Defined in `build/pyproject.toml`'s `[project.scripts]`. All commands accept `--
 
 ### CI-only
 
-`build-docker`, `build-unity`, `create-release`, `ensure-release-pr`, `fetch-ci-artifacts`, `protect-branches`, `publish-packages`, `unity-license-tag`, `unity-matrix` live under `placeframe/ci/` and `shared/` and are wired up from `.github/workflows/`. They assume the CI environment (OCI cache registry, restored licenses, GitHub token) and are not intended to be invoked from a developer slot. Operator-facing equivalents (`build`, `compile-unity`) cover the local-use cases.
+`build-docker`, `create-release`, `ensure-release-pr`, `fetch-ci-artifacts`, `protect-branches`, `publish-packages` live under `placeframe/ci/` and are wired up from `.github/workflows/`. They assume the CI environment (OCI cache registry, restored licenses, GitHub token) and are not intended to be invoked from a developer slot. The operator-facing `build` covers the local-use case.
 
 ### Layout
 
     build/
       pyproject.toml                                  -- workspace member; declares entry points
-      unity-projects.json                             -- project / build target catalog for compile-unity & build-unity
       src/build_scripts/
         placeframe/
           up.py / down.py / build_docker.py          -- stack lifecycle
           generate_clients.py / generate_datamodels.py / lock_python.py
           deptry_check.py
-          compile_unity.py / lock_unity.py / test_unity.py
           context_sha.py                              -- per-service tree-hash → image tag
           downgrade_openapi_schema.py                 -- OpenAPI 3.1 → 3.0 fixup used during generate-clients
           protect_branches.py
           ci/
-            preflight.py / build_docker.py / build_unity.py
+            preflight.py / build_docker.py
             create_release.py / ensure_release_pr.py / fetch_ci_artifacts.py
-            matrix.py / publish_packages.py
+            publish_packages.py / git_tags.py         -- release tagging (name → tag-prefix map)
         cesium/
           build.py / codegen.py / combine.py
-        shared/
-          license.py / license_restore.py             -- Unity license activate / tag-and-store
 
 ## Constraints
 
@@ -74,3 +61,7 @@ Defined in `build/pyproject.toml`'s `[project.scripts]`. All commands accept `--
 **Why `up` does GPU auto-detection.** `detect_gpu()` resolves to `cuda` / `rocm` / `none` based on host devices and selects the matching `compose.<gpu>.yml`. Override with `--gpu` only when reproducing a CI environment locally or testing the CPU-only path; the auto-detect is correct for ~all developer machines.
 
 **Why `preflight` lives under `placeframe/ci/`, but is operator-facing.** It runs in CI, so it belongs with the CI cohort by ownership. But operators are expected to run it before claiming a change is CI-clean — individual checks (`ruff check` alone, `pytest` alone, `generate-clients` alone) don't catch failures in the others. Listing it in the operator table reflects intent of use, not module location.
+
+## See also
+
+- `packages/python/placeframe-unity/SPEC.md` — the Unity build toolkit this package depends on for `ci_step`, the ORAS cache, and runner setup; also home of the Unity entry points and their workflow contract.
