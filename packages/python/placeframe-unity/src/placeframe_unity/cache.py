@@ -23,6 +23,8 @@ def restore(
     required: bool = False,
     fallback_tags: list[str] | None = None,
 ) -> bool:
+    # OCI repository names must be lowercase; GitHub repository names preserve case
+    registry = registry.lower()
     staging = Path(tempfile.gettempdir()) / "cache"
 
     for candidate_tag in [tag, *(fallback_tags or [])]:
@@ -60,6 +62,8 @@ def restore(
 
 
 def save(registry: str, name: str, tag: str, source_directory: Path, paths: list[str]) -> None:
+    # OCI repository names must be lowercase; GitHub repository names preserve case
+    registry = registry.lower()
     resolved: list[str] = []
     for pattern in paths:
         if any(character in pattern for character in "*?["):
