@@ -76,11 +76,11 @@ def unity_batchmode_command(project_path: Path) -> str:
 
 
 def resolve_unity_build(project: str, build: str) -> tuple[Path, str, str]:
-    config = load_unity_projects()
-    if project not in config.projects:
-        raise SystemExit(f"Unknown project '{project}'. Valid: {', '.join(config.projects)}")
+    projects = load_unity_projects()
+    if project not in projects:
+        raise SystemExit(f"Unknown project '{project}'. Valid: {', '.join(projects)}")
 
-    project_config = config.projects[project]
+    project_config = projects[project]
     valid_builds = project_config.builds or []
     if build not in valid_builds:
         valid = ", ".join(valid_builds) or "(none defined)"
@@ -93,5 +93,4 @@ def resolve_unity_build(project: str, build: str) -> tuple[Path, str, str]:
     if build not in PLATFORM_CONFIGS:
         raise SystemExit(f"No platform config for build '{build}'. Valid: {', '.join(PLATFORM_CONFIGS)}")
 
-    project_path = (Path(__file__).parents[4] / project_config.path).resolve()
-    return project_path, PLATFORM_CONFIGS[build]["build_flag"], execute_method
+    return project_config.path, PLATFORM_CONFIGS[build]["build_flag"], execute_method

@@ -35,7 +35,7 @@ def build_unity_project(project: str, build: str) -> list[Path]:
 
 @app.command()
 def compile_unity(
-    project: Annotated[str, typer.Option(help="Unity project name from unity-projects.json")],
+    project: Annotated[str, typer.Option(help="Unity project name (directory containing unity-build.json)")],
     build: Annotated[str, typer.Option(help="Build target from the project's builds list (e.g. android-mobile)")],
 ) -> None:
     for artifact in build_unity_project(project, build):

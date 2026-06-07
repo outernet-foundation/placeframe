@@ -1,19 +1,20 @@
 import json
+from pathlib import Path
 
 from ..projects import load_unity_projects
 from ..unity import PLATFORM_CONFIGS
 
 
 def main() -> None:
-    config = load_unity_projects()
+    projects = load_unity_projects()
     matrix: list[dict[str, str]] = []
 
-    for name, project in config.projects.items():
+    for name, project in projects.items():
         if not project.builds:
             continue
         for platform in project.builds:
             matrix.append({
-                "project": str(project.path),
+                "project": str(project.path.relative_to(Path.cwd())),
                 "project-name": name,
                 "cache-key": name.lower(),
                 "platform": platform,
