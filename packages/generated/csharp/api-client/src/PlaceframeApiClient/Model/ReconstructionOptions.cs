@@ -35,7 +35,7 @@ namespace PlaceframeApiClient.Model
         /// Initializes a new instance of the <see cref="ReconstructionOptions" /> class.
         /// </summary>
         /// <param name="deterministicSeed">PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic..</param>
-        /// <param name="keyframeMinDistanceM">Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction. (default to 0.2D).</param>
+        /// <param name="keyframeMinDistanceM">Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction. (default to 1.0D).</param>
         /// <param name="sequentialWindowM">VIO-path-distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe whose cumulative segment-by-segment path length along the VIO trajectory is within this many metres is paired with it. Path distance — not straight-line distance — so doubling back along the trajectory (e.g. corridor return pass) walks away from earlier frames rather than landing on them. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc. (default to 3.0D).</param>
         /// <param name="retrievalNeighbors">Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval. (default to 20).</param>
         /// <param name="retrievalMinScore">Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA. (default to 0.35D).</param>
@@ -95,7 +95,7 @@ namespace PlaceframeApiClient.Model
                 _flagKeyframeMinDistanceM = true;
             }
         }
-        private double _KeyframeMinDistanceM = 0.2D;
+        private double _KeyframeMinDistanceM = 1.0D;
         private bool _flagKeyframeMinDistanceM;
 
         /// <summary>

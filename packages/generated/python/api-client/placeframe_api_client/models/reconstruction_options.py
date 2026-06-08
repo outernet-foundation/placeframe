@@ -28,7 +28,7 @@ class ReconstructionOptions(BaseModel):
     ReconstructionOptions
     """ # noqa: E501
     deterministic_seed: Optional[StrictInt] = Field(default=None, description="PRNG seed and single-threaded gate for reproducible reconstructions; None means non-deterministic.")
-    keyframe_min_distance_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.2, description="Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.")
+    keyframe_min_distance_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=1.0, description="Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.")
     sequential_window_m: Optional[Union[StrictFloat, StrictInt]] = Field(default=3.0, description="VIO-path-distance window (meters) used to enumerate same-rig sequential pairs. For each keyframe, every later keyframe whose cumulative segment-by-segment path length along the VIO trajectory is within this many metres is paired with it. Path distance — not straight-line distance — so doubling back along the trajectory (e.g. corridor return pass) walks away from earlier frames rather than landing on them. Scales the temporal match-graph backbone to actual device motion: stationary stretches shrink to almost no extra pairs, fast-motion stretches grow to cover the swept arc.")
     retrieval_neighbors: Optional[StrictInt] = Field(default=20, description="Top-K most-similar images (DIR cosine) paired with each image for loop closures; 0 disables retrieval.")
     retrieval_min_score: Optional[Union[StrictFloat, StrictInt]] = Field(default=0.35, description="Minimum cosine similarity for retrieval candidates; drops visually-weak matches before BA.")
@@ -117,7 +117,7 @@ class ReconstructionOptions(BaseModel):
 
         _obj = cls.model_validate({
             "deterministic_seed": obj.get("deterministic_seed"),
-            "keyframe_min_distance_m": obj.get("keyframe_min_distance_m") if obj.get("keyframe_min_distance_m") is not None else 0.2,
+            "keyframe_min_distance_m": obj.get("keyframe_min_distance_m") if obj.get("keyframe_min_distance_m") is not None else 1.0,
             "sequential_window_m": obj.get("sequential_window_m") if obj.get("sequential_window_m") is not None else 3.0,
             "retrieval_neighbors": obj.get("retrieval_neighbors") if obj.get("retrieval_neighbors") is not None else 20,
             "retrieval_min_score": obj.get("retrieval_min_score") if obj.get("retrieval_min_score") is not None else 0.35,

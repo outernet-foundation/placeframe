@@ -497,7 +497,7 @@
             "type": "number",
             "format": "double",
             "description": "Minimum VIO-translation distance (meters) between successive kept keyframes; frames closer to the last kept frame than this are dropped before feature extraction.",
-            "default": 0.2
+            "default": 1.0
           },
           "sequential_window_m": {
             "type": "number",

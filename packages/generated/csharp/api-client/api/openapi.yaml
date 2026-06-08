@@ -4061,7 +4061,7 @@ components:
           nullable: true
           type: integer
         keyframe_min_distance_m:
-          default: 0.2
+          default: 1.0
           description: Minimum VIO-translation distance (meters) between successive
             kept keyframes; frames closer to the last kept frame than this are dropped
             before feature extraction.
