@@ -258,10 +258,11 @@ def run_colmap_reconstruction(
     # TODO: Write information to metrics about this for visibility
     best_reconstruction = max(reconstructions.values(), key=lambda r: r.num_reg_images())
 
-    # Final standalone BA with rig refinement re-enabled. The incremental loop above ran with
-    # rig refinement off (every global BA refining rig poses scales N times); one final pass
-    # lets sensor_from_rig settle against the converged geometry.
-    bundle_adjustment(best_reconstruction, options.final_bundle_adjustment_options())
+    # Disabled: final standalone BA with rig refinement re-enabled. The incremental loop above ran
+    # with rig refinement off (every global BA refining rig poses scales N times); this final pass
+    # was meant to let sensor_from_rig settle against the converged geometry, but on large captures
+    # it ran for >30 min with no progress callback and silently exceeded the lease timeout.
+    # bundle_adjustment(best_reconstruction, options.final_bundle_adjustment_options())
 
     metrics.build_reconstruction_metrics(best_reconstruction)
 
