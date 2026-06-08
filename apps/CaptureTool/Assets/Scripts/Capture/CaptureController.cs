@@ -353,17 +353,13 @@ namespace Placeframe.Client
                 remotes = (await VisualPositioningSystem.Api.GetCaptureSessionsExpandedAsync())
                     .CaptureSessions.ToDictionary(c => c.CaptureSession.Id);
             }
-            catch (HttpRequestException exception)
+            catch (Exception exception)
             {
                 Log.Info(LogGroup.Capture, exception,
                     "UpdateCaptureList GetCaptureSessionsExpanded failed durationMs={DurationMs}",
                     stopwatch.ElapsedMilliseconds - serverStartMs);
-
-                await UniTask.SwitchToMainThread();
-                App.state.apiReachable.value = false;
-                return;
+                throw;
             }
-
             var serverDurationMs = stopwatch.ElapsedMilliseconds - serverStartMs;
 
             Log.Info(LogGroup.Capture,
@@ -374,7 +370,6 @@ namespace Placeframe.Client
 
             App.ExecuteTransaction(appState =>
             {
-                appState.apiReachable.value = true;
                 appState.captures.SetFrom(
                     locals.Keys.Union(remotes.Keys).ToDictionary(id => id, id => id),
                     refreshOldEntries: true,

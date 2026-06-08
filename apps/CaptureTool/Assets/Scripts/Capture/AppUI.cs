@@ -267,16 +267,6 @@ namespace Placeframe.Client
                                     layout = Utility.FillParentProps(new() { ignoreLayout = Props.Value(true) })
                                 }),
                                 Title(new() { value = Props.Value("Captures") }),
-                                Text(new()
-                                {
-                                    value = Props.Value("Not connected to the backend — check the phone's Wi-Fi/LAN."),
-                                    element = new() { active = App.state.apiReachable.ObservableSelect(reachable => !reachable) },
-                                    style = new()
-                                    {
-                                        color = Props.Value(Color.red),
-                                        horizontalAlignment = Props.Value(TMPro.HorizontalAlignmentOptions.Center)
-                                    }
-                                }),
                                 ScrollRect(new()
                                 {
                                     value = Props.Value(new Vector2(0, 1)),
