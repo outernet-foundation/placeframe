@@ -1,0 +1,6 @@
+{
+    "apiUrl": "http://192.168.8.10:58080",
+    "useKeycloak": false,
+    "username": "user",
+    "password": "password"
+}

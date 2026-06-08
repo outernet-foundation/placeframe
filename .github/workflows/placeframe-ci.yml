@@ -2,6 +2,12 @@ name: Placeframe
 
 on:
   workflow_dispatch:
+    inputs:
+      config_type:
+        description: CaptureTool build configuration (selects baked first-launch defaults)
+        type: choice
+        options: [default, air-gapped]
+        default: default
   push:
     branches: [dev]
   pull_request:
@@ -35,6 +41,7 @@ jobs:
     uses: ./.github/workflows/unity-build.yml
     with:
       runner-labels: '["self-hosted","unity"]'
+      build-env: CONFIG_TYPE=${{ inputs.config_type || 'default' }}
     secrets: inherit
 
   build-docker:

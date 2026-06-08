@@ -16,24 +16,35 @@ namespace Placeframe.Client
         {
             Debug.Log(settingsPath);
 
-            if (!File.Exists(settingsPath))
-            {
-                App.ExecuteTransaction(appState =>
-                {
-                    var x = appState.settings;
-                    x.apiUrl.value = null;
-                    x.useKeycloak.value = true;
-                    x.username.value = "user";
-                    x.password.value = "password";
-                });
-            }
-            else
+            if (File.Exists(settingsPath))
             {
                 App.ExecuteTransaction(appState =>
                 {
                     var json = JSONNode.Parse(File.ReadAllText(settingsPath));
                     appState.settings.FromJSON(json);
                 });
+            }
+            else
+            {
+                var baked = Resources.Load<TextAsset>("default-settings");
+                if (baked != null)
+                {
+                    App.ExecuteTransaction(appState =>
+                    {
+                        appState.settings.FromJSON(JSONNode.Parse(baked.text));
+                    });
+                }
+                else
+                {
+                    App.ExecuteTransaction(appState =>
+                    {
+                        var x = appState.settings;
+                        x.apiUrl.value = null;
+                        x.useKeycloak.value = true;
+                        x.username.value = "user";
+                        x.password.value = "password";
+                    });
+                }
             }
 
             _initializing = true;

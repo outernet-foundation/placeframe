@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Text.RegularExpressions;
 using UnityEditor;
@@ -13,6 +14,8 @@ namespace Placeframe.Client
     {
         public static void BuildForAndroidMobile()
         {
+            ApplyConfigType();
+
             var settings = XRGeneralSettingsPerBuildTarget.XRGeneralSettingsForBuildTarget(BuildTargetGroup.Android);
             XRPackageMetadataStore.AssignLoader(settings.Manager, "Unity.XR.ARCore.ARCoreLoader", BuildTargetGroup.Android);
 
@@ -32,6 +35,34 @@ namespace Placeframe.Client
                 target = BuildTarget.Android,
                 targetGroup = BuildTargetGroup.Android,
             });
+        }
+
+        private static void ApplyConfigType()
+        {
+            const string targetDirectory = "Assets/_LocalWorkspace/Resources";
+            const string targetPath = targetDirectory + "/default-settings.json";
+
+            if (File.Exists(targetPath)) File.Delete(targetPath);
+            if (File.Exists(targetPath + ".meta")) File.Delete(targetPath + ".meta");
+
+            var configType = Environment.GetEnvironmentVariable("CONFIG_TYPE");
+            if (string.IsNullOrEmpty(configType) || configType == "default")
+            {
+                AssetDatabase.Refresh();
+                Debug.Log("[BuildScript] No CONFIG_TYPE set; SettingsManager will use hardcoded defaults on first launch");
+                return;
+            }
+
+            string sourcePath = configType switch
+            {
+                "air-gapped" => "Assets/BuildConfigs/airgapped-settings.json",
+                _ => throw new BuildFailedException($"Unknown CONFIG_TYPE '{configType}' (expected 'default' or 'air-gapped')")
+            };
+
+            Directory.CreateDirectory(targetDirectory);
+            File.Copy(sourcePath, targetPath);
+            AssetDatabase.Refresh();
+            Debug.Log($"[BuildScript] Applied CONFIG_TYPE '{configType}' from {sourcePath}");
         }
     }
 }
