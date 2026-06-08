@@ -58,6 +58,9 @@ namespace Placeframe.Client
             });
 
             _initializing = false;
+
+            if (!App.state.settings.useKeycloak.value && !string.IsNullOrEmpty(App.state.settings.apiUrl.value))
+                App.state.loginRequested.value = true;
         }
 
         public static void Shutdown()

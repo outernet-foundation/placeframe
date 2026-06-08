@@ -48,7 +48,6 @@ namespace Placeframe.Client
             UIElements.elements = uiElements;
 
             base.Awake();
-            ui = AppUI();
 
             App.state.placeframeAuthAudience.value = "placeframe-api";
 
@@ -64,6 +63,7 @@ namespace Placeframe.Client
             LocalizationManager.Initialize(cameraProvider);
             AuthManager.Initialize();
             SettingsManager.Initialize();
+            ui = AppUI();
             CaptureController.Initialize();
         }
 
