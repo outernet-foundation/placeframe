@@ -63,6 +63,7 @@ namespace Placeframe.Client
         public StateValue<AuthStatus> authStatus { get; private set; }
         public StateValue<string> authError { get; private set; }
         public StateValue<bool> loggedIn { get; private set; }
+        public StateValue<bool> apiReachable { get; private set; } = new StateValue<bool>(true);
 
         public SettingsState settings { get; private set; }
 
