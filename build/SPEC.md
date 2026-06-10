@@ -62,6 +62,8 @@ Defined in `build/pyproject.toml`'s `[project.scripts]`. All commands accept `--
 
 **Why `preflight` lives under `placeframe/ci/`, but is operator-facing.** It runs in CI, so it belongs with the CI cohort by ownership. But operators are expected to run it before claiming a change is CI-clean — individual checks (`ruff check` alone, `pytest` alone, `generate-clients` alone) don't catch failures in the others. Listing it in the operator table reflects intent of use, not module location.
 
+**`build` emits two env files, partitioning image references by who builds the image.** `.env.lock` (committed) carries third-party and base-image digests — images placeframe *pulls*. `.env.shas` (gitignored) carries the `tree-<hash>` tags of images placeframe *builds* from its own Dockerfiles, where the hash is a `git write-tree` over the `.dockerignore`-allowlisted context (`context_sha.py`). The split is mandated by a CI invariant — `.env.lock` must never contain built-image digests — and by churn: `.env.shas` changes on every source edit, so it stays out of version control. `uv run up` injects the `${*_SHA}` values into the environment directly and reads neither file; `.env.shas` exists so a consumer running placeframe's compose files through raw `docker compose` (without the `uv run up` wrapper) can resolve those holes via `--env-file .env.shas`.
+
 ## See also
 
 - `packages/python/placeframe-unity/SPEC.md` — the Unity build toolkit this package depends on for `ci_step`, the ORAS cache, and runner setup; also home of the Unity entry points and their workflow contract.
