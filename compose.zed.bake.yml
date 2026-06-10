@@ -35,3 +35,23 @@ services:
       tags:
         - "ghcr.io/outernet-foundation/placeframe/aoa-gateway:latest"
         - "ghcr.io/outernet-foundation/placeframe/aoa-gateway:${AOA_GATEWAY_SHA}"
+  loki:
+    build:
+      context: .
+      dockerfile: docker/loki/Dockerfile
+      platforms: [ "linux/arm64" ]
+      args:
+        LOKI_DIGEST: "${LOKI_DIGEST:-}"
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/loki:latest"
+        - "ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA}"
+  alloy:
+    build:
+      context: .
+      dockerfile: docker/alloy/Dockerfile
+      platforms: [ "linux/arm64" ]
+      args:
+        ALLOY_DIGEST: "${ALLOY_DIGEST:-}"
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/alloy:latest"
+        - "ghcr.io/outernet-foundation/placeframe/alloy:${ALLOY_SHA}"

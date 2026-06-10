@@ -63,6 +63,15 @@ services:
         - "ghcr.io/outernet-foundation/placeframe/gateway:latest"
         - "ghcr.io/outernet-foundation/placeframe/gateway:${GATEWAY_SHA}"
 
+  rathole-client:
+    build:
+      context: .
+      dockerfile: docker/rathole-client/Dockerfile
+      args: *base-args
+      tags:
+        - "ghcr.io/outernet-foundation/placeframe/rathole-client:latest"
+        - "ghcr.io/outernet-foundation/placeframe/rathole-client:${RATHOLE_CLIENT_SHA}"
+
   database-migrator:
     build:
       context: .
