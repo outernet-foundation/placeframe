@@ -36,7 +36,7 @@ class SyncProgressFlusher:
 
     def flush(self, reconstruction_id: UUID, update: ProgressUpdate) -> None:
         response = self._client.put(
-            f"{self._base_url}/internal/leases/{reconstruction_id}/progress",
+            f"{self._base_url}/leases/{reconstruction_id}/progress",
             json=update.model_dump(mode="json", exclude_none=False),
         )
         if response.status_code >= 400:
