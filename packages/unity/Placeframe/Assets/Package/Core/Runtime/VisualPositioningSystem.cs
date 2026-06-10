@@ -56,6 +56,11 @@ namespace Placeframe.Core
         private const int LockupRejectionThreshold = 5;
         private const float LockupSecondsThreshold = 5f;
 
+        // Discovery is a single quick GET; unlike the long-lived API client (whose timeout is
+        // infinite so uploads/reconstructions aren't cut off), it needs a finite bound so an
+        // unreachable host surfaces as a connect error instead of hanging the Connect button.
+        private static readonly TimeSpan DiscoveryTimeout = TimeSpan.FromSeconds(15);
+
         private static float _lastAcceptedTime = -1f;
 
         // Diagnostic bypass switches surfaced as toggles in the metrics dialog. Flipped at
@@ -66,7 +71,6 @@ namespace Placeframe.Core
         public static bool BypassKalman;
 
         public static DefaultApi Api { get; private set; }
-        public static bool UseKeycloak { get; private set; }
         public static LocalizationMetrics MostRecentMetrics => _state.MostRecentMetrics;
         public static LocalizationMetrics LastReceivedMetrics { get; private set; }
         public static bool Localizing => _localizationSubscription != null;
@@ -98,7 +102,6 @@ namespace Placeframe.Core
 
         public static void Initialize(
             ICameraProvider cameraProvider,
-            string authAudience,
             Action<string> logCallback,
             Action<string> warnCallback,
             Action<string> errorCallback,
@@ -113,7 +116,7 @@ namespace Placeframe.Core
             _errorCallback = errorCallback;
             _httpHandlerFactory = httpHandlerFactory;
 
-            Auth.Initialize(authAudience, logCallback, warnCallback, errorCallback, httpHandlerFactory);
+            Auth.Initialize(logCallback, warnCallback, errorCallback, httpHandlerFactory);
 
             _cameraProvider = cameraProvider;
             _slewSubscription = Observable
@@ -121,37 +124,55 @@ namespace Placeframe.Core
                 .Subscribe(_ => ApplyStepResult(RelocalizationFilter.TickSlew(_state, Time.deltaTime)));
         }
 
-        // Caller passes the full apiUrl (e.g. https://x.ngrok-free.app or http://192.168.1.100:58080)
-        // and whether to use Keycloak auth. A client/server auth-mode mismatch surfaces as a
-        // 401/403 from the first /api/* call rather than a probe roundtrip at login time.
-        public static async UniTask Login(string apiUrl, bool useKeycloak, string username, string password)
+        // Caller passes the full apiUrl (e.g. https://x.ngrok-free.app or http://192.168.1.100:58080).
+        // Discover hits the unauthenticated /server-info before any authenticated client exists, so
+        // the auth mode and (under keycloak) the OIDC token endpoint and client id come from the
+        // server rather than being guessed or hardcoded.
+        public static async UniTask<ServerInfo> Discover(string apiUrl, CancellationToken cancellationToken = default)
         {
-            UseKeycloak = useKeycloak;
+            var api = new DefaultApi(
+                new HttpClient(_httpHandlerFactory?.Invoke() ?? new HttpClientHandler())
+                {
+                    BaseAddress = new Uri(apiUrl),
+                    Timeout = DiscoveryTimeout,
+                },
+                new Configuration { BasePath = apiUrl, Timeout = DiscoveryTimeout }
+            );
+
+            return await api.GetServerInfoAsync(cancellationToken);
+        }
+
+        // serverInfo comes from a prior Discover call. Under keycloak the password grant must run
+        // before any authenticated client is built, so the bearer handler has a token to mint;
+        // disabled mode needs no such exchange.
+        public static async UniTask Login(string apiUrl, ServerInfo serverInfo, string username, string password)
+        {
+            if (serverInfo.AuthMode == ServerInfo.AuthModeEnum.Keycloak)
+                await Auth.Login(serverInfo.TokenUrl, serverInfo.Audience, username, password);
 
             // The generated client also enforces Configuration.Timeout via its own
             // CancellationTokenSource, so both timeouts must be infinite to disable it.
-            DelegatingHandler authHandler;
-            if (useKeycloak)
-            {
-                var authTokenUrl = $"{apiUrl}/auth/realms/placeframe-dev/protocol/openid-connect/token";
-                await Auth.Login(authTokenUrl, username, password);
-                authHandler = new AuthHttpHandler();
-            }
-            else
-            {
-                authHandler = new AnonymousIdentityHttpHandler(SystemInfo.deviceUniqueIdentifier);
-            }
-
-            authHandler.InnerHandler = _httpHandlerFactory?.Invoke() ?? new HttpClientHandler();
-
             Api = new DefaultApi(
-                new HttpClient(authHandler)
+                new HttpClient(CreateBackendAuthHandler(serverInfo))
                 {
                     BaseAddress = new Uri(apiUrl),
                     Timeout = Timeout.InfiniteTimeSpan,
                 },
                 new Configuration { BasePath = apiUrl, Timeout = Timeout.InfiniteTimeSpan }
             );
+        }
+
+        // Single source of the backend's outbound auth policy: every backend-bound HttpClient (API
+        // client, Loki sink, log drainer) wraps the handler this returns. Keycloak gets a bearer
+        // token (minted by a prior Auth.Login, so login must precede any request); disabled mode
+        // gets the device id as X-Anonymous-Identity, kept for attribution.
+        public static DelegatingHandler CreateBackendAuthHandler(ServerInfo serverInfo)
+        {
+            DelegatingHandler authHandler = serverInfo.AuthMode == ServerInfo.AuthModeEnum.Keycloak
+                ? new AuthHttpHandler()
+                : new AnonymousIdentityHttpHandler(SystemInfo.deviceUniqueIdentifier);
+            authHandler.InnerHandler = _httpHandlerFactory?.Invoke() ?? new HttpClientHandler();
+            return authHandler;
         }
 
         public static void SetLocalizationMapManager(LocalizationMapManager localizationMapManager)

@@ -44,7 +44,6 @@ namespace Outernet.Logging
 
         private HttpClient _httpClient;
         private string _pushUrl;
-        private Func<UniTask<string>> _tokenProvider;
 
         public LokiSink(IEnumerable<(string key, string value)> labels)
         {
@@ -57,7 +56,7 @@ namespace Outernet.Logging
             _httpClient?.Dispose();
         }
 
-        public void Enable(string apiUrl, Func<UniTask<string>> tokenProvider)
+        public void Enable(string apiUrl, HttpMessageHandler authHandler)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(LokiSink));
@@ -66,9 +65,8 @@ namespace Outernet.Logging
             if (!Uri.TryCreate(apiUrl, UriKind.Absolute, out var baseUri))
                 throw new ArgumentException($"apiUrl must be an absolute URI, got: '{apiUrl ?? "<null>"}'", nameof(apiUrl));
 
-            _httpClient = new HttpClient(new HttpClientHandler());
+            _httpClient = new HttpClient(authHandler ?? new HttpClientHandler());
             _pushUrl = new Uri(baseUri, "/loki/api/v1/push").AbsoluteUri;
-            _tokenProvider = tokenProvider;
 
             UniTask.RunOnThreadPool(DrainLoop).Forget();
         }
@@ -199,16 +197,11 @@ namespace Outernet.Logging
                         batch = TakeHeadSlice();
                     }
 
-                    // Per-attempt timeout so a hung token fetch or HTTP send can't
-                    // wedge the drain.
+                    // Per-attempt timeout so a hung HTTP send — including the auth handler's
+                    // token mint/refresh — can't wedge the drain.
                     using var timeout = new CancellationTokenSource(PerAttemptTimeout);
 
                     using var request = new HttpRequestMessage(HttpMethod.Post, _pushUrl);
-                    if (_tokenProvider != null)
-                    {
-                        var token = await _tokenProvider().AttachExternalCancellation(timeout.Token);
-                        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                    }
                     request.Content = new StringContent(
                         JsonConvert.SerializeObject(
                             new { streams = new[] { new { stream = _labels, values = batch.Select(entry => new[] { entry.LastTs, entry.Line }) } } }

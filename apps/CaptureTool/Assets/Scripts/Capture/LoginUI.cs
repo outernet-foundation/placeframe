@@ -11,9 +11,9 @@ namespace Placeframe.Client
 {
     public static partial class UIElements
     {
-        public static IControl LoginUI()
+        public static IControl ConnectUI()
         {
-            return Control(new GameObject("Login UI"), new()
+            return Control(new GameObject("Connect UI"), new()
             {
                 layout = Utility.FillParentProps(),
                 children = Props.List(
@@ -44,20 +44,61 @@ namespace Placeframe.Client
                                     onValueChanged = x => App.state.settings.apiUrl.value = x
                                 })
                             }),
-                            LabeledControl(new LabeledControlProps()
+                            HorizontalLayout(new LayoutGroupProps()
                             {
-                                label = Props.Value("Use Keycloak"),
-                                labelWidth = Props.Value(225f),
-                                control = Toggle(new ToggleProps()
-                                {
-                                    layout = new() { flexibleWidth = Props.Value(1f) },
-                                    value = App.state.settings.useKeycloak,
-                                    onValueChanged = x => App.state.settings.useKeycloak.value = x
-                                })
+                                childControlWidth = Props.Value(true),
+                                childControlHeight = Props.Value(true),
+                                childAlignment = Props.Value(TextAnchor.UpperRight),
+                                children = Props.List(
+                                    LabeledButton(new LabeledButtonProps()
+                                    {
+                                        label = App.state.authStatus.ObservableSelect(
+                                            x => IsBusy(x) ? "Connecting…" : "Connect"),
+                                        interactable = App.state.authStatus.ObservableSelect(x => !IsBusy(x)),
+                                        onClick = () => App.state.connectRequested.value = true
+                                    })
+                                )
                             }),
+                            Text(new TextProps()
+                            {
+                                value = App.state.authError,
+                                element = new() { active = App.state.authError.ObservableSelect(x => !string.IsNullOrEmpty(x)) },
+                                style = new TextStyleProps()
+                                {
+                                    color = Props.Value(Color.red),
+                                    horizontalAlignment = Props.Value(HorizontalAlignmentOptions.Center)
+                                }
+                            })
+                        )
+                    })
+                )
+            });
+        }
+
+        public static IControl LoginUI()
+        {
+            return Control(new GameObject("Login UI"), new()
+            {
+                layout = Utility.FillParentProps(),
+                children = Props.List(
+                    Image(new ImageProps()
+                    {
+                        style = { color = Props.Value(elements.midgroundColor) },
+                        layout = Utility.FillParentProps(new() { ignoreLayout = Props.Value(true) })
+                    }),
+                    TightRowsWideColumns(new()
+                    {
+                        layout = new()
+                        {
+                            anchorMin = Props.Value(new Vector2(0.5f, 0.66f)),
+                            anchorMax = Props.Value(new Vector2(0.5f, 0.66f)),
+                            pivot = Props.Value(new Vector2(0.5f, 1f)),
+                            sizeDelta = Props.Value(new Vector2(900, 0)),
+                            fitContentVertical = Props.Value(ContentSizeFitter.FitMode.PreferredSize)
+                        },
+                        children = Props.List(
                             LabeledControl(new LabeledControlProps()
                             {
-                                element = new() { active = App.state.settings.useKeycloak },
                                 label = Props.Value("Username"),
                                 labelWidth = Props.Value(225f),
                                 control = InputField(new InputFieldProps()
@@ -69,7 +110,6 @@ namespace Placeframe.Client
                             }),
                             LabeledControl(new LabeledControlProps()
                             {
-                                element = new() { active = App.state.settings.useKeycloak },
                                 label = Props.Value("Password"),
                                 labelWidth = Props.Value(225f),
                                 control = InputField(new InputFieldProps()
@@ -85,7 +125,17 @@ namespace Placeframe.Client
                                 childControlWidth = Props.Value(true),
                                 childControlHeight = Props.Value(true),
                                 childAlignment = Props.Value(TextAnchor.UpperRight),
+                                spacing = Props.Value(10f),
                                 children = Props.List(
+                                    LabeledButton(new LabeledButtonProps()
+                                    {
+                                        label = Props.Value("Change Server"),
+                                        onClick = () =>
+                                        {
+                                            App.state.serverInfo.value = null;
+                                            App.ExecuteTransaction(new SetAuthStatusAction(AuthStatus.Disconnected));
+                                        }
+                                    }),
                                     LabeledButton(new LabeledButtonProps()
                                     {
                                         label = Props.Value("Log In"),
@@ -108,5 +158,8 @@ namespace Placeframe.Client
                 )
             });
         }
+
+        private static bool IsBusy(AuthStatus status) =>
+            status == AuthStatus.Connecting || status == AuthStatus.LoggingIn;
     }
 }

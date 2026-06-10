@@ -15,7 +15,6 @@ namespace Placeframe.Client
         {
             VisualPositioningSystem.Initialize(
                 cameraProvider,
-                App.state.placeframeAuthAudience.value,
                 message => Log.Info(LogGroup.Localizer, message),
                 message => Log.Warn(LogGroup.Localizer, message),
                 message => Log.Error(LogGroup.Localizer, message),

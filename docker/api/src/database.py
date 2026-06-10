@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import os
 from typing import Any, AsyncGenerator, cast
+from uuid import UUID
 
 from datamodels.auth_tables import User
 from litestar import Request
-from litestar.exceptions import NotAuthorizedException
+from litestar.exceptions import ClientException, NotAuthorizedException
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -65,6 +66,13 @@ else:
 
         if not user_id:
             raise NotAuthorizedException("Missing subject claim when creating database session")
+
+        try:
+            UUID(user_id)
+        except ValueError:
+            raise ClientException(
+                f"Identity '{user_id}' is not a valid UUID; disabled-auth requires an x-anonymous-identity UUID header"
+            ) from None
 
         # JIT create user record if it doesn't exist
         async with AuthSessionLocal() as auth_session, auth_session.begin():

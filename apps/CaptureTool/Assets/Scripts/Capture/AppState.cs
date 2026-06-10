@@ -30,10 +30,19 @@ namespace Placeframe.Client
 
     public enum AuthStatus
     {
-        LoggedOut,
+        Disconnected,
+        Connecting,
+        Connected,
         LoggingIn,
         LoggedIn,
         Error,
+    }
+
+    public enum AppScreen
+    {
+        Connect,
+        Login,
+        Main,
     }
 
     public enum ZedStatusKind
@@ -41,6 +50,7 @@ namespace Placeframe.Client
         Unknown,
         Connecting,
         Ready,
+        Stabilizing,
         Recording,
         DegradedDiskLow,
         DegradedError,
@@ -51,18 +61,21 @@ namespace Placeframe.Client
     public class SettingsState : StateObject
     {
         public StateValue<string> apiUrl { get; private set; }
-        public StateValue<bool> useKeycloak { get; private set; }
         public StateValue<string> username { get; private set; }
         public StateValue<string> password { get; private set; }
     }
 
     public class AppState : StateObject
     {
-        public StateValue<string> placeframeAuthAudience { get; private set; }
+        public StateValue<bool> connectRequested { get; private set; }
+        public StateValue<ServerInfo> serverInfo { get; private set; }
+
         public StateValue<bool> loginRequested { get; private set; }
         public StateValue<AuthStatus> authStatus { get; private set; }
         public StateValue<string> authError { get; private set; }
         public StateValue<bool> loggedIn { get; private set; }
+
+        public StateValue<AppScreen> screen { get; private set; }
 
         public SettingsState settings { get; private set; }
 
@@ -87,14 +100,32 @@ namespace Placeframe.Client
             loggedIn.Derive(
                 authStatus.ObservableSelect(status => status == AuthStatus.LoggedIn)
             );
+            screen.Derive(
+                Observables.ObservableCombineValues(authStatus, serverInfo, ComputeScreen)
+            );
             zedReachable.Derive(
                 zedStatus.ObservableSelect(IsZedReachable)
             );
         }
 
+        private static AppScreen ComputeScreen(AuthStatus authStatus, ServerInfo serverInfo)
+        {
+            if (authStatus == AuthStatus.LoggedIn)
+                return AppScreen.Main;
+
+            if (serverInfo == null)
+                return AppScreen.Connect;
+
+            if (serverInfo.AuthMode == ServerInfo.AuthModeEnum.Keycloak)
+                return AppScreen.Login;
+
+            return AppScreen.Connect;
+        }
+
         private static bool IsZedReachable(ZedStatusKind status) => status switch
         {
             ZedStatusKind.Ready => true,
+            ZedStatusKind.Stabilizing => true,
             ZedStatusKind.Recording => true,
             ZedStatusKind.DegradedDiskLow => true,
             ZedStatusKind.DegradedError => true,

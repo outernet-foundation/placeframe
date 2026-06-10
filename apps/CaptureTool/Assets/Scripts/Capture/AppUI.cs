@@ -27,14 +27,17 @@ namespace Placeframe.Client
             OrderedCanvas(new()
             {
                 children = Props.List(
-                    App.state.loggedIn
-                        .ObservableCreate(loggedIn => loggedIn
-                            ? MainAppUI(new MainAppUIProps()
+                    App.state.screen
+                        .ObservableCreate(screen => screen switch
+                        {
+                            AppScreen.Main => MainAppUI(new MainAppUIProps()
                             {
                                 mode = App.state.mode,
                                 onModeChanged = x => App.state.mode.value = x,
-                            })
-                            : LoginUI())
+                            }),
+                            AppScreen.Login => LoginUI(),
+                            _ => ConnectUI(),
+                        })
                 ),
             });
 
@@ -89,6 +92,7 @@ namespace Placeframe.Client
 
         private static bool IsBannerState(ZedStatusKind kind) => kind switch
         {
+            ZedStatusKind.Stabilizing => true,
             ZedStatusKind.Unreachable => true,
             ZedStatusKind.LostMidCapture => true,
             ZedStatusKind.DegradedDiskLow => true,
@@ -98,6 +102,7 @@ namespace Placeframe.Client
 
         private static Color ColorForBanner(ZedStatusKind kind) => kind switch
         {
+            ZedStatusKind.Stabilizing => new Color(0.20f, 0.55f, 0.90f, 1f),
             ZedStatusKind.DegradedDiskLow => new Color(1.00f, 0.70f, 0.00f, 1f),
             ZedStatusKind.DegradedError => new Color(1.00f, 0.70f, 0.00f, 1f),
             _ => new Color(0.90f, 0.25f, 0.25f, 1f),
@@ -105,6 +110,7 @@ namespace Placeframe.Client
 
         private static string LabelForBanner(ZedStatusKind kind) => kind switch
         {
+            ZedStatusKind.Stabilizing => "Hold the Zed still and level — stabilizing…",
             ZedStatusKind.Unreachable => "Zed box not reachable",
             ZedStatusKind.LostMidCapture => "Connection lost to Zed box",
             ZedStatusKind.DegradedDiskLow => "Zed box disk low",
