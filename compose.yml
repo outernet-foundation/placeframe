@@ -80,7 +80,8 @@ services:
       CB_ADMIN_PASSWORD: "${CLOUDBEAVER_ADMIN_PASSWORD:?err}"
 
   cloudbeaver:
-    x-image-ref: docker.io/dbeaver/cloudbeaver:latest
+    # Pinned: releases after 25.1.4 write to a non-writable $HOME/.local/share/DBeaverData and crash on startup (exit 13).
+    x-image-ref: docker.io/dbeaver/cloudbeaver:25.1.4
     image: "${CLOUDBEAVER_IMAGE:?err}"
     depends_on:
       create-database:
