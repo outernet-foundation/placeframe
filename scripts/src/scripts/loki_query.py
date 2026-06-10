@@ -4,7 +4,7 @@ import json
 import shlex
 import urllib.parse
 from datetime import datetime, timezone
-from typing import Annotated, cast
+from typing import Annotated
 
 import typer
 from placeframe_bash import bash_output
@@ -19,7 +19,7 @@ def main(
     query: Annotated[
         str,
         typer.Argument(
-            help='LogQL query. Single-quote it. Example: \'{app="capture-tool"} | json | logGroup="Android"\''
+            help='LogQL query. Single-quote it. Example: \'{service_name="capture-tool"} | logGroup="Android"\''
         ),
     ],
     limit: Annotated[int, typer.Option("--limit", "-n", help="Max entries to return")] = 50,
@@ -50,24 +50,23 @@ def main(
         print(f"0 entries in last {since}. LokiSink batches every ~2s; if you just emitted, wait a moment and retry.")
         return
 
-    entries: list[tuple[int, str]] = []
+    # Native OTLP ingestion: the line is the OTel body (the human message); level,
+    # log group, and exception fields ride as structured metadata, which Loki merges
+    # into each stream's label set in the query response. So they are read per-stream,
+    # not parsed out of the line.
+    entries: list[tuple[int, str, dict[str, str]]] = []
     for stream in streams:
+        metadata = stream.get("stream", {})
         for timestamp_ns, line in stream["values"]:
-            entries.append((int(timestamp_ns), str(line)))
-    entries.sort(reverse=(direction == "backward"))
+            entries.append((int(timestamp_ns), str(line), metadata))
+    entries.sort(key=lambda entry: entry[0], reverse=(direction == "backward"))
 
     print(f"{total} entries from {len(streams)} stream(s) over {since}")
-    for timestamp_ns, line in entries:
+    for timestamp_ns, line, metadata in entries:
         timestamp = datetime.fromtimestamp(timestamp_ns / 1e9, tz=timezone.utc).strftime("%H:%M:%S.%f")[:-3]
-        try:
-            event: dict[str, object] = json.loads(line)
-            level = str(event.get("level") or "?")[:5]
-            group = str(event.get("logGroup") or "?")
-            message = str(event.get("message") or "")
-            raw_exception = event.get("exception")
-            print(f"{timestamp} {level:5s} [{group}] {message}")
-            if isinstance(raw_exception, dict):
-                exception = cast(dict[str, object], raw_exception)
-                print(f"            exception: {exception.get('type')}: {exception.get('message')}")
-        except json.JSONDecodeError:
-            print(f"{timestamp} {line}")
+        level = str(metadata.get("detected_level") or metadata.get("severity_text") or "?")[:5]
+        group = str(metadata.get("logGroup") or "?")
+        print(f"{timestamp} {level:5s} [{group}] {line}")
+        exception_type = metadata.get("exception_type")
+        if exception_type:
+            print(f"            exception: {exception_type}: {metadata.get('exception_message') or ''}")
