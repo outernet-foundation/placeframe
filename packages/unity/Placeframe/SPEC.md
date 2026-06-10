@@ -60,11 +60,11 @@ Public API surface:
 
 ### Authentication
 
-`Auth` (`Assets/Package/Core/Runtime/Auth.cs`) is a separate static class. The flow is OAuth 2.0 Resource Owner Password Credentials against Keycloak: `grant_type=password&client_id={authAudience}&username=...&password=...&scope=openid`. `AuthHttpHandler : DelegatingHandler` injects a bearer token on every request the generated API client makes.
+`Auth` (`Assets/Package/Core/Runtime/Auth.cs`) is a separate static class. The flow is OAuth 2.0 Resource Owner Password Credentials against Keycloak: `grant_type=password&client_id={audience}&username=...&password=...&scope=openid`. `AuthHttpHandler : DelegatingHandler` injects a bearer token on every request the generated API client makes.
 
 `GetOrRefreshToken` short-circuits if the access token is unexpired (60s skew); otherwise it tries refresh-token rotation (Keycloak rotates the refresh token, so the entire token response is replaced); if that fails, full re-login using the cached username/password held in static properties for the process lifetime.
 
-The Keycloak realm path `placeframe-dev` is hardcoded at `Assets/Package/Core/Runtime/VisualPositioningSystem.cs:90`. The first `Initialize` parameter `authAudience` is the OAuth `client_id` (not the audience claim, despite the name) -- consumers pass `placeframe-api`. The realm itself is fixed code.
+The OIDC parameters are not hardcoded. The client first calls the backend's unauthenticated `GET /server-info` (via an unauthenticated generated-client instance) to learn `auth_mode` and, under keycloak, the `token_url` and `audience` (the OAuth `client_id`). `Login` then uses the discovered `token_url` directly rather than constructing `{apiUrl}/auth/realms/<realm>/...`, so the realm name lives only on the server. When `/server-info` reports `disabled`, the client skips the token flow and attaches `X-Anonymous-Identity` (`SystemInfo.deviceUniqueIdentifier`) instead of a bearer token; the auth-handler branch keys off the discovered `auth_mode`, not a local toggle.
 
 ### The relocalization filter
 
