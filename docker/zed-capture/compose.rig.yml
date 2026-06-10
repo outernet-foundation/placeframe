@@ -74,12 +74,12 @@ services:
   # Box-side Alloy: receives OTLP from zed-capture and aoa-gateway, forwards
   # to aoa-loki. Reuses the placeframe-owned Alloy wrapper image — the config
   # baked at /etc/alloy/config.alloy is identical to the main stack's;
-  # LOKI_WRITE_ENDPOINT drives the only per-stack difference.
+  # LOKI_OTLP_ENDPOINT drives the only per-stack difference.
   aoa-alloy:
     image: ${ALLOY_IMAGE:-ghcr.io/outernet-foundation/placeframe/alloy:${ALLOY_SHA:?err}}
     network_mode: host
     environment:
-      LOKI_WRITE_ENDPOINT: http://127.0.0.1:3100/loki/api/v1/push
+      LOKI_OTLP_ENDPOINT: http://127.0.0.1:3100/otlp
     command: run /etc/alloy/config.alloy --server.http.listen-addr=127.0.0.1:12345
     restart: "no"
 

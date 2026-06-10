@@ -1,13 +1,13 @@
-// OTLP/gRPC receiver → attributes processor (label-cardinality policy) → Loki
-// exporter → loki.write. Producers ship OTel log records with full SemConv
+// OTLP/gRPC receiver → OTLP/HTTP exporter into Loki's native OTLP ingestion
+// endpoint (/otlp/v1/logs). Producers ship OTel log records with full SemConv
 // resource attributes (service.name, service.namespace, service.instance.id,
-// service.version, deployment.environment.name, container.name). The Loki
-// exporter serializes the whole record — body, severity, attributes,
-// resources, instrumentation_scope — as a JSON object into the Loki log line;
-// it does not emit Loki structured metadata. A low-cardinality label subset is
-// promoted alongside the line (see below). Write endpoint is env-driven so this
+// service.version, deployment.environment.name, container.name). Loki itself
+// decides the label/metadata split (see limits_config.otlp_config): the body
+// becomes the log line, the indexed resource subset becomes labels, and
+// everything else becomes structured metadata. Endpoint is env-driven so this
 // single config serves both the main backend stack (writes to loki:3100) and
-// the ZED box stack (writes to 127.0.0.1:3100).
+// the ZED box stack (writes to 127.0.0.1:3100); the otlphttp exporter appends
+// /v1/logs to it.
 
 otelcol.receiver.otlp "default" {
   grpc {
@@ -15,34 +15,12 @@ otelcol.receiver.otlp "default" {
   }
 
   output {
-    logs = [otelcol.processor.attributes.label_promotion.input]
+    logs = [otelcol.exporter.otlphttp.default.input]
   }
 }
 
-// The Loki exporter promotes the resource attributes named in the
-// `loki.resource.labels` record attribute to indexed Loki labels, plus its own
-// defaults: exporter="OTLP", job=<service.namespace>/<service.name>,
-// instance=<service.instance.id>, and level from severity (Loki also derives
-// detected_level). Everything not promoted to a label stays inside the
-// JSON-serialized log line — there is no structured metadata.
-otelcol.processor.attributes "label_promotion" {
-  action {
-    key    = "loki.resource.labels"
-    value  = "service.name,deployment.environment.name"
-    action = "insert"
-  }
-
-  output {
-    logs = [otelcol.exporter.loki.default.input]
-  }
-}
-
-otelcol.exporter.loki "default" {
-  forward_to = [loki.write.default.receiver]
-}
-
-loki.write "default" {
-  endpoint {
-    url = sys.env("LOKI_WRITE_ENDPOINT")
+otelcol.exporter.otlphttp "default" {
+  client {
+    endpoint = sys.env("LOKI_OTLP_ENDPOINT")
   }
 }

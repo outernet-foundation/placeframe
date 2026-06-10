@@ -341,7 +341,7 @@ services:
     expose:
       - "4317"
     environment:
-      LOKI_WRITE_ENDPOINT: "http://loki:3100/loki/api/v1/push"
+      LOKI_OTLP_ENDPOINT: "http://loki:3100/otlp"
     command: run /etc/alloy/config.alloy
 
   grafana:
