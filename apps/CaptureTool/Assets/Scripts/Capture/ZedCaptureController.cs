@@ -8,6 +8,7 @@ using Placeframe.Client;
 using Placeframe.Core;
 using PlaceframeApiClient.Model;
 using FileParameter = PlaceframeApiClient.Client.FileParameter;
+using StartCaptureRequest = PlaceframeZedCaptureClient.Model.StartCaptureRequest;
 using StopCaptureRequest = PlaceframeZedCaptureClient.Model.StopCaptureRequest;
 using UpdateCaptureSessionRequest = PlaceframeZedCaptureClient.Model.UpdateCaptureSessionRequest;
 using ZedStatusModel = PlaceframeZedCaptureClient.Model.ZedStatus;
@@ -150,8 +151,9 @@ public static class ZedCaptureController
     public static async UniTask StartCapture(float captureInterval, CancellationToken cancellationToken = default)
     {
         EnsureReachable();
-        await capturesApi.StartCaptureAsync(captureInterval, cancellationToken);
-        App.state.zedStatus.value = ZedStatusKind.Recording;
+        var request = new StartCaptureRequest(DateTime.UtcNow) { CaptureInterval = captureInterval };
+        await capturesApi.StartCaptureAsync(request, cancellationToken);
+        App.state.zedStatus.value = ZedStatusKind.Stabilizing;
     }
 
     public static async UniTask StopCapture(string name, CancellationToken cancellationToken = default)
@@ -233,7 +235,7 @@ public static class ZedCaptureController
         Log.Info(LogGroup.Zed, "AOA accessory detached");
         ZedStatusKind previous = App.state.zedStatus.value;
         App.state.zedStatus.value =
-            previous == ZedStatusKind.Recording || previous == ZedStatusKind.LostMidCapture
+            IsMidCapture(previous)
                 ? ZedStatusKind.LostMidCapture
                 : ZedStatusKind.Unreachable;
     }
@@ -287,13 +289,16 @@ public static class ZedCaptureController
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
     }
 
+    private static bool IsMidCapture(ZedStatusKind kind) =>
+        kind == ZedStatusKind.Stabilizing || kind == ZedStatusKind.Recording || kind == ZedStatusKind.LostMidCapture;
+
     private static void UpdateStatus(ZedStatusModel response, int consecutiveFailures)
     {
         if (consecutiveFailures >= healthUnreachableThreshold)
         {
-            App.state.zedStatus.value = (App.state.zedStatus.value == ZedStatusKind.Recording || App.state.zedStatus.value == ZedStatusKind.LostMidCapture 
-                ? ZedStatusKind.LostMidCapture 
-                : ZedStatusKind.Unreachable);
+            App.state.zedStatus.value = IsMidCapture(App.state.zedStatus.value)
+                ? ZedStatusKind.LostMidCapture
+                : ZedStatusKind.Unreachable;
         }
 
         if (consecutiveFailures > 0)
@@ -301,7 +306,9 @@ public static class ZedCaptureController
 
         if (response.CurrentCaptureId.HasValue)
         {
-            App.state.zedStatus.value = ZedStatusKind.Recording;
+            App.state.zedStatus.value = response.Stabilizing
+                ? ZedStatusKind.Stabilizing
+                : ZedStatusKind.Recording;
             return;
         }
 

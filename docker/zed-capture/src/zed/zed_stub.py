@@ -11,6 +11,8 @@ class InvalidStateException(Exception):
 @dataclass(frozen=True)
 class State:
     capture_id: UUID | None
+    tracking_state: str
+    stabilizing: bool
     last_exception: str | None
 
 
@@ -25,4 +27,4 @@ class Zed(Thread):
         pass
 
     def state(self) -> State:
-        return State(capture_id=None, last_exception=None)
+        return State(capture_id=None, tracking_state="OFF", stabilizing=False, last_exception=None)

@@ -3,22 +3,26 @@ from socket import AF_UNIX, SOCK_STREAM, socket
 from sys import stderr
 from time import monotonic, sleep
 
-ARGUS_SOCKET = Path("/tmp/argus_socket")
+# The SDK reaches the sensors through all three: argus_socket is nvargus-daemon;
+# nvscsock and camsock are the zed_x_daemon (GMSL) sockets. Waiting only on argus
+# lets a Camera.open race zed_x_daemon, which surfaces as "Failed to connect to
+# zed_x_daemon" / CAMERA STREAM FAILED TO START.
+CAMERA_SOCKETS = (Path("/tmp/argus_socket"), Path("/tmp/nvscsock"), Path("/tmp/camsock"))
 VIDEO_NODES = (Path("/dev/video0"), Path("/dev/video1"))
 TIMEOUT_SECONDS = 60.0
 POLL_INTERVAL_SECONDS = 0.5
 
 
-def argus_socket_ready() -> str | None:
+def socket_ready(path: Path) -> str | None:
     try:
-        sock = socket(AF_UNIX, SOCK_STREAM)
-        sock.settimeout(1.0)
-        sock.connect(str(ARGUS_SOCKET))
-        sock.close()
+        connection = socket(AF_UNIX, SOCK_STREAM)
+        connection.settimeout(1.0)
+        connection.connect(str(path))
+        connection.close()
     except FileNotFoundError:
-        return f"{ARGUS_SOCKET} does not exist yet"
+        return f"{path} does not exist yet"
     except ConnectionRefusedError:
-        return f"{ARGUS_SOCKET} exists but is not accepting connections (stale inode or daemon not bound)"
+        return f"{path} exists but is not accepting connections (stale inode or daemon not bound)"
     return None
 
 
@@ -26,11 +30,11 @@ def main() -> int:
     deadline = monotonic() + TIMEOUT_SECONDS
     last_error: str | None = None
     while monotonic() < deadline:
-        argus_error = argus_socket_ready()
+        socket_errors = [error for path in CAMERA_SOCKETS if (error := socket_ready(path)) is not None]
         missing_nodes = [str(node) for node in VIDEO_NODES if not node.exists()]
-        if argus_error is None and not missing_nodes:
+        if not socket_errors and not missing_nodes:
             return 0
-        last_error = argus_error or f"V4L2 device nodes not yet present: {', '.join(missing_nodes)}"
+        last_error = next(iter(socket_errors), None) or f"V4L2 device nodes not yet present: {', '.join(missing_nodes)}"
         sleep(POLL_INTERVAL_SECONDS)
 
     print(
