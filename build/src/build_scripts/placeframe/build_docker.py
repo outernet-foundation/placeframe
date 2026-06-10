@@ -85,7 +85,11 @@ def _check_gc_limits(min_gb: int = 60):
     data = json.loads(config.read_text())
     raw = data.get("builder", {}).get("gc", {}).get("defaultKeepStorage")
     if not raw:
-        raise RuntimeError(f"Missing 'builder.gc.defaultKeepStorage' in {config}. Docker defaults are too low.")
+        sample = json.dumps({"builder": {"gc": {"defaultKeepStorage": f"{min_gb}GB"}}}, indent=2)
+        raise RuntimeError(
+            f"Missing 'builder.gc.defaultKeepStorage' in {config}; Docker's default is too low for GPU builds "
+            f"(need >= {min_gb}GB). Add the following (merging into any existing keys) and restart Docker:\n\n{sample}"
+        )
 
     m = re.match(r"^(\d+(?:\.\d+)?)\s*([TGMK]i?B)?$", str(raw), re.IGNORECASE)
     if not m:
