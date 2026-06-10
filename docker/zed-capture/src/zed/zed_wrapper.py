@@ -6,6 +6,12 @@ from numpy.typing import NDArray  # noqa: TID251 — Phase T piece 3 follow-up m
 from pyzed import sl  # type: ignore
 
 
+class CameraOpenError(Exception):
+    def __init__(self, error_code: sl.ERROR_CODE) -> None:
+        super().__init__(f"ZED Camera Open Error: {error_code}")
+        self.error_code = error_code
+
+
 def reboot_camera(cam: sl.Camera):
     error = cam.reboot(0)  # type: ignore
     if error != sl.ERROR_CODE.SUCCESS:
@@ -19,7 +25,7 @@ def set_from_svo_file(init: sl.InitParameters, path: str) -> None:
 def open_camera(cam: sl.Camera, init: sl.InitParameters):
     error = cam.open(init)
     if error != sl.ERROR_CODE.SUCCESS:
-        raise Exception(f"ZED Camera Open Error: {error}")
+        raise CameraOpenError(error)
 
 
 def close_camera(cam: sl.Camera):

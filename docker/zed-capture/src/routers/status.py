@@ -31,6 +31,8 @@ Int64 = Annotated[int, Field(json_schema_extra={"format": "int64"})]
 
 class ZedStatus(BaseModel):
     current_capture_id: UUID | None
+    tracking_state: str
+    stabilizing: bool
     last_exception: str | None
     disk_free_bytes: Int64
     uptime_s: float
@@ -42,6 +44,8 @@ def compute_status() -> ZedStatus:
     disk_path = CAPTURES_DIRECTORY if CAPTURES_DIRECTORY.exists() else CAPTURES_DIRECTORY.parent
     return ZedStatus(
         current_capture_id=state.capture_id,
+        tracking_state=state.tracking_state,
+        stabilizing=state.stabilizing,
         last_exception=state.last_exception,
         disk_free_bytes=disk_usage(disk_path).free,
         uptime_s=monotonic() - _START_MONOTONIC,
