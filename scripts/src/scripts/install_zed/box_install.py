@@ -1,8 +1,11 @@
 import json
+import platform
 import shlex
+import socket
 import tempfile
 import time
 from logging import getLogger
+from pathlib import Path
 from subprocess import CalledProcessError
 
 from placeframe_bash import bash, bash_check, bash_output
@@ -16,6 +19,7 @@ from .constants import (
     APPLIANCE_USER_UNITS_TO_MASK,
     BAKE_FILE,
     BOX_IP,
+    BOX_REACHABLE_PROBE_SECONDS,
     BOX_SSH_TARGET,
     COMPOSE_SOURCE,
     DHCP_LEASE_WAIT_SECONDS,
@@ -35,10 +39,10 @@ from .constants import (
     SYSTEMD_UNIT_SOURCE,
     WAIT_FOR_ZED_CAMERA_SOURCE,
     ZED_SERVICES,
-    ZED_UPSTREAM_IMAGE_KEYS,
 )
 from .host_setup import set_host_link_method
 from .messages import (
+    ARM64_EMULATION_MISSING,
     BOX_ID_UNRESOLVABLE,
     BOX_INTERFACE_UNPARSEABLE,
     IMAGE_PULL_FAILED,
@@ -53,8 +57,21 @@ logger = getLogger(__name__)
 
 
 def install_box(build: bool, service_shas: dict[str, str]) -> None:
-    # If the box isn't reachable at its known static IP, bootstrap first-contact.
-    if not bash_check(f"ssh -o BatchMode=yes -o ConnectTimeout=5 {BOX_SSH_TARGET} true"):
+    # Fail before touching the box if the host can't actually cross-build the
+    # arm64 images — otherwise the missing prerequisite only surfaces as an
+    # opaque `exec format error` mid-build, after the box has been reconfigured.
+    if build:
+        _ensure_arm64_emulation()
+
+    # On a re-run the box already holds its static IP, so try it directly. A
+    # bare TCP liveness probe separates two cases an auth-gated probe conflates:
+    # the box is present but our key isn't installed (just needs ssh-copy-id),
+    # versus the box is absent and needs first-contact DHCP bootstrap. Gating on
+    # key auth would drop a reachable-but-unkeyed box into the DHCP path, where a
+    # statically-addressed box never requests a lease and the wait times out.
+    if _box_reachable_at_static_ip():
+        _ensure_key_access(BOX_SSH_TARGET)
+    else:
         _claim_box_via_dhcp()
 
     # Open one SSH connection and reuse it for every command below.
@@ -154,8 +171,8 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
         images = _acquire_images(host_ip, build, service_shas)
 
         # Ship the compose file and supporting scripts. The aoa-alloy /
-        # aoa-loki configs ride inside the placeframe-owned wrapper images now
-        # (multi-arch, pulled from ghcr.io); no bind-mounted configs.
+        # aoa-loki configs ride inside the placeframe-owned wrapper images
+        # acquired above; no bind-mounted configs.
         logger.info("transferring_compose_file", extra={"source": str(COMPOSE_SOURCE)})
         ssh_run(f"mkdir -p {REMOTE_DIR}")
         bash(f"scp {SSH_MUX} {COMPOSE_SOURCE!s} {BOX_SSH_TARGET}:{REMOTE_COMPOSE}")
@@ -166,11 +183,11 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
         if not box_id:
             bail(BOX_ID_UNRESOLVABLE)
 
-        # Write the .env that compose reads: built-image refs + placeframe-owned
-        # wrapper-image SHAs lifted from the host's resolved service_shas + box
-        # hardware id for log tagging.
-        wrapper_shas = {key: service_shas[key] for key in ZED_UPSTREAM_IMAGE_KEYS}
-        env_lines = "".join(f"{key}={value}\n" for key, value in {**images, **wrapper_shas}.items())
+        # Write the .env that compose reads: built-image refs + every SHA-keyed
+        # variable compose.rig.yml references (one per box image; ZED_CAPTURE_SHA
+        # also feeds SERVICE_VERSION) + box hardware id for log tagging.
+        box_shas = {service.sha_key: service_shas[service.sha_key] for service in ZED_SERVICES}
+        env_lines = "".join(f"{key}={value}\n" for key, value in {**images, **box_shas}.items())
         ssh_run(f"tee {REMOTE_DIR}/.env", stdin_text=env_lines + f"ZED_BOX_ID={box_id}\n")
 
         # Install the systemd unit so the stack auto-starts on boot.
@@ -192,9 +209,9 @@ def install_box(build: bool, service_shas: dict[str, str]) -> None:
         logger.info("enabling_camera_daemons")
         ssh_run("sudo systemctl enable --now nvargus-daemon zed_x_daemon")
 
-        # `down` first so deploys are idempotent against any prior partially-failed
-        # `up --force-recreate` (which can leave containers stuck under their
-        # ID-prefixed rename, blocking the next recreate with a name conflict).
+        # Direct compose (not `systemctl restart placeframe-zed.service`) so the
+        # install can succeed on a box without the camera attached — the unit's
+        # wait_for_zed_camera ExecStartPre would otherwise time out.
         logger.info("redeploying_compose_stack", extra={"compose": REMOTE_COMPOSE})
         ssh_run(f"sudo docker compose -f {REMOTE_COMPOSE} down --remove-orphans")
         ssh_run(f"sudo docker compose -f {REMOTE_COMPOSE} up -d")
@@ -239,6 +256,28 @@ def _strip_to_appliance() -> None:
             ssh_run(f"sudo tee {banner_path} > /dev/null", stdin_text=APPLIANCE_BANNER_TEXT)
 
 
+def _box_reachable_at_static_ip() -> bool:
+    logger.info("probing_box_reachability", extra={"box_ip": BOX_IP, "timeout_seconds": BOX_REACHABLE_PROBE_SECONDS})
+    deadline = time.monotonic() + BOX_REACHABLE_PROBE_SECONDS
+    while True:
+        try:
+            with socket.create_connection((BOX_IP, 22), timeout=2):
+                return True
+        except OSError:
+            if time.monotonic() >= deadline:
+                return False
+
+            time.sleep(1)
+
+
+def _ensure_key_access(target: str) -> None:
+    if bash_check(f"ssh -o BatchMode=yes -o ConnectTimeout=5 {target} true"):
+        return
+
+    note(SSH_KEY_COPY_PROMPT)
+    bash(f"ssh-copy-id -i {SSH_KEY} {target}")
+
+
 def _claim_box_via_dhcp() -> None:
     logger.info("claiming_box_via_dhcp")
     # NM's dnsmasq re-reads the lease file on startup, so a prior bootstrap's
@@ -272,9 +311,7 @@ def _claim_box_via_dhcp() -> None:
     logger.info("box_dhcp_lease_acquired", extra={"leased_ip": leased_ip})
     bootstrap_target = f"user@{leased_ip}"
 
-    if not bash_check(f"ssh -o BatchMode=yes -o ConnectTimeout=5 {bootstrap_target} true"):
-        note(SSH_KEY_COPY_PROMPT)
-        bash(f"ssh-copy-id -i {SSH_KEY} {bootstrap_target}")
+    _ensure_key_access(bootstrap_target)
 
     # Find the wired ethernet device on the box, then ask which NM connection
     # currently holds it. `-g <single-field>` returns the value alone (no
@@ -318,6 +355,17 @@ def _claim_box_via_dhcp() -> None:
     )
 
     set_host_link_method("manual")
+
+
+def _ensure_arm64_emulation() -> None:
+    if platform.machine() in ("aarch64", "arm64"):
+        return
+
+    handler = Path("/proc/sys/fs/binfmt_misc/qemu-aarch64")
+    if handler.exists() and handler.read_text().startswith("enabled"):
+        return
+
+    bail(ARM64_EMULATION_MISSING)
 
 
 def _acquire_images(host_ip: str, build: bool, service_shas: dict[str, str]) -> dict[str, str]:

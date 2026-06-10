@@ -14,6 +14,17 @@ FIREWALLD_REQUIRED = """\
 firewalld is required on the host for the box→internet path (NAT + trusted-zone
 forwarding). On Ubuntu: sudo apt install firewalld."""
 
+ARM64_EMULATION_MISSING = """\
+Cross-building the box's linux/arm64 images on this x86 host needs QEMU
+binfmt_misc emulation, but no enabled qemu-aarch64 handler is registered.
+Without it the build dies on the first arm64 RUN step with `exec format error`.
+
+Register the emulators on the host (persists until reboot), then retry:
+  docker run --privileged --rm tonistiigi/binfmt --install arm64
+
+Or skip local cross-compilation and pull prebuilt images from ghcr.io instead:
+  uv run install-zed"""
+
 BOX_ID_UNRESOLVABLE = "Could not resolve box id: /proc/device-tree/serial-number is empty or missing"
 
 IMAGE_PULL_FAILED = """\

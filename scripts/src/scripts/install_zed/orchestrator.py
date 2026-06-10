@@ -18,7 +18,7 @@ app = typer.Typer()
 def main(
     build: Annotated[
         bool,
-        typer.Option("--build", help="Cross-compile zed-capture locally instead of pulling from ghcr"),
+        typer.Option("--build", help="Cross-compile box images locally instead of pulling from ghcr"),
     ] = False,
 ) -> None:
     configure_logging("install-zed", log_file_path=REPO_ROOT / ".placeframe" / "logs" / "install-zed.jsonl")
