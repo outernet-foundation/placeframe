@@ -25,7 +25,6 @@ CREATE TABLE reconstructions(
     NOT NULL
     DEFAULT now(),
   capture_session_id uuid
-    NOT NULL
     REFERENCES capture_sessions(id)
     ON DELETE RESTRICT,
   status reconstruction_status

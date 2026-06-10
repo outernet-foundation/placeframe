@@ -6,6 +6,7 @@ from uuid import UUID
 
 from botocore.exceptions import ReadTimeoutError
 from common.multipart_requests import MultipartRequestModel, MultipartRequestOperation
+from common.tar import iter_tar_file_members
 from core.axis_convention import AxisConvention
 from core.capture_session_manifest import CaptureSessionManifest
 from datamodels.public_dtos import (
@@ -199,6 +200,7 @@ async def get_capture_sessions_expanded(session: AsyncSession) -> CaptureSession
 
     reconstructions_by_capture: dict[UUID, list[ExpandedReconstruction]] = {}
     for r, position, depth in reconstruction_rows:
+        assert r.capture_session_id is not None
         reconstructions_by_capture.setdefault(r.capture_session_id, []).append(
             ExpandedReconstruction(
                 reconstruction=to_reconstruction_with_queue(r, position, depth),
@@ -408,27 +410,12 @@ def _extract_member_bytes(capture_id: UUID, member_name: str) -> bytes:
     except Exception as e:
         raise InternalServerException("Download failed") from e
 
-    try:
-        with tarfile.open(fileobj=cast(BinaryIO, body), mode="r|*") as tf:
-            for member in tf:
-                if member.name != member_name:
-                    continue
-                if not member.isfile():
-                    raise HTTPException(
-                        status_code=HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail=f"{member_name} in capture {capture_id} is not a regular file",
-                    )
-                extracted = tf.extractfile(member)
-                if extracted is None:
-                    raise HTTPException(
-                        status_code=HTTP_422_UNPROCESSABLE_ENTITY,
-                        detail=f"Could not read {member_name} from capture {capture_id} tar",
-                    )
-                return extracted.read()
-    except tarfile.ReadError as e:
-        raise HTTPException(status_code=HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Invalid tar file: {e}") from e
-
-    raise NotFoundException(f"{member_name} not found in capture {capture_id} tar")
+    contents = next(
+        (member.read() for name, member in iter_tar_file_members(cast(IO[bytes], body)) if name == member_name), None
+    )
+    if contents is None:
+        raise NotFoundException(f"{member_name} not found in capture {capture_id} tar")
+    return contents
 
 
 # dummy method, just to get RigConfig into the OpenAPI schema
