@@ -17,6 +17,7 @@
 .vs
 .act
 .env
+.env.shas
 .secrets
 metadata.json
 storage/
