@@ -31,7 +31,7 @@ namespace Placeframe.Client
         {
             Logger<LogGroup>.Initialize(labels: new[]
             {
-                ("app", "capture-tool"),
+                ("service_name", "capture-tool"),
 #if UNITY_EDITOR
                 ("platform", "editor"),
 #else
