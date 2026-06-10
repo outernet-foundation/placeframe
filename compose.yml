@@ -289,10 +289,29 @@ services:
       SERVICE_VERSION: "${LEASE_SERVER_SHA:?err}"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"
 
+  # grafana/loki:3.5.0 ships /loki owned 1000:1000 but runs as uid 10001, so on a
+  # freshly-created loki_data volume (which Docker seeds with the image path's
+  # 1000:1000 ownership) loki cannot create its working subdirectories and dies
+  # with "mkdir /loki/compactor: permission denied". Fixing this in the image via
+  # a chown layer is unreliable: buildkit's registry cache does not round-trip a
+  # metadata-only (ownership) layer, so the chown survives in image history but
+  # has no filesystem effect once published. This sidecar reassigns the live
+  # volume at runtime instead, independent of image-layer and build-cache
+  # behavior. Reuses the loki image (busybox chown) so no extra image is pinned.
+  initialize-loki:
+    image: "ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA:?err}"
+    user: "0:0"
+    restart: "no"
+    volumes:
+      - loki_data:/loki
+    entrypoint: ["/bin/sh", "-c", "chown -R 10001:10001 /loki"]
+
   loki:
     image: "ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA:?err}"
     depends_on:
       initialize-minio:
+        condition: service_completed_successfully
+      initialize-loki:
         condition: service_completed_successfully
     volumes:
       - loki_data:/loki
