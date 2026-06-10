@@ -116,9 +116,9 @@ namespace PlaceframeZedCaptureClient.Api
         /// StartCapture
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <returns>Guid</returns>
-        Guid StartCapture(double? captureInterval = default);
+        Guid StartCapture(StartCaptureRequest startCaptureRequest);
 
         /// <summary>
         /// StartCapture
@@ -127,9 +127,9 @@ namespace PlaceframeZedCaptureClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <returns>ApiResponse of Guid</returns>
-        ApiResponse<Guid> StartCaptureWithHttpInfo(double? captureInterval = default);
+        ApiResponse<Guid> StartCaptureWithHttpInfo(StartCaptureRequest startCaptureRequest);
         /// <summary>
         /// StopCapture
         /// </summary>
@@ -293,10 +293,10 @@ namespace PlaceframeZedCaptureClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Guid</returns>
-        Cysharp.Threading.Tasks.UniTask<Guid> StartCaptureAsync(double? captureInterval = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<Guid> StartCaptureAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default);
 
         /// <summary>
         /// StartCapture
@@ -305,10 +305,10 @@ namespace PlaceframeZedCaptureClient.Api
         /// 
         /// </remarks>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Guid)</returns>
-        Cysharp.Threading.Tasks.UniTask<ApiResponse<Guid>> StartCaptureWithHttpInfoAsync(double? captureInterval = default, System.Threading.CancellationToken cancellationToken = default);
+        Cysharp.Threading.Tasks.UniTask<ApiResponse<Guid>> StartCaptureWithHttpInfoAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default);
         /// <summary>
         /// StopCapture
         /// </summary>
@@ -1087,11 +1087,11 @@ namespace PlaceframeZedCaptureClient.Api
         /// StartCapture 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <returns>Guid</returns>
-        public Guid StartCapture(double? captureInterval = default)
+        public Guid StartCapture(StartCaptureRequest startCaptureRequest)
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<Guid> localVarResponse = StartCaptureWithHttpInfo(captureInterval);
+            PlaceframeZedCaptureClient.Client.ApiResponse<Guid> localVarResponse = StartCaptureWithHttpInfo(startCaptureRequest);
             return localVarResponse.Data;
         }
 
@@ -1099,13 +1099,18 @@ namespace PlaceframeZedCaptureClient.Api
         /// StartCapture 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <returns>ApiResponse of Guid</returns>
-        public PlaceframeZedCaptureClient.Client.ApiResponse<Guid> StartCaptureWithHttpInfo(double? captureInterval = default)
+        public PlaceframeZedCaptureClient.Client.ApiResponse<Guid> StartCaptureWithHttpInfo(StartCaptureRequest startCaptureRequest)
         {
+            // verify the required parameter 'startCaptureRequest' is set
+            if (startCaptureRequest == null)
+                throw new PlaceframeZedCaptureClient.Client.ApiException(400, "Missing required parameter 'startCaptureRequest' when calling DefaultApi->StartCapture");
+
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -1119,10 +1124,7 @@ namespace PlaceframeZedCaptureClient.Api
             var localVarAccept = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            if (captureInterval != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "capture_interval", captureInterval));
-            }
+            localVarRequestOptions.Data = startCaptureRequest;
 
 
             // make the HTTP request
@@ -1141,12 +1143,12 @@ namespace PlaceframeZedCaptureClient.Api
         /// StartCapture 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of Guid</returns>
-        public async Cysharp.Threading.Tasks.UniTask<Guid> StartCaptureAsync(double? captureInterval = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<Guid> StartCaptureAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default)
         {
-            PlaceframeZedCaptureClient.Client.ApiResponse<Guid> localVarResponse = await StartCaptureWithHttpInfoAsync(captureInterval, cancellationToken);
+            PlaceframeZedCaptureClient.Client.ApiResponse<Guid> localVarResponse = await StartCaptureWithHttpInfoAsync(startCaptureRequest, cancellationToken);
             return localVarResponse.Data;
         }
 
@@ -1154,15 +1156,20 @@ namespace PlaceframeZedCaptureClient.Api
         /// StartCapture 
         /// </summary>
         /// <exception cref="PlaceframeZedCaptureClient.Client.ApiException">Thrown when fails to make API call</exception>
-        /// <param name="captureInterval"> (optional)</param>
+        /// <param name="startCaptureRequest"></param>
         /// <param name="cancellationToken">Cancellation Token to cancel the request.</param>
         /// <returns>Task of ApiResponse (Guid)</returns>
-        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Guid>> StartCaptureWithHttpInfoAsync(double? captureInterval = default, System.Threading.CancellationToken cancellationToken = default)
+        public async Cysharp.Threading.Tasks.UniTask<PlaceframeZedCaptureClient.Client.ApiResponse<Guid>> StartCaptureWithHttpInfoAsync(StartCaptureRequest startCaptureRequest, System.Threading.CancellationToken cancellationToken = default)
         {
+            // verify the required parameter 'startCaptureRequest' is set
+            if (startCaptureRequest == null)
+                throw new PlaceframeZedCaptureClient.Client.ApiException(400, "Missing required parameter 'startCaptureRequest' when calling DefaultApi->StartCapture");
+
 
             PlaceframeZedCaptureClient.Client.RequestOptions localVarRequestOptions = new PlaceframeZedCaptureClient.Client.RequestOptions();
 
             string[] _contentTypes = new string[] {
+                "application/json"
             };
 
             // to determine the Accept header
@@ -1177,10 +1184,7 @@ namespace PlaceframeZedCaptureClient.Api
             var localVarAccept = PlaceframeZedCaptureClient.Client.ClientUtils.SelectHeaderAccept(_accepts);
             if (localVarAccept != null) localVarRequestOptions.HeaderParameters.Add("Accept", localVarAccept);
 
-            if (captureInterval != null)
-            {
-                localVarRequestOptions.QueryParameters.Add(PlaceframeZedCaptureClient.Client.ClientUtils.ParameterToMultiMap("", "capture_interval", captureInterval));
-            }
+            localVarRequestOptions.Data = startCaptureRequest;
 
 
             // make the HTTP request

@@ -4004,6 +4004,29 @@
         },
         "deprecated": false
       }
+    },
+    "/server-info": {
+      "get": {
+        "tags": [
+          "ServerInfo"
+        ],
+        "summary": "GetServerInfo",
+        "operationId": "get_server_info",
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerInfo"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
     }
   },
   "components": {
@@ -6238,6 +6261,38 @@
           "id"
         ],
         "title": "RigConfig"
+      },
+      "ServerInfo": {
+        "properties": {
+          "auth_mode": {
+            "type": "string",
+            "enum": [
+              "keycloak",
+              "disabled"
+            ]
+          },
+          "issuer_url": {
+            "nullable": true,
+            "type": "string"
+          },
+          "auth_url": {
+            "nullable": true,
+            "type": "string"
+          },
+          "token_url": {
+            "nullable": true,
+            "type": "string"
+          },
+          "audience": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "auth_mode"
+        ],
+        "title": "ServerInfo"
       },
       "Transform": {
         "properties": {

@@ -9,19 +9,12 @@ paths:
     post:
       deprecated: false
       operationId: start_capture
-      parameters:
-      - allowEmptyValue: false
-        allowReserved: false
-        deprecated: false
-        explode: true
-        in: query
-        name: capture_interval
-        required: false
-        schema:
-          format: double
-          nullable: true
-          type: number
-        style: form
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartCaptureRequest"
+        required: true
       responses:
         "201":
           content:
@@ -216,6 +209,24 @@ paths:
       - Default
 components:
   schemas:
+    StartCaptureRequest:
+      example:
+        capture_interval: 0.8008281904610115
+        started_at: 2000-01-23T04:56:07.000+00:00
+      properties:
+        started_at:
+          description: datetime with the constraint that the value must have timezone
+            info
+          format: date-time
+          type: string
+        capture_interval:
+          format: double
+          nullable: true
+          type: number
+      required:
+      - started_at
+      title: StartCaptureRequest
+      type: object
     StopCaptureRequest:
       example:
         name: name
@@ -267,14 +278,20 @@ components:
       example:
         disk_free_bytes: 0
         current_capture_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        stabilizing: true
         last_exception: last_exception
         uptime_s: 6.027456183070403
         version: version
+        tracking_state: tracking_state
       properties:
         current_capture_id:
           format: uuid
           nullable: true
           type: string
+        tracking_state:
+          type: string
+        stabilizing:
+          type: boolean
         last_exception:
           nullable: true
           type: string
@@ -288,6 +305,8 @@ components:
           type: string
       required:
       - disk_free_bytes
+      - stabilizing
+      - tracking_state
       - uptime_s
       - version
       title: ZedStatus

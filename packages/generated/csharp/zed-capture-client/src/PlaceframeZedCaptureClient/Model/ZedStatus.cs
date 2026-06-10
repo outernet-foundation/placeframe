@@ -40,12 +40,21 @@ namespace PlaceframeZedCaptureClient.Model
         /// Initializes a new instance of the <see cref="ZedStatus" /> class.
         /// </summary>
         /// <param name="currentCaptureId">currentCaptureId.</param>
+        /// <param name="trackingState">trackingState (required).</param>
+        /// <param name="stabilizing">stabilizing (required).</param>
         /// <param name="lastException">lastException.</param>
         /// <param name="diskFreeBytes">diskFreeBytes (required).</param>
         /// <param name="uptimeS">uptimeS (required).</param>
         /// <param name="varVersion">varVersion (required).</param>
-        public ZedStatus(long diskFreeBytes, double uptimeS, string varVersion)
+        public ZedStatus(string trackingState, bool stabilizing, long diskFreeBytes, double uptimeS, string varVersion)
         {
+            // to ensure "trackingState" is required (not null)
+            if (trackingState == null)
+            {
+                throw new ArgumentNullException("trackingState is a required property for ZedStatus and cannot be null");
+            }
+            this.TrackingState = trackingState;
+            this.Stabilizing = stabilizing;
             this.DiskFreeBytes = diskFreeBytes;
             this.UptimeS = uptimeS;
             // to ensure "varVersion" is required (not null)
@@ -56,6 +65,54 @@ namespace PlaceframeZedCaptureClient.Model
             this.VarVersion = varVersion;
         }
 
+        /// <summary>
+        /// Gets or Sets TrackingState
+        /// </summary>
+        [DataMember(Name = "tracking_state", IsRequired = true, EmitDefaultValue = true)]
+        public string TrackingState
+        {
+            get{ return _TrackingState;}
+            set
+            {
+                _TrackingState = value;
+                _flagTrackingState = true;
+            }
+        }
+        private string _TrackingState;
+        private bool _flagTrackingState;
+
+        /// <summary>
+        /// Returns false as TrackingState should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeTrackingState()
+        {
+            return _flagTrackingState;
+        }
+        /// <summary>
+        /// Gets or Sets Stabilizing
+        /// </summary>
+        [DataMember(Name = "stabilizing", IsRequired = true, EmitDefaultValue = true)]
+        public bool Stabilizing
+        {
+            get{ return _Stabilizing;}
+            set
+            {
+                _Stabilizing = value;
+                _flagStabilizing = true;
+            }
+        }
+        private bool _Stabilizing;
+        private bool _flagStabilizing;
+
+        /// <summary>
+        /// Returns false as Stabilizing should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeStabilizing()
+        {
+            return _flagStabilizing;
+        }
         /// <summary>
         /// Gets or Sets DiskFreeBytes
         /// </summary>
@@ -184,6 +241,8 @@ namespace PlaceframeZedCaptureClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class ZedStatus {\n");
+            sb.Append("  TrackingState: ").Append(TrackingState).Append("\n");
+            sb.Append("  Stabilizing: ").Append(Stabilizing).Append("\n");
             sb.Append("  DiskFreeBytes: ").Append(DiskFreeBytes).Append("\n");
             sb.Append("  UptimeS: ").Append(UptimeS).Append("\n");
             sb.Append("  VarVersion: ").Append(VarVersion).Append("\n");

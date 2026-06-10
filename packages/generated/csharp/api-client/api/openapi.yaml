@@ -1752,6 +1752,20 @@ paths:
       summary: CreateGraph
       tags:
       - Default
+  /server-info:
+    get:
+      deprecated: false
+      operationId: get_server_info
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerInfo"
+          description: "Request fulfilled, document follows"
+      summary: GetServerInfo
+      tags:
+      - Default
 components:
   schemas:
     AxisConvention:
@@ -4369,6 +4383,35 @@ components:
       - cameras
       - id
       title: RigConfig
+      type: object
+    ServerInfo:
+      example:
+        audience: audience
+        issuer_url: issuer_url
+        auth_mode: keycloak
+        auth_url: auth_url
+        token_url: token_url
+      properties:
+        auth_mode:
+          enum:
+          - keycloak
+          - disabled
+          type: string
+        issuer_url:
+          nullable: true
+          type: string
+        auth_url:
+          nullable: true
+          type: string
+        token_url:
+          nullable: true
+          type: string
+        audience:
+          nullable: true
+          type: string
+      required:
+      - auth_mode
+      title: ServerInfo
       type: object
     Transform:
       example:

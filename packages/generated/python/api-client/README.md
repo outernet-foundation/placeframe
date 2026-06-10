@@ -127,6 +127,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**get_reconstruction_metrics**](docs/DefaultApi.md#get_reconstruction_metrics) | **GET** /reconstructions/{id}/metrics | GetReconstructionMetrics
 *DefaultApi* | [**get_reconstruction_points**](docs/DefaultApi.md#get_reconstruction_points) | **GET** /reconstructions/{id}/points | GetReconstructionPoints
 *DefaultApi* | [**get_reconstructions**](docs/DefaultApi.md#get_reconstructions) | **GET** /reconstructions | GetReconstructions
+*DefaultApi* | [**get_server_info**](docs/DefaultApi.md#get_server_info) | **GET** /server-info | GetServerInfo
 *DefaultApi* | [**list_localization_evaluations**](docs/DefaultApi.md#list_localization_evaluations) | **GET** /reconstructions/{reconstruction_id}/localization-evaluations | ListLocalizationEvaluations
 *DefaultApi* | [**localize_image**](docs/DefaultApi.md#localize_image) | **POST** /localize | LocalizeImage
 *DefaultApi* | [**retry_reconstruction**](docs/DefaultApi.md#retry_reconstruction) | **PUT** /reconstructions/{id}/retry | RetryReconstruction
@@ -189,6 +190,7 @@ Class | Method | HTTP request | Description
  - [ReconstructionStatus](docs/ReconstructionStatus.md)
  - [RigCameraConfig](docs/RigCameraConfig.md)
  - [RigConfig](docs/RigConfig.md)
+ - [ServerInfo](docs/ServerInfo.md)
  - [Transform](docs/Transform.md)
 
 
