@@ -232,7 +232,7 @@ namespace Placeframe.Client
 
         private static UniTask<ReconstructionReadWithQueue> CreateReconstruction(Guid captureId) =>
             VisualPositioningSystem.Api
-                .CreateReconstructionAsync(new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId)));
+                .CreateReconstructionAsync(new ReconstructionCreateWithOptions(new ReconstructionCreate { CaptureSessionId = captureId }));
 
         private static string ReconstructingPhaseLabel(ReconstructionReadWithQueue reconstruction)
         {

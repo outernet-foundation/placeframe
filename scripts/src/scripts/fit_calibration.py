@@ -264,6 +264,7 @@ async def _populate_evaluations(api: DefaultApi, reconstruction_id: UUID, pipeli
         return
 
     capture_id = reconstruction.capture_session_id
+    assert capture_id is not None
     cached = await api.list_localization_evaluations(
         reconstruction_id=reconstruction_id, pipeline_version=pipeline_version
     )

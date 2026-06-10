@@ -13,14 +13,18 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 @asynccontextmanager
-async def authenticated_api_client() -> AsyncIterator[DefaultApi]:
+async def authenticated_api_client(anonymous_identity: str | None = None) -> AsyncIterator[DefaultApi]:
     public_url = _read_public_url()
-    token = await _fetch_keycloak_token(public_url)
     async with ApiClient(Configuration(host=public_url)) as api_client:
         # The generated openapi-generator client emits empty `_auth_settings` on every method
         # and `Configuration.auth_settings()` returns `{}`, so `Configuration(access_token=...)`
-        # is dead code. Inject the token as a default header so all requests authenticate.
-        cast(dict[str, str], api_client.default_headers)["Authorization"] = f"Bearer {token}"
+        # is dead code. Inject auth as a default header so all requests authenticate: a Keycloak
+        # bearer token, or an x-anonymous-identity UUID header against a disabled-auth backend.
+        headers = cast(dict[str, str], api_client.default_headers)
+        if anonymous_identity is not None:
+            headers["x-anonymous-identity"] = anonymous_identity
+        else:
+            headers["Authorization"] = f"Bearer {await _fetch_keycloak_token(public_url)}"
         yield DefaultApi(api_client)
 
 
