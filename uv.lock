@@ -33,6 +33,7 @@ members = [
     "placeframe-lease-server-client",
     "placeframe-localizer",
     "placeframe-localizer-client",
+    "placeframe-rathole-client",
     "placeframe-reconstructor",
     "placeframe-unity",
     "scripts",
@@ -1904,6 +1905,17 @@ requires-dist = [
     { name = "python-dateutil", specifier = ">=2.8.2" },
     { name = "typing-extensions", specifier = ">=4.7.1" },
 ]
+
+[[package]]
+name = "placeframe-rathole-client"
+version = "0.1.0"
+source = { editable = "docker/rathole-client" }
+dependencies = [
+    { name = "jinja2" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "jinja2", specifier = ">=3.1.6" }]
 
 [[package]]
 name = "placeframe-reconstructor"
