@@ -1,5 +1,4 @@
 using System;
-using System.Buffers;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Unity.Mathematics;
@@ -10,25 +9,43 @@ using Vector3 = UnityEngine.Vector3;
 
 namespace Placeframe.Core
 {
-    [RequireComponent(typeof(ParticleSystem))]
+    [RequireComponent(typeof(MeshFilter))]
+    [RequireComponent(typeof(MeshRenderer))]
     public class LocalizationMap : MonoBehaviour
     {
         private static readonly Color DefaultColor = Color.white;
         private static readonly float DefaultThickness = 0.01f;
 
+        // Corner offsets for the two-triangle quad each point expands into. The
+        // Placeframe/PointCloud shader scales these by _PointSize in view space.
+        private static readonly Vector2[] QuadCorners =
+        {
+            new Vector2(-1, -1),
+            new Vector2(-1, 1),
+            new Vector2(1, 1),
+            new Vector2(1, -1),
+        };
+
+        private static readonly int[] QuadTriangleOffsets = { 0, 1, 2, 0, 2, 3 };
+
         public Mesh cylinderMesh;
         public Material material;
 
         private CancellationTokenSource _loadCancellationTokenSource;
-        private ParticleSystem _particleSystem;
-        private ParticleSystemRenderer _particleSystemRenderer;
+        private MeshFilter _meshFilter;
+        private MeshRenderer _meshRenderer;
+        private Mesh _pointMesh;
+        private MaterialPropertyBlock _tintProperties;
+        private MaterialPropertyBlock _cylinderProperties;
         private Vector3[] _framePositions = null;
         private bool _isVisible = true;
 
         private void Awake()
         {
-            _particleSystem = GetComponent<ParticleSystem>();
-            _particleSystemRenderer = GetComponent<ParticleSystemRenderer>();
+            _meshFilter = GetComponent<MeshFilter>();
+            _meshRenderer = GetComponent<MeshRenderer>();
+            _cylinderProperties = new MaterialPropertyBlock();
+            _cylinderProperties.SetColor("_Color", DefaultColor);
         }
 
         protected virtual void OnDestroy()
@@ -36,6 +53,9 @@ namespace Placeframe.Core
             _loadCancellationTokenSource?.Cancel();
             _loadCancellationTokenSource?.Dispose();
             _loadCancellationTokenSource = null;
+
+            if (_pointMesh != null)
+                Destroy(_pointMesh);
         }
 
         private void Update()
@@ -51,9 +71,6 @@ namespace Placeframe.Core
                 if (from == to)
                     return;
 
-                var properties = new MaterialPropertyBlock();
-                properties.SetColor("_Color", DefaultColor);
-
                 Graphics.DrawMesh(
                     mesh: cylinderMesh,
                     matrix: Matrix4x4.TRS(
@@ -65,7 +82,7 @@ namespace Placeframe.Core
                     layer: 0,
                     camera: null,
                     submeshIndex: 0,
-                    properties: properties,
+                    properties: _cylinderProperties,
                     castShadows: UnityEngine.Rendering.ShadowCastingMode.Off,
                     receiveShadows: false,
                     probeAnchor: null,
@@ -77,14 +94,15 @@ namespace Placeframe.Core
 
         public void SetColor(Color color)
         {
-            var m = _particleSystem.main;
-            m.startColor = color;
+            _tintProperties ??= new MaterialPropertyBlock();
+            _tintProperties.SetColor("_Tint", color);
+            _meshRenderer.SetPropertyBlock(_tintProperties);
         }
 
         public void SetVisible(bool visible)
         {
             _isVisible = visible;
-            _particleSystemRenderer.enabled = visible;
+            _meshRenderer.enabled = visible;
         }
 
         public void Load(Guid mapId)
@@ -186,27 +204,63 @@ namespace Placeframe.Core
 
         private void LoadPoints(VisualPositioningSystem.ReconstructionPoint[] points, Vector3[] framePositions)
         {
-            var particles = ArrayPool<ParticleSystem.Particle>.Shared.Rent(points.Length);
-            try
+            if (_pointMesh != null)
+                Destroy(_pointMesh);
+
+            _pointMesh = BuildPointMesh(points);
+            _meshFilter.sharedMesh = _pointMesh;
+            _framePositions = framePositions;
+        }
+
+        // Expands each reconstruction point into a four-vertex quad whose corners
+        // are billboarded in the shader. Built once and uploaded to the GPU, so a
+        // 300k-point cloud is a single static draw instead of a per-frame
+        // particle-system simulation + sort + mesh rebuild.
+        private static Mesh BuildPointMesh(VisualPositioningSystem.ReconstructionPoint[] points)
+        {
+            var vertices = new Vector3[points.Length * 4];
+            var corners = new Vector2[points.Length * 4];
+            var colors = new Color32[points.Length * 4];
+            var indices = new int[points.Length * 6];
+
+            var min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+            var max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+
+            for (var i = 0; i < points.Length; i++)
             {
-                for (var i = 0; i < points.Length; i++)
+                var point = points[i];
+                var vertexBase = i * 4;
+
+                for (var corner = 0; corner < 4; corner++)
                 {
-                    var point = points[i];
-                    particles[i].position = point.position;
-                    particles[i].startColor = point.color;
-                    particles[i].startSize = 10000;
-                    particles[i].startLifetime = float.MaxValue;
-                    particles[i].remainingLifetime = float.MaxValue;
+                    vertices[vertexBase + corner] = point.position;
+                    corners[vertexBase + corner] = QuadCorners[corner];
+                    colors[vertexBase + corner] = point.color;
                 }
 
-                _particleSystem.SetParticles(particles, points.Length);
-            }
-            finally
-            {
-                ArrayPool<ParticleSystem.Particle>.Shared.Return(particles);
+                var indexBase = i * 6;
+                for (var offset = 0; offset < 6; offset++)
+                    indices[indexBase + offset] = vertexBase + QuadTriangleOffsets[offset];
+
+                min = Vector3.Min(min, point.position);
+                max = Vector3.Max(max, point.position);
             }
 
-            _framePositions = framePositions;
+            var mesh = new Mesh { indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 };
+            mesh.SetVertices(vertices);
+            mesh.SetUVs(0, corners);
+            mesh.SetColors(colors);
+            mesh.SetIndices(indices, MeshTopology.Triangles, 0, calculateBounds: false);
+
+            // Centers' AABB padded so view-space billboard expansion never clips
+            // the cloud against frustum culling at edge points.
+            var bounds = new Bounds();
+            bounds.SetMinMax(min, max);
+            bounds.Expand(1f);
+            mesh.bounds = bounds;
+
+            mesh.UploadMeshData(false);
+            return mesh;
         }
     }
 }
