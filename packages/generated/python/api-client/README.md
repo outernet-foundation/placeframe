@@ -107,6 +107,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**delete_nodes**](docs/DefaultApi.md#delete_nodes) | **DELETE** /nodes | DeleteNodes
 *DefaultApi* | [**delete_reconstruction**](docs/DefaultApi.md#delete_reconstruction) | **DELETE** /reconstructions/{id} | DeleteReconstruction
 *DefaultApi* | [**download_capture_session_tar**](docs/DefaultApi.md#download_capture_session_tar) | **GET** /capture_sessions/{id}/tar | DownloadCaptureSessionTar
+*DefaultApi* | [**export_reconstruction_tar**](docs/DefaultApi.md#export_reconstruction_tar) | **GET** /reconstructions/{id}/tar | ExportReconstructionTar
 *DefaultApi* | [**get_capture_session**](docs/DefaultApi.md#get_capture_session) | **GET** /capture_sessions/{id} | GetCaptureSession
 *DefaultApi* | [**get_capture_session_frames_csv**](docs/DefaultApi.md#get_capture_session_frames_csv) | **GET** /capture_sessions/{id}/frames.csv | GetCaptureSessionFramesCsv
 *DefaultApi* | [**get_capture_session_image**](docs/DefaultApi.md#get_capture_session_image) | **GET** /capture_sessions/{id}/images/{frame_timestamp} | GetCaptureSessionImage
@@ -127,6 +128,8 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**get_reconstruction_metrics**](docs/DefaultApi.md#get_reconstruction_metrics) | **GET** /reconstructions/{id}/metrics | GetReconstructionMetrics
 *DefaultApi* | [**get_reconstruction_points**](docs/DefaultApi.md#get_reconstruction_points) | **GET** /reconstructions/{id}/points | GetReconstructionPoints
 *DefaultApi* | [**get_reconstructions**](docs/DefaultApi.md#get_reconstructions) | **GET** /reconstructions | GetReconstructions
+*DefaultApi* | [**get_server_info**](docs/DefaultApi.md#get_server_info) | **GET** /server-info | GetServerInfo
+*DefaultApi* | [**import_reconstruction_tar**](docs/DefaultApi.md#import_reconstruction_tar) | **POST** /reconstructions/tar | ImportReconstructionTar
 *DefaultApi* | [**list_localization_evaluations**](docs/DefaultApi.md#list_localization_evaluations) | **GET** /reconstructions/{reconstruction_id}/localization-evaluations | ListLocalizationEvaluations
 *DefaultApi* | [**localize_image**](docs/DefaultApi.md#localize_image) | **POST** /localize | LocalizeImage
 *DefaultApi* | [**retry_reconstruction**](docs/DefaultApi.md#retry_reconstruction) | **PUT** /reconstructions/{id}/retry | RetryReconstruction
@@ -189,6 +192,7 @@ Class | Method | HTTP request | Description
  - [ReconstructionStatus](docs/ReconstructionStatus.md)
  - [RigCameraConfig](docs/RigCameraConfig.md)
  - [RigConfig](docs/RigConfig.md)
+ - [ServerInfo](docs/ServerInfo.md)
  - [Transform](docs/Transform.md)
 
 

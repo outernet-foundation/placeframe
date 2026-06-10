@@ -75,6 +75,7 @@ __all__ = [
     "ReconstructionStatus",
     "RigCameraConfig",
     "RigConfig",
+    "ServerInfo",
     "Transform",
 ]
 
@@ -140,5 +141,6 @@ from placeframe_api_client.models.reconstruction_read_with_queue import Reconstr
 from placeframe_api_client.models.reconstruction_status import ReconstructionStatus as ReconstructionStatus
 from placeframe_api_client.models.rig_camera_config import RigCameraConfig as RigCameraConfig
 from placeframe_api_client.models.rig_config import RigConfig as RigConfig
+from placeframe_api_client.models.server_info import ServerInfo as ServerInfo
 from placeframe_api_client.models.transform import Transform as Transform
 

@@ -279,7 +279,6 @@ class Reconstruction(Base):
     )
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, server_default=text("current_tenant()"))
-    capture_session_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, server_default=text("uuid_generate_v4()"))
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
     updated_at: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text("now()"))
@@ -290,12 +289,15 @@ class Reconstruction(Base):
     )
     manifest_version: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     manifest: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    capture_session_id: Mapped[Optional[uuid.UUID]] = mapped_column(Uuid)
     progress_current: Mapped[Optional[int]] = mapped_column(Integer)
     progress_total: Mapped[Optional[int]] = mapped_column(Integer)
     progress_attempt: Mapped[Optional[int]] = mapped_column(Integer)
     error: Mapped[Optional[str]] = mapped_column(Text)
 
-    capture_session: Mapped["CaptureSession"] = relationship("CaptureSession", back_populates="reconstructions")
+    capture_session: Mapped[Optional["CaptureSession"]] = relationship(
+        "CaptureSession", back_populates="reconstructions"
+    )
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="reconstructions")
     localization_evaluations: Mapped[list["LocalizationEvaluation"]] = relationship(
         "LocalizationEvaluation", back_populates="reconstruction"

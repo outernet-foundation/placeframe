@@ -65,22 +65,21 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionReadWithQueue" /> class.
         /// </summary>
-        /// <param name="captureSessionId">captureSessionId (required).</param>
         /// <param name="id">id (required).</param>
         /// <param name="createdAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="updatedAt">datetime with the constraint that the value must have timezone info (required).</param>
         /// <param name="status">status (required).</param>
         /// <param name="manifestVersion">manifestVersion (required).</param>
         /// <param name="manifest">manifest (required).</param>
+        /// <param name="captureSessionId">captureSessionId.</param>
         /// <param name="progressCurrent">progressCurrent.</param>
         /// <param name="progressTotal">progressTotal.</param>
         /// <param name="progressAttempt">progressAttempt.</param>
         /// <param name="error">error.</param>
         /// <param name="queuePosition">queuePosition.</param>
         /// <param name="queueDepth">queueDepth.</param>
-        public ReconstructionReadWithQueue(Guid captureSessionId, Guid id, DateTime createdAt, DateTime updatedAt, ReconstructionStatus status, int manifestVersion, Dictionary<string, Object> manifest)
+        public ReconstructionReadWithQueue(Guid id, DateTime createdAt, DateTime updatedAt, ReconstructionStatus status, int manifestVersion, Dictionary<string, Object> manifest)
         {
-            this.CaptureSessionId = captureSessionId;
             this.Id = id;
             this.CreatedAt = createdAt;
             this.UpdatedAt = updatedAt;
@@ -94,30 +93,6 @@ namespace PlaceframeApiClient.Model
             this.Manifest = manifest;
         }
 
-        /// <summary>
-        /// Gets or Sets CaptureSessionId
-        /// </summary>
-        [DataMember(Name = "capture_session_id", IsRequired = true, EmitDefaultValue = true)]
-        public Guid CaptureSessionId
-        {
-            get{ return _CaptureSessionId;}
-            set
-            {
-                _CaptureSessionId = value;
-                _flagCaptureSessionId = true;
-            }
-        }
-        private Guid _CaptureSessionId;
-        private bool _flagCaptureSessionId;
-
-        /// <summary>
-        /// Returns false as CaptureSessionId should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeCaptureSessionId()
-        {
-            return _flagCaptureSessionId;
-        }
         /// <summary>
         /// Gets or Sets Id
         /// </summary>
@@ -239,6 +214,30 @@ namespace PlaceframeApiClient.Model
         public bool ShouldSerializeManifest()
         {
             return _flagManifest;
+        }
+        /// <summary>
+        /// Gets or Sets CaptureSessionId
+        /// </summary>
+        [DataMember(Name = "capture_session_id", EmitDefaultValue = true)]
+        public Guid? CaptureSessionId
+        {
+            get{ return _CaptureSessionId;}
+            set
+            {
+                _CaptureSessionId = value;
+                _flagCaptureSessionId = true;
+            }
+        }
+        private Guid? _CaptureSessionId;
+        private bool _flagCaptureSessionId;
+
+        /// <summary>
+        /// Returns false as CaptureSessionId should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeCaptureSessionId()
+        {
+            return _flagCaptureSessionId;
         }
         /// <summary>
         /// Gets or Sets ProgressCurrent
@@ -392,13 +391,13 @@ namespace PlaceframeApiClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class ReconstructionReadWithQueue {\n");
-            sb.Append("  CaptureSessionId: ").Append(CaptureSessionId).Append("\n");
             sb.Append("  Id: ").Append(Id).Append("\n");
             sb.Append("  CreatedAt: ").Append(CreatedAt).Append("\n");
             sb.Append("  UpdatedAt: ").Append(UpdatedAt).Append("\n");
             sb.Append("  Status: ").Append(Status).Append("\n");
             sb.Append("  ManifestVersion: ").Append(ManifestVersion).Append("\n");
             sb.Append("  Manifest: ").Append(Manifest).Append("\n");
+            sb.Append("  CaptureSessionId: ").Append(CaptureSessionId).Append("\n");
             sb.Append("  ProgressCurrent: ").Append(ProgressCurrent).Append("\n");
             sb.Append("  ProgressTotal: ").Append(ProgressTotal).Append("\n");
             sb.Append("  ProgressAttempt: ").Append(ProgressAttempt).Append("\n");

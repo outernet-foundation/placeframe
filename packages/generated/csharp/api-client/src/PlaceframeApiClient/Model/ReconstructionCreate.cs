@@ -34,42 +34,12 @@ namespace PlaceframeApiClient.Model
         /// <summary>
         /// Initializes a new instance of the <see cref="ReconstructionCreate" /> class.
         /// </summary>
-        [JsonConstructorAttribute]
-        protected ReconstructionCreate() { }
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ReconstructionCreate" /> class.
-        /// </summary>
-        /// <param name="captureSessionId">captureSessionId (required).</param>
         /// <param name="id">id.</param>
-        public ReconstructionCreate(Guid captureSessionId)
+        /// <param name="captureSessionId">captureSessionId.</param>
+        public ReconstructionCreate()
         {
-            this.CaptureSessionId = captureSessionId;
         }
 
-        /// <summary>
-        /// Gets or Sets CaptureSessionId
-        /// </summary>
-        [DataMember(Name = "capture_session_id", IsRequired = true, EmitDefaultValue = true)]
-        public Guid CaptureSessionId
-        {
-            get{ return _CaptureSessionId;}
-            set
-            {
-                _CaptureSessionId = value;
-                _flagCaptureSessionId = true;
-            }
-        }
-        private Guid _CaptureSessionId;
-        private bool _flagCaptureSessionId;
-
-        /// <summary>
-        /// Returns false as CaptureSessionId should not be serialized given that it's read-only.
-        /// </summary>
-        /// <returns>false (boolean)</returns>
-        public bool ShouldSerializeCaptureSessionId()
-        {
-            return _flagCaptureSessionId;
-        }
         /// <summary>
         /// Gets or Sets Id
         /// </summary>
@@ -95,6 +65,30 @@ namespace PlaceframeApiClient.Model
             return _flagId;
         }
         /// <summary>
+        /// Gets or Sets CaptureSessionId
+        /// </summary>
+        [DataMember(Name = "capture_session_id", EmitDefaultValue = true)]
+        public Guid? CaptureSessionId
+        {
+            get{ return _CaptureSessionId;}
+            set
+            {
+                _CaptureSessionId = value;
+                _flagCaptureSessionId = true;
+            }
+        }
+        private Guid? _CaptureSessionId;
+        private bool _flagCaptureSessionId;
+
+        /// <summary>
+        /// Returns false as CaptureSessionId should not be serialized given that it's read-only.
+        /// </summary>
+        /// <returns>false (boolean)</returns>
+        public bool ShouldSerializeCaptureSessionId()
+        {
+            return _flagCaptureSessionId;
+        }
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -102,8 +96,8 @@ namespace PlaceframeApiClient.Model
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("class ReconstructionCreate {\n");
-            sb.Append("  CaptureSessionId: ").Append(CaptureSessionId).Append("\n");
             sb.Append("  Id: ").Append(Id).Append("\n");
+            sb.Append("  CaptureSessionId: ").Append(CaptureSessionId).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }

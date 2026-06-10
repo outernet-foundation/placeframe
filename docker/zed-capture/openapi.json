@@ -17,21 +17,16 @@
         ],
         "summary": "StartCapture",
         "operationId": "start_capture",
-        "parameters": [
-          {
-            "name": "capture_interval",
-            "in": "query",
-            "schema": {
-              "nullable": true,
-              "type": "number",
-              "format": "double"
-            },
-            "required": false,
-            "deprecated": false,
-            "allowEmptyValue": false,
-            "allowReserved": false
-          }
-        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartCaptureRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": "Document created, URL follows",
@@ -472,6 +467,25 @@
   },
   "components": {
     "schemas": {
+      "StartCaptureRequest": {
+        "properties": {
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "datetime with the constraint that the value must have timezone info"
+          },
+          "capture_interval": {
+            "nullable": true,
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "type": "object",
+        "required": [
+          "started_at"
+        ],
+        "title": "StartCaptureRequest"
+      },
       "StopCaptureRequest": {
         "properties": {
           "name": {
@@ -531,6 +545,12 @@
             "type": "string",
             "format": "uuid"
           },
+          "tracking_state": {
+            "type": "string"
+          },
+          "stabilizing": {
+            "type": "boolean"
+          },
           "last_exception": {
             "nullable": true,
             "type": "string"
@@ -550,6 +570,8 @@
         "type": "object",
         "required": [
           "disk_free_bytes",
+          "stabilizing",
+          "tracking_state",
           "uptime_s",
           "version"
         ],

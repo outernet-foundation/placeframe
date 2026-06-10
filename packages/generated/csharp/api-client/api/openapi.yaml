@@ -774,6 +774,63 @@ paths:
       summary: GetReconstructionMetrics
       tags:
       - Default
+  /reconstructions/{id}/tar:
+    get:
+      deprecated: false
+      operationId: export_reconstruction_tar
+      parameters:
+      - deprecated: false
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/x-tar:
+              schema:
+                format: binary
+                type: string
+          description: Stream Response
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: ExportReconstructionTar
+      tags:
+      - Default
+  /reconstructions/tar:
+    post:
+      deprecated: false
+      operationId: import_reconstruction_tar
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ReconstructionTarUploadRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReconstructionReadWithQueue"
+          description: "Document created, URL follows"
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/get_capture_sessions_400_response"
+          description: Bad request syntax or unsupported method
+      summary: ImportReconstructionTar
+      tags:
+      - Default
   /localization-maps:
     delete:
       deprecated: false
@@ -1750,6 +1807,20 @@ paths:
                 $ref: "#/components/schemas/get_capture_sessions_400_response"
           description: Bad request syntax or unsupported method
       summary: CreateGraph
+      tags:
+      - Default
+  /server-info:
+    get:
+      deprecated: false
+      operationId: get_server_info
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerInfo"
+          description: "Request fulfilled, document follows"
+      summary: GetServerInfo
       tags:
       - Default
 components:
@@ -3845,17 +3916,16 @@ components:
         capture_session_id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
       properties:
-        capture_session_id:
-          format: uuid
-          title: Capture Session Id
-          type: string
         id:
           format: uuid
           nullable: true
           title: Id
           type: string
-      required:
-      - capture_session_id
+        capture_session_id:
+          format: uuid
+          nullable: true
+          title: Capture Session Id
+          type: string
       title: ReconstructionCreate
       type: object
     ReconstructionCreateWithOptions:
@@ -4200,10 +4270,6 @@ components:
         id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
         status: queued
       properties:
-        capture_session_id:
-          format: uuid
-          title: Capture Session Id
-          type: string
         id:
           format: uuid
           title: Id
@@ -4229,6 +4295,11 @@ components:
           additionalProperties: {}
           title: Manifest
           type: object
+        capture_session_id:
+          format: uuid
+          nullable: true
+          title: Capture Session Id
+          type: string
         progress_current:
           nullable: true
           title: Progress Current
@@ -4252,7 +4323,6 @@ components:
           nullable: true
           type: integer
       required:
-      - capture_session_id
       - created_at
       - id
       - manifest
@@ -4276,6 +4346,15 @@ components:
       - cancelled
       title: ReconstructionStatus
       type: string
+    ReconstructionTarUploadRequest:
+      properties:
+        data:
+          format: binary
+          type: string
+      required:
+      - data
+      title: ReconstructionTarUploadRequest
+      type: object
     RigCameraConfig:
       example:
         camera_config:
@@ -4369,6 +4448,35 @@ components:
       - cameras
       - id
       title: RigConfig
+      type: object
+    ServerInfo:
+      example:
+        audience: audience
+        issuer_url: issuer_url
+        auth_mode: keycloak
+        auth_url: auth_url
+        token_url: token_url
+      properties:
+        auth_mode:
+          enum:
+          - keycloak
+          - disabled
+          type: string
+        issuer_url:
+          nullable: true
+          type: string
+        auth_url:
+          nullable: true
+          type: string
+        token_url:
+          nullable: true
+          type: string
+        audience:
+          nullable: true
+          type: string
+      required:
+      - auth_mode
+      title: ServerInfo
       type: object
     Transform:
       example:
