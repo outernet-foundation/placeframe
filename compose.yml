@@ -183,34 +183,40 @@ services:
       PUBLIC_URL: "${PUBLIC_URL:?err}"
       AUTH_MODE: "${AUTH_MODE:-keycloak}"
 
-  # ngrok runs unconditionally but self-skips when NGROK_DOMAIN is empty (the
-  # `restart: on-failure` policy keeps an exit-0 from looping). This is how
-  # airgap deployments take effect: the operator simply omits NGROK_DOMAIN
-  # from .env and the tunnel agent stays dormant.
+  # `:-` (not `:?err`): docker compose interpolates regardless of profile, so
+  # `:?err` on NGROK_* would break rathole-only operators.
   ngrok:
     x-image-ref: ngrok/ngrok:alpine
     image: "${NGROK_IMAGE:?err}"
+    profiles: [tunnel-ngrok]
     depends_on:
       - gateway
     restart: on-failure
     ports:
       - "4040:4040"
     entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        if [ -z "$$NGROK_DOMAIN" ]; then
-          echo "ngrok: NGROK_DOMAIN unset — tunnel disabled, exiting cleanly."
-          exit 0
-        fi
-        exec ngrok http \
-          --domain="$$NGROK_DOMAIN" \
-          --upstream-protocol=http2 \
-          --log=stdout \
-          http://gateway:8443
+      - ngrok
+      - http
+      - --domain=${NGROK_DOMAIN:-}
+      - --upstream-protocol=http2
+      - --log=stdout
+      - http://gateway:8443
     environment:
-      NGROK_DOMAIN: "${NGROK_DOMAIN:-}"
       NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN:-}"
+
+  # network_mode: host so local_addr can reach gateway and host-bound sibling
+  # ports (e.g. makeitsing's LiveKit) via docker0. Downstream stacks override
+  # RATHOLE_SERVICES to register more services.
+  rathole-client:
+    image: "ghcr.io/outernet-foundation/placeframe/rathole-client:${RATHOLE_CLIENT_SHA:?err}"
+    profiles: [tunnel-rathole]
+    network_mode: host
+    restart: on-failure
+    environment:
+      ENGINEER_NAME: "${ENGINEER_NAME:-}"
+      TUNNEL_CONTROL_ENDPOINT: "${TUNNEL_CONTROL_ENDPOINT:-}"
+      TUNNEL_TOKEN: "${TUNNEL_TOKEN:-}"
+      RATHOLE_SERVICES: "gateway:tcp:${GATEWAY_PORT:?err}"
 
   database-migrator:
     image: "ghcr.io/outernet-foundation/placeframe/database-migrator:${DATABASE_MIGRATOR_SHA:?err}"

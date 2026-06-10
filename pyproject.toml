@@ -17,6 +17,7 @@ members = [
     "docker/lease-server",
     "docker/localizer",
     "docker/orchestrator",
+    "docker/rathole-client",
     "docker/reconstructor",
     "docker/zed-capture",
     "packages/python/core",
