@@ -48,7 +48,9 @@ class AuthMiddleware(AbstractAuthenticationMiddleware):
 
     async def authenticate_request(self, connection: ASGIConnection[Any, Any, Any, Any]) -> AuthenticationResult:
         if settings.auth_mode == "disabled":
-            identity = connection.headers.get("x-anonymous-identity") or "anonymous"
+            identity = connection.headers.get("x-anonymous-identity")
+            if not identity:
+                raise NotAuthorizedException("Missing x-anonymous-identity header")
             return AuthenticationResult(user=identity, auth={"sub": identity})
 
         authorization = connection.headers.get("authorization")
