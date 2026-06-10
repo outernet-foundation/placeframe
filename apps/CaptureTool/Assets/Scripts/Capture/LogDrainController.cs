@@ -51,6 +51,15 @@ public static class LogDrainController
     private const string boxLokiBuildInfoPath = "/loki/api/v1/status/buildinfo";
     private const string hostLokiPushPath = "/loki/api/v1/push";
 
+    // Native OTLP ingestion merges labels and structured metadata into one dict in the
+    // box-Loki query response. On re-push, keep only these as stream labels; everything
+    // else rides as structured metadata so the backend label set stays low-cardinality.
+    private static readonly HashSet<string> boxStreamLabelKeys = new() { "service_name", "deployment_environment_name" };
+
+    // Loki re-derives detected_level from severity_text on ingest; relaying the box's
+    // derived copy would double-label, so it is dropped from the forwarded metadata.
+    private static readonly HashSet<string> lokiDerivedMetadataKeys = new() { "detected_level" };
+
     private static HttpClient boxHttpClient;
     private static HttpClient hostLokiHttpClient;
     private static long logDrainCursorNs;
@@ -72,6 +81,14 @@ public static class LogDrainController
     {
         [JsonProperty("stream")] public Dictionary<string, string> Stream { get; set; }
         [JsonProperty("values")] public List<List<string>> Values { get; set; }
+    }
+
+    // Push payload: each value is [ts, body, structuredMetadata]. object[] (not string[])
+    // because the 3rd element is a metadata object, which Newtonsoft renders as a JSON map.
+    private sealed class LokiPushStream
+    {
+        [JsonProperty("stream")] public Dictionary<string, string> Stream { get; set; }
+        [JsonProperty("values")] public List<object[]> Values { get; set; }
     }
 
     public static void Initialize()
@@ -201,34 +218,55 @@ public static class LogDrainController
 
         long maxNs = startNs;
         int entryCount = 0;
+        var pushStreams = new List<LokiPushStream>();
         foreach (var stream in streams)
         {
-            if (stream.Values == null)
+            if (stream.Values == null || stream.Stream == null)
                 continue;
+
+            var labels = new Dictionary<string, string>();
+            var metadata = new Dictionary<string, string>();
+            foreach (var field in stream.Stream)
+            {
+                if (boxStreamLabelKeys.Contains(field.Key))
+                    labels[field.Key] = field.Value;
+                else if (!lokiDerivedMetadataKeys.Contains(field.Key))
+                    metadata[field.Key] = field.Value;
+            }
+
+            // A stream with no canonical label can't be pushed (Loki rejects label-less
+            // streams); skip rather than invent one.
+            if (labels.Count == 0)
+                continue;
+
+            var values = new List<object[]>();
             foreach (var pair in stream.Values)
             {
-                if (pair.Count < 2)
+                if (pair.Count < 2 || !long.TryParse(pair[0], out long timestampNs))
                     continue;
-                if (long.TryParse(pair[0], out long timestampNs))
-                {
-                    // Cursor stays in box time (it queries box-Loki); only the pushed copy is restamped.
-                    if (timestampNs > maxNs)
-                        maxNs = timestampNs;
-                    pair[0] = (timestampNs + restampOffsetNs).ToString(CultureInfo.InvariantCulture);
-                }
 
+                // Cursor stays in box time (it queries box-Loki); only the pushed copy is restamped.
+                if (timestampNs > maxNs)
+                    maxNs = timestampNs;
+
+                string restampedTs = (timestampNs + restampOffsetNs).ToString(CultureInfo.InvariantCulture);
+                values.Add(new object[] { restampedTs, pair[1], metadata });
                 entryCount++;
             }
+
+            if (values.Count > 0)
+                pushStreams.Add(new LokiPushStream { Stream = labels, Values = values });
         }
 
         if (entryCount == 0)
             return false;
 
-        // Push to host-Loki through host-Caddy. Timestamps are restamped to phone time above;
-        // labels are untouched. hostLokiHttpClient carries the backend auth policy in its handler.
+        // Push to host-Loki through host-Caddy. Timestamps are restamped to phone time and the
+        // box-Loki dict is split back into labels + structured metadata above. hostLokiHttpClient
+        // carries the backend auth policy in its handler.
         string apiUrl = App.state.settings.apiUrl.value;
         string pushUrl = $"{apiUrl}{hostLokiPushPath}";
-        string pushBody = JsonConvert.SerializeObject(new { streams });
+        string pushBody = JsonConvert.SerializeObject(new { streams = pushStreams });
 
         using (var pushRequest = new HttpRequestMessage(HttpMethod.Post, pushUrl))
         {
