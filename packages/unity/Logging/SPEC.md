@@ -2,7 +2,7 @@
 
 ## What this is
 
-`Outernet.Logging` is a Unity package that wires Serilog into a Unity app and ships log events to the Placeframe server's Loki over HTTPS via the public gateway, authenticated with a Keycloak Bearer token supplied by the consumer. It also intercepts `UnityEngine.Debug` so anything that goes through Unity's log handler (including native plugins, async unobserved exceptions, and R3 subscription faults) flows through the same Serilog pipeline. The in-repo consumer is `apps/CaptureTool/` (`app=capture-tool`). The package is referenced as a file-pathed UPM dep (`org.outernet.logging` at `file:../../../packages/unity/Logging/Assets/Package`).
+`Outernet.Logging` is a Unity package that wires Serilog into a Unity app and ships log events to the Placeframe server's Loki over HTTPS via the public gateway, authenticated with a Keycloak Bearer token supplied by the consumer. It also intercepts `UnityEngine.Debug` so anything that goes through Unity's log handler (including native plugins, async unobserved exceptions, and R3 subscription faults) flows through the same Serilog pipeline. The in-repo consumer is `apps/CaptureTool/` (`service_name=capture-tool`). The package is referenced as a file-pathed UPM dep (`org.outernet.logging` at `file:../../../packages/unity/Logging/Assets/Package`).
 
 ## Shape
 
@@ -18,7 +18,7 @@ packages/unity/Logging/Assets/Package/
     |-- LokiSink.cs                              in-memory queue + thread-pool drain to Loki
     |-- UnityLoggerConfiguration.cs              ILogEventSink piping to UnityEngine.Debug (colored console)
     |-- Enricher.cs                              message/messageTemplate/stackTrace/exception capture
-    |-- JTokenFromSerilogProperty.cs             Newtonsoft conversion for the Loki line payload
+    |-- JTokenFromSerilogProperty.cs             Newtonsoft conversion (console) + structured-metadata flattening
     |-- ExponentialBackoff.cs                    1s -> 60s schedule for the drain loop
     |-- LogLevel.cs                              Trace/Debug/Info/Warn/Error/Fatal/None
     |-- LogGroupColorAttribute.cs                marker placed on consumer enum members
@@ -27,7 +27,7 @@ packages/unity/Logging/Assets/Package/
 
 ### Public surface
 
-- `Logger<TLogGroup>.Initialize(labels, suppressErrors = null)` -- set up Serilog, install Unity-log interception. `labels` (e.g. `[("app","capture-tool"),("platform","android-mobile")]`) bake into the Loki stream selector for every push. `suppressErrors` is a list of substrings: a message containing any of them is downgraded from `Error`/`Exception` to `Log` before forwarding (used for known-benign native spam like ARCore `GL_INVALID_ENUM`).
+- `Logger<TLogGroup>.Initialize(labels, suppressErrors = null)` -- set up Serilog, install Unity-log interception. `labels` (e.g. `[("service_name","capture-tool"),("platform","android-mobile")]`) are partitioned by the sink: `service_name` / `deployment_environment_name` become Loki stream labels, the rest (e.g. `platform`) ride as structured metadata to keep the label set low-cardinality. `suppressErrors` is a list of substrings: a message containing any of them is downgraded from `Error`/`Exception` to `Log` before forwarding (used for known-benign native spam like ARCore `GL_INVALID_ENUM`).
 - `Logger<TLogGroup>.EnableLoki(apiUrl, tokenProvider)` -- turn on the Loki drain. Until this is called, emitted events queue in memory. `apiUrl` is the full public URL of the placeframe gateway (e.g. `https://x.ngrok-free.app` or `http://192.168.1.100:58080`); the sink appends `/loki/api/v1/push`. `tokenProvider` is a `Func<UniTask<string>>` returning a Bearer token (Placeframe consumers pass `() => Auth.GetOrRefreshToken()`) -- or `null` for unauthenticated push, used when the server runs in `AUTH_MODE=disabled` and the gateway has dropped its `/loki/*` `forward_auth` directive (see `docker/gateway/entrypoint.sh`). The sink builds its own `HttpClient` over the default `HttpClientHandler`.
 - `Logger<TLogGroup>.Terminate()` -- dispose the sink and unhook R3/Task subscriptions. Not used by any current consumer.
 - `Log<TLogGroup>.{Trace,Debug,Info,Warn,Error,Fatal}(...)` -- ~40 overloads covering combinations of `(TLogGroup, Exception, string template, object[] values)`.
@@ -58,7 +58,7 @@ The Unity sink and the reverse hook would naively form a loop (Serilog -> UnityD
 
 ### LokiSink
 
-The Loki sink is the only non-mechanical piece. `Emit` is callable from the moment `Initialize` returns; it serializes the event to a one-line JSON document and appends it to a `LinkedList<(ts, line)>` guarded by `_queueLock`. Events that arrive before `EnableLoki` accumulate so a successful first drain ships everything captured during boot and pre-login.
+The Loki sink is the only non-mechanical piece. `Emit` is callable from the moment `Initialize` returns; it renders the event to a body line plus a flat structured-metadata map (the canonical OTLP shape) and appends it to a `LinkedList<PendingEntry>` guarded by `_queueLock`. Events that arrive before `EnableLoki` accumulate so a successful first drain ships everything captured during boot and pre-login.
 
 When `EnableLoki(apiUrl, tokenProvider, handler)` fires, the sink:
 
@@ -71,16 +71,16 @@ The drain loop, each iteration:
 1. Sleeps `SleepDuration` from the `ExponentialBackoff` schedule (initially `Zero`, so the first iteration runs immediately).
 2. Snapshots `_pending` under the lock. If empty, `OnIdle` -> 2s sleep -> continue.
 3. If `_tokenProvider` is non-null, awaits it under a 15s `CancellationTokenSource` so a hung token fetch can't wedge the loop, and attaches the returned string as `Authorization: Bearer …`. A null provider skips both the await and the header -- the POST goes out unauthenticated, relying on the gateway to drop its forward_auth in `AUTH_MODE=disabled`.
-4. POSTs `{streams: [{stream: <labels>, values: [[ts, line], ...]}]}` under the same cancellation token.
+4. POSTs `{streams: [{stream: <labels>, values: [[ts, body, metadata], ...]}]}` under the same cancellation token — the 3-element value carries structured metadata, which Loki ingests as such (not as labels).
 5. On 2xx: pops `batch.Length` entries from the head -- events that arrived during the in-flight POST stay at the tail and ship next drain. `OnSuccess` resets backoff.
 6. On non-2xx: SelfLog + `OnFailure` (sleeps current backoff, doubles up to 60s).
 7. On exception: if `_disposed`, exit silently -- that's the shutdown path. Else SelfLog + `OnFailure`.
 
 Sink-internal failures route through `Serilog.Debugging.SelfLog.WriteLine` (which the Logger wires to write through the saved-off `defaultUnityLogHandler`), so a failing drain does not recursively re-enqueue its own diagnostics.
 
-Timestamp encoding: `(logEvent.Timestamp.UtcDateTime.Ticks - UnixEpochTicks) * 100` -- .NET ticks are 100ns, Loki wants a nanosecond integer string. JSON formatting is `Formatting.None` because LogQL `|=` / `|~` line filters operate per line and won't match across embedded newlines.
+Timestamp encoding: `(logEvent.Timestamp.UtcDateTime.Ticks - UnixEpochTicks) * 100` -- .NET ticks are 100ns, Loki wants a nanosecond integer string.
 
-Property serialization in `Emit`: it filters any caller-supplied `"level"` so the canonical Grafana-flavored level (`trace/debug/info/warning/error/critical`) wins, then orders keys with a hand-picked weighting (`level`, `logGroup`, `messageTemplate`, `message`, then everything else, then `stackTrace`, `exception` last). The order is pure UX for the Grafana viewer -- these become the visible "columns" in a log row. Fatal becomes `critical` because Grafana has no native `fatal`.
+Event shape in `SerializeEvent`: the rendered `message` becomes the body line (the bare human message — multiline preserved; empty falls back to the template text, then `"(empty)"`). Every other property is flattened to a `string→string` metadata map by `Json.FlattenSerilogProperty` (nested structures expand to dotted keys, sequences serialize to compact JSON, the `exception` object maps to OTel-semconv `exception.type`/`exception.message`/`exception.stacktrace`). The level is emitted as `severity_text` (`trace/debug/info/warning/error/critical`; Fatal→`critical`), which drives Loki's `detected_level`; any caller-supplied `level` is dropped. A collapsed duplicate run adds `repeated`/`firstAt`/`lastAt`.
 
 ### Enricher
 
@@ -95,9 +95,9 @@ Property serialization in `Emit`: it filters any caller-supplied `"level"` so th
 
 ### Consumer integration
 
-The in-repo consumer boots at `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]` with static labels (`apps/CaptureTool/Assets/Scripts/Capture/App.cs:32`), then calls `EnableLoki` after its Keycloak login completes (`apps/CaptureTool/Assets/AuthManager.cs:53`). Loki labels are static -- every event from one app collapses into one Loki stream. High-cardinality fields (device name, log group, exception) live inside the JSON line, not in the label set.
+The in-repo consumer boots at `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]` with static labels (`apps/CaptureTool/Assets/Scripts/Capture/App.cs:32`), then calls `EnableLoki` after its Keycloak login completes (`apps/CaptureTool/Assets/AuthManager.cs:53`). Loki labels are static -- every event from one app collapses into one Loki stream. High-cardinality fields (device name, log group, exception) ride as structured metadata, not in the label set.
 
-The gateway (`docker/SPEC.md` "Authentication") fronts `/loki/` and, in `AUTH_MODE=keycloak`, forwards to Loki using the client's existing Keycloak token -- there is no separate Loki ingress and no Loki-specific credential. In `AUTH_MODE=disabled`, the gateway drops the forward_auth directive and the client is expected to pass `tokenProvider: null` so the push goes out without an `Authorization` header. The Loki `service_name` label is auto-derived from the `app` label, so a query like `{service_name="capture-tool"}` works in either mode.
+The gateway (`docker/SPEC.md` "Authentication") fronts `/loki/` and, in `AUTH_MODE=keycloak`, forwards to Loki using the client's existing Keycloak token -- there is no separate Loki ingress and no Loki-specific credential. In `AUTH_MODE=disabled`, the gateway drops the forward_auth directive and the client is expected to pass `tokenProvider: null` so the push goes out without an `Authorization` header. `service_name=capture-tool` is set directly as a stream label, so `{service_name="capture-tool"}` works in either mode.
 
 ## Constraints
 
@@ -113,7 +113,7 @@ The non-obvious pieces of this package fall out of three constraints: (a) Unity 
 
 **JSON over Protobuf.** Loki accepts both. JSON keeps the implementation grep-able and avoids dragging a Protobuf dep across the IL2CPP boundary. The drain loop POSTs one stream per batch with `Content-Type: application/json` to `/loki/api/v1/push`.
 
-**Sort order in the JSON line.** `level`, `logGroup`, `messageTemplate`, `message`, then everything else, then `stackTrace`, `exception` last. Pure UX for the Grafana viewer -- these become the visible columns of a log row. Fatal becomes `critical` because Grafana has no native `fatal`.
+**Canonical Loki shape via the push API, not a raw OTLP exporter.** The backend ingests OpenTelemetry: line = body, low-cardinality resource attributes = labels, everything else = structured metadata. The phone matches that shape over the existing Loki push API — `[ts, body, metadata]` 3-element values — rather than adding an OTLP exporter dependency across the IL2CPP boundary. This lands phone logs identically to native OTLP ingestion (verified: the metadata object becomes structured metadata, not labels) while keeping the bespoke offline buffer that exists for pre-login/connectivity reasons. `severity_text` drives Loki's `detected_level`; Fatal becomes `critical` because there is no native `fatal`.
 
 **`new StackTrace(true)` + `InnerFramesHiddenFromStackTrace` trimming over Unity's `StackTraceLogType.ScriptOnly`.** Unity's built-in capture is per-LogType and produces unstructured text; the Enricher's structured frame list survives JSON serialization, supports `[InnerFramesHiddenFromStackTrace]` to trim the logging shim itself out of every captured stack, and reads `mJavaStackTrace` out of `AndroidJavaException` so JNI exceptions surface their Java side. `Application.SetStackTraceLogType(..., None)` is set for every Unity LogType to suppress the duplicate built-in capture.
 

@@ -41,26 +41,26 @@ For a hand-built APK from `uv run compile-unity` + `adb install`, the grant has 
 
 ```
 adb shell pm grant com.outernet.captureapp android.permission.READ_LOGS
-``` Without it, the relay still runs but its Loki output is limited to this app's own log lines (which Serilog already captures by other means, so the practical signal is zero). To verify after a session, query Loki for `{app="capture-tool"} | json | logGroup="Android"` — non-empty (and showing `Pid` values that aren't the app's own) means the grant is in place and framework events are flowing through.
+``` Without it, the relay still runs but its Loki output is limited to this app's own log lines (which Serilog already captures by other means, so the practical signal is zero). To verify after a session, query Loki for `{service_name="capture-tool"} | logGroup="Android"` — non-empty (and showing `Pid` values that aren't the app's own) means the grant is in place and framework events are flowing through.
 
 The tag whitelist lives in `LogcatRelay.TagFilters`; extend it (or relax to `*:V`) only when a specific debugging session needs more — raw `*:V` is much chattier than Loki's per-tenant ingestion burst comfortably handles.
 
 ## Reading phone-side logs from Loki
 
-Capture Tool pushes Unity logs directly to Loki via the gateway (`/loki/api/v1/push`, see `docker/gateway/entrypoint.sh`) with client-side label `app=capture-tool` set in `AuthManager.cs:EnableLoki(...)`. Loki auto-derives `service_name=capture-tool` from the `app` label, so either label works for queries. Quicker than swapping to the debug cable when the phone is plugged into the ZED.
+Capture Tool pushes Unity logs directly to Loki via the gateway (`/loki/api/v1/push`, see `docker/gateway/entrypoint.sh`) as canonical OTLP-shaped entries — the log line is the message, and `logGroup`/`messageTemplate`/`exception_*`/`platform` ride as structured metadata — with client-side label `service_name=capture-tool` set in `App.cs`. Query by `{service_name="capture-tool"}`. Quicker than swapping to the debug cable when the phone is plugged into the ZED.
 
 Use `uv run loki-query` from the slot — it handles URL encoding and prints one-line summaries (timestamp, level, log group, message, exception chain). Single-quote the LogQL so the shell doesn't expand `{}` or `|`:
 
 ```
-uv run loki-query '{app="capture-tool"} | json | logGroup="Android"'
-uv run loki-query '{app="capture-tool"} | json | logGroup="Zed"' --since 5m
-uv run loki-query '{app="capture-tool"} | json | logGroup="Android" | Tag="UsbHostManager"' --limit 200
-uv run loki-query '{app="capture-tool"}' --raw       # full Loki JSON, for ad-hoc jq
+uv run loki-query '{service_name="capture-tool"} | logGroup="Android"'
+uv run loki-query '{service_name="capture-tool"} | logGroup="Zed"' --since 5m
+uv run loki-query '{service_name="capture-tool"} | logGroup="Android" | Tag="UsbHostManager"' --limit 200
+uv run loki-query '{service_name="capture-tool"}' --raw       # full Loki JSON, for ad-hoc jq
 ```
 
 Default range is 30m, default limit 50, newest first. Pass `--raw` when you need the full JSON instead of the formatted summaries.
 
-Prefer the structured `| json | <field>="<value>"` form over `|= "<substring>"` substring filters — fewer escape-quoting traps. If a fresh query returns zero entries, wait ~3s and retry: `LokiSink` batches every ~2s when idle, so very recent emissions may not be flushed yet. The relay only works while the backend is up (`uv run up`) and the phone has wifi (the relay POST goes over wifi, not USB-ethernet). For ZED-box-side logs see `docker/zed-capture/CLAUDE.md`.
+Filter on structured metadata directly (`| <field>="<value>"`, e.g. `| logGroup="Zed"`) — no `| json` step, because the fields are metadata, not JSON inside the line. The line itself is the plain message, so `|= "<substring>"` matches message text directly. If a fresh query returns zero entries, wait ~3s and retry: `LokiSink` batches every ~2s when idle, so very recent emissions may not be flushed yet. The relay only works while the backend is up (`uv run up`) and the phone has wifi (the relay POST goes over wifi, not USB-ethernet). For ZED-box-side logs see `docker/zed-capture/CLAUDE.md`.
 
 ## Slot preconditions for on-device work
 
