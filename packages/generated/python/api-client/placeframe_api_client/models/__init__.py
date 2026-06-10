@@ -60,5 +60,6 @@ from placeframe_api_client.models.reconstruction_read_with_queue import Reconstr
 from placeframe_api_client.models.reconstruction_status import ReconstructionStatus
 from placeframe_api_client.models.rig_camera_config import RigCameraConfig
 from placeframe_api_client.models.rig_config import RigConfig
+from placeframe_api_client.models.server_info import ServerInfo
 from placeframe_api_client.models.transform import Transform
 

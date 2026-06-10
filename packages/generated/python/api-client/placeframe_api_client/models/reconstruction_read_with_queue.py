@@ -30,13 +30,13 @@ class ReconstructionReadWithQueue(BaseModel):
     """
     ReconstructionReadWithQueue
     """ # noqa: E501
-    capture_session_id: UUID
     id: UUID
     created_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     updated_at: datetime = Field(description="datetime with the constraint that the value must have timezone info")
     status: ReconstructionStatus
     manifest_version: StrictInt
     manifest: Dict[str, Any]
+    capture_session_id: Optional[UUID] = None
     progress_current: Optional[StrictInt] = None
     progress_total: Optional[StrictInt] = None
     progress_attempt: Optional[StrictInt] = None
@@ -44,7 +44,7 @@ class ReconstructionReadWithQueue(BaseModel):
     queue_position: Optional[StrictInt] = None
     queue_depth: Optional[StrictInt] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["capture_session_id", "id", "created_at", "updated_at", "status", "manifest_version", "manifest", "progress_current", "progress_total", "progress_attempt", "error", "queue_position", "queue_depth"]
+    __properties: ClassVar[List[str]] = ["id", "created_at", "updated_at", "status", "manifest_version", "manifest", "capture_session_id", "progress_current", "progress_total", "progress_attempt", "error", "queue_position", "queue_depth"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -92,6 +92,11 @@ class ReconstructionReadWithQueue(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
+        # set to None if capture_session_id (nullable) is None
+        # and model_fields_set contains the field
+        if self.capture_session_id is None and "capture_session_id" in self.model_fields_set:
+            _dict['capture_session_id'] = None
+
         # set to None if progress_current (nullable) is None
         # and model_fields_set contains the field
         if self.progress_current is None and "progress_current" in self.model_fields_set:
@@ -134,13 +139,13 @@ class ReconstructionReadWithQueue(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "capture_session_id": obj.get("capture_session_id"),
             "id": obj.get("id"),
             "created_at": obj.get("created_at"),
             "updated_at": obj.get("updated_at"),
             "status": obj.get("status"),
             "manifest_version": obj.get("manifest_version"),
             "manifest": obj.get("manifest"),
+            "capture_session_id": obj.get("capture_session_id"),
             "progress_current": obj.get("progress_current"),
             "progress_total": obj.get("progress_total"),
             "progress_attempt": obj.get("progress_attempt"),

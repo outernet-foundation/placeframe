@@ -17,21 +17,30 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional
-from uuid import UUID
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class ReconstructionCreate(BaseModel):
+class ServerInfo(BaseModel):
     """
-    ReconstructionCreate
+    ServerInfo
     """ # noqa: E501
-    id: Optional[UUID] = None
-    capture_session_id: Optional[UUID] = None
+    auth_mode: StrictStr
+    issuer_url: Optional[StrictStr] = None
+    auth_url: Optional[StrictStr] = None
+    token_url: Optional[StrictStr] = None
+    audience: Optional[StrictStr] = None
     additional_properties: Dict[str, Any] = {}
-    __properties: ClassVar[List[str]] = ["id", "capture_session_id"]
+    __properties: ClassVar[List[str]] = ["auth_mode", "issuer_url", "auth_url", "token_url", "audience"]
+
+    @field_validator('auth_mode')
+    def auth_mode_validate_enum(cls, value):
+        """Validates the enum"""
+        if value not in set(['keycloak', 'disabled']):
+            raise ValueError("must be one of enum values ('keycloak', 'disabled')")
+        return value
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -51,7 +60,7 @@ class ReconstructionCreate(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of ReconstructionCreate from a JSON string"""
+        """Create an instance of ServerInfo from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -79,21 +88,31 @@ class ReconstructionCreate(BaseModel):
             for _key, _value in self.additional_properties.items():
                 _dict[_key] = _value
 
-        # set to None if id (nullable) is None
+        # set to None if issuer_url (nullable) is None
         # and model_fields_set contains the field
-        if self.id is None and "id" in self.model_fields_set:
-            _dict['id'] = None
+        if self.issuer_url is None and "issuer_url" in self.model_fields_set:
+            _dict['issuer_url'] = None
 
-        # set to None if capture_session_id (nullable) is None
+        # set to None if auth_url (nullable) is None
         # and model_fields_set contains the field
-        if self.capture_session_id is None and "capture_session_id" in self.model_fields_set:
-            _dict['capture_session_id'] = None
+        if self.auth_url is None and "auth_url" in self.model_fields_set:
+            _dict['auth_url'] = None
+
+        # set to None if token_url (nullable) is None
+        # and model_fields_set contains the field
+        if self.token_url is None and "token_url" in self.model_fields_set:
+            _dict['token_url'] = None
+
+        # set to None if audience (nullable) is None
+        # and model_fields_set contains the field
+        if self.audience is None and "audience" in self.model_fields_set:
+            _dict['audience'] = None
 
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of ReconstructionCreate from a dict"""
+        """Create an instance of ServerInfo from a dict"""
         if obj is None:
             return None
 
@@ -101,8 +120,11 @@ class ReconstructionCreate(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "id": obj.get("id"),
-            "capture_session_id": obj.get("capture_session_id")
+            "auth_mode": obj.get("auth_mode"),
+            "issuer_url": obj.get("issuer_url"),
+            "auth_url": obj.get("auth_url"),
+            "token_url": obj.get("token_url"),
+            "audience": obj.get("audience")
         })
         # store additional fields in additional_properties
         for _key in obj.keys():

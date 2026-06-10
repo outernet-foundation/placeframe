@@ -1819,6 +1819,157 @@
         "deprecated": false
       }
     },
+    "/reconstructions/{id}/tar": {
+      "get": {
+        "tags": [
+          "Reconstructions"
+        ],
+        "summary": "ExportReconstructionTar",
+        "operationId": "export_reconstruction_tar",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "deprecated": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stream Response",
+            "headers": {},
+            "content": {
+              "application/x-tar": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/reconstructions/tar": {
+      "post": {
+        "tags": [
+          "Reconstructions"
+        ],
+        "summary": "ImportReconstructionTar",
+        "operationId": "import_reconstruction_tar",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconstructionTarUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Document created, URL follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconstructionReadWithQueue"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request syntax or unsupported method",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status_code": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "extra": {
+                      "additionalProperties": {},
+                      "anyOf": [
+                        {
+                          "type": "object"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        }
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "type": "object",
+                  "required": [
+                    "detail",
+                    "status_code"
+                  ],
+                  "description": "Validation Exception",
+                  "example": {
+                    "status_code": 400,
+                    "detail": "Bad Request",
+                    "extra": {}
+                  }
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
     "/localization-maps": {
       "get": {
         "tags": [
@@ -4004,6 +4155,29 @@
         },
         "deprecated": false
       }
+    },
+    "/server-info": {
+      "get": {
+        "tags": [
+          "ServerInfo"
+        ],
+        "summary": "GetServerInfo",
+        "operationId": "get_server_info",
+        "responses": {
+          "200": {
+            "description": "Request fulfilled, document follows",
+            "headers": {},
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerInfo"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
     }
   },
   "components": {
@@ -5822,22 +5996,21 @@
       },
       "ReconstructionCreate": {
         "properties": {
-          "capture_session_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Capture Session Id"
-          },
           "id": {
             "title": "Id",
+            "nullable": true,
+            "type": "string",
+            "format": "uuid"
+          },
+          "capture_session_id": {
+            "title": "Capture Session Id",
             "nullable": true,
             "type": "string",
             "format": "uuid"
           }
         },
         "type": "object",
-        "required": [
-          "capture_session_id"
-        ],
+        "required": [],
         "title": "ReconstructionCreate"
       },
       "ReconstructionCreateWithOptions": {
@@ -6100,11 +6273,6 @@
       },
       "ReconstructionReadWithQueue": {
         "properties": {
-          "capture_session_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Capture Session Id"
-          },
           "id": {
             "type": "string",
             "format": "uuid",
@@ -6133,6 +6301,12 @@
             "additionalProperties": {},
             "type": "object",
             "title": "Manifest"
+          },
+          "capture_session_id": {
+            "title": "Capture Session Id",
+            "nullable": true,
+            "type": "string",
+            "format": "uuid"
           },
           "progress_current": {
             "title": "Progress Current",
@@ -6165,7 +6339,6 @@
         },
         "type": "object",
         "required": [
-          "capture_session_id",
           "created_at",
           "id",
           "manifest",
@@ -6191,6 +6364,19 @@
           "cancelled"
         ],
         "title": "ReconstructionStatus"
+      },
+      "ReconstructionTarUploadRequest": {
+        "properties": {
+          "data": {
+            "type": "string",
+            "format": "binary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "ReconstructionTarUploadRequest"
       },
       "RigCameraConfig": {
         "properties": {
@@ -6238,6 +6424,38 @@
           "id"
         ],
         "title": "RigConfig"
+      },
+      "ServerInfo": {
+        "properties": {
+          "auth_mode": {
+            "type": "string",
+            "enum": [
+              "keycloak",
+              "disabled"
+            ]
+          },
+          "issuer_url": {
+            "nullable": true,
+            "type": "string"
+          },
+          "auth_url": {
+            "nullable": true,
+            "type": "string"
+          },
+          "token_url": {
+            "nullable": true,
+            "type": "string"
+          },
+          "audience": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "auth_mode"
+        ],
+        "title": "ServerInfo"
       },
       "Transform": {
         "properties": {
