@@ -232,7 +232,7 @@ namespace Placeframe.Client
 
         private static UniTask<ReconstructionReadWithQueue> CreateReconstruction(Guid captureId) =>
             VisualPositioningSystem.Api
-                .CreateReconstructionAsync(new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId)));
+                .CreateReconstructionAsync(new ReconstructionCreateWithOptions(new ReconstructionCreate(captureId)) { Options = new ReconstructionOptions { KeyframeMinDistanceM = 0.0001 } });
 
         private static string ReconstructingPhaseLabel(ReconstructionReadWithQueue reconstruction)
         {

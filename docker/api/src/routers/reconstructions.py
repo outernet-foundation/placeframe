@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from io import BytesIO
+from logging import getLogger
 from struct import pack
+from time import perf_counter
 from typing import TYPE_CHECKING, Annotated, Optional, cast
 from uuid import UUID
 
@@ -24,11 +26,10 @@ from datamodels.public_dtos import (
     reconstruction_to_dto,
 )
 from datamodels.public_tables import CaptureSession, LocalizationMap, Reconstruction, ReconstructionStatus
-from litestar import Router, delete, get, post, put
+from litestar import Request, Router, delete, get, post, put
 from litestar.di import Provide
 from litestar.exceptions import ClientException, HTTPException, NotFoundException
 from litestar.params import KwargDefinition, Parameter
-from litestar.response import Stream
 from litestar.status_codes import HTTP_409_CONFLICT
 from numpy import ascontiguousarray, float32, load, uint8
 from pydantic import BaseModel, Field
@@ -41,6 +42,7 @@ from itertools import starmap
 
 settings = get_settings()
 BUCKET = "dev-reconstructions"
+logger = getLogger(__name__)
 
 
 s3_client = create_s3_client(
@@ -95,8 +97,14 @@ def to_reconstruction_with_queue(
 
 @post("")
 async def create_reconstruction(
-    session: AsyncSession, data: ReconstructionCreateWithOptions
+    session: AsyncSession, data: ReconstructionCreateWithOptions, request: Request
 ) -> ReconstructionReadWithQueue:
+    raw_body = await request.body()
+    logger.info(
+        "create_reconstruction raw_body=%s parsed_options=%s",
+        raw_body.decode("utf-8", errors="replace"),
+        data.options.model_dump() if data.options else None,
+    )
     # If we were provided an ID, ensure it doesn't already exist
     if data.create.id is not None:
         result = await session.execute(select(Reconstruction).where(Reconstruction.id == data.create.id))
@@ -263,34 +271,39 @@ async def get_reconstruction_points(
     if not row:
         raise NotFoundException(f"Reconstruction with id {id} not found")
 
-    # Load point cloud from S3
+    fetch_start = perf_counter()
     npz_bytes = s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{row.id}/sfm_model/points3D.npz")[
         "Body"
     ].read()
+    fetch_ms = (perf_counter() - fetch_start) * 1000
 
-    # Extract positions and colors
+    serialize_start = perf_counter()
     with load(BytesIO(npz_bytes)) as npz:
         point_cloud_positions = npz["positions"]
         point_cloud_colors = npz["colors"]
 
-    # Change basis if needed
     if axis_convention == AxisConvention.UNITY:
         point_cloud_positions = change_basis_unity_from_opencv_points(point_cloud_positions)
 
-    # Serialize and return point cloud as binary stream
-    return cast(
-        bytes,
-        Stream(
-            BytesIO(
-                (
-                    pack("<I", int(point_cloud_positions.shape[0]))
-                    + ascontiguousarray(point_cloud_positions, dtype=float32).astype("<f4", copy=False).tobytes()
-                    + ascontiguousarray(point_cloud_colors, dtype=uint8).tobytes()
-                )
-            ),
-            media_type="application/octet-stream",
-        ),
+    point_count = int(point_cloud_positions.shape[0])
+    payload = (
+        pack("<I", point_count)
+        + ascontiguousarray(point_cloud_positions, dtype=float32).astype("<f4", copy=False).tobytes()
+        + ascontiguousarray(point_cloud_colors, dtype=uint8).tobytes()
     )
+    serialize_ms = (perf_counter() - serialize_start) * 1000
+
+    logger.info(
+        "GET reconstruction points id=%s axis=%s points=%d bytes=%d fetch_ms=%.1f serialize_ms=%.1f",
+        id,
+        axis_convention.value,
+        point_count,
+        len(payload),
+        fetch_ms,
+        serialize_ms,
+    )
+
+    return payload
 
 
 @get("/{id:uuid}/frame_poses", media_type="application/octet-stream")
@@ -303,32 +316,39 @@ async def get_reconstruction_frame_poses(
     if not row:
         raise NotFoundException(f"Reconstruction with id {id} not found")
 
-    # Load frame poses from S3
+    fetch_start = perf_counter()
     npz_bytes = s3_client.get_object(Bucket=settings.reconstructions_bucket, Key=f"{row.id}/sfm_model/frame_poses.npz")[
         "Body"
     ].read()
+    fetch_ms = (perf_counter() - fetch_start) * 1000
 
-    # Extract positions and orientations
+    serialize_start = perf_counter()
     with load(BytesIO(npz_bytes)) as npz:
         frame_positions = npz["positions"]
         frame_orientations = npz["orientations"]
 
-    # Change basis if needed
     if axis_convention == AxisConvention.UNITY:
         frame_positions, frame_orientations = change_basis_unity_from_opencv_poses(frame_positions, frame_orientations)
 
-    # Serialize and return frame poses as binary stream
-    return cast(
-        bytes,
-        Stream(
-            BytesIO(
-                pack("<I", int(frame_positions.shape[0]))
-                + ascontiguousarray(frame_positions, dtype=float32).astype("<f4", copy=False).tobytes()
-                + ascontiguousarray(frame_orientations, dtype=float32).astype("<f4", copy=False).tobytes()
-            ),
-            media_type="application/octet-stream",
-        ),
+    frame_count = int(frame_positions.shape[0])
+    payload = (
+        pack("<I", frame_count)
+        + ascontiguousarray(frame_positions, dtype=float32).astype("<f4", copy=False).tobytes()
+        + ascontiguousarray(frame_orientations, dtype=float32).astype("<f4", copy=False).tobytes()
     )
+    serialize_ms = (perf_counter() - serialize_start) * 1000
+
+    logger.info(
+        "GET reconstruction frame_poses id=%s axis=%s frames=%d bytes=%d fetch_ms=%.1f serialize_ms=%.1f",
+        id,
+        axis_convention.value,
+        frame_count,
+        len(payload),
+        fetch_ms,
+        serialize_ms,
+    )
+
+    return payload
 
 
 # dummy method, just to get ReconstructionMetrics into the OpenAPI schema

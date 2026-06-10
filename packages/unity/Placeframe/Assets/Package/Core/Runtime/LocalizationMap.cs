@@ -33,8 +33,8 @@ namespace Placeframe.Core
 
         protected virtual void OnDestroy()
         {
-            _loadCancellationTokenSource.Cancel();
-            _loadCancellationTokenSource.Dispose();
+            _loadCancellationTokenSource?.Cancel();
+            _loadCancellationTokenSource?.Dispose();
             _loadCancellationTokenSource = null;
         }
 
@@ -100,32 +100,88 @@ namespace Placeframe.Core
             _loadCancellationTokenSource?.Cancel();
             _loadCancellationTokenSource?.Dispose();
             _loadCancellationTokenSource = new CancellationTokenSource();
-            LoadPoints(points, framePositions);
+            try
+            {
+                LoadPoints(points, framePositions);
+            }
+            catch (Exception exception)
+            {
+                VisualPositioningSystem.LogError(
+                    $"LocalizationMap.Load(points, frames) threw"
+                        + $" pointCount={points.Length} frameCount={framePositions.Length}"
+                        + $" exception={exception}"
+                );
+            }
         }
 
         private async UniTask DownloadMapAndLoad(Guid mapID, CancellationToken cancellationToken)
         {
-            var mapData = await VisualPositioningSystem.GetMapData(mapID);
-            var local = VisualPositioningSystem.EcefToUnityWorld(
-                new double3(mapData.PositionX, mapData.PositionY, mapData.PositionZ),
-                new quaternion(
-                    (float)mapData.RotationX,
-                    (float)mapData.RotationY,
-                    (float)mapData.RotationZ,
-                    (float)mapData.RotationW
-                )
-            );
+            VisualPositioningSystem.LogDebug($"LocalizationMap.DownloadMapAndLoad start mapId={mapID}");
+            try
+            {
+                var mapData = await VisualPositioningSystem.GetMapData(mapID);
+                cancellationToken.ThrowIfCancellationRequested();
+                VisualPositioningSystem.LogDebug(
+                    $"LocalizationMap got map data mapId={mapID} reconstructionId={mapData.ReconstructionId}"
+                );
 
-            transform.position = local.position;
-            transform.rotation = local.rotation;
+                var local = VisualPositioningSystem.EcefToUnityWorld(
+                    new double3(mapData.PositionX, mapData.PositionY, mapData.PositionZ),
+                    new quaternion(
+                        (float)mapData.RotationX,
+                        (float)mapData.RotationY,
+                        (float)mapData.RotationZ,
+                        (float)mapData.RotationW
+                    )
+                );
 
-            (var pointPayload, var framePayload) = await UniTask.WhenAll(
-                VisualPositioningSystem.GetReconstructionPoints(mapData.ReconstructionId),
-                VisualPositioningSystem.GetReconstructionFramePoses(mapData.ReconstructionId)
-            );
+                transform.position = local.position;
+                transform.rotation = local.rotation;
 
-            await UniTask.SwitchToMainThread(cancellationToken);
-            LoadPoints(pointPayload, framePayload);
+                VisualPositioningSystem.LogDebug(
+                    $"LocalizationMap fetching points mapId={mapID} reconstructionId={mapData.ReconstructionId}"
+                );
+                var pointPayload = await VisualPositioningSystem.GetReconstructionPoints(
+                    mapData.ReconstructionId,
+                    cancellationToken
+                );
+                VisualPositioningSystem.LogDebug(
+                    $"LocalizationMap got points mapId={mapID} pointCount={pointPayload.Length}"
+                );
+
+                VisualPositioningSystem.LogDebug(
+                    $"LocalizationMap fetching frames mapId={mapID} reconstructionId={mapData.ReconstructionId}"
+                );
+                var framePayload = await VisualPositioningSystem.GetReconstructionFramePoses(
+                    mapData.ReconstructionId,
+                    cancellationToken
+                );
+                VisualPositioningSystem.LogDebug(
+                    $"LocalizationMap got frames mapId={mapID} frameCount={framePayload.Length}"
+                );
+
+                VisualPositioningSystem.LogDebug(
+                    $"LocalizationMap downloaded mapId={mapID}"
+                        + $" pointCount={pointPayload.Length} frameCount={framePayload.Length}"
+                );
+
+                await UniTask.SwitchToMainThread(cancellationToken);
+                LoadPoints(pointPayload, framePayload);
+
+                VisualPositioningSystem.LogDebug(
+                    $"LocalizationMap rendered mapId={mapID} pointCount={pointPayload.Length}"
+                );
+            }
+            catch (OperationCanceledException)
+            {
+                VisualPositioningSystem.LogDebug($"LocalizationMap.DownloadMapAndLoad cancelled mapId={mapID}");
+            }
+            catch (Exception exception)
+            {
+                VisualPositioningSystem.LogError(
+                    $"LocalizationMap.DownloadMapAndLoad threw mapId={mapID} exception={exception}"
+                );
+            }
         }
 
         private void LoadPoints(VisualPositioningSystem.ReconstructionPoint[] points, Vector3[] framePositions)
