@@ -59,6 +59,7 @@ placeframe_api_client/models/reconstruction_read_with_queue.py
 placeframe_api_client/models/reconstruction_status.py
 placeframe_api_client/models/rig_camera_config.py
 placeframe_api_client/models/rig_config.py
+placeframe_api_client/models/server_info.py
 placeframe_api_client/models/transform.py
 placeframe_api_client/py.typed
 placeframe_api_client/rest.py

@@ -84,6 +84,8 @@ async def request_lease(session: AsyncSession) -> LeaseResponse:
     await session.flush()
     await session.commit()
 
+    assert row.capture_session_id is not None
+
     return LeaseResponse(
         reconstruction_id=row.id,
         capture_session_id=row.capture_session_id,

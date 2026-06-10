@@ -17,11 +17,12 @@ from .routers.localization_evaluations import router as localization_evaluations
 from .routers.localization_maps import router as localization_maps_router
 from .routers.nodes import router as nodes_router
 from .routers.reconstructions import router as reconstructions_router
+from .routers.server_info import router as server_info_router
 from .settings import get_settings
 
 configure_logging("api")
 
-EXCLUDE_FROM_AUTH = [r"^/$", r"^/health/?$", r"^/schema(?:/.*)?$"]
+EXCLUDE_FROM_AUTH = [r"^/$", r"^/health/?$", r"^/schema(?:/.*)?$", r"^/server-info/?$"]
 
 #####
 if environ.get("CODEGEN"):
@@ -100,6 +101,7 @@ app = create_litestar_app(
         layers_router,
         nodes_router,
         graph_router,
+        server_info_router,
     ],
     openapi_config,
     middleware,

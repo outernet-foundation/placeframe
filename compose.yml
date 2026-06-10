@@ -80,7 +80,8 @@ services:
       CB_ADMIN_PASSWORD: "${CLOUDBEAVER_ADMIN_PASSWORD:?err}"
 
   cloudbeaver:
-    x-image-ref: docker.io/dbeaver/cloudbeaver:latest
+    # Pinned: releases after 25.1.4 write to a non-writable $HOME/.local/share/DBeaverData and crash on startup (exit 13).
+    x-image-ref: docker.io/dbeaver/cloudbeaver:25.1.4
     image: "${CLOUDBEAVER_IMAGE:?err}"
     depends_on:
       create-database:
@@ -183,34 +184,40 @@ services:
       PUBLIC_URL: "${PUBLIC_URL:?err}"
       AUTH_MODE: "${AUTH_MODE:-keycloak}"
 
-  # ngrok runs unconditionally but self-skips when NGROK_DOMAIN is empty (the
-  # `restart: on-failure` policy keeps an exit-0 from looping). This is how
-  # airgap deployments take effect: the operator simply omits NGROK_DOMAIN
-  # from .env and the tunnel agent stays dormant.
+  # `:-` (not `:?err`): docker compose interpolates regardless of profile, so
+  # `:?err` on NGROK_* would break rathole-only operators.
   ngrok:
     x-image-ref: ngrok/ngrok:alpine
     image: "${NGROK_IMAGE:?err}"
+    profiles: [tunnel-ngrok]
     depends_on:
       - gateway
     restart: on-failure
     ports:
       - "4040:4040"
     entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        if [ -z "$$NGROK_DOMAIN" ]; then
-          echo "ngrok: NGROK_DOMAIN unset — tunnel disabled, exiting cleanly."
-          exit 0
-        fi
-        exec ngrok http \
-          --domain="$$NGROK_DOMAIN" \
-          --upstream-protocol=http2 \
-          --log=stdout \
-          http://gateway:8443
+      - ngrok
+      - http
+      - --domain=${NGROK_DOMAIN:-}
+      - --upstream-protocol=http2
+      - --log=stdout
+      - http://gateway:8443
     environment:
-      NGROK_DOMAIN: "${NGROK_DOMAIN:-}"
       NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN:-}"
+
+  # network_mode: host so local_addr can reach gateway and host-bound sibling
+  # ports (e.g. makeitsing's LiveKit) via docker0. Downstream stacks override
+  # RATHOLE_SERVICES to register more services.
+  rathole-client:
+    image: "ghcr.io/outernet-foundation/placeframe/rathole-client:${RATHOLE_CLIENT_SHA:?err}"
+    profiles: [tunnel-rathole]
+    network_mode: host
+    restart: on-failure
+    environment:
+      ENGINEER_NAME: "${ENGINEER_NAME:-}"
+      TUNNEL_CONTROL_ENDPOINT: "${TUNNEL_CONTROL_ENDPOINT:-}"
+      TUNNEL_TOKEN: "${TUNNEL_TOKEN:-}"
+      RATHOLE_SERVICES: "gateway:tcp:${GATEWAY_PORT:?err}"
 
   database-migrator:
     image: "ghcr.io/outernet-foundation/placeframe/database-migrator:${DATABASE_MIGRATOR_SHA:?err}"
@@ -289,10 +296,29 @@ services:
       SERVICE_VERSION: "${LEASE_SERVER_SHA:?err}"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://alloy:4317"
 
+  # grafana/loki:3.5.0 ships /loki owned 1000:1000 but runs as uid 10001, so on a
+  # freshly-created loki_data volume (which Docker seeds with the image path's
+  # 1000:1000 ownership) loki cannot create its working subdirectories and dies
+  # with "mkdir /loki/compactor: permission denied". Fixing this in the image via
+  # a chown layer is unreliable: buildkit's registry cache does not round-trip a
+  # metadata-only (ownership) layer, so the chown survives in image history but
+  # has no filesystem effect once published. This sidecar reassigns the live
+  # volume at runtime instead, independent of image-layer and build-cache
+  # behavior. Reuses the loki image (busybox chown) so no extra image is pinned.
+  initialize-loki:
+    image: "ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA:?err}"
+    user: "0:0"
+    restart: "no"
+    volumes:
+      - loki_data:/loki
+    entrypoint: ["/bin/sh", "-c", "chown -R 10001:10001 /loki"]
+
   loki:
     image: "ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA:?err}"
     depends_on:
       initialize-minio:
+        condition: service_completed_successfully
+      initialize-loki:
         condition: service_completed_successfully
     volumes:
       - loki_data:/loki

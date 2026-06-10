@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using R3;
@@ -86,9 +87,9 @@ namespace Outernet.Logging
             ObservableSystem.RegisterUnhandledExceptionHandler(exception => Log<TLogGroup>.Error(exception, "R3 subscription unhandled exception"));
         }
 
-        public static void EnableLoki(string apiUrl, Func<UniTask<string>> tokenProvider)
+        public static void EnableLoki(string apiUrl, HttpMessageHandler authHandler)
         {
-            _lokiSink.Enable(apiUrl, tokenProvider);
+            _lokiSink.Enable(apiUrl, authHandler);
         }
 
         public static void Terminate()

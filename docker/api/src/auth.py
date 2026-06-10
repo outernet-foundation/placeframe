@@ -50,7 +50,7 @@ class AuthMiddleware(AbstractAuthenticationMiddleware):
         if settings.auth_mode == "disabled":
             identity = connection.headers.get("x-anonymous-identity")
             if not identity:
-                raise NotAuthorizedException("Missing X-Anonymous-Identity header")
+                raise NotAuthorizedException("Missing x-anonymous-identity header")
             return AuthenticationResult(user=identity, auth={"sub": identity})
 
         authorization = connection.headers.get("authorization")

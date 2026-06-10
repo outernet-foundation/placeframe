@@ -138,6 +138,7 @@ Class | Method | HTTP request | Description
 
  - [Model.StartCapture400Response](docs/StartCapture400Response.md)
  - [Model.StartCapture400ResponseExtra](docs/StartCapture400ResponseExtra.md)
+ - [Model.StartCaptureRequest](docs/StartCaptureRequest.md)
  - [Model.StopCaptureRequest](docs/StopCaptureRequest.md)
  - [Model.UpdateCaptureSessionRequest](docs/UpdateCaptureSessionRequest.md)
  - [Model.ZedCapture](docs/ZedCapture.md)

@@ -25,6 +25,7 @@ class Settings(BaseSettings):
 settings = Settings.model_validate({})
 
 LOCK_FILE = Path(".env.lock")
+ENV_SHAS_FILE = Path(".env.shas")
 COMPOSE_FILE = Path("compose.yml")
 DEFAULT_BAKE_FILE = Path("compose.bake.yml")
 METADATA_PATH = Path("metadata.json")
@@ -84,7 +85,11 @@ def _check_gc_limits(min_gb: int = 60):
     data = json.loads(config.read_text())
     raw = data.get("builder", {}).get("gc", {}).get("defaultKeepStorage")
     if not raw:
-        raise RuntimeError(f"Missing 'builder.gc.defaultKeepStorage' in {config}. Docker defaults are too low.")
+        sample = json.dumps({"builder": {"gc": {"defaultKeepStorage": f"{min_gb}GB"}}}, indent=2)
+        raise RuntimeError(
+            f"Missing 'builder.gc.defaultKeepStorage' in {config}; Docker's default is too low for GPU builds "
+            f"(need >= {min_gb}GB). Add the following (merging into any existing keys) and restart Docker:\n\n{sample}"
+        )
 
     m = re.match(r"^(\d+(?:\.\d+)?)\s*([TGMK]i?B)?$", str(raw), re.IGNORECASE)
     if not m:
@@ -148,6 +153,12 @@ def run_build(
 ) -> None:
     service_shas = compute_service_shas(Path.cwd(), bake_file)
     os.environ.update(service_shas)
+
+    # Tags of the images built this run — the local analog of .env.lock's pulled
+    # digests — so raw `docker compose` can resolve placeframe's ${*_SHA} holes.
+    ENV_SHAS_FILE.write_text(
+        "".join(f"{key}={value}\n" for key, value in sorted(service_shas.items())), encoding="utf-8"
+    )
 
     # Read bake, compose, and lock files
     bake_data: dict[str, Any] = yaml.safe_load(bake_file.read_text(encoding="utf-8"))

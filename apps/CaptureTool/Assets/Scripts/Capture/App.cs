@@ -49,8 +49,6 @@ namespace Placeframe.Client
 
             base.Awake();
 
-            App.state.placeframeAuthAudience.value = "placeframe-api";
-
             Instantiate(localizationMapManager);
 
 #if UNITY_EDITOR

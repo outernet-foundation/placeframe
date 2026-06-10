@@ -87,17 +87,12 @@ namespace Placeframe.Core
         }
 
         public static void Initialize(
-            string authAudience,
             Action<string> logInfo,
             Action<string> logWarning,
             Action<string> logError,
             Func<HttpMessageHandler> httpHandlerFactory = null
         )
         {
-            if (string.IsNullOrEmpty(authAudience))
-                throw new ArgumentException("authAudience must not be null or empty", nameof(authAudience));
-
-            AuthAudience = authAudience;
             LogInfo = logInfo;
             LogWarning = logWarning;
             LogError = logError;
@@ -105,12 +100,13 @@ namespace Placeframe.Core
             Initialized = true;
         }
 
-        public static async UniTask Login(string authTokenUrl, string username, string password)
+        public static async UniTask Login(string authTokenUrl, string clientId, string username, string password)
         {
             if (!Initialized)
                 throw new InvalidOperationException("Auth.Initialize() must be called before calling Login()");
 
             AuthTokenURL = authTokenUrl;
+            AuthAudience = clientId;
             Username = username;
             Password = password;
             await LoginInternal();

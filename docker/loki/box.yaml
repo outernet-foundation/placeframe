@@ -22,7 +22,9 @@ ingester:
       replication_factor: 1
 schema_config:
   configs:
-    - from: "2024-01-01"
+    # Epoch floor: the box has no RTC and boots at 1970, so a later floor crashes Loki
+    # on startup. The phone restamps to true wall-time at drain.
+    - from: "1970-01-01"
       store: tsdb
       object_store: filesystem
       schema: v13
@@ -37,5 +39,5 @@ limits_config:
   # 72h retention: long-weekend buffer if the phone is disconnected between
   # sessions. Box-Loki is a buffer for the phone-relay, not a long-term store.
   retention_period: 72h
-  reject_old_samples: true
-  reject_old_samples_max_age: 72h
+  # Off: at a 1970 boot every sample looks ancient; the phone corrects timestamps at drain.
+  reject_old_samples: false

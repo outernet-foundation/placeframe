@@ -40,7 +40,6 @@ namespace Placeframe.Client
                     {
                         var x = appState.settings;
                         x.apiUrl.value = null;
-                        x.useKeycloak.value = true;
                         x.username.value = "user";
                         x.password.value = "password";
                     });
@@ -59,8 +58,8 @@ namespace Placeframe.Client
 
             _initializing = false;
 
-            if (!App.state.settings.useKeycloak.value && !string.IsNullOrEmpty(App.state.settings.apiUrl.value))
-                App.state.loginRequested.value = true;
+            if (!string.IsNullOrEmpty(App.state.settings.apiUrl.value))
+                App.state.connectRequested.value = true;
         }
 
         public static void Shutdown()

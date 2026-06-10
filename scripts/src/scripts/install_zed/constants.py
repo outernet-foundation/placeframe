@@ -4,8 +4,9 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class ZedService:
-    # compose.rig.yml service key, image base name, and compose.zed.bake.yml target.
-    # These three are the same string by construction.
+    # Image base name and compose.zed.bake.yml target — the same string by
+    # construction. Not the compose.rig.yml service key: loki/alloy are baked as
+    # `loki`/`alloy` but keyed `aoa-loki`/`aoa-alloy` in the rig compose.
     name: str
     # Env var compose.rig.yml uses to override the image (`${X:-default}`). Asymmetric
     # with name (`zed-capture` → `ZED_IMAGE`, not `ZED_CAPTURE_IMAGE`), so listed explicitly.
@@ -14,22 +15,21 @@ class ZedService:
     sha_key: str
 
 
+# Every image the box runs is cross-built (arm64) by `install-zed --build` and
+# pushed to the host's local registry, or pulled from ghcr.io otherwise. loki
+# and alloy are placeframe-owned wrapper images (grafana base + baked config)
+# built here too, so a local change to their config or any shared build-context
+# file never desyncs from a registry that lacks the resulting tree-SHA.
 ZED_SERVICES: tuple[ZedService, ...] = (
     ZedService("zed-capture", "ZED_IMAGE", "ZED_CAPTURE_SHA"),
     ZedService("aoa-bridge", "AOA_BRIDGE_IMAGE", "AOA_BRIDGE_SHA"),
     ZedService("aoa-gateway", "AOA_GATEWAY_IMAGE", "AOA_GATEWAY_SHA"),
+    ZedService("loki", "LOKI_IMAGE", "LOKI_SHA"),
+    ZedService("alloy", "ALLOY_IMAGE", "ALLOY_SHA"),
 )
-
-# Placeframe-owned wrapper-image SHAs that compose.rig.yml references via
-# `${KEY:?err}`. install_zed lifts these from the host's resolved service_shas
-# and forwards them to the box's .env so the box pulls the same digest-pinned
-# versions the host uses. The wrapper images are multi-arch (linux/amd64 +
-# linux/arm64); the box pulls the arm64 variant.
-ZED_UPSTREAM_IMAGE_KEYS: tuple[str, ...] = ("LOKI_SHA", "ALLOY_SHA")
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 BAKE_FILE = REPO_ROOT / "compose.zed.bake.yml"
-ENV_LOCK_FILE = REPO_ROOT / ".env.lock"
 COMPOSE_SOURCE = REPO_ROOT / "docker" / "zed-capture" / "compose.rig.yml"
 SYSTEMD_UNIT_SOURCE = REPO_ROOT / "docker" / "zed-capture" / "placeframe-zed.service"
 WAIT_FOR_ZED_CAMERA_SOURCE = REPO_ROOT / "docker" / "zed-capture" / "wait_for_zed_camera.py"
@@ -66,6 +66,13 @@ REGISTRY_IMAGE = "registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace
 REGISTRY_PORT = 5000
 
 DHCP_LEASE_WAIT_SECONDS = 60
+
+# share_host_internet() bounces the host's NM link to the box immediately
+# before install_box probes it. Gigabit autoneg plus NM activation can leave
+# the box unreachable for a few seconds even though it holds a permanent static
+# address, so the reachability probe polls for this long before concluding the
+# box is absent and falling back to first-contact DHCP bootstrap.
+BOX_REACHABLE_PROBE_SECONDS = 20
 
 SUDOERS_RULE = (
     "user ALL=(ALL) NOPASSWD: /usr/bin/dpkg, /usr/sbin/usermod, /usr/bin/nvidia-ctk,"
