@@ -4,8 +4,8 @@ using Cysharp.Threading.Tasks;
 
 #if !UNITY_EDITOR && UNITY_ANDROID
 using System.Collections.Generic;
+using System.Globalization;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text;
 using FofX;
 using Newtonsoft.Json;
@@ -42,11 +42,13 @@ public static class LogDrainController
     private const float logDrainIdlePollIntervalSeconds = 5f;
     private static readonly TimeSpan logDrainMaxLookback = TimeSpan.FromHours(1);
 
-    // LogQL matcher selecting every stream box-Alloy writes to box-Loki. Alloy
-    // assigns `service` from each container's compose-service label, so this
-    // matches all box containers without an explicit allowlist.
-    private const string boxLokiQuery = "{service=~\".+\"}";
+    // LogQL matcher selecting every stream box-Alloy writes to box-Loki. The
+    // OTLP pipeline maps each container's `service.name` resource attribute to
+    // the `service_name` label, so this matches all box containers without an
+    // explicit allowlist.
+    private const string boxLokiQuery = "{service_name=~\".+\"}";
     private const string boxLokiQueryPath = "/loki/api/v1/query_range";
+    private const string boxLokiBuildInfoPath = "/loki/api/v1/status/buildinfo";
     private const string hostLokiPushPath = "/loki/api/v1/push";
 
     private static HttpClient boxHttpClient;
@@ -78,7 +80,6 @@ public static class LogDrainController
             throw new InvalidOperationException("LogDrainController.Initialize already called");
 
         boxHttpClient = ZedCaptureController.AoaHttpClient;
-        hostLokiHttpClient = new HttpClient(new HttpClientHandler());
 
         // TODO(ObserveThing): explicit lambda parameter type is a workaround for an
         // overload-resolution gap. StateValue<T> implements both IValueObservable<T>
@@ -108,17 +109,10 @@ public static class LogDrainController
         if (!App.state.loggedIn.value)
             return;
 
-        if (!logDrainCursorInitialized)
-        {
-            logDrainCursorNs = ToUnixNanos(DateTime.UtcNow);
-            logDrainCursorInitialized = true;
-        }
-        else
-        {
-            long maxLookbackNs = ToUnixNanos(DateTime.UtcNow - logDrainMaxLookback);
-            if (logDrainCursorNs < maxLookbackNs)
-                logDrainCursorNs = maxLookbackNs;
-        }
+        // Built here, not in Initialize, because the backend auth handler reads the AuthMode and
+        // (under keycloak) the token minted by login — neither exists until we are logged in.
+        hostLokiHttpClient?.Dispose();
+        hostLokiHttpClient = new HttpClient(VisualPositioningSystem.CreateBackendAuthHandler(App.state.serverInfo.value));
 
         logDrainTask = TaskHandle.Execute(LogDrainLoop);
     }
@@ -148,15 +142,49 @@ public static class LogDrainController
 
     private static async UniTask<bool> LogDrainOnce(CancellationToken cancellationToken)
     {
+        // box-Loki stamps entries with the box clock (boots at 1970, no RTC), so the window
+        // below is box time, not phone time. Read the box clock from buildinfo's Date header —
+        // it takes no time params, so it is safe at any clock (a windowed query misparses a 1970
+        // clock into a 30d-limit rejection). Entries are converted back to phone time only at push.
+        long boxNowNs;
+        string clockUrl = new Uri(boxHttpClient.BaseAddress, boxLokiBuildInfoPath).ToString();
+        using (var clockRequest = new HttpRequestMessage(HttpMethod.Get, clockUrl))
+        using (var clockResponse = await boxHttpClient.SendAsync(clockRequest, cancellationToken))
+        {
+            clockResponse.EnsureSuccessStatusCode();
+            DateTimeOffset boxNow =
+                clockResponse.Headers.Date
+                ?? throw new InvalidOperationException("box response missing Date header; cannot anchor drain to box clock");
+            boxNowNs = ToUnixNanos(boxNow.UtcDateTime);
+        }
+
+        long restampOffsetNs = ToUnixNanos(DateTime.UtcNow) - boxNowNs;
+
+        if (!logDrainCursorInitialized)
+        {
+            logDrainCursorNs = boxNowNs;
+            logDrainCursorInitialized = true;
+        }
+        else
+        {
+            long maxLookbackNs = boxNowNs - logDrainMaxLookback.Ticks * 100;
+            if (logDrainCursorNs < maxLookbackNs)
+                logDrainCursorNs = maxLookbackNs;
+        }
+
         long startNs = logDrainCursorNs;
-        long endNs = ToUnixNanos(DateTime.UtcNow);
+        long endNs = boxNowNs;
         if (endNs <= startNs)
             return false;
 
-        // Query box-Loki via box-Caddy over the AOA pipe.
+        // Query box-Loki via box-Caddy over the AOA pipe, in box time. start/end go as RFC3339Nano,
+        // not integer nanoseconds: Loki reads a small integer (a near-epoch 1970 boot clock) as
+        // seconds, inflating the window past its 30-day max and rejecting the query with 400.
         string queryUrl = new Uri(boxHttpClient.BaseAddress, boxLokiQueryPath)
             + $"?query={Uri.EscapeDataString(boxLokiQuery)}"
-            + $"&start={startNs}&end={endNs}&limit={logDrainBatchLimit}&direction=forward";
+            + $"&start={Uri.EscapeDataString(ToRfc3339Nano(startNs))}"
+            + $"&end={Uri.EscapeDataString(ToRfc3339Nano(endNs))}"
+            + $"&limit={logDrainBatchLimit}&direction=forward";
 
         LokiQueryResponse parsed;
         using (var queryRequest = new HttpRequestMessage(HttpMethod.Get, queryUrl))
@@ -181,8 +209,14 @@ public static class LogDrainController
             {
                 if (pair.Count < 2)
                     continue;
-                if (long.TryParse(pair[0], out long timestampNs) && timestampNs > maxNs)
-                    maxNs = timestampNs;
+                if (long.TryParse(pair[0], out long timestampNs))
+                {
+                    // Cursor stays in box time (it queries box-Loki); only the pushed copy is restamped.
+                    if (timestampNs > maxNs)
+                        maxNs = timestampNs;
+                    pair[0] = (timestampNs + restampOffsetNs).ToString(CultureInfo.InvariantCulture);
+                }
+
                 entryCount++;
             }
         }
@@ -190,15 +224,14 @@ public static class LogDrainController
         if (entryCount == 0)
             return false;
 
-        // Push Loki-shaped streams verbatim to host-Loki through host-Caddy.
+        // Push to host-Loki through host-Caddy. Timestamps are restamped to phone time above;
+        // labels are untouched. hostLokiHttpClient carries the backend auth policy in its handler.
         string apiUrl = App.state.settings.apiUrl.value;
         string pushUrl = $"{apiUrl}{hostLokiPushPath}";
         string pushBody = JsonConvert.SerializeObject(new { streams });
-        string token = await Auth.GetOrRefreshToken();
 
         using (var pushRequest = new HttpRequestMessage(HttpMethod.Post, pushUrl))
         {
-            pushRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             pushRequest.Content = new StringContent(pushBody, Encoding.UTF8, "application/json");
             using var pushResponse = await hostLokiHttpClient.SendAsync(pushRequest, cancellationToken);
             pushResponse.EnsureSuccessStatusCode();
@@ -212,5 +245,16 @@ public static class LogDrainController
     private static readonly long unixEpochTicks = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
 
     private static long ToUnixNanos(DateTime utc) => (utc.Ticks - unixEpochTicks) * 100;
+
+    private static string ToRfc3339Nano(long unixNanos)
+    {
+        long seconds = unixNanos / 1_000_000_000L;
+        long nanos = unixNanos % 1_000_000_000L;
+        DateTime utc = DateTimeOffset.FromUnixTimeSeconds(seconds).UtcDateTime;
+        return utc.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)
+            + "."
+            + nanos.ToString("D9", CultureInfo.InvariantCulture)
+            + "Z";
+    }
 #endif
 }
