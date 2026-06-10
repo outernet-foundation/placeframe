@@ -47,6 +47,24 @@ def share_host_internet() -> None:
     if firewalld_dirty:
         bash("sudo firewall-cmd --reload")
 
+    # firewalld's masquerade never fires for the box if Docker's FORWARD chain
+    # drops the packet first: Docker sets the FORWARD policy to DROP and only
+    # accepts traffic to/from its own bridges, so box->internet forwarding falls
+    # through to that drop. DOCKER-USER is the chain Docker consults before its
+    # own rules and leaves to operators; accept the box subnet in both directions
+    # so forwarded traffic and its return path survive. Skipped when Docker isn't
+    # installed (no DOCKER-USER chain), where forwarding works without it.
+    if not bash_check("sudo iptables -S DOCKER-USER"):
+        return
+
+    for flag in ("-s", "-d"):
+        rule = f"DOCKER-USER {flag} {BOX_SUBNET} -j ACCEPT"
+        if bash_check(f"sudo iptables -C {rule}"):
+            logger.info("docker_forward_rule_present", extra={"flag": flag, "subnet": BOX_SUBNET})
+        else:
+            logger.info("allowing_box_through_docker_forward", extra={"flag": flag, "subnet": BOX_SUBNET})
+            bash(f"sudo iptables -I {rule}")
+
 
 def set_host_link_method(method: Literal["shared", "manual"]) -> None:
     existing_profiles = bash_output("nmcli -t -e no -f NAME con show").strip().splitlines()
@@ -63,8 +81,8 @@ def set_host_link_method(method: Literal["shared", "manual"]) -> None:
             device, device_type, state = line.split(":", 2)
             if device_type != "ethernet" or state == "unmanaged":
                 continue
-            carrier = bash_output(f"nmcli -t -g GENERAL.CARRIER device show {device}").strip()
-            if carrier != "on":
+            carrier = Path(f"/sys/class/net/{device}/carrier").read_text().strip()
+            if carrier != "1":
                 continue
             connection = bash_output(f"nmcli -t -g GENERAL.CONNECTION device show {device}").strip()
             if connection not in ("", "--") and not connection.startswith("Wired connection"):

@@ -20,7 +20,13 @@ services:
       DEPLOYMENT_ENVIRONMENT: production
       SERVICE_VERSION: ${ZED_CAPTURE_SHA:?err}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://127.0.0.1:4317
-    restart: unless-stopped
+    # "no" so dockerd never starts a container on its own. Any policy other than
+    # "no" makes dockerd restart a was-running container on daemon startup (after
+    # an unclean power-cut the container object survives in running state), which
+    # happens during daemon init — before and independent of systemd ordering, so
+    # it bypasses placeframe-zed.service's readiness gate entirely. "no" makes the
+    # gated unit the sole starter: nothing comes up until the camera is ready.
+    restart: "no"
 
   # Caddy sidecar terminating h2c (HTTP/2 cleartext, prior-knowledge) on 9000
   # and reverse-proxying HTTP/1.1 to uvicorn on 127.0.0.1:9001. Required so the
@@ -34,7 +40,7 @@ services:
       # frame sent or received on stderr; aoa-alloy receives OTLP from the host
       # network namespace and forwards to local box-Loki.
       GODEBUG: http2debug=2
-    restart: unless-stopped
+    restart: "no"
 
   # privileged + bind-mounted /dev/bus/usb for pyusb. network_mode: host so
   # 127.0.0.1 resolves to aoa-gateway's bound port. The bind mount uses
@@ -49,7 +55,7 @@ services:
     volumes:
       - /dev/bus/usb:/dev/bus/usb:rslave
       - zed-logs:/var/log/zed-capture
-    restart: unless-stopped
+    restart: "no"
 
   # Box-side Loki: monolithic mode, filesystem storage, 72h retention. Buffer
   # between aoa-alloy (writes) and the phone-relay (reads through box-Caddy's
@@ -58,24 +64,24 @@ services:
   # box-specific config is baked at /etc/loki/box.yaml alongside the main
   # stack's /etc/loki/config.yaml — command picks the right one.
   aoa-loki:
-    image: ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA:?err}
+    image: ${LOKI_IMAGE:-ghcr.io/outernet-foundation/placeframe/loki:${LOKI_SHA:?err}}
     network_mode: host
     volumes:
       - aoa-loki:/loki
     command: -config.file=/etc/loki/box.yaml
-    restart: unless-stopped
+    restart: "no"
 
   # Box-side Alloy: receives OTLP from zed-capture and aoa-gateway, forwards
   # to aoa-loki. Reuses the placeframe-owned Alloy wrapper image — the config
   # baked at /etc/alloy/config.alloy is identical to the main stack's;
   # LOKI_WRITE_ENDPOINT drives the only per-stack difference.
   aoa-alloy:
-    image: ghcr.io/outernet-foundation/placeframe/alloy:${ALLOY_SHA:?err}
+    image: ${ALLOY_IMAGE:-ghcr.io/outernet-foundation/placeframe/alloy:${ALLOY_SHA:?err}}
     network_mode: host
     environment:
       LOKI_WRITE_ENDPOINT: http://127.0.0.1:3100/loki/api/v1/push
     command: run /etc/alloy/config.alloy --server.http.listen-addr=127.0.0.1:12345
-    restart: unless-stopped
+    restart: "no"
 
 volumes:
   captures:
