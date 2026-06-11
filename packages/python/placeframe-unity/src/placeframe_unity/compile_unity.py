@@ -46,4 +46,6 @@ def compile_unity(
 def snapshot_artifacts(build_directory: Path) -> dict[Path, int]:
     if not build_directory.is_dir():
         return {}
-    return {p: p.stat().st_mtime_ns for p in build_directory.iterdir() if p.suffix in {".apk", ".exe"}}
+    return {
+        path: path.stat().st_mtime_ns for suffix in (".apk", ".exe") for path in build_directory.rglob(f"*{suffix}")
+    }
