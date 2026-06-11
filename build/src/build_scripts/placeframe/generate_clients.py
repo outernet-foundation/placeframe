@@ -1,3 +1,4 @@
+import hashlib
 import json
 from os import environ, walk
 from pathlib import Path
@@ -180,6 +181,23 @@ def _generate_client(openapi_spec: str, project: str, client: str):
             )
             # Tell the C# compiler to enable nullable annotations
             (temporary_directory / "src" / client_package_name_camel / "csc.rsp").write_text("-nullable:annotations")
+
+            # Preserve the client assembly and the attribute-referenced StringEnumConverter from
+            # IL2CPP stripping; their reflection-only ctors are otherwise removed, breaking Newtonsoft
+            # deserialization in stripped builds. GUID derives from the package name for a stable meta.
+            link_guid = hashlib.md5(f"{client_package_name_camel}/link.xml".encode(), usedforsecurity=False).hexdigest()
+            (temporary_directory / "src" / client_package_name_camel / "link.xml").write_text(
+                "<linker>\n"
+                f'  <assembly fullname="{client_package_name_camel}" preserve="all" />\n'
+                '  <assembly fullname="Newtonsoft.Json">\n'
+                '    <type fullname="Newtonsoft.Json.Converters.StringEnumConverter" preserve="all" />\n'
+                "  </assembly>\n"
+                "</linker>\n"
+            )
+            (temporary_directory / "src" / client_package_name_camel / "link.xml.meta").write_text(
+                f"fileFormatVersion: 2\nguid: {link_guid}\n"
+                "TextScriptImporter:\n  externalObjects: {}\n  userData:\n  assetBundleName:\n  assetBundleVariant:\n"
+            )
 
             # Strip MSBuild project files: Unity consumes via .asmdef, not csproj.
             # Leaving them in the UPM package lets IDEs auto-build inside the
