@@ -84,9 +84,8 @@ namespace Placeframe.Client
                 ObservableCombineValues(
                     App.state.loggedIn,
                     App.state.captureStatus,
-                    App.state.zedReachable,
-                    (loggedIn, captureStatus, zedReachable) =>
-                        loggedIn && captureStatus == CaptureStatus.Idle && zedReachable)
+                    (loggedIn, captureStatus) =>
+                        loggedIn && captureStatus == CaptureStatus.Idle)
                     .Subscribe(shouldRefresh =>
                     {
                         if (shouldRefresh && _idleRefreshTimerSubscription == null)
