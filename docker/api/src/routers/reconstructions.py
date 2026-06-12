@@ -24,13 +24,18 @@ from core.reconstruction_manifest import MANIFEST_VERSION, Manifest
 from core.reconstruction_metrics import ReconstructionMetrics
 from core.reconstruction_options import ReconstructionOptions
 from datamodels.public_dtos import (
+    CaptureSessionCreate,
+    LocalizationMapCreate,
     ReconstructionCreate,
     ReconstructionRead,
+    capture_session_from_dto,
+    localization_map_from_dto,
     reconstruction_from_dto,
     reconstruction_to_dto,
 )
 from datamodels.public_tables import (
     CaptureSession,
+    DeviceType,
     LocalizationMap,
     Reconstruction,
     ReconstructionStatus,
@@ -472,14 +477,43 @@ async def import_reconstruction_tar(
             settings.reconstructions_bucket, f"{prefix}{name}", cast(BinaryIO, member), "application/octet-stream"
         )
 
-    # capture_session_id stays NULL: an imported reconstruction has no source capture on this backend.
+    # An imported reconstruction has no source capture on this backend, but the capture tool only
+    # discovers reconstructions that hang off a capture session (via /capture_sessions/expanded) and
+    # only offers them for validation once a localization map exists. Synthesize a stand-in capture
+    # session and an identity-pose map so an imported map is immediately selectable on the validation
+    # page. The map name and capture-session name come from the uploaded tar's filename.
+    import_name = (data.data.filename or str(reconstruction_id)).removesuffix(".tar")
     inserted = False
     try:
+        capture_session_row = capture_session_from_dto(
+            CaptureSessionCreate(name=import_name, device_type=DeviceType.ZED)
+        )
+        session.add(capture_session_row)
+        await session.flush()
+
         reconstruction_row = reconstruction_from_dto(ReconstructionCreate(id=reconstruction_id))
         reconstruction_row.status = ReconstructionStatus.SUCCEEDED
+        reconstruction_row.capture_session_id = capture_session_row.id
         reconstruction_row.manifest = reconstruction.manifest
         reconstruction_row.manifest_version = reconstruction.manifest_version
         session.add(reconstruction_row)
+        await session.flush()
+
+        map_row = localization_map_from_dto(
+            LocalizationMapCreate(
+                reconstruction_id=reconstruction_id,
+                name=import_name,
+                position_x=0.0,
+                position_y=0.0,
+                position_z=0.0,
+                rotation_x=0.0,
+                rotation_y=0.0,
+                rotation_z=0.0,
+                rotation_w=1.0,
+                color=0,
+            )
+        )
+        session.add(map_row)
         await session.flush()
         inserted = True
     finally:
