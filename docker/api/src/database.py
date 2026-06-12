@@ -11,12 +11,8 @@ from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from .constants import SHARED_ANONYMOUS_TENANT
 from .settings import get_settings
-
-# Disabled-auth mode pins every anonymous device to one shared tenant so a map captured on one
-# phone is visible to another. The nil UUID is a sentinel the personal-tenant trigger's
-# gen_random_uuid() can never emit, so it cannot collide with a real personal tenant.
-SHARED_ANONYMOUS_TENANT = UUID("00000000-0000-0000-0000-000000000000")
 
 if os.environ.get("CODEGEN"):
 

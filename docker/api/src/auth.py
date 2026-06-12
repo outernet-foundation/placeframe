@@ -14,6 +14,7 @@ from litestar.middleware import AbstractAuthenticationMiddleware, Authentication
 from litestar.types import ASGIApp
 from pydantic import BaseModel, ConfigDict
 
+from .constants import SHARED_ANONYMOUS_USER
 from .settings import get_settings
 
 settings = get_settings()
@@ -48,9 +49,7 @@ class AuthMiddleware(AbstractAuthenticationMiddleware):
 
     async def authenticate_request(self, connection: ASGIConnection[Any, Any, Any, Any]) -> AuthenticationResult:
         if settings.auth_mode == "disabled":
-            identity = connection.headers.get("x-anonymous-identity")
-            if not identity:
-                raise NotAuthorizedException("Missing x-anonymous-identity header")
+            identity = str(SHARED_ANONYMOUS_USER)
             return AuthenticationResult(user=identity, auth={"sub": identity})
 
         authorization = connection.headers.get("authorization")
