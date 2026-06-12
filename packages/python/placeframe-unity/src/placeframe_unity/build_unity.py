@@ -71,7 +71,10 @@ def main(
         prepare_unity_project(unity_project_path)
 
     with ci_step(f"Build {unity_project_path.name} [{platform}]"):
-        command = f"{unity_batchmode_command(unity_project_path)} {build_flag} -executeMethod {execute_method}"
+        command = (
+            f"{unity_batchmode_command(unity_project_path, nographics=False)} "
+            f"{build_flag} -executeMethod {execute_method}"
+        )
 
         tag_prefix = project_config.tag_prefix
         if tag_prefix:

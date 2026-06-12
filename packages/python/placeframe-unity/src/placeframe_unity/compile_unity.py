@@ -18,7 +18,8 @@ def build_unity_project(project: str, build: str) -> list[Path]:
     before = snapshot_artifacts(build_directory)
 
     command = (
-        f"{unity_batchmode_command(project_path)} {build_flag} -executeMethod {execute_method} -logFile /dev/stdout"
+        f"{unity_batchmode_command(project_path, nographics=False)} {build_flag} "
+        f"-executeMethod {execute_method} -logFile /dev/stdout"
     )
     if not bash_check_stream(command):
         raise SystemExit(1)

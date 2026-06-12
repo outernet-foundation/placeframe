@@ -67,9 +67,13 @@ def prepare_unity_project(project_path: Path) -> None:
     bash(f"dotnet nugetforunity restore {project_path}")
 
 
-def unity_batchmode_command(project_path: Path) -> str:
+def unity_batchmode_command(project_path: Path, nographics: bool = True) -> str:
     editor = find_unity_editor(project_path)
-    command = f"{editor} -batchmode -nographics -quit -projectPath {project_path.resolve()}"
+    # Player builds need a real GfxDevice: Unity 6 compresses Android textures (ASTC/ETC2) on the
+    # GPU, and under -nographics the Null device falls back to a path that produces corrupt textures.
+    # xvfb-run (added below) supplies the display the dropped -nographics would otherwise stand in for.
+    graphics_flag = " -nographics" if nographics else ""
+    command = f"{editor} -batchmode{graphics_flag} -quit -projectPath {project_path.resolve()}"
     if sys.platform != "win32":
         if shutil.which("xvfb-run"):
             command = f"xvfb-run {command}"
