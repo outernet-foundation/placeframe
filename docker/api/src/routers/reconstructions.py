@@ -53,6 +53,7 @@ from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..camera_positions import sync_camera_positions
 from ..database import get_session
 from ..settings import get_settings
 from ..storage import get_storage
@@ -515,6 +516,7 @@ async def import_reconstruction_tar(
         )
         session.add(map_row)
         await session.flush()
+        await sync_camera_positions(session, map_row)
         inserted = True
     finally:
         if not inserted:
