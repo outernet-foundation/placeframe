@@ -22,19 +22,13 @@ namespace Placeframe.Core
     public struct FilterHealth
     {
         public bool LocalizationLost;
-        public int ConsecutiveRejections;
         public float SecondsSinceLastAccept;
-        public MeasurementRejection LastRejectionReason;
-        public double LastInnovationMahalanobisSquared;
 
         public static FilterHealth Snapshot() =>
             new FilterHealth
             {
                 LocalizationLost = VisualPositioningSystem.IsLocalizationLost,
-                ConsecutiveRejections = VisualPositioningSystem.ConsecutiveRejections,
                 SecondsSinceLastAccept = VisualPositioningSystem.SecondsSinceLastAccept,
-                LastRejectionReason = VisualPositioningSystem.LastRejectionReason,
-                LastInnovationMahalanobisSquared = VisualPositioningSystem.LastInnovationMahalanobisSquared,
             };
     }
 
@@ -45,16 +39,14 @@ namespace Placeframe.Core
         private static Action<string> _errorCallback;
         private static Func<HttpMessageHandler> _httpHandlerFactory;
         private static IDisposable _localizationSubscription;
-        private static IDisposable _slewSubscription;
+        private static IDisposable _driftCorrectionSubscription;
         private static HashSet<Guid> _maps = new HashSet<Guid>();
         private static LocalizationMapManager _localizationMapManager;
         private static bool _visualizationsVisible = true;
         private static ICameraProvider _cameraProvider;
 
-        private static FilterState _state = RelocalizationFilter.InitialState();
-
-        private const int LockupRejectionThreshold = 5;
-        private const float LockupSecondsThreshold = 5f;
+        private static readonly MultiHypothesisFilter _filter = new MultiHypothesisFilter();
+        private static readonly DriftCorrectionController _controller = new DriftCorrectionController();
 
         // Discovery is a single quick GET; unlike the long-lived API client (whose timeout is
         // infinite so uploads/reconstructions aren't cut off), it needs a finite bound so an
@@ -63,30 +55,15 @@ namespace Placeframe.Core
 
         private static float _lastAcceptedTime = -1f;
 
-        // Diagnostic bypass switches surfaced as toggles in the metrics dialog. Flipped at
-        // runtime to A/B individual pipeline stages against the same camera feed without a
-        // rebuild. Neither gates the early-out behavior of StartLocalizing — both only affect
-        // per-measurement processing in Localize/ApplyMeasurement.
-        public static bool BypassInnovationGate;
-        public static bool BypassKalman;
-
         public static DefaultApi Api { get; private set; }
-        public static LocalizationMetrics MostRecentMetrics => _state.MostRecentMetrics;
-        public static LocalizationMetrics LastReceivedMetrics { get; private set; }
         public static bool Localizing => _localizationSubscription != null;
         public static int LoadedMapCount => _maps.Count;
-        public static double4x4 EcefToUnityWorldTransform => _state.AlignmentCurrent;
-        public static double4x4 UnityWorldToEcefTransform => _state.AlignmentCurrentInverse;
+        public static double4x4 EcefToUnityWorldTransform => _controller.Current;
+        public static double4x4 UnityWorldToEcefTransform => _controller.CurrentInverse;
         public static event Action OnEcefToUnityWorldTransformUpdated;
-        public static event Action OnMetricsReceived;
-        public static AlignmentUncertainty CurrentUncertainty => RelocalizationFilter.SummariseCovariance(_state.AlignmentCovariance);
 
-        public static int ConsecutiveRejections => _state.ConsecutiveRejections;
-        public static MeasurementRejection LastRejectionReason { get; private set; }
-        public static double LastInnovationMahalanobisSquared { get; private set; }
         public static float SecondsSinceLastAccept => _lastAcceptedTime < 0f ? float.PositiveInfinity : Time.realtimeSinceStartup - _lastAcceptedTime;
-        public static bool IsLocalizationLost =>
-            Localizing && (ConsecutiveRejections > LockupRejectionThreshold || SecondsSinceLastAccept > LockupSecondsThreshold);
+        public static bool IsLocalizationLost => Localizing && SecondsSinceLastAccept > RelocalizationConfig.LocalizationLostSeconds;
 
         public static void SetMapVisualizationsVisible(bool visible)
         {
@@ -119,9 +96,9 @@ namespace Placeframe.Core
             Auth.Initialize(logCallback, warnCallback, errorCallback, httpHandlerFactory);
 
             _cameraProvider = cameraProvider;
-            _slewSubscription = Observable
+            _driftCorrectionSubscription = Observable
                 .EveryUpdate(UnityFrameProvider.Update)
-                .Subscribe(_ => ApplyStepResult(RelocalizationFilter.TickSlew(_state, Time.deltaTime)));
+                .Subscribe(_ => PublishIfChanged(_controller.Advance(Time.deltaTime)));
         }
 
         // Caller passes the full apiUrl (e.g. https://x.ngrok-free.app or http://192.168.1.100:58080).
@@ -232,11 +209,11 @@ namespace Placeframe.Core
             if (_maps.Count == 0)
                 throw new InvalidOperationException("VisualPositioningSystem has no maps loaded; call SetLocalizationMaps or AddLocalizationMap first");
 
-            // Re-bootstrap filter history so a Stop→Start cycle is a real recovery, not a no-op against a locked posterior.
-            ApplyStepResult(RelocalizationFilter.Reset(_state, _state.AlignmentCurrent));
+            // Re-bootstrap so a Stop→Start cycle is a real recovery: drop every hypothesis and let the
+            // next measurement bootstrap a fresh one. The rendered frame holds where it is until then.
+            _filter.Reset();
+            PublishIfChanged(true);
             _lastAcceptedTime = -1f;
-            LastRejectionReason = MeasurementRejection.None;
-            LastInnovationMahalanobisSquared = 0.0;
 
             _localizationSubscription = _cameraProvider
                 // Get camera configuration asynchronously
@@ -247,8 +224,8 @@ namespace Placeframe.Core
                 .SubscribeAwait(
                     async (data, cancellationToken) => await Localize(data.cameraConfig, data.frame, cancellationToken),
                     // Localize throws for empty server responses and for the in-flight race where the last map is
-                    // removed mid-frame; per-measurement filter rejections (confidence floor, innovation gate) are
-                    // silent log-and-skip inside ApplyMeasurement.
+                    // removed mid-frame; a measurement that fails the quality gate is not an exception — it comes
+                    // back as a Reject result that the structured log line records on the normal path.
                     onErrorResume: exception => LogDebug(exception.Message),
                     onCompleted: _ => { },
                     // Skip frames if they pile up
@@ -304,81 +281,35 @@ namespace Placeframe.Core
 
             await UniTask.SwitchToMainThread();
 
-            LastReceivedMetrics = localizationResult.Metrics;
-            OnMetricsReceived?.Invoke();
+            var now = Time.realtimeSinceStartup;
+            var outcome = _filter.ApplyMeasurement(localizationResult, frame, now);
 
-            var priorTranslation = _state.AlignmentMean.Position();
-            var options = new ApplyMeasurementOptions { BypassInnovationGate = BypassInnovationGate, BypassKalman = BypassKalman };
+            if (outcome != MeasurementOutcome.Rejected)
+                _lastAcceptedTime = now;
 
-            var result = RelocalizationFilter.ApplyMeasurement(_state, localizationResult, frame, options);
-
-            LastRejectionReason = result.Rejection;
-            LastInnovationMahalanobisSquared = result.InnovationMahalanobisSquared;
-            if (result.Rejection == MeasurementRejection.None)
-                _lastAcceptedTime = Time.realtimeSinceStartup;
-
-            var measurement = result.Measurement;
-            var residual = result.InnovationResidual;
-            var sigma = result.SigmaPredicted;
-            var posteriorTranslation = result.NewState.AlignmentMean.Position();
-            var bypassTag = BypassFlagsTag();
-            var stepResult = result.Rejection == MeasurementRejection.None ? "accept" : "reject";
-            var reason = result.Rejection switch
+            // Bootstrap sets the rendered frame outright; thereafter the controller decides — against its
+            // motion-decaying deadband — whether the new belief has drifted far enough to ease toward. A
+            // quality-gate rejection touches neither.
+            if (outcome == MeasurementOutcome.Bootstrapped)
             {
-                MeasurementRejection.None => "ok",
-                MeasurementRejection.InnovationGate => "innovationGate",
-                _ => "unknown",
-            };
-            LogDebug(
-                $"step=loc.measure result={stepResult} reason={reason}"
-                    + $" hadAccept={result.HadAcceptedMeasurementBeforeStep}"
-                    + $" snapped={result.Snapped} bypass={bypassTag}"
-                    + $" mahalanobisSq={result.InnovationMahalanobisSquared:F4}"
-                    + $" gateThresh={RelocalizationFilter.Chi2_99_6dof:F2}"
-                    + $" tilt={measurement.TiltRadians:F4}"
-                    + $" measTx={measurement.Translation.x:F3}"
-                    + $" measTy={measurement.Translation.y:F3}"
-                    + $" measTz={measurement.Translation.z:F3}"
-                    + $" priorTx={priorTranslation.x:F3}"
-                    + $" priorTy={priorTranslation.y:F3}"
-                    + $" priorTz={priorTranslation.z:F3}"
-                    + $" postTx={posteriorTranslation.x:F3}"
-                    + $" postTy={posteriorTranslation.y:F3}"
-                    + $" postTz={posteriorTranslation.z:F3}"
-                    + $" resRx={residual[0]:F4}"
-                    + $" resRy={residual[1]:F4}"
-                    + $" resRz={residual[2]:F4}"
-                    + $" resTx={residual[3]:F3}"
-                    + $" resTy={residual[4]:F3}"
-                    + $" resTz={residual[5]:F3}"
-                    + $" sigRx={sigma[0, 0]:E2}"
-                    + $" sigRy={sigma[1, 1]:E2}"
-                    + $" sigRz={sigma[2, 2]:E2}"
-                    + $" sigTx={sigma[3, 3]:E2}"
-                    + $" sigTy={sigma[4, 4]:E2}"
-                    + $" sigTz={sigma[5, 5]:E2}"
-            );
-
-            ApplyStepResult(result);
+                _controller.Set(_filter.BestEstimate, now);
+                PublishIfChanged(true);
+            }
+            else if (outcome == MeasurementOutcome.Accepted)
+            {
+                var vioPosition = (double3)(float3)frame.CameraTranslationUnityWorldFromCamera;
+                var vioRotation = (quaternion)frame.CameraRotationUnityWorldFromCamera;
+                _controller.Observe(_filter.BestEstimate, vioPosition, vioRotation, now);
+            }
 
             return Unit.Default;
         }
 
-        private static string BypassFlagsTag()
-        {
-            if (!BypassInnovationGate && !BypassKalman)
-                return "none";
-            var parts = new List<string>();
-            if (BypassInnovationGate)
-                parts.Add("gate");
-            if (BypassKalman)
-                parts.Add("kalman");
-            return string.Join("+", parts);
-        }
-
         public static void SetEcefToUnityTransform(double4x4 ecefToUnityTransform)
         {
-            ApplyStepResult(RelocalizationFilter.Reset(_state, ecefToUnityTransform));
+            _filter.Reset();
+            _controller.Set(ecefToUnityTransform, Time.realtimeSinceStartup);
+            PublishIfChanged(true);
         }
 
         public static UniTask<List<LocalizationMapRead>> GetLocalizationMaps(
@@ -461,10 +392,9 @@ namespace Placeframe.Core
             public Color32 color;
         }
 
-        private static void ApplyStepResult(StepResult result)
+        private static void PublishIfChanged(bool transformChanged)
         {
-            _state = result.NewState;
-            if (result.TransformChanged)
+            if (transformChanged)
                 OnEcefToUnityWorldTransformUpdated?.Invoke();
         }
 

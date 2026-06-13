@@ -319,8 +319,6 @@ namespace Placeframe.Client
         public static IControl LocalizationMetricsDialog(LocalizationMetricsDialogProps props)
         {
             var filterHealth = new ObservableValue<FilterHealth>(FilterHealth.Snapshot());
-            var bypassInnovationGate = new ObservableValue<bool>(VisualPositioningSystem.BypassInnovationGate);
-            var bypassKalman = new ObservableValue<bool>(VisualPositioningSystem.BypassKalman);
 
             var tickSubscription = Observable
                 .EveryUpdate(UnityFrameProvider.Update)
@@ -358,56 +356,13 @@ namespace Placeframe.Client
                             horizontalAlignment = Props.Value(TMPro.HorizontalAlignmentOptions.Center)
                         }
                     }),
-                    Text(new() { value = lastAcceptObservable }),
-                    BypassToggleRow(
-                        "Bypass innovation gate",
-                        bypassInnovationGate,
-                        isOn => VisualPositioningSystem.BypassInnovationGate = isOn
-                    ),
-                    BypassToggleRow(
-                        "Bypass Kalman update",
-                        bypassKalman,
-                        isOn => VisualPositioningSystem.BypassKalman = isOn
-                    )
+                    Text(new() { value = lastAcceptObservable })
                 )
             });
 
             control.AddBinding(tickSubscription);
 
             return control;
-        }
-
-        private static IControl BypassToggleRow(string label, ObservableValue<bool> state, Action<bool> setStatic)
-        {
-            return HorizontalLayout(new()
-            {
-                childControlWidth = Props.Value(true),
-                childControlHeight = Props.Value(true),
-                childAlignment = Props.Value(TextAnchor.MiddleLeft),
-                spacing = Props.Value(10f),
-                children = Props.List(
-                    Text(new()
-                    {
-                        value = Props.Value(label),
-                        layout = new() { flexibleWidth = Props.Value(1f) },
-                        style = new()
-                        {
-                            verticalAlignment = Props.Value(TMPro.VerticalAlignmentOptions.Capline),
-                            overflowMode = Props.Value(TMPro.TextOverflowModes.Ellipsis),
-                            textWrappingMode = Props.Value(TMPro.TextWrappingModes.NoWrap)
-                        }
-                    }),
-                    Toggle(new ToggleProps()
-                    {
-                        value = state,
-                        onValueChanged = isOn =>
-                        {
-                            setStatic(isOn);
-                            state.value = isOn;
-                        }
-                    })
-                )
-            });
         }
 
         public static IControl ValidationUI()
