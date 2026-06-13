@@ -2,7 +2,7 @@
 
 ## What this is
 
-The Unity-side wrapper around Placeframe's relocalization service. It exposes a static facade (`VisualPositioningSystem`) that authenticates against Placeframe's Keycloak, streams camera frames to `POST /localize`, runs a Bayesian SE(3) filter over the returned poses, and publishes a smoothly-slewed ECEF-to-Unity-world transform that consumers use to anchor virtual content to a real physical place. In-repo consumer: `apps/CaptureTool/`. The host Unity project at this directory is not the package -- it's the editor harness for developing the package; the package itself lives entirely under `Assets/Package/`.
+The Unity-side wrapper around Placeframe's relocalization service. It exposes a static facade (`VisualPositioningSystem`) that authenticates against Placeframe's Keycloak, streams camera frames to `POST /localize`, runs a multi-hypothesis filter over the returned poses, and publishes a smoothly drift-corrected ECEF-to-Unity-world transform that consumers use to anchor virtual content to a real physical place. In-repo consumer: `apps/CaptureTool/`. The host Unity project at this directory is not the package -- it's the editor harness for developing the package; the package itself lives entirely under `Assets/Package/`.
 
 ## Shape
 
@@ -12,7 +12,7 @@ The directory is a Unity project that contains three co-located UPM packages, ea
 
 | Path                                  | Package name                            | What it provides                                                              |
 |---------------------------------------|-----------------------------------------|-------------------------------------------------------------------------------|
-| `Assets/Package/Core/`                | `org.outernet.placeframe`               | `VisualPositioningSystem`, `Auth`, `RelocalizationFilter`, `GeoPose`, `WGS84` |
+| `Assets/Package/Core/`                | `org.outernet.placeframe`               | `VisualPositioningSystem`, `Auth`, `MultiHypothesisFilter`, `DriftCorrectionController`, `GeoPose`, `WGS84` |
 | `Assets/Package/ARFoundation/`        | `org.outernet.placeframe.arfoundation`  | `ARFoundation.CameraProvider` -- ARCore/ARKit `ICameraProvider`                |
 | `Assets/Package/MagicLeap/`           | `org.outernet.placeframe.magicleap`     | `MagicLeapCameraProvider` -- ML2 native-camera `ICameraProvider`               |
 
@@ -29,7 +29,7 @@ The host Unity project's `Assets/Packages/` (NuGet-extracted via NuGetForUnity) 
     Initialize(ICameraProvider, authAudience, logCallback, warnCallback, errorCallback, httpHandlerFactory?)
         |  -- exactly once; second call throws InvalidOperationException
         |  -- stores camera provider, installs log callbacks, calls Auth.Initialize,
-        |     subscribes RelocalizationFilter.TickSlew to EveryUpdate(UnityFrameProvider.Update)
+        |     subscribes DriftCorrectionController.Advance to EveryUpdate(UnityFrameProvider.Update)
         v
     Login(domain, username, password)
         |  -- POSTs to https://{domain}/auth/realms/placeframe-dev/protocol/openid-connect/token
@@ -44,17 +44,17 @@ The host Unity project's `Assets/Packages/` (NuGet-extracted via NuGetForUnity) 
         v
     [per-frame] Localize:
         Api.LocalizeImageAsync(maps, cameraConfig, AxisConvention.UNITY, FileParameter(image))
-            -> RelocalizationFilter.ApplyMeasurement
-                -> OnMetricsReceived event
-                -> snap or slew -> OnEcefToUnityWorldTransformUpdated event
+            -> MultiHypothesisFilter.ApplyMeasurement -> Rejected | Bootstrapped | Accepted
+                -> Bootstrapped snaps the controller; Accepted lets it Observe the new belief
+                -> per-frame DriftCorrectionController.Advance -> OnEcefToUnityWorldTransformUpdated event
 
 Public API surface:
 
-- **State**: `Localizing`, `EcefToUnityWorldTransform`, `UnityWorldToEcefTransform`, `CurrentUncertainty`, `MostRecentMetrics`, `LastReceivedMetrics`, `Api` (the underlying generated client, for advanced use).
-- **Events**: `OnEcefToUnityWorldTransformUpdated` (fired whenever the visible transform changes -- snap or slew tick), `OnMetricsReceived` (per-localization metrics).
+- **State**: `Localizing`, `LoadedMapCount`, `EcefToUnityWorldTransform`, `UnityWorldToEcefTransform`, `Api` (the underlying generated client, for advanced use).
+- **Health**: `SecondsSinceLastAccept`, `IsLocalizationLost` (true once `SecondsSinceLastAccept` exceeds `RelocalizationConfig.LocalizationLostSeconds` while localizing); `FilterHealth.Snapshot()` bundles both for a metrics dialog binding.
+- **Events**: `OnEcefToUnityWorldTransformUpdated` (fired whenever the published transform changes -- a bootstrap/override snap or a drift-correction slew tick).
 - **Coord conversion**: `EcefToUnityWorld(double3, quaternion) -> (Vector3, Quaternion)`, `UnityWorldToEcef(Vector3, Quaternion) -> (double3, quaternion)`.
-- **Diagnostic bypass switches**: `BypassInnovationGate` and `BypassKalman` are `public static bool` flags surfaced as toggles in the metrics dialog. Setting `BypassInnovationGate=true` skips the chi-squared outlier reject; `BypassKalman=true` snaps the posterior to each accepted measurement instead of merging it with the prior. Used to A/B individual pipeline stages against the same camera feed without a rebuild.
-- **Manual reset**: `SetEcefToUnityTransform(double4x4)` calls `RelocalizationFilter.Reset` -- wipes filter history, re-bootstraps the covariance.
+- **Manual reset**: `SetEcefToUnityTransform(double4x4)` resets the hypothesis bank and snaps the drift controller to the supplied transform -- an operator-supplied alignment override.
 - **Reconstruction download**: `GetReconstructionPoints(Guid)`, `GetReconstructionFramePoses(Guid)` -- used by editor tooling.
 - **Map visualization**: `SetMapVisualizationsVisible(bool)`, `LocalizationMapManager.AddMap/RemoveMap` -- spawn ParticleSystem-based point-cloud renderers from the downloaded reconstruction points.
 
@@ -68,25 +68,21 @@ The OIDC parameters are not hardcoded. The client first calls the backend's unau
 
 ### The relocalization filter
 
-`RelocalizationFilter` (`Assets/Package/Core/Runtime/RelocalizationFilter.cs`) is a pure-functional static class. Every public method takes a `FilterState` value and returns a `StepResult`. State:
+Two objects split **belief** from **presentation**, with every tunable for both in `RelocalizationConfig` (`Assets/Package/Core/Runtime/RelocalizationConfig.cs`). `MultiHypothesisFilter` (`Assets/Package/Core/Runtime/MultiHypothesisFilter.cs`) is the belief engine: a bank of competing ECEF-to-Unity alignment hypotheses, publishing the single best as `BestEstimate`. `DriftCorrectionController` (`Assets/Package/Core/Runtime/DriftCorrectionController.cs`) is the presentation layer: it owns the actually-published transform and decides when and how fast to move it toward the belief. The filter never touches the rendered frame; the controller never sees a measurement.
 
-- `AlignmentMean: double4x4` -- Bayesian posterior mean (ECEF to Unity), in Unity basis.
-- `AlignmentCovariance: Matrix<double>` (6x6) -- posterior covariance in se(3) tangent (rotation first, translation second -- matches pycolmap PnP ordering).
-- `AlignmentCurrent`, `AlignmentCurrentInverse` -- the actively-published transform (lags `AlignmentMean` during slew).
-- `SlewStart`, `SlewProgress`, `LastAcceptedVioPosition`, `HasAcceptedMeasurement`, `ConsecutiveRejections`, `MostRecentMetrics`.
+**The hypothesis bank.** Each `Hypothesis` carries an `Id`, an `Estimate` (`double4x4`), a `Score`, and the VIO position/time of its last support. `ApplyMeasurement(localizationResult, frame, nowSeconds)` returns a `MeasurementOutcome` (`Rejected` | `Bootstrapped` | `Accepted`):
 
-The Bayesian update for each measurement (`ApplyMeasurement`):
+1. Compute the measurement matrix from the localizer response. `CameraFromMapTransform`, `MapTransform`, and the VIO `CameraFromUnityWorld` compose to the raw 6 DOF `R_unityFromEcef`. The translation is anchored on the camera: `tMeas = t_unityWorldCamera - R_unityFromEcef * t_ecefFromCamera`, so the camera's reported Unity-world position determines the alignment translation regardless of how rotation noise lever-arms around the map origin. The ECEF-to-Unity basis change (`diag(1, -1, 1)`) is applied inline.
+2. Quality gate: reject (`Rejected`) if `inlier_ratio < MinInlierRatio` (0.25) or `num_inliers < MinInliers` (50). No state change.
+3. The first accepted measurement bootstraps the bank: spawn one hypothesis, make it leader, return `Bootstrapped`.
+4. Otherwise associate to the hypothesis with the smallest SE(3) residual inside the gate -- a translation bound that widens with the VIO distance walked since that hypothesis was last supported (`GateTranslationBaseMeters + GateTranslationRatePerMeter * vioDelta`) plus a fixed rotation bound (`GateRotationRadians`). A match folds the measurement in (the hypothesis `Estimate` becomes the measurement) and adds motion-weighted score; a measurement matching none spawns a new hypothesis, pruning the weakest non-leader first if the bank is already at `MaxHypotheses` (3). Either path returns `Accepted`.
+5. Every unsupported hypothesis decays (`Score *= ScoreDecayPerMeasurement`); those below `ScoreFloor` are pruned, never the leader. The referee (`UpdateLeader`) then runs.
 
-1. Compute `measurementMean` from the localizer response. `CameraFromMapTransform`, `MapTransform`, and the VIO `CameraFromUnityWorld` compose to the raw 6 DOF `R_unityFromEcef`. The translation is anchored on the camera: `tMeas = t_unityWorldCamera - R_unityFromEcef * t_ecefFromCamera`, so the camera's reported Unity-world position determines the alignment translation regardless of how the rotation noise lever-arms around the map origin. The ECEF-to-Unity basis change (`diag(1, -1, 1)`) is applied inline.
-2. Inflate the predicted covariance by a base diagonal (`1e-6` rad squared on rotation, `1e-4` m squared per tick on translation) plus VIO drift proportional to translated distance (0.01 sigma per meter of motion, squared, applied uniformly to all six tangent dimensions). Rotation-only motion contributes no extra noise -- a known simplification.
-3. Innovation: `residual = Se3.Log(currentMean^-1 * measurementMean)`, Mahalanobis squared `= residual . (Sigma_pred + Sigma_meas)^-1 . residual`.
-4. Gate at chi-squared 99% with 6 DOF = 16.81 (`Chi2_99_6dof`). Reject and log if exceeded.
-5. Kalman update in se(3) tangent: `K = Sigma_pred (Sigma_pred + Sigma_meas)^-1`, `mu_new = mu * Se3.Exp(K residual)`, `Sigma_new = (I - K) Sigma_pred`.
-6. Snap-or-slew decision: first accept always snaps (the bootstrap covariance is intentionally large). Subsequent updates: snap if the Mahalanobis-squared shift from current mean to new mean exceeds 36 (about 6 sigma); else start a 0.5s smoothstep slew.
+**Motion-diversity scoring is the anti-aliasing core.** A supported hypothesis earns `SupportRewardGainPerMeter * min(vioDelta, SupportRewardCapMeters)`, and `SupportRewardBase` is **zero** -- a confirmation from a standstill (`vioDelta` ~ 0) earns nothing. A perceptual alias, re-confirmed only from its one viewpoint, accrues no score and can never clear the promotion margin; the true hypothesis, confirmed across a walk, accrues score and stays published. The referee promotes a challenger over the leader only once it leads by `PromotionMargin` (2.0) AND holds that lead for `PromotionDwellSeconds` (2.0s). It runs on each accepted measurement, not on a clock, so a stalled measurement stream never promotes on stale evidence.
 
-`TickSlew` runs every Unity frame via the `EveryUpdate` subscription installed in `Initialize`, advancing `SlewProgress` and recomputing `AlignmentCurrent` via `Double4x4.Interpolate` (decompose, slerp rotation, lerp translation/scale, recompose -- component-wise lerping a 4x4 destroys orthonormality). The `TransformChanged` flag drives `OnEcefToUnityWorldTransformUpdated`.
+**The drift-correction controller.** `Current`/`CurrentInverse` are the published transform. `Set(target, now)` snaps it outright (bootstrap and operator override). `Observe(bestEstimate, vioPosition, vioRotation, now)`, called on each accepted measurement, compares the published frame to the belief and re-anchors only when the SE(3) residual exceeds a deadband. The deadband starts wide (`CorrectionTranslationMaxMeters` = 1.0m) and shrinks toward a floor (`CorrectionTranslationMinMeters` = 0.15m) as the device moves and, more slowly, as time passes -- resetting to wide on any correction. A triggered correction eases the frame to the belief over a fixed `CorrectionSlewSeconds` (0.25s) smoothstep; in steady state it never moves. `Advance(dt)` runs every Unity frame via the `EveryUpdate` subscription installed in `Initialize`, stepping any active slew and driving `OnEcefToUnityWorldTransformUpdated` when the published transform changed -- so `GeoPose` re-applies its transform throughout a slew.
 
-`Reset(newAlignment)` wipes filter history and re-bootstraps the covariance. Used by `SetEcefToUnityTransform` for operator-supplied alignment overrides.
+`MultiHypothesisFilter.Reset()` drops the whole bank. `SetEcefToUnityTransform` calls it and then `DriftCorrectionController.Set` to snap the published frame to an operator-supplied override (e.g. a demo-day rescue button).
 
 ### ECEF to Unity coordinate transform
 
@@ -122,7 +118,7 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 ### Tests
 
-`Assets/Package/Core/Tests/Editor/` holds five NUnit edit-mode test files: `Double4x4Tests` (decompose, interpolate), `LocationUtilitiesTests` (basis-change involutions), `Se3Tests` (Exp/Log round-trip including small-angle branch), `WGS84Tests` (cartographic to/from ECEF round-trip at known sites), `RelocalizationFilterTests` (bootstrap, slew, snap-vs-slew, gate, posterior, VIO drift inflation, camera-anchored translation regression for a pitched input, repeated-rejection consecutive counter, bypass-flag plumbing). These are the only Unity-side regression net; there is no integration test against a running localizer.
+`Assets/Package/Core/Tests/Editor/` holds five NUnit edit-mode test files plus a shared `RelocalizationTestHelpers`: `Double4x4Tests` (decompose, interpolate), `LocationUtilitiesTests` (basis-change involutions), `Se3Tests` (Exp/Log round-trip including small-angle branch), `WGS84Tests` (cartographic to/from ECEF round-trip at known sites), and `MultiHypothesisFilterTests` (two test classes). The filter class covers bootstrap, quality-gate reject, far-measurement spawn, stale-hypothesis decay-and-prune, bank cap, reset re-bootstrap, margin-then-dwell promotion, the camera-anchored translation regression for a pitched input, and the `AbAliasing_BestEstimateNeverLeavesRegionA` acceptance test (the load-bearing anti-aliasing regression net). The `DriftCorrectionControllerTests` class covers instantaneous `Set`, the within-deadband no-op, the beyond-deadband armed slew that eases (never snaps) to target, and the distance-collapsing deadband. These are the only Unity-side regression net; there is no integration test against a running localizer.
 
 ### Editor utilities
 
@@ -132,19 +128,17 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 ## Constraints
 
-**Static API for a single-session assumption.** Placeframe is one localization session per process -- one set of maps, one filter, one set of camera frames. The static facade avoids `[SerializeField] VisualPositioningSystem _vps;` plumbing in every consumer scene at the cost of testability and runtime provider-swap. The filter is a pure-functional static class so the state can be tested in isolation despite the surrounding singleton.
+**Static API for a single-session assumption.** Placeframe is one localization session per process -- one set of maps, one filter, one set of camera frames. The static facade avoids `[SerializeField] VisualPositioningSystem _vps;` plumbing in every consumer scene at the cost of testability and runtime provider-swap. The filter and drift controller are plain instantiable classes held in static fields, so their state can be exercised in isolation despite the surrounding singleton.
 
 **Three asmdefs, not one.** Pulling ARFoundation into a MagicLeap-only build (or vice versa) creates compile-time conflicts and binary bloat. Per-stack camera providers in their own asmdefs compile only when their platform is the target. Core has zero AR/XR refs and can be tested in pure C#. The cost is three `package.json` files to keep version-aligned and three asmdefs to keep ref-correct.
 
-**Bayesian filter in tangent space with chi-squared gate.** A naive moving average over the measurement transform is wrong on SE(3) -- averaging rotation matrices isn't a rotation. Working in se(3) tangent (the Lie algebra) makes the Kalman update linear-to-first-order around the current mean, and lets the innovation gate use a standard Mahalanobis distance against the analytic measurement covariance the server returns (`MeasurementCovariance = alpha * PnP + beta * I`, see `docker/localizer/SPEC.md`). The trade-off: tangent-space accuracy degrades for large innovations, which is why large posterior shifts snap rather than slew.
+**Multi-hypothesis belief, separated from presentation.** Earlier formulations tracked a *single* anchor: first an SE(3) tangent-space EKF (chi-squared innovation gate, posterior-shrinking covariance, fixed-duration smoothstep slew between an estimate frame and a displayed frame), then a single-anchor complementary low-pass with a VIO-consistency anomaly counter. Both shared a fatal weakness against perceptual aliasing -- a single point-estimate has no way to *hold* the correct answer while a plausible wrong one is live, so a confident look-alike eventually forces the observed ~25m teleport. The current design splits the problem: `MultiHypothesisFilter` is a pure belief engine (a bank of competing alignments scored by how well each keeps predicting the device's position as it moves), and `DriftCorrectionController` is pure presentation (it renders the published frame and decides when to move it). Neither knows the other's internals. The dead EKF machinery is gone with this rewrite -- no Kalman gain, no covariance on the wire, no innovation gate, and the old `BypassInnovationGate` / `BypassKalman` runtime toggles no longer exist.
 
-**Camera-anchored measurement translation.** The earlier "compose `tMap` directly" formulation pivoted the alignment around the ECEF origin: any rotation noise produced a position offset that scaled linearly with `|t_ecefFromCamera|`, so a 0.5-degree rotation error displaced the rendered camera by ~50cm at 50m from origin. Anchoring the measurement translation on the camera (`tMeas = t_unityWorldCamera - R_unityFromEcef * t_ecefFromCamera`) makes the camera position correct by construction at the moment of measurement, and lets the Kalman update propagate rotation refinements through the camera anchor instead of the ECEF origin. A briefly-explored 4 DOF filter parameterisation (`d1e15fbb`..`a7f6336c`) was reverted in favor of keeping the full SO(3) state with camera anchoring.
+**Camera-anchored measurement translation.** The earlier "compose `tMap` directly" formulation pivoted the alignment around the ECEF origin: any rotation noise produced a position offset that scaled linearly with `|t_ecefFromCamera|`, so a 0.5-degree rotation error displaced the rendered camera by ~50cm at 50m from origin. Anchoring the measurement translation on the camera (`tMeas = t_unityWorldCamera - R_unityFromEcef * t_ecefFromCamera`) makes the camera position correct by construction at the moment of measurement, propagating rotation refinements through the camera anchor instead of the ECEF origin. A briefly-explored 4 DOF filter parameterisation (`d1e15fbb`..`a7f6336c`) was reverted in favor of keeping the full SO(3) state with camera anchoring.
 
-**Snap-or-slew with smoothstep.** Visual continuity matters more than mathematical pristineness -- a 30cm position jump on a successful first localize is shocking on-headset. The 0.5s smoothstep slew hides small refinements; the 6-sigma snap threshold catches cases where slewing would be longer-than-correct-tracking (e.g. recovering from an outlier-rejected sequence). The first accept always snaps because the bootstrap covariance (pi squared rad squared, 100 squared m squared) is degenerate and the snap-magnitude calculation isn't meaningful.
+**Motion-diversity scoring defeats perceptual aliasing.** Hallway-with-identical-doors environments confirm their own wrong locks -- the wrong location really does look like the right one from a similar viewpoint, so per-shot solver quality (inlier ratio, reprojection error, even a calibrated confidence) cannot distinguish a correct lock from a confidently-wrong alias. The bank distinguishes them by *motion*: a hypothesis earns score proportional to the VIO distance walked between its confirmations (`SupportRewardGainPerMeter * min(vioDelta, cap)`) with a base reward of zero. An alias re-confirmed only from its one viewpoint sees `vioDelta` ~ 0 each time, accrues no score, and can never clear the promotion margin no matter how often it is seen; the true hypothesis, confirmed as the device walks, accrues score and stays published. Promotion additionally requires holding the lead for a dwell, so a momentary score spike doesn't flip the published frame. This is the load-bearing anti-aliasing mechanism, and `AbAliasing_BestEstimateNeverLeavesRegionA` is its regression net. It replaces the prior single-anchor's VIO-consistency anomaly counter, which could only *stall* on a suspicious measurement and then re-localize -- it had no way to keep a correct anchor alive *alongside* a competing wrong one.
 
-**Diagnostic bypass switches over per-build feature flags.** `BypassInnovationGate` and `BypassKalman` are `public static bool` flags toggleable at runtime through the metrics dialog. Flipping them in the field lets a tester A/B individual pipeline stages against the same camera feed without an APK rebuild and a re-walk of the space. The cost is two always-checked branches in the hot path, which are predictable enough that the cost is negligible.
-
-**Server-computed measurement covariance.** Earlier versions of the filter applied a client-side confidence gate; commit `06bff440` dropped it in favor of consuming the calibrated `MeasurementCovariance` directly. The localizer's `fit_calibration` pipeline now solves for the alpha/beta formula at build time, and the client filter stays calibration-agnostic -- see `docker/localizer/SPEC.md` Calibration runtime.
+**Deadband drift correction; eased slew, never a steady-state snap.** ZED VIO drifts roughly 1-2% of distance traveled in translation and 0.1-1 deg/min in rotation, so a frozen alignment guarantees virtual content peels off the world as the user walks (place a sign on a building, walk a block, turn around -- the sign is 1m off). But re-anchoring on every measurement pumps per-shot PnP jitter straight into the rendered frame. The controller's deadband resolves the tension: it leaves the published frame alone while the belief sits within tolerance and re-anchors only past the band. The band starts wide and collapses toward a floor with motion and (more slowly) time, so a freshly-corrected frame tolerates large divergence while a long-settled or far-walked one tightens up and corrects sooner. Every triggered correction eases over a fixed 0.25s smoothstep -- a 1cm and a 30cm correction take the same time, so large ones don't fly across the scene. Only bootstrap and operator override snap.
 
 **Keycloak ROPC over OAuth code flow.** Resource Owner Password Credentials is deprecated by OAuth 2.1 but is what Placeframe ships, because XR clients typing a username and password into a Unity-rendered text box is the lowest-friction path. A browser-redirect code flow would require an external WebView or platform browser handoff, which is awkward on Magic Leap and inappropriate for headless Capture Tool runs. The cost is the static `Password` property holding the plaintext for the process lifetime.
 
@@ -152,5 +146,5 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
 
 ## See also
 
-- `docker/localizer/SPEC.md` -- server side of the `/localize` contract; documents the `MeasurementCovariance = alpha * PnP + beta * I` formula this filter consumes and the calibration runtime that produces it.
+- `docker/localizer/SPEC.md` -- server side of the `/localize` contract; documents the wire format for `inlier_ratio` and `num_inliers` (the fields this filter gates on), the `confidence_tight` pair the server now returns ungated, and the `MeasurementCovariance = alpha * PnP + beta * I` formula the client carries but does not consume.
 - `docker/SPEC.md` -- multi-service stack the Unity client talks to, including the Keycloak realm and the Loki log-shipping path the static log callbacks plug into.
