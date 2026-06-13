@@ -20,7 +20,7 @@ from core.opq import decode_descriptors
 from core.model_wrappers import RetrievalDim
 from core.tensor_types import TT
 from core.transform import Float3, Float4, Transform
-from numpy import asarray, float32, vstack
+from numpy import asarray, float32, sqrt, stack, vstack
 from pycolmap import AbsolutePoseEstimationOptions, RANSACOptions
 from pycolmap import Camera as ColmapCamera
 from pycolmap._core import Rigid3d, estimate_and_refine_absolute_pose, set_random_seed  # type: ignore  # noqa: PLC2701 — no public API
@@ -117,6 +117,13 @@ def localize_image_against_reconstruction(
     top_k_image_indices: list[int] = topk(per_image_similarity, top_k).indices.cpu().tolist()  # type: ignore
     matched_image_ids = [map.ordered_image_ids[i] for i in top_k_image_indices]
     timings["retrieval"] = perf_counter() - t
+
+    # Span of retrieved camera centers in world space; a large span means retrieval pulled
+    # images from physically distinct map regions that look alike (perceptual aliasing).
+    retrieved_centers = stack([map.images[image_id].projection_center().ravel() for image_id in matched_image_ids])
+    pairwise_offsets = retrieved_centers[:, None, :] - retrieved_centers[None, :, :]
+    retrieval_span_meters = float(sqrt((pairwise_offsets**2).sum(axis=-1)).max())
+    print(f"retrieval span(m): {retrieval_span_meters:.2f} image_ids={matched_image_ids}")
 
     t = perf_counter()
     # Decode descriptors of matched database images
