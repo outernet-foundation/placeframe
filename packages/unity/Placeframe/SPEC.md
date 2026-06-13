@@ -104,9 +104,12 @@ The contract (`Assets/Package/Core/Runtime/ICameraProvider.cs`):
         public byte[] ImageBytes;                              // JPG
         public Vector3 CameraTranslationUnityWorldFromCamera;  // VIO pose at capture
         public Quaternion CameraRotationUnityWorldFromCamera;
+        public CameraTrackingState TrackingState;              // Tracking | Limited | Lost | Unknown
     }
 
 `PinholeCameraConfig` and `AxisConvention` come from the generated `PlaceframeApiClient`. `OrientationEnum` matches EXIF orientation tags. `NoOpCameraProvider` returns `Observable.Empty<>()` for both -- used in the editor where there's no real camera.
+
+`CameraTrackingState` lets each provider report what its VIO subsystem thinks of its own pose at capture time, without making `Core` depend on any provider SDK's enum. `Tracking` means a full 6 DOF pose with no degradation reported; `Limited` means the pose is still being emitted but the subsystem has flagged the session as degraded (e.g. ARFoundation's session state has dropped from `SessionTracking`); `Lost` means tracking is gone; `Unknown` is the unset default for providers that do not expose a state. The filter does not gate on it -- it is a diagnostic signal so the post-mortem log can tell a tracking degradation apart from a stationary symmetric-PnP sweep.
 
 `Placeframe.Core.ARFoundation.CameraProvider` (`Assets/Package/ARFoundation/Runtime/CameraProvider.cs`) constructs from `ARCameraManager` plus `ARAnchorManager`. It disables auto-focus on construction (auto-focus shifts intrinsics frame-to-frame, breaking localization), picks the highest-resolution available config, waits for matching intrinsics, and returns `OrientationEnum.LEFTTOP` (EXIF=5). Frames are throttled (`ThrottleLast`), captured via `TryAcquireLatestCpuImage` then `ConvertAsync`, then JPG-encoded on a thread pool at quality 75. Optional `useCameraPoseAnchoring=true` creates an `ARAnchor` at the current camera pose (with Y-only euler -- pitch and roll discarded for a level reference) and reports frame poses relative to it; used by `CaptureManager` for stable disk recording, not by live localization.
 
