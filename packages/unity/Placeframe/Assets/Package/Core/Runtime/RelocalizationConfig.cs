@@ -20,9 +20,17 @@ namespace Placeframe.Core
         public const double SupportRewardGainPerMeter = 1.0;
         public const double SupportRewardCapMeters = 5.0;
 
-        // Per measurement, every hypothesis that was not the one supported loses a fraction of its
-        // score; hypotheses below the floor are pruned (never the published leader).
-        public const double ScoreDecayPerMeasurement = 0.98;
+        // Hard ceiling on a hypothesis score. Score is current belief strength, not lifetime evidence:
+        // without a ceiling a leader that banks a large score during an early motion-rich stretch cannot
+        // be overtaken for hundreds of queries after it goes stale. The cap bounds that lead so decay
+        // unseats a stale leader in a bounded number of queries.
+        public const double ScoreCap = 5.0;
+
+        // Once per query, every hypothesis not supported that query loses a fraction of its score;
+        // hypotheses below the floor are pruned (never the published leader). At 0.90 the score is an
+        // ~10-query memory, so a leader that stops being confirmed decays below a freshly-supported
+        // challenger in roughly that many queries.
+        public const double ScoreDecayPerMeasurement = 0.90;
         public const double ScoreFloor = 0.05;
         public const double SpawnSeedScore = 0.1;
 

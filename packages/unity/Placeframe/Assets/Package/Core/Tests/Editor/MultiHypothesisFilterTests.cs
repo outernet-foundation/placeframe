@@ -9,6 +9,21 @@ namespace Placeframe.Core.Tests
     {
         private static MultiHypothesisFilter NewFilter() => new MultiHypothesisFilter();
 
+        // One query carrying several clusters: each alignmentX publishes the world origin at that x while the
+        // device (VIO) sits at cameraX, the same convention as the single-measurement Apply helper.
+        private static MeasurementOutcome ApplyBatch(MultiHypothesisFilter filter, double cameraX, float nowSeconds, params double[] alignmentXs)
+        {
+            var camera = new float3((float)cameraX, 0f, 0f);
+            var measurements = new MapLocalization[alignmentXs.Length];
+            for (var i = 0; i < alignmentXs.Length; i++)
+            {
+                var mapTranslation = new float3((float)(cameraX - alignmentXs[i]), 0f, 0f);
+                measurements[i] = MakeLocalization(mapTranslation: mapTranslation);
+            }
+
+            return filter.ApplyMeasurements(measurements, MakeFrame(camera), nowSeconds);
+        }
+
         [Test]
         public void Bootstrap_FirstMeasurement_BecomesBestEstimate()
         {
@@ -187,6 +202,71 @@ namespace Placeframe.Core.Tests
             Assert.That(transformedCamera.x, Is.EqualTo(10.0).Within(1e-6));
             Assert.That(transformedCamera.y, Is.EqualTo(0.0).Within(1e-6));
             Assert.That(transformedCamera.z, Is.EqualTo(0.0).Within(1e-6));
+        }
+
+        [Test]
+        public void RecoversFromStaleLock_OnceCappedScoreDecays()
+        {
+            var filter = NewFilter();
+            Apply(filter, alignmentX: 0, cameraX: 0, 0f);
+
+            // Bank the leader hard across a long motion-rich stretch. Capped, its score saturates at
+            // ScoreCap; uncapped it would accumulate without bound and become impossible to overtake.
+            var now = 0f;
+            for (var i = 1; i <= 20; i++)
+            {
+                now = i;
+                Apply(filter, alignmentX: 0, cameraX: 5 * i, now);
+            }
+
+            Assert.That(filter.PublishedHypothesisId, Is.EqualTo(0));
+
+            // Stop confirming the leader; confirm a distinct pose across continued motion. The leader decays
+            // from the cap while the challenger climbs, so the lead changes hands within a bounded number of
+            // queries — the behavior an unbounded score denied.
+            for (var i = 1; i <= 10; i++)
+            {
+                now += 1;
+                Apply(filter, alignmentX: 25, cameraX: 100 + 5 * i, now);
+            }
+
+            Assert.That(filter.PublishedHypothesisId, Is.EqualTo(1));
+            Assert.That(filter.BestEstimate.c3.x, Is.EqualTo(25.0).Within(1e-6));
+        }
+
+        [Test]
+        public void BatchDedup_TwoClustersSamePose_ConfirmOneHypothesis()
+        {
+            var filter = NewFilter();
+            Apply(filter, alignmentX: 0, cameraX: 0, 0f);
+            var before = filter.HypothesisCount;
+
+            // A query whose two clusters solve to nearly the same far pose must confirm a single hypothesis:
+            // the second falls inside the gate of the one the first just spawned and is dropped as redundant.
+            ApplyBatch(filter, cameraX: 0, nowSeconds: 1f, 25.0, 25.05);
+
+            Assert.That(filter.HypothesisCount, Is.EqualTo(before + 1));
+        }
+
+        [Test]
+        public void Eviction_FreshlyConfirmedChallengerSurvivesCapacityChurn()
+        {
+            var filter = NewFilter();
+            Apply(filter, alignmentX: 0, cameraX: 0, 0f);
+
+            // Every query confirms the challenger across motion alongside a unique one-off pose, holding the
+            // bank at capacity. The freshly-confirmed challenger is never the eviction target — the abandoned
+            // one-off poses are — so it accumulates and takes the lead while the bank stays bounded.
+            var now = 0f;
+            for (var i = 1; i <= 12; i++)
+            {
+                now = i;
+                ApplyBatch(filter, cameraX: 5.0 * i, nowSeconds: now, 25.0, 200.0 + (50.0 * i));
+            }
+
+            Assert.That(filter.HypothesisCount, Is.LessThanOrEqualTo(RelocalizationConfig.MaxHypotheses));
+            Assert.That(filter.PublishedHypothesisId, Is.EqualTo(1));
+            Assert.That(filter.BestEstimate.c3.x, Is.EqualTo(25.0).Within(1e-6));
         }
     }
 

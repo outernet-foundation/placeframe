@@ -46,11 +46,15 @@ namespace Placeframe.Core
             var supported = new HashSet<Hypothesis>();
             var bootstrapped = false;
             var startId = _nextId;
+            var redundantCount = 0;
 
             foreach (var measurement in measurements)
             {
                 var wasLeaderless = _leader == null;
-                var touched = AssociateMeasurement(measurement, frame, nowSeconds, supported);
+                var touched = AssociateMeasurement(measurement, frame, nowSeconds, supported, out var redundant);
+                if (redundant)
+                    redundantCount++;
+
                 if (touched == null)
                     continue;
 
@@ -58,15 +62,16 @@ namespace Placeframe.Core
                 bootstrapped |= wasLeaderless;
             }
 
-            // Every touched hypothesis is distinct (association excludes already-matched, spawns are new), so
-            // each Spawn bumped _nextId exactly once and the supported set splits cleanly into matched + spawned.
+            // supported holds only matched and spawned hypotheses (redundant duplicates and quality rejects
+            // return null and never enter it), each distinct and each spawn having bumped _nextId once, so the
+            // set splits cleanly into matched + spawned.
             var spawnedCount = _nextId - startId;
             var matchedCount = supported.Count - spawnedCount;
-            var rejectedCount = measurements.Count - supported.Count;
+            var rejectedCount = measurements.Count - supported.Count - redundantCount;
 
             if (supported.Count == 0)
             {
-                LogBatch(measurements.Count, matchedCount, spawnedCount, rejectedCount, MeasurementOutcome.Rejected);
+                LogBatch(measurements.Count, matchedCount, spawnedCount, redundantCount, rejectedCount, MeasurementOutcome.Rejected);
                 return MeasurementOutcome.Rejected;
             }
 
@@ -90,19 +95,19 @@ namespace Placeframe.Core
             UpdateLeader(nowSeconds);
 
             var outcome = bootstrapped ? MeasurementOutcome.Bootstrapped : MeasurementOutcome.Accepted;
-            LogBatch(measurements.Count, matchedCount, spawnedCount, rejectedCount, outcome);
+            LogBatch(measurements.Count, matchedCount, spawnedCount, redundantCount, rejectedCount, outcome);
             return outcome;
         }
 
         // One line per query: outcome, the matched/spawned/rejected split, the published leader and standing
         // challenger, and the full post-batch score roster — the only marker delimiting one query's batch from
         // the next, and the readout for watching an alias hypothesis accrue score across queries.
-        private void LogBatch(int measurements, int matched, int spawned, int rejected, MeasurementOutcome outcome)
+        private void LogBatch(int measurements, int matched, int spawned, int redundant, int rejected, MeasurementOutcome outcome)
         {
             var roster = string.Join(",", _hypotheses.Select(hypothesis => $"{hypothesis.Id}:{hypothesis.Score:F2}"));
             VisualPositioningSystem.LogDebug(
                 $"step=reloc.batch outcome={outcome} measurements={measurements} matched={matched} spawned={spawned}"
-                    + $" rejected={rejected} leader={(_leader?.Id ?? -1)} challenger={(_challenger?.Id ?? -1)} roster=[{roster}]"
+                    + $" redundant={redundant} rejected={rejected} leader={(_leader?.Id ?? -1)} challenger={(_challenger?.Id ?? -1)} roster=[{roster}]"
             );
         }
 
@@ -110,11 +115,12 @@ namespace Placeframe.Core
             ApplyMeasurements(new[] { localizationResult }, frame, nowSeconds);
 
         // Associate one measurement to a hypothesis (or spawn one), without decaying or promoting — the
-        // batch owns those. Returns the matched/spawned hypothesis, or null if the quality gate rejects it.
-        // A hypothesis already matched earlier in the same batch is excluded so each measurement lands on a
-        // distinct hypothesis.
-        private Hypothesis AssociateMeasurement(MapLocalization localizationResult, CameraFrame frame, float nowSeconds, HashSet<Hypothesis> alreadyMatched)
+        // batch owns those. Returns the matched/spawned hypothesis, or null on a quality-gate reject or a
+        // redundant measurement (one whose best in-gate hypothesis was already matched this batch, e.g. a
+        // second retrieval cluster solving to the same pose). redundant is set only in that latter case.
+        private Hypothesis AssociateMeasurement(MapLocalization localizationResult, CameraFrame frame, float nowSeconds, HashSet<Hypothesis> alreadyMatched, out bool redundant)
         {
+            redundant = false;
             var metrics = localizationResult.Metrics;
             if (metrics.InlierRatio < RelocalizationConfig.MinInlierRatio || metrics.NumInliers < RelocalizationConfig.MinInliers)
             {
@@ -166,10 +172,10 @@ namespace Placeframe.Core
             }
 
             // Associate to the hypothesis with the smallest SE(3) residual inside the gate — a translation
-            // bound that widens with distance walked, plus a fixed rotation bound. A measurement matching
-            // none spawns a new hypothesis.
+            // bound that widens with distance walked, plus a fixed rotation bound. If that hypothesis was
+            // already matched this batch the measurement is a redundant duplicate (a second cluster solving
+            // to the same pose); a measurement matching no hypothesis at all spawns a new one.
             var best = _hypotheses
-                .Where(hypothesis => !alreadyMatched.Contains(hypothesis))
                 .Select(hypothesis =>
                 {
                     var candidateVioDelta = math.length(vioPosition - hypothesis.LastSupportVioPosition);
@@ -187,13 +193,25 @@ namespace Placeframe.Core
                 .OrderBy(candidate => candidate.ResidualMeters)
                 .FirstOrDefault();
 
+            if (best != null && alreadyMatched.Contains(best.Hypothesis))
+            {
+                redundant = true;
+                VisualPositioningSystem.LogDebug(
+                    $"step=reloc.measure action=redundant chosen={best.Hypothesis.Id} residM={best.ResidualMeters:F3} {QualityFields(metrics)}"
+                );
+                return null;
+            }
+
             if (best != null)
             {
                 var matched = best.Hypothesis;
                 matched.Estimate = measurementMatrix;
-                matched.Score +=
-                    RelocalizationConfig.SupportRewardBase
-                    + (RelocalizationConfig.SupportRewardGainPerMeter * math.min(best.VioDelta, RelocalizationConfig.SupportRewardCapMeters));
+                matched.Score = math.min(
+                    matched.Score
+                        + RelocalizationConfig.SupportRewardBase
+                        + (RelocalizationConfig.SupportRewardGainPerMeter * math.min(best.VioDelta, RelocalizationConfig.SupportRewardCapMeters)),
+                    RelocalizationConfig.ScoreCap
+                );
                 matched.LastSupportVioPosition = vioPosition;
                 matched.LastSupportTime = nowSeconds;
 
@@ -207,7 +225,7 @@ namespace Placeframe.Core
             }
 
             if (_hypotheses.Count >= RelocalizationConfig.MaxHypotheses)
-                PruneWeakestNonLeader();
+                PruneStalestNonLeader();
 
             var spawned = Spawn(measurementMatrix, vioPosition, nowSeconds);
             VisualPositioningSystem.LogDebug(
@@ -259,18 +277,25 @@ namespace Placeframe.Core
             }
         }
 
-        private void PruneWeakestNonLeader()
+        // Evict the stalest non-leader (oldest since last support, ties broken by score), never the lowest
+        // score outright: a freshly-spawned candidate carries the seed score and would always be the lowest,
+        // so a weakest-score policy would evict it via the spawn that immediately follows it, before it could
+        // earn a second match. Staleness protects what was just supported and removes the genuinely abandoned.
+        private void PruneStalestNonLeader()
         {
-            var weakest = _hypotheses
+            var stalest = _hypotheses
                 .Where(hypothesis => hypothesis != _leader)
-                .OrderBy(hypothesis => hypothesis.Score)
+                .OrderBy(hypothesis => hypothesis.LastSupportTime)
+                .ThenBy(hypothesis => hypothesis.Score)
                 .FirstOrDefault();
-            if (weakest == null)
+            if (stalest == null)
                 return;
 
-            VisualPositioningSystem.LogDebug($"step=reloc.prune reason=capacity id={weakest.Id} score={weakest.Score:F3}");
-            _hypotheses.Remove(weakest);
-            if (_challenger == weakest)
+            VisualPositioningSystem.LogDebug(
+                $"step=reloc.prune reason=capacity id={stalest.Id} score={stalest.Score:F3} lastSupport={stalest.LastSupportTime:F3}"
+            );
+            _hypotheses.Remove(stalest);
+            if (_challenger == stalest)
                 _challenger = null;
         }
 
