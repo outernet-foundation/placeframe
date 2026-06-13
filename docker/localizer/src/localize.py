@@ -229,13 +229,6 @@ def localize_image_against_reconstruction(
         map,
     )
 
-    if metrics.confidence_loose < calibration.loose_min or metrics.confidence_tight < calibration.tight_min:
-        raise LocalizationError(
-            f"Confidence below gate: "
-            f"loose={metrics.confidence_loose:.3f} (min {calibration.loose_min}), "
-            f"tight={metrics.confidence_tight:.3f} (min {calibration.tight_min})"
-        )
-
     timings["total"] = perf_counter() - t0
     print("localize timings(ms): " + " ".join(f"{k}={v * 1000:.0f}" for k, v in timings.items()))
 
